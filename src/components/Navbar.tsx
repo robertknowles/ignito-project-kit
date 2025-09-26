@@ -8,9 +8,11 @@ import {
   SettingsIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   // Close dropdown when clicking outside
@@ -28,9 +30,8 @@ export const Navbar = () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
-  const handleLogout = () => {
-    // Implement logout functionality here
-    console.log('Logging out...')
+  const handleLogout = async () => {
+    await signOut()
     setDropdownOpen(false)
     navigate('/login')
   }

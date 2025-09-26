@@ -1,20 +1,38 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Login() {
   const navigate = useNavigate()
+  const { signIn, user } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard')
+    }
+  }, [user, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Implement actual login logic here
-    console.log('Logging in with:', email, password)
-    // Navigate to dashboard after successful login
-    navigate('/dashboard')
+    setLoading(true)
+    setError('')
+
+    const { error: signInError } = await signIn(email, password)
+    
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+    } else {
+      navigate('/dashboard')
+    }
   }
 
   return (
@@ -41,6 +59,11 @@ export function Login() {
             </p>
           </div>
           <div className="bg-white py-8 px-6 shadow-sm rounded-lg">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label
@@ -132,9 +155,10 @@ export function Login() {
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3b82f6]"
+                  disabled={loading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign in
+                  {loading ? 'Signing in...' : 'Sign in'}
                 </button>
               </div>
             </form>

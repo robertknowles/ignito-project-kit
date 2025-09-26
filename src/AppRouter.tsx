@@ -5,17 +5,49 @@ import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
+import { AuthProvider } from './contexts/AuthContext'
+import { ProtectedRoute } from './components/ProtectedRoute'
 export function AppRouter() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/clients" element={<ClientScenarios />} />
-        <Route path="/dashboard" element={<App />} />
-        <Route path="/data" element={<DataAssumptions />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <App />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/clients" 
+            element={
+              <ProtectedRoute>
+                <ClientScenarios />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <App />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/data" 
+            element={
+              <ProtectedRoute>
+                <DataAssumptions />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }

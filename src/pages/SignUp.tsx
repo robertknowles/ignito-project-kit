@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { MailIcon, LockIcon, UserIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function SignUp() {
   const navigate = useNavigate()
+  const { signUp, user } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -11,18 +13,38 @@ export function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard')
+    }
+  }, [user, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
+
     // Validate passwords match
     if (password !== confirmPassword) {
-      alert('Passwords do not match')
+      setError('Passwords do not match')
+      setLoading(false)
       return
     }
-    // Implement actual signup logic here
-    console.log('Signing up with:', name, email, password)
-    // Navigate to dashboard after successful signup
-    navigate('/dashboard')
+
+    const { error: signUpError } = await signUp(email, password, name)
+    
+    if (signUpError) {
+      setError(signUpError.message)
+      setLoading(false)
+    } else {
+      setSuccess(true)
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,6 +71,18 @@ export function SignUp() {
             </p>
           </div>
           <div className="bg-white py-8 px-6 shadow-sm rounded-lg">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-600">
+                  Account created successfully! Please check your email to verify your account.
+                </p>
+              </div>
+            )}
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label
@@ -201,9 +235,10 @@ export function SignUp() {
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3b82f6]"
+                  disabled={loading || success}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create account
+                  {loading ? 'Creating account...' : success ? 'Account created!' : 'Create account'}
                 </button>
               </div>
             </form>
