@@ -32,6 +32,7 @@ export const Navbar = () => {
     // Implement logout functionality here
     console.log('Logging out...')
     setDropdownOpen(false)
+    navigate('/login')
   }
   const handleSettings = () => {
     // Navigate to settings page or open settings modal
