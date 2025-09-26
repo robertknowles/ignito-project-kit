@@ -1,7 +1,9 @@
 import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCard'
+import { PortfolioSummary } from './PortfolioSummary'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { usePropertySelection } from '../hooks/usePropertySelection'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -19,6 +21,14 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     handleEquityGrowthChange, 
     handleCashflowChange 
   } = useInvestmentProfile()
+
+  const {
+    propertyTypes,
+    addProperty,
+    removeProperty,
+    getPropertyQuantity,
+    portfolioCalculations,
+  } = usePropertySelection(calculatedValues, profile)
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -261,71 +271,28 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
             <span>By Cost</span>
           </button>
         </div>
+        
+        {/* Portfolio Summary */}
+        <div className="mb-6">
+          <PortfolioSummary calculations={portfolioCalculations} />
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
-          <PropertyCard
-            title="Granny Flats"
-            priceRange="$170k-$400k"
-            yield="-9%"
-            cashFlow="Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Villas / Townhouses"
-            priceRange="$250k-$400k"
-            yield="6-8%"
-            cashFlow="Negative"
-            riskLevel="High"
-          />
-          <PropertyCard
-            title="Units / Apartments"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="High"
-            selected={true}
-          />
-          <PropertyCard
-            title="Houses (Regional)"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Duplexes"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Metro Houses"
-            priceRange="$600k-$800k"
-            yield="4-5%"
-            cashFlow="Negative"
-            riskLevel="Medium-Low"
-          />
-          <PropertyCard
-            title="Commercial Retail"
-            priceRange="$400k-$1.2M"
-            yield="7-9%"
-            cashFlow="Positive"
-            riskLevel="High"
-          />
-          <PropertyCard
-            title="Office Space"
-            priceRange="$500k-$2M"
-            yield="6-8%"
-            cashFlow="Positive"
-            riskLevel="Very High"
-          />
-          <PropertyCard
-            title="Industrial Units"
-            priceRange="$350k-$1.5M"
-            yield="7-10%"
-            cashFlow="Positive"
-            riskLevel="High"
-          />
+          {propertyTypes.map((property) => (
+            <PropertyCard
+              key={property.id}
+              id={property.id}
+              title={property.title}
+              priceRange={property.priceRange}
+              yield={property.yield}
+              cashFlow={property.cashFlow}
+              riskLevel={property.riskLevel}
+              quantity={getPropertyQuantity(property.id)}
+              selected={getPropertyQuantity(property.id) > 0}
+              onAdd={() => addProperty(property.id)}
+              onRemove={() => removeProperty(property.id)}
+            />
+          ))}
         </div>
       </div>
     )
@@ -501,81 +468,38 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
         </div>
         {/* Property Building Blocks - Right Column */}
         <div className="w-full lg:w-1/2">
-          <div className="flex gap-4 mb-6">
-            <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
-              <span>All...</span>
-            </button>
-            <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
-              <SlidersIcon size={12} />
-              <span>By Cost</span>
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex gap-4 mb-6">
+          <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
+            <span>All...</span>
+          </button>
+          <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
+            <SlidersIcon size={12} />
+            <span>By Cost</span>
+          </button>
+        </div>
+        
+        {/* Portfolio Summary */}
+        <div className="mb-6">
+          <PortfolioSummary calculations={portfolioCalculations} />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {propertyTypes.map((property) => (
             <PropertyCard
-              title="Granny Flats"
-              priceRange="$170k-$400k"
-              yield="-9%"
-              cashFlow="Positive"
-              riskLevel="Medium"
+              key={property.id}
+              id={property.id}
+              title={property.title}
+              priceRange={property.priceRange}
+              yield={property.yield}
+              cashFlow={property.cashFlow}
+              riskLevel={property.riskLevel}
+              quantity={getPropertyQuantity(property.id)}
+              selected={getPropertyQuantity(property.id) > 0}
+              onAdd={() => addProperty(property.id)}
+              onRemove={() => removeProperty(property.id)}
             />
-            <PropertyCard
-              title="Villas / Townhouses"
-              priceRange="$250k-$400k"
-              yield="6-8%"
-              cashFlow="Negative"
-              riskLevel="High"
-            />
-            <PropertyCard
-              title="Units / Apartments"
-              priceRange="$250k-$450k"
-              yield="6-8%"
-              cashFlow="Neutral → Positive"
-              riskLevel="High"
-              selected={true}
-            />
-            <PropertyCard
-              title="Houses (Regional)"
-              priceRange="$250k-$450k"
-              yield="6-8%"
-              cashFlow="Neutral → Positive"
-              riskLevel="Medium"
-            />
-            <PropertyCard
-              title="Duplexes"
-              priceRange="$250k-$450k"
-              yield="6-8%"
-              cashFlow="Neutral → Positive"
-              riskLevel="Medium"
-            />
-            <PropertyCard
-              title="Metro Houses"
-              priceRange="$600k-$800k"
-              yield="4-5%"
-              cashFlow="Negative"
-              riskLevel="Medium-Low"
-            />
-            <PropertyCard
-              title="Commercial Retail"
-              priceRange="$400k-$1.2M"
-              yield="7-9%"
-              cashFlow="Positive"
-              riskLevel="High"
-            />
-            <PropertyCard
-              title="Office Space"
-              priceRange="$500k-$2M"
-              yield="6-8%"
-              cashFlow="Positive"
-              riskLevel="Very High"
-            />
-            <PropertyCard
-              title="Industrial Units"
-              priceRange="$350k-$1.5M"
-              yield="7-10%"
-              cashFlow="Positive"
-              riskLevel="High"
-            />
-          </div>
+          ))}
+        </div>
         </div>
       </div>
     </div>
