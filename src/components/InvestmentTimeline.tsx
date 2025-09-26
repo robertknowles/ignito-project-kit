@@ -8,68 +8,21 @@ import {
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../hooks/usePropertySelection'
 export const InvestmentTimeline = () => {
-  const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, selections, propertyTypes } = usePropertySelection()
+  const { calculatedValues } = useInvestmentProfile()
+  const { calculations, checkFeasibility } = usePropertySelection()
   
   // Get feasibility status based on current selections
-  const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
+  const feasibility = checkFeasibility(calculatedValues.availableDeposit, 500000) // Using default borrowing capacity for now
   
-  // Determine status based on feasibility and selections
+  // Determine status based on feasibility and total cost
   const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
     if (calculations.totalProperties === 0) return 'feasible' // No properties selected
     if (!feasibility.overallFeasible) return 'challenging'
-    if (calculations.totalCost > calculatedValues.availableDeposit * 4) return 'delayed' // High leverage scenario
+    if (calculations.totalCost > calculatedValues.availableDeposit * 3) return 'delayed' // High leverage scenario
     return 'feasible'
   }
 
   const timelineStatus = getTimelineStatus()
-
-  // Generate timeline items based on selected properties
-  const generateTimelineItems = () => {
-    if (calculations.totalProperties === 0) {
-      // Default timeline when no properties selected
-      return [
-        {
-          year: "2025",
-          quarter: "Yr 0",
-          type: "No properties selected",
-          deposit: "$0",
-          price: "$0",
-          status: 'feasible' as const
-        }
-      ]
-    }
-
-    // Generate timeline based on actual selections
-    const timelineItems = []
-    let year = 2025
-    let totalProcessed = 0
-
-    Object.entries(selections).forEach(([propertyId, quantity]) => {
-      if (quantity > 0) {
-        const property = propertyTypes.find(p => p.id === propertyId)
-        if (property) {
-          for (let i = 0; i < quantity; i++) {
-            totalProcessed++
-            timelineItems.push({
-              year: year.toString(),
-              quarter: `Yr ${year - 2025}`,
-              type: property.title,
-              deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-              price: `$${Math.round(property.averagePrice / 1000)}k`,
-              status: timelineStatus,
-              number: totalProcessed > 1 ? totalProcessed.toString() : undefined
-            })
-            year += 1 // Spread purchases over years
-          }
-        }
-      }
-    })
-
-    return timelineItems.slice(0, 5) // Limit to 5 items for UI
-  }
-
-  const timelineItems = generateTimelineItems()
 
   return (
     <div>
@@ -94,37 +47,70 @@ export const InvestmentTimeline = () => {
         </span>
       </div>
       <div className="flex flex-col gap-6">
-        {timelineItems.map((item, index) => (
-          <TimelineItem
-            key={`${item.year}-${item.type}-${index}`}
-            year={item.year}
-            quarter={item.quarter}
-            type={item.type}
-            number={item.number}
-            deposit={item.deposit}
-            source="Savings & Equity"
-            equity="TBD"
-            portfolioValue="TBD"
-            price={item.price}
-            status={item.status}
-            isLast={index === timelineItems.length - 1}
-          />
-        ))}
+        <TimelineItem
+          year="2025"
+          quarter="Yr 0"
+          type="Units / Apartments"
+          deposit="$35k"
+          source="Savings"
+          equity="$70k"
+          portfolioValue="$0.3M"
+          price="$350k"
+          status={timelineStatus}
+        />
+        <TimelineItem
+          year="2026"
+          quarter="Yr 1"
+          type="Units / Apartments"
+          number="2"
+          deposit="$35k"
+          source="Savings"
+          equity="$158k"
+          portfolioValue="$0.7M"
+          price="$350k"
+          status={timelineStatus}
+        />
+        <TimelineItem
+          year="2027"
+          quarter="Yr 2"
+          type="Units / Apartments"
+          number="3"
+          deposit="$35k"
+          source="$28,000 savings + $7,000 equity"
+          equity="$263k"
+          portfolioValue="$1.1M"
+          price="$350k"
+          status={timelineStatus}
+        />
+        <TimelineItem
+          year="2028"
+          quarter="Yr 3"
+          type="Duplexes"
+          deposit="$55k"
+          source="$24,000 savings + $31,000 equity"
+          equity="$429k"
+          portfolioValue="$1.7M"
+          price="$550k"
+          status={timelineStatus}
+        />
+        <TimelineItem
+          year="2029"
+          quarter="Yr 4"
+          type="Metro Houses"
+          deposit="$80k"
+          source="$24,000 savings + $56,000 equity"
+          equity="$679k"
+          portfolioValue="$2.6M"
+          price="$800k"
+          status={timelineStatus}
+          isLast={true}
+        />
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
         <p className="mb-3">
-          {calculations.totalProperties > 0 
-            ? `Timeline shows ${calculations.totalProperties} selected properties. Total investment: $${Math.round(calculations.totalCost / 1000)}k, Deposit required: $${Math.round(calculations.totalDepositRequired / 1000)}k.`
-            : "Select properties to generate an investment timeline. Timeline assumes 5% annual property growth, 80% LVR, and systematic acquisition strategy."
-          }
+          Timeline assumes: 5% annual property growth, 80% LVR, equity
+          accessible at 80% of value, $24,000 annual savings capacity.
         </p>
-        {!feasibility.overallFeasible && calculations.totalProperties > 0 && (
-          <p className="text-[#dc2626] text-xs mt-2">
-            Warning: Selected properties exceed your financial capacity. 
-            {!feasibility.hasAdequateDeposit && " Insufficient deposit funds."}
-            {!feasibility.withinBorrowingCapacity && " Exceeds borrowing capacity."}
-          </p>
-        )}
       </div>
     </div>
   )

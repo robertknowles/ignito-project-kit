@@ -6,16 +6,23 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
-import { usePropertySelection } from '../hooks/usePropertySelection';
 export const Dashboard = () => {
   // State for expandable panes
   const [profileExpanded, setProfileExpanded] = useState(true);
   const [propertyExpanded, setPropertyExpanded] = useState(true);
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
-  
-  const { calculations } = usePropertySelection();
-
+  // Mock client profile data
+  const clientProfile = {
+    depositPool: 50000,
+    borrowingCapacity: 500000,
+    portfolioValue: 0,
+    currentDebt: 0,
+    annualSavings: 24000,
+    timeline: 15
+  };
+  // Mock property data
+  const selectedProperties = ['Units / Apartments'];
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
@@ -32,7 +39,8 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    {calculations.totalProperties} {calculations.totalProperties === 1 ? 'property' : 'properties'} selected
+                    ${clientProfile.depositPool.toLocaleString()} deposit • $
+                    {clientProfile.borrowingCapacity.toLocaleString()} capacity
                   </span>
                   {profileExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
@@ -54,7 +62,7 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    {calculations.totalProperties} selected
+                    {selectedProperties.length} selected
                   </span>
                   {propertyExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
