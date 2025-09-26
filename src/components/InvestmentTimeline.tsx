@@ -5,7 +5,25 @@ import {
   HomeIcon,
   Building2Icon,
 } from 'lucide-react'
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { usePropertySelection } from '../hooks/usePropertySelection'
 export const InvestmentTimeline = () => {
+  const { calculatedValues } = useInvestmentProfile()
+  const { calculations, checkFeasibility } = usePropertySelection()
+  
+  // Get feasibility status based on current selections
+  const feasibility = checkFeasibility(calculatedValues.availableDeposit, 500000) // Using default borrowing capacity for now
+  
+  // Determine status based on feasibility and total cost
+  const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
+    if (calculations.totalProperties === 0) return 'feasible' // No properties selected
+    if (!feasibility.overallFeasible) return 'challenging'
+    if (calculations.totalCost > calculatedValues.availableDeposit * 3) return 'delayed' // High leverage scenario
+    return 'feasible'
+  }
+
+  const timelineStatus = getTimelineStatus()
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-8">
@@ -38,7 +56,7 @@ export const InvestmentTimeline = () => {
           equity="$70k"
           portfolioValue="$0.3M"
           price="$350k"
-          status="challenging"
+          status={timelineStatus}
         />
         <TimelineItem
           year="2026"
@@ -50,7 +68,7 @@ export const InvestmentTimeline = () => {
           equity="$158k"
           portfolioValue="$0.7M"
           price="$350k"
-          status="feasible"
+          status={timelineStatus}
         />
         <TimelineItem
           year="2027"
@@ -62,7 +80,7 @@ export const InvestmentTimeline = () => {
           equity="$263k"
           portfolioValue="$1.1M"
           price="$350k"
-          status="feasible"
+          status={timelineStatus}
         />
         <TimelineItem
           year="2028"
@@ -73,7 +91,7 @@ export const InvestmentTimeline = () => {
           equity="$429k"
           portfolioValue="$1.7M"
           price="$550k"
-          status="feasible"
+          status={timelineStatus}
         />
         <TimelineItem
           year="2029"
@@ -84,7 +102,7 @@ export const InvestmentTimeline = () => {
           equity="$679k"
           portfolioValue="$2.6M"
           price="$800k"
-          status="feasible"
+          status={timelineStatus}
           isLast={true}
         />
       </div>

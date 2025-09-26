@@ -2,6 +2,7 @@ import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCard'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { usePropertySelection, PROPERTY_TYPES } from '../hooks/usePropertySelection'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -19,6 +20,14 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     handleEquityGrowthChange, 
     handleCashflowChange 
   } = useInvestmentProfile()
+
+  const {
+    calculations,
+    checkFeasibility,
+    incrementProperty,
+    decrementProperty,
+    getPropertyQuantity,
+  } = usePropertySelection()
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -262,70 +271,20 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <PropertyCard
-            title="Granny Flats"
-            priceRange="$170k-$400k"
-            yield="-9%"
-            cashFlow="Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Villas / Townhouses"
-            priceRange="$250k-$400k"
-            yield="6-8%"
-            cashFlow="Negative"
-            riskLevel="High"
-          />
-          <PropertyCard
-            title="Units / Apartments"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="High"
-            selected={true}
-          />
-          <PropertyCard
-            title="Houses (Regional)"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Duplexes"
-            priceRange="$250k-$450k"
-            yield="6-8%"
-            cashFlow="Neutral → Positive"
-            riskLevel="Medium"
-          />
-          <PropertyCard
-            title="Metro Houses"
-            priceRange="$600k-$800k"
-            yield="4-5%"
-            cashFlow="Negative"
-            riskLevel="Medium-Low"
-          />
-          <PropertyCard
-            title="Commercial Retail"
-            priceRange="$400k-$1.2M"
-            yield="7-9%"
-            cashFlow="Positive"
-            riskLevel="High"
-          />
-          <PropertyCard
-            title="Office Space"
-            priceRange="$500k-$2M"
-            yield="6-8%"
-            cashFlow="Positive"
-            riskLevel="Very High"
-          />
-          <PropertyCard
-            title="Industrial Units"
-            priceRange="$350k-$1.5M"
-            yield="7-10%"
-            cashFlow="Positive"
-            riskLevel="High"
-          />
+          {PROPERTY_TYPES.map((property) => (
+            <PropertyCard
+              key={property.id}
+              title={property.title}
+              priceRange={property.priceRange}
+              yield={property.yield}
+              cashFlow={property.cashFlow}
+              riskLevel={property.riskLevel}
+              count={getPropertyQuantity(property.id)}
+              selected={getPropertyQuantity(property.id) > 0}
+              onIncrement={() => incrementProperty(property.id)}
+              onDecrement={() => decrementProperty(property.id)}
+            />
+          ))}
         </div>
       </div>
     )
