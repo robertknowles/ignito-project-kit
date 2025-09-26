@@ -1,7 +1,6 @@
 import React from 'react';
 import { Dashboard } from './components/Dashboard';
 import { Navbar } from './components/Navbar';
-import { Toaster } from './components/ui/toaster';
 export function App() {
   return <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
       <Navbar />
@@ -10,6 +9,5 @@ export function App() {
           <Dashboard />
         </div>
       </div>
-      <Toaster />
     </div>;
 }
