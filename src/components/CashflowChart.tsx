@@ -11,9 +11,19 @@ import {
   Cell,
 } from 'recharts'
 import { LineChartIcon } from 'lucide-react'
-export const CashflowChart = () => {
-  // Mock data for the cashflow analysis
-  const data = [
+import { SimulationResults } from '../hooks/useSimulationEngine'
+
+interface CashflowChartProps {
+  simulationResults: SimulationResults | null;
+}
+
+export const CashflowChart: React.FC<CashflowChartProps> = ({ simulationResults }) => {
+  // Generate chart data from simulation results
+  const data = simulationResults?.projections ? simulationResults.projections.map((projection, index) => ({
+    year: (2024 + projection.year).toString(),
+    cashflow: projection.netCashflow,
+    highlight: index === Math.floor(simulationResults.projections.length * 0.3) // Highlight around 30% mark
+  })) : [
     {
       year: '2026',
       cashflow: -11000,
@@ -135,7 +145,28 @@ export const CashflowChart = () => {
       year: '2055',
       cashflow: 35000,
     },
-  ]
+  ];
+
+  // If no simulation data, show empty state
+  if (!simulationResults?.projections || simulationResults.projections.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <LineChartIcon size={16} className="text-[#6b7280]" />
+          <h3 className="text-[#111827] font-medium text-sm">
+            Cashflow Analysis
+          </h3>
+        </div>
+        <div className="h-80 w-full flex items-center justify-center text-[#6b7280]">
+          <div className="text-center">
+            <LineChartIcon size={48} className="mx-auto mb-4 text-[#d1d5db]" />
+            <h4 className="text-sm font-medium mb-2">No Cashflow Data</h4>
+            <p className="text-xs">Select properties to see cashflow analysis</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

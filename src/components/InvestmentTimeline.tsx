@@ -5,24 +5,13 @@ import {
   HomeIcon,
   Building2Icon,
 } from 'lucide-react'
-import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { usePropertySelection } from '../hooks/usePropertySelection'
-export const InvestmentTimeline = () => {
-  const { calculatedValues } = useInvestmentProfile()
-  const { calculations, checkFeasibility } = usePropertySelection()
-  
-  // Get feasibility status based on current selections
-  const feasibility = checkFeasibility(calculatedValues.availableDeposit, 500000) // Using default borrowing capacity for now
-  
-  // Determine status based on feasibility and total cost
-  const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
-    if (calculations.totalProperties === 0) return 'feasible' // No properties selected
-    if (!feasibility.overallFeasible) return 'challenging'
-    if (calculations.totalCost > calculatedValues.availableDeposit * 3) return 'delayed' // High leverage scenario
-    return 'feasible'
-  }
+import { SimulationResults } from '../hooks/useSimulationEngine'
 
-  const timelineStatus = getTimelineStatus()
+interface InvestmentTimelineProps {
+  simulationResults: SimulationResults | null;
+}
+
+export const InvestmentTimeline: React.FC<InvestmentTimelineProps> = ({ simulationResults }) => {
 
   return (
     <div>
@@ -47,64 +36,29 @@ export const InvestmentTimeline = () => {
         </span>
       </div>
       <div className="flex flex-col gap-6">
-        <TimelineItem
-          year="2025"
-          quarter="Yr 0"
-          type="Units / Apartments"
-          deposit="$35k"
-          source="Savings"
-          equity="$70k"
-          portfolioValue="$0.3M"
-          price="$350k"
-          status={timelineStatus}
-        />
-        <TimelineItem
-          year="2026"
-          quarter="Yr 1"
-          type="Units / Apartments"
-          number="2"
-          deposit="$35k"
-          source="Savings"
-          equity="$158k"
-          portfolioValue="$0.7M"
-          price="$350k"
-          status={timelineStatus}
-        />
-        <TimelineItem
-          year="2027"
-          quarter="Yr 2"
-          type="Units / Apartments"
-          number="3"
-          deposit="$35k"
-          source="$28,000 savings + $7,000 equity"
-          equity="$263k"
-          portfolioValue="$1.1M"
-          price="$350k"
-          status={timelineStatus}
-        />
-        <TimelineItem
-          year="2028"
-          quarter="Yr 3"
-          type="Duplexes"
-          deposit="$55k"
-          source="$24,000 savings + $31,000 equity"
-          equity="$429k"
-          portfolioValue="$1.7M"
-          price="$550k"
-          status={timelineStatus}
-        />
-        <TimelineItem
-          year="2029"
-          quarter="Yr 4"
-          type="Metro Houses"
-          deposit="$80k"
-          source="$24,000 savings + $56,000 equity"
-          equity="$679k"
-          portfolioValue="$2.6M"
-          price="$800k"
-          status={timelineStatus}
-          isLast={true}
-        />
+        {simulationResults?.timeline && simulationResults.timeline.length > 0 ? (
+          simulationResults.timeline.map((item, index) => (
+            <TimelineItem
+              key={index}
+              year={(2025 + item.year).toString()}
+              quarter={item.quarter}
+              type={item.propertyType}
+              deposit={`$${(item.depositUsed / 1000).toFixed(0)}k`}
+              source={item.fundingSource}
+              equity={`$${(item.totalEquityAfter / 1000).toFixed(0)}k`}
+              portfolioValue={`$${(item.portfolioValueAfter / 1000000).toFixed(1)}M`}
+              price={`$${(item.purchasePrice / 1000).toFixed(0)}k`}
+              status={item.feasibilityStatus}
+              isLast={index === simulationResults.timeline.length - 1}
+            />
+          ))
+        ) : (
+          <div className="text-center py-12 text-[#6b7280]">
+            <CalendarIcon size={48} className="mx-auto mb-4 text-[#d1d5db]" />
+            <h4 className="text-sm font-medium mb-2">No Investment Timeline</h4>
+            <p className="text-xs">Select properties to generate your investment roadmap</p>
+          </div>
+        )}
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
         <p className="mb-3">

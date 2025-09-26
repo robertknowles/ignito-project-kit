@@ -6,23 +6,23 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
+import { usePropertySelection } from '../hooks/usePropertySelection';
+import { useSimulationEngine } from '../hooks/useSimulationEngine';
 export const Dashboard = () => {
   // State for expandable panes
   const [profileExpanded, setProfileExpanded] = useState(true);
   const [propertyExpanded, setPropertyExpanded] = useState(true);
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
-  // Mock client profile data
-  const clientProfile = {
-    depositPool: 50000,
-    borrowingCapacity: 500000,
-    portfolioValue: 0,
-    currentDebt: 0,
-    annualSavings: 24000,
-    timeline: 15
-  };
-  // Mock property data
-  const selectedProperties = ['Units / Apartments'];
+  
+  // Hooks for real data
+  const { profile, calculatedValues } = useInvestmentProfile();
+  const { selections, calculations, propertyTypes } = usePropertySelection();
+  const { simulationResults } = useSimulationEngine(profile, calculatedValues, selections, propertyTypes);
+  
+  // Calculate selected properties count
+  const selectedPropertiesCount = Object.values(selections).reduce((sum, quantity) => sum + quantity, 0);
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
@@ -39,8 +39,8 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    ${clientProfile.depositPool.toLocaleString()} deposit • $
-                    {clientProfile.borrowingCapacity.toLocaleString()} capacity
+                    ${profile.depositPool.toLocaleString()} deposit • $
+                    {profile.borrowingCapacity.toLocaleString()} capacity
                   </span>
                   {profileExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
@@ -62,7 +62,7 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    {selectedProperties.length} selected
+                    {selectedPropertiesCount} selected
                   </span>
                   {propertyExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
@@ -80,7 +80,7 @@ export const Dashboard = () => {
           <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
             {/* Summary Bar */}
             <div className="border-b border-[#f3f4f6]">
-              <SummaryBar />
+              <SummaryBar simulationResults={simulationResults} />
             </div>
             {/* Tabs */}
             <div className="flex border-b border-[#f3f4f6]">
@@ -96,9 +96,9 @@ export const Dashboard = () => {
             </div>
             {/* Tab Content */}
             <div className="p-6">
-              {activeTab === 'timeline' && <InvestmentTimeline />}
-              {activeTab === 'portfolio' && <PortfolioGrowthChart />}
-              {activeTab === 'cashflow' && <CashflowChart />}
+              {activeTab === 'timeline' && <InvestmentTimeline simulationResults={simulationResults} />}
+              {activeTab === 'portfolio' && <PortfolioGrowthChart simulationResults={simulationResults} />}
+              {activeTab === 'cashflow' && <CashflowChart simulationResults={simulationResults} />}
             </div>
           </div>
         </div>
