@@ -250,9 +250,19 @@ export const useSimulationEngine = (
 
   // Run simulation when inputs change
   useEffect(() => {
+    console.log('🔄 Simulation engine running with:', { 
+      profile: profile.depositPool, 
+      selections: Object.keys(selections).filter(key => selections[key] > 0),
+      selectedCount: Object.values(selections).reduce((sum, qty) => sum + qty, 0)
+    });
     const results = runSimulation();
+    console.log('✅ Simulation results generated:', { 
+      timelineLength: results.timeline.length,
+      summaryValue: results.summary.finalPortfolioValue,
+      projectionLength: results.projections.length
+    });
     setSimulationResults(results);
-  }, [runSimulation]);
+  }, [profile, calculatedValues, selections, propertyTypes]); // Direct dependencies instead of memoized function
 
   return {
     simulationResults,

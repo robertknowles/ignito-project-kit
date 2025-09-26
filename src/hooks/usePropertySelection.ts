@@ -171,17 +171,27 @@ export const usePropertySelection = () => {
   };
 
   const incrementProperty = (propertyId: string) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: (prev[propertyId] || 0) + 1,
-    }));
+    console.log('➕ Incrementing property:', propertyId);
+    setSelections(prev => {
+      const newSelections = {
+        ...prev,
+        [propertyId]: (prev[propertyId] || 0) + 1,
+      };
+      console.log('🔄 New selections:', newSelections);
+      return newSelections;
+    });
   };
 
   const decrementProperty = (propertyId: string) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
-    }));
+    console.log('➖ Decrementing property:', propertyId);
+    setSelections(prev => {
+      const newSelections = {
+        ...prev,
+        [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
+      };
+      console.log('🔄 New selections:', newSelections);
+      return newSelections;
+    });
   };
 
   const getPropertyQuantity = (propertyId: string): number => {

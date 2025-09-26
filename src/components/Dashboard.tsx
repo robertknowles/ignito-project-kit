@@ -23,6 +23,14 @@ export const Dashboard = () => {
   
   // Calculate selected properties count
   const selectedPropertiesCount = Object.values(selections).reduce((sum, quantity) => sum + quantity, 0);
+  
+  // Debug logging
+  console.log('📊 Dashboard state:', { 
+    selectedPropertiesCount, 
+    hasSimulationResults: !!simulationResults,
+    timelineItems: simulationResults?.timeline?.length || 0,
+    summaryValue: simulationResults?.summary?.finalPortfolioValue || 0
+  });
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
