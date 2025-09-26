@@ -4,6 +4,7 @@ import { App } from './App'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
+import { SignUp } from './pages/SignUp'
 export function AppRouter() {
   return (
     <BrowserRouter>
@@ -13,6 +14,7 @@ export function AppRouter() {
         <Route path="/dashboard" element={<App />} />
         <Route path="/data" element={<DataAssumptions />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
       </Routes>
     </BrowserRouter>
   )
