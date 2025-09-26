@@ -1,34 +1,24 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCard'
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+
 interface StrategyBuilderProps {
   profileOnly?: boolean
   propertyOnly?: boolean
 }
+
 export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   profileOnly = false,
   propertyOnly = false,
 }) => {
-  const [depositPool, setDepositPool] = useState(50000)
-  const [borrowingCapacity, setBorrowingCapacity] = useState(500000)
-  const [portfolioValue, setPortfolioValue] = useState(0)
-  const [currentDebt, setCurrentDebt] = useState(0)
-  const [annualSavings, setAnnualSavings] = useState(24000)
-  const [equityGrowth, setEquityGrowth] = useState(75)
-  const [cashflow, setCashflow] = useState(25)
-  const [timeline, setTimeline] = useState(15)
-  // Handle equity growth slider change
-  const handleEquityGrowthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEquityGrowth = parseInt(e.target.value)
-    setEquityGrowth(newEquityGrowth)
-    setCashflow(100 - newEquityGrowth)
-  }
-  // Handle cashflow slider change
-  const handleCashflowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newCashflow = parseInt(e.target.value)
-    setCashflow(newCashflow)
-    setEquityGrowth(100 - newCashflow)
-  }
+  const { 
+    profile, 
+    calculatedValues, 
+    updateProfile, 
+    handleEquityGrowthChange, 
+    handleCashflowChange 
+  } = useInvestmentProfile()
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -52,15 +42,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((depositPool - 10000) / (500000 - 10000)) * 100}%, #f3f4f6 ${((depositPool - 10000) / (500000 - 10000)) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((profile.depositPool - 10000) / (500000 - 10000)) * 100}%, #f3f4f6 ${((profile.depositPool - 10000) / (500000 - 10000)) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="10000"
               max="500000"
               step="5000"
-              value={depositPool}
-              onChange={(e) => setDepositPool(parseInt(e.target.value))}
+              value={profile.depositPool}
+              onChange={(e) => updateProfile({ depositPool: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -78,15 +68,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((borrowingCapacity - 100000) / (2000000 - 100000)) * 100}%, #f3f4f6 ${((borrowingCapacity - 100000) / (2000000 - 100000)) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((profile.borrowingCapacity - 100000) / (2000000 - 100000)) * 100}%, #f3f4f6 ${((profile.borrowingCapacity - 100000) / (2000000 - 100000)) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="100000"
               max="2000000"
               step="50000"
-              value={borrowingCapacity}
-              onChange={(e) => setBorrowingCapacity(parseInt(e.target.value))}
+              value={profile.borrowingCapacity}
+              onChange={(e) => updateProfile({ borrowingCapacity: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -104,15 +94,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(portfolioValue / 5000000) * 100}%, #f3f4f6 ${(portfolioValue / 5000000) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(profile.portfolioValue / 5000000) * 100}%, #f3f4f6 ${(profile.portfolioValue / 5000000) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="0"
               max="5000000"
               step="50000"
-              value={portfolioValue}
-              onChange={(e) => setPortfolioValue(parseInt(e.target.value))}
+              value={profile.portfolioValue}
+              onChange={(e) => updateProfile({ portfolioValue: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -130,15 +120,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentDebt / 4000000) * 100}%, #f3f4f6 ${(currentDebt / 4000000) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(profile.currentDebt / 4000000) * 100}%, #f3f4f6 ${(profile.currentDebt / 4000000) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="0"
               max="4000000"
               step="50000"
-              value={currentDebt}
-              onChange={(e) => setCurrentDebt(parseInt(e.target.value))}
+              value={profile.currentDebt}
+              onChange={(e) => updateProfile({ currentDebt: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -156,15 +146,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(annualSavings / 100000) * 100}%, #f3f4f6 ${(annualSavings / 100000) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(profile.annualSavings / 100000) * 100}%, #f3f4f6 ${(profile.annualSavings / 100000) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="0"
               max="100000"
               step="1000"
-              value={annualSavings}
-              onChange={(e) => setAnnualSavings(parseInt(e.target.value))}
+              value={profile.annualSavings}
+              onChange={(e) => updateProfile({ annualSavings: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -188,19 +178,19 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${equityGrowth}%, #f3f4f6 ${equityGrowth}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.equityGrowth}%, #f3f4f6 ${profile.equityGrowth}%, #f3f4f6 100%)`,
                   height: '4px',
                   opacity: '0.8',
                 }}
                 min="0"
                 max="100"
                 step="5"
-                value={equityGrowth}
-                onChange={handleEquityGrowthChange}
+                value={profile.equityGrowth}
+                onChange={(e) => handleEquityGrowthChange(parseInt(e.target.value))}
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{equityGrowth}%</span>
+              <span className="text-xs text-[#374151]">{profile.equityGrowth}%</span>
             </div>
           </div>
           {/* Cashflow Slider */}
@@ -213,19 +203,19 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${cashflow}%, #f3f4f6 ${cashflow}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.cashflow}%, #f3f4f6 ${profile.cashflow}%, #f3f4f6 100%)`,
                   height: '4px',
                   opacity: '0.8',
                 }}
                 min="0"
                 max="100"
                 step="5"
-                value={cashflow}
-                onChange={handleCashflowChange}
+                value={profile.cashflow}
+                onChange={(e) => handleCashflowChange(parseInt(e.target.value))}
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{cashflow}%</span>
+              <span className="text-xs text-[#374151]">{profile.cashflow}%</span>
             </div>
           </div>
         </div>
@@ -238,15 +228,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               type="range"
               className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
               style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((timeline - 5) / 25) * 100}%, #f3f4f6 ${((timeline - 5) / 25) * 100}%, #f3f4f6 100%)`,
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((profile.timelineYears - 5) / 25) * 100}%, #f3f4f6 ${((profile.timelineYears - 5) / 25) * 100}%, #f3f4f6 100%)`,
                 height: '4px',
                 opacity: '0.8',
               }}
               min="5"
               max="30"
               step="1"
-              value={timeline}
-              onChange={(e) => setTimeline(parseInt(e.target.value))}
+              value={profile.timelineYears}
+              onChange={(e) => updateProfile({ timelineYears: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -361,15 +351,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full h-2 appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${depositPool / 5000}%, #f3f4f6 ${depositPool / 5000}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.depositPool / 5000}%, #f3f4f6 ${profile.depositPool / 5000}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="10000"
                 max="500000"
                 step="5000"
-                value={depositPool}
-                onChange={(e) => setDepositPool(parseInt(e.target.value))}
+                value={profile.depositPool}
+                onChange={(e) => updateProfile({ depositPool: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
@@ -387,15 +377,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${borrowingCapacity / 20000}%, #f3f4f6 ${borrowingCapacity / 20000}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.borrowingCapacity / 20000}%, #f3f4f6 ${profile.borrowingCapacity / 20000}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="100000"
                 max="2000000"
                 step="50000"
-                value={borrowingCapacity}
-                onChange={(e) => setBorrowingCapacity(parseInt(e.target.value))}
+                value={profile.borrowingCapacity}
+                onChange={(e) => updateProfile({ borrowingCapacity: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
@@ -413,15 +403,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${portfolioValue / 50000}%, #f3f4f6 ${portfolioValue / 50000}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.portfolioValue / 50000}%, #f3f4f6 ${profile.portfolioValue / 50000}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="0"
                 max="5000000"
                 step="50000"
-                value={portfolioValue}
-                onChange={(e) => setPortfolioValue(parseInt(e.target.value))}
+                value={profile.portfolioValue}
+                onChange={(e) => updateProfile({ portfolioValue: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
@@ -439,15 +429,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${currentDebt / 40000}%, #f3f4f6 ${currentDebt / 40000}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.currentDebt / 40000}%, #f3f4f6 ${profile.currentDebt / 40000}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="0"
                 max="4000000"
                 step="50000"
-                value={currentDebt}
-                onChange={(e) => setCurrentDebt(parseInt(e.target.value))}
+                value={profile.currentDebt}
+                onChange={(e) => updateProfile({ currentDebt: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
@@ -465,15 +455,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${annualSavings / 1000}%, #f3f4f6 ${annualSavings / 1000}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.annualSavings / 1000}%, #f3f4f6 ${profile.annualSavings / 1000}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="0"
                 max="100000"
                 step="1000"
-                value={annualSavings}
-                onChange={(e) => setAnnualSavings(parseInt(e.target.value))}
+                value={profile.annualSavings}
+                onChange={(e) => updateProfile({ annualSavings: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
@@ -491,15 +481,15 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((timeline - 5) / 25) * 100}%, #f3f4f6 ${((timeline - 5) / 25) * 100}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((profile.timelineYears - 5) / 25) * 100}%, #f3f4f6 ${((profile.timelineYears - 5) / 25) * 100}%, #f3f4f6 100%)`,
                   height: '2px',
                   opacity: '0.6',
                 }}
                 min="5"
                 max="30"
                 step="1"
-                value={timeline}
-                onChange={(e) => setTimeline(parseInt(e.target.value))}
+                value={profile.timelineYears}
+                onChange={(e) => updateProfile({ timelineYears: parseInt(e.target.value) })}
               />
             </div>
             <div className="flex justify-between mt-2">
