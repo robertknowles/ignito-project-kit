@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
-import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics } from '../utils/metricsCalculator';
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES } from '../utils/metricsCalculator';
 import type { PropertyPurchase } from '../types/property';
 
 export interface PortfolioGrowthDataPoint {
@@ -43,7 +43,8 @@ export const useChartDataGenerator = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
+        interestRate: interestRate
       };
     });
 
@@ -72,7 +73,8 @@ export const useChartDataGenerator = () => {
         relevantPurchases,
         year,
         growthRate,
-        interestRate
+        interestRate,
+        DEFAULT_PROPERTY_EXPENSES
       );
 
       // Combine metrics
@@ -111,7 +113,8 @@ export const useChartDataGenerator = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
+        interestRate: interestRate
       };
     });
 
@@ -131,7 +134,8 @@ export const useChartDataGenerator = () => {
         relevantPurchases,
         year,
         growthRate,
-        interestRate
+        interestRate,
+        DEFAULT_PROPERTY_EXPENSES
       );
 
       // Combine metrics

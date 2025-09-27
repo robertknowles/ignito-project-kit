@@ -6,6 +6,31 @@ export interface PropertyPurchase {
   title: string;
   rentalYield: number;
   growthRate: number;
+  interestRate?: number;
+}
+
+export interface PropertyExpenses {
+  managementFeeRate: number; // % of rental income
+  councilRates: number; // Annual fixed amount
+  insurance: number; // Annual fixed amount
+  maintenanceRate: number; // % of property value
+  vacancyRate: number; // % allowance for vacancy
+  strataFees?: number; // Annual strata fees (for apartments)
+}
+
+export interface CashFlowAnalysis {
+  rentalIncome: number;
+  mortgagePayments: number;
+  propertyExpenses: number;
+  netCashflow: number;
+  expenseBreakdown: {
+    managementFees: number;
+    councilRates: number;
+    insurance: number;
+    maintenance: number;
+    vacancyAllowance: number;
+    strataFees: number;
+  };
 }
 
 export interface PropertyMetrics {

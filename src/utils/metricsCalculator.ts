@@ -1,4 +1,86 @@
-import type { PropertyPurchase, PropertyMetrics } from '../types/property';
+import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis } from '../types/property';
+
+// Default property expenses (typical Australian property investment)
+export const DEFAULT_PROPERTY_EXPENSES: PropertyExpenses = {
+  managementFeeRate: 0.08, // 8% of rental income
+  councilRates: 2500, // $2,500 annually
+  insurance: 1200, // $1,200 annually
+  maintenanceRate: 0.01, // 1% of property value annually
+  vacancyRate: 0.04, // 4% vacancy allowance
+  strataFees: 0 // $0 for houses, varies for apartments
+};
+
+export const calculateMortgagePayments = (
+  loanAmount: number,
+  interestRate: number = 0.05,
+  isInterestOnly: boolean = true
+): number => {
+  if (isInterestOnly) {
+    return loanAmount * interestRate;
+  }
+  
+  // Principal and interest calculation (30-year loan)
+  const monthlyRate = interestRate / 12;
+  const numberOfPayments = 30 * 12;
+  const monthlyPayment = loanAmount * 
+    (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+  
+  return monthlyPayment * 12; // Annual payment
+};
+
+export const calculateAnnualExpenses = (
+  propertyValue: number,
+  rentalIncome: number,
+  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
+): { total: number; breakdown: CashFlowAnalysis['expenseBreakdown'] } => {
+  const managementFees = rentalIncome * expenses.managementFeeRate;
+  const councilRates = expenses.councilRates;
+  const insurance = expenses.insurance;
+  const maintenance = propertyValue * expenses.maintenanceRate;
+  const vacancyAllowance = rentalIncome * expenses.vacancyRate;
+  const strataFees = expenses.strataFees || 0;
+  
+  const breakdown = {
+    managementFees: Math.round(managementFees),
+    councilRates: Math.round(councilRates),
+    insurance: Math.round(insurance),
+    maintenance: Math.round(maintenance),
+    vacancyAllowance: Math.round(vacancyAllowance),
+    strataFees: Math.round(strataFees)
+  };
+  
+  const total = managementFees + councilRates + insurance + maintenance + vacancyAllowance + strataFees;
+  
+  return { total: Math.round(total), breakdown };
+};
+
+export const analyzeCashFlow = (
+  purchase: PropertyPurchase,
+  currentYear: number,
+  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
+): CashFlowAnalysis => {
+  const yearsHeld = Math.max(0, currentYear - purchase.year);
+  const currentValue = purchase.cost * Math.pow(1 + purchase.growthRate, yearsHeld);
+  const annualRent = currentValue * purchase.rentalYield;
+  
+  const mortgagePayments = calculateMortgagePayments(
+    purchase.loanAmount, 
+    purchase.interestRate || 0.05
+  );
+  
+  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses);
+  
+  const netCashflow = annualRent - mortgagePayments - expensesAnalysis.total;
+  
+  return {
+    rentalIncome: Math.round(annualRent),
+    mortgagePayments: Math.round(mortgagePayments),
+    propertyExpenses: expensesAnalysis.total,
+    netCashflow: Math.round(netCashflow),
+    expenseBreakdown: expensesAnalysis.breakdown
+  };
+};
 
 export const calculateUpdatedBorrowingCapacity = (
   baseCapacity: number,
@@ -15,7 +97,8 @@ export const calculatePortfolioMetrics = (
   purchases: PropertyPurchase[],
   currentYear: number,
   baseGrowthRate: number,
-  interestRate: number = 0.05
+  interestRate: number = 0.05,
+  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
 ): PropertyMetrics => {
   return purchases.reduce((metrics, purchase) => {
     const yearsHeld = Math.max(0, currentYear - purchase.year);
@@ -24,22 +107,19 @@ export const calculatePortfolioMetrics = (
     const growthRate = purchase.growthRate || baseGrowthRate;
     const currentValue = purchase.cost * Math.pow(1 + growthRate, yearsHeld);
     
+    // Use detailed cash flow analysis
+    const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, expenses);
+    
     // Simplified debt model - no principal reduction
     const remainingDebt = purchase.loanAmount;
     const propertyEquity = Math.max(0, currentValue - remainingDebt);
-    
-    // Annual rental income based on current property value
-    const annualRent = purchase.rentalYield * currentValue;
-    
-    // Annual loan repayments (interest only)
-    const annualRepayments = purchase.loanAmount * interestRate;
 
     return {
       portfolioValue: metrics.portfolioValue + currentValue,
       totalEquity: metrics.totalEquity + propertyEquity,
       totalDebt: metrics.totalDebt + remainingDebt,
-      annualCashflow: metrics.annualCashflow + (annualRent - annualRepayments),
-      annualLoanRepayments: metrics.annualLoanRepayments + annualRepayments
+      annualCashflow: metrics.annualCashflow + cashFlowAnalysis.netCashflow,
+      annualLoanRepayments: metrics.annualLoanRepayments + cashFlowAnalysis.mortgagePayments
     };
   }, {
     portfolioValue: 0,

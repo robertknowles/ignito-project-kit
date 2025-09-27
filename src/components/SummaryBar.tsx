@@ -3,7 +3,7 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
-import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics } from '../utils/metricsCalculator'
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
 
 export const SummaryBar = () => {
@@ -40,7 +40,8 @@ export const SummaryBar = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04, // Default 4% if no data
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
+        interestRate: interestRate
       }
     })
 
@@ -53,12 +54,13 @@ export const SummaryBar = () => {
       interestRate
     )
 
-    // Calculate metrics for new purchases
+    // Calculate metrics for new purchases with detailed expense analysis
     const newPurchasesMetrics = calculatePortfolioMetrics(
       purchases,
       timelineEnd,
       growthRate,
-      interestRate
+      interestRate,
+      DEFAULT_PROPERTY_EXPENSES
     )
 
     // Combine metrics
