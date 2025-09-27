@@ -288,12 +288,16 @@ export const useSimulationEngine = (
     };
   }, [profile, calculatedValues, selections, propertyTypes]);
 
+  // Calculate selection count for dependency tracking
+  const selectionCount = Object.values(selections).reduce((sum, qty) => sum + qty, 0);
+
   // Run simulation when inputs change
   useEffect(() => {
-    console.log('🔄 Simulation engine running with:', { 
-      profile: profile.depositPool, 
-      selections: Object.keys(selections).filter(key => selections[key] > 0),
-      selectedCount: Object.values(selections).reduce((sum, qty) => sum + qty, 0)
+    console.log('🔄 Effect triggered - running simulation', { 
+      selectionCount,
+      depositPool: profile.depositPool,
+      borrowingCapacity: profile.borrowingCapacity,
+      propertyTypesLength: propertyTypes.length
     });
     const results = runSimulation();
     console.log('✅ Simulation results generated:', { 
@@ -302,7 +306,7 @@ export const useSimulationEngine = (
       projectionLength: results.projections.length
     });
     setSimulationResults(results);
-  }, [runSimulation]); // Use memoized function as dependency
+  }, [profile.depositPool, profile.borrowingCapacity, selectionCount, propertyTypes.length, runSimulation]);
 
   return {
     simulationResults,
