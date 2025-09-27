@@ -10,105 +10,19 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BuildingIcon, HomeIcon, Building2Icon } from 'lucide-react'
+import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
+
 export const PortfolioGrowthChart = () => {
-  // Mock data for the chart
-  const data = [
+  const { portfolioGrowthData } = useChartDataGenerator()
+  
+  // Use calculated data or show empty state
+  const data = portfolioGrowthData.length > 0 ? portfolioGrowthData : [
     {
       year: '2025',
-      portfolioValue: 300000,
-      equity: 70000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2026',
-      portfolioValue: 700000,
-      equity: 158000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2027',
-      portfolioValue: 1100000,
-      equity: 263000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2028',
-      portfolioValue: 1400000,
-      equity: 350000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2029',
-      portfolioValue: 1700000,
-      equity: 429000,
-      property: 'Duplexes',
-    },
-    {
-      year: '2030',
-      portfolioValue: 2100000,
-      equity: 520000,
-      property: null,
-    },
-    {
-      year: '2031',
-      portfolioValue: 2600000,
-      equity: 679000,
-      property: 'Metro Houses',
-    },
-    {
-      year: '2032',
-      portfolioValue: 2900000,
-      equity: 850000,
-      property: null,
-    },
-    {
-      year: '2033',
-      portfolioValue: 3200000,
-      equity: 1050000,
-      property: null,
-    },
-    {
-      year: '2034',
-      portfolioValue: 3500000,
-      equity: 1250000,
-      property: null,
-    },
-    {
-      year: '2035',
-      portfolioValue: 3800000,
-      equity: 1450000,
-      property: null,
-    },
-    {
-      year: '2036',
-      portfolioValue: 4100000,
-      equity: 1650000,
-      property: null,
-    },
-    {
-      year: '2037',
-      portfolioValue: 4300000,
-      equity: 1850000,
-      property: null,
-    },
-    {
-      year: '2038',
-      portfolioValue: 4500000,
-      equity: 2050000,
-      property: null,
-    },
-    {
-      year: '2039',
-      portfolioValue: 4700000,
-      equity: 2250000,
-      property: null,
-    },
-    {
-      year: '2040',
-      portfolioValue: 4900000,
-      equity: 2450000,
-      property: null,
-    },
+      portfolioValue: 0,
+      equity: 0,
+      property: undefined,
+    }
   ]
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {

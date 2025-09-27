@@ -11,130 +11,19 @@ import {
   Cell,
 } from 'recharts'
 import { LineChartIcon } from 'lucide-react'
+import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
+
 export const CashflowChart = () => {
-  // Mock data for the cashflow analysis
-  const data = [
+  const { cashflowData } = useChartDataGenerator()
+  
+  // Use calculated data or show empty state
+  const data = cashflowData.length > 0 ? cashflowData : [
     {
-      year: '2026',
-      cashflow: -11000,
-    },
-    {
-      year: '2027',
-      cashflow: -12000,
-    },
-    {
-      year: '2028',
-      cashflow: -21000,
-    },
-    {
-      year: '2029',
-      cashflow: -20000,
-    },
-    {
-      year: '2030',
-      cashflow: -17000,
-    },
-    {
-      year: '2031',
-      cashflow: -14000,
-    },
-    {
-      year: '2032',
-      cashflow: -11500,
-    },
-    {
-      year: '2033',
-      cashflow: -9000,
-      highlight: true,
-    },
-    {
-      year: '2034',
-      cashflow: -6000,
-    },
-    {
-      year: '2035',
-      cashflow: -4500,
-    },
-    {
-      year: '2036',
-      cashflow: -2000,
-    },
-    {
-      year: '2037',
-      cashflow: -1000,
-    },
-    {
-      year: '2038',
-      cashflow: 2000,
-    },
-    {
-      year: '2039',
-      cashflow: 2000,
-    },
-    {
-      year: '2040',
-      cashflow: -1000,
-    },
-    {
-      year: '2041',
-      cashflow: -14000,
-    },
-    {
-      year: '2042',
-      cashflow: -12000,
-    },
-    {
-      year: '2043',
-      cashflow: -10000,
-    },
-    {
-      year: '2044',
-      cashflow: -6000,
-    },
-    {
-      year: '2045',
-      cashflow: -4000,
-    },
-    {
-      year: '2046',
-      cashflow: -500,
-    },
-    {
-      year: '2047',
-      cashflow: 2000,
-    },
-    {
-      year: '2048',
-      cashflow: 6000,
-    },
-    {
-      year: '2049',
-      cashflow: 9500,
-    },
-    {
-      year: '2050',
-      cashflow: 13000,
-    },
-    {
-      year: '2051',
-      cashflow: 17000,
-    },
-    {
-      year: '2052',
-      cashflow: 21000,
-    },
-    {
-      year: '2053',
-      cashflow: 25000,
-    },
-    {
-      year: '2054',
-      cashflow: 29000,
-    },
-    {
-      year: '2055',
-      cashflow: 35000,
-    },
+      year: '2025',
+      cashflow: 0,
+      rentalIncome: 0,
+      loanRepayments: 0,
+    }
   ]
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
