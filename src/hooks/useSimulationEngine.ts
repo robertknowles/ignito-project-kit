@@ -167,26 +167,28 @@ export const useSimulationEngine = (
         netCashflow: initialIncome - initialExpenses
       });
 
-      // Step 5: Annual Simulation Loop
-      for (let year = 0; year <= profile.timelineYears; year++) {
-        // A. Growth Phase: Add savings and apply growth (skip for year 0)
-        if (year > 0) {
-          simulationState.cash += profile.annualSavings;
-          simulationState.ownedProperties.forEach(property => {
-            const growthRate = 0.07; // 7% annual growth
-            property.value *= (1 + growthRate);
-          });
-          simulationState.portfolioValue = simulationState.ownedProperties.reduce((sum, prop) => sum + prop.value, 0) + profile.portfolioValue;
-        }
+      // Step 5: Annual Simulation Loop (Year 0 is projections only)
+      for (let year = 1; year <= profile.timelineYears; year++) {
+        // A. Growth Phase: Add savings and apply growth
+        simulationState.cash += profile.annualSavings;
+        simulationState.ownedProperties.forEach(property => {
+          const growthRate = 0.07; // 7% annual growth
+          property.value *= (1 + growthRate);
+        });
+        simulationState.portfolioValue = simulationState.ownedProperties.reduce((sum, prop) => sum + prop.value, 0) + profile.portfolioValue;
 
         // B. Purchase Phase: Buy all affordable properties in queue this year
         while (queueIndex < propertyQueue.length) {
           const nextProperty = propertyQueue[queueIndex];
+          const usableEquity = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
+          const loanAmount = nextProperty.averagePrice - nextProperty.depositRequired;
           
-          if (canAffordProperty(simulationState.cash, simulationState.portfolioValue, simulationState.totalDebt, nextProperty, profile.borrowingCapacity)) {
+          // Check if property is affordable: deposit test + borrowing capacity test
+          const hasEnoughDeposit = (simulationState.cash + usableEquity) >= nextProperty.depositRequired;
+          const withinBorrowingLimit = (simulationState.totalDebt + loanAmount) <= profile.borrowingCapacity;
+          
+          if (hasEnoughDeposit && withinBorrowingLimit) {
             // Can afford this property - purchase it
-            const loanAmount = nextProperty.averagePrice - nextProperty.depositRequired;
-            const usableEquity = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
             const fromCash = Math.min(simulationState.cash, nextProperty.depositRequired);
             const fromEquity = nextProperty.depositRequired - fromCash;
             
