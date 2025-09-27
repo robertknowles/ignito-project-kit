@@ -10,106 +10,59 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BuildingIcon, HomeIcon, Building2Icon } from 'lucide-react'
+import { useSimulationEngine } from '../hooks/useSimulationEngine'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
+
 export const PortfolioGrowthChart = () => {
-  // Mock data for the chart
-  const data = [
-    {
-      year: '2025',
-      portfolioValue: 300000,
-      equity: 70000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2026',
-      portfolioValue: 700000,
-      equity: 158000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2027',
-      portfolioValue: 1100000,
-      equity: 263000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2028',
-      portfolioValue: 1400000,
-      equity: 350000,
-      property: 'Units / Apartments',
-    },
-    {
-      year: '2029',
-      portfolioValue: 1700000,
-      equity: 429000,
-      property: 'Duplexes',
-    },
-    {
-      year: '2030',
-      portfolioValue: 2100000,
-      equity: 520000,
-      property: null,
-    },
-    {
-      year: '2031',
-      portfolioValue: 2600000,
-      equity: 679000,
-      property: 'Metro Houses',
-    },
-    {
-      year: '2032',
-      portfolioValue: 2900000,
-      equity: 850000,
-      property: null,
-    },
-    {
-      year: '2033',
-      portfolioValue: 3200000,
-      equity: 1050000,
-      property: null,
-    },
-    {
-      year: '2034',
-      portfolioValue: 3500000,
-      equity: 1250000,
-      property: null,
-    },
-    {
-      year: '2035',
-      portfolioValue: 3800000,
-      equity: 1450000,
-      property: null,
-    },
-    {
-      year: '2036',
-      portfolioValue: 4100000,
-      equity: 1650000,
-      property: null,
-    },
-    {
-      year: '2037',
-      portfolioValue: 4300000,
-      equity: 1850000,
-      property: null,
-    },
-    {
-      year: '2038',
-      portfolioValue: 4500000,
-      equity: 2050000,
-      property: null,
-    },
-    {
-      year: '2039',
-      portfolioValue: 4700000,
-      equity: 2250000,
-      property: null,
-    },
-    {
-      year: '2040',
-      portfolioValue: 4900000,
-      equity: 2450000,
-      property: null,
-    },
-  ]
+  const { simulationResults, isSimulationComplete } = useSimulationEngine()
+  const { calculations } = usePropertySelection()
+
+  // Generate chart data from simulation results
+  const generateChartData = () => {
+    if (!isSimulationComplete || simulationResults.yearlyData.length === 0) {
+      // Return empty state data
+      return []
+    }
+
+    // Create chart data with purchase events
+    const chartData = simulationResults.yearlyData.map(yearData => {
+      // Find purchases in this year
+      const purchases = simulationResults.timelineEntries.filter(
+        entry => entry.year === yearData.year && entry.action === 'purchase'
+      )
+      
+      return {
+        year: yearData.year.toString(),
+        portfolioValue: Math.round(yearData.portfolioValue),
+        equity: Math.round(yearData.totalEquity),
+        property: purchases.length > 0 ? purchases[0].propertyType : null,
+      }
+    })
+
+    return chartData
+  }
+
+  const data = generateChartData()
+
+  // Handle empty state
+  if (data.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <HomeIcon size={16} className="text-[#6b7280]" />
+          <h3 className="text-[#111827] font-medium text-sm">
+            Portfolio Value & Equity Growth
+          </h3>
+        </div>
+        <div className="h-80 w-full flex items-center justify-center bg-[#f9fafb] rounded-md">
+          <div className="text-center text-[#6b7280]">
+            <BuildingIcon size={48} className="mx-auto mb-4 opacity-50" />
+            <p className="text-sm">Select properties to view portfolio growth</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
