@@ -59,29 +59,6 @@ interface SimulationState {
   ownedProperties: { type: string; value: number; loan: number; yield: number }[];
 }
 
-// Helper functions for eligibility
-const usableEquityOf = (value:number, debt:number) => value*0.8 - debt;
-
-const canBuy = (cash:number, value:number, debt:number, prop: PropertyType, cap:number) => {
-  const ue = usableEquityOf(value, debt);
-  const available = cash + ue;
-  const loan = prop.averagePrice - prop.depositRequired;
-  const withinDeposit = available >= prop.depositRequired;
-  const withinCap = (debt + loan) <= cap;
-  return { ok: withinDeposit && withinCap, available, loan };
-};
-
-const parsePct = (s: string) => {
-  // "6-8%" -> 0.07 (midpoint), "4-5%" -> 0.045, "-9%" -> -0.09
-  const nums = (s.match(/-?\d+(\.\d+)?/g) || []).map(Number);
-  if (!nums.length) return 0;
-  const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
-  return avg/100;
-};
-
-const impactFrom = (s: string): 'Positive'|'Neutral'|'Negative' =>
-  /neg/i.test(s) ? 'Negative' : /pos/i.test(s) ? 'Positive' : 'Neutral';
-
 export const useSimulationEngine = (
   profile: InvestmentProfileData,
   calculatedValues: CalculatedValues,
@@ -109,16 +86,18 @@ export const useSimulationEngine = (
 
       // Step 2: Score & Rank All Properties
       const propertyScores: PropertyScore[] = propertyTypes.map(property => {
-        const yieldPct = property.yieldPct ?? (parseFloat(property.yield)/100 || parsePct(property.yield));
-        const growthPct = property.growthRatePct ?? 0.07;
-        const impactAdj = property.cashflowImpact === 'Positive' ? 20 : property.cashflowImpact === 'Negative' ? -20 : 0;
-
-        const equityScore = Math.max(0, Math.min(100, (growthPct*100)*8));       // growth-weighted
-        const cashflowScore = Math.max(0, Math.min(100, (yieldPct*100)*6 + impactAdj));
-
-        const weightedScore =
-          equityScore * (profile.equityGrowth/100) +
-          cashflowScore * (profile.cashflow/100);
+        // Extract numeric values from strings
+        const yieldValue = parseFloat(property.yield.replace('%', ''));
+        const cashFlowValue = parseFloat(property.cashFlow.replace(/[$,]/g, ''));
+        
+        // Equity Score (0-100 based on property value and growth potential)
+        const equityScore = Math.min(100, (property.averagePrice > 600000 ? 30 : 20) + (yieldValue * 5));
+        
+        // Cashflow Score (0-100 based on yield and cashflow impact)
+        const cashflowScore = Math.min(100, (yieldValue * 15) + (cashFlowValue > 0 ? 30 : 0));
+        
+        // Weighted Score using equity/cashflow goals
+        const weightedScore = (equityScore * profile.equityGrowth / 100) + (cashflowScore * profile.cashflow / 100);
 
         return {
           propertyId: property.id,
@@ -128,8 +107,14 @@ export const useSimulationEngine = (
         };
       });
 
-      // Step 3: Create Property Queue - treat as ordered queue to process
-      const propertyQueue = Object.entries(selections)
+      // Sort properties by weighted score (highest first)
+      const rankedProperties = propertyScores
+        .sort((a, b) => b.weightedScore - a.weightedScore)
+        .map(score => propertyTypes.find(p => p.id === score.propertyId)!)
+        .filter(Boolean);
+
+      // Step 3: Initial Portfolio Construction
+      const selectedProperties = Object.entries(selections)
         .filter(([_, quantity]) => quantity > 0)
         .flatMap(([propertyId, quantity]) => {
           const property = propertyTypes.find(p => p.id === propertyId);
@@ -143,10 +128,14 @@ export const useSimulationEngine = (
           return property ? Array(quantity).fill(property) : [];
         });
 
-      console.log('📋 Property queue populated:', {
-        totalInQueue: propertyQueue.length,
-        properties: propertyQueue.map(p => ({ title: p.title, id: p.id, riskLevel: p.riskLevel }))
+      console.log('📋 selectedProperties array populated:', {
+        totalSelected: selectedProperties.length,
+        properties: selectedProperties.map(p => ({ title: p.title, id: p.id, riskLevel: p.riskLevel }))
       });
+
+      const initialTotalCost = selectedProperties.reduce((sum, prop) => sum + prop.averagePrice, 0);
+      const initialTotalDeposit = selectedProperties.reduce((sum, prop) => sum + prop.depositRequired, 0);
+      const initialTotalLoans = initialTotalCost - initialTotalDeposit;
 
       // Step 4: Annual Simulation Loop
       let simulationState: SimulationState = {
@@ -160,78 +149,86 @@ export const useSimulationEngine = (
       const timeline: InvestmentTimelineItem[] = [];
       const projections: PortfolioProjection[] = [];
 
-      // Add initial year projection (Year 0) - no properties yet
+      // Process initial selections first
+      selectedProperties.forEach((property, index) => {
+        const purchaseYear = Math.floor(index / 2); // Spread purchases over years
+        const usableEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
+        const availableFunding = simulationState.cash + usableEquity;
+        
+        console.log(`🏠 Processing property ${index + 1}:`, {
+          type: property.title,
+          deposit: property.depositRequired,
+          availableFunding,
+          canAfford: availableFunding >= property.depositRequired
+        });
+        
+        // Always add timeline item and update simulation state
+        const loanAmount = property.averagePrice - property.depositRequired;
+        
+        // Update simulation state regardless of current affordability for planning purposes
+        simulationState.portfolioValue += property.averagePrice;
+        simulationState.totalDebt += loanAmount;
+        simulationState.cash = Math.max(0, simulationState.cash - property.depositRequired);
+        simulationState.ownedProperties.push({
+          type: property.title,
+          value: property.averagePrice,
+          loan: loanAmount,
+          yield: parseFloat(property.yield.replace('%', ''))
+        });
+
+        // Determine funding source
+        let fundingSource = "Savings";
+        if (usableEquity > 0 && simulationState.cash < property.depositRequired) {
+          const equityUsed = property.depositRequired - simulationState.cash;
+          fundingSource = `$${(simulationState.cash / 1000).toFixed(0)}k savings + $${(equityUsed / 1000).toFixed(0)}k equity`;
+        }
+
+        timeline.push({
+          year: purchaseYear,
+          quarter: `Yr ${purchaseYear}`,
+          propertyType: property.title,
+          purchasePrice: property.averagePrice,
+          depositUsed: property.depositRequired,
+          fundingSource,
+          newLoanAmount: loanAmount,
+          portfolioValueAfter: simulationState.portfolioValue,
+          totalEquityAfter: simulationState.portfolioValue * 0.8 - simulationState.totalDebt,
+          cashflowImpact: parseFloat(property.cashFlow.replace(/[$,]/g, '')),
+          roleInPortfolio: index === 0 ? "Foundation" : index < 3 ? "Growth" : "Cashflow",
+          feasibilityStatus: availableFunding >= property.depositRequired * 1.2 ? 'feasible' : 
+                           availableFunding >= property.depositRequired ? 'delayed' : 'challenging'
+        });
+      });
+
+      // Add initial year projection (Year 0)
+      const initialEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
+      const initialIncome = simulationState.ownedProperties.reduce((sum, prop) => 
+        sum + (prop.value * prop.yield / 100), 0);
+      const initialExpenses = simulationState.ownedProperties.reduce((sum, prop) => 
+        sum + (prop.loan * 0.06), 0); // 6% interest rate
+
       projections.push({
         year: 0,
         portfolioValue: simulationState.portfolioValue,
-        totalEquity: usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt),
-        totalIncome: 0,
-        totalExpenses: 0,
-        netCashflow: 0
+        totalEquity: initialEquity,
+        totalIncome: initialIncome,
+        totalExpenses: initialExpenses,
+        netCashflow: initialIncome - initialExpenses
       });
 
-      // Continue simulation for remaining years or until queue is empty
-      for (let year = 1; year <= profile.timelineYears && propertyQueue.length > 0; year++) {
+      // Continue simulation for remaining years
+      for (let year = 1; year <= profile.timelineYears; year++) {
         // A. Growth Phase: Add savings and apply growth
         simulationState.cash += profile.annualSavings;
         simulationState.ownedProperties.forEach(property => {
-          const growthRate = 0.07; // TODO: pull from assumptions UI later
+          const growthRate = 0.05; // 5% annual growth
           property.value *= (1 + growthRate);
         });
         simulationState.portfolioValue = simulationState.ownedProperties.reduce((sum, prop) => sum + prop.value, 0);
 
         // B. Equity Phase: Recalculate usable equity
-        const usableEquity = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
+        const usableEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
         const totalAvailable = simulationState.cash + usableEquity;
-
-        // C. Purchase Phase: Process next property in queue
-        if (propertyQueue.length > 0) {
-          const nextProperty = propertyQueue[0]; // Get next property from queue
-          const { ok, available, loan } = canBuy(simulationState.cash, simulationState.portfolioValue, simulationState.totalDebt, nextProperty, profile.borrowingCapacity);
-          
-          if (ok) {
-            // Purchase is viable - proceed with purchase
-            const ue = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
-            const need = nextProperty.depositRequired;
-            const fromCash = Math.min(simulationState.cash, need);
-            const fromEquity = need - fromCash;
-
-            // mutate state
-            simulationState.cash -= fromCash;
-            simulationState.totalDebt += loan;
-            simulationState.portfolioValue += nextProperty.averagePrice;
-            simulationState.ownedProperties.push({
-              type: nextProperty.title, value: nextProperty.averagePrice, loan, yield: (nextProperty.yieldPct ?? parsePct(nextProperty.yield))*100
-            });
-
-            const postUE = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
-
-            // feasibility color
-            const borrowUtil = simulationState.totalDebt / profile.borrowingCapacity;
-            const color = borrowUtil >= 0.9 ? 'challenging' : borrowUtil >= 0.8 ? 'delayed' : 'feasible';
-
-            timeline.push({
-              year,
-              quarter: `Yr ${year}`,
-              propertyType: nextProperty.title,
-              purchasePrice: nextProperty.averagePrice,
-              depositUsed: need,
-              fundingSource: fromEquity > 0 ? `$${(fromCash/1000).toFixed(0)}k cash + $${(fromEquity/1000).toFixed(0)}k equity` : 'Savings',
-              newLoanAmount: loan,
-              portfolioValueAfter: simulationState.portfolioValue,
-              totalEquityAfter: postUE,
-              cashflowImpact: (nextProperty.cashflowImpact ?? impactFrom(nextProperty.cashFlow)) === 'Negative' ? -1 : 1,
-              roleInPortfolio: 'Queued Purchase',
-              feasibilityStatus: color as any
-            });
-
-            // Remove purchased property from queue
-            propertyQueue.shift();
-            console.log(`✅ Purchased ${nextProperty.title} in Year ${year}. Queue remaining: ${propertyQueue.length}`);
-          } else {
-            console.log(`⏳ ${nextProperty.title} not viable in Year ${year}. Available: $${available.toFixed(0)}, Need: $${nextProperty.depositRequired}`);
-          }
-        }
 
         // Step 5: Calculate Detailed Financials Per Year
         const annualIncome = simulationState.ownedProperties.reduce((sum, prop) => 
@@ -244,23 +241,32 @@ export const useSimulationEngine = (
         projections.push({
           year,
           portfolioValue: simulationState.portfolioValue,
-          totalEquity: usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt),
+          totalEquity: usableEquity,
           totalIncome: annualIncome,
           totalExpenses: annualExpenses,
           netCashflow: annualIncome - annualExpenses
         });
+
+        // C. Purchase Phase: Check for additional purchases from ranked list
+        for (const property of rankedProperties) {
+          if (totalAvailable >= property.depositRequired && simulationState.totalDebt + (property.averagePrice - property.depositRequired) <= profile.borrowingCapacity) {
+            // Can afford this property - simulate purchase
+            break; // Only one purchase per year for simplicity
+          }
+        }
       }
 
       // Step 6: Assess Feasibility & Risk
-      const finalUsableEquity = usableEquityOf(simulationState.portfolioValue, simulationState.totalDebt);
+      const finalUsableEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
       const borrowingUtilization = simulationState.totalDebt / profile.borrowingCapacity;
-      const totalCashRequired = timeline.reduce((sum, item) => sum + item.depositUsed, 0);
+      const depositUtilization = initialTotalDeposit / availableDeposit;
 
-      // Overall feasibility color (align to Blue/Orange/Red)
-      const borrowUtil = simulationState.totalDebt / profile.borrowingCapacity;
-      const overallFeasibility = borrowUtil >= 0.9 ? 'challenging'
-        : borrowUtil >= 0.8 ? 'delayed'
-        : 'feasible';
+      let overallFeasibility: 'feasible' | 'delayed' | 'challenging' = 'feasible';
+      if (borrowingUtilization > 0.9 || depositUtilization > 0.9) {
+        overallFeasibility = 'challenging';
+      } else if (borrowingUtilization > 0.8 || depositUtilization > 0.8) {
+        overallFeasibility = 'delayed';
+      }
 
       // Step 7: Generate Final Summary KPIs
       const finalProjection = projections[projections.length - 1] || {
@@ -271,19 +277,19 @@ export const useSimulationEngine = (
 
       const summary: PortfolioSummary = {
         finalPortfolioValue: finalProjection.portfolioValue || simulationState.portfolioValue,
-        totalEquityAchieved: finalProjection.totalEquity || finalUsableEquity,
-        numberOfProperties: simulationState.ownedProperties.length,
+        totalEquityAchieved: finalProjection.totalEquity || (simulationState.portfolioValue * 0.8 - simulationState.totalDebt),
+        numberOfProperties: simulationState.ownedProperties.length || selectedProperties.length,
         finalAnnualCashflow: finalProjection.netCashflow || 0,
-        totalCashRequired: totalCashRequired,
+        totalCashRequired: initialTotalDeposit || 0,
         yearsToAchieveGoals: timeline.length > 0 ? Math.max(...timeline.map(t => t.year)) + 1 : 0,
         overallFeasibility
       };
 
-      console.log('After processing property queue:', {
+      console.log('After processing all properties:', {
         portfolioValue: simulationState.portfolioValue,
         propertiesOwned: simulationState.ownedProperties.length,
-        remainingInQueue: propertyQueue.length,
         projectionsLength: projections.length,
+        firstProjection: projections[0],
         summary: summary
       });
 
@@ -298,7 +304,7 @@ export const useSimulationEngine = (
         hasTimeline: timeline.length > 0,
         hasProjections: projections.length > 0,
         summaryValues: summary,
-        queueProcessed: Object.values(selections).reduce((sum, qty) => sum + qty, 0) - propertyQueue.length
+        selectedPropertiesProcessed: selectedProperties.length
       });
 
       return results;
@@ -316,19 +322,13 @@ export const useSimulationEngine = (
       borrowingCapacity: profile.borrowingCapacity,
       propertyTypesLength: propertyTypes.length
     });
-    
-    try {
-      const results = runSimulation();
-      console.log('✅ Simulation results generated:', { 
-        timelineLength: results.timeline.length,
-        summaryValue: results.summary.finalPortfolioValue,
-        projectionLength: results.projections.length
-      });
-      setSimulationResults(results);
-    } catch (error) {
-      console.error('❌ Simulation error:', error);
-      throw error;
-    }
+    const results = runSimulation();
+    console.log('✅ Simulation results generated:', { 
+      timelineLength: results.timeline.length,
+      summaryValue: results.summary.finalPortfolioValue,
+      projectionLength: results.projections.length
+    });
+    setSimulationResults(results);
   }, [profile.depositPool, profile.borrowingCapacity, selectionCount, propertyTypes.length, runSimulation]);
 
   return {
