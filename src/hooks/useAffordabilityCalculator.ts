@@ -16,20 +16,12 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
+  
+  // Add this debug line
+  console.log('🎯 useAffordabilityCalculator received profile:', profile);
+  
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
-
-  console.log('🔥 useAffordabilityCalculator received profile:', {
-    timelineYears: profile.timelineYears,
-    borrowingCapacity: profile.borrowingCapacity,
-    depositPool: profile.depositPool,
-    annualSavings: profile.annualSavings
-  });
-
-  console.log('🔥 useAffordabilityCalculator received calculatedValues:', {
-    availableDeposit: calculatedValues.availableDeposit,
-    currentUsableEquity: calculatedValues.currentUsableEquity
-  });
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
     // Move ALL helper functions inside useMemo to avoid closure issues
