@@ -8,50 +8,53 @@ import { SignUp } from './pages/SignUp'
 import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
+import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 export function AppRouter() {
   return (
     <AuthProvider>
       <DataAssumptionsProvider>
         <PropertySelectionProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <App />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/clients" 
-                element={
-                  <ProtectedRoute>
-                    <ClientScenarios />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <App />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/data" 
-                element={
-                  <ProtectedRoute>
-                    <DataAssumptions />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<SignUp />} />
-            </Routes>
-          </BrowserRouter>
+          <InvestmentProfileProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <App />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/clients" 
+                  element={
+                    <ProtectedRoute>
+                      <ClientScenarios />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <App />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/data" 
+                  element={
+                    <ProtectedRoute>
+                      <DataAssumptions />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
+              </Routes>
+            </BrowserRouter>
+          </InvestmentProfileProvider>
         </PropertySelectionProvider>
       </DataAssumptionsProvider>
     </AuthProvider>
