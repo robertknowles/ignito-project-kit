@@ -179,8 +179,8 @@ export const useSimulationEngine = (
           simulationState.portfolioValue = simulationState.ownedProperties.reduce((sum, prop) => sum + prop.value, 0) + profile.portfolioValue;
         }
 
-        // B. Purchase Phase: Check if next property in queue is viable
-        if (queueIndex < propertyQueue.length) {
+        // B. Purchase Phase: Buy all affordable properties in queue this year
+        while (queueIndex < propertyQueue.length) {
           const nextProperty = propertyQueue[queueIndex];
           
           if (canAffordProperty(simulationState.cash, simulationState.portfolioValue, simulationState.totalDebt, nextProperty, profile.borrowingCapacity)) {
@@ -226,7 +226,10 @@ export const useSimulationEngine = (
               feasibilityStatus
             });
 
-            queueIndex++; // Move to next property in queue
+            queueIndex++; // Move to next property in queue only after successful purchase
+          } else {
+            // Cannot afford this property - break and retry next year
+            break;
           }
         }
 
