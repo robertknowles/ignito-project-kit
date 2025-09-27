@@ -69,6 +69,7 @@ export const useSimulationEngine = (
 
   const runSimulation = useMemo(() => {
     return (): SimulationResults => {
+      console.log('🚀 Running NEW queue-based simulation engine v2.0');
       // Debug selections at the start
       console.log('🔍 Simulation Debug:', {
         selectionsEntries: Object.entries(selections),
