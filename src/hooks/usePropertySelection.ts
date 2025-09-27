@@ -9,6 +9,13 @@ export interface PropertyType {
   yield: string;
   cashFlow: string;
   riskLevel: 'Low' | 'Medium' | 'Medium-Low' | 'High' | 'Very High';
+  // ADD fields (keep existing string fields)
+  growthRatePct?: number;            // e.g. 0.07 default if missing
+  yieldPct?: number;                 // numeric from yield string/range
+  cashflowImpact?: 'Positive'|'Neutral'|'Negative';
+  liquidity?: 'High'|'Medium'|'Low';
+  strategicRole?: string;
+  enabled?: boolean;
 }
 
 export interface PropertySelection {
@@ -28,6 +35,16 @@ export interface FeasibilityChecks {
   overallFeasible: boolean;
 }
 
+const parsePct = (s: string) => {
+  // "6-8%" -> 0.07 (midpoint), "4-5%" -> 0.045, "-9%" -> -0.09
+  const nums = (s.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+  if (!nums.length) return 0;
+  const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+  return avg/100;
+};
+const impactFrom = (s: string): 'Positive'|'Neutral'|'Negative' =>
+  /neg/i.test(s) ? 'Negative' : /pos/i.test(s) ? 'Positive' : 'Neutral';
+
 // Property definitions with realistic pricing data
 export const PROPERTY_TYPES: PropertyType[] = [
   {
@@ -39,6 +56,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '-9%',
     cashFlow: 'Positive',
     riskLevel: 'Medium',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('-9%'),
+    cashflowImpact: impactFrom('Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'villas-townhouses',
@@ -49,6 +71,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '6-8%',
     cashFlow: 'Negative',
     riskLevel: 'High',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('6-8%'),
+    cashflowImpact: impactFrom('Negative'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'units-apartments',
@@ -59,6 +86,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '6-8%',
     cashFlow: 'Neutral → Positive',
     riskLevel: 'High',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('6-8%'),
+    cashflowImpact: impactFrom('Neutral → Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'houses-regional',
@@ -69,6 +101,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '6-8%',
     cashFlow: 'Neutral → Positive',
     riskLevel: 'Medium',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('6-8%'),
+    cashflowImpact: impactFrom('Neutral → Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'duplexes',
@@ -79,6 +116,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '6-8%',
     cashFlow: 'Neutral → Positive',
     riskLevel: 'Medium',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('6-8%'),
+    cashflowImpact: impactFrom('Neutral → Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'metro-houses',
@@ -89,6 +131,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '4-5%',
     cashFlow: 'Negative',
     riskLevel: 'Medium-Low',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('4-5%'),
+    cashflowImpact: impactFrom('Negative'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'commercial-retail',
@@ -99,6 +146,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '7-9%',
     cashFlow: 'Positive',
     riskLevel: 'High',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('7-9%'),
+    cashflowImpact: impactFrom('Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'office-space',
@@ -109,6 +161,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '6-8%',
     cashFlow: 'Positive',
     riskLevel: 'Very High',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('6-8%'),
+    cashflowImpact: impactFrom('Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
   {
     id: 'industrial-units',
@@ -119,6 +176,11 @@ export const PROPERTY_TYPES: PropertyType[] = [
     yield: '7-10%',
     cashFlow: 'Positive',
     riskLevel: 'High',
+    growthRatePct: 0.07,                 // default
+    yieldPct: parsePct('7-10%'),
+    cashflowImpact: impactFrom('Positive'),
+    liquidity: 'Medium',
+    enabled: true,
   },
 ];
 
