@@ -6,7 +6,7 @@ import {
   Building2Icon,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { usePropertySelection } from '../hooks/usePropertySelection'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility, selections, propertyTypes } = usePropertySelection()

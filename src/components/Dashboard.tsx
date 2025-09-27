@@ -6,7 +6,7 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
-import { usePropertySelection } from '../hooks/usePropertySelection';
+import { usePropertySelection } from '../contexts/PropertySelectionContext';
 export const Dashboard = () => {
   // State for expandable panes
   const [profileExpanded, setProfileExpanded] = useState(true);

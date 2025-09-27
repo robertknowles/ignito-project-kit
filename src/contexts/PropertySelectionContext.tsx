@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 
 export interface PropertyType {
   id: string;
@@ -122,7 +122,33 @@ export const PROPERTY_TYPES: PropertyType[] = [
   },
 ];
 
+interface PropertySelectionContextType {
+  selections: PropertySelection;
+  calculations: PortfolioCalculations;
+  checkFeasibility: (availableDeposit: number, borrowingCapacity: number) => FeasibilityChecks;
+  updatePropertyQuantity: (propertyId: string, quantity: number) => void;
+  incrementProperty: (propertyId: string) => void;
+  decrementProperty: (propertyId: string) => void;
+  getPropertyQuantity: (propertyId: string) => number;
+  resetSelections: () => void;
+  propertyTypes: PropertyType[];
+}
+
+const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
+
 export const usePropertySelection = () => {
+  const context = useContext(PropertySelectionContext);
+  if (context === undefined) {
+    throw new Error('usePropertySelection must be used within a PropertySelectionProvider');
+  }
+  return context;
+};
+
+interface PropertySelectionProviderProps {
+  children: React.ReactNode;
+}
+
+export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const [selections, setSelections] = useState<PropertySelection>({});
 
   // Calculate portfolio totals
@@ -192,7 +218,7 @@ export const usePropertySelection = () => {
     setSelections({});
   };
 
-  return {
+  const value = {
     selections,
     calculations,
     checkFeasibility,
@@ -203,4 +229,10 @@ export const usePropertySelection = () => {
     resetSelections,
     propertyTypes: PROPERTY_TYPES,
   };
+
+  return (
+    <PropertySelectionContext.Provider value={value}>
+      {children}
+    </PropertySelectionContext.Provider>
+  );
 };

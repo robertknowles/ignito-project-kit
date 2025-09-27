@@ -1,5 +1,5 @@
 import React from 'react'
-import { usePropertySelection } from '../hooks/usePropertySelection'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 
 export const SummaryBar = () => {

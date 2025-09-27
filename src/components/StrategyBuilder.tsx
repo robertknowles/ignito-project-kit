@@ -2,7 +2,7 @@ import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCard'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { usePropertySelection, PROPERTY_TYPES } from '../hooks/usePropertySelection'
+import { usePropertySelection, PROPERTY_TYPES } from '../contexts/PropertySelectionContext'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
