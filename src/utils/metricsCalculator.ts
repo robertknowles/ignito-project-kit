@@ -1,4 +1,4 @@
-import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis } from '../types/property';
+import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis, GrowthProjection } from '../types/property';
 
 // Default property expenses (typical Australian property investment)
 export const DEFAULT_PROPERTY_EXPENSES: PropertyExpenses = {
@@ -205,6 +205,62 @@ export const calculateBorrowingCapacityProgression = (
   }
   
   return progression;
+};
+
+export const calculateGrowthProjections = (
+  purchases: PropertyPurchase[],
+  existingPortfolioValue: number = 0,
+  existingDebt: number = 0,
+  timelineYears: number,
+  baseYear: number = 2025
+): GrowthProjection[] => {
+  const projections: GrowthProjection[] = [];
+  
+  for (let year = 0; year <= timelineYears; year++) {
+    const currentYear = baseYear + year;
+    
+    // Calculate existing portfolio growth
+    let existingValue = 0;
+    let existingEquity = 0;
+    if (existingPortfolioValue > 0) {
+      existingValue = existingPortfolioValue * Math.pow(1.05, year); // 5% default growth
+      existingEquity = Math.max(0, existingValue - existingDebt);
+    }
+    
+    // Calculate values for purchased properties
+    const propertyValues = purchases
+      .filter(p => p.year <= currentYear)
+      .map(purchase => {
+        const yearsHeld = Math.max(0, currentYear - purchase.year);
+        const currentValue = purchase.cost * Math.pow(1 + purchase.growthRate, yearsHeld);
+        const remainingDebt = purchase.loanAmount; // Simplified - no principal reduction
+        const equity = Math.max(0, currentValue - remainingDebt);
+        const rentalIncome = currentValue * purchase.rentalYield;
+        
+        return {
+          propertyId: `${purchase.title}_${purchase.year}`,
+          title: purchase.title,
+          currentValue: Math.round(currentValue),
+          equity: Math.round(equity),
+          rentalIncome: Math.round(rentalIncome),
+          yearsPurchased: yearsHeld
+        };
+      });
+
+    const totalPropertyValue = propertyValues.reduce((sum, p) => sum + p.currentValue, 0);
+    const totalPropertyEquity = propertyValues.reduce((sum, p) => sum + p.equity, 0);
+    const totalRentalIncome = propertyValues.reduce((sum, p) => sum + p.rentalIncome, 0);
+
+    projections.push({
+      year: currentYear,
+      portfolioValue: Math.round(existingValue + totalPropertyValue),
+      totalEquity: Math.round(existingEquity + totalPropertyEquity),
+      annualIncome: Math.round(totalRentalIncome),
+      properties: propertyValues
+    });
+  }
+  
+  return projections;
 };
 
 export const combineMetrics = (...metrics: PropertyMetrics[]): PropertyMetrics => {

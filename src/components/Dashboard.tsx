@@ -5,6 +5,7 @@ import { InvestmentTimeline } from './InvestmentTimeline';
 import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { CashFlowAnalysis } from './CashFlowAnalysis';
+import { GrowthProjections } from './GrowthProjections';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
@@ -89,6 +90,9 @@ export const Dashboard = () => {
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('analysis')}>
                 Cash Flow Analysis
               </button>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('projections')}>
+                Growth Projections
+              </button>
             </div>
             {/* Tab Content */}
             <div className="p-6">
@@ -96,6 +100,7 @@ export const Dashboard = () => {
               {activeTab === 'portfolio' && <PortfolioGrowthChart />}
               {activeTab === 'cashflow' && <CashflowChart />}
               {activeTab === 'analysis' && <CashFlowAnalysis />}
+              {activeTab === 'projections' && <GrowthProjections />}
             </div>
           </div>
         </div>

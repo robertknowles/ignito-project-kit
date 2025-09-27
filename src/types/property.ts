@@ -33,6 +33,21 @@ export interface CashFlowAnalysis {
   };
 }
 
+export interface GrowthProjection {
+  year: number;
+  portfolioValue: number;
+  totalEquity: number;
+  annualIncome: number;
+  properties: {
+    propertyId: string;
+    title: string;
+    currentValue: number;
+    equity: number;
+    rentalIncome: number;
+    yearsPurchased: number;
+  }[];
+}
+
 export interface PropertyMetrics {
   portfolioValue: number;
   totalEquity: number;
