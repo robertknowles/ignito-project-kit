@@ -80,6 +80,43 @@ export const useAffordabilityCalculator = () => {
     return availableCash + totalUsableEquity;
   };
 
+  const checkAffordability = (
+    property: any,
+    availableFunds: number,
+    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }>,
+    currentYear: number
+  ): boolean => {
+    // Check if we have enough funds for deposit
+    const canAffordDeposit = availableFunds >= property.depositRequired;
+    
+    // Calculate total debt including this property
+    let totalDebt = profile.currentDebt;
+    previousPurchases.forEach(purchase => {
+      if (purchase.year <= currentYear) {
+        totalDebt += purchase.loanAmount;
+      }
+    });
+    
+    const newLoanAmount = property.cost - property.depositRequired;
+    const canAffordBorrowing = (totalDebt + newLoanAmount) <= profile.borrowingCapacity;
+    
+    return canAffordDeposit && canAffordBorrowing;
+  };
+
+  const determineNextPurchaseYear = (
+    property: any,
+    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }>
+  ): number => {
+    for (let year = 1; year <= profile.timelineYears; year++) {
+      const availableFunds = calculateAvailableFunds(year, previousPurchases, profile);
+      const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
+      if (canAfford) {
+        return year + 2025 - 1; // Convert to absolute year
+      }
+    }
+    return Infinity; // Cannot afford within timeline
+  };
+
   const calculateAffordabilityForProperty = (
     property: any,
     propertyIndex: number,
@@ -87,104 +124,105 @@ export const useAffordabilityCalculator = () => {
   ): AffordabilityResult => {
     const baseYear = 2025;
     
-    for (let year = 1; year <= profile.timelineYears; year++) {
-      const availableFunds = calculateAvailableFunds(year, previousPurchases, profile);
-      
-      // Calculate total debt at this year
-      let totalDebt = profile.currentDebt;
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= year) {
-          totalDebt += purchase.loanAmount;
-        }
-      });
-      
-      // Check affordability
-      const canAffordDeposit = availableFunds >= property.depositRequired;
-      const newLoanAmount = property.cost - property.depositRequired;
-      const canAffordBorrowing = (totalDebt + newLoanAmount) <= profile.borrowingCapacity;
-      
-      if (canAffordDeposit && canAffordBorrowing) {
-        // Calculate portfolio values for return
-        let totalPortfolioValue = profile.portfolioValue;
-        if (profile.portfolioValue > 0) {
-          totalPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, year - 1);
-        }
-        
-        previousPurchases.forEach(purchase => {
-          if (purchase.year <= year) {
-            const yearsOwned = year - purchase.year;
-            totalPortfolioValue += calculatePropertyGrowth(purchase.cost, yearsOwned);
-          }
-        });
-
-        const usableEquity = Math.max(0, totalPortfolioValue * 0.8 - totalDebt);
-        
-        return {
-          year: baseYear + year - 1,
-          canAfford: true,
-          availableFunds,
-          usableEquity,
-          totalPortfolioValue,
-          totalDebt
-        };
-      }
+    const purchaseYear = determineNextPurchaseYear(property, previousPurchases);
+    
+    if (purchaseYear === Infinity) {
+      // Not affordable within timeline
+      return {
+        year: 2025 + profile.timelineYears + propertyIndex,
+        canAfford: false,
+        availableFunds: 0,
+        usableEquity: 0,
+        totalPortfolioValue: 0,
+        totalDebt: 0
+      };
     }
     
-    // Not affordable within timeline
+    // Calculate values at the purchase year
+    const relativeYear = purchaseYear - 2025 + 1;
+    const availableFunds = calculateAvailableFunds(relativeYear, previousPurchases, profile);
+    
+    // Calculate portfolio values for return
+    let totalPortfolioValue = profile.portfolioValue;
+    if (profile.portfolioValue > 0) {
+      totalPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, relativeYear - 1);
+    }
+    
+    let totalDebt = profile.currentDebt;
+    previousPurchases.forEach(purchase => {
+      if (purchase.year <= relativeYear) {
+        const yearsOwned = relativeYear - purchase.year;
+        totalPortfolioValue += calculatePropertyGrowth(purchase.cost, yearsOwned);
+        totalDebt += purchase.loanAmount;
+      }
+    });
+
+    const usableEquity = Math.max(0, totalPortfolioValue * 0.8 - totalDebt);
+    
     return {
-      year: baseYear + profile.timelineYears + propertyIndex,
-      canAfford: false,
-      availableFunds: 0,
-      usableEquity: 0,
-      totalPortfolioValue: 0,
-      totalDebt: 0
+      year: purchaseYear,
+      canAfford: true,
+      availableFunds,
+      usableEquity,
+      totalPortfolioValue,
+      totalDebt
     };
   };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    const timelineProperties: TimelineProperty[] = [];
-    const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }> = [];
+    // Create a list of all properties to purchase
+    const allPropertiesToPurchase: Array<{ property: any; index: number }> = [];
     
-    // Process each selected property type
     Object.entries(selections).forEach(([propertyId, quantity]) => {
       if (quantity > 0) {
         const property = propertyTypes.find(p => p.id === propertyId);
         if (property) {
           for (let i = 0; i < quantity; i++) {
-            const result = calculateAffordabilityForProperty(property, i, purchaseHistory);
-            const loanAmount = property.cost - property.depositRequired;
-            
-            timelineProperties.push({
-              id: `${propertyId}_${i}`,
-              title: property.title,
-              cost: property.cost,
-              depositRequired: property.depositRequired,
-              loanAmount: loanAmount,
-              affordableYear: result.year,
-              status: result.canAfford ? 'feasible' : 'challenging',
-              propertyIndex: i,
-              portfolioValueAfter: result.totalPortfolioValue + (result.canAfford ? property.cost : 0),
-              totalEquityAfter: result.canAfford ? 
-                (result.totalPortfolioValue + property.cost) - (result.totalDebt + loanAmount) : 
-                result.totalPortfolioValue - result.totalDebt,
-              availableFundsUsed: result.availableFunds
-            });
-            
-            // Add to purchase history if affordable
-            if (result.canAfford) {
-              purchaseHistory.push({
-                year: result.year - 2025 + 1, // Convert back to relative year
-                cost: property.cost,
-                depositRequired: property.depositRequired,
-                loanAmount: loanAmount
-              });
-            }
+            allPropertiesToPurchase.push({ property, index: i });
           }
         }
       }
     });
+
+    const timelineProperties: TimelineProperty[] = [];
+    const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }> = [];
     
-    // Sort by affordable year
+    // Process properties sequentially, determining purchase year for each
+    allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
+      const result = calculateAffordabilityForProperty(property, globalIndex, purchaseHistory);
+      const loanAmount = property.cost - property.depositRequired;
+      
+      timelineProperties.push({
+        id: `${property.id}_${index}`,
+        title: property.title,
+        cost: property.cost,
+        depositRequired: property.depositRequired,
+        loanAmount: loanAmount,
+        affordableYear: result.year,
+        status: result.canAfford ? 'feasible' : 'challenging',
+        propertyIndex: index,
+        portfolioValueAfter: result.totalPortfolioValue + (result.canAfford ? property.cost : 0),
+        totalEquityAfter: result.canAfford ? 
+          (result.totalPortfolioValue + property.cost) - (result.totalDebt + loanAmount) : 
+          result.totalPortfolioValue - result.totalDebt,
+        availableFundsUsed: result.availableFunds
+      });
+      
+      // Add to purchase history if affordable
+      if (result.canAfford) {
+        purchaseHistory.push({
+          year: result.year - 2025 + 1, // Convert back to relative year
+          cost: property.cost,
+          depositRequired: property.depositRequired,
+          loanAmount: loanAmount
+        });
+        
+        // Sort purchase history by year to maintain chronological order
+        purchaseHistory.sort((a, b) => a.year - b.year);
+      }
+    });
+    
+    // Sort by affordable year for display
     return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
   }, [selections, propertyTypes, profile, calculatedValues, globalFactors, calculateAffordabilityForProperty]);
 
