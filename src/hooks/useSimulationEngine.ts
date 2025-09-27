@@ -200,39 +200,20 @@ export const useSimulationEngine = (
         });
       });
 
-      // Add initial year projection (Year 0) with acquisition costs
+      // Add initial year projection (Year 0)
       const initialEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
-      const initialRentalIncome = simulationState.ownedProperties.reduce((sum, prop) => 
+      const initialIncome = simulationState.ownedProperties.reduce((sum, prop) => 
         sum + (prop.value * prop.yield / 100), 0);
-      const initialLoanRepayments = simulationState.ownedProperties.reduce((sum, prop) => 
+      const initialExpenses = simulationState.ownedProperties.reduce((sum, prop) => 
         sum + (prop.loan * 0.06), 0); // 6% interest rate
-      
-      // Include acquisition costs (deposits) in Year 0
-      const acquisitionCosts = selectedProperties.reduce((sum, prop) => sum + prop.depositRequired, 0);
-      const initialNetCashflow = initialRentalIncome - initialLoanRepayments - acquisitionCosts;
-
-      console.log('💰 Year 0 Cashflow Breakdown:', {
-        rentalIncome: initialRentalIncome,
-        loanRepayments: initialLoanRepayments,
-        acquisitionCosts: acquisitionCosts,
-        netCashflow: initialNetCashflow,
-        properties: simulationState.ownedProperties.map(p => ({
-          type: p.type,
-          value: p.value,
-          yield: p.yield,
-          rentalIncome: p.value * p.yield / 100,
-          loanAmount: p.loan,
-          loanRepayment: p.loan * 0.06
-        }))
-      });
 
       projections.push({
         year: 0,
         portfolioValue: simulationState.portfolioValue,
         totalEquity: initialEquity,
-        totalIncome: initialRentalIncome,
-        totalExpenses: initialLoanRepayments + acquisitionCosts,
-        netCashflow: initialNetCashflow
+        totalIncome: initialIncome,
+        totalExpenses: initialExpenses,
+        netCashflow: initialIncome - initialExpenses
       });
 
       // Continue simulation for remaining years
@@ -250,31 +231,20 @@ export const useSimulationEngine = (
         const totalAvailable = simulationState.cash + usableEquity;
 
         // Step 5: Calculate Detailed Financials Per Year
-        const annualRentalIncome = simulationState.ownedProperties.reduce((sum, prop) => 
+        const annualIncome = simulationState.ownedProperties.reduce((sum, prop) => 
           sum + (prop.value * prop.yield / 100), 0);
         
         const interestRate = 0.06; // 6% interest rate
-        const annualLoanRepayments = simulationState.ownedProperties.reduce((sum, prop) => 
+        const annualExpenses = simulationState.ownedProperties.reduce((sum, prop) => 
           sum + (prop.loan * interestRate), 0);
-        
-        // No acquisition costs in subsequent years (only in Year 0)
-        const netCashflow = annualRentalIncome - annualLoanRepayments;
-
-        console.log(`💰 Year ${year} Cashflow Breakdown:`, {
-          rentalIncome: annualRentalIncome,
-          loanRepayments: annualLoanRepayments,
-          netCashflow: netCashflow,
-          portfolioValue: simulationState.portfolioValue,
-          totalEquity: usableEquity
-        });
 
         projections.push({
           year,
           portfolioValue: simulationState.portfolioValue,
           totalEquity: usableEquity,
-          totalIncome: annualRentalIncome,
-          totalExpenses: annualLoanRepayments,
-          netCashflow: netCashflow
+          totalIncome: annualIncome,
+          totalExpenses: annualExpenses,
+          netCashflow: annualIncome - annualExpenses
         });
 
         // C. Purchase Phase: Check for additional purchases from ranked list
