@@ -69,6 +69,9 @@ export const useSimulationEngine = (
 
   const runSimulation = useMemo(() => {
     return (): SimulationResults => {
+      // Check if any properties are selected
+      const hasSelections = Object.values(selections).some(quantity => quantity > 0);
+      console.log('🔍 Checking selections:', { selections, hasSelections });
       // Step 1: Calculate Starting Financial Position
       const startingEquity = calculatedValues.currentUsableEquity;
       const availableDeposit = calculatedValues.availableDeposit;
@@ -131,6 +134,13 @@ export const useSimulationEngine = (
         const purchaseYear = Math.floor(index / 2); // Spread purchases over years
         const usableEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
         const availableFunding = simulationState.cash + usableEquity;
+        
+        console.log(`🏠 Processing property ${index + 1}:`, {
+          type: property.title,
+          deposit: property.depositRequired,
+          availableFunding,
+          canAfford: availableFunding >= property.depositRequired
+        });
         
         if (availableFunding >= property.depositRequired) {
           const loanAmount = property.averagePrice - property.depositRequired;
@@ -230,21 +240,30 @@ export const useSimulationEngine = (
       };
 
       const summary: PortfolioSummary = {
-        finalPortfolioValue: finalProjection.portfolioValue,
-        totalEquityAchieved: finalProjection.totalEquity,
-        numberOfProperties: simulationState.ownedProperties.length,
-        finalAnnualCashflow: finalProjection.netCashflow,
-        totalCashRequired: initialTotalDeposit,
+        finalPortfolioValue: finalProjection.portfolioValue || 0,
+        totalEquityAchieved: finalProjection.totalEquity || 0,
+        numberOfProperties: simulationState.ownedProperties.length || 0,
+        finalAnnualCashflow: finalProjection.netCashflow || 0,
+        totalCashRequired: initialTotalDeposit || 0,
         yearsToAchieveGoals: timeline.length > 0 ? Math.max(...timeline.map(t => t.year)) + 1 : 0,
         overallFeasibility
       };
 
-      return {
+      const results = {
         timeline,
         projections,
         summary,
         propertyScores
       };
+
+      console.log('📊 Final simulation results:', {
+        hasTimeline: timeline.length > 0,
+        hasProjections: projections.length > 0,
+        summaryValues: summary,
+        selectedPropertiesProcessed: selectedProperties.length
+      });
+
+      return results;
     };
   }, [profile, calculatedValues, selections, propertyTypes]);
 
