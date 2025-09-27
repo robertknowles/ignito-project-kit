@@ -78,6 +78,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            console.log('🔘 PropertyCard + button clicked for:', title);
             onIncrement?.();
           }}
           className="hover:bg-[#f3f4f6] p-1 rounded transition-colors"
@@ -87,6 +88,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            console.log('🔘 PropertyCard - button clicked for:', title);
             onDecrement?.();
           }}
           className="hover:bg-[#f3f4f6] p-1 rounded transition-colors"
