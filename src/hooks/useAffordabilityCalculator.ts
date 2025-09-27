@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
@@ -16,14 +16,47 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  
-  // Add this debug line
-  console.log('🎯 useAffordabilityCalculator received profile:', profile);
-  
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
+  // 🐛 ADD THIS EXTENSIVE DEBUGGING BLOCK
+  const debugTimestamp = new Date().toISOString();
+  const profileRef = React.useRef(profile);
+  
+  console.log('🐛 [HOOK CALLED] useAffordabilityCalculator executed at:', debugTimestamp);
+  console.log('🐛 [PROFILE RECEIVED] Full profile object:', profile);
+  console.log('🐛 [PROFILE VALUES] Key values:', {
+    timelineYears: profile.timelineYears,
+    borrowingCapacity: profile.borrowingCapacity,
+    depositPool: profile.depositPool,
+    annualSavings: profile.annualSavings,
+    portfolioValue: profile.portfolioValue,
+    currentDebt: profile.currentDebt
+  });
+  console.log('🐛 [CALCULATED VALUES] From useInvestmentProfile:', calculatedValues);
+  console.log('🐛 [OBJECT REFERENCE] Profile reference changed:', profileRef.current !== profile);
+  console.log('🐛 [OBJECT REFERENCE] Previous ref:', profileRef.current);
+  console.log('🐛 [OBJECT REFERENCE] Current ref:', profile);
+  
+  // Update the ref for next comparison
+  React.useEffect(() => {
+    if (profileRef.current !== profile) {
+      console.log('🐛 [PROFILE CHANGE] Profile object reference changed at:', new Date().toISOString());
+      console.log('🐛 [PROFILE CHANGE] Old profile:', profileRef.current);
+      console.log('🐛 [PROFILE CHANGE] New profile:', profile);
+      profileRef.current = profile;
+    }
+  }, [profile]);
+
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
+    console.log('🐛 [MEMO EXECUTING] useMemo callback running at:', new Date().toISOString());
+    console.log('🐛 [MEMO PROFILE] Profile inside useMemo:', {
+      timelineYears: profile.timelineYears,
+      borrowingCapacity: profile.borrowingCapacity,
+      depositPool: profile.depositPool,
+      annualSavings: profile.annualSavings
+    });
+
     // Move ALL helper functions inside useMemo to avoid closure issues
     
     const calculatePropertyGrowth = (initialValue: number, years: number) => {
