@@ -36,21 +36,37 @@ export const InvestmentTimeline = () => {
           type: "No properties selected",
           deposit: "$0",
           price: "$0",
+          loanAmount: "$0",
+          portfolioValue: "$0",
+          equity: "$0",
           status: 'feasible' as const
         }
       ]
     }
 
-    return timelineProperties.map((property, index) => ({
-      year: property.affordableYear.toString(),
-      quarter: `Yr ${property.affordableYear - 2025}`,
-      type: property.title,
-      deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-      price: `$${Math.round(property.cost / 1000)}k`,
-      status: property.status,
-      number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
-      affordableYear: property.affordableYear
-    })).slice(0, 5) // Limit to 5 items for UI
+    return timelineProperties.map((property, index) => {
+      const isAffordable = property.status === 'feasible';
+      const yearDisplay = isAffordable ? 
+        property.affordableYear.toString() : 
+        "Beyond Timeline";
+      const quarterDisplay = isAffordable ? 
+        `Yr ${property.affordableYear - 2025}` : 
+        "N/A";
+
+      return {
+        year: yearDisplay,
+        quarter: quarterDisplay,
+        type: property.title,
+        deposit: `$${Math.round(property.depositRequired / 1000)}k`,
+        price: `$${Math.round(property.cost / 1000)}k`,
+        loanAmount: `$${Math.round(property.loanAmount / 1000)}k`,
+        portfolioValue: `$${Math.round(property.portfolioValueAfter / 1000)}k`,
+        equity: `$${Math.round(property.totalEquityAfter / 1000)}k`,
+        status: property.status,
+        number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
+        affordableYear: property.affordableYear
+      };
+    }).slice(0, 5); // Limit to 5 items for UI
   }
 
   const timelineItems = generateTimelineItems()
@@ -86,9 +102,10 @@ export const InvestmentTimeline = () => {
             type={item.type}
             number={item.number}
             deposit={item.deposit}
+            loanAmount={item.loanAmount}
             source="Savings & Equity"
-            equity="TBD"
-            portfolioValue="TBD"
+            equity={item.equity}
+            portfolioValue={item.portfolioValue}
             price={item.price}
             status={item.status}
             isLast={index === timelineItems.length - 1}
@@ -121,6 +138,7 @@ interface TimelineItemProps {
   type: string
   number?: string
   deposit: string
+  loanAmount: string
   source: string
   equity: string
   portfolioValue: string
@@ -134,6 +152,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   type,
   number,
   deposit,
+  loanAmount,
   source,
   equity,
   portfolioValue,
@@ -168,7 +187,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         {/* Year circle */}
         <div className="flex-shrink-0 w-16 h-16 bg-white rounded-full flex items-center justify-center mr-6 border border-[#f3f4f6]">
           <div className="text-center">
-            <div className="text-[#111827] font-medium">{year}</div>
+            <div className={`text-xs font-medium ${year === "Beyond Timeline" ? "text-[#dc2626]" : "text-[#111827]"}`}>
+              {year === "Beyond Timeline" ? "N/A" : year}
+            </div>
           </div>
         </div>
         {/* Content */}
@@ -179,8 +200,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
               <div className="flex items-center gap-1">{getPropertyIcon()}</div>
             </div>
             <div className="text-sm text-[#6b7280] mt-3 leading-relaxed font-normal">
-              Deposit: {deposit} • Purchase Price: {price} •{' '}
-              <span className="text-[#9ca3af]">Source: Savings & Equity</span>
+              Deposit: {deposit} • Loan: {loanAmount} • Purchase Price: {price}
+              <br />
+              <span className="text-[#9ca3af]">Portfolio Value: {portfolioValue} • Total Equity: {equity}</span>
             </div>
           </div>
         </div>

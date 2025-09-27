@@ -17,9 +17,13 @@ export interface TimelineProperty {
   title: string;
   cost: number;
   depositRequired: number;
+  loanAmount: number;
   affordableYear: number;
   status: 'feasible' | 'challenging';
   propertyIndex: number;
+  portfolioValueAfter: number;
+  totalEquityAfter: number;
+  availableFundsUsed: number;
 }
 
 export const useAffordabilityCalculator = () => {
@@ -118,15 +122,22 @@ export const useAffordabilityCalculator = () => {
         if (property) {
           for (let i = 0; i < quantity; i++) {
             const result = calculateAffordabilityForProperty(property, i, purchaseHistory);
+            const loanAmount = property.cost - property.depositRequired;
             
             timelineProperties.push({
               id: `${propertyId}_${i}`,
               title: property.title,
               cost: property.cost,
               depositRequired: property.depositRequired,
+              loanAmount: loanAmount,
               affordableYear: result.year,
               status: result.canAfford ? 'feasible' : 'challenging',
-              propertyIndex: i
+              propertyIndex: i,
+              portfolioValueAfter: result.totalPortfolioValue + (result.canAfford ? property.cost : 0),
+              totalEquityAfter: result.canAfford ? 
+                (result.totalPortfolioValue + property.cost) - (result.totalDebt + loanAmount) : 
+                result.totalPortfolioValue - result.totalDebt,
+              availableFundsUsed: result.availableFunds
             });
             
             // Add to purchase history if affordable
