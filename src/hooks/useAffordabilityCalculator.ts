@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import type { TimelineProperty } from '../types/property';
 
 export interface AffordabilityResult {
   year: number;
@@ -10,20 +11,6 @@ export interface AffordabilityResult {
   usableEquity: number;
   totalPortfolioValue: number;
   totalDebt: number;
-}
-
-export interface TimelineProperty {
-  id: string;
-  title: string;
-  cost: number;
-  depositRequired: number;
-  loanAmount: number;
-  affordableYear: number;
-  status: 'feasible' | 'challenging';
-  propertyIndex: number;
-  portfolioValueAfter: number;
-  totalEquityAfter: number;
-  availableFundsUsed: number;
 }
 
 export const useAffordabilityCalculator = () => {

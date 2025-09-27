@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics } from '../utils/metricsCalculator';
+import type { PropertyPurchase } from '../types/property';
 
 export interface PortfolioGrowthDataPoint {
   year: string;
@@ -28,66 +30,62 @@ export const useChartDataGenerator = () => {
     const startYear = 2025;
     const endYear = startYear + profile.timelineYears;
     const growthRate = parseFloat(globalFactors.growthRate) / 100;
+    const interestRate = parseFloat(globalFactors.interestRate) / 100;
 
-    // Create purchase schedule - when each property is bought (only feasible ones)
-    const purchaseSchedule: { [year: number]: typeof timelineProperties } = {};
+    // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
-    
-    feasibleProperties.forEach(property => {
-      if (!purchaseSchedule[property.affordableYear]) {
-        purchaseSchedule[property.affordableYear] = [];
-      }
-      purchaseSchedule[property.affordableYear].push(property);
+    const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
+      const propertyData = getPropertyData(property.title);
+      return {
+        year: property.affordableYear,
+        cost: property.cost,
+        loanAmount: property.loanAmount,
+        depositRequired: property.depositRequired,
+        title: property.title,
+        rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
+      };
     });
 
-    let cumulativePortfolioValue = profile.portfolioValue;
-    let cumulativeDebt = profile.currentDebt;
-    const ownedProperties: Array<{ cost: number; title: string; purchaseYear: number }> = [];
+    // Create purchase schedule for property display
+    const purchaseSchedule: { [year: number]: PropertyPurchase[] } = {};
+    purchases.forEach(purchase => {
+      if (!purchaseSchedule[purchase.year]) {
+        purchaseSchedule[purchase.year] = [];
+      }
+      purchaseSchedule[purchase.year].push(purchase);
+    });
 
     for (let year = startYear; year <= endYear; year++) {
-      // Add new purchases this year
-      const purchasesThisYear = purchaseSchedule[year] || [];
-      purchasesThisYear.forEach(purchase => {
-        cumulativePortfolioValue += purchase.cost;
-        cumulativeDebt += purchase.loanAmount;
-        ownedProperties.push({
-          cost: purchase.cost,
-          title: purchase.title,
-          purchaseYear: year
-        });
-      });
+      // Calculate metrics for existing portfolio
+      const existingMetrics = calculateExistingPortfolioMetrics(
+        profile.portfolioValue,
+        profile.currentDebt,
+        year - startYear,
+        growthRate,
+        interestRate
+      );
 
-      // Apply growth to existing properties
-      if (year > startYear) {
-        // Grow existing portfolio
-        if (profile.portfolioValue > 0) {
-          const existingGrowth = profile.portfolioValue * growthRate;
-          cumulativePortfolioValue += existingGrowth;
-        }
+      // Calculate metrics for purchases made by this year
+      const relevantPurchases = purchases.filter(p => p.year <= year);
+      const newPurchasesMetrics = calculatePortfolioMetrics(
+        relevantPurchases,
+        year,
+        growthRate,
+        interestRate
+      );
 
-        // Grow owned properties
-        ownedProperties.forEach(property => {
-          const yearsOwned = year - property.purchaseYear;
-          if (yearsOwned > 0) {
-            const propertyData = getPropertyData(property.title);
-            const propertyGrowthRate = propertyData ? parseFloat(propertyData.growth) / 100 : growthRate;
-            const growth = property.cost * propertyGrowthRate;
-            cumulativePortfolioValue += growth;
-            property.cost += growth; // Update cost for compound growth
-          }
-        });
-      }
-
-      // Calculate equity
-      const equity = Math.max(0, cumulativePortfolioValue - cumulativeDebt);
+      // Combine metrics
+      const totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics);
 
       // Determine if there's a property purchase this year
+      const purchasesThisYear = purchaseSchedule[year] || [];
       const propertyPurchased = purchasesThisYear.length > 0 ? purchasesThisYear[0].title : undefined;
 
       data.push({
         year: year.toString(),
-        portfolioValue: Math.round(cumulativePortfolioValue),
-        equity: Math.round(equity),
+        portfolioValue: Math.round(totalMetrics.portfolioValue),
+        equity: Math.round(totalMetrics.totalEquity),
         property: propertyPurchased
       });
     }
@@ -99,69 +97,55 @@ export const useChartDataGenerator = () => {
     const data: CashflowDataPoint[] = [];
     const startYear = 2025;
     const endYear = startYear + profile.timelineYears;
+    const growthRate = parseFloat(globalFactors.growthRate) / 100;
     const interestRate = parseFloat(globalFactors.interestRate) / 100;
 
-    // Create purchase schedule
-    const purchaseSchedule: { [year: number]: typeof timelineProperties } = {};
-    timelineProperties.forEach(property => {
-      if (property.status === 'feasible') {
-        if (!purchaseSchedule[property.affordableYear]) {
-          purchaseSchedule[property.affordableYear] = [];
-        }
-        purchaseSchedule[property.affordableYear].push(property);
-      }
+    // Convert feasible properties to PropertyPurchase format
+    const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
+    const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
+      const propertyData = getPropertyData(property.title);
+      return {
+        year: property.affordableYear,
+        cost: property.cost,
+        loanAmount: property.loanAmount,
+        depositRequired: property.depositRequired,
+        title: property.title,
+        rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
+      };
     });
 
-    const ownedProperties: Array<{ 
-      cost: number; 
-      title: string; 
-      loanAmount: number; 
-      purchaseYear: number 
-    }> = [];
-
     for (let year = startYear; year <= endYear; year++) {
-      // Add new purchases this year
-      const purchasesThisYear = purchaseSchedule[year] || [];
-      purchasesThisYear.forEach(purchase => {
-        ownedProperties.push({
-          cost: purchase.cost,
-          title: purchase.title,
-          loanAmount: purchase.loanAmount,
-          purchaseYear: year
-        });
-      });
+      // Calculate metrics for existing portfolio
+      const existingMetrics = calculateExistingPortfolioMetrics(
+        profile.portfolioValue,
+        profile.currentDebt,
+        year - startYear,
+        growthRate,
+        interestRate
+      );
 
-      // Calculate rental income and loan repayments
-      let totalRentalIncome = 0;
-      let totalLoanRepayments = 0;
+      // Calculate metrics for purchases made by this year
+      const relevantPurchases = purchases.filter(p => p.year <= year);
+      const newPurchasesMetrics = calculatePortfolioMetrics(
+        relevantPurchases,
+        year,
+        growthRate,
+        interestRate
+      );
 
-      ownedProperties.forEach(property => {
-        const yearsOwned = year - property.purchaseYear;
-        if (yearsOwned >= 0) {
-          const propertyData = getPropertyData(property.title);
-          if (propertyData) {
-            // Calculate current property value with growth
-            const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-            const currentValue = property.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
-            
-            // Calculate rental income (yield on current value)
-            const yieldRate = parseFloat(propertyData.yield) / 100;
-            totalRentalIncome += currentValue * yieldRate;
-          }
+      // Combine metrics
+      const totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics);
 
-          // Calculate loan repayments (interest only for simplicity)
-          totalLoanRepayments += property.loanAmount * interestRate;
-        }
-      });
-
-      const netCashflow = totalRentalIncome - totalLoanRepayments;
+      // Calculate total rental income (cashflow + loan repayments)
+      const totalRentalIncome = Math.round(totalMetrics.annualCashflow + totalMetrics.annualLoanRepayments);
 
       data.push({
         year: year.toString(),
-        cashflow: Math.round(netCashflow),
-        rentalIncome: Math.round(totalRentalIncome),
-        loanRepayments: Math.round(totalLoanRepayments),
-        highlight: netCashflow >= 0 && year === startYear + Math.floor(profile.timelineYears / 2) // Highlight positive cashflow around mid-timeline
+        cashflow: Math.round(totalMetrics.annualCashflow),
+        rentalIncome: totalRentalIncome,
+        loanRepayments: Math.round(totalMetrics.annualLoanRepayments),
+        highlight: totalMetrics.annualCashflow >= 0 && year === startYear + Math.floor(profile.timelineYears / 2)
       });
     }
 

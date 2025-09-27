@@ -3,6 +3,8 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics } from '../utils/metricsCalculator'
+import type { PropertyPurchase } from '../types/property'
 
 export const SummaryBar = () => {
   const { calculations } = usePropertySelection()
@@ -10,7 +12,7 @@ export const SummaryBar = () => {
   const { timelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
 
-  // Calculate actual KPIs based on timeline results
+  // Calculate actual KPIs based on timeline results using new metrics calculator
   const calculateSummaryKPIs = () => {
     const feasibleProperties = timelineProperties.filter(prop => prop.status === 'feasible')
     
@@ -28,51 +30,48 @@ export const SummaryBar = () => {
     const growthRate = parseFloat(globalFactors.growthRate) / 100
     const interestRate = parseFloat(globalFactors.interestRate) / 100
     
-    let finalPortfolioValue = profile.portfolioValue
-    let totalDebt = profile.currentDebt
-    let annualRentalIncome = 0
-    let annualLoanRepayments = 0
-    let cashRequired = 0
-
-    // Add existing portfolio growth
-    if (profile.portfolioValue > 0) {
-      const yearsGrowth = timelineEnd - 2025
-      finalPortfolioValue = profile.portfolioValue * Math.pow(1 + growthRate, yearsGrowth)
-    }
-
-    feasibleProperties.forEach(property => {
-      const yearsOwned = timelineEnd - property.affordableYear
+    // Convert feasible properties to PropertyPurchase format
+    const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
       const propertyData = getPropertyData(property.title)
-      
-      if (propertyData && yearsOwned >= 0) {
-        // Calculate final property value with growth
-        const propertyGrowthRate = parseFloat(propertyData.growth) / 100
-        const finalPropertyValue = property.cost * Math.pow(1 + propertyGrowthRate, yearsOwned)
-        finalPortfolioValue += finalPropertyValue
-        
-        // Add to debt
-        totalDebt += property.loanAmount
-        
-        // Calculate annual rental income (yield on final value)
-        const yieldRate = parseFloat(propertyData.yield) / 100
-        annualRentalIncome += finalPropertyValue * yieldRate
-        
-        // Calculate annual loan repayments (interest only)
-        annualLoanRepayments += property.loanAmount * interestRate
-        
-        // Add to cash required
-        cashRequired += property.depositRequired
+      return {
+        year: property.affordableYear,
+        cost: property.cost,
+        loanAmount: property.loanAmount,
+        depositRequired: property.depositRequired,
+        title: property.title,
+        rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04, // Default 4% if no data
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate
       }
     })
 
-    const totalEquity = Math.max(0, finalPortfolioValue - totalDebt)
-    const annualCashflow = annualRentalIncome - annualLoanRepayments
+    // Calculate metrics for existing portfolio
+    const existingMetrics = calculateExistingPortfolioMetrics(
+      profile.portfolioValue,
+      profile.currentDebt,
+      timelineEnd - 2025,
+      growthRate,
+      interestRate
+    )
+
+    // Calculate metrics for new purchases
+    const newPurchasesMetrics = calculatePortfolioMetrics(
+      purchases,
+      timelineEnd,
+      growthRate,
+      interestRate
+    )
+
+    // Combine metrics
+    const totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics)
+
+    // Calculate cash required
+    const cashRequired = feasibleProperties.reduce((sum, property) => sum + property.depositRequired, 0)
 
     return {
-      finalPortfolioValue: Math.round(finalPortfolioValue),
+      finalPortfolioValue: Math.round(totalMetrics.portfolioValue),
       totalProperties: feasibleProperties.length,
-      annualCashflow: Math.round(annualCashflow),
-      totalEquity: Math.round(totalEquity),
+      annualCashflow: Math.round(totalMetrics.annualCashflow),
+      totalEquity: Math.round(totalMetrics.totalEquity),
       cashRequired: Math.round(cashRequired)
     }
   }
