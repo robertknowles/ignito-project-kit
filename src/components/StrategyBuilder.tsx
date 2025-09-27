@@ -7,11 +7,19 @@ import { usePropertySelection, PROPERTY_TYPES } from '../hooks/usePropertySelect
 interface StrategyBuilderProps {
   profileOnly?: boolean
   propertyOnly?: boolean
+  incrementProperty?: (propertyId: string) => void
+  decrementProperty?: (propertyId: string) => void
+  getPropertyQuantity?: (propertyId: string) => number
+  propertyTypes?: any[]
 }
 
 export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   profileOnly = false,
   propertyOnly = false,
+  incrementProperty,
+  decrementProperty,
+  getPropertyQuantity,
+  propertyTypes
 }) => {
   const { 
     profile, 
@@ -21,13 +29,21 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     handleCashflowChange 
   } = useInvestmentProfile()
 
+  // Only use local property selection if not provided as props
+  const localPropertySelection = usePropertySelection()
   const {
     calculations,
     checkFeasibility,
-    incrementProperty,
-    decrementProperty,
-    getPropertyQuantity,
-  } = usePropertySelection()
+    incrementProperty: localIncrement,
+    decrementProperty: localDecrement,
+    getPropertyQuantity: localGetQuantity,
+  } = localPropertySelection
+
+  // Use props or fallback to local
+  const finalIncrementProperty = incrementProperty || localIncrement
+  const finalDecrementProperty = decrementProperty || localDecrement
+  const finalGetPropertyQuantity = getPropertyQuantity || localGetQuantity
+  const finalPropertyTypes = propertyTypes || PROPERTY_TYPES
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -271,7 +287,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {PROPERTY_TYPES.map((property) => (
+          {finalPropertyTypes.map((property) => (
             <PropertyCard
               key={property.id}
               title={property.title}
@@ -279,10 +295,10 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               yield={property.yield}
               cashFlow={property.cashFlow}
               riskLevel={property.riskLevel}
-              count={getPropertyQuantity(property.id)}
-              selected={getPropertyQuantity(property.id) > 0}
-              onIncrement={() => incrementProperty(property.id)}
-              onDecrement={() => decrementProperty(property.id)}
+              count={finalGetPropertyQuantity(property.id)}
+              selected={finalGetPropertyQuantity(property.id) > 0}
+              onIncrement={() => finalIncrementProperty(property.id)}
+              onDecrement={() => finalDecrementProperty(property.id)}
             />
           ))}
         </div>

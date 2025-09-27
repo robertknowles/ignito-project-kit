@@ -18,7 +18,7 @@ export const Dashboard = () => {
   
   // Hooks for real data
   const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, calculations, propertyTypes } = usePropertySelection();
+  const { selections, calculations, propertyTypes, incrementProperty, decrementProperty, getPropertyQuantity } = usePropertySelection();
   const { simulationResults } = useSimulationEngine(profile, calculatedValues, selections, propertyTypes);
   
   // Calculate selected properties count
@@ -26,6 +26,7 @@ export const Dashboard = () => {
   
   // Debug logging
   console.log('📊 Dashboard state:', { 
+    selections,
     selectedPropertiesCount, 
     hasSimulationResults: !!simulationResults,
     timelineItems: simulationResults?.timeline?.length || 0,
@@ -77,7 +78,13 @@ export const Dashboard = () => {
               </div>
               <div className={`transition-all duration-300 ease-in-out overflow-hidden ${propertyExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="p-6 pt-0">
-                  <StrategyBuilder propertyOnly={true} />
+                  <StrategyBuilder 
+                    propertyOnly={true} 
+                    incrementProperty={incrementProperty}
+                    decrementProperty={decrementProperty}
+                    getPropertyQuantity={getPropertyQuantity}
+                    propertyTypes={propertyTypes}
+                  />
                 </div>
               </div>
             </div>
