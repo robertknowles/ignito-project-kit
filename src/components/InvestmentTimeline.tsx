@@ -12,6 +12,13 @@ interface InvestmentTimelineProps {
 }
 
 export const InvestmentTimeline: React.FC<InvestmentTimelineProps> = ({ simulationResults }) => {
+  // Debug logging to see what we're receiving
+  console.log('📈 InvestmentTimeline received:', {
+    hasResults: !!simulationResults,
+    timelineLength: simulationResults?.timeline?.length || 0,
+    timelineExists: !!simulationResults?.timeline,
+    firstItem: simulationResults?.timeline?.[0]
+  });
 
   return (
     <div>
