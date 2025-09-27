@@ -7,69 +7,78 @@ import {
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { useSimulationEngine } from '../hooks/useSimulationEngine'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, selections, propertyTypes } = usePropertySelection()
+  const { calculations, checkFeasibility, propertyTypes } = usePropertySelection()
+  const { simulationResults, isSimulationComplete } = useSimulationEngine()
   
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
   
-  // Determine status based on feasibility and selections
-  const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
-    if (calculations.totalProperties === 0) return 'feasible' // No properties selected
-    if (!feasibility.overallFeasible) return 'challenging'
-    if (calculations.totalCost > calculatedValues.availableDeposit * 4) return 'delayed' // High leverage scenario
-    return 'feasible'
-  }
-
-  const timelineStatus = getTimelineStatus()
-
-  // Generate timeline items based on selected properties
+  // Generate timeline items from simulation results
   const generateTimelineItems = () => {
-    if (calculations.totalProperties === 0) {
-      // Default timeline when no properties selected
+    if (!isSimulationComplete || simulationResults.timelineEntries.length === 0) {
+      // Default timeline when no simulation results or properties selected
       return [
         {
-          year: "2025",
+          year: "TBD",
           quarter: "Yr 0",
           type: "No properties selected",
           deposit: "$0",
           price: "$0",
-          status: 'feasible' as const
+          portfolioValue: "$0",
+          equity: "$0",
+          loanAmount: "$0",
+          status: 'feasible' as const,
+          action: 'pending' as const
         }
       ]
     }
 
-    // Generate timeline based on actual selections
-    const timelineItems = []
-    let year = 2025
-    let totalProcessed = 0
-
-    Object.entries(selections).forEach(([propertyId, quantity]) => {
-      if (quantity > 0) {
-        const property = propertyTypes.find(p => p.id === propertyId)
-        if (property) {
-          for (let i = 0; i < quantity; i++) {
-            totalProcessed++
-            timelineItems.push({
-              year: year.toString(),
-              quarter: `Yr ${year - 2025}`,
-              type: property.title,
-              deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-              price: `$${Math.round(property.cost / 1000)}k`,
-              status: timelineStatus,
-              number: totalProcessed > 1 ? totalProcessed.toString() : undefined
-            })
-            year += 1 // Spread purchases over years
-          }
-        }
+    // Use simulation timeline entries
+    const timelineItems = simulationResults.timelineEntries.map((entry, index) => {
+      // Find corresponding yearly data for portfolio values
+      const yearData = simulationResults.yearlyData.find(data => data.year === entry.year)
+      
+      return {
+        year: entry.year.toString(),
+        quarter: `Yr ${entry.year - 1}`,
+        type: entry.propertyType,
+        deposit: `$${Math.round(entry.deposit / 1000)}k`,
+        price: `$${Math.round(entry.price / 1000)}k`,
+        loanAmount: `$${Math.round((entry.price - entry.deposit) / 1000)}k`,
+        portfolioValue: yearData ? `$${Math.round(yearData.portfolioValue / 1000)}k` : "TBD",
+        equity: yearData ? `$${Math.round(yearData.totalEquity / 1000)}k` : "TBD",
+        status: entry.status,
+        action: entry.action,
+        number: index > 0 ? (index + 1).toString() : undefined
       }
     })
 
-    return timelineItems.slice(0, 5) // Limit to 5 items for UI
+    return timelineItems.slice(0, 10) // Show more items from simulation
   }
 
   const timelineItems = generateTimelineItems()
+  
+  // Calculate statistics from simulation
+  const simulationStats = () => {
+    if (!isSimulationComplete) return null
+    
+    const finalYear = simulationResults.yearlyData[simulationResults.yearlyData.length - 1]
+    const purchasedProperties = simulationResults.timelineEntries.filter(entry => entry.action === 'purchase').length
+    const pendingProperties = simulationResults.timelineEntries.filter(entry => entry.action === 'pending').length
+    
+    return {
+      totalPurchased: purchasedProperties,
+      totalPending: pendingProperties,
+      finalPortfolioValue: finalYear?.portfolioValue || 0,
+      finalEquity: finalYear?.totalEquity || 0,
+      finalCashflow: finalYear?.cashflow || 0
+    }
+  }
+
+  const stats = simulationStats()
 
   return (
     <div>
@@ -82,14 +91,14 @@ export const InvestmentTimeline = () => {
       <div className="flex gap-4 mb-8">
         <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
           <span className="w-1.5 h-1.5 bg-[#10b981] bg-opacity-50 rounded-full"></span>{' '}
-          Feasible
+          Purchased
         </span>
         <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
           <span className="w-1.5 h-1.5 bg-[#3b82f6] bg-opacity-60 rounded-full"></span>{' '}
           Delayed
         </span>
         <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
-          <span className="w-1.5 h-1.5 bg-[#3b82f6] bg-opacity-60 rounded-full"></span>{' '}
+          <span className="w-1.5 h-1.5 bg-[#f59e0b] bg-opacity-60 rounded-full"></span>{' '}
           Challenging
         </span>
       </div>
@@ -103,26 +112,37 @@ export const InvestmentTimeline = () => {
             number={item.number}
             deposit={item.deposit}
             source="Savings & Equity"
-            equity="TBD"
-            portfolioValue="TBD"
+            equity={item.equity}
+            portfolioValue={item.portfolioValue}
             price={item.price}
+            loanAmount={item.loanAmount}
             status={item.status}
+            action={item.action}
             isLast={index === timelineItems.length - 1}
           />
         ))}
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
-        <p className="mb-3">
-          {calculations.totalProperties > 0 
-            ? `Timeline shows ${calculations.totalProperties} selected properties. Total investment: $${Math.round(calculations.totalCost / 1000)}k, Deposit required: $${Math.round(calculations.totalDepositRequired / 1000)}k.`
-            : "Select properties to generate an investment timeline. Timeline assumes 5% annual property growth, 80% LVR, and systematic acquisition strategy."
-          }
-        </p>
-        {!feasibility.overallFeasible && calculations.totalProperties > 0 && (
-          <p className="text-[#dc2626] text-xs mt-2">
-            Warning: Selected properties exceed your financial capacity. 
-            {!feasibility.hasAdequateDeposit && " Insufficient deposit funds."}
-            {!feasibility.withinBorrowingCapacity && " Exceeds borrowing capacity."}
+        {stats ? (
+          <div>
+            <p className="mb-3">
+              Simulation Results: {stats.totalPurchased} properties purchased, {stats.totalPending} pending.
+              Final Portfolio Value: ${Math.round(stats.finalPortfolioValue / 1000)}k,
+              Final Equity: ${Math.round(stats.finalEquity / 1000)}k,
+              Annual Cashflow: ${Math.round(stats.finalCashflow / 1000)}k.
+            </p>
+            {stats.totalPending > 0 && (
+              <p className="text-[#dc2626] text-xs mt-2">
+                Warning: {stats.totalPending} properties could not be purchased within the {profile.timelineYears}-year timeline due to insufficient funds or borrowing capacity.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="mb-3">
+            {calculations.totalProperties > 0 
+              ? "Running simulation to determine purchase timeline..."
+              : "Select properties to generate an investment timeline. Simulation considers deposit requirements, borrowing capacity, and annual savings growth."
+            }
           </p>
         )}
       </div>
@@ -139,7 +159,9 @@ interface TimelineItemProps {
   equity: string
   portfolioValue: string
   price: string
+  loanAmount: string
   status: 'feasible' | 'delayed' | 'challenging'
+  action: 'purchase' | 'pending'
   isLast?: boolean
 }
 const TimelineItem: React.FC<TimelineItemProps> = ({
@@ -152,18 +174,20 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   equity,
   portfolioValue,
   price,
+  loanAmount,
   status,
+  action,
   isLast = false,
 }) => {
   const statusColors = {
     feasible: 'text-[#374151]',
-    delayed: 'text-[#374151]',
+    delayed: 'text-[#374151]', 
     challenging: 'text-[#374151]',
   }
   const statusDots = {
     feasible: 'bg-[#10b981] bg-opacity-50',
     delayed: 'bg-[#3b82f6] bg-opacity-60',
-    challenging: 'bg-[#3b82f6] bg-opacity-60',
+    challenging: 'bg-[#f59e0b] bg-opacity-60',
   }
   const getPropertyIcon = () => {
     switch (type) {
@@ -193,8 +217,17 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
               <div className="flex items-center gap-1">{getPropertyIcon()}</div>
             </div>
             <div className="text-sm text-[#6b7280] mt-3 leading-relaxed font-normal">
-              Deposit: {deposit} • Purchase Price: {price} •{' '}
-              <span className="text-[#9ca3af]">Source: Savings & Equity</span>
+              {action === 'purchase' ? (
+                <>
+                  Deposit: {deposit} • Purchase Price: {price} • Loan: {loanAmount}<br/>
+                  <span className="text-[#10b981]">✓ Portfolio Value: {portfolioValue} • Equity: {equity}</span>
+                </>
+              ) : (
+                <>
+                  Deposit Required: {deposit} • Target Price: {price}<br/>
+                  <span className="text-[#f59e0b]">⏳ Awaiting sufficient funds</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -202,7 +235,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         <div className="ml-4 flex items-center">
           <span className={`w-2 h-2 rounded-full ${statusDots[status]}`}></span>
           <span className={`ml-2 text-xs ${statusColors[status]} font-normal`}>
-            {status}
+            {action === 'purchase' ? 'Purchased' : 
+             status === 'delayed' ? 'Delayed' : 
+             status === 'challenging' ? 'Challenging' : 'Pending'}
           </span>
         </div>
       </div>
