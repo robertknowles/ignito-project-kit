@@ -45,11 +45,12 @@ export const InvestmentTimeline = () => {
     }
 
     return timelineProperties.map((property, index) => {
-      const isAffordable = property.status === 'feasible';
-      const yearDisplay = isAffordable ? 
+      // Show actual year if calculated, only show "Beyond Timeline" if year is unrealistic
+      const hasValidYear = property.affordableYear && property.affordableYear > 2024;
+      const yearDisplay = hasValidYear ? 
         property.affordableYear.toString() : 
         "Beyond Timeline";
-      const quarterDisplay = isAffordable ? 
+      const quarterDisplay = hasValidYear ? 
         `Yr ${property.affordableYear - 2025}` : 
         "N/A";
 
