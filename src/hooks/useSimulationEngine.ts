@@ -110,8 +110,20 @@ export const useSimulationEngine = (
         .filter(([_, quantity]) => quantity > 0)
         .flatMap(([propertyId, quantity]) => {
           const property = propertyTypes.find(p => p.id === propertyId);
+          console.log(`🔍 Property mapping:`, { 
+            propertyId, 
+            quantity, 
+            found: !!property,
+            propertyTitle: property?.title,
+            riskLevel: property?.riskLevel 
+          });
           return property ? Array(quantity).fill(property) : [];
         });
+
+      console.log('📋 selectedProperties array populated:', {
+        totalSelected: selectedProperties.length,
+        properties: selectedProperties.map(p => ({ title: p.title, id: p.id, riskLevel: p.riskLevel }))
+      });
 
       const initialTotalCost = selectedProperties.reduce((sum, prop) => sum + prop.averagePrice, 0);
       const initialTotalDeposit = selectedProperties.reduce((sum, prop) => sum + prop.depositRequired, 0);
