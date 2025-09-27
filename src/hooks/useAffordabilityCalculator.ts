@@ -243,7 +243,7 @@ export const useAffordabilityCalculator = () => {
     
     // Sort by affordable year for display
     return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-  }, [selections, propertyTypes, profile, calculatedValues, globalFactors, calculateAffordabilityForProperty]);
+  }, [selections, propertyTypes, profile, calculatedValues, globalFactors, getPropertyData]);
 
   return {
     timelineProperties: calculateTimelineProperties,
