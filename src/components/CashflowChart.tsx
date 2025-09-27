@@ -10,74 +10,132 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts'
-import { LineChartIcon, TrendingUpIcon } from 'lucide-react'
-import { useSimulationEngine } from '../hooks/useSimulationEngine'
-import { usePropertySelection } from '../contexts/PropertySelectionContext'
-import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
-
+import { LineChartIcon } from 'lucide-react'
 export const CashflowChart = () => {
-  const { simulationResults, isSimulationComplete } = useSimulationEngine()
-  const { calculations } = usePropertySelection()
-  const { globalFactors } = useDataAssumptions()
-
-  // Generate cashflow chart data from simulation results
-  const generateCashflowData = () => {
-    if (!isSimulationComplete || simulationResults.yearlyData.length === 0) {
-      return []
-    }
-
-    const interestRate = parseFloat(globalFactors.interestRate) / 100
-
-    return simulationResults.yearlyData.map(yearData => {
-      // Calculate individual components for this year
-      const ownedProperties = simulationResults.finalState.ownedProperties.filter(
-        property => property.purchaseYear <= yearData.year
-      )
-
-      const rentalIncome = ownedProperties.reduce((total, property) => {
-        // Apply growth to property value based on years owned
-        const yearsOwned = yearData.year - property.purchaseYear
-        const currentValue = property.purchasePrice * Math.pow(1 + property.growthPercent / 100, yearsOwned)
-        return total + (currentValue * property.yieldPercent / 100)
-      }, 0)
-
-      const loanRepayments = ownedProperties.reduce((total, property) => {
-        return total + (property.loanAmount * interestRate)
-      }, 0)
-
-      const netCashflow = rentalIncome - loanRepayments
-
-      return {
-        year: yearData.year.toString(),
-        rentalIncome: Math.round(rentalIncome),
-        loanRepayments: Math.round(loanRepayments),
-        cashflow: Math.round(netCashflow),
-        highlight: netCashflow >= 0 && yearData.year > 1, // Highlight when cashflow turns positive
-      }
-    })
-  }
-
-  const data = generateCashflowData()
-
-  // Handle empty state
-  if (data.length === 0) {
-    return (
-      <div>
-        <div className="flex items-center gap-3 mb-6">
-          <LineChartIcon size={16} className="text-[#6b7280]" />
-          <h3 className="text-[#111827] font-medium text-sm">
-            Cashflow Analysis
-          </h3>
-        </div>
-        <div className="h-80 w-full flex items-center justify-center bg-[#f9fafb] rounded-md">
-          <div className="text-center text-[#6b7280]">
-            <TrendingUpIcon size={48} className="mx-auto mb-4 opacity-50" />
-            <p className="text-sm">Select properties to view cashflow analysis</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Mock data for the cashflow analysis
+  const data = [
+    {
+      year: '2026',
+      cashflow: -11000,
+    },
+    {
+      year: '2027',
+      cashflow: -12000,
+    },
+    {
+      year: '2028',
+      cashflow: -21000,
+    },
+    {
+      year: '2029',
+      cashflow: -20000,
+    },
+    {
+      year: '2030',
+      cashflow: -17000,
+    },
+    {
+      year: '2031',
+      cashflow: -14000,
+    },
+    {
+      year: '2032',
+      cashflow: -11500,
+    },
+    {
+      year: '2033',
+      cashflow: -9000,
+      highlight: true,
+    },
+    {
+      year: '2034',
+      cashflow: -6000,
+    },
+    {
+      year: '2035',
+      cashflow: -4500,
+    },
+    {
+      year: '2036',
+      cashflow: -2000,
+    },
+    {
+      year: '2037',
+      cashflow: -1000,
+    },
+    {
+      year: '2038',
+      cashflow: 2000,
+    },
+    {
+      year: '2039',
+      cashflow: 2000,
+    },
+    {
+      year: '2040',
+      cashflow: -1000,
+    },
+    {
+      year: '2041',
+      cashflow: -14000,
+    },
+    {
+      year: '2042',
+      cashflow: -12000,
+    },
+    {
+      year: '2043',
+      cashflow: -10000,
+    },
+    {
+      year: '2044',
+      cashflow: -6000,
+    },
+    {
+      year: '2045',
+      cashflow: -4000,
+    },
+    {
+      year: '2046',
+      cashflow: -500,
+    },
+    {
+      year: '2047',
+      cashflow: 2000,
+    },
+    {
+      year: '2048',
+      cashflow: 6000,
+    },
+    {
+      year: '2049',
+      cashflow: 9500,
+    },
+    {
+      year: '2050',
+      cashflow: 13000,
+    },
+    {
+      year: '2051',
+      cashflow: 17000,
+    },
+    {
+      year: '2052',
+      cashflow: 21000,
+    },
+    {
+      year: '2053',
+      cashflow: 25000,
+    },
+    {
+      year: '2054',
+      cashflow: 29000,
+    },
+    {
+      year: '2055',
+      cashflow: 35000,
+    },
+  ]
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -171,17 +229,10 @@ export const CashflowChart = () => {
         </ResponsiveContainer>
       </div>
       <div className="mt-4 text-xs text-[#374151] bg-[#f9fafb] p-4 rounded-md leading-relaxed">
-        {data.length > 0 ? (
-          <p>
-            Cashflow analysis shows rental income vs loan repayments. 
-            {data.some(d => d.cashflow >= 0) 
-              ? `Portfolio becomes cashflow positive in Year ${data.find(d => d.cashflow >= 0)?.year}.`
-              : 'Portfolio requires ongoing financial support throughout the timeline.'
-            }
-          </p>
-        ) : (
-          <p>Select properties to view cashflow progression over time.</p>
-        )}
+        <p>
+          The chart shows the transition from negative to positive cashflow over
+          time as properties mature and rents increase.
+        </p>
       </div>
     </div>
   )
