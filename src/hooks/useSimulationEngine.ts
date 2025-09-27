@@ -69,9 +69,17 @@ export const useSimulationEngine = (
 
   const runSimulation = useMemo(() => {
     return (): SimulationResults => {
+      // Debug selections at the start
+      console.log('🔍 Simulation Debug:', {
+        selectionsEntries: Object.entries(selections),
+        hasSelections: Object.values(selections).some(q => q > 0),
+        propertyTypesIds: propertyTypes.map(p => p.id)
+      });
+
       // Check if any properties are selected
       const hasSelections = Object.values(selections).some(quantity => quantity > 0);
       console.log('🔍 Checking selections:', { selections, hasSelections });
+      
       // Step 1: Calculate Starting Financial Position
       const startingEquity = calculatedValues.currentUsableEquity;
       const availableDeposit = calculatedValues.availableDeposit;
@@ -154,9 +162,10 @@ export const useSimulationEngine = (
           canAfford: availableFunding >= property.depositRequired
         });
         
+        // Always add timeline item regardless of affordability
+        const loanAmount = property.averagePrice - property.depositRequired;
+        
         if (availableFunding >= property.depositRequired) {
-          const loanAmount = property.averagePrice - property.depositRequired;
-          
           simulationState.portfolioValue += property.averagePrice;
           simulationState.totalDebt += loanAmount;
           simulationState.cash -= property.depositRequired;
@@ -166,30 +175,30 @@ export const useSimulationEngine = (
             loan: loanAmount,
             yield: parseFloat(property.yield.replace('%', ''))
           });
-
-          // Determine funding source
-          let fundingSource = "Savings";
-          if (usableEquity > 0 && simulationState.cash < property.depositRequired) {
-            const equityUsed = property.depositRequired - simulationState.cash;
-            fundingSource = `$${(simulationState.cash / 1000).toFixed(0)}k savings + $${(equityUsed / 1000).toFixed(0)}k equity`;
-          }
-
-          timeline.push({
-            year: purchaseYear,
-            quarter: `Yr ${purchaseYear}`,
-            propertyType: property.title,
-            purchasePrice: property.averagePrice,
-            depositUsed: property.depositRequired,
-            fundingSource,
-            newLoanAmount: loanAmount,
-            portfolioValueAfter: simulationState.portfolioValue,
-            totalEquityAfter: simulationState.portfolioValue * 0.8 - simulationState.totalDebt,
-            cashflowImpact: parseFloat(property.cashFlow.replace(/[$,]/g, '')),
-            roleInPortfolio: index === 0 ? "Foundation" : index < 3 ? "Growth" : "Cashflow",
-            feasibilityStatus: availableFunding >= property.depositRequired * 1.2 ? 'feasible' : 
-                             availableFunding >= property.depositRequired ? 'delayed' : 'challenging'
-          });
         }
+
+        // Determine funding source
+        let fundingSource = "Savings";
+        if (usableEquity > 0 && simulationState.cash < property.depositRequired) {
+          const equityUsed = property.depositRequired - simulationState.cash;
+          fundingSource = `$${(simulationState.cash / 1000).toFixed(0)}k savings + $${(equityUsed / 1000).toFixed(0)}k equity`;
+        }
+
+        timeline.push({
+          year: purchaseYear,
+          quarter: `Yr ${purchaseYear}`,
+          propertyType: property.title,
+          purchasePrice: property.averagePrice,
+          depositUsed: property.depositRequired,
+          fundingSource,
+          newLoanAmount: loanAmount,
+          portfolioValueAfter: simulationState.portfolioValue,
+          totalEquityAfter: simulationState.portfolioValue * 0.8 - simulationState.totalDebt,
+          cashflowImpact: parseFloat(property.cashFlow.replace(/[$,]/g, '')),
+          roleInPortfolio: index === 0 ? "Foundation" : index < 3 ? "Growth" : "Cashflow",
+          feasibilityStatus: availableFunding >= property.depositRequired * 1.2 ? 'feasible' : 
+                           availableFunding >= property.depositRequired ? 'delayed' : 'challenging'
+        });
       });
 
       // Continue simulation for remaining years
@@ -293,7 +302,7 @@ export const useSimulationEngine = (
       projectionLength: results.projections.length
     });
     setSimulationResults(results);
-  }, [profile, calculatedValues, selections, propertyTypes]); // Direct dependencies instead of memoized function
+  }, [runSimulation]); // Use memoized function as dependency
 
   return {
     simulationResults,
