@@ -193,6 +193,7 @@ export const useAffordabilityCalculator = () => {
 
     // Main calculation logic
     console.log('🚀 Recalculating timeline with profile:', profile);
+    
     // Create a list of all properties to purchase
     const allPropertiesToPurchase: Array<{ property: any; index: number }> = [];
     
@@ -250,6 +251,7 @@ export const useAffordabilityCalculator = () => {
     return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
   }, [selections, propertyTypes, profile, calculatedValues, globalFactors, getPropertyData]);
 
+  // Only expose the memoized result
   return {
     timelineProperties: calculateTimelineProperties,
     calculateAffordabilityForProperty: () => {} // Placeholder since this is now internal
