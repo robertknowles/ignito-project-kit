@@ -16,17 +16,21 @@ export const InvestmentTimeline = () => {
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
   
-  // Determine status based on feasibility and selections
+  // Determine status based on timeline results
   const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
-    if (calculations.totalProperties === 0) return 'feasible' // No properties selected
-    if (!feasibility.overallFeasible) return 'challenging'
-    if (calculations.totalCost > calculatedValues.availableDeposit * 4) return 'delayed' // High leverage scenario
+    if (calculations.totalProperties === 0) return 'feasible'
+    
+    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible')
+    const challengingProperties = timelineProperties.filter(p => p.status === 'challenging')
+    
+    if (challengingProperties.length > 0) return 'challenging'
+    if (feasibleProperties.length < timelineProperties.length) return 'delayed'
     return 'feasible'
   }
 
   const timelineStatus = getTimelineStatus()
 
-  // Generate timeline items using affordability calculator
+  // Generate timeline items using affordability calculator with improved progression display
   const generateTimelineItems = () => {
     if (calculations.totalProperties === 0) {
       return [
@@ -45,14 +49,26 @@ export const InvestmentTimeline = () => {
     }
 
     return timelineProperties.map((property, index) => {
-      // Show actual year if calculated, only show "Beyond Timeline" if year is unrealistic
-      const hasValidYear = property.affordableYear && property.affordableYear > 2024;
-      const yearDisplay = hasValidYear ? 
-        property.affordableYear.toString() : 
-        "Beyond Timeline";
-      const quarterDisplay = hasValidYear ? 
-        `Yr ${property.affordableYear - 2025}` : 
-        "N/A";
+      // Improved year display logic for realistic progression
+      const isAffordable = property.status === 'feasible';
+      const timelineEndYear = 2025 + profile.timelineYears;
+      
+      let yearDisplay: string;
+      let quarterDisplay: string;
+      
+      if (isAffordable && property.affordableYear <= timelineEndYear) {
+        // Show actual calculated year for affordable properties within timeline
+        yearDisplay = property.affordableYear.toString();
+        quarterDisplay = `Yr ${property.affordableYear - 2025}`;
+      } else if (property.affordableYear > timelineEndYear) {
+        // Property is affordable but beyond the set timeline
+        yearDisplay = `${property.affordableYear}`;
+        quarterDisplay = `Yr ${property.affordableYear - 2025}`;
+      } else {
+        // Property is not affordable within reasonable timeframe
+        yearDisplay = "Beyond Timeline";
+        quarterDisplay = "N/A";
+      }
 
       return {
         year: yearDisplay,
@@ -67,7 +83,7 @@ export const InvestmentTimeline = () => {
         number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
         affordableYear: property.affordableYear
       };
-    }).slice(0, 5); // Limit to 5 items for UI
+    }).slice(0, 8); // Show more properties to demonstrate progression
   }
 
   const timelineItems = generateTimelineItems()
@@ -116,17 +132,19 @@ export const InvestmentTimeline = () => {
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
         <p className="mb-3">
           {calculations.totalProperties > 0 
-            ? `Timeline shows ${calculations.totalProperties} selected properties. Total investment: $${Math.round(calculations.totalCost / 1000)}k, Deposit required: $${Math.round(calculations.totalDepositRequired / 1000)}k.`
-            : "Select properties to generate an investment timeline. Timeline assumes 5% annual property growth, 80% LVR, and systematic acquisition strategy."
+            ? `Timeline shows ${timelineProperties.length} properties with realistic purchase progression. ${timelineProperties.filter(p => p.status === 'feasible').length} properties are feasible within timeline. Total investment: $${Math.round(calculations.totalCost / 1000)}k.`
+            : "Select properties to generate an investment timeline. Timeline shows sequential property purchases based on accumulated equity and cash flow."
           }
         </p>
-        {!feasibility.overallFeasible && calculations.totalProperties > 0 && (
+        {timelineProperties.length > 0 && (
+          <div className="mb-3">
+            <p>Properties by year: {timelineProperties.filter(p => p.status === 'feasible').map(p => `${p.title} (${p.affordableYear})`).join(', ') || 'None within timeline'}</p>
+          </div>
+        )}
+        {timelineProperties.some(p => p.status === 'challenging') && (
           <p className="text-[#dc2626] text-xs mt-2">
-            Warning: {timelineProperties.some(p => !p.status.includes('feasible')) 
-              ? "Some properties may not be affordable within your timeline. " 
-              : "Selected properties exceed your financial capacity. "}
-            {!feasibility.hasAdequateDeposit && " Insufficient deposit funds."}
-            {!feasibility.withinBorrowingCapacity && " Exceeds borrowing capacity."}
+            Warning: {timelineProperties.filter(p => p.status === 'challenging').length} properties are not affordable within your financial capacity or timeline.
+            Consider adjusting your investment profile or property selections.
           </p>
         )}
       </div>
@@ -188,8 +206,17 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         {/* Year circle */}
         <div className="flex-shrink-0 w-16 h-16 bg-white rounded-full flex items-center justify-center mr-6 border border-[#f3f4f6]">
           <div className="text-center">
-            <div className={`text-xs font-medium ${year === "Beyond Timeline" ? "text-[#dc2626]" : "text-[#111827]"}`}>
-              {year === "Beyond Timeline" ? "N/A" : year}
+            <div className={`text-xs font-medium ${
+              year === "Beyond Timeline" ? "text-[#dc2626]" : 
+              parseInt(year) > 2024 ? "text-[#111827]" : 
+              "text-[#6b7280]"
+            }`}>
+              {year === "Beyond Timeline" ? "N/A" : 
+               parseInt(year) > 2024 ? year : 
+               year}
+            </div>
+            <div className="text-[10px] text-[#9ca3af] mt-1">
+              {quarter}
             </div>
           </div>
         </div>

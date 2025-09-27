@@ -29,15 +29,15 @@ export const useChartDataGenerator = () => {
     const endYear = startYear + profile.timelineYears;
     const growthRate = parseFloat(globalFactors.growthRate) / 100;
 
-    // Create purchase schedule - when each property is bought
+    // Create purchase schedule - when each property is bought (only feasible ones)
     const purchaseSchedule: { [year: number]: typeof timelineProperties } = {};
-    timelineProperties.forEach(property => {
-      if (property.status === 'feasible') {
-        if (!purchaseSchedule[property.affordableYear]) {
-          purchaseSchedule[property.affordableYear] = [];
-        }
-        purchaseSchedule[property.affordableYear].push(property);
+    const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
+    
+    feasibleProperties.forEach(property => {
+      if (!purchaseSchedule[property.affordableYear]) {
+        purchaseSchedule[property.affordableYear] = [];
       }
+      purchaseSchedule[property.affordableYear].push(property);
     });
 
     let cumulativePortfolioValue = profile.portfolioValue;
