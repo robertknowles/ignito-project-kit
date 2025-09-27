@@ -255,16 +255,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
             <span className="text-xs text-[#6b7280]">30 years</span>
           </div>
         </div>
-        
-        {/* Test Button */}
-        <div className="mt-6">
-          <button 
-            onClick={() => updateProfile({ timelineYears: 30, depositPool: 500000, borrowingCapacity: 2000000 })}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-xs font-medium"
-          >
-            TEST UPDATE PROFILE
-          </button>
-        </div>
       </div>
     )
   }
