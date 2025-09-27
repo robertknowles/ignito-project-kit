@@ -126,26 +126,107 @@ export const useSimulationEngine = () => {
         console.log(`Property ${property.id} grew from ${oldValue} to ${property.currentValue}`);
       });
 
-      // Process property queue (framework only - no purchase logic yet)
-      currentState.propertyQueue.forEach(queueItem => {
+      // Process property queue with purchase logic
+      for (let i = 0; i < currentState.propertyQueue.length; i++) {
+        const queueItem = currentState.propertyQueue[i];
         const remainingQuantity = queueItem.quantity - queueItem.processed;
+        
         if (remainingQuantity > 0) {
           const propertyType = propertyTypes.find(p => p.id === queueItem.propertyId);
           if (propertyType) {
-            console.log(`Queue item: ${propertyType.title}, remaining: ${remainingQuantity}`);
+            console.log(`\nEvaluating purchase: ${propertyType.title}, remaining: ${remainingQuantity}`);
             
-            // Add placeholder timeline entry for unprocessed properties
-            timelineEntries.push({
-              year: year,
-              propertyType: propertyType.title,
-              action: 'pending',
-              status: 'feasible', // TODO: Add actual feasibility check
-              deposit: propertyType.depositRequired,
-              price: propertyType.cost,
-            });
+            // Calculate usable equity: (total property value × 0.8) - totalDebt
+            const totalPropertyValue = currentState.ownedProperties.reduce(
+              (total, property) => total + property.currentValue, 
+              0
+            );
+            const usableEquity = Math.max(0, (totalPropertyValue * 0.8) - currentState.totalDebt);
+            
+            // Calculate available deposit: cashPool + usableEquity
+            const availableDeposit = currentState.cashPool + usableEquity;
+            
+            // Get property data from data assumptions
+            const propertyData = propertyTypes.find(p => p.id === queueItem.propertyId);
+            if (!propertyData) continue;
+            
+            // Calculate required deposit: property cost × (deposit % from data page)
+            const requiredDeposit = propertyData.depositRequired;
+            
+            // Calculate required borrowing: property cost - required deposit
+            const requiredBorrowing = propertyData.cost - requiredDeposit;
+            
+            console.log(`Financial check - Available deposit: ${availableDeposit}, Required: ${requiredDeposit}`);
+            console.log(`Borrowing check - Current debt: ${currentState.totalDebt}, Required borrowing: ${requiredBorrowing}, Capacity: ${profile.borrowingCapacity}`);
+            
+            // Feasibility checks
+            const hasAdequateDeposit = availableDeposit >= requiredDeposit;
+            const withinBorrowingCapacity = (currentState.totalDebt + requiredBorrowing) <= profile.borrowingCapacity;
+            const canPurchase = hasAdequateDeposit && withinBorrowingCapacity;
+            
+            if (canPurchase) {
+              console.log(`✅ Purchase approved for ${propertyType.title}`);
+              
+              // Execute purchase
+              const newProperty: OwnedProperty = {
+                id: `${queueItem.propertyId}_${queueItem.processed + 1}`,
+                type: propertyData.title,
+                purchasePrice: propertyData.cost,
+                currentValue: propertyData.cost,
+                purchaseYear: year,
+                yieldPercent: propertyData.yieldPercent,
+                growthPercent: propertyData.growthPercent,
+                depositPaid: requiredDeposit,
+                loanAmount: requiredBorrowing,
+              };
+              
+              // Add to owned properties
+              currentState.ownedProperties.push(newProperty);
+              
+              // Deduct deposit from cash pool (use cash first, then equity)
+              const cashUsed = Math.min(currentState.cashPool, requiredDeposit);
+              const equityUsed = requiredDeposit - cashUsed;
+              currentState.cashPool -= cashUsed;
+              
+              // Add loan to total debt
+              currentState.totalDebt += requiredBorrowing;
+              
+              // Update queue
+              queueItem.processed += 1;
+              
+              // Add successful purchase to timeline
+              timelineEntries.push({
+                year: year,
+                propertyType: propertyType.title,
+                action: 'purchase',
+                status: 'feasible',
+                deposit: requiredDeposit,
+                price: propertyData.cost,
+              });
+              
+              console.log(`Purchase completed - Cash used: ${cashUsed}, Equity used: ${equityUsed}, New debt: ${requiredBorrowing}`);
+            } else {
+              console.log(`❌ Purchase declined for ${propertyType.title}`);
+              console.log(`Reason - Adequate deposit: ${hasAdequateDeposit}, Within capacity: ${withinBorrowingCapacity}`);
+              
+              // Add delayed/challenging entry to timeline
+              let status: 'delayed' | 'challenging' = 'delayed';
+              if (!withinBorrowingCapacity) {
+                status = 'challenging';
+              }
+              
+              timelineEntries.push({
+                year: year,
+                propertyType: propertyType.title,
+                action: 'pending',
+                status: status,
+                deposit: requiredDeposit,
+                price: propertyData.cost,
+              });
+            }
           }
         }
-      });
+      }
 
       // Calculate yearly metrics
       const portfolioValue = currentState.ownedProperties.reduce(
@@ -155,10 +236,21 @@ export const useSimulationEngine = () => {
       
       const totalEquity = portfolioValue - currentState.totalDebt;
       
-      const cashflow = currentState.ownedProperties.reduce(
+      // Calculate rental income: property value × (yield % from data page / 100)
+      const totalRentalIncome = currentState.ownedProperties.reduce(
         (total, property) => total + (property.currentValue * property.yieldPercent / 100),
         0
       );
+      
+      // Calculate loan repayments: loan amount × (interest rate from data page / 100)
+      const interestRate = parseFloat(globalFactors.interestRate) / 100;
+      const totalLoanRepayments = currentState.ownedProperties.reduce(
+        (total, property) => total + (property.loanAmount * interestRate),
+        0
+      );
+      
+      // Track annual cashflow: total rental income - total loan repayments
+      const cashflow = totalRentalIncome - totalLoanRepayments;
 
       const yearData: YearlyData = {
         year,
@@ -171,6 +263,7 @@ export const useSimulationEngine = () => {
 
       yearlyData.push(yearData);
       console.log(`Year ${year} data:`, yearData);
+      console.log(`Rental income: ${totalRentalIncome}, Loan repayments: ${totalLoanRepayments}, Net cashflow: ${cashflow}`);
     }
 
     const results: SimulationResults = {
