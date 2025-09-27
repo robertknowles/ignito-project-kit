@@ -288,7 +288,7 @@ export const useAffordabilityCalculator = () => {
     
     // Sort by affordable year for display
     return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-  }, [selections, propertyTypes, profile, calculatedValues, globalFactors, getPropertyData]);
+  }, [selections, propertyTypes, profile.timelineYears, profile.borrowingCapacity, profile.depositPool, profile.annualSavings, calculatedValues.availableDeposit, globalFactors, getPropertyData]);
 
   // Only expose the memoized result
   return {
