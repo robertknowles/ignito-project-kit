@@ -8,10 +8,14 @@ import {
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
+import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
+import type { PropertyPurchase } from '../types/property'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility } = usePropertySelection()
   const { timelineProperties } = useAffordabilityCalculator()
+  const { globalFactors, getPropertyData } = useDataAssumptions()
   
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
@@ -139,6 +143,9 @@ export const InvestmentTimeline = () => {
         {timelineProperties.length > 0 && (
           <div className="mb-3">
             <p>Properties by year: {timelineProperties.filter(p => p.status === 'feasible').map(p => `${p.title} (${p.affordableYear})`).join(', ') || 'None within timeline'}</p>
+            <p className="mt-2 text-[#059669]">
+              💡 Borrowing capacity improves over time: Rental income (70% counted by banks) increases your borrowing power for subsequent purchases, enabling faster property accumulation.
+            </p>
           </div>
         )}
         {timelineProperties.some(p => p.status === 'challenging') && (

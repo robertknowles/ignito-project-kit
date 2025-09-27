@@ -1,5 +1,16 @@
 import type { PropertyPurchase, PropertyMetrics } from '../types/property';
 
+export const calculateUpdatedBorrowingCapacity = (
+  baseCapacity: number,
+  existingLoans: number,
+  rentalIncome: number,
+  debtServiceRatio: number = 0.8
+): number => {
+  const availableServiceability = baseCapacity * debtServiceRatio;
+  const rentalContribution = rentalIncome * 0.7; // Typically banks consider 70% of rental income
+  return Math.max(0, availableServiceability - existingLoans + rentalContribution);
+};
+
 export const calculatePortfolioMetrics = (
   purchases: PropertyPurchase[],
   currentYear: number,
@@ -67,6 +78,53 @@ export const calculateExistingPortfolioMetrics = (
     annualCashflow: -annualRepayments, // Existing portfolio typically has no rental income in this model
     annualLoanRepayments: annualRepayments
   };
+};
+
+export const calculateTotalRentalIncome = (
+  purchases: PropertyPurchase[],
+  currentYear: number,
+  growthRate: number
+): number => {
+  return purchases.reduce((totalIncome, purchase) => {
+    const yearsHeld = Math.max(0, currentYear - purchase.year);
+    const growthRateToUse = purchase.growthRate || growthRate;
+    const currentValue = purchase.cost * Math.pow(1 + growthRateToUse, yearsHeld);
+    const annualRent = purchase.rentalYield * currentValue;
+    return totalIncome + annualRent;
+  }, 0);
+};
+
+export const calculateBorrowingCapacityProgression = (
+  baseCapacity: number,
+  purchases: PropertyPurchase[],
+  timelineYears: number,
+  growthRate: number,
+  debtServiceRatio: number = 0.8
+): Array<{ year: number; capacity: number; rentContribution: number }> => {
+  const progression: Array<{ year: number; capacity: number; rentContribution: number }> = [];
+  
+  for (let year = 1; year <= timelineYears; year++) {
+    const currentYear = 2025 + year - 1;
+    const purchasesByThisYear = purchases.filter(p => p.year <= currentYear);
+    
+    // Calculate existing debt
+    const existingDebt = purchasesByThisYear.reduce((debt, p) => debt + p.loanAmount, 0);
+    
+    // Calculate rental income
+    const rentalIncome = calculateTotalRentalIncome(purchasesByThisYear, currentYear, growthRate);
+    const rentContribution = rentalIncome * 0.7; // 70% rental income contribution
+    
+    // Calculate updated capacity
+    const capacity = calculateUpdatedBorrowingCapacity(baseCapacity, existingDebt, rentalIncome, debtServiceRatio);
+    
+    progression.push({
+      year: currentYear,
+      capacity: Math.round(capacity),
+      rentContribution: Math.round(rentContribution)
+    });
+  }
+  
+  return progression;
 };
 
 export const combineMetrics = (...metrics: PropertyMetrics[]): PropertyMetrics => {
