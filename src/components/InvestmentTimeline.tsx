@@ -56,7 +56,7 @@ export const InvestmentTimeline = () => {
               quarter: `Yr ${year - 2025}`,
               type: property.title,
               deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-              price: `$${Math.round(property.averagePrice / 1000)}k`,
+              price: `$${Math.round(property.cost / 1000)}k`,
               status: timelineStatus,
               number: totalProcessed > 1 ? totalProcessed.toString() : undefined
             })

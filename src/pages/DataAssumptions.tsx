@@ -1,84 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Navbar } from '../components/Navbar'
+import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 export const DataAssumptions = () => {
-  // State for global economic factors
-  const [growthRate, setGrowthRate] = useState('7')
-  const [loanToValueRatio, setLoanToValueRatio] = useState('80')
-  const [interestRate, setInterestRate] = useState('6')
-  // State for property-specific assumptions
-  const [propertyAssumptions, setPropertyAssumptions] = useState([
-    {
-      type: 'Units / Apartments',
-      averageCost: '350000',
-      yield: '7',
-      growth: '5',
-      deposit: '15',
-    },
-    {
-      type: 'Villas / Townhouses',
-      averageCost: '325000',
-      yield: '7',
-      growth: '6',
-      deposit: '15',
-    },
-    {
-      type: 'Houses (Regional focus)',
-      averageCost: '350000',
-      yield: '7',
-      growth: '6',
-      deposit: '15',
-    },
-    {
-      type: 'Granny Flats (add-on)',
-      averageCost: '195000',
-      yield: '9',
-      growth: '0',
-      deposit: '100',
-    },
-    {
-      type: 'Duplexes',
-      averageCost: '550000',
-      yield: '7',
-      growth: '6',
-      deposit: '15',
-    },
-    {
-      type: 'Small Blocks (3-4 units)',
-      averageCost: '900000',
-      yield: '7',
-      growth: '6',
-      deposit: '20',
-    },
-    {
-      type: 'Metro Houses',
-      averageCost: '800000',
-      yield: '4',
-      growth: '7',
-      deposit: '15',
-    },
-    {
-      type: 'Larger Blocks (10-20 units)',
-      averageCost: '3500000',
-      yield: '7',
-      growth: '5',
-      deposit: '45',
-    },
-    {
-      type: 'Commercial Property',
-      averageCost: '3000000',
-      yield: '8',
-      growth: '4',
-      deposit: '40',
-    },
-  ])
-  // Handle property assumption changes
+  const { globalFactors, propertyAssumptions, updateGlobalFactor, updatePropertyAssumption } = useDataAssumptions()
+  
   const handlePropertyChange = (index: number, field: string, value: string) => {
-    const updatedAssumptions = [...propertyAssumptions]
-    updatedAssumptions[index] = {
-      ...updatedAssumptions[index],
-      [field]: value,
-    }
-    setPropertyAssumptions(updatedAssumptions)
+    updatePropertyAssumption(index, field as any, value)
   }
   return (
     <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
@@ -107,8 +34,8 @@ export const DataAssumptions = () => {
                   <input
                     type="text"
                     className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={growthRate}
-                    onChange={(e) => setGrowthRate(e.target.value)}
+                    value={globalFactors.growthRate}
+                    onChange={(e) => updateGlobalFactor('growthRate', e.target.value)}
                   />
                 </div>
                 <div>
@@ -118,8 +45,8 @@ export const DataAssumptions = () => {
                   <input
                     type="text"
                     className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={loanToValueRatio}
-                    onChange={(e) => setLoanToValueRatio(e.target.value)}
+                    value={globalFactors.loanToValueRatio}
+                    onChange={(e) => updateGlobalFactor('loanToValueRatio', e.target.value)}
                   />
                 </div>
                 <div>
@@ -129,8 +56,8 @@ export const DataAssumptions = () => {
                   <input
                     type="text"
                     className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={interestRate}
-                    onChange={(e) => setInterestRate(e.target.value)}
+                    value={globalFactors.interestRate}
+                    onChange={(e) => updateGlobalFactor('interestRate', e.target.value)}
                   />
                 </div>
               </div>

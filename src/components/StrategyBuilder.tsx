@@ -2,7 +2,7 @@ import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCard'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { usePropertySelection, PROPERTY_TYPES } from '../contexts/PropertySelectionContext'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -27,6 +27,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     incrementProperty,
     decrementProperty,
     getPropertyQuantity,
+    propertyTypes,
   } = usePropertySelection()
   // Format currency
   const formatCurrency = (value: number) => {
@@ -271,7 +272,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {PROPERTY_TYPES.map((property) => (
+          {propertyTypes.map((property) => (
             <PropertyCard
               key={property.id}
               title={property.title}

@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
+import { useDataAssumptions } from './DataAssumptionsContext';
 
 export interface PropertyType {
   id: string;
   title: string;
   priceRange: string;
-  averagePrice: number;
-  depositRequired: number; // 20% of average price
   yield: string;
   cashFlow: string;
   riskLevel: 'Low' | 'Medium' | 'Medium-Low' | 'High' | 'Very High';
+  cost: number;
+  depositRequired: number;
+  yieldPercent: number;
+  growthPercent: number;
 }
 
 export interface PropertySelection {
@@ -19,7 +22,7 @@ export interface PortfolioCalculations {
   totalProperties: number;
   totalCost: number;
   totalDepositRequired: number;
-  totalLoanAmount: number;
+  totalAnnualIncome: number;
 }
 
 export interface FeasibilityChecks {
@@ -28,99 +31,6 @@ export interface FeasibilityChecks {
   overallFeasible: boolean;
 }
 
-// Property definitions with realistic pricing data
-export const PROPERTY_TYPES: PropertyType[] = [
-  {
-    id: 'granny-flats',
-    title: 'Granny Flats',
-    priceRange: '$170k-$400k',
-    averagePrice: 285000,
-    depositRequired: 57000, // 20%
-    yield: '-9%',
-    cashFlow: 'Positive',
-    riskLevel: 'Medium',
-  },
-  {
-    id: 'villas-townhouses',
-    title: 'Villas / Townhouses',
-    priceRange: '$250k-$400k',
-    averagePrice: 325000,
-    depositRequired: 65000, // 20%
-    yield: '6-8%',
-    cashFlow: 'Negative',
-    riskLevel: 'High',
-  },
-  {
-    id: 'units-apartments',
-    title: 'Units / Apartments',
-    priceRange: '$250k-$450k',
-    averagePrice: 350000,
-    depositRequired: 70000, // 20%
-    yield: '6-8%',
-    cashFlow: 'Neutral → Positive',
-    riskLevel: 'High',
-  },
-  {
-    id: 'houses-regional',
-    title: 'Houses (Regional)',
-    priceRange: '$250k-$450k',
-    averagePrice: 350000,
-    depositRequired: 70000, // 20%
-    yield: '6-8%',
-    cashFlow: 'Neutral → Positive',
-    riskLevel: 'Medium',
-  },
-  {
-    id: 'duplexes',
-    title: 'Duplexes',
-    priceRange: '$250k-$450k',
-    averagePrice: 400000,
-    depositRequired: 80000, // 20%
-    yield: '6-8%',
-    cashFlow: 'Neutral → Positive',
-    riskLevel: 'Medium',
-  },
-  {
-    id: 'metro-houses',
-    title: 'Metro Houses',
-    priceRange: '$600k-$800k',
-    averagePrice: 700000,
-    depositRequired: 140000, // 20%
-    yield: '4-5%',
-    cashFlow: 'Negative',
-    riskLevel: 'Medium-Low',
-  },
-  {
-    id: 'commercial-retail',
-    title: 'Commercial Retail',
-    priceRange: '$400k-$1.2M',
-    averagePrice: 800000,
-    depositRequired: 160000, // 20%
-    yield: '7-9%',
-    cashFlow: 'Positive',
-    riskLevel: 'High',
-  },
-  {
-    id: 'office-space',
-    title: 'Office Space',
-    priceRange: '$500k-$2M',
-    averagePrice: 1250000,
-    depositRequired: 250000, // 20%
-    yield: '6-8%',
-    cashFlow: 'Positive',
-    riskLevel: 'Very High',
-  },
-  {
-    id: 'industrial-units',
-    title: 'Industrial Units',
-    priceRange: '$350k-$1.5M',
-    averagePrice: 925000,
-    depositRequired: 185000, // 20%
-    yield: '7-10%',
-    cashFlow: 'Positive',
-    riskLevel: 'High',
-  },
-];
 
 interface PropertySelectionContextType {
   selections: PropertySelection;
@@ -150,36 +60,57 @@ interface PropertySelectionProviderProps {
 
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const [selections, setSelections] = useState<PropertySelection>({});
+  const { propertyAssumptions } = useDataAssumptions();
+
+  // Convert data assumptions to property types for calculations
+  const propertyTypes = useMemo(() => {
+    return propertyAssumptions.map((assumption, index) => ({
+      id: `property_${index}`,
+      title: assumption.type,
+      priceRange: `$${parseFloat(assumption.averageCost).toLocaleString()}`,
+      yield: `${assumption.yield}%`,
+      cashFlow: `$${Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.yield)) / 100 / 12)}`,
+      riskLevel: 'Medium' as const,
+      cost: parseFloat(assumption.averageCost),
+      depositRequired: Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.deposit)) / 100),
+      yieldPercent: parseFloat(assumption.yield),
+      growthPercent: parseFloat(assumption.growth),
+    }));
+  }, [propertyAssumptions]);
 
   // Calculate portfolio totals
   const calculations = useMemo((): PortfolioCalculations => {
     let totalProperties = 0;
     let totalCost = 0;
     let totalDepositRequired = 0;
+    let totalAnnualIncome = 0;
 
+    // Calculate totals based on selections
     Object.entries(selections).forEach(([propertyId, quantity]) => {
-      const property = PROPERTY_TYPES.find(p => p.id === propertyId);
-      if (property && quantity > 0) {
-        totalProperties += quantity;
-        totalCost += property.averagePrice * quantity;
-        totalDepositRequired += property.depositRequired * quantity;
+      if (quantity > 0) {
+        const propertyType = propertyTypes.find(p => p.id === propertyId);
+        if (propertyType) {
+          totalProperties += quantity;
+          totalCost += propertyType.cost * quantity;
+          totalDepositRequired += propertyType.depositRequired * quantity;
+          totalAnnualIncome += (propertyType.cost * propertyType.yieldPercent / 100) * quantity;
+        }
       }
     });
-
-    const totalLoanAmount = totalCost - totalDepositRequired;
 
     return {
       totalProperties,
       totalCost,
       totalDepositRequired,
-      totalLoanAmount,
+      totalAnnualIncome,
     };
-  }, [selections]);
+  }, [selections, propertyTypes]);
 
   // Check financial feasibility against available funds
   const checkFeasibility = (availableDeposit: number, borrowingCapacity: number): FeasibilityChecks => {
+    const totalLoanAmount = calculations.totalCost - calculations.totalDepositRequired;
     const hasAdequateDeposit = calculations.totalDepositRequired <= availableDeposit;
-    const withinBorrowingCapacity = calculations.totalLoanAmount <= borrowingCapacity;
+    const withinBorrowingCapacity = totalLoanAmount <= borrowingCapacity;
     const overallFeasible = hasAdequateDeposit && withinBorrowingCapacity;
 
     return {
@@ -227,7 +158,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     decrementProperty,
     getPropertyQuantity,
     resetSelections,
-    propertyTypes: PROPERTY_TYPES,
+    propertyTypes,
   };
 
   return (
