@@ -7,19 +7,11 @@ import { usePropertySelection, PROPERTY_TYPES } from '../hooks/usePropertySelect
 interface StrategyBuilderProps {
   profileOnly?: boolean
   propertyOnly?: boolean
-  incrementProperty?: (propertyId: string) => void
-  decrementProperty?: (propertyId: string) => void
-  getPropertyQuantity?: (propertyId: string) => number
-  propertyTypes?: any[]
 }
 
 export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   profileOnly = false,
   propertyOnly = false,
-  incrementProperty,
-  decrementProperty,
-  getPropertyQuantity,
-  propertyTypes
 }) => {
   const { 
     profile, 
@@ -29,7 +21,13 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     handleCashflowChange 
   } = useInvestmentProfile()
 
-  const { calculations, checkFeasibility } = usePropertySelection()
+  const {
+    calculations,
+    checkFeasibility,
+    incrementProperty,
+    decrementProperty,
+    getPropertyQuantity,
+  } = usePropertySelection()
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -273,7 +271,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {propertyTypes!.map((property) => (
+          {PROPERTY_TYPES.map((property) => (
             <PropertyCard
               key={property.id}
               title={property.title}
@@ -281,10 +279,10 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               yield={property.yield}
               cashFlow={property.cashFlow}
               riskLevel={property.riskLevel}
-              count={getPropertyQuantity!(property.id)}
-              selected={getPropertyQuantity!(property.id) > 0}
-              onIncrement={() => incrementProperty!(property.id)}
-              onDecrement={() => decrementProperty!(property.id)}
+              count={getPropertyQuantity(property.id)}
+              selected={getPropertyQuantity(property.id) > 0}
+              onIncrement={() => incrementProperty(property.id)}
+              onDecrement={() => decrementProperty(property.id)}
             />
           ))}
         </div>

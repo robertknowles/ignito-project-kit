@@ -5,20 +5,71 @@ import {
   HomeIcon,
   Building2Icon,
 } from 'lucide-react'
-import { SimulationResults } from '../hooks/useSimulationEngine'
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { usePropertySelection } from '../hooks/usePropertySelection'
+export const InvestmentTimeline = () => {
+  const { calculatedValues, profile } = useInvestmentProfile()
+  const { calculations, checkFeasibility, selections, propertyTypes } = usePropertySelection()
+  
+  // Get feasibility status based on current selections
+  const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
+  
+  // Determine status based on feasibility and selections
+  const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
+    if (calculations.totalProperties === 0) return 'feasible' // No properties selected
+    if (!feasibility.overallFeasible) return 'challenging'
+    if (calculations.totalCost > calculatedValues.availableDeposit * 4) return 'delayed' // High leverage scenario
+    return 'feasible'
+  }
 
-interface InvestmentTimelineProps {
-  simulationResults: SimulationResults | null;
-}
+  const timelineStatus = getTimelineStatus()
 
-export const InvestmentTimeline: React.FC<InvestmentTimelineProps> = ({ simulationResults }) => {
-  // Debug logging to see what we're receiving
-  console.log('📈 InvestmentTimeline received:', {
-    hasResults: !!simulationResults,
-    timelineLength: simulationResults?.timeline?.length || 0,
-    timelineExists: !!simulationResults?.timeline,
-    firstItem: simulationResults?.timeline?.[0]
-  });
+  // Generate timeline items based on selected properties
+  const generateTimelineItems = () => {
+    if (calculations.totalProperties === 0) {
+      // Default timeline when no properties selected
+      return [
+        {
+          year: "2025",
+          quarter: "Yr 0",
+          type: "No properties selected",
+          deposit: "$0",
+          price: "$0",
+          status: 'feasible' as const
+        }
+      ]
+    }
+
+    // Generate timeline based on actual selections
+    const timelineItems = []
+    let year = 2025
+    let totalProcessed = 0
+
+    Object.entries(selections).forEach(([propertyId, quantity]) => {
+      if (quantity > 0) {
+        const property = propertyTypes.find(p => p.id === propertyId)
+        if (property) {
+          for (let i = 0; i < quantity; i++) {
+            totalProcessed++
+            timelineItems.push({
+              year: year.toString(),
+              quarter: `Yr ${year - 2025}`,
+              type: property.title,
+              deposit: `$${Math.round(property.depositRequired / 1000)}k`,
+              price: `$${Math.round(property.averagePrice / 1000)}k`,
+              status: timelineStatus,
+              number: totalProcessed > 1 ? totalProcessed.toString() : undefined
+            })
+            year += 1 // Spread purchases over years
+          }
+        }
+      }
+    })
+
+    return timelineItems.slice(0, 5) // Limit to 5 items for UI
+  }
+
+  const timelineItems = generateTimelineItems()
 
   return (
     <div>
@@ -43,35 +94,37 @@ export const InvestmentTimeline: React.FC<InvestmentTimelineProps> = ({ simulati
         </span>
       </div>
       <div className="flex flex-col gap-6">
-        {simulationResults?.timeline && simulationResults.timeline.length > 0 ? (
-          simulationResults.timeline.map((item, index) => (
-            <TimelineItem
-              key={index}
-              year={(2025 + item.year).toString()}
-              quarter={item.quarter}
-              type={item.propertyType}
-              deposit={`$${(item.depositUsed / 1000).toFixed(0)}k`}
-              source={item.fundingSource}
-              equity={`$${(item.totalEquityAfter / 1000).toFixed(0)}k`}
-              portfolioValue={`$${(item.portfolioValueAfter / 1000000).toFixed(1)}M`}
-              price={`$${(item.purchasePrice / 1000).toFixed(0)}k`}
-              status={item.feasibilityStatus}
-              isLast={index === simulationResults.timeline.length - 1}
-            />
-          ))
-        ) : (
-          <div className="text-center py-12 text-[#6b7280]">
-            <CalendarIcon size={48} className="mx-auto mb-4 text-[#d1d5db]" />
-            <h4 className="text-sm font-medium mb-2">No Investment Timeline</h4>
-            <p className="text-xs">Select properties to generate your investment roadmap</p>
-          </div>
-        )}
+        {timelineItems.map((item, index) => (
+          <TimelineItem
+            key={`${item.year}-${item.type}-${index}`}
+            year={item.year}
+            quarter={item.quarter}
+            type={item.type}
+            number={item.number}
+            deposit={item.deposit}
+            source="Savings & Equity"
+            equity="TBD"
+            portfolioValue="TBD"
+            price={item.price}
+            status={item.status}
+            isLast={index === timelineItems.length - 1}
+          />
+        ))}
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
         <p className="mb-3">
-          Timeline assumes: 5% annual property growth, 80% LVR, equity
-          accessible at 80% of value, $24,000 annual savings capacity.
+          {calculations.totalProperties > 0 
+            ? `Timeline shows ${calculations.totalProperties} selected properties. Total investment: $${Math.round(calculations.totalCost / 1000)}k, Deposit required: $${Math.round(calculations.totalDepositRequired / 1000)}k.`
+            : "Select properties to generate an investment timeline. Timeline assumes 5% annual property growth, 80% LVR, and systematic acquisition strategy."
+          }
         </p>
+        {!feasibility.overallFeasible && calculations.totalProperties > 0 && (
+          <p className="text-[#dc2626] text-xs mt-2">
+            Warning: Selected properties exceed your financial capacity. 
+            {!feasibility.hasAdequateDeposit && " Insufficient deposit funds."}
+            {!feasibility.withinBorrowingCapacity && " Exceeds borrowing capacity."}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -6,9 +6,7 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
-import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { usePropertySelection } from '../hooks/usePropertySelection';
-import { useSimulationEngine } from '../hooks/useSimulationEngine';
 export const Dashboard = () => {
   // State for expandable panes
   const [profileExpanded, setProfileExpanded] = useState(true);
@@ -16,22 +14,8 @@ export const Dashboard = () => {
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
   
-  // Hooks for real data
-  const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, calculations, propertyTypes, incrementProperty, decrementProperty, getPropertyQuantity } = usePropertySelection();
-  const { simulationResults } = useSimulationEngine(profile, calculatedValues, selections, propertyTypes);
-  
-  // Calculate selected properties count
-  const selectedPropertiesCount = Object.values(selections).reduce((sum, quantity) => sum + quantity, 0);
-  
-  // Debug logging
-  console.log('📊 Dashboard state:', { 
-    selections,
-    selectedPropertiesCount, 
-    hasSimulationResults: !!simulationResults,
-    timelineItems: simulationResults?.timeline?.length || 0,
-    summaryValue: simulationResults?.summary?.finalPortfolioValue || 0
-  });
+  const { calculations } = usePropertySelection();
+
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
@@ -48,8 +32,7 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    ${profile.depositPool.toLocaleString()} deposit • $
-                    {profile.borrowingCapacity.toLocaleString()} capacity
+                    {calculations.totalProperties} {calculations.totalProperties === 1 ? 'property' : 'properties'} selected
                   </span>
                   {profileExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
@@ -71,20 +54,14 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#6b7280]">
                   <span className="text-xs">
-                    {selectedPropertiesCount} selected
+                    {calculations.totalProperties} selected
                   </span>
                   {propertyExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
               </div>
               <div className={`transition-all duration-300 ease-in-out overflow-hidden ${propertyExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="p-6 pt-0">
-                  <StrategyBuilder 
-                    propertyOnly={true} 
-                    incrementProperty={incrementProperty}
-                    decrementProperty={decrementProperty}
-                    getPropertyQuantity={getPropertyQuantity}
-                    propertyTypes={propertyTypes}
-                  />
+                  <StrategyBuilder propertyOnly={true} />
                 </div>
               </div>
             </div>
@@ -95,7 +72,7 @@ export const Dashboard = () => {
           <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
             {/* Summary Bar */}
             <div className="border-b border-[#f3f4f6]">
-              <SummaryBar simulationResults={simulationResults} />
+              <SummaryBar />
             </div>
             {/* Tabs */}
             <div className="flex border-b border-[#f3f4f6]">
@@ -111,9 +88,9 @@ export const Dashboard = () => {
             </div>
             {/* Tab Content */}
             <div className="p-6">
-              {activeTab === 'timeline' && <InvestmentTimeline simulationResults={simulationResults} />}
-              {activeTab === 'portfolio' && <PortfolioGrowthChart simulationResults={simulationResults} />}
-              {activeTab === 'cashflow' && <CashflowChart simulationResults={simulationResults} />}
+              {activeTab === 'timeline' && <InvestmentTimeline />}
+              {activeTab === 'portfolio' && <PortfolioGrowthChart />}
+              {activeTab === 'cashflow' && <CashflowChart />}
             </div>
           </div>
         </div>

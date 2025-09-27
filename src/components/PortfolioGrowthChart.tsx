@@ -10,25 +10,9 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BuildingIcon, HomeIcon, Building2Icon } from 'lucide-react'
-import { SimulationResults } from '../hooks/useSimulationEngine'
-
-interface PortfolioGrowthChartProps {
-  simulationResults: SimulationResults | null;
-}
-
-export const PortfolioGrowthChart: React.FC<PortfolioGrowthChartProps> = ({ simulationResults }) => {
-  // Generate chart data from simulation results
-  const data = simulationResults?.projections ? simulationResults.projections.map((projection, index) => {
-    // Find if any property was purchased this year
-    const purchasedProperty = simulationResults.timeline.find(item => item.year === projection.year - 1);
-    
-    return {
-      year: (2024 + projection.year).toString(),
-      portfolioValue: projection.portfolioValue,
-      equity: projection.totalEquity,
-      property: purchasedProperty?.propertyType || null,
-    };
-  }) : [
+export const PortfolioGrowthChart = () => {
+  // Mock data for the chart
+  const data = [
     {
       year: '2025',
       portfolioValue: 300000,
@@ -125,28 +109,7 @@ export const PortfolioGrowthChart: React.FC<PortfolioGrowthChartProps> = ({ simu
       equity: 2450000,
       property: null,
     },
-  ];
-
-  // If no simulation data, show empty state
-  if (!simulationResults?.projections || simulationResults.projections.length === 0) {
-    return (
-      <div>
-        <div className="flex items-center gap-3 mb-6">
-          <HomeIcon size={16} className="text-[#6b7280]" />
-          <h3 className="text-[#111827] font-medium text-sm">
-            Portfolio Value & Equity Growth
-          </h3>
-        </div>
-        <div className="h-80 w-full flex items-center justify-center text-[#6b7280]">
-          <div className="text-center">
-            <HomeIcon size={48} className="mx-auto mb-4 text-[#d1d5db]" />
-            <h4 className="text-sm font-medium mb-2">No Growth Data</h4>
-            <p className="text-xs">Select properties to see portfolio growth projections</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  ]
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
