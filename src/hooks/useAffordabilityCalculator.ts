@@ -125,6 +125,7 @@ export const useAffordabilityCalculator = () => {
     property: any,
     previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
   ): number => {
+    console.log('🔴 DEBUG - Timeline Years:', profile.timelineYears, 'Deposit:', profile.depositPool);
     for (let year = 1; year <= profile.timelineYears; year++) {
       const availableFunds = calculateAvailableFunds(year, previousPurchases, profile);
       const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
