@@ -316,13 +316,19 @@ export const useSimulationEngine = (
       borrowingCapacity: profile.borrowingCapacity,
       propertyTypesLength: propertyTypes.length
     });
-    const results = runSimulation();
-    console.log('✅ Simulation results generated:', { 
-      timelineLength: results.timeline.length,
-      summaryValue: results.summary.finalPortfolioValue,
-      projectionLength: results.projections.length
-    });
-    setSimulationResults(results);
+    
+    try {
+      const results = runSimulation();
+      console.log('✅ Simulation results generated:', { 
+        timelineLength: results.timeline.length,
+        summaryValue: results.summary.finalPortfolioValue,
+        projectionLength: results.projections.length
+      });
+      setSimulationResults(results);
+    } catch (error) {
+      console.error('❌ Simulation error:', error);
+      throw error;
+    }
   }, [profile.depositPool, profile.borrowingCapacity, selectionCount, propertyTypes.length, runSimulation]);
 
   return {
