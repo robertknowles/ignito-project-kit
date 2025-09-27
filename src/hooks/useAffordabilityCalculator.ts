@@ -127,17 +127,52 @@ export const useAffordabilityCalculator = () => {
         borrowingCapacity: profile.borrowingCapacity,
         annualSavings: profile.annualSavings
       });
+      console.log('💰 Property needs:', {
+        cost: property.cost,
+        deposit: property.depositRequired,
+        loan: property.cost - property.depositRequired
+      });
+      console.log('📈 Previous purchases:', previousPurchases);
       
       for (let year = 1; year <= profile.timelineYears; year++) {
         const availableFunds = calculateAvailableFunds(year, previousPurchases);
         const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
         
-        console.log(`Year ${year}: Available funds: $${Math.round(availableFunds)}, Can afford: ${canAfford}`);
+        // Enhanced debugging for each year
+        console.log(`\n--- YEAR ${year + 2024} (Timeline Year ${year}) ---`);
+        console.log('💵 Available funds:', Math.round(availableFunds));
+        console.log('🏠 Property deposit needed:', property.depositRequired);
+        console.log('✅ Can afford deposit:', availableFunds >= property.depositRequired);
+        
+        // Let's also check the borrowing capacity calculation
+        let totalExistingDebt = profile.currentDebt;
+        previousPurchases.forEach(purchase => {
+          if (purchase.year <= year) {
+            totalExistingDebt += purchase.loanAmount;
+          }
+        });
+        
+        const currentRentalIncome = calculateCurrentRentalIncome(previousPurchases, year);
+        const newLoanAmount = property.cost - property.depositRequired;
+        const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
+        
+        console.log('🏦 Borrowing analysis:');
+        console.log('  - Current total debt:', Math.round(totalExistingDebt));
+        console.log('  - New loan needed:', Math.round(newLoanAmount));
+        console.log('  - Total debt after purchase:', Math.round(totalDebtAfterPurchase));
+        console.log('  - Borrowing capacity:', Math.round(profile.borrowingCapacity));
+        console.log('  - Rental income boost:', Math.round(currentRentalIncome));
+        console.log('  - Can afford borrowing:', totalDebtAfterPurchase <= profile.borrowingCapacity);
+        console.log('🎯 Overall can afford:', canAfford);
         
         if (canAfford) {
+          console.log('🎉 PROPERTY AFFORDABLE IN YEAR:', year + 2024);
           return year + 2025 - 1; // Convert to absolute year
         }
       }
+      
+      console.log('❌ PROPERTY NOT AFFORDABLE IN ANY YEAR OF TIMELINE');
+      console.log('📅 Timeline spans years 2025 to', 2025 + profile.timelineYears - 1);
       return Infinity; // Cannot afford within timeline
     };
 
