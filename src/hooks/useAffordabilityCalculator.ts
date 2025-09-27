@@ -16,6 +16,16 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
+  
+  // ADD THESE DEBUG LINES AT THE TOP:
+  console.log('🟣 [HOOK START] useAffordabilityCalculator called at:', new Date().toISOString());
+  console.log('🟣 [PROFILE RAW] Received from useInvestmentProfile:', {
+    timelineYears: profile.timelineYears,
+    borrowingCapacity: profile.borrowingCapacity, 
+    depositPool: profile.depositPool,
+    objectRef: profile
+  });
+  
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
@@ -49,6 +59,14 @@ export const useAffordabilityCalculator = () => {
   }, [profile]);
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
+    // Then inside your useMemo callback, add:
+    console.log('🟣 [MEMO START] useMemo recalculating at:', new Date().toISOString());
+    console.log('🟣 [MEMO PROFILE] Profile inside useMemo:', {
+      timelineYears: profile.timelineYears,
+      borrowingCapacity: profile.borrowingCapacity,
+      depositPool: profile.depositPool
+    });
+    
     console.log('🐛 [MEMO EXECUTING] useMemo callback running at:', new Date().toISOString());
     console.log('🐛 [MEMO PROFILE] Profile inside useMemo:', {
       timelineYears: profile.timelineYears,
