@@ -39,60 +39,90 @@ export const useAffordabilityCalculator = () => {
     };
   }, [globalFactors.growthRate]);
 
+  const calculatePropertyGrowth = (initialValue: number, years: number) => {
+    const growthRate = parseFloat(globalFactors.growthRate) / 100;
+    return initialValue * Math.pow(1 + growthRate, years);
+  };
+
+  const calculateAvailableFunds = (
+    currentYear: number, 
+    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }>,
+    investmentProfile: typeof profile
+  ) => {
+    // Calculate accumulated cash savings
+    const accumulatedSavings = currentYear > 1 ? investmentProfile.annualSavings * (currentYear - 1) : 0;
+    let availableCash = calculatedValues.availableDeposit + accumulatedSavings;
+    
+    // Subtract deposits used for previous purchases
+    previousPurchases.forEach(purchase => {
+      if (purchase.year <= currentYear) {
+        availableCash -= purchase.depositRequired;
+      }
+    });
+
+    // Calculate usable equity from existing portfolio (grown)
+    let existingPortfolioEquity = 0;
+    if (investmentProfile.portfolioValue > 0) {
+      const grownPortfolioValue = calculatePropertyGrowth(investmentProfile.portfolioValue, currentYear - 1);
+      existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8) - investmentProfile.currentDebt);
+    }
+
+    // Calculate usable equity from previous purchases
+    let totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
+      if (purchase.year <= currentYear) {
+        const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
+        const usableEquity = (propertyCurrentValue * 0.8) - purchase.loanAmount;
+        return acc + Math.max(0, usableEquity);
+      }
+      return acc;
+    }, existingPortfolioEquity);
+
+    return availableCash + totalUsableEquity;
+  };
+
   const calculateAffordabilityForProperty = (
     property: any,
     propertyIndex: number,
-    previousPurchases: Array<{ year: number; cost: number; depositRequired: number }>
+    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }>
   ): AffordabilityResult => {
     const baseYear = 2025;
-    const growthRate = parseFloat(globalFactors.growthRate) / 100;
     
     for (let year = 1; year <= profile.timelineYears; year++) {
-      // Calculate accumulated cash savings
-      const accumulatedSavings = year > 1 ? profile.annualSavings * (year - 1) : 0;
-      let availableCash = calculatedValues.availableDeposit + accumulatedSavings;
+      const availableFunds = calculateAvailableFunds(year, previousPurchases, profile);
       
-      // Calculate portfolio value and debt from previous purchases
-      let totalPortfolioValue = profile.portfolioValue;
+      // Calculate total debt at this year
       let totalDebt = profile.currentDebt;
-      
-      // Account for previous purchases and their growth
       previousPurchases.forEach(purchase => {
-        const yearsOwned = year - purchase.year;
-        if (yearsOwned >= 0) {
-          // Property value has grown
-          const currentValue = calculatePortfolioGrowth(purchase.cost, yearsOwned);
-          totalPortfolioValue += currentValue;
-          
-          // Debt remains the same (simplified - no principal payments in this model)
-          const loanAmount = purchase.cost - purchase.depositRequired;
-          totalDebt += loanAmount;
-          
-          // Reduce available cash by the deposit used
-          availableCash -= purchase.depositRequired;
+        if (purchase.year <= year) {
+          totalDebt += purchase.loanAmount;
         }
       });
       
-      // Apply growth to existing portfolio
-      if (profile.portfolioValue > 0) {
-        totalPortfolioValue = profile.portfolioValue * Math.pow(1 + growthRate, year - 1) + 
-                             (totalPortfolioValue - profile.portfolioValue);
-      }
-      
-      // Calculate usable equity (80% LVR)
-      const usableEquity = Math.max(0, totalPortfolioValue * 0.8 - totalDebt);
-      const totalAvailableFunds = availableCash + usableEquity;
-      
       // Check affordability
-      const canAffordDeposit = totalAvailableFunds >= property.depositRequired;
+      const canAffordDeposit = availableFunds >= property.depositRequired;
       const newLoanAmount = property.cost - property.depositRequired;
       const canAffordBorrowing = (totalDebt + newLoanAmount) <= profile.borrowingCapacity;
       
       if (canAffordDeposit && canAffordBorrowing) {
+        // Calculate portfolio values for return
+        let totalPortfolioValue = profile.portfolioValue;
+        if (profile.portfolioValue > 0) {
+          totalPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, year - 1);
+        }
+        
+        previousPurchases.forEach(purchase => {
+          if (purchase.year <= year) {
+            const yearsOwned = year - purchase.year;
+            totalPortfolioValue += calculatePropertyGrowth(purchase.cost, yearsOwned);
+          }
+        });
+
+        const usableEquity = Math.max(0, totalPortfolioValue * 0.8 - totalDebt);
+        
         return {
           year: baseYear + year - 1,
           canAfford: true,
-          availableFunds: totalAvailableFunds,
+          availableFunds,
           usableEquity,
           totalPortfolioValue,
           totalDebt
@@ -113,7 +143,7 @@ export const useAffordabilityCalculator = () => {
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
     const timelineProperties: TimelineProperty[] = [];
-    const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number }> = [];
+    const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number }> = [];
     
     // Process each selected property type
     Object.entries(selections).forEach(([propertyId, quantity]) => {
@@ -145,7 +175,8 @@ export const useAffordabilityCalculator = () => {
               purchaseHistory.push({
                 year: result.year - 2025 + 1, // Convert back to relative year
                 cost: property.cost,
-                depositRequired: property.depositRequired
+                depositRequired: property.depositRequired,
+                loanAmount: loanAmount
               });
             }
           }
