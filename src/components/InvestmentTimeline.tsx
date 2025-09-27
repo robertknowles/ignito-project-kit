@@ -7,9 +7,11 @@ import {
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, selections, propertyTypes } = usePropertySelection()
+  const { calculations, checkFeasibility } = usePropertySelection()
+  const { timelineProperties } = useAffordabilityCalculator()
   
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
@@ -24,56 +26,7 @@ export const InvestmentTimeline = () => {
 
   const timelineStatus = getTimelineStatus()
 
-  // Simple affordability calculator for a single property
-  const calculateAffordabilityYear = (property: any, propertyIndex: number = 0) => {
-    const baseYear = 2025
-    let currentYear = 1
-    let cumulativeCash = calculatedValues.availableDeposit
-    let currentPortfolioValue = profile.portfolioValue
-    let currentDebt = profile.currentDebt
-    
-    // Account for properties purchased before this one
-    let previousPropertyCosts = 0
-    let previousPropertyEquity = 0
-    
-    // For subsequent properties of the same type, consider cumulative costs
-    if (propertyIndex > 0) {
-      previousPropertyCosts = property.cost * propertyIndex
-      previousPropertyEquity = property.depositRequired * propertyIndex
-      cumulativeCash -= previousPropertyEquity
-    }
-    
-    while (currentYear <= profile.timelineYears) {
-      // Add annual savings each year (except year 1 where we start with initial deposit)
-      if (currentYear > 1) {
-        cumulativeCash += profile.annualSavings
-      }
-      
-      // Calculate usable equity from growing portfolio
-      const usableEquity = Math.max(0, currentPortfolioValue * 0.8 - currentDebt)
-      const totalAvailableDeposit = cumulativeCash + usableEquity
-      
-      // Check if we can afford this property
-      const canAffordDeposit = totalAvailableDeposit >= property.depositRequired
-      const canAffordBorrowing = (currentDebt + (property.cost - property.depositRequired)) <= profile.borrowingCapacity
-      
-      if (canAffordDeposit && canAffordBorrowing) {
-        return baseYear + currentYear - 1
-      }
-      
-      // Grow portfolio value for next year (assuming 5% growth on existing properties)
-      if (currentPortfolioValue > 0) {
-        currentPortfolioValue *= 1.05
-      }
-      
-      currentYear++
-    }
-    
-    // If never affordable within timeline, return timeline end + property index
-    return baseYear + profile.timelineYears + propertyIndex
-  }
-
-  // Generate timeline items based on affordability calculations
+  // Generate timeline items using affordability calculator
   const generateTimelineItems = () => {
     if (calculations.totalProperties === 0) {
       return [
@@ -88,35 +41,16 @@ export const InvestmentTimeline = () => {
       ]
     }
 
-    const timelineItems: any[] = []
-    
-    Object.entries(selections).forEach(([propertyId, quantity]) => {
-      if (quantity > 0) {
-        const property = propertyTypes.find(p => p.id === propertyId)
-        if (property) {
-          for (let i = 0; i < quantity; i++) {
-            const affordableYear = calculateAffordabilityYear(property, i)
-            const isAffordable = affordableYear <= (2025 + profile.timelineYears)
-            
-            timelineItems.push({
-              year: affordableYear.toString(),
-              quarter: `Yr ${affordableYear - 2025}`,
-              type: property.title,
-              deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-              price: `$${Math.round(property.cost / 1000)}k`,
-              status: isAffordable ? 'feasible' : 'challenging',
-              number: quantity > 1 ? `#${i + 1}` : undefined,
-              affordableYear
-            })
-          }
-        }
-      }
-    })
-
-    // Sort by affordable year
-    timelineItems.sort((a, b) => a.affordableYear - b.affordableYear)
-    
-    return timelineItems.slice(0, 5) // Limit to 5 items for UI
+    return timelineProperties.map((property, index) => ({
+      year: property.affordableYear.toString(),
+      quarter: `Yr ${property.affordableYear - 2025}`,
+      type: property.title,
+      deposit: `$${Math.round(property.depositRequired / 1000)}k`,
+      price: `$${Math.round(property.cost / 1000)}k`,
+      status: property.status,
+      number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
+      affordableYear: property.affordableYear
+    })).slice(0, 5) // Limit to 5 items for UI
   }
 
   const timelineItems = generateTimelineItems()
@@ -170,7 +104,9 @@ export const InvestmentTimeline = () => {
         </p>
         {!feasibility.overallFeasible && calculations.totalProperties > 0 && (
           <p className="text-[#dc2626] text-xs mt-2">
-            Warning: Selected properties exceed your financial capacity. 
+            Warning: {timelineProperties.some(p => !p.status.includes('feasible')) 
+              ? "Some properties may not be affordable within your timeline. " 
+              : "Selected properties exceed your financial capacity. "}
             {!feasibility.hasAdequateDeposit && " Insufficient deposit funds."}
             {!feasibility.withinBorrowingCapacity && " Exceeds borrowing capacity."}
           </p>
