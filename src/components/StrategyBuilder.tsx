@@ -29,21 +29,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     handleCashflowChange 
   } = useInvestmentProfile()
 
-  // Only use local property selection if not provided as props
-  const localPropertySelection = usePropertySelection()
-  const {
-    calculations,
-    checkFeasibility,
-    incrementProperty: localIncrement,
-    decrementProperty: localDecrement,
-    getPropertyQuantity: localGetQuantity,
-  } = localPropertySelection
-
-  // Use props or fallback to local
-  const finalIncrementProperty = incrementProperty || localIncrement
-  const finalDecrementProperty = decrementProperty || localDecrement
-  const finalGetPropertyQuantity = getPropertyQuantity || localGetQuantity
-  const finalPropertyTypes = propertyTypes || PROPERTY_TYPES
+  const { calculations, checkFeasibility } = usePropertySelection()
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -287,7 +273,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {finalPropertyTypes.map((property) => (
+          {propertyTypes!.map((property) => (
             <PropertyCard
               key={property.id}
               title={property.title}
@@ -295,10 +281,10 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               yield={property.yield}
               cashFlow={property.cashFlow}
               riskLevel={property.riskLevel}
-              count={finalGetPropertyQuantity(property.id)}
-              selected={finalGetPropertyQuantity(property.id) > 0}
-              onIncrement={() => finalIncrementProperty(property.id)}
-              onDecrement={() => finalDecrementProperty(property.id)}
+              count={getPropertyQuantity!(property.id)}
+              selected={getPropertyQuantity!(property.id) > 0}
+              onIncrement={() => incrementProperty!(property.id)}
+              onDecrement={() => decrementProperty!(property.id)}
             />
           ))}
         </div>
