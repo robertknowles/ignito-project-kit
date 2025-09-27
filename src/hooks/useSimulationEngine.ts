@@ -162,20 +162,19 @@ export const useSimulationEngine = (
           canAfford: availableFunding >= property.depositRequired
         });
         
-        // Always add timeline item regardless of affordability
+        // Always add timeline item and update simulation state
         const loanAmount = property.averagePrice - property.depositRequired;
         
-        if (availableFunding >= property.depositRequired) {
-          simulationState.portfolioValue += property.averagePrice;
-          simulationState.totalDebt += loanAmount;
-          simulationState.cash -= property.depositRequired;
-          simulationState.ownedProperties.push({
-            type: property.title,
-            value: property.averagePrice,
-            loan: loanAmount,
-            yield: parseFloat(property.yield.replace('%', ''))
-          });
-        }
+        // Update simulation state regardless of current affordability for planning purposes
+        simulationState.portfolioValue += property.averagePrice;
+        simulationState.totalDebt += loanAmount;
+        simulationState.cash = Math.max(0, simulationState.cash - property.depositRequired);
+        simulationState.ownedProperties.push({
+          type: property.title,
+          value: property.averagePrice,
+          loan: loanAmount,
+          yield: parseFloat(property.yield.replace('%', ''))
+        });
 
         // Determine funding source
         let fundingSource = "Savings";
@@ -199,6 +198,22 @@ export const useSimulationEngine = (
           feasibilityStatus: availableFunding >= property.depositRequired * 1.2 ? 'feasible' : 
                            availableFunding >= property.depositRequired ? 'delayed' : 'challenging'
         });
+      });
+
+      // Add initial year projection (Year 0)
+      const initialEquity = simulationState.portfolioValue * 0.8 - simulationState.totalDebt;
+      const initialIncome = simulationState.ownedProperties.reduce((sum, prop) => 
+        sum + (prop.value * prop.yield / 100), 0);
+      const initialExpenses = simulationState.ownedProperties.reduce((sum, prop) => 
+        sum + (prop.loan * 0.06), 0); // 6% interest rate
+
+      projections.push({
+        year: 0,
+        portfolioValue: simulationState.portfolioValue,
+        totalEquity: initialEquity,
+        totalIncome: initialIncome,
+        totalExpenses: initialExpenses,
+        netCashflow: initialIncome - initialExpenses
       });
 
       // Continue simulation for remaining years
@@ -261,14 +276,22 @@ export const useSimulationEngine = (
       };
 
       const summary: PortfolioSummary = {
-        finalPortfolioValue: finalProjection.portfolioValue || 0,
-        totalEquityAchieved: finalProjection.totalEquity || 0,
-        numberOfProperties: simulationState.ownedProperties.length || 0,
+        finalPortfolioValue: finalProjection.portfolioValue || simulationState.portfolioValue,
+        totalEquityAchieved: finalProjection.totalEquity || (simulationState.portfolioValue * 0.8 - simulationState.totalDebt),
+        numberOfProperties: simulationState.ownedProperties.length || selectedProperties.length,
         finalAnnualCashflow: finalProjection.netCashflow || 0,
         totalCashRequired: initialTotalDeposit || 0,
         yearsToAchieveGoals: timeline.length > 0 ? Math.max(...timeline.map(t => t.year)) + 1 : 0,
         overallFeasibility
       };
+
+      console.log('After processing all properties:', {
+        portfolioValue: simulationState.portfolioValue,
+        propertiesOwned: simulationState.ownedProperties.length,
+        projectionsLength: projections.length,
+        firstProjection: projections[0],
+        summary: summary
+      });
 
       const results = {
         timeline,
