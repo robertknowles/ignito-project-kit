@@ -72,35 +72,38 @@ export const Navbar = () => {
         <div className="absolute left-1/2 transform -translate-x-1/2">
           <ClientSelector />
         </div>
-        <SaveButton />
       </div>
-      <div className="relative" ref={dropdownRef}>
-        <button
-          className="w-8 h-8 bg-[#3b82f6] bg-opacity-60 text-white rounded-md flex items-center justify-center"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-        >
-          <UserIcon size={15} className="text-white" />
-        </button>
-        {dropdownOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-[#f3f4f6]">
-            <div className="py-1">
-              <button
-                className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
-                onClick={handleSettings}
-              >
-                <SettingsIcon size={14} className="mr-2" />
-                Settings
-              </button>
-              <button
-                className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
-                onClick={handleLogout}
-              >
-                <LogOutIcon size={14} className="mr-2" />
-                Logout
-              </button>
+      
+      <div className="flex items-center gap-4">
+        <SaveButton />
+        <div className="relative" ref={dropdownRef}>
+          <button
+            className="w-8 h-8 bg-[#3b82f6] bg-opacity-60 text-white rounded-md flex items-center justify-center"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+          >
+            <UserIcon size={15} className="text-white" />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-[#f3f4f6]">
+              <div className="py-1">
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
+                  onClick={handleSettings}
+                >
+                  <SettingsIcon size={14} className="mr-2" />
+                  Settings
+                </button>
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
+                  onClick={handleLogout}
+                >
+                  <LogOutIcon size={14} className="mr-2" />
+                  Logout
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
