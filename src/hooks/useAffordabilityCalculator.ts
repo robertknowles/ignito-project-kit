@@ -143,7 +143,7 @@ export const useAffordabilityCalculator = () => {
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
       currentYear: number
     ): boolean => {
-      // Check if we have enough funds for deposit
+      // Simple affordability check: (1) Can afford deposit, (2) Total debt under capacity limit
       const canAffordDeposit = availableFunds >= property.depositRequired;
       
       // Calculate total existing debt
@@ -153,19 +153,11 @@ export const useAffordabilityCalculator = () => {
           totalExistingDebt += purchase.loanAmount;
         }
       });
-
-      // Calculate current rental income from existing properties
-      const currentRentalIncome = calculateCurrentRentalIncome(previousPurchases, currentYear);
       
-      // Calculate updated borrowing capacity considering rental income
-      const updatedBorrowingCapacity = calculateUpdatedBorrowingCapacity(
-        profile.borrowingCapacity,
-        totalExistingDebt,
-        currentRentalIncome
-      );
-      
+      // Simple borrowing check: total debt after purchase must be under borrowing capacity
       const newLoanAmount = property.cost - property.depositRequired;
-      const canAffordBorrowing = (totalExistingDebt + newLoanAmount) <= updatedBorrowingCapacity;
+      const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
+      const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
       
       return canAffordDeposit && canAffordBorrowing;
     };
@@ -207,24 +199,21 @@ export const useAffordabilityCalculator = () => {
           }
         });
         
+        // Calculate rental income for analytics/display purposes (not used in affordability)
         const currentRentalIncome = calculateCurrentRentalIncome(previousPurchases, year);
-        const updatedBorrowingCapacity = calculateUpdatedBorrowingCapacity(
-          profile.borrowingCapacity,
-          totalExistingDebt,
-          currentRentalIncome
-        );
+        
+        // Simple borrowing check: total debt after purchase <= borrowing capacity
         const newLoanAmount = property.cost - property.depositRequired;
         const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
-        const canAffordBorrowing = totalDebtAfterPurchase <= updatedBorrowingCapacity;
+        const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
         
-        console.log('🏦 Borrowing analysis:');
+        console.log('🏦 Simplified Borrowing Analysis:');
         console.log('  - Current total debt:', Math.round(totalExistingDebt));
         console.log('  - New loan needed:', Math.round(newLoanAmount));
         console.log('  - Total debt after purchase:', Math.round(totalDebtAfterPurchase));
-        console.log('  - Base borrowing capacity:', Math.round(profile.borrowingCapacity));
-        console.log('  - Updated borrowing capacity:', Math.round(updatedBorrowingCapacity));
-        console.log('  - Rental income boost:', Math.round(currentRentalIncome));
+        console.log('  - Borrowing capacity limit:', Math.round(profile.borrowingCapacity));
         console.log('  - Can afford borrowing:', canAffordBorrowing);
+        console.log('  - Rental income (for analytics):', Math.round(currentRentalIncome));
         console.log('🎯 Overall can afford:', canAfford);
         console.log('🎯 Deposit check:', availableFunds >= property.depositRequired);
         console.log('🎯 Borrowing check:', canAffordBorrowing);

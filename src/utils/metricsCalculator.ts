@@ -82,26 +82,17 @@ export const analyzeCashFlow = (
   };
 };
 
+// NOTE: Future enhancement opportunity - implement advanced serviceability calculations
+// that consider debt service ratios, rental income contributions, and bank lending criteria
 export const calculateUpdatedBorrowingCapacity = (
   baseCapacity: number,
   existingLoans: number,
-  rentalIncome: number,
-  debtServiceRatio: number = 0.8
+  rentalIncome: number
 ): number => {
-  const availableServiceability = baseCapacity * debtServiceRatio;
-  const rentalContribution = rentalIncome * 0.7; // Typically banks consider 70% of rental income
-  const updatedCapacity = Math.max(0, availableServiceability - existingLoans + rentalContribution);
-  
-  console.log('🏦 [BORROWING CAPACITY DEBUG]');
-  console.log('  - Base capacity:', Math.round(baseCapacity));
-  console.log('  - Debt service ratio:', debtServiceRatio);
-  console.log('  - Available serviceability:', Math.round(availableServiceability));
-  console.log('  - Existing loans:', Math.round(existingLoans));
-  console.log('  - Rental income:', Math.round(rentalIncome));
-  console.log('  - Rental contribution (70%):', Math.round(rentalContribution));
-  console.log('  - Updated capacity:', Math.round(updatedCapacity));
-  
-  return updatedCapacity;
+  // Simplified logic: just return the base capacity for now
+  // Advanced serviceability calculations can be added later as enhancement
+  console.log('🏦 [SIMPLE BORROWING CHECK] Base capacity:', Math.round(baseCapacity));
+  return baseCapacity;
 };
 
 export const calculatePortfolioMetrics = (
@@ -205,8 +196,8 @@ export const calculateBorrowingCapacityProgression = (
     const rentalIncome = calculateTotalRentalIncome(purchasesByThisYear, currentYear, growthRate);
     const rentContribution = rentalIncome * 0.7; // 70% rental income contribution
     
-    // Calculate updated capacity
-    const capacity = calculateUpdatedBorrowingCapacity(baseCapacity, existingDebt, rentalIncome, debtServiceRatio);
+    // Calculate updated capacity (simplified)
+    const capacity = calculateUpdatedBorrowingCapacity(baseCapacity, existingDebt, rentalIncome);
     
     progression.push({
       year: currentYear,
