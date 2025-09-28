@@ -9,6 +9,9 @@ export interface InvestmentProfileData {
   timelineYears: number;
   equityGrowth: number;
   cashflow: number;
+  // Consolidation tracking
+  consolidationsRemaining: number;
+  lastConsolidationYear: number;
 }
 
 export interface CalculatedValues {
@@ -40,6 +43,8 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     timelineYears: 15,
     equityGrowth: 75,
     cashflow: 25,
+    consolidationsRemaining: 2,
+    lastConsolidationYear: 0,
   });
 
   // Background calculations - not displayed in UI but available for simulation engine

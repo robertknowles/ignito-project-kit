@@ -63,9 +63,15 @@ export interface TimelineProperty {
   depositRequired: number;
   loanAmount: number;
   affordableYear: number;
-  status: 'feasible' | 'challenging';
+  status: 'feasible' | 'challenging' | 'consolidation';
   propertyIndex: number;
   portfolioValueAfter: number;
   totalEquityAfter: number;
   availableFundsUsed: number;
+  isConsolidationPhase?: boolean;
+  consolidationDetails?: {
+    propertiesSold: number;
+    equityFreed: number;
+    debtReduced: number;
+  };
 }
