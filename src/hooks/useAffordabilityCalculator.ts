@@ -55,10 +55,53 @@ export const useAffordabilityCalculator = () => {
       currentYear: number, 
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ) => {
-      // Calculate accumulated cash savings
-      const accumulatedSavings = currentYear > 1 ? profile.annualSavings * (currentYear - 1) : 0;
-      let availableCash = calculatedValues.availableDeposit + accumulatedSavings;
-      console.log(`💰 Year ${currentYear}: Base deposit £${calculatedValues.availableDeposit} + savings £${accumulatedSavings} = £${availableCash}`);
+      // Calculate enhanced annual savings with cashflow feedback
+      let totalEnhancedSavings = 0;
+      
+      for (let year = 1; year <= currentYear; year++) {
+        // Base annual savings
+        let yearSavings = profile.annualSavings;
+        
+        // Calculate net cashflow from all properties purchased before this year
+        let netCashflow = 0;
+        previousPurchases.forEach(purchase => {
+          if (purchase.year < year) { // Only properties purchased in previous years generate cashflow
+            const yearsOwned = year - purchase.year;
+            const propertyData = getPropertyData(purchase.title);
+            
+            if (propertyData) {
+              // Calculate current property value with growth
+              const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
+              const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+              
+              // Calculate rental income
+              const yieldRate = parseFloat(propertyData.yield) / 100;
+              const rentalIncome = currentValue * yieldRate;
+              
+              // Calculate loan repayments (interest only for simplicity)
+              const interestRate = parseFloat(globalFactors.interestRate) / 100;
+              const loanRepayments = purchase.loanAmount * interestRate;
+              
+              // Calculate expenses (simplified - 1% of property value annually)
+              const expenses = currentValue * 0.01; // 1% for maintenance, management, etc.
+              
+              // Net cashflow for this property
+              const propertyCashflow = rentalIncome - loanRepayments - expenses;
+              netCashflow += propertyCashflow;
+            }
+          }
+        });
+        
+        // Total savings for this year = base savings + net cashflow
+        const totalYearSavings = yearSavings + netCashflow;
+        totalEnhancedSavings += totalYearSavings;
+        
+        console.log(`💰 Year ${year}: Base savings £${yearSavings.toLocaleString()} + Net cashflow £${netCashflow.toLocaleString()} = Total £${totalYearSavings.toLocaleString()}`);
+      }
+      
+      // Calculate available cash: base deposit + accumulated enhanced savings
+      let availableCash = calculatedValues.availableDeposit + (currentYear > 1 ? totalEnhancedSavings : 0);
+      console.log(`💰 Year ${currentYear}: Base deposit £${calculatedValues.availableDeposit.toLocaleString()} + Enhanced savings £${totalEnhancedSavings.toLocaleString()} = £${availableCash.toLocaleString()}`);
       
       // Subtract deposits used for previous purchases
       previousPurchases.forEach(purchase => {
@@ -85,7 +128,7 @@ export const useAffordabilityCalculator = () => {
       }, existingPortfolioEquity);
       
       const finalFunds = availableCash + totalUsableEquity;
-      console.log(`🏦 Year ${currentYear}: Cash £${availableCash} + Equity £${totalUsableEquity} = Total £${finalFunds}`);
+      console.log(`🏦 Year ${currentYear}: Cash £${availableCash.toLocaleString()} + Equity £${totalUsableEquity.toLocaleString()} = Total £${finalFunds.toLocaleString()}`);
       return finalFunds;
     };
 
