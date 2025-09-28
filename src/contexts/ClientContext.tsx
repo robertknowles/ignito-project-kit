@@ -36,10 +36,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [clients, setClients] = useState<Client[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const fetchClients = async () => {
-    if (!user) return;
+    if (!user || authLoading) return;
     
     setLoading(true);
     try {
@@ -93,10 +93,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       fetchClients();
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const value = {
     clients,
@@ -106,6 +106,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     createClient,
     fetchClients,
   };
+
+  // Don't render children until auth is ready
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <ClientContext.Provider value={value}>
