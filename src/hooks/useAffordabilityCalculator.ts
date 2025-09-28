@@ -19,26 +19,6 @@ export const useAffordabilityCalculator = () => {
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    const startTime = performance.now();
-    console.log('[AFFORDABILITY] ========== CALCULATION START ==========');
-    console.log('[AFFORDABILITY] Input Data:', {
-      profile: {
-        timelineYears: profile.timelineYears,
-        borrowingCapacity: profile.borrowingCapacity,
-        annualSavings: profile.annualSavings,
-        portfolioValue: profile.portfolioValue,
-        currentDebt: profile.currentDebt
-      },
-      calculatedValues: {
-        availableDeposit: calculatedValues.availableDeposit
-      },
-      selections,
-      globalFactors: {
-        growthRate: globalFactors.growthRate,
-        interestRate: globalFactors.interestRate
-      },
-      propertyTypesCount: propertyTypes.length
-    });
 
     // Move ALL helper functions inside useMemo to avoid closure issues
     
@@ -99,18 +79,7 @@ export const useAffordabilityCalculator = () => {
         return acc;
       }, existingPortfolioEquity);
 
-      const totalAvailableFunds = availableCash + totalUsableEquity;
-      
-      console.log('[AFFORDABILITY] Available Funds Calculation for Year', currentYear, {
-        accumulatedSavings,
-        availableCash: availableCash - accumulatedSavings + accumulatedSavings,
-        existingPortfolioEquity,
-        totalUsableEquity,
-        totalAvailableFunds,
-        previousPurchasesCount: previousPurchases.filter(p => p.year <= currentYear).length
-      });
-
-      return totalAvailableFunds;
+      return availableCash + totalUsableEquity;
     };
 
     const checkAffordability = (
@@ -135,52 +104,22 @@ export const useAffordabilityCalculator = () => {
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
       const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
       
-      const isAffordable = canAffordDeposit && canAffordBorrowing;
-      
-      console.log('[AFFORDABILITY] Affordability Check for', property.title, 'in Year', currentYear, {
-        propertyDetails: {
-          cost: property.cost,
-          depositRequired: property.depositRequired,
-          newLoanAmount
-        },
-        checks: {
-          canAffordDeposit,
-          canAffordBorrowing,
-          isAffordable
-        },
-        financials: {
-          availableFunds,
-          totalExistingDebt,
-          totalDebtAfterPurchase,
-          borrowingCapacity: profile.borrowingCapacity,
-          remainingCapacity: profile.borrowingCapacity - totalDebtAfterPurchase
-        }
-      });
-      
-      return isAffordable;
+      return canAffordDeposit && canAffordBorrowing;
     };
 
     const determineNextPurchaseYear = (
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): number => {
-      console.log('[AFFORDABILITY] Determining purchase year for', property.title, {
-        timelineYears: profile.timelineYears,
-        previousPurchasesCount: previousPurchases.length
-      });
-      
       for (let year = 1; year <= profile.timelineYears; year++) {
         const availableFunds = calculateAvailableFunds(year, previousPurchases);
         const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
         
         if (canAfford) {
-          const absoluteYear = year + 2025 - 1;
-          console.log('[AFFORDABILITY] ✅ Found affordable year for', property.title, ':', absoluteYear);
-          return absoluteYear; // Convert to absolute year
+          return year + 2025 - 1; // Convert to absolute year
         }
       }
       
-      console.log('[AFFORDABILITY] ❌ Cannot afford', property.title, 'within timeline');
       return Infinity; // Cannot afford within timeline
     };
 
@@ -241,12 +180,6 @@ export const useAffordabilityCalculator = () => {
       if (quantity > 0) {
         const property = propertyTypes.find(p => p.id === propertyId);
         if (property) {
-          console.log('[AFFORDABILITY] Adding property to purchase list:', {
-            title: property.title,
-            quantity,
-            cost: property.cost,
-            depositRequired: property.depositRequired
-          });
           for (let i = 0; i < quantity; i++) {
             allPropertiesToPurchase.push({ property, index: i });
           }
@@ -254,14 +187,11 @@ export const useAffordabilityCalculator = () => {
       }
     });
 
-    console.log('[AFFORDABILITY] Total properties to process:', allPropertiesToPurchase.length);
-
     const timelineProperties: TimelineProperty[] = [];
     const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
     
     // Process properties sequentially, determining purchase year for each
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
-      console.log(`[AFFORDABILITY] Processing property ${globalIndex + 1}/${allPropertiesToPurchase.length}:`, property.title);
       const result = calculateAffordabilityForProperty(property, globalIndex, purchaseHistory);
       const loanAmount = property.cost - property.depositRequired;
       
@@ -297,27 +227,7 @@ export const useAffordabilityCalculator = () => {
     });
     
     // Sort by affordable year for display
-    const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-    
-    const endTime = performance.now();
-    console.log('[AFFORDABILITY] ========== CALCULATION COMPLETE ==========');
-    console.log('[AFFORDABILITY] Final Timeline Properties:', sortedProperties);
-    console.log('[AFFORDABILITY] Performance:', {
-      calculationTime: `${(endTime - startTime).toFixed(2)}ms`,
-      propertiesProcessed: allPropertiesToPurchase.length,
-      feasibleProperties: sortedProperties.filter(p => p.status === 'feasible').length,
-      challengingProperties: sortedProperties.filter(p => p.status === 'challenging').length
-    });
-    console.log('[AFFORDABILITY] Purchase Timeline Summary:', 
-      sortedProperties.map(p => ({
-        title: p.title,
-        affordableYear: p.affordableYear,
-        status: p.status,
-        cost: p.cost
-      }))
-    );
-    
-    return sortedProperties;
+    return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
   }, [
     // Only re-calculate when these specific values change
     JSON.stringify(selections),
