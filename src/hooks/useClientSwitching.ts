@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useClient } from '@/contexts/ClientContext';
 import { useScenarioSave, ScenarioData } from '@/contexts/ScenarioSaveContext';
 import { useDataAssumptions, GlobalEconomicFactors } from '@/contexts/DataAssumptionsContext';
@@ -27,8 +27,19 @@ export const useClientSwitching = () => {
   
   const { updateProfile } = useInvestmentProfile();
 
+  // Track the last loaded client to prevent unnecessary reloads
+  const lastLoadedClientRef = useRef<number | null>(null);
+  
   // Load client data when active client changes
   const loadClientData = useCallback((clientId: number) => {
+    // Prevent loading if this client is already loaded
+    if (lastLoadedClientRef.current === clientId) {
+      return;
+    }
+    
+    console.log('Loading client data for:', clientId);
+    lastLoadedClientRef.current = clientId;
+    
     const savedData: ScenarioData | null = loadClientScenario(clientId);
     
     if (savedData) {
@@ -77,14 +88,13 @@ export const useClientSwitching = () => {
     updatePropertyQuantity,
     updateGlobalFactor,
     updatePropertyAssumption,
-    updateProfile,
-    globalFactors
+    updateProfile
   ]);
 
-  // Handle client switching with unsaved changes warning
+  // Handle client switching - only when client ID actually changes
   useEffect(() => {
-    if (activeClient) {
-      // Load new client's data
+    if (activeClient && activeClient.id !== lastLoadedClientRef.current) {
+      console.log('Client changed, loading new data:', activeClient.id);
       loadClientData(activeClient.id);
     }
   }, [activeClient?.id, loadClientData]);
