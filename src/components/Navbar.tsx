@@ -10,12 +10,17 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClientSelector } from './ClientSelector'
+import { SaveButton } from './SaveButton'
+import { useClientSwitching } from '@/hooks/useClientSwitching'
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Initialize client switching logic
+  useClientSwitching()
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,8 +68,11 @@ export const Navbar = () => {
           <DatabaseIcon size={15} />
         </button>
       </div>
-      <div className="absolute left-1/2 transform -translate-x-1/2">
-        <ClientSelector />
+      <div className="flex items-center gap-4">
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <ClientSelector />
+        </div>
+        <SaveButton />
       </div>
       <div className="relative" ref={dropdownRef}>
         <button

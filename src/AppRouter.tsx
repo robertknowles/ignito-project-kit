@@ -10,6 +10,7 @@ import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
 import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
 import { ClientProvider } from './contexts/ClientContext'
+import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from './components/ui/toaster'
 export function AppRouter() {
@@ -19,6 +20,7 @@ export function AppRouter() {
         <DataAssumptionsProvider>
           <PropertySelectionProvider>
             <InvestmentProfileProvider>
+              <ScenarioSaveProvider>
               <BrowserRouter>
               <Routes>
                 <Route 
@@ -58,6 +60,7 @@ export function AppRouter() {
               </Routes>
               <Toaster />
             </BrowserRouter>
+              </ScenarioSaveProvider>
           </InvestmentProfileProvider>
         </PropertySelectionProvider>
       </DataAssumptionsProvider>
