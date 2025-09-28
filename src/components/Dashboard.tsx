@@ -11,12 +11,21 @@ import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'luci
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 export const Dashboard = () => {
   // State for expandable panes
-  const [profileExpanded, setProfileExpanded] = useState(true);
-  const [propertyExpanded, setPropertyExpanded] = useState(true);
+  // const [profileExpanded, setProfileExpanded] = useState(true);
+  // const [propertyExpanded, setPropertyExpanded] = useState(true);
+
+  const profile = 0 
+  const property = 1
+  const [accordian, setAccordian] = useState(profile)
+  
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
   
   const { calculations } = usePropertySelection();
+
+  function expandTab(accordian:number){
+      setAccordian(accordian)
+  }
 
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
       <div className="flex gap-8">
@@ -25,7 +34,7 @@ export const Dashboard = () => {
           <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
             {/* Client Investment Profile Pane */}
             <div className="border-b border-[#f3f4f6]">
-              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => setProfileExpanded(!profileExpanded)}>
+              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(profile)}>
                 <div className="flex items-center gap-3">
                   <SlidersIcon size={16} className="text-[#6b7280]" />
                   <h2 className="text-[#111827] font-medium text-sm">
@@ -36,10 +45,10 @@ export const Dashboard = () => {
                   <span className="text-xs">
                     {calculations.totalProperties} {calculations.totalProperties === 1 ? 'property' : 'properties'} selected
                   </span>
-                  {profileExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+                  {accordian == profile ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
               </div>
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${profileExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === profile ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="p-6 pt-0 bg-[#f9fafb]">
                   <StrategyBuilder profileOnly={true} />
                 </div>
@@ -47,7 +56,7 @@ export const Dashboard = () => {
             </div>
             {/* Property Building Blocks Pane */}
             <div>
-              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => setPropertyExpanded(!propertyExpanded)}>
+              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(property)}>
                 <div className="flex items-center gap-3">
                   <ClipboardIcon size={16} className="text-[#6b7280]" />
                   <h2 className="text-[#111827] font-medium text-sm">
@@ -58,10 +67,10 @@ export const Dashboard = () => {
                   <span className="text-xs">
                     {calculations.totalProperties} selected
                   </span>
-                  {propertyExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+                  {accordian === property ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
                 </div>
               </div>
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${propertyExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === property ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="p-6 pt-0">
                   <StrategyBuilder propertyOnly={true} />
                 </div>
