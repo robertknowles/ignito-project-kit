@@ -89,6 +89,40 @@ export const useAffordabilityCalculator = () => {
       return finalFunds;
     };
 
+    const calculateDynamicBorrowingCapacity = (
+      currentYear: number,
+      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
+    ): number => {
+      const baseCapacity = profile.borrowingCapacity;
+      
+      // Calculate rental income from all purchased properties
+      let totalRentalIncome = 0;
+      previousPurchases.forEach(purchase => {
+        if (purchase.year <= currentYear) {
+          const yearsOwned = currentYear - purchase.year;
+          // Find the property data to get rental yield
+          const propertyData = getPropertyData(purchase.title);
+          if (propertyData) {
+            // Calculate current property value with growth
+            const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
+            const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+            const yieldRate = parseFloat(propertyData.yield) / 100;
+            const annualRent = currentValue * yieldRate;
+            totalRentalIncome += annualRent;
+          }
+        }
+      });
+      
+      // Apply serviceability factor (70%)
+      const serviceabilityFactor = 0.7;
+      const rentalCapacityBoost = totalRentalIncome * serviceabilityFactor;
+      const adjustedCapacity = baseCapacity + rentalCapacityBoost;
+      
+      console.log(`🏦 Year ${currentYear}: Base capacity £${baseCapacity.toLocaleString()} + rental boost £${rentalCapacityBoost.toLocaleString()} (£${totalRentalIncome.toLocaleString()} × 0.7) = £${adjustedCapacity.toLocaleString()}`);
+      
+      return adjustedCapacity;
+    };
+
     const checkAffordability = (
       property: any,
       availableFunds: number,
@@ -99,6 +133,9 @@ export const useAffordabilityCalculator = () => {
       const canAffordDeposit = availableFunds >= property.depositRequired;
       console.log(`🧮 ${property.title} Year ${currentYear}: 💵${availableFunds} vs 🏠${property.depositRequired} = ${canAffordDeposit ? '✅' : '❌'}`);
       
+      if (!canAffordDeposit) {
+        return false;
+      }
       
       // Calculate total existing debt
       let totalExistingDebt = profile.currentDebt;
@@ -108,12 +145,13 @@ export const useAffordabilityCalculator = () => {
         }
       });
       
-      // Simple borrowing check: total debt after purchase must be under borrowing capacity
+      // Use dynamic borrowing capacity instead of static capacity
+      const dynamicCapacity = calculateDynamicBorrowingCapacity(currentYear, previousPurchases);
       const newLoanAmount = property.cost - property.depositRequired;
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
-      const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
+      const canAffordBorrowing = totalDebtAfterPurchase <= dynamicCapacity;
       
-      console.log(`🏦 Debt check: £${totalExistingDebt} + £${newLoanAmount} = £${totalDebtAfterPurchase} vs capacity £${profile.borrowingCapacity} = ${canAffordBorrowing ? '✅' : '❌'}`);
+      console.log(`🏦 Debt check: £${totalExistingDebt} + £${newLoanAmount} = £${totalDebtAfterPurchase} vs dynamic capacity £${dynamicCapacity.toLocaleString()} = ${canAffordBorrowing ? '✅' : '❌'}`);
       const result = canAffordDeposit && canAffordBorrowing;
       console.log(`📊 Final decision: ${result ? '✅ AFFORDABLE' : '❌ NOT AFFORDABLE'}`);
       
