@@ -22,11 +22,10 @@ export const useAffordabilityCalculator = () => {
   const MAX_CONSOLIDATIONS = 2;
   const MIN_YEARS_BETWEEN_CONSOLIDATIONS = 3;
 
+  // Debug flag - set to true to enable detailed debugging
+  const DEBUG_MODE = true;
+
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    console.log('🏠 Starting affordability calculations');
-    console.log('💰 Available deposit:', calculatedValues.availableDeposit);
-    console.log('🏦 Borrowing capacity:', profile.borrowingCapacity);
-    console.log('📊 Selected properties:', Object.entries(selections).filter(([_, qty]) => qty > 0));
 
     // Track consolidation state
     let consolidationState = {
@@ -86,13 +85,10 @@ export const useAffordabilityCalculator = () => {
         // Total savings for this year = base savings + net cashflow
         const totalYearSavings = yearSavings + netCashflow;
         totalEnhancedSavings += totalYearSavings;
-        
-        console.log(`💰 Year ${year}: Base savings £${yearSavings.toLocaleString()} + Net cashflow £${netCashflow.toLocaleString()} = Total £${totalYearSavings.toLocaleString()}`);
       }
       
       // Calculate available cash: base deposit + accumulated enhanced savings + additional equity from consolidations
       let availableCash = calculatedValues.availableDeposit + (currentYear > 1 ? totalEnhancedSavings : 0) + additionalEquity;
-      console.log(`💰 Year ${currentYear}: Base deposit £${calculatedValues.availableDeposit.toLocaleString()} + Enhanced savings £${totalEnhancedSavings.toLocaleString()} + Additional equity £${additionalEquity.toLocaleString()} = £${availableCash.toLocaleString()}`);
       
       // Subtract deposits used for previous purchases
       previousPurchases.forEach(purchase => {
@@ -119,7 +115,6 @@ export const useAffordabilityCalculator = () => {
       }, existingPortfolioEquity);
       
       const finalFunds = availableCash + totalUsableEquity;
-      console.log(`🏦 Year ${currentYear}: Cash £${availableCash.toLocaleString()} + Equity £${totalUsableEquity.toLocaleString()} = Total £${finalFunds.toLocaleString()}`);
       return finalFunds;
     };
 
@@ -151,8 +146,6 @@ export const useAffordabilityCalculator = () => {
       const serviceabilityFactor = 0.7;
       const rentalCapacityBoost = totalRentalIncome * serviceabilityFactor;
       const adjustedCapacity = baseCapacity + rentalCapacityBoost;
-      
-      console.log(`🏦 Year ${currentYear}: Base capacity £${baseCapacity.toLocaleString()} + rental boost £${rentalCapacityBoost.toLocaleString()} (£${totalRentalIncome.toLocaleString()} × 0.7) = £${adjustedCapacity.toLocaleString()}`);
       
       return adjustedCapacity;
     };
@@ -241,8 +234,6 @@ export const useAffordabilityCalculator = () => {
       debtReduced: number;
       propertiesSold: number;
     } => {
-      console.log(`🔄 CONSOLIDATION TRIGGERED in year ${currentYear}`);
-      
       // Rank properties by score (lowest first)
       const rankedProperties = previousPurchases
         .filter(purchase => purchase.year <= currentYear)
@@ -251,10 +242,6 @@ export const useAffordabilityCalculator = () => {
           score: calculatePropertyScore(purchase, currentYear)
         }))
         .sort((a, b) => a.score.totalScore - b.score.totalScore);
-      
-      console.log(`📊 Property rankings:`, rankedProperties.map(p => 
-        `${p.title}: £${p.score.cashflowScore.toLocaleString()} cashflow, £${p.score.equityScore.toLocaleString()} equity`
-      ));
       
       let updatedPurchases = [...previousPurchases];
       let totalEquityFreed = 0;
@@ -280,8 +267,6 @@ export const useAffordabilityCalculator = () => {
           totalDebtReduced += property.loanAmount;
           propertiesSold++;
           
-          console.log(`🏠 SOLD ${property.title}: £${equity.toLocaleString()} equity freed, £${property.loanAmount.toLocaleString()} debt reduced`);
-          
           // Check if conditions are now met
           const remainingDebt = previousPurchases.reduce((sum, p) => {
             const stillOwned = updatedPurchases.some(up => 
@@ -302,11 +287,8 @@ export const useAffordabilityCalculator = () => {
           
           const newLVR = remainingValue > 0 ? (remainingDebt / remainingValue) * 100 : 0;
           
-          console.log(`📈 After sale: LVR = ${newLVR.toFixed(1)}%, Debt = £${remainingDebt.toLocaleString()}`);
-          
           // Stop if LVR <= 80% and we've sold at least one property
           if (newLVR <= 80 && propertiesSold >= 1) {
-            console.log(`✅ Consolidation complete: LVR reduced to ${newLVR.toFixed(1)}%`);
             break;
           }
         }
@@ -331,14 +313,38 @@ export const useAffordabilityCalculator = () => {
       currentYear: number,
       additionalEquity: number = 0
     ): { canAfford: boolean; consolidationTriggered?: boolean; consolidationDetails?: any } => {
-      console.log(`🧮 ${property.title} Year ${currentYear}: 💵${availableFunds} vs 🏠${property.depositRequired}`);
       
-      // Check deposit affordability
-      const canAffordDeposit = availableFunds >= property.depositRequired;
-      if (!canAffordDeposit) {
-        console.log(`❌ Cannot afford deposit`);
-        return { canAfford: false };
-      }
+      // Calculate key financial metrics for debugging
+      const baseDeposit = calculatedValues.availableDeposit;
+      const annualSavings = profile.annualSavings;
+      
+      // Calculate net cashflow from all current properties
+      let netCashflow = 0;
+      let grossRentalIncome = 0;
+      let loanRepayments = 0;
+      let expenses = 0;
+      
+      previousPurchases.forEach(purchase => {
+        if (purchase.year <= currentYear) {
+          const yearsOwned = currentYear - purchase.year;
+          const propertyData = getPropertyData(purchase.title);
+          
+          if (propertyData) {
+            const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
+            const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+            const yieldRate = parseFloat(propertyData.yield) / 100;
+            const rentalIncome = currentValue * yieldRate;
+            const interestRate = parseFloat(globalFactors.interestRate) / 100;
+            const propertyLoanRepayments = purchase.loanAmount * interestRate;
+            const propertyExpenses = currentValue * 0.01;
+            
+            grossRentalIncome += rentalIncome;
+            loanRepayments += propertyLoanRepayments;
+            expenses += propertyExpenses;
+            netCashflow += (rentalIncome - propertyLoanRepayments - propertyExpenses);
+          }
+        }
+      });
       
       // Calculate total existing debt
       let totalExistingDebt = profile.currentDebt;
@@ -350,23 +356,78 @@ export const useAffordabilityCalculator = () => {
       
       // Calculate portfolio value
       let totalPortfolioValue = profile.portfolioValue;
+      let propertyValues: number[] = [];
+      let usableEquityPerProperty: number[] = [];
+      
+      if (profile.portfolioValue > 0) {
+        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+        propertyValues.push(grownPortfolioValue);
+        const portfolioEquity = Math.max(0, (grownPortfolioValue * 0.8) - profile.currentDebt);
+        usableEquityPerProperty.push(portfolioEquity);
+      }
+      
       previousPurchases.forEach(purchase => {
         if (purchase.year <= currentYear) {
           const yearsOwned = currentYear - purchase.year;
-          totalPortfolioValue += calculatePropertyGrowth(purchase.cost, yearsOwned);
+          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          totalPortfolioValue += currentValue;
+          propertyValues.push(currentValue);
+          
+          const usableEquity = Math.max(0, (currentValue * 0.8) - purchase.loanAmount);
+          usableEquityPerProperty.push(usableEquity);
         }
       });
       
+      const totalUsableEquity = usableEquityPerProperty.reduce((sum, equity) => sum + equity, 0);
+      
       // Use dynamic borrowing capacity
+      const baseCapacity = profile.borrowingCapacity;
       const dynamicCapacity = calculateDynamicBorrowingCapacity(currentYear, previousPurchases);
+      const rentalUplift = dynamicCapacity - baseCapacity;
       const newLoanAmount = property.cost - property.depositRequired;
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
+      
+      // Check affordability
+      const canAffordDeposit = availableFunds >= property.depositRequired;
       const canAffordBorrowing = totalDebtAfterPurchase <= dynamicCapacity;
       
-      console.log(`🏦 Debt check: £${totalExistingDebt} + £${newLoanAmount} = £${totalDebtAfterPurchase} vs capacity £${dynamicCapacity.toLocaleString()} = ${canAffordBorrowing ? '✅' : '❌'}`);
+      // Debug trace output
+      if (DEBUG_MODE) {
+        const absoluteYear = currentYear + 2025 - 1;
+        console.log(`\n--- Year ${absoluteYear} Debug Trace ---`);
+        console.log(`\nDeposits:`);
+        console.log(`  - BaseDeposit: £${baseDeposit.toLocaleString()}`);
+        console.log(`  - AnnualSavings: £${annualSavings.toLocaleString()}`);
+        console.log(`  - NetCashflowContribution: £${netCashflow.toLocaleString()}`);
+        console.log(`  - TotalDepositPool: £${availableFunds.toLocaleString()}`);
+        console.log(`\nEquity:`);
+        console.log(`  - PropertyValues: [${propertyValues.map(v => `£${v.toLocaleString()}`).join(', ')}]`);
+        console.log(`  - UsableEquityPerProperty: [${usableEquityPerProperty.map(e => `£${e.toLocaleString()}`).join(', ')}]`);
+        console.log(`  - TotalUsableEquity: £${totalUsableEquity.toLocaleString()}`);
+        console.log(`\nCashflow:`);
+        console.log(`  - GrossRentalIncome: £${grossRentalIncome.toLocaleString()}`);
+        console.log(`  - LoanRepayments: £${loanRepayments.toLocaleString()}`);
+        console.log(`  - Expenses: £${expenses.toLocaleString()}`);
+        console.log(`  - NetCashflow: £${netCashflow.toLocaleString()}`);
+        console.log(`\nBorrowing Capacity:`);
+        console.log(`  - BaseCapacity: £${baseCapacity.toLocaleString()}`);
+        console.log(`  - RentalUplift: £${rentalUplift.toLocaleString()}`);
+        console.log(`  - AdjustedCapacity: £${dynamicCapacity.toLocaleString()}`);
+        console.log(`\nDebt Position:`);
+        console.log(`  - ExistingDebt: £${totalExistingDebt.toLocaleString()}`);
+        console.log(`  - NewLoanAmount: £${newLoanAmount.toLocaleString()}`);
+        console.log(`  - TotalDebtAfterPurchase: £${totalDebtAfterPurchase.toLocaleString()}`);
+        console.log(`\nFinal Decision:`);
+        console.log(`  - DepositTest: ${canAffordDeposit ? 'PASS' : 'FAIL'}`);
+        console.log(`  - DebtTest: ${canAffordBorrowing ? 'PASS' : 'FAIL'}`);
+        console.log(`  - PurchaseDecision: ${canAffordBorrowing && canAffordDeposit ? absoluteYear : '❌'}`);
+      }
+      
+      if (!canAffordDeposit) {
+        return { canAfford: false };
+      }
       
       if (canAffordBorrowing) {
-        console.log(`✅ ${property.title} AFFORDABLE`);
         return { canAfford: true };
       }
       
@@ -377,8 +438,37 @@ export const useAffordabilityCalculator = () => {
           consolidationState.consolidationsRemaining > 0 && 
           (currentYear - consolidationState.lastConsolidationYear) >= MIN_YEARS_BETWEEN_CONSOLIDATIONS) {
         
-        console.log(`🔄 Consolidation triggers met:`, triggers.reasons);
         const consolidationResult = executeConsolidation(currentYear, previousPurchases);
+        
+        // Debug trace for consolidation
+        if (DEBUG_MODE) {
+          const propertiesSoldList = previousPurchases
+            .filter(p => !consolidationResult.updatedPurchases.some(up => 
+              up.year === p.year && up.title === p.title && up.cost === p.cost
+            ))
+            .map(p => p.title);
+          
+          const remainingDebt = consolidationResult.updatedPurchases.reduce((sum, p) => sum + p.loanAmount, profile.currentDebt);
+          const remainingValue = consolidationResult.updatedPurchases.reduce((sum, p) => {
+            const yearsOwned = currentYear - p.year;
+            const propData = getPropertyData(p.title);
+            if (propData) {
+              const growth = parseFloat(propData.growth) / 100;
+              return sum + (p.cost * Math.pow(1 + growth, yearsOwned));
+            }
+            return sum;
+          }, profile.portfolioValue);
+          const newLVR = remainingValue > 0 ? (remainingDebt / remainingValue) * 100 : 0;
+          const newCapacity = calculateDynamicBorrowingCapacity(currentYear, consolidationResult.updatedPurchases);
+          
+          console.log(`\nConsolidation Phase (if triggered):`);
+          console.log(`  - PropertiesSold: [${propertiesSoldList.join(', ')}]`);
+          console.log(`  - EquityFreed: £${consolidationResult.equityFreed.toLocaleString()}`);
+          console.log(`  - DebtAfterSales: £${remainingDebt.toLocaleString()}`);
+          console.log(`  - NewLVR: ${newLVR.toFixed(1)}%`);
+          console.log(`  - NewBorrowingCapacity: £${newCapacity.toLocaleString()}`);
+          console.log(`  - TriggerReason: ${triggers.reasons.join(' | ')}`);
+        }
         
         // Recheck affordability with freed equity and reduced debt
         const newAvailableFunds = calculateAvailableFunds(currentYear, consolidationResult.updatedPurchases, consolidationResult.equityFreed);
@@ -391,7 +481,6 @@ export const useAffordabilityCalculator = () => {
         };
       }
       
-      console.log(`❌ ${property.title} NOT AFFORDABLE - no consolidation possible`);
       return { canAfford: false };
     };
 
@@ -399,18 +488,14 @@ export const useAffordabilityCalculator = () => {
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): { year: number; consolidation?: any } => {
-      console.log(`🔍 Finding purchase year for ${property.title} (£${property.cost})`);
-      
       let currentPurchases = [...previousPurchases];
       
       for (let year = 1; year <= profile.timelineYears; year++) {
-        console.log(`📅 Testing year ${year}:`);
         const availableFunds = calculateAvailableFunds(year, currentPurchases);
         const affordabilityResult = checkAffordability(property, availableFunds, currentPurchases, year);
         
         if (affordabilityResult.canAfford) {
           const absoluteYear = year + 2025 - 1;
-          console.log(`🎯 ${property.title} can be purchased in year ${absoluteYear}!`);
           
           if (affordabilityResult.consolidationTriggered) {
             // Update the purchase history to reflect consolidation
@@ -425,7 +510,6 @@ export const useAffordabilityCalculator = () => {
         }
       }
       
-      console.log(`⏰ ${property.title} cannot be afforded within ${profile.timelineYears} years`);
       return { year: Infinity };
     };
 
@@ -447,9 +531,7 @@ export const useAffordabilityCalculator = () => {
     const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
     
     // Process properties sequentially, determining purchase year for each
-    console.log('🔄 Processing', allPropertiesToPurchase.length, 'properties');
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
-      console.log(`🏘️ Property ${globalIndex + 1}: ${property.title} (£${property.cost})`);
       const result = determineNextPurchaseYear(property, purchaseHistory);
       const loanAmount = property.cost - property.depositRequired;
       
@@ -496,7 +578,6 @@ export const useAffordabilityCalculator = () => {
     
     // Sort by affordable year for display
     const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-    console.log('📅 Final timeline:', sortedProperties.map(p => `${p.title}: ${p.affordableYear} (${p.status})`));
     return sortedProperties;
   }, [
     // Only re-calculate when these specific values change
