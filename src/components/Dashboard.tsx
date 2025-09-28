@@ -14,8 +14,9 @@ export const Dashboard = () => {
   // const [profileExpanded, setProfileExpanded] = useState(true);
   // const [propertyExpanded, setPropertyExpanded] = useState(true);
 
-  const profile = 0 
-  const property = 1
+  const closed = 0
+  const profile = 1 
+  const property = 2
   const [accordian, setAccordian] = useState(profile)
   
   // State for tabs
@@ -23,8 +24,12 @@ export const Dashboard = () => {
   
   const { calculations } = usePropertySelection();
 
-  function expandTab(accordian:number){
-      setAccordian(accordian)
+  function expandTab(acc:number){
+    if (acc === accordian){
+        setAccordian(closed)
+    }else{
+      setAccordian(acc)
+    }
   }
 
   return <div className="flex-1 overflow-auto p-8 bg-white relative">
