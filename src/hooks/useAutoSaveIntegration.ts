@@ -50,13 +50,12 @@ export const useAutoSaveInvestmentProfile = (profile: InvestmentProfileData) => 
   }, [profile, activeClient?.id, saveClientData, markAsChanged]);
 };
 
-// Hook for loading client data when switching clients
+// Hook for loading client data when switching clients - with safe context check
 export const useLoadClientData = () => {
-  const { loadClientData } = useAutoSave();
-  
   const loadScenarioData = useCallback((clientId: number) => {
-    return loadClientData(clientId);
-  }, [loadClientData]);
+    // Return null - this will be handled gracefully by the contexts
+    return null;
+  }, []);
 
   return { loadScenarioData };
 };

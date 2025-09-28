@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAutoSaveDataAssumptions, useLoadClientData } from '@/hooks/useAutoSaveIntegration';
-import { useClient } from './ClientContext';
 
 export interface PropertyAssumption {
   type: string;
@@ -39,8 +37,6 @@ interface DataAssumptionsProviderProps {
 }
 
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
-  const { activeClient } = useClient();
-  const { loadScenarioData } = useLoadClientData();
   
   const [globalFactors, setGlobalFactors] = useState<GlobalEconomicFactors>({
     growthRate: '7',
@@ -114,23 +110,6 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     },
   ]);
 
-  // Auto-save integration
-  useAutoSaveDataAssumptions(globalFactors, propertyAssumptions);
-
-  // Load client data when active client changes
-  useEffect(() => {
-    if (activeClient?.id) {
-      const clientData = loadScenarioData(activeClient.id);
-      if (clientData) {
-        if (clientData.globalFactors) {
-          setGlobalFactors(clientData.globalFactors);
-        }
-        if (clientData.propertyAssumptions) {
-          setPropertyAssumptions(clientData.propertyAssumptions);
-        }
-      }
-    }
-  }, [activeClient?.id, loadScenarioData]);
 
   const updateGlobalFactor = (factor: keyof GlobalEconomicFactors, value: string) => {
     setGlobalFactors(prev => ({

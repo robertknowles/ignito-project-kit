@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { useDataAssumptions } from './DataAssumptionsContext';
-import { useAutoSavePropertySelections, useLoadClientData } from '@/hooks/useAutoSaveIntegration';
-import { useClient } from './ClientContext';
 
 export interface PropertyType {
   id: string;
@@ -63,11 +61,6 @@ interface PropertySelectionProviderProps {
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const [selections, setSelections] = useState<PropertySelection>({});
   const { propertyAssumptions } = useDataAssumptions();
-  const { activeClient } = useClient();
-  const { loadScenarioData } = useLoadClientData();
-  
-  // Auto-save integration
-  useAutoSavePropertySelections(selections);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
@@ -84,19 +77,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       growthPercent: parseFloat(assumption.growth),
     }));
   }, [propertyAssumptions]);
-
-  // Load client data when active client changes
-  useEffect(() => {
-    if (activeClient?.id) {
-      const clientData = loadScenarioData(activeClient.id);
-      if (clientData && clientData.propertySelections) {
-        setSelections(clientData.propertySelections);
-      } else {
-        // Reset to empty selections for new clients
-        setSelections({});
-      }
-    }
-  }, [activeClient?.id, loadScenarioData]);
 
   // Calculate portfolio totals
   const calculations = useMemo((): PortfolioCalculations => {
