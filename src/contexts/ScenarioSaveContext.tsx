@@ -158,7 +158,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const hasData = Object.keys(selections).length > 0;
         setHasUnsavedChanges(hasData);
       }
-    }, 300); // 300ms debounce
+    }, 150); // 150ms debounce
   }, [selections, globalFactors, propertyAssumptions, profile, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {

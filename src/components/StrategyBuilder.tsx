@@ -1,6 +1,6 @@
 import React from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
-import { PropertyCard } from './PropertyCard'
+import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 

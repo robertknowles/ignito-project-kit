@@ -120,46 +120,25 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     };
   };
 
-  // Debounce timer for property updates
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  
   const updatePropertyQuantity = useCallback((propertyId: string, quantity: number) => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    
-    debounceTimer.current = setTimeout(() => {
-      setSelections(prev => ({
-        ...prev,
-        [propertyId]: Math.max(0, quantity), // Ensure non-negative
-      }));
-    }, 100);
+    setSelections(prev => ({
+      ...prev,
+      [propertyId]: Math.max(0, quantity), // Ensure non-negative
+    }));
   }, []);
 
   const incrementProperty = useCallback((propertyId: string) => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    
-    debounceTimer.current = setTimeout(() => {
-      setSelections(prev => ({
-        ...prev,
-        [propertyId]: (prev[propertyId] || 0) + 1,
-      }));
-    }, 100);
+    setSelections(prev => ({
+      ...prev,
+      [propertyId]: (prev[propertyId] || 0) + 1,
+    }));
   }, []);
 
   const decrementProperty = useCallback((propertyId: string) => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    
-    debounceTimer.current = setTimeout(() => {
-      setSelections(prev => ({
-        ...prev,
-        [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
-      }));
-    }, 100);
+    setSelections(prev => ({
+      ...prev,
+      [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
+    }));
   }, []);
 
   const getPropertyQuantity = (propertyId: string): number => {
