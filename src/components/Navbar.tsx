@@ -10,6 +10,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClientSelector } from './ClientSelector'
+import { SaveIndicator } from './SaveIndicator'
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -63,8 +64,12 @@ export const Navbar = () => {
           <DatabaseIcon size={15} />
         </button>
       </div>
-      <div className="absolute left-1/2 transform -translate-x-1/2">
-        <ClientSelector />
+      
+      <div className="flex items-center gap-4">
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <ClientSelector />
+        </div>
+        <SaveIndicator />
       </div>
       <div className="relative" ref={dropdownRef}>
         <button

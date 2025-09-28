@@ -10,12 +10,16 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
+import { useAutoSaveTimeline } from '../hooks/useAutoSaveTimeline'
 import type { PropertyPurchase } from '../types/property'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility } = usePropertySelection()
   const { timelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
+  
+  // Auto-save timeline results
+  useAutoSaveTimeline(timelineProperties, calculations);
   
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)

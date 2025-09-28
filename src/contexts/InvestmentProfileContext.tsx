@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { useAutoSaveInvestmentProfile, useLoadClientData } from '@/hooks/useAutoSaveIntegration';
+import { useClient } from './ClientContext';
 
 export interface InvestmentProfileData {
   depositPool: number;
@@ -31,6 +33,9 @@ interface InvestmentProfileProviderProps {
 }
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {
+  const { activeClient } = useClient();
+  const { loadScenarioData } = useLoadClientData();
+  
   const [profile, setProfile] = useState<InvestmentProfileData>({
     depositPool: 50000,
     borrowingCapacity: 500000,
@@ -41,6 +46,19 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     equityGrowth: 75,
     cashflow: 25,
   });
+
+  // Auto-save integration
+  useAutoSaveInvestmentProfile(profile);
+
+  // Load client data when active client changes
+  useEffect(() => {
+    if (activeClient?.id) {
+      const clientData = loadScenarioData(activeClient.id);
+      if (clientData && clientData.investmentProfile) {
+        setProfile(clientData.investmentProfile);
+      }
+    }
+  }, [activeClient?.id, loadScenarioData]);
 
   // Background calculations - not displayed in UI but available for simulation engine
   const calculatedValues = useMemo((): CalculatedValues => {
