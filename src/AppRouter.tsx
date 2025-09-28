@@ -13,6 +13,7 @@ import { ClientProvider } from './contexts/ClientContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from './components/ui/toaster'
+
 export function AppRouter() {
   return (
     <AuthProvider>
@@ -21,49 +22,49 @@ export function AppRouter() {
           <PropertySelectionProvider>
             <InvestmentProfileProvider>
               <ScenarioSaveProvider>
-              <BrowserRouter>
-              <Routes>
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <App />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/clients" 
-                  element={
-                    <ProtectedRoute>
-                      <ClientScenarios />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <App />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/data" 
-                  element={
-                    <ProtectedRoute>
-                      <DataAssumptions />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignUp />} />
-              </Routes>
-              <Toaster />
-            </BrowserRouter>
+                <BrowserRouter>
+                  <Routes>
+                    <Route 
+                      path="/" 
+                      element={
+                        <ProtectedRoute>
+                          <App />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/clients" 
+                      element={
+                        <ProtectedRoute>
+                          <ClientScenarios />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/dashboard" 
+                      element={
+                        <ProtectedRoute>
+                          <App />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/data" 
+                      element={
+                        <ProtectedRoute>
+                          <DataAssumptions />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<SignUp />} />
+                  </Routes>
+                  <Toaster />
+                </BrowserRouter>
               </ScenarioSaveProvider>
-          </InvestmentProfileProvider>
-        </PropertySelectionProvider>
-      </DataAssumptionsProvider>
+            </InvestmentProfileProvider>
+          </PropertySelectionProvider>
+        </DataAssumptionsProvider>
       </ClientProvider>
     </AuthProvider>
   )
