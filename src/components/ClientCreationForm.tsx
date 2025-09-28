@@ -24,9 +24,6 @@ import { useToast } from '@/hooks/use-toast';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name must be less than 100 characters'),
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  phone: z.string().max(20, 'Phone must be less than 20 characters').optional(),
-  notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -47,18 +44,12 @@ export const ClientCreationForm: React.FC<ClientCreationFormProps> = ({
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: '',
-      email: '',
-      phone: '',
-      notes: '',
     },
   });
 
   const onSubmit = async (data: ClientFormData) => {
     const clientData = {
       name: data.name,
-      email: data.email || undefined,
-      phone: data.phone || undefined,
-      notes: data.notes || undefined,
     };
 
     const newClient = await createClient(clientData);
@@ -96,52 +87,6 @@ export const ClientCreationForm: React.FC<ClientCreationFormProps> = ({
                   <FormLabel>Client Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter client name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter email address" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter phone number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Investment Goals / Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter investment goals, preferences, or notes..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
