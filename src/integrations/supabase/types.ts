@@ -17,34 +17,35 @@ export type Database = {
       clients: {
         Row: {
           created_at: string
+          email: string | null
           id: number
           name: string | null
+          notes: string | null
+          phone: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id?: number
           name?: string | null
+          notes?: string | null
+          phone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: number
           name?: string | null
+          notes?: string | null
+          phone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "clients_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
