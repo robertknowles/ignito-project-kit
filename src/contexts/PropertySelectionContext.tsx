@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useRef } from 'react';
 import { useDataAssumptions } from './DataAssumptionsContext';
 
 export interface PropertyType {
@@ -120,26 +120,47 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     };
   };
 
-  const updatePropertyQuantity = (propertyId: string, quantity: number) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: Math.max(0, quantity), // Ensure non-negative
-    }));
-  };
+  // Debounce timer for property updates
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  
+  const updatePropertyQuantity = useCallback((propertyId: string, quantity: number) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      setSelections(prev => ({
+        ...prev,
+        [propertyId]: Math.max(0, quantity), // Ensure non-negative
+      }));
+    }, 100);
+  }, []);
 
-  const incrementProperty = (propertyId: string) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: (prev[propertyId] || 0) + 1,
-    }));
-  };
+  const incrementProperty = useCallback((propertyId: string) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      setSelections(prev => ({
+        ...prev,
+        [propertyId]: (prev[propertyId] || 0) + 1,
+      }));
+    }, 100);
+  }, []);
 
-  const decrementProperty = (propertyId: string) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
-    }));
-  };
+  const decrementProperty = useCallback((propertyId: string) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      setSelections(prev => ({
+        ...prev,
+        [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
+      }));
+    }, 100);
+  }, []);
 
   const getPropertyQuantity = (propertyId: string): number => {
     return selections[propertyId] || 0;

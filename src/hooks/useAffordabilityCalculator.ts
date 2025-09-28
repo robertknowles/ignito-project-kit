@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
-import { calculateUpdatedBorrowingCapacity } from '../utils/metricsCalculator';
 import type { TimelineProperty } from '../types/property';
 
 export interface AffordabilityResult {
@@ -16,64 +15,10 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  
-  // ADD THESE DEBUG LINES AT THE TOP:
-  console.log('🟣 [HOOK START] useAffordabilityCalculator called at:', new Date().toISOString());
-  console.log('🟣 [PROFILE RAW] Received from useInvestmentProfile:', {
-    timelineYears: profile.timelineYears,
-    borrowingCapacity: profile.borrowingCapacity, 
-    depositPool: profile.depositPool,
-    objectRef: profile
-  });
-  
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
-  // 🐛 ADD THIS EXTENSIVE DEBUGGING BLOCK
-  const debugTimestamp = new Date().toISOString();
-  const profileRef = React.useRef(profile);
-  
-  console.log('🐛 [HOOK CALLED] useAffordabilityCalculator executed at:', debugTimestamp);
-  console.log('🐛 [PROFILE RECEIVED] Full profile object:', profile);
-  console.log('🐛 [PROFILE VALUES] Key values:', {
-    timelineYears: profile.timelineYears,
-    borrowingCapacity: profile.borrowingCapacity,
-    depositPool: profile.depositPool,
-    annualSavings: profile.annualSavings,
-    portfolioValue: profile.portfolioValue,
-    currentDebt: profile.currentDebt
-  });
-  console.log('🐛 [CALCULATED VALUES] From useInvestmentProfile:', calculatedValues);
-  console.log('🐛 [OBJECT REFERENCE] Profile reference changed:', profileRef.current !== profile);
-  console.log('🐛 [OBJECT REFERENCE] Previous ref:', profileRef.current);
-  console.log('🐛 [OBJECT REFERENCE] Current ref:', profile);
-  
-  // Update the ref for next comparison
-  React.useEffect(() => {
-    if (profileRef.current !== profile) {
-      console.log('🐛 [PROFILE CHANGE] Profile object reference changed at:', new Date().toISOString());
-      console.log('🐛 [PROFILE CHANGE] Old profile:', profileRef.current);
-      console.log('🐛 [PROFILE CHANGE] New profile:', profile);
-      profileRef.current = profile;
-    }
-  }, [profile]);
-
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    // Then inside your useMemo callback, add:
-    console.log('🟣 [MEMO START] useMemo recalculating at:', new Date().toISOString());
-    console.log('🟣 [MEMO PROFILE] Profile inside useMemo:', {
-      timelineYears: profile.timelineYears,
-      borrowingCapacity: profile.borrowingCapacity,
-      depositPool: profile.depositPool
-    });
-    
-    console.log('🐛 [MEMO EXECUTING] useMemo callback running at:', new Date().toISOString());
-    console.log('🐛 [MEMO PROFILE] Profile inside useMemo:', {
-      timelineYears: profile.timelineYears,
-      borrowingCapacity: profile.borrowingCapacity,
-      depositPool: profile.depositPool,
-      annualSavings: profile.annualSavings
-    });
 
     // Move ALL helper functions inside useMemo to avoid closure issues
     
@@ -166,66 +111,15 @@ export const useAffordabilityCalculator = () => {
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): number => {
-      // Use the current profile values from the memo dependencies
-      console.log('🔍 Determining purchase year for:', property.title);
-      console.log('📊 Profile:', { 
-        timelineYears: profile.timelineYears, 
-        deposit: profile.depositPool,
-        borrowingCapacity: profile.borrowingCapacity,
-        annualSavings: profile.annualSavings
-      });
-      console.log('💰 Property needs:', {
-        cost: property.cost,
-        deposit: property.depositRequired,
-        loan: property.cost - property.depositRequired
-      });
-      console.log('📈 Previous purchases:', previousPurchases);
-      
       for (let year = 1; year <= profile.timelineYears; year++) {
         const availableFunds = calculateAvailableFunds(year, previousPurchases);
         const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
         
-        // Enhanced debugging for each year
-        console.log(`\n--- YEAR ${year + 2024} (Timeline Year ${year}) ---`);
-        console.log('💵 Available funds:', Math.round(availableFunds));
-        console.log('🏠 Property deposit needed:', property.depositRequired);
-        console.log('✅ Can afford deposit:', availableFunds >= property.depositRequired);
-        
-        // Let's also check the borrowing capacity calculation
-        let totalExistingDebt = profile.currentDebt;
-        previousPurchases.forEach(purchase => {
-          if (purchase.year <= year) {
-            totalExistingDebt += purchase.loanAmount;
-          }
-        });
-        
-        // Calculate rental income for analytics/display purposes (not used in affordability)
-        const currentRentalIncome = calculateCurrentRentalIncome(previousPurchases, year);
-        
-        // Simple borrowing check: total debt after purchase <= borrowing capacity
-        const newLoanAmount = property.cost - property.depositRequired;
-        const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
-        const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
-        
-        console.log('🏦 Simplified Borrowing Analysis:');
-        console.log('  - Current total debt:', Math.round(totalExistingDebt));
-        console.log('  - New loan needed:', Math.round(newLoanAmount));
-        console.log('  - Total debt after purchase:', Math.round(totalDebtAfterPurchase));
-        console.log('  - Borrowing capacity limit:', Math.round(profile.borrowingCapacity));
-        console.log('  - Can afford borrowing:', canAffordBorrowing);
-        console.log('  - Rental income (for analytics):', Math.round(currentRentalIncome));
-        console.log('🎯 Overall can afford:', canAfford);
-        console.log('🎯 Deposit check:', availableFunds >= property.depositRequired);
-        console.log('🎯 Borrowing check:', canAffordBorrowing);
-        
         if (canAfford) {
-          console.log('🎉 PROPERTY AFFORDABLE IN YEAR:', year + 2024);
           return year + 2025 - 1; // Convert to absolute year
         }
       }
       
-      console.log('❌ PROPERTY NOT AFFORDABLE IN ANY YEAR OF TIMELINE');
-      console.log('📅 Timeline spans years 2025 to', 2025 + profile.timelineYears - 1);
       return Infinity; // Cannot afford within timeline
     };
 
@@ -279,10 +173,7 @@ export const useAffordabilityCalculator = () => {
       };
     };
 
-    // Main calculation logic
-    console.log('🚀 Recalculating timeline with profile:', profile);
-    
-    // Create a list of all properties to purchase
+    // Main calculation logic - Create a list of all properties to purchase
     const allPropertiesToPurchase: Array<{ property: any; index: number }> = [];
     
     Object.entries(selections).forEach(([propertyId, quantity]) => {
@@ -337,7 +228,18 @@ export const useAffordabilityCalculator = () => {
     
     // Sort by affordable year for display
     return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-  }, [selections, propertyTypes, profile.timelineYears, profile.borrowingCapacity, profile.depositPool, profile.annualSavings, calculatedValues.availableDeposit, globalFactors, getPropertyData]);
+  }, [
+    // Only re-calculate when these specific values change
+    JSON.stringify(selections),
+    propertyTypes.length,
+    profile.timelineYears,
+    profile.borrowingCapacity,
+    profile.depositPool,
+    profile.annualSavings,
+    calculatedValues.availableDeposit,
+    globalFactors.growthRate,
+    globalFactors.interestRate
+  ]);
 
   // Only expose the memoized result
   return {

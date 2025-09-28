@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
 import { useDataAssumptions } from './DataAssumptionsContext';
 import { usePropertySelection } from './PropertySelectionContext';
@@ -128,22 +128,37 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Check for changes
+  // Debounced change detection to prevent excessive calculations
+  const changeDetectionTimer = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    if (activeClient && lastSavedData) {
-      const currentData = getCurrentScenarioData();
-      const hasChanges = 
-        JSON.stringify(currentData.propertySelections) !== JSON.stringify(lastSavedData.propertySelections) ||
-        JSON.stringify(currentData.globalFactors) !== JSON.stringify(lastSavedData.globalFactors) ||
-        JSON.stringify(currentData.propertyAssumptions) !== JSON.stringify(lastSavedData.propertyAssumptions) ||
-        JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
-      
-      setHasUnsavedChanges(hasChanges);
-    } else if (activeClient && !lastSavedData) {
-      // New client with data = unsaved changes
-      const hasData = Object.keys(selections).length > 0;
-      setHasUnsavedChanges(hasData);
+    if (changeDetectionTimer.current) {
+      clearTimeout(changeDetectionTimer.current);
     }
+    
+    changeDetectionTimer.current = setTimeout(() => {
+      if (activeClient && lastSavedData) {
+        const currentData = getCurrentScenarioData();
+        
+        // Use shallow comparison where possible instead of JSON.stringify
+        const hasSelectionChanges = Object.keys(currentData.propertySelections).length !== Object.keys(lastSavedData.propertySelections).length ||
+          Object.entries(currentData.propertySelections).some(([key, value]) => lastSavedData.propertySelections[key] !== value);
+        
+        const hasFactorChanges = currentData.globalFactors.growthRate !== lastSavedData.globalFactors.growthRate ||
+          currentData.globalFactors.loanToValueRatio !== lastSavedData.globalFactors.loanToValueRatio ||
+          currentData.globalFactors.interestRate !== lastSavedData.globalFactors.interestRate;
+        
+        const hasAssumptionChanges = JSON.stringify(currentData.propertyAssumptions) !== JSON.stringify(lastSavedData.propertyAssumptions);
+        const hasProfileChanges = JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
+        
+        const hasChanges = hasSelectionChanges || hasFactorChanges || hasAssumptionChanges || hasProfileChanges;
+        setHasUnsavedChanges(hasChanges);
+      } else if (activeClient && !lastSavedData) {
+        // New client with data = unsaved changes
+        const hasData = Object.keys(selections).length > 0;
+        setHasUnsavedChanges(hasData);
+      }
+    }, 300); // 300ms debounce
   }, [selections, globalFactors, propertyAssumptions, profile, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {

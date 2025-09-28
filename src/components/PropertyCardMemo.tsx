@@ -1,0 +1,119 @@
+import React from 'react';
+import { InfoIcon, PlusIcon, MinusIcon } from 'lucide-react';
+
+interface PropertyCardProps {
+  title: string;
+  priceRange: string;
+  yield: string;
+  cashFlow: string;
+  riskLevel: 'Low' | 'Medium' | 'Medium-Low' | 'High' | 'Very High';
+  count?: number;
+  selected?: boolean;
+  onIncrement?: () => void;
+  onDecrement?: () => void;
+}
+
+const PropertyCardComponent: React.FC<PropertyCardProps> = ({
+  title,
+  priceRange,
+  yield: yieldValue,
+  cashFlow,
+  riskLevel,
+  count = 0,
+  selected,
+  onIncrement,
+  onDecrement
+}) => {
+  const getRiskColor = (level: string) => {
+    switch (level) {
+      case 'Low':
+        return 'text-[#6b7280]';
+      case 'Medium-Low':
+        return 'text-[#6b7280]';
+      case 'Medium':
+        return 'text-[#6b7280]';
+      case 'High':
+        return 'text-[#6b7280]';
+      case 'Very High':
+        return 'text-[#6b7280]';
+      default:
+        return 'text-[#6b7280]';
+    }
+  };
+
+  const getRiskDot = (level: string) => {
+    switch (level) {
+      case 'Low':
+        return 'bg-[#10b981] bg-opacity-50';
+      case 'Medium-Low':
+        return 'bg-[#3b82f6] bg-opacity-60';
+      case 'Medium':
+        return 'bg-[#3b82f6] bg-opacity-60';
+      case 'High':
+        return 'bg-[#3b82f6] bg-opacity-60';
+      case 'Very High':
+        return 'bg-[#3b82f6] bg-opacity-60';
+      default:
+        return 'bg-[#6b7280]';
+    }
+  };
+
+  return (
+    <div className={`bg-white rounded-lg p-3 border border-[#f3f4f6] ${selected ? 'bg-[#f9fafb]' : ''} hover:shadow-sm transition-shadow cursor-pointer h-full relative`}>
+      <div className="flex justify-between items-start mb-2">
+        <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
+        <div className="flex items-center">
+          <span className={`w-2 h-2 rounded-full ${getRiskDot(riskLevel)}`}></span>
+          <span className={`ml-2 text-xs ${getRiskColor(riskLevel)} font-normal`}>
+            {riskLevel}
+          </span>
+        </div>
+      </div>
+      <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
+      <div className="text-xs text-[#6b7280] mt-1">
+        Yield: {yieldValue} • Cash Flow: {cashFlow}
+      </div>
+      <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+        {count > 0 && (
+          <span className="text-xs font-medium text-[#111827] bg-[#f3f4f6] px-2 py-1 rounded">
+            {count}
+          </span>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onIncrement?.();
+          }}
+          className="hover:bg-[#f3f4f6] p-1 rounded transition-colors"
+        >
+          <PlusIcon size={16} className="text-[#6b7280] opacity-60 hover:opacity-80" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDecrement?.();
+          }}
+          className="hover:bg-[#f3f4f6] p-1 rounded transition-colors"
+          disabled={count === 0}
+        >
+          <MinusIcon size={16} className={`text-[#6b7280] ${count === 0 ? 'opacity-30' : 'opacity-60 hover:opacity-80'}`} />
+        </button>
+        <InfoIcon size={16} className="text-[#6b7280] opacity-60" />
+      </div>
+    </div>
+  );
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const PropertyCard = React.memo(PropertyCardComponent, (prevProps, nextProps) => {
+  // Custom comparison to avoid re-renders when only functions change
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.priceRange === nextProps.priceRange &&
+    prevProps.yield === nextProps.yield &&
+    prevProps.cashFlow === nextProps.cashFlow &&
+    prevProps.riskLevel === nextProps.riskLevel &&
+    prevProps.count === nextProps.count &&
+    prevProps.selected === nextProps.selected
+  );
+});
