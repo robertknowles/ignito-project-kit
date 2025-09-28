@@ -31,7 +31,6 @@ interface InvestmentProfileProviderProps {
 }
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {
-  
   const [profile, setProfile] = useState<InvestmentProfileData>({
     depositPool: 50000,
     borrowingCapacity: 500000,
@@ -42,7 +41,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     equityGrowth: 75,
     cashflow: 25,
   });
-
 
   // Background calculations - not displayed in UI but available for simulation engine
   const calculatedValues = useMemo((): CalculatedValues => {

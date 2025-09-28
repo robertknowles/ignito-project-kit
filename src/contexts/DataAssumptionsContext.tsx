@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export interface PropertyAssumption {
   type: string;
@@ -37,7 +37,6 @@ interface DataAssumptionsProviderProps {
 }
 
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
-  
   const [globalFactors, setGlobalFactors] = useState<GlobalEconomicFactors>({
     growthRate: '7',
     loanToValueRatio: '80',
@@ -109,7 +108,6 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       deposit: '40',
     },
   ]);
-
 
   const updateGlobalFactor = (factor: keyof GlobalEconomicFactors, value: string) => {
     setGlobalFactors(prev => ({

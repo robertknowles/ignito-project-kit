@@ -10,17 +10,15 @@ import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
 import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
 import { ClientProvider } from './contexts/ClientContext'
-import { SimpleAutoSaveProvider } from './contexts/SimpleAutoSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from './components/ui/toaster'
 export function AppRouter() {
   return (
     <AuthProvider>
       <ClientProvider>
-        <SimpleAutoSaveProvider>
-          <DataAssumptionsProvider>
-            <PropertySelectionProvider>
-              <InvestmentProfileProvider>
+        <DataAssumptionsProvider>
+          <PropertySelectionProvider>
+            <InvestmentProfileProvider>
               <BrowserRouter>
               <Routes>
                 <Route 
@@ -63,7 +61,6 @@ export function AppRouter() {
           </InvestmentProfileProvider>
         </PropertySelectionProvider>
       </DataAssumptionsProvider>
-      </SimpleAutoSaveProvider>
       </ClientProvider>
     </AuthProvider>
   )
