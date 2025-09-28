@@ -19,6 +19,10 @@ export const useAffordabilityCalculator = () => {
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
+    console.log('🏠 Starting affordability calculations');
+    console.log('💰 Available deposit:', calculatedValues.availableDeposit);
+    console.log('🏦 Borrowing capacity:', profile.borrowingCapacity);
+    console.log('📊 Selected properties:', Object.entries(selections).filter(([_, qty]) => qty > 0));
 
     // Move ALL helper functions inside useMemo to avoid closure issues
     
@@ -90,6 +94,8 @@ export const useAffordabilityCalculator = () => {
     ): boolean => {
       // Simple affordability check: (1) Can afford deposit, (2) Total debt under capacity limit
       const canAffordDeposit = availableFunds >= property.depositRequired;
+      console.log(`🧮 ${property.title} Year ${currentYear}: 💵${availableFunds} vs 🏠${property.depositRequired} = ${canAffordDeposit ? '✅' : '❌'}`);
+      
       
       // Calculate total existing debt
       let totalExistingDebt = profile.currentDebt;
@@ -191,7 +197,9 @@ export const useAffordabilityCalculator = () => {
     const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
     
     // Process properties sequentially, determining purchase year for each
+    console.log('🔄 Processing', allPropertiesToPurchase.length, 'properties');
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
+      console.log(`🏘️ Property ${globalIndex + 1}: ${property.title} (£${property.cost})`);
       const result = calculateAffordabilityForProperty(property, globalIndex, purchaseHistory);
       const loanAmount = property.cost - property.depositRequired;
       
@@ -227,7 +235,9 @@ export const useAffordabilityCalculator = () => {
     });
     
     // Sort by affordable year for display
-    return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
+    const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
+    console.log('📅 Final timeline:', sortedProperties.map(p => `${p.title}: ${p.affordableYear} (${p.status})`));
+    return sortedProperties;
   }, [
     // Only re-calculate when these specific values change
     JSON.stringify(selections),
