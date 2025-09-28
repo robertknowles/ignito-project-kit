@@ -58,6 +58,7 @@ export const useAffordabilityCalculator = () => {
       // Calculate accumulated cash savings
       const accumulatedSavings = currentYear > 1 ? profile.annualSavings * (currentYear - 1) : 0;
       let availableCash = calculatedValues.availableDeposit + accumulatedSavings;
+      console.log(`💰 Year ${currentYear}: Base deposit £${calculatedValues.availableDeposit} + savings £${accumulatedSavings} = £${availableCash}`);
       
       // Subtract deposits used for previous purchases
       previousPurchases.forEach(purchase => {
@@ -82,8 +83,10 @@ export const useAffordabilityCalculator = () => {
         }
         return acc;
       }, existingPortfolioEquity);
-
-      return availableCash + totalUsableEquity;
+      
+      const finalFunds = availableCash + totalUsableEquity;
+      console.log(`🏦 Year ${currentYear}: Cash £${availableCash} + Equity £${totalUsableEquity} = Total £${finalFunds}`);
+      return finalFunds;
     };
 
     const checkAffordability = (
@@ -110,22 +113,31 @@ export const useAffordabilityCalculator = () => {
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
       const canAffordBorrowing = totalDebtAfterPurchase <= profile.borrowingCapacity;
       
-      return canAffordDeposit && canAffordBorrowing;
+      console.log(`🏦 Debt check: £${totalExistingDebt} + £${newLoanAmount} = £${totalDebtAfterPurchase} vs capacity £${profile.borrowingCapacity} = ${canAffordBorrowing ? '✅' : '❌'}`);
+      const result = canAffordDeposit && canAffordBorrowing;
+      console.log(`📊 Final decision: ${result ? '✅ AFFORDABLE' : '❌ NOT AFFORDABLE'}`);
+      
+      return result;
     };
 
     const determineNextPurchaseYear = (
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): number => {
+      console.log(`🔍 Finding purchase year for ${property.title} (£${property.cost})`);
       for (let year = 1; year <= profile.timelineYears; year++) {
+        console.log(`📅 Testing year ${year}:`);
         const availableFunds = calculateAvailableFunds(year, previousPurchases);
         const canAfford = checkAffordability(property, availableFunds, previousPurchases, year);
         
         if (canAfford) {
-          return year + 2025 - 1; // Convert to absolute year
+          const absoluteYear = year + 2025 - 1;
+          console.log(`🎯 ${property.title} can be purchased in year ${absoluteYear}!`);
+          return absoluteYear; // Convert to absolute year
         }
       }
       
+      console.log(`⏰ ${property.title} cannot be afforded within ${profile.timelineYears} years`);
       return Infinity; // Cannot afford within timeline
     };
 
