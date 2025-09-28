@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   SearchIcon,
   PlusIcon,
@@ -7,7 +7,19 @@ import {
 } from 'lucide-react'
 import { YearlyCalendar } from '../components/YearlyCalendar'
 import { Navbar } from '../components/Navbar'
+import { ClientCreationForm } from '../components/ClientCreationForm'
+import { useClient } from '@/contexts/ClientContext'
 export const ClientScenarios = () => {
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const { clients, setActiveClient } = useClient();
+
+  const handleViewClient = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setActiveClient(client);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
       <Navbar />
@@ -30,7 +42,10 @@ export const ClientScenarios = () => {
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b7280]"
                   />
                 </div>
-                <button className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm">
+                <button 
+                  onClick={() => setCreateFormOpen(true)}
+                  className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2563eb] transition-colors"
+                >
                   <PlusIcon size={16} />
                   <span>New Client</span>
                 </button>
@@ -40,7 +55,7 @@ export const ClientScenarios = () => {
             <div className="grid grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">
                 <div className="text-3xl font-medium text-[#111827] mb-2">
-                  2
+                  {clients.length}
                 </div>
                 <div className="text-sm text-[#6b7280]">Total Clients</div>
               </div>
@@ -97,86 +112,68 @@ export const ClientScenarios = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-[#f3f4f6]">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3">
-                            JC
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-[#111827]">
-                              James Casery
+                    {clients.map((client) => {
+                      const initials = client.name
+                        .split(' ')
+                        .map(word => word[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+
+                      return (
+                        <tr key={client.id} className="border-b border-[#f3f4f6]">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3">
+                                {initials}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-[#111827]">
+                                  {client.name}
+                                </div>
+                                <div className="text-xs text-[#6b7280]">
+                                  Client ID: {client.id}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-[#6b7280]">
-                              Client ID: 6
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[#374151]">
+                            {client.notes ? (
+                              <div>
+                                <div className="flex items-center gap-2 text-sm text-[#374151]">
+                                  <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
+                                  Active scenario
+                                </div>
+                                <div className="text-xs text-[#6b7280] truncate max-w-[200px]">
+                                  {client.notes}
+                                </div>
+                              </div>
+                            ) : (
+                              'No scenario set'
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[#374151]">
+                            {new Date(client.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleViewClient(client.id)}
+                                className="px-3 py-1 text-xs border border-[#f3f4f6] rounded text-[#374151] hover:bg-[#f9fafb] transition-colors"
+                              >
+                                View
+                              </button>
+                              <button className="px-3 py-1 text-xs bg-[#3b82f6] rounded text-white hover:bg-opacity-90 transition-colors">
+                                Send
+                              </button>
+                              <button className="p-1 text-[#6b7280] hover:text-[#374151] transition-colors">
+                                <MoreHorizontalIcon size={16} />
+                              </button>
                             </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#374151]">
-                        No scenario set
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#374151]">
-                        3 days ago
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button className="px-3 py-1 text-xs border border-[#f3f4f6] rounded text-[#374151] hover:bg-[#f9fafb]">
-                            View
-                          </button>
-                          <button className="px-3 py-1 text-xs bg-[#3b82f6] rounded text-white hover:bg-opacity-90">
-                            Send
-                          </button>
-                          <button className="p-1 text-[#6b7280] hover:text-[#374151]">
-                            <MoreHorizontalIcon size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-[#10b981] bg-opacity-50 flex items-center justify-center text-white text-sm mr-3">
-                            RK
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-[#111827]">
-                              Robert Knowles
-                            </div>
-                            <div className="text-xs text-[#6b7280]">
-                              Client ID: 5
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="flex items-center gap-2 text-sm text-[#374151]">
-                            <span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>
-                            Ready now
-                          </div>
-                          <div className="text-xs text-[#6b7280]">
-                            $50k available
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#374151]">
-                        3 days ago
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button className="px-3 py-1 text-xs border border-[#f3f4f6] rounded text-[#374151] hover:bg-[#f9fafb]">
-                            View
-                          </button>
-                          <button className="px-3 py-1 text-xs bg-[#3b82f6] rounded text-white hover:bg-opacity-90">
-                            Send
-                          </button>
-                          <button className="p-1 text-[#6b7280] hover:text-[#374151]">
-                            <MoreHorizontalIcon size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -184,6 +181,11 @@ export const ClientScenarios = () => {
           </div>
         </div>
       </div>
+      
+      <ClientCreationForm 
+        open={createFormOpen} 
+        onOpenChange={setCreateFormOpen} 
+      />
     </div>
   )
 }

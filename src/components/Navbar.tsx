@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { ClientSelector } from './ClientSelector'
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -62,11 +63,8 @@ export const Navbar = () => {
           <DatabaseIcon size={15} />
         </button>
       </div>
-      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center px-3 py-1.5 border border-[#f3f4f6] rounded-full bg-white">
-        <div className="w-1.5 h-1.5 bg-[#10b981] bg-opacity-50 rounded-full mr-2"></div>
-        <span className="text-sm text-[#374151] font-light">
-          Rob's Scenario
-        </span>
+      <div className="absolute left-1/2 transform -translate-x-1/2">
+        <ClientSelector />
       </div>
       <div className="relative" ref={dropdownRef}>
         <button

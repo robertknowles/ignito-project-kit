@@ -9,14 +9,17 @@ import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
 import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
+import { ClientProvider } from './contexts/ClientContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { Toaster } from './components/ui/toaster'
 export function AppRouter() {
   return (
     <AuthProvider>
-      <DataAssumptionsProvider>
-        <PropertySelectionProvider>
-          <InvestmentProfileProvider>
-            <BrowserRouter>
+      <ClientProvider>
+        <DataAssumptionsProvider>
+          <PropertySelectionProvider>
+            <InvestmentProfileProvider>
+              <BrowserRouter>
               <Routes>
                 <Route 
                   path="/" 
@@ -53,10 +56,12 @@ export function AppRouter() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
               </Routes>
+              <Toaster />
             </BrowserRouter>
           </InvestmentProfileProvider>
         </PropertySelectionProvider>
       </DataAssumptionsProvider>
+      </ClientProvider>
     </AuthProvider>
   )
 }
