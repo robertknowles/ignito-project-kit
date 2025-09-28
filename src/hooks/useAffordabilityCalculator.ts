@@ -208,17 +208,26 @@ export const useAffordabilityCalculator = () => {
         });
         
         const currentRentalIncome = calculateCurrentRentalIncome(previousPurchases, year);
+        const updatedBorrowingCapacity = calculateUpdatedBorrowingCapacity(
+          profile.borrowingCapacity,
+          totalExistingDebt,
+          currentRentalIncome
+        );
         const newLoanAmount = property.cost - property.depositRequired;
         const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
+        const canAffordBorrowing = totalDebtAfterPurchase <= updatedBorrowingCapacity;
         
         console.log('🏦 Borrowing analysis:');
         console.log('  - Current total debt:', Math.round(totalExistingDebt));
         console.log('  - New loan needed:', Math.round(newLoanAmount));
         console.log('  - Total debt after purchase:', Math.round(totalDebtAfterPurchase));
-        console.log('  - Borrowing capacity:', Math.round(profile.borrowingCapacity));
+        console.log('  - Base borrowing capacity:', Math.round(profile.borrowingCapacity));
+        console.log('  - Updated borrowing capacity:', Math.round(updatedBorrowingCapacity));
         console.log('  - Rental income boost:', Math.round(currentRentalIncome));
-        console.log('  - Can afford borrowing:', totalDebtAfterPurchase <= profile.borrowingCapacity);
+        console.log('  - Can afford borrowing:', canAffordBorrowing);
         console.log('🎯 Overall can afford:', canAfford);
+        console.log('🎯 Deposit check:', availableFunds >= property.depositRequired);
+        console.log('🎯 Borrowing check:', canAffordBorrowing);
         
         if (canAfford) {
           console.log('🎉 PROPERTY AFFORDABLE IN YEAR:', year + 2024);

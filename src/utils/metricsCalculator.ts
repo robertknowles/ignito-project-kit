@@ -90,7 +90,18 @@ export const calculateUpdatedBorrowingCapacity = (
 ): number => {
   const availableServiceability = baseCapacity * debtServiceRatio;
   const rentalContribution = rentalIncome * 0.7; // Typically banks consider 70% of rental income
-  return Math.max(0, availableServiceability - existingLoans + rentalContribution);
+  const updatedCapacity = Math.max(0, availableServiceability - existingLoans + rentalContribution);
+  
+  console.log('🏦 [BORROWING CAPACITY DEBUG]');
+  console.log('  - Base capacity:', Math.round(baseCapacity));
+  console.log('  - Debt service ratio:', debtServiceRatio);
+  console.log('  - Available serviceability:', Math.round(availableServiceability));
+  console.log('  - Existing loans:', Math.round(existingLoans));
+  console.log('  - Rental income:', Math.round(rentalIncome));
+  console.log('  - Rental contribution (70%):', Math.round(rentalContribution));
+  console.log('  - Updated capacity:', Math.round(updatedCapacity));
+  
+  return updatedCapacity;
 };
 
 export const calculatePortfolioMetrics = (
