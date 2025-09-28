@@ -10,8 +10,7 @@ export const useClientSwitching = () => {
   const { activeClient } = useClient();
   const { 
     hasUnsavedChanges, 
-    loadClientScenario, 
-    checkForUnsavedChanges 
+    loadClientScenario
   } = useScenarioSave();
   
   const { 

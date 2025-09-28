@@ -38,7 +38,6 @@ interface ScenarioSaveContextType {
   lastSaved: string | null;
   saveScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
-  checkForUnsavedChanges: () => boolean;
 }
 
 const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
@@ -73,23 +72,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [selections, globalFactors, propertyAssumptions, profile]);
 
-  // Check if current data differs from last saved
-  const checkForUnsavedChanges = useCallback((): boolean => {
-    if (!lastSavedData || !activeClient) return false;
-    
-    const currentData = getCurrentScenarioData();
-    
-    // Deep comparison (simplified for key properties)
-    const hasChanges = 
-      JSON.stringify(currentData.propertySelections) !== JSON.stringify(lastSavedData.propertySelections) ||
-      JSON.stringify(currentData.globalFactors) !== JSON.stringify(lastSavedData.globalFactors) ||
-      JSON.stringify(currentData.propertyAssumptions) !== JSON.stringify(lastSavedData.propertyAssumptions) ||
-      JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
-    
-    return hasChanges;
-  }, [getCurrentScenarioData, lastSavedData, activeClient]);
-
-  // Save scenario to localStorage
+  // Save scenario
   const saveScenario = useCallback(() => {
     if (!activeClient) return;
 
@@ -121,7 +104,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [activeClient, getCurrentScenarioData]);
 
-  // Load client scenario from localStorage
+  // Load client scenario
   const loadClientScenario = useCallback((clientId: number) => {
     try {
       const storageKey = `scenario_${clientId}`;
@@ -134,7 +117,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(false);
         return scenarioData;
       } else {
-        // New client - reset to defaults
         setLastSavedData(null);
         setLastSaved(null);
         setHasUnsavedChanges(false);
@@ -142,22 +124,27 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     } catch (error) {
       console.error('Error loading scenario:', error);
-      toast({
-        title: "Load Error",
-        description: "Failed to load scenario data",
-        variant: "destructive",
-      });
       return null;
     }
   }, []);
 
-  // Check for changes whenever data updates
+  // Check for changes
   useEffect(() => {
-    if (activeClient) {
-      const hasChanges = checkForUnsavedChanges();
+    if (activeClient && lastSavedData) {
+      const currentData = getCurrentScenarioData();
+      const hasChanges = 
+        JSON.stringify(currentData.propertySelections) !== JSON.stringify(lastSavedData.propertySelections) ||
+        JSON.stringify(currentData.globalFactors) !== JSON.stringify(lastSavedData.globalFactors) ||
+        JSON.stringify(currentData.propertyAssumptions) !== JSON.stringify(lastSavedData.propertyAssumptions) ||
+        JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
+      
       setHasUnsavedChanges(hasChanges);
+    } else if (activeClient && !lastSavedData) {
+      // New client with data = unsaved changes
+      const hasData = Object.keys(selections).length > 0;
+      setHasUnsavedChanges(hasData);
     }
-  }, [selections, globalFactors, propertyAssumptions, profile, activeClient, checkForUnsavedChanges]);
+  }, [selections, globalFactors, propertyAssumptions, profile, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {
     hasUnsavedChanges,
@@ -165,7 +152,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     lastSaved,
     saveScenario,
     loadClientScenario,
-    checkForUnsavedChanges,
   };
 
   return (
