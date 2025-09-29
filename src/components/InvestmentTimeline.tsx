@@ -83,7 +83,10 @@ export const InvestmentTimeline = () => {
       let yearDisplay: string;
       let quarterDisplay: string;
       
-      if (isAffordable && property.affordableYear <= timelineEndYear) {
+      if (property.affordableYear === Infinity) {
+        yearDisplay = "Beyond Timeline";
+        quarterDisplay = "N/A";
+      } else if (isAffordable && property.affordableYear <= timelineEndYear) {
         yearDisplay = property.affordableYear.toString();
         quarterDisplay = `Yr ${property.affordableYear - 2025}`;
       } else if (property.affordableYear > timelineEndYear) {
