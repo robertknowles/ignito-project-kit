@@ -453,7 +453,7 @@ export const useAffordabilityCalculator = () => {
       totalAnnualLoanRepayments += newPropertyLoanRepayment;
       
       // Simple serviceability test using borrowing capacity  
-      const maxAnnualRepayments = profile.borrowingCapacity * 0.15;
+      const maxAnnualRepayments = profile.borrowingCapacity * 0.10;
       
       // SERVICEABILITY TEST: Annual Repayments <= Borrowing Capacity × Interest Rate
       const canAffordDeposit = (availableFunds - profile.depositBuffer) >= property.depositRequired;
