@@ -12,7 +12,9 @@ export interface InvestmentProfileData {
   // Enhanced dynamic features
   equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
   consecutiveFailureThreshold: number; // Years of consecutive debt test failures before consolidation
-  // NEW: Serviceability-based debt testing
+  // NEW: Dual serviceability model
+  baseSalary: number; // Annual base salary for serviceability calculations
+  salaryServiceabilityMultiplier: number; // Salary multiplier for debt serviceability (typically 6.0)
   serviceabilityRatio: number; // Rental income multiplier for debt serviceability (1.0-1.2)
   // Consolidation tracking (updated to be more flexible)
   consolidationsRemaining: number; // No longer hard-capped
@@ -51,7 +53,9 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
     consecutiveFailureThreshold: 3, // Trigger consolidation after 3 consecutive failures
-    // NEW: Serviceability-based debt testing
+    // NEW: Dual serviceability model
+    baseSalary: 60000, // £60,000 annual salary
+    salaryServiceabilityMultiplier: 6.0, // 6x salary lending capacity
     serviceabilityRatio: 1.1, // 110% rental income serviceability ratio
     // Flexible consolidation tracking
     consolidationsRemaining: 99, // Effectively unlimited

@@ -251,6 +251,16 @@ export const useAffordabilityCalculator = () => {
       debtReduced: number;
       propertiesSold: number;
     } => {
+      // Safety check: prevent consolidation on empty portfolio
+      if (previousPurchases.length === 0) {
+        console.warn(`[CONSOLIDATION] Warning: Attempted consolidation with empty portfolio in year ${currentYear + 2025 - 1}`);
+        return {
+          updatedPurchases: [],
+          equityFreed: 0,
+          debtReduced: 0,
+          propertiesSold: 0,
+        };
+      }
       // Rank properties by score (lowest first)
       const rankedProperties = previousPurchases
         .filter(purchase => purchase.year <= currentYear)
@@ -424,8 +434,12 @@ export const useAffordabilityCalculator = () => {
       const newPropertyLoanRepayment = newLoanAmount * interestRate;
       totalAnnualLoanRepayments += newPropertyLoanRepayment;
       
-      // Calculate max serviceable debt from rental income
-      const maxServiceableDebt = grossRentalIncome * profile.serviceabilityRatio;
+      // Calculate serviceability using dual model
+      const salaryMaxServiceableDebt = (profile.baseSalary * profile.salaryServiceabilityMultiplier) / interestRate;
+      const rentalMaxServiceableDebt = grossRentalIncome * profile.serviceabilityRatio;
+      
+      // Use the higher of salary or rental serviceability
+      const maxServiceableDebt = Math.max(salaryMaxServiceableDebt, rentalMaxServiceableDebt);
       
       // NEW DEBT TEST: AnnualLoanRepayments <= MaxServiceableDebt
       const canAffordDeposit = availableFunds >= property.depositRequired;
@@ -438,6 +452,7 @@ export const useAffordabilityCalculator = () => {
         const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
         const rentalIncome = grossRentalIncome;
         const adjustedCapacity = dynamicCapacity;
+        const serviceabilityMethod = salaryMaxServiceableDebt >= rentalMaxServiceableDebt ? 'salary' : 'rental';
         const existingDebt = totalExistingDebt;
         const newLoan = newLoanAmount;
         const totalDebt = totalDebtAfterPurchase;
@@ -604,7 +619,7 @@ export const useAffordabilityCalculator = () => {
       // Consolidation = Fallback Only: trigger only if serviceability test fails for 3 consecutive years
       const shouldConsolidate = consolidationState.consecutiveDebtTestFailures >= profile.consecutiveFailureThreshold;
       
-      if (shouldConsolidate) {
+      if (shouldConsolidate && previousPurchases.length > 0) {
         
         const consolidationResult = executeConsolidation(currentYear, previousPurchases);
         
