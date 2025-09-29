@@ -39,6 +39,13 @@ export const useAffordabilityCalculator = () => {
       return initialValue * Math.pow(1 + growthRate, years);
     };
 
+    // Progressive rental recognition rates based on portfolio size
+    const calculateRentalRecognitionRate = (portfolioSize: number): number => {
+      if (portfolioSize <= 2) return 0.75;      // Properties 1-2: 75%
+      if (portfolioSize <= 4) return 0.70;      // Properties 3-4: 70%
+      return 0.65;                              // Properties 5+: 65%
+    };
+
     const calculateAvailableFunds = (
       currentYear: number, 
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
@@ -63,9 +70,11 @@ export const useAffordabilityCalculator = () => {
               const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
               const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
               
-              // Calculate rental income
+              // Calculate rental income with progressive recognition rates
               const yieldRate = parseFloat(propertyData.yield) / 100;
-              const rentalIncome = currentValue * yieldRate;
+              const portfolioSize = previousPurchases.filter(p => p.year < year).length + 1; // Count properties purchased before current year + this one
+              const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+              const rentalIncome = currentValue * yieldRate * recognitionRate;
               
               // Calculate loan repayments (interest only for simplicity)
               const interestRate = parseFloat(globalFactors.interestRate) / 100;
@@ -316,7 +325,10 @@ export const useAffordabilityCalculator = () => {
             const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
             const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
             const yieldRate = parseFloat(propertyData.yield) / 100;
-            const rentalIncome = currentValue * yieldRate;
+            // Apply progressive rental recognition based on portfolio size at time of evaluation
+            const portfolioSize = previousPurchases.filter(p => p.year <= currentYear).length;
+            const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+            const rentalIncome = currentValue * yieldRate * recognitionRate;
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
             const propertyLoanRepayments = purchase.loanAmount * interestRate;
             const propertyExpenses = currentValue * 0.01;
@@ -660,6 +672,19 @@ export const useAffordabilityCalculator = () => {
       let currentPurchases = [...previousPurchases];
       
       for (let year = 1; year <= profile.timelineYears; year++) {
+        // 12-MONTH PURCHASE GAP: Enforce minimum gap between purchases
+        const lastPurchaseYear = currentPurchases.length > 0 
+          ? Math.max(...currentPurchases.map(p => p.year)) 
+          : 0;
+        
+        // Skip years that don't meet the 12-month gap requirement
+        if (year <= lastPurchaseYear + 1) {
+          if (DEBUG_MODE) {
+            console.log(`[GAP CHECK] Year ${year + 2025 - 1}: Skipped due to 12-month gap rule (last purchase: ${lastPurchaseYear + 2025 - 1})`);
+          }
+          continue;
+        }
+        
         const availableFunds = calculateAvailableFunds(year, currentPurchases);
         const affordabilityResult = checkAffordability(property, availableFunds, currentPurchases, year);
         
