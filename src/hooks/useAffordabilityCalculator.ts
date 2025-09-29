@@ -393,34 +393,51 @@ export const useAffordabilityCalculator = () => {
       
       // Debug trace output
       if (DEBUG_MODE) {
-        const absoluteYear = currentYear + 2025 - 1;
-        console.log(`\n--- Year ${absoluteYear} Debug Trace ---`);
-        console.log(`\nDeposits:`);
-        console.log(`  - BaseDeposit: £${baseDeposit.toLocaleString()}`);
-        console.log(`  - AnnualSavings: £${annualSavings.toLocaleString()}`);
-        console.log(`  - NetCashflowContribution: £${netCashflow.toLocaleString()}`);
-        console.log(`  - TotalDepositPool: £${availableFunds.toLocaleString()}`);
-        console.log(`\nEquity:`);
-        console.log(`  - PropertyValues: [${propertyValues.map(v => `£${v.toLocaleString()}`).join(', ')}]`);
-        console.log(`  - UsableEquityPerProperty: [${usableEquityPerProperty.map(e => `£${e.toLocaleString()}`).join(', ')}]`);
-        console.log(`  - TotalUsableEquity: £${totalUsableEquity.toLocaleString()}`);
-        console.log(`\nCashflow:`);
-        console.log(`  - GrossRentalIncome: £${grossRentalIncome.toLocaleString()}`);
-        console.log(`  - LoanRepayments: £${loanRepayments.toLocaleString()}`);
-        console.log(`  - Expenses: £${expenses.toLocaleString()}`);
-        console.log(`  - NetCashflow: £${netCashflow.toLocaleString()}`);
-        console.log(`\nBorrowing Capacity:`);
-        console.log(`  - BaseCapacity: £${baseCapacity.toLocaleString()}`);
-        console.log(`  - RentalUplift: £${rentalUplift.toLocaleString()}`);
-        console.log(`  - AdjustedCapacity: £${dynamicCapacity.toLocaleString()}`);
-        console.log(`\nDebt Position:`);
-        console.log(`  - ExistingDebt: £${totalExistingDebt.toLocaleString()}`);
-        console.log(`  - NewLoanAmount: £${newLoanAmount.toLocaleString()}`);
-        console.log(`  - TotalDebtAfterPurchase: £${totalDebtAfterPurchase.toLocaleString()}`);
-        console.log(`\nFinal Decision:`);
-        console.log(`  - DepositTest: ${canAffordDeposit ? 'PASS' : 'FAIL'}`);
-        console.log(`  - DebtTest: ${canAffordBorrowing ? 'PASS' : 'FAIL'}`);
-        console.log(`  - PurchaseDecision: ${canAffordBorrowing && canAffordDeposit ? absoluteYear : '❌'}`);
+        const timelineYear = currentYear + 2025 - 1;
+        const depositPool = availableFunds;
+        const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
+        const rentalIncome = grossRentalIncome;
+        const adjustedCapacity = dynamicCapacity;
+        const existingDebt = totalExistingDebt;
+        const newLoan = newLoanAmount;
+        const totalDebt = totalDebtAfterPurchase;
+        const depositPass = canAffordDeposit;
+        const debtPass = canAffordBorrowing;
+        const purchaseDecision = canAffordBorrowing && canAffordDeposit ? timelineYear : '❌';
+        const requiredDeposit = property.depositRequired;
+        const consolidationTriggered = false;
+
+        console.log(`\n--- Year ${timelineYear} Debug Trace ---`);
+
+        // Deposits
+        console.log(
+          `Deposits: depositPool = baseDeposit(${baseDeposit}) + annualSavings(${annualSavings}) + netCashflow(${netCashflow}) + equityFreed(${equityFreed}) = ${depositPool}`
+        );
+
+        // Equity
+        console.log(
+          `Equity: totalEquity = Σ((propertyValue * 0.8) - loan) = ${totalUsableEquity} | Breakdown: ${JSON.stringify(usableEquityPerProperty)} from values ${JSON.stringify(propertyValues)}`
+        );
+
+        // Cashflow
+        console.log(
+          `Cashflow: netCashflow = rentalIncome(${rentalIncome}) - loanRepayments(${loanRepayments}) - expenses(${expenses}) = ${netCashflow}`
+        );
+
+        // Borrowing Capacity
+        console.log(
+          `Borrowing Capacity: adjustedCapacity = baseCapacity(${baseCapacity}) + rentalUplift(${rentalUplift}) = ${adjustedCapacity}`
+        );
+
+        // Debt Position
+        console.log(
+          `Debt: totalDebt = existingDebt(${existingDebt}) + newLoan(${newLoan}) = ${totalDebt}`
+        );
+
+        // Final Decision
+        console.log(
+          `Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} (availableDeposit=${depositPool}, requiredDeposit=${requiredDeposit}) | DebtTest = ${debtPass ? "PASS" : "FAIL"} (totalDebt=${totalDebt}, capacity=${adjustedCapacity}) | PurchaseDecision = ${purchaseDecision}`
+        );
       }
       
       if (!canAffordDeposit) {
@@ -442,14 +459,15 @@ export const useAffordabilityCalculator = () => {
         
         // Debug trace for consolidation
         if (DEBUG_MODE) {
+          const timelineYear = currentYear + 2025 - 1;
           const propertiesSoldList = previousPurchases
             .filter(p => !consolidationResult.updatedPurchases.some(up => 
               up.year === p.year && up.title === p.title && up.cost === p.cost
             ))
             .map(p => p.title);
           
-          const remainingDebt = consolidationResult.updatedPurchases.reduce((sum, p) => sum + p.loanAmount, profile.currentDebt);
-          const remainingValue = consolidationResult.updatedPurchases.reduce((sum, p) => {
+          const newDebt = consolidationResult.updatedPurchases.reduce((sum, p) => sum + p.loanAmount, profile.currentDebt);
+          const portfolioValue = consolidationResult.updatedPurchases.reduce((sum, p) => {
             const yearsOwned = currentYear - p.year;
             const propData = getPropertyData(p.title);
             if (propData) {
@@ -458,16 +476,21 @@ export const useAffordabilityCalculator = () => {
             }
             return sum;
           }, profile.portfolioValue);
-          const newLVR = remainingValue > 0 ? (remainingDebt / remainingValue) * 100 : 0;
-          const newCapacity = calculateDynamicBorrowingCapacity(currentYear, consolidationResult.updatedPurchases);
-          
-          console.log(`\nConsolidation Phase (if triggered):`);
-          console.log(`  - PropertiesSold: [${propertiesSoldList.join(', ')}]`);
-          console.log(`  - EquityFreed: £${consolidationResult.equityFreed.toLocaleString()}`);
-          console.log(`  - DebtAfterSales: £${remainingDebt.toLocaleString()}`);
-          console.log(`  - NewLVR: ${newLVR.toFixed(1)}%`);
-          console.log(`  - NewBorrowingCapacity: £${newCapacity.toLocaleString()}`);
-          console.log(`  - TriggerReason: ${triggers.reasons.join(' | ')}`);
+          const newBorrowingCapacity = calculateDynamicBorrowingCapacity(currentYear, consolidationResult.updatedPurchases);
+          const triggerReason = triggers.reasons.join(' | ');
+          const consolidationsRemaining = consolidationState.consolidationsRemaining;
+          const lastConsolidationYear = consolidationState.lastConsolidationYear;
+          const equityFreed = consolidationResult.equityFreed;
+
+          // Consolidation (if triggered)
+          console.log(
+            `Consolidation: Sold ${JSON.stringify(propertiesSoldList)} | EquityFreed(${equityFreed}) | DebtAfterSales(${newDebt}) | PortfolioValue(${portfolioValue}) | NewLVR = ${
+              portfolioValue > 0 ? (newDebt / portfolioValue).toFixed(2) : "—"
+            } | NewBorrowingCapacity(${newBorrowingCapacity}) | TriggerReason(${triggerReason})`
+          );
+          console.log(
+            `Consolidation State: consolidationsRemaining(${consolidationsRemaining}), lastConsolidationYear(${lastConsolidationYear})`
+          );
         }
         
         // Recheck affordability with freed equity and reduced debt
