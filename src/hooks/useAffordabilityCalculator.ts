@@ -434,9 +434,13 @@ export const useAffordabilityCalculator = () => {
       const newPropertyLoanRepayment = newLoanAmount * interestRate;
       totalAnnualLoanRepayments += newPropertyLoanRepayment;
       
-      // Calculate serviceability using dual model
+      // Calculate serviceability using dual model with scaling
       const salaryMaxServiceableDebt = (profile.baseSalary * profile.salaryServiceabilityMultiplier) / interestRate;
-      const rentalMaxServiceableDebt = grossRentalIncome * profile.serviceabilityRatio;
+      
+      // Scale serviceability ratio: +0.05 for every property after the 3rd
+      const propertyCount = previousPurchases.filter(p => p.year <= currentYear).length;
+      const effectiveServiceabilityRatio = profile.serviceabilityRatio + 0.05 * Math.max(0, propertyCount - 3);
+      const rentalMaxServiceableDebt = grossRentalIncome * effectiveServiceabilityRatio;
       
       // Use the higher of salary or rental serviceability
       const maxServiceableDebt = Math.max(salaryMaxServiceableDebt, rentalMaxServiceableDebt);
@@ -529,9 +533,9 @@ export const useAffordabilityCalculator = () => {
         console.log(
           `   ├─ Salary Serviceability: £${salaryMaxServiceableDebt.toLocaleString()} (${profile.baseSalary.toLocaleString()} × ${profile.salaryServiceabilityMultiplier})`
         );
-        console.log(
-          `   ├─ Rental Serviceability: £${rentalMaxServiceableDebt.toLocaleString()} (£${grossRentalIncome.toLocaleString()} × ${serviceabilityRatio} × ${profile.rentFactor})`
-        );
+         console.log(
+           `   ├─ Rental Serviceability: £${rentalMaxServiceableDebt.toLocaleString()} (£${grossRentalIncome.toLocaleString()} × ${effectiveServiceabilityRatio.toFixed(2)} scaled for ${propertyCount} properties)`
+         );
         console.log(
           `   ├─ Max Serviceable: £${maxServiceableFromRental.toLocaleString()} (higher of salary/rental)`
         );
@@ -572,13 +576,13 @@ export const useAffordabilityCalculator = () => {
         const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
         const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining;
         const consolidationEligible = yearsSinceLastConsolidation >= profile.minConsolidationGap && totalConsolidationsSoFar < profile.maxConsolidations;
-        const shouldConsolidateDebug = consolidationState.consecutiveDebtTestFailures >= profile.consecutiveFailureThreshold && consolidationEligible;
+        const shouldConsolidateDebug = consolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
         
         console.log(
           `🔄 Enhanced Consolidation Status:`
         );
         console.log(
-          `   ├─ Consecutive Failures: ${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold}`
+          `   ├─ Consecutive Dual Failures: ${consecutiveFailuresCount}/2 (deposit AND serviceability)`
         );
         console.log(
           `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${profile.minConsolidationGap}`
@@ -627,16 +631,18 @@ export const useAffordabilityCalculator = () => {
         return { canAfford: true };
       }
       
-      // SIMPLIFIED CONSOLIDATION LOGIC - only trigger after 3 consecutive serviceability failures
-      if (!canAffordServiceability) {
-        consolidationState.consecutiveDebtTestFailures++;
-      }
-      
-      // Enhanced consolidation logic: check eligibility and caps
-      const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
-      const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining; // Calculate from remaining
-      const consolidationEligible = yearsSinceLastConsolidation >= profile.minConsolidationGap && totalConsolidationsSoFar < profile.maxConsolidations;
-      const shouldConsolidate = consolidationState.consecutiveDebtTestFailures >= profile.consecutiveFailureThreshold && consolidationEligible;
+       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive dual failures (deposit AND serviceability)
+       if (!canAffordDeposit && !canAffordServiceability) {
+         consolidationState.consecutiveDebtTestFailures++;
+       } else {
+         consolidationState.consecutiveDebtTestFailures = 0; // Reset on any success
+       }
+       
+       // Enhanced consolidation logic: check eligibility and caps
+       const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
+       const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining; // Calculate from remaining
+       const consolidationEligible = yearsSinceLastConsolidation >= profile.minConsolidationGap && totalConsolidationsSoFar < profile.maxConsolidations;
+       const shouldConsolidate = consolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
       
       if (shouldConsolidate && previousPurchases.length > 0) {
         
@@ -669,9 +675,9 @@ export const useAffordabilityCalculator = () => {
           const propertiesSoldCount = consolidationResult.propertiesSold;
           const debtReduced = consolidationResult.debtReduced;
           
-          console.log(
-            `🔄 Fallback Consolidation Executed (${consolidationState.consecutiveDebtTestFailures} consecutive serviceability failures):`
-          );
+           console.log(
+             `🔄 Consolidation Executed (${consolidationState.consecutiveDebtTestFailures} consecutive dual failures):`
+           );
           console.log(
             `   ├─ Properties Sold: ${propertiesSoldCount} (${JSON.stringify(propertiesSoldList)})`
           );
@@ -688,9 +694,9 @@ export const useAffordabilityCalculator = () => {
             `   └─ New Serviceability Capacity: £${newBorrowingCapacity.toLocaleString()}`
           );
           
-          console.log(
-            `🎯 Simplified Consolidation: "Only trigger after 3 consecutive serviceability test failures"`
-          );
+           console.log(
+             `🎯 Updated Consolidation: "Trigger after 2 consecutive dual failures (deposit AND serviceability)"`
+           );
           console.log(
             `   └─ Consecutive Failures Reset: 0 (was ${consolidationState.consecutiveDebtTestFailures})`
           );

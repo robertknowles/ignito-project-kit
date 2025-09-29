@@ -62,9 +62,9 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     // NEW: Dual serviceability model
     baseSalary: 60000, // £60,000 annual salary
     salaryServiceabilityMultiplier: 6.0, // 6x salary lending capacity
-    serviceabilityRatio: 1.1, // 110% rental income serviceability ratio
+    serviceabilityRatio: 1.2, // 120% rental income serviceability ratio (tightened)
     // NEW: Engine fine-tuning parameters
-    equityReleaseFactor: 0.6, // 60% of equity available for recycling
+    equityReleaseFactor: 0.4, // 40% of equity available for recycling (reduced)
     depositBuffer: 30000, // £30k extra cash buffer for deposits
     rentFactor: 0.75, // 75% factor to temper rental income boost
     maxConsolidations: 3, // Maximum 3 consolidations per plan
