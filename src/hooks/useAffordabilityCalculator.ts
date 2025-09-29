@@ -429,41 +429,125 @@ export const useAffordabilityCalculator = () => {
 
         console.log(`\n--- Year ${timelineYear} Debug Trace ---`);
 
-        // Deposits
+        // === AVAILABLE FUNDS BREAKDOWN ===
+        const cumulativeSavings = annualSavings * (currentYear - 1);
+        const continuousEquityAccess = totalUsableEquity;
+        const totalAnnualSavings = profile.annualSavings + netCashflow; // Self-funding flywheel
+        
         console.log(
-          `Deposits: depositPool = baseDeposit(${baseDeposit}) + annualSavings(${annualSavings}) + netCashflow(${netCashflow}) + equityFreed(${equityFreed}) = ${depositPool}`
+          `💰 Available Funds: Total = ${depositPool.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Base Deposit Pool: £${baseDeposit.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Cumulative Savings: £${cumulativeSavings.toLocaleString()} (${currentYear-1} years × £${profile.annualSavings.toLocaleString()})`
+        );
+        console.log(
+          `   ├─ Net Cashflow Reinvestment: £${netCashflow.toLocaleString()}`
+        );
+        console.log(
+          `   └─ Continuous Equity Access: £${continuousEquityAccess.toLocaleString()} (80% LVR - debt)`
         );
 
-        // Equity
+        // === SELF-FUNDING FLYWHEEL ===
         console.log(
-          `Equity: totalEquity = Σ((propertyValue * 0.8) - loan) = ${totalUsableEquity} | Breakdown: ${JSON.stringify(usableEquityPerProperty)} from values ${JSON.stringify(propertyValues)}`
+          `🔄 Self-Funding Flywheel: AnnualSavings = BaseSavings(£${profile.annualSavings.toLocaleString()}) + NetCashflowReinvestment(£${netCashflow.toLocaleString()}) = £${totalAnnualSavings.toLocaleString()}`
         );
 
-        // Cashflow
+        // === EQUITY BREAKDOWN ===
         console.log(
-          `Cashflow: netCashflow = rentalIncome(${rentalIncome}) - loanRepayments(${loanRepayments}) - expenses(${expenses}) = ${netCashflow}`
+          `🏠 Equity Breakdown: Total Usable = £${totalUsableEquity.toLocaleString()}`
+        );
+        propertyValues.forEach((value, i) => {
+          const equity = usableEquityPerProperty[i];
+          console.log(
+            `   Property ${i+1}: Value £${value.toLocaleString()} → Usable Equity £${equity.toLocaleString()}`
+          );
+        });
+
+        // === CASHFLOW BREAKDOWN ===
+        console.log(
+          `💵 Cashflow: Net = £${netCashflow.toLocaleString()}/year`
+        );
+        console.log(
+          `   ├─ Gross Rental: £${rentalIncome.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Loan Repayments: -£${loanRepayments.toLocaleString()}`
+        );
+        console.log(
+          `   └─ Expenses: -£${expenses.toLocaleString()}`
         );
 
-        // Borrowing Capacity
+        // === DYNAMIC BORROWING CAPACITY ===
         const equityBoost = totalUsableEquity * profile.equityFactor;
+        const serviceabilityFactor = 1.0; // Based on rental income multiplier
+        const rentalUpliftDetailed = grossRentalIncome * serviceabilityFactor;
+        
         console.log(
-          `Borrowing Capacity: adjustedCapacity = baseCapacity(${baseCapacity}) + rentalUplift(${rentalUplift}) + equityBoost(${equityBoost}) = ${adjustedCapacity}`
+          `📊 Dynamic Borrowing Capacity: Total = £${adjustedCapacity.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Base Capacity: £${baseCapacity.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Rental Income Uplift: £${rentalUplift.toLocaleString()} (rental × ${serviceabilityFactor})`
+        );
+        console.log(
+          `   └─ Equity Factor Boost: £${equityBoost.toLocaleString()} (usable equity × ${profile.equityFactor})`
         );
 
-        // Debt Position
+        // === DEBT POSITION ===
         console.log(
-          `Debt: totalDebt = existingDebt(${existingDebt}) + newLoan(${newLoan}) = ${totalDebt}`
+          `💳 Debt Position: Total After Purchase = £${totalDebt.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Existing Debt: £${existingDebt.toLocaleString()}`
+        );
+        console.log(
+          `   └─ New Loan Required: £${newLoan.toLocaleString()}`
         );
 
-        // Consolidation Status
+        // === DYNAMIC CONSOLIDATION STATUS ===
         const consecutiveFailuresCount = consolidationState.consecutiveFailures.length;
+        const yearsSinceLastConsolidation = currentYear - consolidationState.lastConsolidationYear;
+        const consolidationAvailable = yearsSinceLastConsolidation >= MIN_YEARS_BETWEEN_CONSOLIDATIONS;
+        
         console.log(
-          `Consolidation Status: consecutiveFailures(${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold}) | lastConsolidation(${consolidationState.lastConsolidationYear}) | yearsSince(${currentYear - consolidationState.lastConsolidationYear})`
+          `🔄 Dynamic Consolidation Status:`
+        );
+        console.log(
+          `   ├─ Consecutive Failures: ${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold} (triggers at threshold)`
+        );
+        console.log(
+          `   ├─ Last Consolidation: Year ${consolidationState.lastConsolidationYear} (${yearsSinceLastConsolidation} years ago)`
+        );
+        console.log(
+          `   └─ Consolidation Available: ${consolidationAvailable ? 'YES' : `NO (need ${MIN_YEARS_BETWEEN_CONSOLIDATIONS - yearsSinceLastConsolidation} more years)`}`
         );
 
-        // Final Decision
+        // === STRATEGY INSIGHTS ===
+        const portfolioScalingVelocity = previousPurchases.filter(p => p.year <= currentYear).length;
+        const selfFundingEfficiency = netCashflow > 0 ? (netCashflow / totalAnnualSavings * 100) : 0;
+        const equityRecyclingImpact = continuousEquityAccess > 0 ? (continuousEquityAccess / depositPool * 100) : 0;
+        
         console.log(
-          `Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} (availableDeposit=${depositPool}, requiredDeposit=${requiredDeposit}) | DebtTest = ${debtPass ? "PASS" : "FAIL"} (totalDebt=${totalDebt}, capacity=${adjustedCapacity}) | PurchaseDecision = ${purchaseDecision}`
+          `📈 Strategy Insights:`
+        );
+        console.log(
+          `   ├─ Portfolio Scaling: ${portfolioScalingVelocity} properties acquired so far`
+        );
+        console.log(
+          `   ├─ Self-Funding Efficiency: ${selfFundingEfficiency.toFixed(1)}% (cashflow contribution to annual savings)`
+        );
+        console.log(
+          `   └─ Equity Recycling Impact: ${equityRecyclingImpact.toFixed(1)}% (equity as % of available funds)`
+        );
+
+        // === FINAL DECISION ===
+        console.log(
+          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | DebtTest = ${debtPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
         );
       }
       
@@ -520,14 +604,38 @@ export const useAffordabilityCalculator = () => {
           const lastConsolidationYear = consolidationState.lastConsolidationYear;
           const equityFreed = consolidationResult.equityFreed;
 
-          // Consolidation (if triggered)
+          // === DYNAMIC CONSOLIDATION EXECUTION ===
+          const newLVR = portfolioValue > 0 ? (newDebt / portfolioValue * 100) : 0;
+          const propertiesSoldCount = consolidationResult.propertiesSold;
+          const debtReduced = consolidationResult.debtReduced;
+          
           console.log(
-            `Consolidation: Sold ${JSON.stringify(propertiesSoldList)} | EquityFreed(${equityFreed}) | DebtAfterSales(${newDebt}) | PortfolioValue(${portfolioValue}) | NewLVR = ${
-              portfolioValue > 0 ? (newDebt / portfolioValue).toFixed(2) : "—"
-            } | NewBorrowingCapacity(${newBorrowingCapacity}) | TriggerReason(${triggerReason})`
+            `🔄 Dynamic Consolidation Executed:`
           );
           console.log(
-            `Consolidation State: consecutiveFailures(${consolidationState.consecutiveFailures.length}), lastConsolidationYear(${lastConsolidationYear})`
+            `   ├─ Trigger Reason: ${triggerReason || 'Consecutive failures threshold reached'}`
+          );
+          console.log(
+            `   ├─ Properties Sold: ${propertiesSoldCount} (${JSON.stringify(propertiesSoldList)})`
+          );
+          console.log(
+            `   ├─ Equity Freed: £${equityFreed.toLocaleString()}`
+          );
+          console.log(
+            `   ├─ Debt Reduced: £${debtReduced.toLocaleString()}`
+          );
+          console.log(
+            `   ├─ New Portfolio LVR: ${newLVR.toFixed(1)}% (target: ≤80%)`
+          );
+          console.log(
+            `   └─ New Borrowing Capacity: £${newBorrowingCapacity.toLocaleString()}`
+          );
+          
+          console.log(
+            `🎯 Consolidation Strategy: "Continue selling until DebtTest passes for at least one new purchase"`
+          );
+          console.log(
+            `   └─ Consecutive Failures Reset: ${consolidationState.consecutiveFailures.length} (was ${consecutiveFailuresCount})`
           );
         }
         
