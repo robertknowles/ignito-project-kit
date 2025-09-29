@@ -18,8 +18,7 @@ export const useAffordabilityCalculator = () => {
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
-  // Consolidation constants
-  const MAX_CONSOLIDATIONS = 2;
+  // Dynamic consolidation constants
   const MIN_YEARS_BETWEEN_CONSOLIDATIONS = 3;
 
   // Debug flag - set to true to enable detailed debugging
@@ -27,10 +26,11 @@ export const useAffordabilityCalculator = () => {
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
 
-    // Track consolidation state
+    // Track consolidation state with dynamic failure tracking
     let consolidationState = {
-      consolidationsRemaining: profile.consolidationsRemaining || MAX_CONSOLIDATIONS,
-      lastConsolidationYear: profile.lastConsolidationYear || 0
+      consolidationsRemaining: profile.consolidationsRemaining,
+      lastConsolidationYear: profile.lastConsolidationYear || 0,
+      consecutiveFailures: [] as number[] // Track years of consecutive debt test failures
     };
 
     // Move ALL helper functions inside useMemo to avoid closure issues
@@ -97,14 +97,14 @@ export const useAffordabilityCalculator = () => {
         }
       });
 
-      // Calculate usable equity from existing portfolio (grown)
+      // Calculate continuous equity recycling - UsableEquity can be accessed each year (subject to LVR test)
       let existingPortfolioEquity = 0;
       if (profile.portfolioValue > 0) {
         const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
         existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8) - profile.currentDebt);
       }
 
-      // Calculate usable equity from previous purchases
+      // Calculate usable equity from previous purchases - continuous access
       let totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.year <= currentYear) {
           const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
@@ -114,6 +114,8 @@ export const useAffordabilityCalculator = () => {
         return acc;
       }, existingPortfolioEquity);
       
+      // Enhanced Available Funds Formula: DepositPool + CumulativeSavings + UsableEquity
+      // CONTINUOUS EQUITY RECYCLING: UsableEquity can be accessed each year (subject to LVR test), not only at consolidation
       const finalFunds = availableCash + totalUsableEquity;
       return finalFunds;
     };
@@ -129,10 +131,8 @@ export const useAffordabilityCalculator = () => {
       previousPurchases.forEach(purchase => {
         if (purchase.year <= currentYear) {
           const yearsOwned = currentYear - purchase.year;
-          // Find the property data to get rental yield
           const propertyData = getPropertyData(purchase.title);
           if (propertyData) {
-            // Calculate current property value with growth
             const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
             const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
             const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -142,10 +142,30 @@ export const useAffordabilityCalculator = () => {
         }
       });
       
-      // Apply serviceability factor (70%)
+      // Calculate total usable equity for enhanced borrowing capacity
+      let totalUsableEquity = 0;
+      
+      // Existing portfolio equity
+      if (profile.portfolioValue > 0) {
+        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+        totalUsableEquity += Math.max(0, (grownPortfolioValue * 0.8) - profile.currentDebt);
+      }
+      
+      // Equity from previous purchases
+      previousPurchases.forEach(purchase => {
+        if (purchase.year <= currentYear) {
+          const yearsOwned = currentYear - purchase.year;
+          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          const usableEquity = Math.max(0, (currentValue * 0.8) - purchase.loanAmount);
+          totalUsableEquity += usableEquity;
+        }
+      });
+      
+      // Enhanced capacity formula: BaseCapacity + (RentalIncome × ServiceabilityFactor) + (UsableEquity × EquityFactor)
       const serviceabilityFactor = 0.7;
       const rentalCapacityBoost = totalRentalIncome * serviceabilityFactor;
-      const adjustedCapacity = baseCapacity + rentalCapacityBoost;
+      const equityCapacityBoost = totalUsableEquity * profile.equityFactor;
+      const adjustedCapacity = baseCapacity + rentalCapacityBoost + equityCapacityBoost;
       
       return adjustedCapacity;
     };
@@ -294,9 +314,9 @@ export const useAffordabilityCalculator = () => {
         }
       }
       
-      // Update consolidation state
-      consolidationState.consolidationsRemaining--;
+      // Update consolidation state (no longer decrements remaining - unlimited consolidations)
       consolidationState.lastConsolidationYear = currentYear;
+      consolidationState.consecutiveFailures = []; // Reset failure count after consolidation
       
       return {
         updatedPurchases,
@@ -425,13 +445,20 @@ export const useAffordabilityCalculator = () => {
         );
 
         // Borrowing Capacity
+        const equityBoost = totalUsableEquity * profile.equityFactor;
         console.log(
-          `Borrowing Capacity: adjustedCapacity = baseCapacity(${baseCapacity}) + rentalUplift(${rentalUplift}) = ${adjustedCapacity}`
+          `Borrowing Capacity: adjustedCapacity = baseCapacity(${baseCapacity}) + rentalUplift(${rentalUplift}) + equityBoost(${equityBoost}) = ${adjustedCapacity}`
         );
 
         // Debt Position
         console.log(
           `Debt: totalDebt = existingDebt(${existingDebt}) + newLoan(${newLoan}) = ${totalDebt}`
+        );
+
+        // Consolidation Status
+        const consecutiveFailuresCount = consolidationState.consecutiveFailures.length;
+        console.log(
+          `Consolidation Status: consecutiveFailures(${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold}) | lastConsolidation(${consolidationState.lastConsolidationYear}) | yearsSince(${currentYear - consolidationState.lastConsolidationYear})`
         );
 
         // Final Decision
@@ -448,11 +475,22 @@ export const useAffordabilityCalculator = () => {
         return { canAfford: true };
       }
       
-      // Check if consolidation is possible
-      const triggers = checkConsolidationTriggers(currentYear, previousPurchases, totalPortfolioValue, totalExistingDebt, dynamicCapacity, property);
+      // Dynamic consolidation logic - trigger after consecutive failures
+      if (!canAffordBorrowing) {
+        consolidationState.consecutiveFailures.push(currentYear);
+        // Keep only recent failures (within threshold window)
+        consolidationState.consecutiveFailures = consolidationState.consecutiveFailures
+          .filter(year => currentYear - year < profile.consecutiveFailureThreshold);
+      } else {
+        // Reset consecutive failures on success
+        consolidationState.consecutiveFailures = [];
+      }
       
-      if (triggers.shouldConsolidate && 
-          consolidationState.consolidationsRemaining > 0 && 
+      const triggers = checkConsolidationTriggers(currentYear, previousPurchases, totalPortfolioValue, totalExistingDebt, dynamicCapacity, property);
+      const consecutiveFailuresCount = consolidationState.consecutiveFailures.length;
+      const shouldConsolidateFromFailures = consecutiveFailuresCount >= profile.consecutiveFailureThreshold;
+      
+      if ((triggers.shouldConsolidate || shouldConsolidateFromFailures) && 
           (currentYear - consolidationState.lastConsolidationYear) >= MIN_YEARS_BETWEEN_CONSOLIDATIONS) {
         
         const consolidationResult = executeConsolidation(currentYear, previousPurchases);
@@ -489,7 +527,7 @@ export const useAffordabilityCalculator = () => {
             } | NewBorrowingCapacity(${newBorrowingCapacity}) | TriggerReason(${triggerReason})`
           );
           console.log(
-            `Consolidation State: consolidationsRemaining(${consolidationsRemaining}), lastConsolidationYear(${lastConsolidationYear})`
+            `Consolidation State: consecutiveFailures(${consolidationState.consecutiveFailures.length}), lastConsolidationYear(${lastConsolidationYear})`
           );
         }
         

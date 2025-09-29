@@ -9,8 +9,11 @@ export interface InvestmentProfileData {
   timelineYears: number;
   equityGrowth: number;
   cashflow: number;
-  // Consolidation tracking
-  consolidationsRemaining: number;
+  // Enhanced dynamic features
+  equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
+  consecutiveFailureThreshold: number; // Years of consecutive debt test failures before consolidation
+  // Consolidation tracking (updated to be more flexible)
+  consolidationsRemaining: number; // No longer hard-capped
   lastConsolidationYear: number;
 }
 
@@ -43,7 +46,11 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     timelineYears: 15,
     equityGrowth: 75,
     cashflow: 25,
-    consolidationsRemaining: 2,
+    // Enhanced dynamic features
+    equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
+    consecutiveFailureThreshold: 3, // Trigger consolidation after 3 consecutive failures
+    // Flexible consolidation tracking
+    consolidationsRemaining: 99, // Effectively unlimited
     lastConsolidationYear: 0,
   });
 
