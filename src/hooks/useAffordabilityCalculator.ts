@@ -18,19 +18,16 @@ export const useAffordabilityCalculator = () => {
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
-  // Dynamic consolidation constants
-  const MIN_YEARS_BETWEEN_CONSOLIDATIONS = 3;
+  // Simplified consolidation - only trigger on consecutive failures
 
   // Debug flag - set to true to enable detailed debugging
   const DEBUG_MODE = true;
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
 
-    // Track consolidation state with dynamic failure tracking
+    // Track consolidation state - simplified to only consecutive failures
     let consolidationState = {
-      consolidationsRemaining: profile.consolidationsRemaining,
-      lastConsolidationYear: profile.lastConsolidationYear || 0,
-      consecutiveFailures: [] as number[] // Track years of consecutive debt test failures
+      consecutiveDebtTestFailures: 0 // Count consecutive serviceability failures
     };
 
     // Move ALL helper functions inside useMemo to avoid closure issues
@@ -97,25 +94,26 @@ export const useAffordabilityCalculator = () => {
         }
       });
 
-      // Calculate continuous equity recycling - UsableEquity can be accessed each year (subject to LVR test)
+      // AGGRESSIVE EQUITY RECYCLING: Calculate usable equity every year - seamless access
       let existingPortfolioEquity = 0;
       if (profile.portfolioValue > 0) {
         const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+        // MaxLVR approach: UsableEquity = max(0, (PortfolioValue * MaxLVR) - TotalDebt)
         existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8) - profile.currentDebt);
       }
 
-      // Calculate usable equity from previous purchases - continuous access
+      // Calculate usable equity from previous purchases - aggressive recycling each year
       let totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.year <= currentYear) {
           const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
-          const usableEquity = (propertyCurrentValue * 0.8) - purchase.loanAmount;
-          return acc + Math.max(0, usableEquity);
+          const usableEquity = Math.max(0, (propertyCurrentValue * 0.8) - purchase.loanAmount);
+          return acc + usableEquity;
         }
         return acc;
       }, existingPortfolioEquity);
       
-      // Enhanced Available Funds Formula: DepositPool + CumulativeSavings + UsableEquity
-      // CONTINUOUS EQUITY RECYCLING: UsableEquity can be accessed each year (subject to LVR test), not only at consolidation
+      // NEW AGGRESSIVE FORMULA: AvailableFunds = DepositPool + CumulativeSavings + NetCashflowReinvestment + UsableEquity
+      // No consolidation dependency - immediate equity release simulation
       const finalFunds = availableCash + totalUsableEquity;
       return finalFunds;
     };
@@ -161,9 +159,8 @@ export const useAffordabilityCalculator = () => {
         }
       });
       
-      // Enhanced capacity formula: BaseCapacity + (RentalIncome × ServiceabilityFactor) + (UsableEquity × EquityFactor)
-      const serviceabilityFactor = 0.7;
-      const rentalCapacityBoost = totalRentalIncome * serviceabilityFactor;
+      // Enhanced capacity formula: scales naturally with rental income growth
+      const rentalCapacityBoost = totalRentalIncome * profile.serviceabilityRatio;
       const equityCapacityBoost = totalUsableEquity * profile.equityFactor;
       const adjustedCapacity = baseCapacity + rentalCapacityBoost + equityCapacityBoost;
       
@@ -314,9 +311,8 @@ export const useAffordabilityCalculator = () => {
         }
       }
       
-      // Update consolidation state (no longer decrements remaining - unlimited consolidations)
-      consolidationState.lastConsolidationYear = currentYear;
-      consolidationState.consecutiveFailures = []; // Reset failure count after consolidation
+        // Reset failure count after consolidation - simplified tracking
+        consolidationState.consecutiveDebtTestFailures = 0;
       
       return {
         updatedPurchases,
@@ -407,9 +403,33 @@ export const useAffordabilityCalculator = () => {
       const newLoanAmount = property.cost - property.depositRequired;
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
       
-      // Check affordability
+      // NEW SERVICEABILITY-BASED DEBT TEST
+      // Calculate annual loan repayments for all properties
+      let totalAnnualLoanRepayments = 0;
+      const interestRate = parseFloat(globalFactors.interestRate) / 100;
+      
+      // Existing debt repayments
+      if (profile.currentDebt > 0) {
+        totalAnnualLoanRepayments += profile.currentDebt * interestRate;
+      }
+      
+      // Previous purchases loan repayments
+      previousPurchases.forEach(purchase => {
+        if (purchase.year <= currentYear) {
+          totalAnnualLoanRepayments += purchase.loanAmount * interestRate;
+        }
+      });
+      
+      // Add new property loan repayment
+      const newPropertyLoanRepayment = newLoanAmount * interestRate;
+      totalAnnualLoanRepayments += newPropertyLoanRepayment;
+      
+      // Calculate max serviceable debt from rental income
+      const maxServiceableDebt = grossRentalIncome * profile.serviceabilityRatio;
+      
+      // NEW DEBT TEST: AnnualLoanRepayments <= MaxServiceableDebt
       const canAffordDeposit = availableFunds >= property.depositRequired;
-      const canAffordBorrowing = totalDebtAfterPurchase <= dynamicCapacity;
+      const canAffordServiceability = totalAnnualLoanRepayments <= maxServiceableDebt;
       
       // Debug trace output
       if (DEBUG_MODE) {
@@ -422,8 +442,8 @@ export const useAffordabilityCalculator = () => {
         const newLoan = newLoanAmount;
         const totalDebt = totalDebtAfterPurchase;
         const depositPass = canAffordDeposit;
-        const debtPass = canAffordBorrowing;
-        const purchaseDecision = canAffordBorrowing && canAffordDeposit ? timelineYear : '❌';
+        const serviceabilityPass = canAffordServiceability;
+        const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineYear : '❌';
         const requiredDeposit = property.depositRequired;
         const consolidationTriggered = false;
 
@@ -480,22 +500,42 @@ export const useAffordabilityCalculator = () => {
           `   └─ Expenses: -£${expenses.toLocaleString()}`
         );
 
-        // === DYNAMIC BORROWING CAPACITY ===
-        const equityBoost = totalUsableEquity * profile.equityFactor;
-        const serviceabilityFactor = 1.0; // Based on rental income multiplier
-        const rentalUpliftDetailed = grossRentalIncome * serviceabilityFactor;
+        // === NEW SERVICEABILITY-BASED DEBT TEST ===
+        const annualLoanRepayments = totalAnnualLoanRepayments;
+        const maxServiceableFromRental = maxServiceableDebt;
+        const serviceabilityRatio = profile.serviceabilityRatio;
         
         console.log(
-          `📊 Dynamic Borrowing Capacity: Total = £${adjustedCapacity.toLocaleString()}`
+          `📊 Serviceability-Based Debt Test: ${serviceabilityPass ? "PASS" : "FAIL"}`
+        );
+        console.log(
+          `   ├─ Annual Loan Repayments: £${annualLoanRepayments.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Max Serviceable Debt: £${maxServiceableFromRental.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Rental Income: £${grossRentalIncome.toLocaleString()}`
+        );
+        console.log(
+          `   └─ Serviceability Ratio: ${serviceabilityRatio} (${(serviceabilityRatio*100).toFixed(0)}% of rental income)`
+        );
+        
+        // === DYNAMIC BORROWING CAPACITY (for equity boost only) ===
+        const equityBoost = totalUsableEquity * profile.equityFactor;
+        const rentalUpliftDetailed = grossRentalIncome * profile.serviceabilityRatio;
+        
+        console.log(
+          `📈 Enhanced Capacity: Total = £${adjustedCapacity.toLocaleString()}`
         );
         console.log(
           `   ├─ Base Capacity: £${baseCapacity.toLocaleString()}`
         );
         console.log(
-          `   ├─ Rental Income Uplift: £${rentalUplift.toLocaleString()} (rental × ${serviceabilityFactor})`
+          `   ├─ Rental Serviceability Boost: £${rentalUplift.toLocaleString()}`
         );
         console.log(
-          `   └─ Equity Factor Boost: £${equityBoost.toLocaleString()} (usable equity × ${profile.equityFactor})`
+          `   └─ Equity Factor Boost: £${equityBoost.toLocaleString()}`
         );
 
         // === DEBT POSITION ===
@@ -509,22 +549,17 @@ export const useAffordabilityCalculator = () => {
           `   └─ New Loan Required: £${newLoan.toLocaleString()}`
         );
 
-        // === DYNAMIC CONSOLIDATION STATUS ===
-        const consecutiveFailuresCount = consolidationState.consecutiveFailures.length;
-        const yearsSinceLastConsolidation = currentYear - consolidationState.lastConsolidationYear;
-        const consolidationAvailable = yearsSinceLastConsolidation >= MIN_YEARS_BETWEEN_CONSOLIDATIONS;
+        // === SIMPLIFIED CONSOLIDATION STATUS ===
+        const consecutiveFailuresCount = consolidationState.consecutiveDebtTestFailures;
         
         console.log(
-          `🔄 Dynamic Consolidation Status:`
+          `🔄 Fallback Consolidation Status:`
         );
         console.log(
-          `   ├─ Consecutive Failures: ${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold} (triggers at threshold)`
+          `   ├─ Consecutive Serviceability Failures: ${consecutiveFailuresCount}/${profile.consecutiveFailureThreshold}`
         );
         console.log(
-          `   ├─ Last Consolidation: Year ${consolidationState.lastConsolidationYear} (${yearsSinceLastConsolidation} years ago)`
-        );
-        console.log(
-          `   └─ Consolidation Available: ${consolidationAvailable ? 'YES' : `NO (need ${MIN_YEARS_BETWEEN_CONSOLIDATIONS - yearsSinceLastConsolidation} more years)`}`
+          `   └─ Consolidation Trigger: ${consecutiveFailuresCount >= profile.consecutiveFailureThreshold ? 'YES (threshold reached)' : 'NO'}`
         );
 
         // === STRATEGY INSIGHTS ===
@@ -547,7 +582,7 @@ export const useAffordabilityCalculator = () => {
 
         // === FINAL DECISION ===
         console.log(
-          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | DebtTest = ${debtPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
+          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | ServiceabilityTest = ${serviceabilityPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
         );
       }
       
@@ -555,27 +590,21 @@ export const useAffordabilityCalculator = () => {
         return { canAfford: false };
       }
       
-      if (canAffordBorrowing) {
+      if (canAffordServiceability) {
+        // Reset failure count on success
+        consolidationState.consecutiveDebtTestFailures = 0;
         return { canAfford: true };
       }
       
-      // Dynamic consolidation logic - trigger after consecutive failures
-      if (!canAffordBorrowing) {
-        consolidationState.consecutiveFailures.push(currentYear);
-        // Keep only recent failures (within threshold window)
-        consolidationState.consecutiveFailures = consolidationState.consecutiveFailures
-          .filter(year => currentYear - year < profile.consecutiveFailureThreshold);
-      } else {
-        // Reset consecutive failures on success
-        consolidationState.consecutiveFailures = [];
+      // SIMPLIFIED CONSOLIDATION LOGIC - only trigger after 3 consecutive serviceability failures
+      if (!canAffordServiceability) {
+        consolidationState.consecutiveDebtTestFailures++;
       }
       
-      const triggers = checkConsolidationTriggers(currentYear, previousPurchases, totalPortfolioValue, totalExistingDebt, dynamicCapacity, property);
-      const consecutiveFailuresCount = consolidationState.consecutiveFailures.length;
-      const shouldConsolidateFromFailures = consecutiveFailuresCount >= profile.consecutiveFailureThreshold;
+      // Consolidation = Fallback Only: trigger only if serviceability test fails for 3 consecutive years
+      const shouldConsolidate = consolidationState.consecutiveDebtTestFailures >= profile.consecutiveFailureThreshold;
       
-      if ((triggers.shouldConsolidate || shouldConsolidateFromFailures) && 
-          (currentYear - consolidationState.lastConsolidationYear) >= MIN_YEARS_BETWEEN_CONSOLIDATIONS) {
+      if (shouldConsolidate) {
         
         const consolidationResult = executeConsolidation(currentYear, previousPurchases);
         
@@ -599,9 +628,6 @@ export const useAffordabilityCalculator = () => {
             return sum;
           }, profile.portfolioValue);
           const newBorrowingCapacity = calculateDynamicBorrowingCapacity(currentYear, consolidationResult.updatedPurchases);
-          const triggerReason = triggers.reasons.join(' | ');
-          const consolidationsRemaining = consolidationState.consolidationsRemaining;
-          const lastConsolidationYear = consolidationState.lastConsolidationYear;
           const equityFreed = consolidationResult.equityFreed;
 
           // === DYNAMIC CONSOLIDATION EXECUTION ===
@@ -610,10 +636,7 @@ export const useAffordabilityCalculator = () => {
           const debtReduced = consolidationResult.debtReduced;
           
           console.log(
-            `🔄 Dynamic Consolidation Executed:`
-          );
-          console.log(
-            `   ├─ Trigger Reason: ${triggerReason || 'Consecutive failures threshold reached'}`
+            `🔄 Fallback Consolidation Executed (${consolidationState.consecutiveDebtTestFailures} consecutive serviceability failures):`
           );
           console.log(
             `   ├─ Properties Sold: ${propertiesSoldCount} (${JSON.stringify(propertiesSoldList)})`
@@ -628,14 +651,14 @@ export const useAffordabilityCalculator = () => {
             `   ├─ New Portfolio LVR: ${newLVR.toFixed(1)}% (target: ≤80%)`
           );
           console.log(
-            `   └─ New Borrowing Capacity: £${newBorrowingCapacity.toLocaleString()}`
+            `   └─ New Serviceability Capacity: £${newBorrowingCapacity.toLocaleString()}`
           );
           
           console.log(
-            `🎯 Consolidation Strategy: "Continue selling until DebtTest passes for at least one new purchase"`
+            `🎯 Simplified Consolidation: "Only trigger after 3 consecutive serviceability test failures"`
           );
           console.log(
-            `   └─ Consecutive Failures Reset: ${consolidationState.consecutiveFailures.length} (was ${consecutiveFailuresCount})`
+            `   └─ Consecutive Failures Reset: 0 (was ${consolidationState.consecutiveDebtTestFailures})`
           );
         }
         
