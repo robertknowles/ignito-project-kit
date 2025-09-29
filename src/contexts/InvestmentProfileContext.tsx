@@ -16,6 +16,13 @@ export interface InvestmentProfileData {
   baseSalary: number; // Annual base salary for serviceability calculations
   salaryServiceabilityMultiplier: number; // Salary multiplier for debt serviceability (typically 6.0)
   serviceabilityRatio: number; // Rental income multiplier for debt serviceability (1.0-1.2)
+  // NEW: Engine fine-tuning parameters
+  equityReleaseFactor: number; // Factor to slow down equity recycling (0.5-0.7)
+  depositBuffer: number; // Extra cash buffer required for deposits (£20k)
+  depositMultiplier: number; // Multiplier on required deposit for safety (1.1 = 110%)
+  rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
+  maxConsolidations: number; // Maximum consolidations allowed per plan
+  minConsolidationGap: number; // Minimum years between consolidations
   // Consolidation tracking (updated to be more flexible)
   consolidationsRemaining: number; // No longer hard-capped
   lastConsolidationYear: number;
@@ -52,11 +59,18 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     cashflow: 25,
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
-    consecutiveFailureThreshold: 3, // Trigger consolidation after 3 consecutive failures
+    consecutiveFailureThreshold: 2, // Trigger consolidation after 2 consecutive failures
     // NEW: Dual serviceability model
     baseSalary: 60000, // £60,000 annual salary
     salaryServiceabilityMultiplier: 6.0, // 6x salary lending capacity
     serviceabilityRatio: 1.1, // 110% rental income serviceability ratio
+    // NEW: Engine fine-tuning parameters
+    equityReleaseFactor: 0.6, // 60% of equity available for recycling
+    depositBuffer: 20000, // £20k extra cash buffer for deposits
+    depositMultiplier: 1.1, // 110% multiplier on required deposit
+    rentFactor: 0.75, // 75% factor to temper rental income boost
+    maxConsolidations: 3, // Maximum 3 consolidations per plan
+    minConsolidationGap: 5, // Minimum 5 years between consolidations
     // Flexible consolidation tracking
     consolidationsRemaining: 99, // Effectively unlimited
     lastConsolidationYear: 0,
