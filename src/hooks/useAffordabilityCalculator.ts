@@ -22,7 +22,7 @@ export const useAffordabilityCalculator = () => {
   const MIN_YEARS_BETWEEN_CONSOLIDATIONS = 3;
 
   // Debug flag - set to true to enable detailed debugging
-  const DEBUG_MODE = true;
+  const DEBUG_AFFORDABILITY = true;
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
 
@@ -411,8 +411,8 @@ export const useAffordabilityCalculator = () => {
       const canAffordDeposit = availableFunds >= property.depositRequired;
       const canAffordBorrowing = totalDebtAfterPurchase <= dynamicCapacity;
       
-      // Debug trace output
-      if (DEBUG_MODE) {
+      // Debug trace output (disabled to reduce noise)
+      if (false) {
         const timelineYear = currentYear + 2025 - 1;
         const depositPool = availableFunds;
         const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
@@ -579,8 +579,8 @@ export const useAffordabilityCalculator = () => {
         
         const consolidationResult = executeConsolidation(currentYear, previousPurchases);
         
-        // Debug trace for consolidation
-        if (DEBUG_MODE) {
+        // Debug trace for consolidation (disabled to reduce noise)
+        if (false) {
           const timelineYear = currentYear + 2025 - 1;
           const propertiesSoldList = previousPurchases
             .filter(p => !consolidationResult.updatedPurchases.some(up => 
@@ -703,6 +703,69 @@ export const useAffordabilityCalculator = () => {
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
       const result = determineNextPurchaseYear(property, purchaseHistory);
       const loanAmount = property.cost - property.depositRequired;
+      
+      // Enhanced debug logging only for successful purchases and key events
+      if (DEBUG_AFFORDABILITY && result.year !== Infinity) {
+        const currentYear = result.year - 2025 + 1;
+        const availableFunds = calculateAvailableFunds(currentYear, purchaseHistory);
+        
+        // Calculate usable equity and cashflow for debug display
+        let usableEquity = 0;
+        let netCashflow = 0;
+        
+        if (purchaseHistory.length > 0) {
+          const equityTotal = purchaseHistory.reduce((total, purchase) => {
+            const yearsGrown = Math.max(0, currentYear - purchase.year);
+            const currentValue = calculatePropertyGrowth(purchase.cost, yearsGrown);
+            const equity = currentValue - purchase.loanAmount;
+            return total + Math.max(0, equity);
+          }, 0);
+          usableEquity = equityTotal * 0.8;
+          
+          const totalRental = purchaseHistory.reduce((total, purchase) => {
+            const yearsGrown = Math.max(0, currentYear - purchase.year);
+            // Simplified rental calculation - 5% yield assumption
+            const growthRate = parseFloat(globalFactors.growthRate) / 100;
+            return total + (purchase.cost * 0.05) * Math.pow(1 + growthRate, yearsGrown);
+          }, 0);
+          
+          const totalLoanPayments = purchaseHistory.reduce((total, purchase) => {
+            const interestRate = parseFloat(globalFactors.interestRate) / 100;
+            return total + (purchase.loanAmount * interestRate);
+          }, 0);
+          
+          netCashflow = totalRental - totalLoanPayments - (purchaseHistory.length * 8000);
+        }
+        
+        console.log(`\n🎯 PURCHASE CONFIRMED - ${property.title} (Year ${result.year})`);
+        console.log(`═══════════════════════════════════════════════════════════════════`);
+        
+        // Available Funds Summary
+        console.log(`💰 Available Funds: $${availableFunds.toLocaleString()}`);
+        console.log(`   ├─ Base + Savings: $${(profile.depositPool + profile.annualSavings * currentYear).toLocaleString()}`);
+        console.log(`   ├─ Continuous Equity: $${usableEquity.toLocaleString()}`);
+        console.log(`   └─ Cashflow Reinvestment: $${Math.max(0, netCashflow).toLocaleString()}`);
+        
+        // Self-Funding Flywheel
+        if (netCashflow > 0) {
+          const flywheelBoost = (netCashflow / profile.annualSavings) * 100;
+          console.log(`🔄 Self-Funding Flywheel: ${flywheelBoost.toFixed(1)}% savings boost from portfolio`);
+        }
+        
+        // Dynamic Borrowing
+        const dynamicCapacity = calculateDynamicBorrowingCapacity(profile.borrowingCapacity, purchaseHistory);
+        console.log(`🏦 Dynamic Borrowing: $${dynamicCapacity.toLocaleString()} capacity`);
+        
+        // Consolidation Summary
+        if (result.consolidation) {
+          console.log(`🔄 CONSOLIDATION TRIGGERED:`);
+          console.log(`   ├─ Properties Sold: ${result.consolidation.propertiesSold.length}`);
+          console.log(`   ├─ Equity Freed: $${result.consolidation.equityFreed.toLocaleString()}`);
+          console.log(`   └─ Debt Reduced: $${result.consolidation.debtReduced.toLocaleString()}`);
+        }
+        
+        console.log(`✅ Purchase Decision: Deposit $${property.depositRequired.toLocaleString()} ← Available $${availableFunds.toLocaleString()}`);
+      }
       
       const timelineProperty: TimelineProperty = {
         id: `${property.id}_${index}`,
