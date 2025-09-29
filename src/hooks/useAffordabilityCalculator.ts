@@ -14,6 +14,7 @@ export interface AffordabilityResult {
 }
 
 export const useAffordabilityCalculator = () => {
+  console.log('DEBUGGING: useAffordabilityCalculator function called - REBUILD FORCED');
   const { profile, calculatedValues } = useInvestmentProfile();
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
@@ -22,6 +23,7 @@ export const useAffordabilityCalculator = () => {
 
   // Debug flag - set to true to enable detailed debugging
   const DEBUG_MODE = true;
+  console.log('useAffordabilityCalculator loaded - no dynamic capacity');
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
 
