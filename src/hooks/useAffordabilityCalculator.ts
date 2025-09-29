@@ -122,57 +122,6 @@ export const useAffordabilityCalculator = () => {
       return finalFunds;
     };
 
-    const calculateDynamicBorrowingCapacity = (
-      currentYear: number,
-      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
-    ): number => {
-      const baseCapacity = profile.borrowingCapacity;
-      
-      // Calculate rental income from all purchased properties
-      let totalRentalIncome = 0;
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          const yearsOwned = currentYear - purchase.year;
-          const propertyData = getPropertyData(purchase.title);
-          if (propertyData) {
-            const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-            const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
-            const yieldRate = parseFloat(propertyData.yield) / 100;
-            const annualRent = currentValue * yieldRate;
-            totalRentalIncome += annualRent;
-          }
-        }
-      });
-      
-      // Calculate total usable equity for enhanced borrowing capacity - 3-year cycle
-      let totalUsableEquity = 0;
-      
-      if (currentYear % 3 === 0) {
-        // Only release equity every 3 years
-        // Existing portfolio equity (with equity release factor)
-        if (profile.portfolioValue > 0) {
-          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
-          totalUsableEquity += Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
-        }
-        
-        // Equity from previous purchases (with equity release factor)
-        previousPurchases.forEach(purchase => {
-          if (purchase.year <= currentYear) {
-            const yearsOwned = currentYear - purchase.year;
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-            totalUsableEquity += usableEquity;
-          }
-        });
-      }
-      
-      // Enhanced capacity formula: scales naturally with rental income growth (tempered by rent factor)
-      const rentalCapacityBoost = totalRentalIncome * profile.serviceabilityRatio * profile.rentFactor;
-      const equityCapacityBoost = totalUsableEquity * profile.equityFactor;
-      const adjustedCapacity = baseCapacity + rentalCapacityBoost + equityCapacityBoost;
-      
-      return adjustedCapacity;
-    };
 
     const calculatePropertyScore = (
       purchase: { year: number; cost: number; depositRequired: number; loanAmount: number; title: string },
@@ -212,7 +161,6 @@ export const useAffordabilityCalculator = () => {
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
       totalPortfolioValue: number,
       totalDebt: number,
-      dynamicCapacity: number,
       property: any
     ): { shouldConsolidate: boolean; reasons: string[] } => {
       const reasons: string[] = [];
@@ -220,7 +168,7 @@ export const useAffordabilityCalculator = () => {
       // Trigger 1: Borrowing capacity reached
       const newLoanAmount = property.cost - property.depositRequired;
       const futureDebt = totalDebt + newLoanAmount;
-      if (futureDebt > dynamicCapacity) {
+      if (futureDebt > profile.borrowingCapacity) {
         reasons.push('Borrowing capacity reached');
       }
       
@@ -424,10 +372,7 @@ export const useAffordabilityCalculator = () => {
       
       const totalUsableEquity = usableEquityPerProperty.reduce((sum, equity) => sum + equity, 0);
       
-      // Use dynamic borrowing capacity
-      const baseCapacity = profile.borrowingCapacity;
-      const dynamicCapacity = calculateDynamicBorrowingCapacity(currentYear, previousPurchases);
-      const rentalUplift = dynamicCapacity - baseCapacity;
+      // Use static borrowing capacity
       const newLoanAmount = property.cost - property.depositRequired;
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
       
@@ -465,7 +410,7 @@ export const useAffordabilityCalculator = () => {
         const depositPool = availableFunds;
         const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
         const rentalIncome = grossRentalIncome;
-        const adjustedCapacity = dynamicCapacity;
+        const adjustedCapacity = profile.borrowingCapacity;
         const serviceabilityMethod = 'borrowing-capacity';
         const existingDebt = totalExistingDebt;
         const newLoan = newLoanAmount;
@@ -546,21 +491,8 @@ export const useAffordabilityCalculator = () => {
           `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${profile.depositBuffer.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
         );
         
-        // === DYNAMIC BORROWING CAPACITY (for equity boost only) ===
-        const equityBoost = totalUsableEquity * profile.equityFactor;
-        const rentalUpliftDetailed = grossRentalIncome * profile.serviceabilityRatio * profile.rentFactor;
-        
         console.log(
-          `📈 Enhanced Capacity: Total = £${adjustedCapacity.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Base Capacity: £${baseCapacity.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Tempered Rental Boost: £${rentalUplift.toLocaleString()} (${grossRentalIncome.toLocaleString()} × ${profile.serviceabilityRatio} × ${profile.rentFactor})`
-        );
-        console.log(
-          `   └─ Equity Factor Boost: £${equityBoost.toLocaleString()}`
+          `📈 Static Capacity: £${adjustedCapacity.toLocaleString()}`
         );
 
         // === DEBT POSITION ===
@@ -670,7 +602,7 @@ export const useAffordabilityCalculator = () => {
             }
             return sum;
           }, profile.portfolioValue);
-          const newBorrowingCapacity = calculateDynamicBorrowingCapacity(currentYear, consolidationResult.updatedPurchases);
+          
           const equityFreed = consolidationResult.equityFreed;
 
           // === DYNAMIC CONSOLIDATION EXECUTION ===
@@ -693,9 +625,9 @@ export const useAffordabilityCalculator = () => {
           console.log(
             `   ├─ New Portfolio LVR: ${newLVR.toFixed(1)}% (target: ≤80%)`
           );
-          console.log(
-            `   └─ New Serviceability Capacity: £${newBorrowingCapacity.toLocaleString()}`
-          );
+           console.log(
+             `   └─ Static Borrowing Capacity: £${profile.borrowingCapacity.toLocaleString()}`
+           );
           
            console.log(
              `🎯 Updated Consolidation: "Trigger after 2 consecutive dual failures (deposit AND serviceability)"`
