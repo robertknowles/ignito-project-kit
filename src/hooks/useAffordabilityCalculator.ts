@@ -442,8 +442,7 @@ export const useAffordabilityCalculator = () => {
       const maxServiceableDebt = Math.max(salaryMaxServiceableDebt, rentalMaxServiceableDebt);
       
       // NEW DEBT TEST: AnnualLoanRepayments <= MaxServiceableDebt
-      const enhancedDepositRequired = (property.depositRequired * profile.depositMultiplier) + profile.depositBuffer;
-      const canAffordDeposit = availableFunds >= enhancedDepositRequired;
+      const canAffordDeposit = (availableFunds - profile.depositBuffer) >= property.depositRequired;
       const canAffordServiceability = totalAnnualLoanRepayments <= maxServiceableDebt;
       
       // Debug trace output
@@ -537,7 +536,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Max Serviceable: £${maxServiceableFromRental.toLocaleString()} (higher of salary/rental)`
         );
         console.log(
-          `   └─ Enhanced Deposit Required: £${enhancedDepositRequired.toLocaleString()} (${property.depositRequired.toLocaleString()} × ${profile.depositMultiplier} + £${profile.depositBuffer.toLocaleString()} buffer)`
+          `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${profile.depositBuffer.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
         );
         
         // === DYNAMIC BORROWING CAPACITY (for equity boost only) ===
