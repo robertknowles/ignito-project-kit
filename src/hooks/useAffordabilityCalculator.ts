@@ -722,7 +722,7 @@ export const useAffordabilityCalculator = () => {
     const determineNextPurchaseYear = (
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
-    ): { year: number; consolidation?: any } => {
+    ): { year: number; consolidation?: any; updatedPurchases?: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> } => {
       let currentPurchases = [...previousPurchases];
       
       for (let year = 1; year <= profile.timelineYears; year++) {
@@ -735,9 +735,21 @@ export const useAffordabilityCalculator = () => {
           if (affordabilityResult.consolidationTriggered) {
             // Update the purchase history to reflect consolidation
             currentPurchases = affordabilityResult.consolidationDetails.updatedPurchases;
+            
+            // Add the new property to the consolidated purchase history
+            const newPurchase = {
+              year: year, // Use relative year
+              cost: property.cost,
+              depositRequired: property.depositRequired,
+              loanAmount: property.cost - property.depositRequired,
+              title: property.title
+            };
+            currentPurchases.push(newPurchase);
+            
             return { 
               year: absoluteYear, 
-              consolidation: affordabilityResult.consolidationDetails 
+              consolidation: affordabilityResult.consolidationDetails,
+              updatedPurchases: currentPurchases
             };
           }
           
@@ -763,7 +775,7 @@ export const useAffordabilityCalculator = () => {
     });
 
     const timelineProperties: TimelineProperty[] = [];
-    const purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
+    let purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
     
     // Process properties sequentially, determining purchase year for each
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
@@ -798,13 +810,19 @@ export const useAffordabilityCalculator = () => {
       
       // Add to purchase history if affordable
       if (result.year !== Infinity) {
-        purchaseHistory.push({
-          year: result.year - 2025 + 1, // Convert back to relative year
-          cost: property.cost,
-          depositRequired: property.depositRequired,
-          loanAmount: loanAmount,
-          title: property.title
-        });
+        if (result.consolidation && result.updatedPurchases) {
+          // If consolidation occurred, replace entire purchase history with consolidated results
+          purchaseHistory = [...result.updatedPurchases];
+        } else {
+          // Normal property addition
+          purchaseHistory.push({
+            year: result.year - 2025 + 1, // Convert back to relative year
+            cost: property.cost,
+            depositRequired: property.depositRequired,
+            loanAmount: loanAmount,
+            title: property.title
+          });
+        }
         
         // Sort purchase history by year to maintain chronological order
         purchaseHistory.sort((a, b) => a.year - b.year);
