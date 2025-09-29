@@ -58,17 +58,17 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     cashflow: 25,
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
-    consecutiveFailureThreshold: 3, // Trigger consolidation after 3 consecutive failures
+    consecutiveFailureThreshold: 2, // Trigger consolidation after 2 consecutive failures (reduced from 3)
     // NEW: Dual serviceability model
     baseSalary: 60000, // £60,000 annual salary
-    salaryServiceabilityMultiplier: 6.0, // 6x salary lending capacity
+    salaryServiceabilityMultiplier: 5.0, // 5x salary lending capacity (reduced from 6x)
     serviceabilityRatio: 1.2, // 120% rental income serviceability ratio (tightened)
     // NEW: Engine fine-tuning parameters
     equityReleaseFactor: 0.4, // 40% of equity available for recycling (reduced)
     depositBuffer: 30000, // £30k extra cash buffer for deposits
     rentFactor: 0.75, // 75% factor to temper rental income boost
-    maxConsolidations: 3, // Maximum 3 consolidations per plan
-    minConsolidationGap: 5, // Minimum 5 years between consolidations
+    maxConsolidations: 2, // Maximum 2 consolidations per plan (reduced from 3)
+    minConsolidationGap: 7, // Minimum 7 years between consolidations (increased from 5)
     // Flexible consolidation tracking
     consolidationsRemaining: 99, // Effectively unlimited
     lastConsolidationYear: 0,

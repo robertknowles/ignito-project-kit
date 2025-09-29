@@ -94,23 +94,27 @@ export const useAffordabilityCalculator = () => {
         }
       });
 
-      // AGGRESSIVE EQUITY RECYCLING: Calculate usable equity every year - seamless access
+      // 3-YEAR EQUITY RECYCLING CYCLE: Only release equity every 3 years
       let existingPortfolioEquity = 0;
-      if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
-        // MaxLVR approach: UsableEquity = max(0, (PortfolioValue * MaxLVR) - TotalDebt)
-        existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8) - profile.currentDebt);
-      }
-
-      // Calculate usable equity from previous purchases - with equity release factor
-      let totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
-        if (purchase.year <= currentYear) {
-          const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
-          const usableEquity = Math.max(0, (propertyCurrentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-          return acc + usableEquity;
+      let totalUsableEquity = 0;
+      
+      if (currentYear % 3 === 0) {
+        // Only in 3-year cycle years (year 3, 6, 9, etc.)
+        if (profile.portfolioValue > 0) {
+          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+          existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
         }
-        return acc;
-      }, existingPortfolioEquity);
+
+        // Calculate usable equity from previous purchases - with equity release factor
+        totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
+          if (purchase.year <= currentYear) {
+            const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
+            const usableEquity = Math.max(0, (propertyCurrentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
+            return acc + usableEquity;
+          }
+          return acc;
+        }, existingPortfolioEquity);
+      }
       
       // NEW AGGRESSIVE FORMULA: AvailableFunds = DepositPool + CumulativeSavings + NetCashflowReinvestment + UsableEquity
       // No consolidation dependency - immediate equity release simulation
@@ -140,24 +144,27 @@ export const useAffordabilityCalculator = () => {
         }
       });
       
-      // Calculate total usable equity for enhanced borrowing capacity
+      // Calculate total usable equity for enhanced borrowing capacity - 3-year cycle
       let totalUsableEquity = 0;
       
-      // Existing portfolio equity (with equity release factor)
-      if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
-        totalUsableEquity += Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
-      }
-      
-      // Equity from previous purchases (with equity release factor)
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          const yearsOwned = currentYear - purchase.year;
-          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-          const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-          totalUsableEquity += usableEquity;
+      if (currentYear % 3 === 0) {
+        // Only release equity every 3 years
+        // Existing portfolio equity (with equity release factor)
+        if (profile.portfolioValue > 0) {
+          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+          totalUsableEquity += Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
         }
-      });
+        
+        // Equity from previous purchases (with equity release factor)
+        previousPurchases.forEach(purchase => {
+          if (purchase.year <= currentYear) {
+            const yearsOwned = currentYear - purchase.year;
+            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
+            totalUsableEquity += usableEquity;
+          }
+        });
+      }
       
       // Enhanced capacity formula: scales naturally with rental income growth (tempered by rent factor)
       const rentalCapacityBoost = totalRentalIncome * profile.serviceabilityRatio * profile.rentFactor;
@@ -385,24 +392,35 @@ export const useAffordabilityCalculator = () => {
       let propertyValues: number[] = [];
       let usableEquityPerProperty: number[] = [];
       
-      if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
-        propertyValues.push(grownPortfolioValue);
-          const portfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
-          usableEquityPerProperty.push(portfolioEquity);
-      }
-      
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          const yearsOwned = currentYear - purchase.year;
-          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-          totalPortfolioValue += currentValue;
-          propertyValues.push(currentValue);
+        if (profile.portfolioValue > 0) {
+          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+          propertyValues.push(grownPortfolioValue);
           
-          const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-          usableEquityPerProperty.push(usableEquity);
+          // 3-year equity cycle
+          if (currentYear % 3 === 0) {
+            const portfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
+            usableEquityPerProperty.push(portfolioEquity);
+          } else {
+            usableEquityPerProperty.push(0);
+          }
         }
-      });
+        
+        previousPurchases.forEach(purchase => {
+          if (purchase.year <= currentYear) {
+            const yearsOwned = currentYear - purchase.year;
+            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+            totalPortfolioValue += currentValue;
+            propertyValues.push(currentValue);
+            
+            // 3-year equity cycle
+            if (currentYear % 3 === 0) {
+              const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
+              usableEquityPerProperty.push(usableEquity);
+            } else {
+              usableEquityPerProperty.push(0);
+            }
+          }
+        });
       
       const totalUsableEquity = usableEquityPerProperty.reduce((sum, equity) => sum + equity, 0);
       
@@ -437,9 +455,9 @@ export const useAffordabilityCalculator = () => {
       // Calculate serviceability using dual model with scaling
       const salaryMaxServiceableDebt = (profile.baseSalary * profile.salaryServiceabilityMultiplier) / interestRate;
       
-      // Scale serviceability ratio: +0.05 for every property after the 3rd
+      // Scale serviceability ratio: +0.1 for every property after the 3rd (stricter scaling)
       const propertyCount = previousPurchases.filter(p => p.year <= currentYear).length;
-      const effectiveServiceabilityRatio = profile.serviceabilityRatio + 0.05 * Math.max(0, propertyCount - 3);
+      const effectiveServiceabilityRatio = 1.2 + 0.1 * Math.max(0, propertyCount - 3);
       const rentalMaxServiceableDebt = grossRentalIncome * effectiveServiceabilityRatio;
       
       // Use the higher of salary or rental serviceability
@@ -486,7 +504,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Net Cashflow Reinvestment: £${netCashflow.toLocaleString()}`
         );
         console.log(
-          `   └─ Continuous Equity Access: £${continuousEquityAccess.toLocaleString()} (80% LVR - debt)`
+          `   └─ 3-Year Equity Access: £${currentYear % 3 === 0 ? continuousEquityAccess.toLocaleString() : '0 (off-cycle year)'} (40% of usable equity)`
         );
 
         // === SELF-FUNDING FLYWHEEL ===
@@ -531,10 +549,10 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Annual Loan Repayments: £${annualLoanRepayments.toLocaleString()}`
         );
         console.log(
-          `   ├─ Salary Serviceability: £${salaryMaxServiceableDebt.toLocaleString()} (${profile.baseSalary.toLocaleString()} × ${profile.salaryServiceabilityMultiplier})`
+          `   ├─ Salary Serviceability: £${salaryMaxServiceableDebt.toLocaleString()} (${profile.baseSalary.toLocaleString()} × ${profile.salaryServiceabilityMultiplier} - reduced from 6x)`
         );
          console.log(
-           `   ├─ Rental Serviceability: £${rentalMaxServiceableDebt.toLocaleString()} (£${grossRentalIncome.toLocaleString()} × ${effectiveServiceabilityRatio.toFixed(2)} scaled for ${propertyCount} properties)`
+           `   ├─ Rental Serviceability: £${rentalMaxServiceableDebt.toLocaleString()} (£${grossRentalIncome.toLocaleString()} × ${effectiveServiceabilityRatio.toFixed(2)} - stricter +0.1 scaling after 3rd property)`
          );
         console.log(
           `   ├─ Max Serviceable: £${maxServiceableFromRental.toLocaleString()} (higher of salary/rental)`
@@ -582,13 +600,13 @@ export const useAffordabilityCalculator = () => {
           `🔄 Enhanced Consolidation Status:`
         );
         console.log(
-          `   ├─ Consecutive Dual Failures: ${consecutiveFailuresCount}/2 (deposit AND serviceability)`
+          `   ├─ Consecutive Dual Failures: ${consecutiveFailuresCount}/2 (deposit AND serviceability) - reduced threshold`
         );
         console.log(
-          `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${profile.minConsolidationGap}`
+          `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${profile.minConsolidationGap} - increased gap requirement`
         );
         console.log(
-          `   ├─ Total Used: ${totalConsolidationsSoFar}/${profile.maxConsolidations}`
+          `   ├─ Total Used: ${totalConsolidationsSoFar}/${profile.maxConsolidations} - reduced max consolidations`
         );
         console.log(
           `   ├─ Eligible: ${consolidationEligible ? 'YES' : 'NO'}`
