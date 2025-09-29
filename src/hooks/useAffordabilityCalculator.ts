@@ -634,11 +634,11 @@ export const useAffordabilityCalculator = () => {
         return { canAfford: true };
       }
       
-       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive dual failures (deposit AND serviceability)
-       if (!canAffordDeposit && !canAffordServiceability) {
+       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive serviceability failures
+       if (!canAffordServiceability) {
          consolidationState.consecutiveDebtTestFailures++;
        } else {
-         consolidationState.consecutiveDebtTestFailures = 0; // Reset on any success
+         consolidationState.consecutiveDebtTestFailures = 0; // Reset when serviceability passes
        }
        
        // Enhanced consolidation logic: check eligibility and caps
