@@ -452,20 +452,12 @@ export const useAffordabilityCalculator = () => {
       const newPropertyLoanRepayment = newLoanAmount * interestRate;
       totalAnnualLoanRepayments += newPropertyLoanRepayment;
       
-      // Calculate serviceability using dual model with scaling
-      const annualSalaryServiceabilityCapacity = profile.baseSalary * profile.salaryServiceabilityMultiplier;
+      // Simple serviceability test using borrowing capacity
+      const maxAnnualRepayments = profile.borrowingCapacity * interestRate;
       
-      // Scale serviceability ratio: +0.1 for every property after the 3rd (stricter scaling)
-      const propertyCount = previousPurchases.filter(p => p.year <= currentYear).length;
-      const effectiveServiceabilityRatio = 1.2 + 0.1 * Math.max(0, propertyCount - 3);
-      const annualRentalServiceabilityCapacity = grossRentalIncome * effectiveServiceabilityRatio;
-      
-      // Use the higher of salary or rental serviceability
-      const maxAnnualServiceabilityCapacity = Math.max(annualSalaryServiceabilityCapacity, annualRentalServiceabilityCapacity);
-      
-      // CORRECTED SERVICEABILITY TEST: Annual Repayments <= Annual Capacity
+      // SERVICEABILITY TEST: Annual Repayments <= Borrowing Capacity × Interest Rate
       const canAffordDeposit = (availableFunds - profile.depositBuffer) >= property.depositRequired;
-      const canAffordServiceability = totalAnnualLoanRepayments <= maxAnnualServiceabilityCapacity;
+      const canAffordServiceability = totalAnnualLoanRepayments <= maxAnnualRepayments;
       
       // Debug trace output
       if (DEBUG_MODE) {
@@ -474,7 +466,7 @@ export const useAffordabilityCalculator = () => {
         const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
         const rentalIncome = grossRentalIncome;
         const adjustedCapacity = dynamicCapacity;
-        const serviceabilityMethod = annualSalaryServiceabilityCapacity >= annualRentalServiceabilityCapacity ? 'salary' : 'rental';
+        const serviceabilityMethod = 'borrowing-capacity';
         const existingDebt = totalExistingDebt;
         const newLoan = newLoanAmount;
         const totalDebt = totalDebtAfterPurchase;
@@ -537,24 +529,18 @@ export const useAffordabilityCalculator = () => {
           `   └─ Expenses: -£${expenses.toLocaleString()}`
         );
 
-        // === CORRECTED SERVICEABILITY TEST ===
+        // === SERVICEABILITY TEST ===
         const annualLoanRepayments = totalAnnualLoanRepayments;
-        const maxAnnualCapacity = maxAnnualServiceabilityCapacity;
+        const maxAnnualCapacity = maxAnnualRepayments;
         
         console.log(
-          `📊 Corrected Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (via ${serviceabilityMethod})`
+          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (via ${serviceabilityMethod})`
         );
         console.log(
           `   ├─ Annual Loan Repayments: £${annualLoanRepayments.toLocaleString()}`
         );
         console.log(
-          `   ├─ Salary Annual Capacity: £${annualSalaryServiceabilityCapacity.toLocaleString()} (${profile.baseSalary.toLocaleString()} × ${profile.salaryServiceabilityMultiplier})`
-        );
-         console.log(
-           `   ├─ Rental Annual Capacity: £${annualRentalServiceabilityCapacity.toLocaleString()} (£${grossRentalIncome.toLocaleString()} × ${effectiveServiceabilityRatio.toFixed(2)} - scaling after 3rd property)`
-         );
-        console.log(
-          `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (higher of salary/rental)`
+          `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (£${profile.borrowingCapacity.toLocaleString()} × ${(interestRate * 100).toFixed(1)}%)`
         );
         console.log(
           `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${profile.depositBuffer.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
