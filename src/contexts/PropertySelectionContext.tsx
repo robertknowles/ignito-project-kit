@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useDataAssumptions } from './DataAssumptionsContext';
+import { useClient } from './ClientContext';
 
 export interface PropertyType {
   id: string;
@@ -59,8 +60,35 @@ interface PropertySelectionProviderProps {
 }
 
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
+  const { activeClient } = useClient();
   const [selections, setSelections] = useState<PropertySelection>({});
   const { propertyAssumptions } = useDataAssumptions();
+
+  // Load selections from localStorage on mount or when client changes
+  useEffect(() => {
+    if (activeClient?.id) {
+      const storageKey = `property_selections_${activeClient.id}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          setSelections(JSON.parse(stored));
+        } catch (error) {
+          console.error('Failed to load property selections from localStorage:', error);
+          setSelections({});
+        }
+      } else {
+        setSelections({});
+      }
+    }
+  }, [activeClient?.id]);
+
+  // Save selections to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const storageKey = `property_selections_${activeClient.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(selections));
+    }
+  }, [selections, activeClient?.id]);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
