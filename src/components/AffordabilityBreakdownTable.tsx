@@ -1,298 +1,18 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, memo } from 'react';
 import { 
-  ChevronDown, ChevronRight, TrendingUp, AlertCircle, 
-  CheckCircle, XCircle, DollarSign, Home, PieChart, 
-  Activity, Clock, RefreshCw
+  ChevronDown, ChevronRight, CheckCircle, XCircle, 
+  AlertCircle, Clock, Activity, TrendingUp, Unlock
 } from 'lucide-react';
-import { YearBreakdownData } from '../hooks/useAffordabilityBreakdown';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 
 interface Props {
-  data: YearBreakdownData[];
+  data: any[]; // Your year data
   isCalculating?: boolean;
   hasChanges?: boolean;
 }
 
-const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
-// Memoized row component for performance
-const YearRow = memo(({ 
-  yearData, 
-  isExpanded, 
-  onToggle,
-  isNew,
-  hasChanged 
-}: {
-  yearData: YearBreakdownData;
-  isExpanded: boolean;
-  onToggle: () => void;
-  isNew: boolean;
-  hasChanged: boolean;
-}) => {
-  const getStatusIcon = () => {
-    switch (yearData.status) {
-      case 'purchased':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'affordable':
-        return <Clock className="w-5 h-5 text-amber-600" />;
-      default:
-        return <XCircle className="w-5 h-5 text-red-600" />;
-    }
-  };
-
-  const getStatusBadge = () => {
-    switch (yearData.status) {
-      case 'purchased':
-        return <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Purchased</Badge>;
-      case 'affordable':
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">Affordable</Badge>;
-      default:
-        return <Badge variant="outline" className="text-muted-foreground">Not Yet</Badge>;
-    }
-  };
-
-  const depositProgress = yearData.requiredDeposit > 0 
-    ? Math.min((yearData.availableDeposit / yearData.requiredDeposit) * 100, 100)
-    : 0;
-
-  return (
-    <>
-      <tr 
-        className={`
-          hover:bg-accent/50 cursor-pointer transition-all duration-300
-          ${isNew ? 'animate-slide-in' : ''}
-          ${hasChanged ? 'animate-pulse-once' : ''}
-        `}
-        onClick={onToggle}
-      >
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            )}
-            <span className="font-medium text-foreground">Year {yearData.year}</span>
-            <span className="text-sm text-muted-foreground">({yearData.displayYear})</span>
-          </div>
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            {getStatusIcon()}
-            {getStatusBadge()}
-          </div>
-        </td>
-        <td className="px-4 py-3 text-foreground">
-          {yearData.propertyNumber ? `#${yearData.propertyNumber}` : '-'}
-        </td>
-        <td className="px-4 py-3 text-foreground">
-          {yearData.propertyType || '-'}
-        </td>
-        <td className="px-4 py-3 text-foreground font-medium">
-          {formatCurrency(yearData.portfolioValue)}
-        </td>
-        <td className="px-4 py-3">
-          <span className={yearData.annualCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}>
-            {formatCurrency(yearData.annualCashFlow)}
-          </span>
-        </td>
-      </tr>
-      
-      {/* Expanded Details */}
-      {isExpanded && (
-        <tr className="bg-muted/50 animate-accordion-down">
-          <td colSpan={6} className="px-4 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Deposit Capacity */}
-              <Card className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-semibold text-foreground">Deposit Capacity</h4>
-                  </div>
-                  {yearData.status === 'purchased' && (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Available:</span>
-                    <span className="font-medium text-foreground">{formatCurrency(yearData.availableDeposit)}</span>
-                  </div>
-                  {yearData.requiredDeposit > 0 && (
-                    <>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Required:</span>
-                        <span className="font-medium text-foreground">{formatCurrency(yearData.requiredDeposit)}</span>
-                      </div>
-                      <Progress value={depositProgress} className="h-2" />
-                      <span className="text-xs text-muted-foreground">
-                        {depositProgress.toFixed(0)}% of required
-                      </span>
-                    </>
-                  )}
-                </div>
-              </Card>
-
-              {/* Borrowing Capacity */}
-              <Card className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-semibold text-foreground">Borrowing Capacity</h4>
-                  </div>
-                  {yearData.status === 'purchased' && (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Available:</span>
-                    <span className="font-medium text-foreground">{formatCurrency(yearData.availableBorrowingCapacity)}</span>
-                  </div>
-                  {yearData.requiredLoan > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Required:</span>
-                      <span className="font-medium text-foreground">{formatCurrency(yearData.requiredLoan)}</span>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Portfolio Metrics */}
-              <Card className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <PieChart className="w-4 h-4 text-primary" />
-                  <h4 className="text-sm font-semibold text-foreground">Portfolio Metrics</h4>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Equity:</span>
-                    <span className="font-medium text-foreground">{formatCurrency(yearData.totalEquity)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Debt:</span>
-                    <span className="font-medium text-foreground">{formatCurrency(yearData.totalDebt)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">LVR:</span>
-                    <span className="font-medium text-foreground">
-                      {yearData.portfolioValue > 0 
-                        ? ((yearData.totalDebt / yearData.portfolioValue) * 100).toFixed(1) + '%'
-                        : '0%'}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Property Cost Breakdown (if purchased) */}
-              {yearData.status === 'purchased' && yearData.propertyCost > 0 && (
-                <Card className="p-4 lg:col-span-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Home className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-semibold text-foreground">Purchase Breakdown</h4>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Property Cost</span>
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(yearData.propertyCost)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Deposit Paid</span>
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(yearData.requiredDeposit)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Loan Amount</span>
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(yearData.requiredLoan)}</p>
-                    </div>
-                  </div>
-                </Card>
-              )}
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison - only re-render if data actually changed
-  return (
-    prevProps.yearData.status === nextProps.yearData.status &&
-    prevProps.yearData.propertyNumber === nextProps.yearData.propertyNumber &&
-    prevProps.yearData.availableDeposit === nextProps.yearData.availableDeposit &&
-    prevProps.yearData.portfolioValue === nextProps.yearData.portfolioValue &&
-    prevProps.isExpanded === nextProps.isExpanded &&
-    prevProps.isNew === nextProps.isNew &&
-    prevProps.hasChanged === nextProps.hasChanged
-  );
-});
-
-YearRow.displayName = 'YearRow';
-
-export const AffordabilityBreakdownTable: React.FC<Props> = memo(({ 
-  data, 
-  isCalculating = false,
-  hasChanges = false 
-}) => {
-  // Preserve expanded state across re-renders
-  const [expandedYears, setExpandedYears] = useState<Set<number>>(() => {
-    // Load from localStorage if available
-    const saved = localStorage.getItem('affordability-expanded-years');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
-  });
-  
-  // Track previous data for change detection
-  const previousDataRef = useRef<YearBreakdownData[]>([]);
-  const [changedYears, setChangedYears] = useState<Set<number>>(new Set());
-  const [newYears, setNewYears] = useState<Set<number>>(new Set());
-  
-  // Detect changes when data updates
-  useEffect(() => {
-    if (hasChanges && previousDataRef.current.length > 0) {
-      const changed = new Set<number>();
-      const isNew = new Set<number>();
-      
-      data.forEach((yearData, index) => {
-        const prevYear = previousDataRef.current[index];
-        if (!prevYear) {
-          isNew.add(yearData.year);
-        } else if (
-          prevYear.status !== yearData.status ||
-          prevYear.propertyNumber !== yearData.propertyNumber
-        ) {
-          changed.add(yearData.year);
-        }
-      });
-      
-      setChangedYears(changed);
-      setNewYears(isNew);
-      
-      // Clear highlights after animation
-      setTimeout(() => {
-        setChangedYears(new Set());
-        setNewYears(new Set());
-      }, 2000);
-    }
-    
-    previousDataRef.current = [...data];
-  }, [data, hasChanges]);
-  
-  // Save expanded state to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      'affordability-expanded-years',
-      JSON.stringify(Array.from(expandedYears))
-    );
-  }, [expandedYears]);
+export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculating = false }) => {
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   
   const toggleYear = (year: number) => {
     setExpandedYears(prev => {
@@ -306,115 +26,285 @@ export const AffordabilityBreakdownTable: React.FC<Props> = memo(({
     });
   };
   
-  // Loading overlay
-  const LoadingOverlay = () => (
-    <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <RefreshCw className="w-5 h-5 animate-spin" />
-        <span>Recalculating timeline...</span>
-      </div>
-    </div>
-  );
-
-  // Summary stats
-  const totalProperties = data.filter(y => y.status === 'purchased').length;
-  const finalPortfolioValue = data[data.length - 1]?.portfolioValue || 0;
-  const avgCashFlow = data.length > 0 
-    ? data.reduce((sum, y) => sum + y.annualCashFlow, 0) / data.length 
-    : 0;
+  const formatCurrency = (value: number, compact = false) => {
+    if (compact) {
+      if (value >= 1000000) return `£${(value / 1000000).toFixed(1)}M`;
+      if (value >= 1000) return `£${(value / 1000).toFixed(0)}k`;
+    }
+    return `£${value.toLocaleString()}`;
+  };
+  
+  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
+  
+  // Determine event description
+  const getEventDescription = (year: any) => {
+    if (year.status === 'purchased') {
+      return `✅ BUY Prop #${year.propertyNumber || 1}`;
+    }
+    if (year.consolidation?.triggered) {
+      return `🔄 SELL Prop #${year.consolidation.propertyNumber || 1}`;
+    }
+    if (year.equityRelease > 0) {
+      return `🔄 Equity Release`;
+    }
+    if (year.gapRule) {
+      return '-';
+    }
+    if (year.status === 'blocked') {
+      return '-';
+    }
+    return 'Initial State';
+  };
+  
+  // Determine decision status
+  const getDecisionStatus = (year: any) => {
+    if (year.status === 'purchased') return 'PURCHASED';
+    if (year.consolidation?.triggered) return 'CONSOLIDATED';
+    if (year.gapRule) return 'Waiting...';
+    if (!year.depositTest?.pass || !year.serviceabilityTest?.pass) return 'Blocked';
+    return '-';
+  };
   
   return (
-    <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Home className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-medium text-muted-foreground">Total Properties</h4>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{totalProperties}</p>
-          {hasChanges && (
-            <Badge variant="secondary" className="mt-2 text-xs">
-              Updated
-            </Badge>
-          )}
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-medium text-muted-foreground">Final Portfolio Value</h4>
-          </div>
-          <p className="text-2xl font-bold text-foreground">{formatCurrency(finalPortfolioValue)}</p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Activity className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-medium text-muted-foreground">Avg. Annual Cash Flow</h4>
-          </div>
-          <p className={`text-2xl font-bold ${avgCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(avgCashFlow)}
-          </p>
-        </Card>
-      </div>
-      
-      {/* Main Table */}
-      <div className="bg-card rounded-lg shadow-sm border overflow-hidden relative">
-        {isCalculating && <LoadingOverlay />}
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted border-b sticky top-0 z-5">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Year
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Property #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Portfolio Value
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Cash Flow
-                </th>
-              </tr>
-            </thead>
+    <div className="w-full overflow-x-auto">
+      <table className="w-full border-collapse bg-white">
+        <thead className="sticky top-0 z-10">
+          <tr className="bg-gray-50 border-b-2 border-gray-200">
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">Year</th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">Events This Year</th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              📈 Portfolio<br/>Value / Equity
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              💰 Cash Engine<br/>Available / Net Flow
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              🏦 Core Assumptions<br/>Int. Rate / Rental Rec.
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              🔑 Key Ratios<br/>LVR / DSR
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              💰 Deposit Test<br/>(Surplus/Shortfall)
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              📊 Serviceability<br/>Test (Surplus/Shortfall)
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              ✅ Decision
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((year, index) => {
+            const isExpanded = expandedYears.has(year.year || year.displayYear);
+            const yearNumber = year.year || year.displayYear || 2025 + index;
             
-            <tbody className="divide-y divide-border">
-              {data.map((yearData) => (
-                <YearRow
-                  key={yearData.year}
-                  yearData={yearData}
-                  isExpanded={expandedYears.has(yearData.year)}
-                  onToggle={() => toggleYear(yearData.year)}
-                  isNew={newYears.has(yearData.year)}
-                  hasChanged={changedYears.has(yearData.year)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {/* Change indicator */}
-      {hasChanges && (
-        <div className="text-center text-sm text-muted-foreground animate-fade-in flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4" />
-          Timeline updated based on your changes
-        </div>
-      )}
+            // Calculate values with fallbacks
+            const portfolioValue = year.portfolioValue || 0;
+            const equity = year.totalEquity || (portfolioValue - (year.totalDebt || 0));
+            const availableFunds = year.availableDeposit || year.availableFunds || 0;
+            const netCashflow = year.annualCashFlow || year.netCashflow || 0;
+            const interestRate = year.interestRate || 6.0;
+            const rentalRecognition = year.rentalRecognition || 75;
+            const lvr = portfolioValue > 0 ? ((year.totalDebt || 0) / portfolioValue * 100) : 0;
+            const dsr = year.dsr || 0;
+            
+            // Test results
+            const depositTest = year.depositTest || {
+              pass: availableFunds >= (year.requiredDeposit || 0),
+              surplus: availableFunds - (year.requiredDeposit || 0)
+            };
+            
+            const serviceabilityTest = year.serviceabilityTest || {
+              pass: (year.availableBorrowingCapacity || 0) >= (year.requiredLoan || 0),
+              surplus: (year.availableBorrowingCapacity || 0) - (year.requiredLoan || 0)
+            };
+            
+            return (
+              <React.Fragment key={yearNumber}>
+                <tr 
+                  className={`
+                    border-b hover:bg-gray-50 cursor-pointer transition-colors
+                    ${year.status === 'purchased' ? 'bg-green-50/50' : ''}
+                    ${year.consolidation?.triggered ? 'bg-orange-50/50' : ''}
+                  `}
+                  onClick={() => toggleYear(yearNumber)}
+                >
+                  <td className="p-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      {yearNumber}
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <span className="text-sm font-medium">
+                      {getEventDescription(year)}
+                    </span>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="text-sm">
+                      <div>{formatCurrency(portfolioValue, true)}</div>
+                      <div className="text-gray-600">{formatCurrency(equity, true)}</div>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="text-sm">
+                      <div>{formatCurrency(availableFunds, true)}</div>
+                      <div className={netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="text-sm">
+                      <div>{formatPercentage(interestRate)}</div>
+                      <div className="text-gray-600">{formatPercentage(rentalRecognition)}</div>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="text-sm">
+                      <div>{formatPercentage(lvr)}</div>
+                      <div className="text-gray-600">{formatPercentage(dsr)}</div>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {depositTest.pass ? 
+                        <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      }
+                      <span className={`text-sm ${depositTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                        {depositTest.pass ? '+' : ''}{formatCurrency(depositTest.surplus, true)}
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {serviceabilityTest.pass ? 
+                        <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      }
+                      <span className={`text-sm ${serviceabilityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                        {serviceabilityTest.pass ? '+' : ''}{formatCurrency(serviceabilityTest.surplus, true)}
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <Badge 
+                      variant={
+                        year.status === 'purchased' ? 'default' : 
+                        year.consolidation?.triggered ? 'secondary' :
+                        'outline'
+                      }
+                      className={
+                        year.status === 'purchased' ? 'bg-green-500' :
+                        year.consolidation?.triggered ? 'bg-orange-500' : ''
+                      }
+                    >
+                      {getDecisionStatus(year)}
+                    </Badge>
+                  </td>
+                </tr>
+                
+                {/* Expanded Detail Row */}
+                {isExpanded && (
+                  <tr className="bg-gray-50 border-b">
+                    <td colSpan={9} className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                        {/* Available Funds Breakdown */}
+                        <div>
+                          <h4 className="font-semibold mb-2">💰 Available Funds Breakdown</h4>
+                          <div className="space-y-1 text-gray-600">
+                            <div>Base Deposit: {formatCurrency(year.baseDeposit || 0)}</div>
+                            <div>Cumulative Savings: {formatCurrency(year.cumulativeSavings || 0)}</div>
+                            <div>Cashflow Reinvestment: {formatCurrency(year.cashflowReinvestment || 0)}</div>
+                            <div>Equity Release: {formatCurrency(year.equityRelease || 0)}</div>
+                            <div className="pt-2 border-t font-semibold text-gray-900">
+                              Total: {formatCurrency(availableFunds)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Cashflow Details */}
+                        <div>
+                          <h4 className="font-semibold mb-2">💵 Portfolio Cashflow</h4>
+                          <div className="space-y-1 text-gray-600">
+                            <div>Gross Rental: {formatCurrency(year.grossRental || 0)}</div>
+                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments || 0)}</div>
+                            <div>Expenses: -{formatCurrency(year.expenses || 0)}</div>
+                            <div className="pt-2 border-t font-semibold text-gray-900">
+                              Net Cashflow: {formatCurrency(netCashflow)}/year
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Debt Position */}
+                        <div>
+                          <h4 className="font-semibold mb-2">💳 Debt Position</h4>
+                          <div className="space-y-1 text-gray-600">
+                            <div>Existing Debt: {formatCurrency(year.existingDebt || year.totalDebt || 0)}</div>
+                            <div>New Loan Required: {formatCurrency(year.requiredLoan || 0)}</div>
+                            <div>Borrowing Capacity: {formatCurrency(year.borrowingCapacity || 750000)}</div>
+                            <div className="pt-2 border-t font-semibold text-gray-900">
+                              Total After Purchase: {formatCurrency((year.totalDebt || 0) + (year.requiredLoan || 0))}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Consolidation Details if applicable */}
+                        {year.consolidation?.triggered && (
+                          <div>
+                            <h4 className="font-semibold mb-2">🔄 Consolidation Details</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div>Properties Sold: {year.consolidation.propertiesSold || 1}</div>
+                              <div>Equity Freed: {formatCurrency(year.consolidation.equityFreed || 0)}</div>
+                              <div>Debt Reduced: {formatCurrency(year.consolidation.debtReduced || 0)}</div>
+                              <div>New LVR: {formatPercentage(year.consolidation.newLvr || 60)}</div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Strategy Insights */}
+                        <div>
+                          <h4 className="font-semibold mb-2">📈 Strategy Insights</h4>
+                          <div className="space-y-1 text-gray-600">
+                            <div>Portfolio Scaling: {year.portfolioScaling || 0} properties</div>
+                            <div>Self-Funding Efficiency: {formatPercentage(year.selfFundingEfficiency || 0)}</div>
+                            <div>Equity Recycling Impact: {formatPercentage(year.equityRecyclingImpact || 0)}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Decision Logic */}
+                        <div>
+                          <h4 className="font-semibold mb-2">🚦 Decision Logic</h4>
+                          <div className="space-y-1 text-gray-600">
+                            {year.gapRule && <div className="text-blue-600">⏸️ 12-month gap rule enforced</div>}
+                            {!depositTest.pass && <div className="text-red-600">❌ Deposit test failed</div>}
+                            {!serviceabilityTest.pass && <div className="text-red-600">❌ Serviceability test failed</div>}
+                            {year.status === 'purchased' && <div className="text-green-600">✅ All tests passed</div>}
+                            {year.consolidation?.eligible && <div className="text-orange-600">⚠️ Consolidation eligible</div>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
-});
-
-AffordabilityBreakdownTable.displayName = 'AffordabilityBreakdownTable';
+};
 
 export default AffordabilityBreakdownTable;
