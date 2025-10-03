@@ -124,7 +124,7 @@ export const useAffordabilityBreakdown = (): {
 } => {
   const { profile, calculatedValues } = useInvestmentProfile();
   const { selections, propertyTypes } = usePropertySelection();
-  const { globalFactors, getPropertyData } = useDataAssumptions();
+  const { globalFactors, getPropertyData, propertyAssumptions } = useDataAssumptions();
   
   // Track calculation state for smooth loading
   const [isCalculating, setIsCalculating] = useState(false);
@@ -285,11 +285,14 @@ export const useAffordabilityBreakdown = (): {
         
         if (propertyCount < purchaseSchedule.length && !isWithinGapPeriod) {
           const nextProperty = purchaseSchedule[propertyCount];
-          const propertyData = getPropertyData(nextProperty.propertyId);
           
-          // Skip if property data not found
-          if (!propertyData || !propertyData.averageCost) {
-            console.warn(`Property data not found for ID: ${nextProperty.propertyId}`);
+          // Extract property index from ID (e.g., "property_0" -> 0)
+          const propertyIndex = parseInt(nextProperty.propertyId.split('_')[1]);
+          const propertyData = propertyAssumptions[propertyIndex];
+          
+          // Skip if property data not found or invalid index
+          if (!propertyData || isNaN(propertyIndex) || !propertyData.averageCost) {
+            console.warn(`Property data not found for ID: ${nextProperty.propertyId} (index: ${propertyIndex})`);
             
             const lvr = cumulativeValue > 0 ? (cumulativeDebt / cumulativeValue) * 100 : 0;
             const dsr = stableProfile.borrowingCapacity > 0 ? (annualDebtService / stableProfile.borrowingCapacity) * 100 : 0;
