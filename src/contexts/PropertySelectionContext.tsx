@@ -43,6 +43,7 @@ interface PropertySelectionContextType {
   getPropertyQuantity: (propertyId: string) => number;
   resetSelections: () => void;
   propertyTypes: PropertyType[];
+  isLoading: boolean;
 }
 
 const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
@@ -62,11 +63,13 @@ interface PropertySelectionProviderProps {
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const { activeClient } = useClient();
   const [selections, setSelections] = useState<PropertySelection>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
 
   // Load selections from localStorage on mount or when client changes
   useEffect(() => {
     if (activeClient?.id) {
+      setIsLoading(true);
       const storageKey = `property_selections_${activeClient.id}`;
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -79,6 +82,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       } else {
         setSelections({});
       }
+      setIsLoading(false);
     }
   }, [activeClient?.id]);
 
@@ -187,6 +191,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     getPropertyQuantity,
     resetSelections,
     propertyTypes,
+    isLoading,
   };
 
   return (

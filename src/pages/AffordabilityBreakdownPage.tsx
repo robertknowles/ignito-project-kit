@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAffordabilityBreakdown } from '../hooks/useAffordabilityBreakdown';
+import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import AffordabilityBreakdownTable from '../components/AffordabilityBreakdownTable';
 import { Navbar } from '../components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import {
 
 export const AffordabilityBreakdownPage: React.FC = () => {
   const { data: yearlyData, isCalculating, hasChanges } = useAffordabilityBreakdown();
+  const { isLoading: isSelectionsLoading } = usePropertySelection();
   
   // Calculate summary metrics - with safety checks
   const totalPurchases = yearlyData?.filter(y => y.status === 'purchased').length || 0;
@@ -25,8 +27,8 @@ export const AffordabilityBreakdownPage: React.FC = () => {
     ? ((finalYear?.annualCashFlow || 0) - (yearlyData[0]?.annualCashFlow || 0)) / yearlyData.length
     : 0;
   
-  // Show loading state if calculating and no data yet
-  if (isCalculating && (!yearlyData || yearlyData.length === 0)) {
+  // Show loading state if selections are loading or calculating with no data yet
+  if (isSelectionsLoading || (isCalculating && (!yearlyData || yearlyData.length === 0))) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
         <Navbar />
