@@ -14,6 +14,31 @@ interface Props {
 export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculating = false }) => {
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   
+  // Handle loading state
+  if (isCalculating) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Activity className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <p className="text-gray-600">Calculating breakdown...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Handle empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600 font-medium mb-2">No Properties Selected</p>
+          <p className="text-sm text-gray-500">Select properties from the Building Blocks to see the decision engine analysis</p>
+        </div>
+      </div>
+    );
+  }
+  
   const toggleYear = (year: number) => {
     setExpandedYears(prev => {
       const newExpanded = new Set(prev);

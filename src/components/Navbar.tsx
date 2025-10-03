@@ -6,7 +6,6 @@ import {
   UserIcon,
   LogOutIcon,
   SettingsIcon,
-  FileText,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -67,12 +66,6 @@ export const Navbar = () => {
           onClick={() => navigate('/data')}
         >
           <DatabaseIcon size={15} />
-        </button>
-        <button
-          className={`w-8 h-8 ${location.pathname === '/breakdown' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-          onClick={() => navigate('/breakdown')}
-        >
-          <FileText size={15} />
         </button>
       </div>
       <div className="flex items-center gap-4">

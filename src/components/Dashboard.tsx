@@ -24,7 +24,7 @@ export const Dashboard = () => {
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
   
-  const { calculations } = usePropertySelection();
+  const { calculations, isLoading: selectionsLoading } = usePropertySelection();
   const { data: breakdownData, isCalculating, hasChanges } = useAffordabilityBreakdown();
 
   function expandTab(acc:number){
@@ -121,7 +121,13 @@ export const Dashboard = () => {
               {activeTab === 'cashflow' && <CashflowChart />}
               {activeTab === 'analysis' && <CashFlowAnalysis />}
               {activeTab === 'projections' && <GrowthProjections />}
-              {activeTab === 'breakdown' && <AffordabilityBreakdownTable data={breakdownData} isCalculating={isCalculating} hasChanges={hasChanges} />}
+              {activeTab === 'breakdown' && (
+                <AffordabilityBreakdownTable 
+                  data={breakdownData} 
+                  isCalculating={isCalculating || selectionsLoading} 
+                  hasChanges={hasChanges} 
+                />
+              )}
             </div>
           </div>
         </div>
