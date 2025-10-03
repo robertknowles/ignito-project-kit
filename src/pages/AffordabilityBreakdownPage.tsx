@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAffordabilityBreakdown } from '../hooks/useAffordabilityBreakdown';
 import AffordabilityBreakdownTable from '../components/AffordabilityBreakdownTable';
+import { Navbar } from '../components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -80,7 +81,11 @@ export const AffordabilityBreakdownPage: React.FC = () => {
   };
   
   return (
-    <div className="container mx-auto py-8 space-y-6 max-w-7xl">
+    <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
+      <Navbar />
+      <div className="flex-1 overflow-hidden pb-8 px-8">
+        <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
+          <div className="container mx-auto py-8 space-y-6 max-w-7xl">
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
@@ -248,6 +253,9 @@ export const AffordabilityBreakdownPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
