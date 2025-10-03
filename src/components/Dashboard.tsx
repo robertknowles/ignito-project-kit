@@ -6,9 +6,11 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { CashFlowAnalysis } from './CashFlowAnalysis';
 import { GrowthProjections } from './GrowthProjections';
+import AffordabilityBreakdownTable from './AffordabilityBreakdownTable';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { useAffordabilityBreakdown } from '../hooks/useAffordabilityBreakdown';
 export const Dashboard = () => {
   // State for expandable panes
   // const [profileExpanded, setProfileExpanded] = useState(true);
@@ -23,6 +25,7 @@ export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('timeline');
   
   const { calculations } = usePropertySelection();
+  const { data: breakdownData, isCalculating, hasChanges } = useAffordabilityBreakdown();
 
   function expandTab(acc:number){
     if (acc === accordian){
@@ -107,6 +110,9 @@ export const Dashboard = () => {
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('projections')}>
                 Growth Projections
               </button>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'breakdown' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('breakdown')}>
+                Decision Engine
+              </button>
             </div>
             {/* Tab Content */}
             <div className="p-6">
@@ -115,6 +121,7 @@ export const Dashboard = () => {
               {activeTab === 'cashflow' && <CashflowChart />}
               {activeTab === 'analysis' && <CashFlowAnalysis />}
               {activeTab === 'projections' && <GrowthProjections />}
+              {activeTab === 'breakdown' && <AffordabilityBreakdownTable data={breakdownData} isCalculating={isCalculating} hasChanges={hasChanges} />}
             </div>
           </div>
         </div>
