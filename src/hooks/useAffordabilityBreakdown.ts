@@ -87,6 +87,16 @@ export const useAffordabilityBreakdown = (): {
     depositPool: profile.depositPool
   });
   
+  // Log when key values change
+  useEffect(() => {
+    console.log('Hook dependencies updated:', {
+      selections: stableSelections,
+      profile: stableProfile,
+      globalFactors,
+      currentUsableEquity: calculatedValues.currentUsableEquity
+    });
+  }, [stableSelections, stableProfile, globalFactors, calculatedValues.currentUsableEquity]);
+  
   // Stage 1: Calculate purchase schedule (only when selections change)
   const purchaseSchedule = useMemo(() => {
     const schedule: Array<{ propertyId: string; quantity: number }> = [];
@@ -99,6 +109,7 @@ export const useAffordabilityBreakdown = (): {
       });
     }
     
+    console.log('Purchase schedule calculated:', schedule);
     return schedule;
   }, [stableSelections]);
   
@@ -118,6 +129,25 @@ export const useAffordabilityBreakdown = (): {
       const growthRate = parseFloat(globalFactors.growthRate) / 100;
       const interestRate = parseFloat(globalFactors.interestRate) / 100;
       const lvr = parseFloat(globalFactors.loanToValueRatio) / 100;
+      
+      // Validate we have property data before proceeding
+      if (!purchaseSchedule.length) {
+        console.log('No properties in purchase schedule, returning empty timeline');
+        if (calculationTimerRef.current) {
+          clearTimeout(calculationTimerRef.current);
+        }
+        setIsCalculating(false);
+        return [];
+      }
+      
+      console.log('Starting timeline calculation', {
+        purchaseSchedule,
+        startYear,
+        endYear,
+        growthRate,
+        interestRate,
+        lvr
+      });
       
       // Track portfolio state
       let cumulativeEquity = calculatedValues.currentUsableEquity || 0;
@@ -158,6 +188,28 @@ export const useAffordabilityBreakdown = (): {
         if (propertyCount < purchaseSchedule.length) {
           const nextProperty = purchaseSchedule[propertyCount];
           const propertyData = getPropertyData(nextProperty.propertyId);
+          
+          // Skip if property data not found
+          if (!propertyData || !propertyData.averageCost) {
+            console.warn(`Property data not found for ID: ${nextProperty.propertyId}`);
+            data.push({
+              year: yearIndex,
+              displayYear: year,
+              status: 'not-affordable',
+              availableDeposit,
+              requiredDeposit: 0,
+              availableBorrowingCapacity: stableProfile.borrowingCapacity - cumulativeDebt,
+              requiredLoan: 0,
+              propertyCost: 0,
+              totalEquity: cumulativeEquity,
+              totalDebt: cumulativeDebt,
+              annualCashFlow,
+              portfolioValue: cumulativeValue,
+              purchases: []
+            });
+            continue;
+          }
+          
           const propertyCost = parseFloat(propertyData.averageCost);
           const requiredDeposit = propertyCost * (1 - lvr);
           const requiredLoan = propertyCost * lvr;
@@ -231,9 +283,8 @@ export const useAffordabilityBreakdown = (): {
     globalFactors.growthRate,
     globalFactors.interestRate,
     globalFactors.loanToValueRatio,
-    propertyTypes,
-    getPropertyData,
-    calculatedValues.currentUsableEquity
+    calculatedValues.currentUsableEquity,
+    getPropertyData
   ]);
   
   // Detect meaningful changes

@@ -13,17 +13,54 @@ import {
 export const AffordabilityBreakdownPage: React.FC = () => {
   const { data: yearlyData, isCalculating, hasChanges } = useAffordabilityBreakdown();
   
-  // Calculate summary metrics
-  const totalPurchases = yearlyData.filter(y => y.status === 'purchased').length;
-  const finalYear = yearlyData[yearlyData.length - 1];
-  const cashflowPositiveYear = yearlyData.find(y => y.annualCashFlow > 0);
+  // Calculate summary metrics - with safety checks
+  const totalPurchases = yearlyData?.filter(y => y.status === 'purchased').length || 0;
+  const finalYear = yearlyData?.[yearlyData.length - 1];
+  const cashflowPositiveYear = yearlyData?.find(y => y.annualCashFlow > 0);
   const totalPropertyValue = finalYear?.portfolioValue || 0;
   const totalEquity = finalYear?.totalEquity || 0;
   
   // Calculate average annual cash flow growth
-  const avgCashFlowGrowth = yearlyData.length > 1
+  const avgCashFlowGrowth = yearlyData && yearlyData.length > 1
     ? ((finalYear?.annualCashFlow || 0) - (yearlyData[0]?.annualCashFlow || 0)) / yearlyData.length
     : 0;
+  
+  // Show loading state if calculating and no data yet
+  if (isCalculating && (!yearlyData || yearlyData.length === 0)) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
+        <Navbar />
+        <div className="flex-1 overflow-hidden pb-8 px-8">
+          <div className="bg-white rounded-lg h-full overflow-auto shadow-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Calculating investment timeline...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show empty state if no data
+  if (!yearlyData || yearlyData.length === 0) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
+        <Navbar />
+        <div className="flex-1 overflow-hidden pb-8 px-8">
+          <div className="bg-white rounded-lg h-full overflow-auto shadow-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4 text-center max-w-md">
+              <Home className="w-16 h-16 text-muted-foreground" />
+              <h2 className="text-2xl font-semibold text-foreground">No Properties Selected</h2>
+              <p className="text-muted-foreground">
+                To see your investment timeline breakdown, please select properties and configure your investment profile on the dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   const exportToCSV = () => {
     const headers = [
