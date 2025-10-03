@@ -6,11 +6,10 @@ import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { CashFlowAnalysis } from './CashFlowAnalysis';
 import { GrowthProjections } from './GrowthProjections';
-import AffordabilityBreakdownTable from './AffordabilityBreakdownTable';
+import { DecisionEngineView } from './DecisionEngineView';
 import { PropertyCard } from './PropertyCard';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
-import { useAffordabilityBreakdown } from '../hooks/useAffordabilityBreakdown';
 export const Dashboard = () => {
   // State for expandable panes
   // const [profileExpanded, setProfileExpanded] = useState(true);
@@ -24,8 +23,7 @@ export const Dashboard = () => {
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
   
-  const { calculations, isLoading: selectionsLoading } = usePropertySelection();
-  const { data: breakdownData, isCalculating, hasChanges } = useAffordabilityBreakdown();
+  const { calculations } = usePropertySelection();
 
   function expandTab(acc:number){
     if (acc === accordian){
@@ -121,13 +119,7 @@ export const Dashboard = () => {
               {activeTab === 'cashflow' && <CashflowChart />}
               {activeTab === 'analysis' && <CashFlowAnalysis />}
               {activeTab === 'projections' && <GrowthProjections />}
-              {activeTab === 'breakdown' && (
-                <AffordabilityBreakdownTable 
-                  data={breakdownData} 
-                  isCalculating={isCalculating || selectionsLoading} 
-                  hasChanges={hasChanges} 
-                />
-              )}
+              {activeTab === 'breakdown' && <DecisionEngineView />}
             </div>
           </div>
         </div>
