@@ -162,10 +162,13 @@ export const useAffordabilityCalculator = () => {
       // Equity Score (current equity in property)
       const currentEquity = currentValue - purchase.loanAmount;
       
+      // Weighted scoring: 60% cashflow + 40% equity
+      const weightedScore = 0.6 * netCashflow + 0.4 * currentEquity;
+      
       return {
         cashflowScore: netCashflow,
         equityScore: currentEquity,
-        totalScore: netCashflow + (currentEquity * 0.1) // Weight cashflow more heavily
+        totalScore: weightedScore
       };
     };
 
@@ -243,7 +246,10 @@ export const useAffordabilityCalculator = () => {
       let totalDebtReduced = 0;
       let propertiesSold = 0;
       
-      // Sell properties until conditions are met
+      // Sell lowest-scoring properties until conditions are met:
+      // - LVR <= 80%
+      // - Net Cashflow >= 0
+      // - Affordability test for new purchase passes
       for (const property of rankedProperties) {
         const yearsOwned = currentYear - property.year;
         const propertyData = getPropertyData(property.title);
@@ -280,10 +286,20 @@ export const useAffordabilityCalculator = () => {
             return sum;
           }, profile.portfolioValue);
           
+          // Calculate net cashflow for remaining properties
+          let netCashflow = 0;
+          updatedPurchases.forEach(p => {
+            const score = calculatePropertyScore(p, currentYear);
+            netCashflow += score.cashflowScore;
+          });
+          
           const newLVR = remainingValue > 0 ? (remainingDebt / remainingValue) * 100 : 0;
           
-          // Stop if LVR <= 80% and we've sold at least one property
-          if (newLVR <= 80 && propertiesSold >= 1) {
+          // Stop when all conditions are met:
+          // 1. LVR <= 80%
+          // 2. Net cashflow >= 0
+          // 3. At least one property sold
+          if (newLVR <= 80 && netCashflow >= 0 && propertiesSold >= 1) {
             break;
           }
         }
@@ -416,11 +432,15 @@ export const useAffordabilityCalculator = () => {
       const newPropertyLoanInterest = newLoanAmount * interestRate;
       totalAnnualLoanInterest += newPropertyLoanInterest;
       
+      // Hardcoded values for consistency
+      const depositBuffer = 40000; // £40,000 deposit buffer
+      const serviceabilityFactor = 0.10; // 10% serviceability factor
+      
       // Simple serviceability test using borrowing capacity  
-      const maxAnnualInterest = profile.borrowingCapacity * 0.10;
+      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
       
       // SERVICEABILITY TEST: Annual Interest <= Borrowing Capacity × 10%
-      const canAffordDeposit = (availableFunds - profile.depositBuffer) >= property.depositRequired;
+      const canAffordDeposit = (availableFunds - depositBuffer) >= property.depositRequired;
       const canAffordServiceability = totalAnnualLoanInterest <= maxAnnualInterest;
       
       // Debug trace output
@@ -506,8 +526,9 @@ export const useAffordabilityCalculator = () => {
         console.log(
           `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (£${profile.borrowingCapacity.toLocaleString()} × 10%)`
         );
+        const depositBufferDisplay = 40000;
         console.log(
-          `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${profile.depositBuffer.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
+          `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${depositBufferDisplay.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
         );
         
         console.log(
@@ -526,10 +547,14 @@ export const useAffordabilityCalculator = () => {
         );
 
         // === ENHANCED CONSOLIDATION STATUS ===
+        // Hardcoded consolidation limits
+        const maxConsolidations = 3;
+        const minConsolidationGap = 5; // years
+        
         const consecutiveFailuresCount = consolidationState.consecutiveDebtTestFailures;
         const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
         const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining;
-        const consolidationEligible = yearsSinceLastConsolidation >= profile.minConsolidationGap && totalConsolidationsSoFar < profile.maxConsolidations;
+        const consolidationEligible = yearsSinceLastConsolidation >= minConsolidationGap && totalConsolidationsSoFar < maxConsolidations;
         const shouldConsolidateDebug = consolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
         
         console.log(
@@ -539,10 +564,10 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Consecutive Dual Failures: ${consecutiveFailuresCount}/2 (deposit AND serviceability) - reduced threshold`
         );
         console.log(
-          `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${profile.minConsolidationGap} - increased gap requirement`
+          `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${minConsolidationGap} - increased gap requirement`
         );
         console.log(
-          `   ├─ Total Used: ${totalConsolidationsSoFar}/${profile.maxConsolidations} - reduced max consolidations`
+          `   ├─ Total Used: ${totalConsolidationsSoFar}/${maxConsolidations} - reduced max consolidations`
         );
         console.log(
           `   ├─ Eligible: ${consolidationEligible ? 'YES' : 'NO'}`
@@ -592,10 +617,14 @@ export const useAffordabilityCalculator = () => {
          consolidationState.consecutiveDebtTestFailures = 0; // Reset when serviceability passes
        }
        
+       // Hardcoded consolidation limits
+       const maxConsolidations = 3;
+       const minConsolidationGap = 5; // years
+       
        // Enhanced consolidation logic: check eligibility and caps
        const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
        const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining; // Calculate from remaining
-       const consolidationEligible = yearsSinceLastConsolidation >= profile.minConsolidationGap && totalConsolidationsSoFar < profile.maxConsolidations;
+       const consolidationEligible = yearsSinceLastConsolidation >= minConsolidationGap && totalConsolidationsSoFar < maxConsolidations;
        const shouldConsolidate = consolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
       
       if (shouldConsolidate && previousPurchases.length > 0) {
