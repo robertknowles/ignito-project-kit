@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { App } from './App'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
-import { AffordabilityBreakdownPage } from './pages/AffordabilityBreakdownPage'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { AuthProvider } from './contexts/AuthContext'
@@ -54,14 +53,6 @@ export function AppRouter() {
                       element={
                         <ProtectedRoute>
                           <DataAssumptions />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/breakdown" 
-                      element={
-                        <ProtectedRoute>
-                          <AffordabilityBreakdownPage />
                         </ProtectedRoute>
                       } 
                     />
