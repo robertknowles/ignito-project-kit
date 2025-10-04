@@ -5,7 +5,7 @@ import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import { AffordabilityBreakdownTable } from './AffordabilityBreakdownTable';
 import type { YearBreakdownData } from '@/types/property';
 
-export const DecisionEngineView: React.FC = () => {
+export const DecisionEngineView: React.FC = React.memo(() => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
   const { globalFactors } = useDataAssumptions();
@@ -143,4 +143,4 @@ export const DecisionEngineView: React.FC = () => {
       hasChanges={false}
     />
   );
-};
+});

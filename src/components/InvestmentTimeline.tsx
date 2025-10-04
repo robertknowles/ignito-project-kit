@@ -11,7 +11,7 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
-export const InvestmentTimeline = () => {
+export const InvestmentTimeline = React.memo(() => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility } = usePropertySelection()
   const { timelineProperties, isCalculating } = useAffordabilityCalculator()
@@ -233,7 +233,7 @@ export const InvestmentTimeline = () => {
       </div>
     </div>
   )
-}
+});
 interface TimelineItemProps {
   year: string
   quarter: string

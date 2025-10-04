@@ -18,23 +18,62 @@ export const useAffordabilityCalculator = () => {
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
-  // Add debounced selections state
   const [debouncedSelections, setDebouncedSelections] = React.useState(selections);
   const [isCalculating, setIsCalculating] = React.useState(false);
+  const debouncedTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
 
-  // Debounce selections changes (300ms delay)
+  // Create stable input hash - SINGLE dependency for useMemo
+  const inputHash = React.useMemo(() => {
+    return JSON.stringify({
+      selections: debouncedSelections,
+      timelineYears: profile.timelineYears,
+      borrowingCapacity: profile.borrowingCapacity,
+      depositPool: profile.depositPool,
+      currentDebt: profile.currentDebt,
+      portfolioValue: profile.portfolioValue,
+      annualSavings: profile.annualSavings,
+      equityFactor: profile.equityFactor,
+      equityReleaseFactor: profile.equityReleaseFactor,
+      growthRate: globalFactors.growthRate,
+      interestRate: globalFactors.interestRate,
+      loanToValueRatio: globalFactors.loanToValueRatio,
+    });
+  }, [
+    debouncedSelections,
+    profile.timelineYears,
+    profile.borrowingCapacity,
+    profile.depositPool,
+    profile.currentDebt,
+    profile.portfolioValue,
+    profile.annualSavings,
+    profile.equityFactor,
+    profile.equityReleaseFactor,
+    globalFactors.growthRate,
+    globalFactors.interestRate,
+    globalFactors.loanToValueRatio,
+  ]);
+
+  // Stable debounce function with useRef
+  const debouncedRun = React.useMemo(() => {
+    return (newSelections: typeof selections) => {
+      clearTimeout(debouncedTimerRef.current);
+      setIsCalculating(true);
+      debouncedTimerRef.current = setTimeout(() => {
+        setDebouncedSelections(newSelections);
+        setIsCalculating(false);
+      }, 300);
+    };
+  }, []);
+
+  // Apply debounce when selections change
   React.useEffect(() => {
-    setIsCalculating(true); // Show loading state immediately
-    
-    const timer = setTimeout(() => {
-      setDebouncedSelections(selections);
-      setIsCalculating(false);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [selections]);
+    debouncedRun(selections);
+    return () => clearTimeout(debouncedTimerRef.current);
+  }, [selections, debouncedRun]);
 
-  const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
+  const calculateTimelineProperties = React.useMemo((): TimelineProperty[] => {
+    // Parse the stable input hash
+    const inputs = JSON.parse(inputHash);
 
     // Track consolidation state - simplified to only consecutive failures
     let consolidationState = {
@@ -44,7 +83,7 @@ export const useAffordabilityCalculator = () => {
     // Move ALL helper functions inside useMemo to avoid closure issues
     
     const calculatePropertyGrowth = (initialValue: number, years: number) => {
-      const growthRate = parseFloat(globalFactors.growthRate) / 100;
+      const growthRate = parseFloat(inputs.growthRate) / 100;
       return initialValue * Math.pow(1 + growthRate, years);
     };
 
@@ -921,24 +960,7 @@ export const useAffordabilityCalculator = () => {
     setTimeout(() => setIsCalculating(false), 0);
     
     return sortedTimeline;
-  }, [
-    debouncedSelections,
-    propertyTypes,
-    profile.timelineYears,
-    profile.borrowingCapacity,
-    profile.depositPool,
-    profile.annualSavings,
-    profile.portfolioValue,
-    profile.currentDebt,
-    profile.equityFactor,
-    profile.consecutiveFailureThreshold,
-    profile.equityReleaseFactor,
-    profile.consolidationsRemaining,
-    profile.lastConsolidationYear,
-    calculatedValues.availableDeposit,
-    globalFactors.growthRate,
-    globalFactors.interestRate
-  ]);
+  }, [inputHash, propertyTypes, getPropertyData, calculatedValues.availableDeposit]); // Reduced to essential deps
 
   // Only expose the memoized result
   return {
