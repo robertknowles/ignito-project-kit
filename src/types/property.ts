@@ -75,6 +75,35 @@ export interface TimelineProperty {
     equityFreed: number;
     debtReduced: number;
   };
+  
+  // Year-by-year cashflow breakdown
+  grossRentalIncome: number;
+  loanInterest: number;
+  expenses: number;
+  netCashflow: number;
+  
+  // Test details
+  depositTestSurplus: number;
+  depositTestPass: boolean;
+  serviceabilityTestSurplus: number;
+  serviceabilityTestPass: boolean;
+  borrowingCapacityUsed: number;
+  borrowingCapacityRemaining: number;
+  
+  // Flags and rates
+  isGapRuleBlocked: boolean;
+  rentalRecognitionRate: number;
+  
+  // Portfolio state before purchase
+  portfolioValueBefore: number;
+  totalEquityBefore: number;
+  totalDebtBefore: number;
+  
+  // Available funds breakdown
+  baseDeposit: number;
+  cumulativeSavings: number;
+  cashflowReinvestment: number;
+  equityRelease: number;
 }
 
 export interface YearBreakdownData {

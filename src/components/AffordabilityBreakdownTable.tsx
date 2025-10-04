@@ -125,26 +125,19 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
             const isExpanded = expandedYears.has(year.year || year.displayYear);
             const yearNumber = year.year || year.displayYear || 2025 + index;
             
-            // Calculate values with fallbacks
-            const portfolioValue = year.portfolioValue || 0;
-            const equity = year.totalEquity || (portfolioValue - (year.totalDebt || 0));
-            const availableFunds = year.availableDeposit || year.availableFunds || 0;
-            const netCashflow = year.annualCashFlow || year.netCashflow || 0;
-            const interestRate = year.interestRate || 6.0;
-            const rentalRecognition = year.rentalRecognition || 75;
-            const lvr = portfolioValue > 0 ? ((year.totalDebt || 0) / portfolioValue * 100) : 0;
-            const dsr = year.dsr || 0;
+            // Use values directly from calculator (no fallbacks needed)
+            const portfolioValue = year.portfolioValue;
+            const equity = year.totalEquity;
+            const availableFunds = year.availableDeposit;
+            const netCashflow = year.annualCashFlow;
+            const interestRate = year.interestRate;
+            const rentalRecognition = year.rentalRecognition;
+            const lvr = year.lvr;
+            const dsr = year.dsr;
             
-            // Test results
-            const depositTest = year.depositTest || {
-              pass: availableFunds >= (year.requiredDeposit || 0),
-              surplus: availableFunds - (year.requiredDeposit || 0)
-            };
-            
-            const serviceabilityTest = year.serviceabilityTest || {
-              pass: (year.availableBorrowingCapacity || 0) >= (year.requiredLoan || 0),
-              surplus: (year.availableBorrowingCapacity || 0) - (year.requiredLoan || 0)
-            };
+            // Test results (from calculator)
+            const depositTest = year.depositTest;
+            const serviceabilityTest = year.serviceabilityTest;
             
             return (
               <React.Fragment key={yearNumber}>
@@ -273,17 +266,17 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                         </div>
                         
                         {/* Debt Position */}
-                        <div>
-                          <h4 className="font-semibold mb-2">💳 Debt Position</h4>
-                          <div className="space-y-1 text-gray-600">
-                            <div>Existing Debt: {formatCurrency(year.existingDebt || year.totalDebt || 0)}</div>
-                            <div>New Loan Required: {formatCurrency(year.requiredLoan || 0)}</div>
-                            <div>Borrowing Capacity: {formatCurrency(year.borrowingCapacity || 750000)}</div>
-                            <div className="pt-2 border-t font-semibold text-gray-900">
-                              Total After Purchase: {formatCurrency((year.totalDebt || 0) + (year.requiredLoan || 0))}
+                          <div>
+                            <h4 className="font-semibold mb-2">💳 Debt Position</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div>Existing Debt: {formatCurrency(year.totalDebt - (year.status === 'purchased' ? year.requiredLoan : 0))}</div>
+                              {year.status === 'purchased' && <div>New Loan Required: {formatCurrency(year.requiredLoan)}</div>}
+                              <div>Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity)}</div>
+                              <div className="pt-2 border-t font-semibold text-gray-900">
+                                Total Debt: {formatCurrency(year.totalDebt)}
+                              </div>
                             </div>
                           </div>
-                        </div>
                         
                         {/* Consolidation Details if applicable */}
                         {year.consolidation?.triggered && (

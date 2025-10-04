@@ -810,6 +810,69 @@ export const useAffordabilityCalculator = () => {
         availableFundsUsed = calculateAvailableFunds(purchaseYear, purchaseHistory);
       }
       
+      // Calculate cashflow breakdown for this property
+      const purchaseYear = result.year - 2025 + 1;
+      let grossRentalIncome = 0;
+      let loanInterest = 0;
+      let expenses = 0;
+      let netCashflow = 0;
+      
+      // Calculate portfolio size for rental recognition
+      const portfolioSize = purchaseHistory.filter(p => p.year <= purchaseYear).length + 1;
+      const rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
+      
+      // Calculate cashflow from all properties including this one
+      [...purchaseHistory, { year: purchaseYear, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title }].forEach(purchase => {
+        const yearsOwned = purchaseYear - purchase.year;
+        const propertyData = getPropertyData(purchase.title);
+        
+        if (propertyData && purchase.year <= purchaseYear) {
+          const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
+          const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+          const yieldRate = parseFloat(propertyData.yield) / 100;
+          const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
+          const interestRate = parseFloat(globalFactors.interestRate) / 100;
+          const propertyLoanInterest = purchase.loanAmount * interestRate;
+          const propertyExpenses = rentalIncome * 0.30;
+          
+          grossRentalIncome += rentalIncome;
+          loanInterest += propertyLoanInterest;
+          expenses += propertyExpenses;
+        }
+      });
+      
+      netCashflow = grossRentalIncome - loanInterest - expenses;
+      
+      // Calculate test results
+      const depositBuffer = 40000;
+      const depositTestSurplus = availableFundsUsed - depositBuffer - property.depositRequired;
+      const depositTestPass = depositTestSurplus >= 0;
+      
+      const serviceabilityFactor = 0.10;
+      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
+      const serviceabilityTestSurplus = maxAnnualInterest - loanInterest;
+      const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
+      
+      // Calculate available funds breakdown
+      const annualSavings = profile.annualSavings;
+      const cumulativeSavings = annualSavings * (purchaseYear - 1);
+      const baseDeposit = calculatedValues.availableDeposit;
+      
+      // Calculate equity release (3-year cycle)
+      let equityRelease = 0;
+      if (purchaseYear % 3 === 0) {
+        purchaseHistory.forEach(purchase => {
+          if (purchase.year <= purchaseYear) {
+            const yearsOwned = purchaseYear - purchase.year;
+            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
+            equityRelease += usableEquity;
+          }
+        });
+      }
+      
+      const cashflowReinvestment = Math.max(0, netCashflow);
+      
       const timelineProperty: TimelineProperty = {
         id: `${property.id}_${index}`,
         title: property.title,
@@ -822,7 +885,36 @@ export const useAffordabilityCalculator = () => {
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
         totalDebtAfter: totalDebtAfter,
-        availableFundsUsed: availableFundsUsed
+        availableFundsUsed: availableFundsUsed,
+        
+        // Cashflow breakdown
+        grossRentalIncome,
+        loanInterest,
+        expenses,
+        netCashflow,
+        
+        // Test details
+        depositTestSurplus,
+        depositTestPass,
+        serviceabilityTestSurplus,
+        serviceabilityTestPass,
+        borrowingCapacityUsed: loanAmount,
+        borrowingCapacityRemaining: profile.borrowingCapacity - totalDebtAfter,
+        
+        // Flags and rates
+        isGapRuleBlocked: false, // Set based on gap rule logic
+        rentalRecognitionRate,
+        
+        // Portfolio state before purchase
+        portfolioValueBefore: portfolioValueAfter - property.cost,
+        totalEquityBefore: totalEquityAfter - (property.cost - loanAmount),
+        totalDebtBefore: totalDebtAfter - loanAmount,
+        
+        // Available funds breakdown
+        baseDeposit,
+        cumulativeSavings,
+        cashflowReinvestment,
+        equityRelease
       };
       
       // Add consolidation details if present
