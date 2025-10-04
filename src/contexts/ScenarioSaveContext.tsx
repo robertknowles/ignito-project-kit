@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
 import { useDataAssumptions } from './DataAssumptionsContext';
-import { usePropertySelection } from './PropertySelectionContext';
+import { PropertySelectionContext } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -53,7 +53,7 @@ export const useScenarioSave = () => {
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient } = useClient();
   const { globalFactors, propertyAssumptions } = useDataAssumptions();
-  const propertySelectionContext = usePropertySelection();
+  const propertySelectionContext = useContext(PropertySelectionContext);
   const { profile } = useInvestmentProfile();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -61,8 +61,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
 
-  // Safely access selections, defaulting to empty object if loading
-  const selections = propertySelectionContext?.selections || {};
+  // Safely access selections, defaulting to empty object if context not ready
+  const selections = (propertySelectionContext?.selections as Record<string, number> | undefined) || {};
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {

@@ -46,7 +46,7 @@ interface PropertySelectionContextType {
   isLoading: boolean;
 }
 
-const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
+export const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
 
 export const usePropertySelection = () => {
   const context = useContext(PropertySelectionContext);
