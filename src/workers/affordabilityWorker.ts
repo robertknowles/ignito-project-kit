@@ -2,27 +2,27 @@
 // This runs off the main thread to prevent UI freezes
 
 let lastInputHash = '';
-let lastResult = null;
+let lastResult: any = null;
 
 // Helper: Create hash from inputs
-function hashInputs(inputs) {
+function hashInputs(inputs: any): string {
   return JSON.stringify(inputs);
 }
 
 // Helper: Calculate property growth
-function calculatePropertyGrowth(initialValue, years, growthRate) {
+function calculatePropertyGrowth(initialValue: number, years: number, growthRate: number): number {
   return initialValue * Math.pow(1 + growthRate, years);
 }
 
 // Helper: Calculate rental recognition rate
-function calculateRentalRecognitionRate(portfolioSize) {
+function calculateRentalRecognitionRate(portfolioSize: number): number {
   if (portfolioSize <= 2) return 0.75;      // Properties 1-2: 75%
   if (portfolioSize <= 4) return 0.70;      // Properties 3-4: 70%
   return 0.65;                               // Properties 5+: 65%
 }
 
 // Main calculation function
-function calculateTimeline(inputs) {
+function calculateTimeline(inputs: any) {
   const {
     selections,
     profile,
@@ -41,7 +41,7 @@ function calculateTimeline(inputs) {
   };
 
   // Helper: Calculate available funds
-  function calculateAvailableFunds(currentYear, previousPurchases, additionalEquity = 0) {
+  function calculateAvailableFunds(currentYear: number, previousPurchases: any[], additionalEquity = 0) {
     let totalEnhancedSavings = 0;
     let totalCashflowReinvestment = 0;
     let totalDepositsUsed = 0;
@@ -121,7 +121,7 @@ function calculateTimeline(inputs) {
   }
 
   // Helper: Calculate property score
-  function calculatePropertyScore(purchase, currentYear) {
+  function calculatePropertyScore(purchase: any, currentYear: number) {
     const yearsOwned = currentYear - purchase.year;
     const propertyData = propertyDataMap[purchase.title];
     
@@ -147,7 +147,7 @@ function calculateTimeline(inputs) {
   }
 
   // Helper: Execute consolidation
-  function executeConsolidation(currentYear, previousPurchases) {
+  function executeConsolidation(currentYear: number, previousPurchases: any[]) {
     if (previousPurchases.length === 0) {
       return {
         updatedPurchases: [],
@@ -229,7 +229,7 @@ function calculateTimeline(inputs) {
   }
 
   // Helper: Check affordability
-  function checkAffordability(property, availableFunds, previousPurchases, currentYear, additionalEquity = 0) {
+  function checkAffordability(property: any, availableFunds: number, previousPurchases: any[], currentYear: number, additionalEquity = 0) {
     let netCashflow = 0;
     let grossRentalIncome = 0;
     let loanInterest = 0;
@@ -306,7 +306,7 @@ function calculateTimeline(inputs) {
   }
 
   // Helper: Determine next purchase year
-  function determineNextPurchaseYear(property, previousPurchases) {
+  function determineNextPurchaseYear(property: any, previousPurchases: any[]) {
     let currentPurchases = [...previousPurchases];
     
     for (let year = 1; year <= profile.timelineYears; year++) {
@@ -351,21 +351,22 @@ function calculateTimeline(inputs) {
   }
 
   // Main calculation logic
-  const allPropertiesToPurchase = [];
+  const allPropertiesToPurchase: any[] = [];
   
   Object.entries(selections).forEach(([propertyId, quantity]) => {
-    if (quantity > 0) {
-      const property = propertyTypes.find(p => p.id === propertyId);
+    const qty = Number(quantity);
+    if (qty > 0) {
+      const property = propertyTypes.find((p: any) => p.id === propertyId);
       if (property) {
-        for (let i = 0; i < quantity; i++) {
+        for (let i = 0; i < qty; i++) {
           allPropertiesToPurchase.push({ property, index: i });
         }
       }
     }
   });
 
-  const timelineProperties = [];
-  let purchaseHistory = [];
+  const timelineProperties: any[] = [];
+  let purchaseHistory: any[] = [];
   
   allPropertiesToPurchase.forEach(({ property, index }) => {
     const result = determineNextPurchaseYear(property, purchaseHistory);
@@ -443,7 +444,7 @@ function calculateTimeline(inputs) {
     const cashflowReinvestment = fundsBreakdown.cashflowReinvestment;
     const equityRelease = fundsBreakdown.equityRelease;
     
-    const timelineProperty = {
+    const timelineProperty: any = {
       id: `${property.id}_${index}`,
       title: property.title,
       cost: property.cost,
@@ -507,7 +508,7 @@ function calculateTimeline(inputs) {
   });
   
   // Generate complete timeline
-  const completeTimeline = [];
+  const completeTimeline: any[] = [];
   const purchaseMap = new Map();
   
   timelineProperties.forEach(prop => {
@@ -602,7 +603,7 @@ function calculateTimeline(inputs) {
 }
 
 // Message handler
-self.addEventListener('message', (e) => {
+self.addEventListener('message', (e: MessageEvent) => {
   const { type, payload } = e.data;
   
   if (type === 'CALCULATE') {
@@ -631,7 +632,7 @@ self.addEventListener('message', (e) => {
         payload: result,
         cached: false
       });
-    } catch (error) {
+    } catch (error: any) {
       self.postMessage({ 
         type: 'ERROR', 
         error: error.message 

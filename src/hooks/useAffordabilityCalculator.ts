@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
+import AffordabilityWorker from '../workers/affordabilityWorker?worker';
 
 export interface AffordabilityResult {
   year: number;
@@ -25,24 +26,29 @@ export const useAffordabilityCalculator = () => {
 
   // Initialize worker on mount
   useEffect(() => {
-    workerRef.current = new Worker('/workers/affordabilityWorker.js');
-    
-    workerRef.current.onmessage = (e) => {
-      const { type, payload } = e.data;
+    try {
+      workerRef.current = new AffordabilityWorker();
       
-      if (type === 'RESULT') {
-        setTimelineProperties(payload);
+      workerRef.current.onmessage = (e) => {
+        const { type, payload } = e.data;
+        
+        if (type === 'RESULT') {
+          setTimelineProperties(payload);
+          setIsCalculating(false);
+        } else if (type === 'ERROR') {
+          console.error('Worker error:', e.data.error);
+          setIsCalculating(false);
+        }
+      };
+      
+      workerRef.current.onerror = (error) => {
+        console.error('Worker error:', error);
         setIsCalculating(false);
-      } else if (type === 'ERROR') {
-        console.error('Worker error:', e.data.error);
-        setIsCalculating(false);
-      }
-    };
-    
-    workerRef.current.onerror = (error) => {
-      console.error('Worker error:', error);
+      };
+    } catch (error) {
+      console.error('Failed to initialize worker:', error);
       setIsCalculating(false);
-    };
+    }
     
     return () => {
       workerRef.current?.terminate();
