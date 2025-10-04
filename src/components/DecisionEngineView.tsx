@@ -40,7 +40,12 @@ export const DecisionEngineView: React.FC = () => {
       const yearData: YearBreakdownData = {
         year,
         displayYear: yearIndex,
-        status: property.isConsolidationPhase ? 'consolidated' : 'purchased',
+        status: property.status === 'feasible' ? 'purchased' :
+                property.status === 'consolidation' ? 'consolidated' :
+                property.status === 'waiting' ? 'waiting' :
+                property.status === 'blocked' ? 'blocked' :
+                property.status === 'challenging' ? 'blocked' :
+                'purchased', // fallback
         propertyNumber: propertyIndex,
         propertyType: property.title,
         
