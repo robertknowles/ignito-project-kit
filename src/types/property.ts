@@ -63,7 +63,7 @@ export interface TimelineProperty {
   depositRequired: number;
   loanAmount: number;
   affordableYear: number;
-  status: 'feasible' | 'challenging' | 'consolidation' | 'blocked' | 'waiting';
+  status: 'feasible' | 'challenging' | 'consolidation';
   propertyIndex: number;
   portfolioValueAfter: number;
   totalEquityAfter: number;

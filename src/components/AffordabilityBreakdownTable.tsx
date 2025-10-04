@@ -181,7 +181,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   <td className="p-3">
                     <div className="text-sm">
                       <div>{formatPercentage(interestRate)}</div>
-                      <div className="text-gray-600">{formatPercentage(rentalRecognition * 100)}</div>
+                      <div className="text-gray-600">{formatPercentage(rentalRecognition)}</div>
                     </div>
                   </td>
                   
@@ -256,9 +256,9 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                         <div>
                           <h4 className="font-semibold mb-2">💵 Portfolio Cashflow</h4>
                           <div className="space-y-1 text-gray-600">
-                            <div>Gross Rental: {formatCurrency(year.grossRental)}</div>
-                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments)}</div>
-                            <div>Expenses: -{formatCurrency(year.expenses)}</div>
+                            <div>Gross Rental: {formatCurrency(year.grossRental || 0)}</div>
+                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments || 0)}</div>
+                            <div>Expenses: -{formatCurrency(year.expenses || 0)}</div>
                             <div className="pt-2 border-t font-semibold text-gray-900">
                               Net Cashflow: {formatCurrency(netCashflow)}/year
                             </div>
@@ -269,8 +269,8 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                           <div>
                             <h4 className="font-semibold mb-2">💳 Debt Position</h4>
                             <div className="space-y-1 text-gray-600">
-                              <div>Existing Debt: {formatCurrency(year.totalDebt - (year.status === 'purchased' ? (year.requiredLoan || 0) : 0))}</div>
-                              {year.status === 'purchased' && year.requiredLoan && <div>New Loan Required: {formatCurrency(year.requiredLoan)}</div>}
+                              <div>Existing Debt: {formatCurrency(year.totalDebt - (year.status === 'purchased' ? year.requiredLoan : 0))}</div>
+                              {year.status === 'purchased' && <div>New Loan Required: {formatCurrency(year.requiredLoan)}</div>}
                               <div>Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity)}</div>
                               <div className="pt-2 border-t font-semibold text-gray-900">
                                 Total Debt: {formatCurrency(year.totalDebt)}
@@ -305,7 +305,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                         <div>
                           <h4 className="font-semibold mb-2">🚦 Decision Logic</h4>
                           <div className="space-y-1 text-gray-600">
-                            {year.gapRule === true && <div className="text-blue-600">⏸️ 12-month gap rule enforced</div>}
+                            {year.gapRule && <div className="text-blue-600">⏸️ 12-month gap rule enforced</div>}
                             {!depositTest.pass && <div className="text-red-600">❌ Deposit test failed</div>}
                             {!serviceabilityTest.pass && <div className="text-red-600">❌ Serviceability test failed</div>}
                             {year.status === 'purchased' && <div className="text-green-600">✅ All tests passed</div>}

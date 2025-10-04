@@ -725,46 +725,6 @@ export const useAffordabilityCalculator = () => {
         if (affordabilityResult.canAfford) {
           const absoluteYear = year + 2025 - 1;
           
-          // REALISTIC CASH ACCUMULATION VALIDATION
-          // Ensure enough time has passed for funds to build up realistically
-          const depositBuffer = 40000;
-          const requiredFunds = property.depositRequired + depositBuffer;
-          
-          // Calculate realistic fund accumulation without equity (baseline check)
-          const baseDeposit = calculatedValues.availableDeposit;
-          const annualSavings = profile.annualSavings;
-          const yearsSinceStart = year - 1;
-          const accumulatedSavings = baseDeposit + (annualSavings * yearsSinceStart);
-          
-          // Calculate years needed to save this deposit from scratch
-          const yearsToSave = requiredFunds > baseDeposit 
-            ? Math.ceil((requiredFunds - baseDeposit) / annualSavings) 
-            : 0;
-          
-          // If this is not the first property, check time since last purchase
-          if (lastPurchaseYear > 0) {
-            const yearsSinceLastPurchase = year - lastPurchaseYear;
-            const minimumYearsRequired = Math.max(2, Math.min(yearsToSave, 4)); // At least 2 years, max 4 years between purchases
-            
-            if (yearsSinceLastPurchase < minimumYearsRequired) {
-              if (DEBUG_MODE) {
-                console.log(`[CASH ACCUMULATION] Year ${year + 2025 - 1}: Insufficient time to accumulate funds. Only ${yearsSinceLastPurchase} years since last purchase, need ${minimumYearsRequired} years`);
-              }
-              continue; // Skip this year, funds haven't accumulated enough
-            }
-          }
-          
-          // Verify deposit test surplus is meaningful (not barely passing)
-          const depositTestSurplus = availableFunds - depositBuffer - property.depositRequired;
-          const minimumSurplus = property.depositRequired * 0.1; // At least 10% surplus
-          
-          if (depositTestSurplus < minimumSurplus && !affordabilityResult.consolidationTriggered) {
-            if (DEBUG_MODE) {
-              console.log(`[DEPOSIT SURPLUS] Year ${year + 2025 - 1}: Insufficient deposit surplus (£${depositTestSurplus.toLocaleString()}). Need at least £${minimumSurplus.toLocaleString()}`);
-            }
-            continue; // Barely passing - wait for more accumulation
-          }
-          
           if (affordabilityResult.consolidationTriggered) {
             // Update the purchase history to reflect consolidation
             currentPurchases = affordabilityResult.consolidationDetails.updatedPurchases;
@@ -809,20 +769,10 @@ export const useAffordabilityCalculator = () => {
 
     const timelineProperties: TimelineProperty[] = [];
     let purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
-    const gapBlockedYears = new Set<number>();
     
     // Process properties sequentially, determining purchase year for each
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
       const result = determineNextPurchaseYear(property, purchaseHistory);
-      
-      // STOP PROCESSING if this property cannot be afforded within timeline
-      if (result.year === Infinity) {
-        if (DEBUG_MODE) {
-          console.log(`[TIMELINE END] Property ${globalIndex + 1} (${property.title}) cannot be afforded within ${profile.timelineYears} year timeline. Stopping further property scheduling.`);
-        }
-        // Continue to create the entry but don't process remaining properties after this one
-      }
-      
       const loanAmount = property.cost - property.depositRequired;
       
       // Calculate portfolio metrics at time of purchase
@@ -952,7 +902,7 @@ export const useAffordabilityCalculator = () => {
         borrowingCapacityRemaining: profile.borrowingCapacity - totalDebtAfter,
         
         // Flags and rates
-        isGapRuleBlocked: false, // Will be updated when we generate all-year data
+        isGapRuleBlocked: false, // Set based on gap rule logic
         rentalRecognitionRate,
         
         // Portfolio state before purchase
@@ -1000,148 +950,9 @@ export const useAffordabilityCalculator = () => {
       }
     });
     
-    // Now generate all-year data - fill in missing years with portfolio state
-    const allYearData: TimelineProperty[] = [];
-    let currentPurchaseIndex = 0;
-    
-    for (let year = 1; year <= profile.timelineYears; year++) {
-      const absoluteYear = year + 2025 - 1;
-      
-      // Check if there's a purchase in this year
-      const purchaseInYear = timelineProperties.find(p => p.affordableYear === absoluteYear);
-      
-      if (purchaseInYear) {
-        // Mark gap-blocked years (next year after this purchase)
-        gapBlockedYears.add(year + 1);
-        allYearData.push(purchaseInYear);
-        currentPurchaseIndex++;
-      } else {
-        // No purchase - generate portfolio state for this year
-        const purchasesUpToThisYear = purchaseHistory.filter(p => p.year < year);
-        
-        // Calculate portfolio metrics
-        let portfolioValue = profile.portfolioValue > 0 ? calculatePropertyGrowth(profile.portfolioValue, year - 1) : 0;
-        let totalDebt = profile.currentDebt;
-        let grossRentalIncome = 0;
-        let loanInterest = 0;
-        let expenses = 0;
-        
-        const portfolioSize = purchasesUpToThisYear.length;
-        const rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
-        
-        purchasesUpToThisYear.forEach(purchase => {
-          const yearsOwned = year - purchase.year;
-          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-          portfolioValue += currentValue;
-          totalDebt += purchase.loanAmount;
-          
-          // Calculate cashflow
-          const propertyData = getPropertyData(purchase.title);
-          if (propertyData) {
-            const yieldRate = parseFloat(propertyData.yield) / 100;
-            const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
-            const interestRate = parseFloat(globalFactors.interestRate) / 100;
-            const propertyLoanInterest = purchase.loanAmount * interestRate;
-            const propertyExpenses = rentalIncome * 0.30;
-            
-            grossRentalIncome += rentalIncome;
-            loanInterest += propertyLoanInterest;
-            expenses += propertyExpenses;
-          }
-        });
-        
-        const netCashflow = grossRentalIncome - loanInterest - expenses;
-        const totalEquity = portfolioValue - totalDebt;
-        
-        // Calculate available funds
-        const availableFunds = calculateAvailableFunds(year, purchasesUpToThisYear);
-        
-        // Determine blocking reason
-        const isGapBlocked = gapBlockedYears.has(year);
-        
-        // Calculate what would be needed for next property (if we know what's next)
-        const nextProperty = allPropertiesToPurchase[currentPurchaseIndex]?.property;
-        let depositTestPass = false;
-        let serviceabilityTestPass = false;
-        let depositTestSurplus = 0;
-        let serviceabilityTestSurplus = 0;
-        
-        if (nextProperty) {
-          const depositBuffer = 40000;
-          depositTestSurplus = availableFunds - depositBuffer - nextProperty.depositRequired;
-          depositTestPass = depositTestSurplus >= 0;
-          
-          const serviceabilityFactor = 0.10;
-          const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
-          serviceabilityTestSurplus = maxAnnualInterest - loanInterest - (nextProperty.cost - nextProperty.depositRequired) * (parseFloat(globalFactors.interestRate) / 100);
-          serviceabilityTestPass = serviceabilityTestSurplus >= 0;
-        }
-        
-        // Calculate available funds breakdown
-        const annualSavings = profile.annualSavings;
-        const cumulativeSavings = annualSavings * (year - 1);
-        const baseDeposit = calculatedValues.availableDeposit;
-        
-        let equityRelease = 0;
-        if (year % 3 === 0) {
-          purchasesUpToThisYear.forEach(purchase => {
-            const yearsOwned = year - purchase.year;
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-            equityRelease += usableEquity;
-          });
-        }
-        
-        const cashflowReinvestment = Math.max(0, netCashflow);
-        
-        // Create non-purchase year entry
-        allYearData.push({
-          id: `year_${year}`,
-          title: '', // No property purchased
-          cost: 0,
-          depositRequired: 0,
-          loanAmount: 0,
-          affordableYear: absoluteYear,
-          status: isGapBlocked ? 'waiting' : (!depositTestPass || !serviceabilityTestPass ? 'blocked' : 'waiting'),
-          propertyIndex: -1,
-          portfolioValueAfter: portfolioValue,
-          totalEquityAfter: totalEquity,
-          totalDebtAfter: totalDebt,
-          availableFundsUsed: availableFunds,
-          
-          // Cashflow breakdown - current portfolio
-          grossRentalIncome,
-          loanInterest,
-          expenses,
-          netCashflow,
-          
-          // Test details
-          depositTestSurplus,
-          depositTestPass,
-          serviceabilityTestSurplus,
-          serviceabilityTestPass,
-          borrowingCapacityUsed: 0,
-          borrowingCapacityRemaining: profile.borrowingCapacity - totalDebt,
-          
-          // Flags and rates
-          isGapRuleBlocked: isGapBlocked,
-          rentalRecognitionRate,
-          
-          // Portfolio state (same as after since no purchase)
-          portfolioValueBefore: portfolioValue,
-          totalEquityBefore: totalEquity,
-          totalDebtBefore: totalDebt,
-          
-          // Available funds breakdown
-          baseDeposit,
-          cumulativeSavings,
-          cashflowReinvestment,
-          equityRelease
-        });
-      }
-    }
-    
-    return allYearData;
+    // Sort by affordable year for display
+    const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
+    return sortedProperties;
   }, [
     // Only re-calculate when these specific values change
     JSON.stringify(selections),
