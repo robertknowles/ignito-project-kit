@@ -65,7 +65,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$10k</span>
-            <span className="text-xs text-[#6b7280]">$250k</span>
+            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.depositPool)}</span>
             <span className="text-xs text-[#6b7280]">$500k</span>
           </div>
         </div>
@@ -91,7 +91,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$100k</span>
-            <span className="text-xs text-[#6b7280]">$1M</span>
+            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.borrowingCapacity)}</span>
             <span className="text-xs text-[#6b7280]">$2M</span>
           </div>
         </div>
@@ -117,7 +117,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">$2.5M</span>
+            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.portfolioValue)}</span>
             <span className="text-xs text-[#6b7280]">$5M</span>
           </div>
         </div>
@@ -143,7 +143,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">$2M</span>
+            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.currentDebt)}</span>
             <span className="text-xs text-[#6b7280]">$4M</span>
           </div>
         </div>
@@ -169,7 +169,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">$50k</span>
+            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.annualSavings)}</span>
             <span className="text-xs text-[#6b7280]">$100k</span>
           </div>
         </div>
@@ -251,7 +251,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">5 years</span>
-            <span className="text-xs text-[#6b7280]">15 years</span>
+            <span className="text-xs text-[#6b7280]">{profile.timelineYears} years</span>
             <span className="text-xs text-[#6b7280]">30 years</span>
           </div>
         </div>
