@@ -68,8 +68,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Stabilize selections reference to prevent unnecessary re-renders
   const selections = useMemo(() => internalSelections, [
-    JSON.stringify(Object.keys(internalSelections).sort()),
-    ...Object.values(internalSelections)
+    JSON.stringify(internalSelections)
   ]);
 
   // Load selections from localStorage on mount or when client changes
