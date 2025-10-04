@@ -12,13 +12,10 @@ export const DecisionEngineView: React.FC = () => {
 
   // Transform TimelineProperty[] to YearBreakdownData[]
   const yearBreakdownData = useMemo((): YearBreakdownData[] => {
-    if (!timelineProperties || timelineProperties.length === 0) {
-      return [];
-    }
-
     const baseYear = 2025;
     const interestRate = parseFloat(globalFactors.interestRate) / 100;
     const lvrRatio = parseFloat(globalFactors.loanToValueRatio) / 100;
+    const growthRate = parseFloat(globalFactors.growthRate) / 100;
     
     // Create a map of years to properties for quick lookup
     const propertyByYear = new Map<number, typeof timelineProperties[0]>();
@@ -26,16 +23,35 @@ export const DecisionEngineView: React.FC = () => {
       propertyByYear.set(prop.affordableYear, prop);
     });
 
-    // Generate year-by-year breakdown
+    // Generate year-by-year breakdown for ALL years
     const years: YearBreakdownData[] = [];
-    const startYear = Math.min(...timelineProperties.map(p => p.affordableYear));
-    const endYear = Math.max(...timelineProperties.map(p => p.affordableYear));
+    const endYear = baseYear + profile.timelineYears;
+    
+    // Track rolling state across years
+    let rollingPortfolioValue = profile.portfolioValue;
+    let rollingTotalDebt = profile.currentDebt;
+    let rollingEquity = rollingPortfolioValue - rollingTotalDebt;
+    let cumulativeSavings = 0;
+    let cumulativeCashflow = 0;
 
-    for (let year = startYear; year <= endYear; year++) {
+    for (let year = baseYear; year <= endYear; year++) {
       const property = propertyByYear.get(year);
+      const yearIndex = year - baseYear;
       const propertyIndex = property ? property.propertyIndex + 1 : null;
       
+      // Update cumulative savings
+      if (yearIndex > 0) {
+        cumulativeSavings += profile.annualSavings;
+      }
+      
+      // Grow existing portfolio
+      if (yearIndex > 0 && rollingPortfolioValue > 0) {
+        rollingPortfolioValue *= (1 + growthRate);
+        rollingEquity = rollingPortfolioValue - rollingTotalDebt;
+      }
+      
       if (property) {
+        // PURCHASE YEAR - Full details
         // Calculate rental recognition based on portfolio size
         const portfolioSize = propertyIndex || 1;
         let rentalRecognition = 0.75;
@@ -58,9 +74,15 @@ export const DecisionEngineView: React.FC = () => {
         const expenses = property.cost * 0.015; // 1.5% of property value
         const annualCashFlow = grossRental - loanRepayments - expenses;
 
+        // Update rolling state with this purchase
+        rollingPortfolioValue = property.portfolioValueAfter;
+        rollingTotalDebt = totalDebt;
+        rollingEquity = property.totalEquityAfter;
+        cumulativeCashflow += annualCashFlow;
+
         const yearData: YearBreakdownData = {
           year,
-          displayYear: year - baseYear,
+          displayYear: yearIndex,
           status: property.isConsolidationPhase ? 'consolidated' : 'purchased',
           propertyNumber: propertyIndex,
           propertyType: property.title,
@@ -76,7 +98,7 @@ export const DecisionEngineView: React.FC = () => {
           
           // Available funds breakdown
           baseDeposit: profile.depositPool,
-          cumulativeSavings: profile.annualSavings * (year - baseYear),
+          cumulativeSavings,
           cashflowReinvestment: annualCashFlow > 0 ? annualCashFlow : 0,
           equityRelease: property.availableFundsUsed - property.depositRequired,
           
@@ -144,6 +166,102 @@ export const DecisionEngineView: React.FC = () => {
             loanAmount: property.loanAmount,
             year,
           }],
+        };
+
+        years.push(yearData);
+      } else {
+        // NON-PURCHASE YEAR - Show rolling state and decision reasoning
+        const usableEquity = Math.max(0, rollingEquity - (rollingPortfolioValue * 0.2)); // Keep 20% as buffer
+        const availableDeposit = profile.depositPool + cumulativeSavings + cumulativeCashflow + usableEquity;
+        
+        // Estimate next property requirement (use average of properties or default)
+        const avgPropertyCost = timelineProperties.length > 0 
+          ? timelineProperties.reduce((sum, p) => sum + p.cost, 0) / timelineProperties.length 
+          : 600000;
+        const estimatedDeposit = avgPropertyCost * lvrRatio;
+        const estimatedLoan = avgPropertyCost * (1 - lvrRatio);
+        
+        // Calculate portfolio cash flow from existing properties
+        const portfolioCashFlow = rollingPortfolioValue > 0 ? rollingPortfolioValue * 0.02 : 0; // Rough 2% net yield
+        cumulativeCashflow += portfolioCashFlow;
+        
+        // Determine status
+        const depositPass = availableDeposit >= estimatedDeposit;
+        const serviceabilityPass = profile.borrowingCapacity >= estimatedLoan;
+        
+        let status: 'waiting' | 'blocked' = 'waiting'; // waiting = building capacity, blocked = failed tests
+        if (!depositPass || !serviceabilityPass) status = 'blocked';
+        
+        const yearData: YearBreakdownData = {
+          year,
+          displayYear: yearIndex,
+          status,
+          propertyNumber: null,
+          propertyType: '-',
+          
+          // Portfolio metrics (rolling)
+          portfolioValue: rollingPortfolioValue,
+          totalEquity: rollingEquity,
+          totalDebt: rollingTotalDebt,
+          
+          // Cash engine
+          availableDeposit,
+          annualCashFlow: portfolioCashFlow,
+          
+          // Available funds breakdown
+          baseDeposit: profile.depositPool,
+          cumulativeSavings,
+          cashflowReinvestment: cumulativeCashflow,
+          equityRelease: usableEquity,
+          
+          // Cashflow components
+          grossRental: 0,
+          loanRepayments: rollingTotalDebt * interestRate,
+          expenses: 0,
+          
+          // Requirements (estimated for next property)
+          requiredDeposit: estimatedDeposit,
+          requiredLoan: estimatedLoan,
+          propertyCost: avgPropertyCost,
+          
+          // Capacity
+          availableBorrowingCapacity: profile.borrowingCapacity,
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          // Assumptions
+          interestRate: interestRate * 100,
+          rentalRecognition: 0.75,
+          
+          // Tests (against next property estimate)
+          depositTest: {
+            pass: depositPass,
+            surplus: availableDeposit - estimatedDeposit,
+            available: availableDeposit,
+            required: estimatedDeposit,
+          },
+          
+          serviceabilityTest: {
+            pass: serviceabilityPass,
+            surplus: profile.borrowingCapacity - estimatedLoan,
+            available: profile.borrowingCapacity,
+            required: estimatedLoan,
+          },
+          
+          // Flags
+          gapRule: false,
+          equityReleaseYear: usableEquity > 0,
+          
+          // Strategy metrics
+          portfolioScaling: 0,
+          selfFundingEfficiency: 0,
+          equityRecyclingImpact: rollingEquity > 0 && rollingPortfolioValue > 0 
+            ? (rollingEquity / rollingPortfolioValue) * 100 
+            : 0,
+          dsr: 0,
+          lvr: rollingPortfolioValue > 0 ? (rollingTotalDebt / rollingPortfolioValue) * 100 : 0,
+          
+          // Breakdown details
+          purchases: [],
         };
 
         years.push(yearData);
