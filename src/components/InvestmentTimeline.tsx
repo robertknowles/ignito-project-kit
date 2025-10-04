@@ -75,8 +75,10 @@ export const InvestmentTimeline = () => {
       };
     }> = [];
 
-    // Add purchase events
-    timelineProperties.forEach((property, index) => {
+    // Add purchase events - ONLY for actual purchases
+    timelineProperties
+      .filter(property => property.title !== '' && property.propertyIndex >= 0)
+      .forEach((property, index) => {
       const isAffordable = property.status === 'feasible' || property.status === 'consolidation';
       const timelineEndYear = 2025 + profile.timelineYears;
       
