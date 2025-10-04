@@ -350,20 +350,43 @@ function calculateTimeline(inputs: any) {
     return { year: Infinity };
   }
 
+  // Debug logging
+  console.log('🔍 Worker calculateTimeline received:', {
+    selectionsKeys: Object.keys(selections),
+    selectionsValues: selections,
+    propertyTypesCount: propertyTypes?.length,
+    propertyTypesIds: propertyTypes?.map((p: any) => p.id),
+    propertyDataMapKeys: Object.keys(propertyDataMap || {}),
+  });
+
   // Main calculation logic
   const allPropertiesToPurchase: any[] = [];
   
   Object.entries(selections).forEach(([propertyId, quantity]) => {
     const qty = Number(quantity);
+    console.log(`🔍 Processing selection: ${propertyId} = ${qty}`);
+    
     if (qty > 0) {
       const property = propertyTypes.find((p: any) => p.id === propertyId);
+      
       if (property) {
+        console.log(`✅ Found property ${propertyId}:`, {
+          id: property.id,
+          title: property.title,
+          cost: property.cost,
+        });
+        
         for (let i = 0; i < qty; i++) {
           allPropertiesToPurchase.push({ property, index: i });
         }
+      } else {
+        console.error(`❌ Property NOT FOUND: ${propertyId}`);
+        console.error('Available property IDs:', propertyTypes?.map((p: any) => p.id));
       }
     }
   });
+  
+  console.log(`📊 Total properties to purchase: ${allPropertiesToPurchase.length}`);
 
   const timelineProperties: any[] = [];
   let purchaseHistory: any[] = [];
