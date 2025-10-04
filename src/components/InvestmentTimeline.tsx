@@ -14,7 +14,7 @@ import type { PropertyPurchase } from '../types/property'
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility } = usePropertySelection()
-  const { timelineProperties } = useAffordabilityCalculator()
+  const { timelineProperties, isCalculating } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
   // Get feasibility status based on current selections
@@ -147,7 +147,14 @@ export const InvestmentTimeline = () => {
   const timelineItems = generateTimelineItems()
 
   return (
-    <div>
+    <div className="relative">
+      {isCalculating && (
+        <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-lg">
+          <div className="text-sm text-[#6b7280] bg-white px-4 py-2 rounded-md shadow-sm border border-[#f3f4f6]">
+            Calculating timeline...
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-3 mb-8">
         <CalendarIcon size={16} className="text-[#6b7280]" />
         <h3 className="text-[#111827] font-medium text-sm">

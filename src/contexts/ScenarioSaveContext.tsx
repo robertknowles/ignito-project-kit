@@ -61,8 +61,24 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
 
+  // Don't render children until context is ready
+  if (!propertySelectionContext) {
+    // Return a minimal provider while PropertySelectionProvider initializes
+    return (
+      <ScenarioSaveContext.Provider value={{
+        hasUnsavedChanges: false,
+        isLoading: true,
+        lastSaved: null,
+        saveScenario: () => {},
+        loadClientScenario: () => null
+      }}>
+        {children}
+      </ScenarioSaveContext.Provider>
+    );
+  }
+
   // Safely access selections, defaulting to empty object if context not ready
-  const selections = (propertySelectionContext?.selections as Record<string, number> | undefined) || {};
+  const selections = propertySelectionContext.selections || {};
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {

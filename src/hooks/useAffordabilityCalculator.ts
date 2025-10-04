@@ -14,13 +14,27 @@ export interface AffordabilityResult {
 }
 
 export const useAffordabilityCalculator = () => {
-  const [isCalculating, setIsCalculating] = React.useState(false);
   const { profile, calculatedValues } = useInvestmentProfile();
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
+  // Add debounced selections state
+  const [debouncedSelections, setDebouncedSelections] = React.useState(selections);
+  const [isCalculating, setIsCalculating] = React.useState(false);
+
+  // Debounce selections changes (300ms delay)
+  React.useEffect(() => {
+    setIsCalculating(true); // Show loading state immediately
+    
+    const timer = setTimeout(() => {
+      setDebouncedSelections(selections);
+      setIsCalculating(false);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [selections]);
+
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    setIsCalculating(true);
 
     // Track consolidation state - simplified to only consecutive failures
     let consolidationState = {
@@ -908,7 +922,7 @@ export const useAffordabilityCalculator = () => {
     
     return sortedTimeline;
   }, [
-    selections,
+    debouncedSelections,
     propertyTypes,
     profile.timelineYears,
     profile.borrowingCapacity,

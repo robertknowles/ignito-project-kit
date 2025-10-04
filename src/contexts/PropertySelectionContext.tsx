@@ -66,10 +66,18 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
 
-  // Stabilize selections reference to prevent unnecessary re-renders
-  const selections = useMemo(() => internalSelections, [
-    JSON.stringify(internalSelections)
-  ]);
+  // Stabilize selections reference using proper deep comparison
+  const selectionsRef = useRef(internalSelections);
+  const selections = useMemo(() => {
+    // Only update if values actually changed
+    const hasChanged = Object.keys(internalSelections).length !== Object.keys(selectionsRef.current).length ||
+      Object.entries(internalSelections).some(([key, value]) => selectionsRef.current[key] !== value);
+    
+    if (hasChanged) {
+      selectionsRef.current = { ...internalSelections };
+    }
+    return selectionsRef.current;
+  }, [internalSelections]);
 
   // Load selections from localStorage on mount or when client changes
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ClipboardIcon, SlidersIcon } from 'lucide-react'
 import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -29,6 +29,50 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     getPropertyQuantity,
     propertyTypes,
   } = usePropertySelection()
+
+  // Optimistic UI state for immediate visual feedback
+  const [optimisticCounts, setOptimisticCounts] = useState<Record<string, number>>({})
+
+  const handleIncrement = (propertyId: string) => {
+    // Update UI immediately
+    setOptimisticCounts(prev => ({
+      ...prev,
+      [propertyId]: (prev[propertyId] ?? getPropertyQuantity(propertyId)) + 1
+    }))
+    
+    // Update actual state
+    incrementProperty(propertyId)
+    
+    // Clear optimistic update after a delay
+    setTimeout(() => {
+      setOptimisticCounts(prev => {
+        const { [propertyId]: _, ...rest } = prev
+        return rest
+      })
+    }, 500)
+  }
+
+  const handleDecrement = (propertyId: string) => {
+    // Update UI immediately
+    const currentCount = optimisticCounts[propertyId] ?? getPropertyQuantity(propertyId)
+    if (currentCount > 0) {
+      setOptimisticCounts(prev => ({
+        ...prev,
+        [propertyId]: currentCount - 1
+      }))
+      
+      // Update actual state
+      decrementProperty(propertyId)
+      
+      // Clear optimistic update after a delay
+      setTimeout(() => {
+        setOptimisticCounts(prev => {
+          const { [propertyId]: _, ...rest } = prev
+          return rest
+        })
+      }, 500)
+    }
+  }
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -280,10 +324,10 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               yield={property.yield}
               cashFlow={property.cashFlow}
               riskLevel={property.riskLevel}
-              count={getPropertyQuantity(property.id)}
-              selected={getPropertyQuantity(property.id) > 0}
-              onIncrement={() => incrementProperty(property.id)}
-              onDecrement={() => decrementProperty(property.id)}
+              count={optimisticCounts[property.id] ?? getPropertyQuantity(property.id)}
+              selected={(optimisticCounts[property.id] ?? getPropertyQuantity(property.id)) > 0}
+              onIncrement={() => handleIncrement(property.id)}
+              onDecrement={() => handleDecrement(property.id)}
             />
           ))}
         </div>
