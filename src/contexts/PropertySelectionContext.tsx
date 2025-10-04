@@ -62,9 +62,15 @@ interface PropertySelectionProviderProps {
 
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const { activeClient } = useClient();
-  const [selections, setSelections] = useState<PropertySelection>({});
+  const [internalSelections, setInternalSelections] = useState<PropertySelection>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
+
+  // Stabilize selections reference to prevent unnecessary re-renders
+  const selections = useMemo(() => internalSelections, [
+    JSON.stringify(Object.keys(internalSelections).sort()),
+    ...Object.values(internalSelections)
+  ]);
 
   // Load selections from localStorage on mount or when client changes
   useEffect(() => {
@@ -74,13 +80,13 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         try {
-          setSelections(JSON.parse(stored));
+          setInternalSelections(JSON.parse(stored));
         } catch (error) {
           console.error('Failed to load property selections from localStorage:', error);
-          setSelections({});
+          setInternalSelections({});
         }
       } else {
-        setSelections({});
+        setInternalSelections({});
       }
       setIsLoading(false);
     }
@@ -90,9 +96,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   useEffect(() => {
     if (activeClient?.id) {
       const storageKey = `property_selections_${activeClient.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(selections));
+      localStorage.setItem(storageKey, JSON.stringify(internalSelections));
     }
-  }, [selections, activeClient?.id]);
+  }, [internalSelections, activeClient?.id]);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
@@ -153,21 +159,21 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   };
 
   const updatePropertyQuantity = useCallback((propertyId: string, quantity: number) => {
-    setSelections(prev => ({
+    setInternalSelections(prev => ({
       ...prev,
       [propertyId]: Math.max(0, quantity), // Ensure non-negative
     }));
   }, []);
 
   const incrementProperty = useCallback((propertyId: string) => {
-    setSelections(prev => ({
+    setInternalSelections(prev => ({
       ...prev,
       [propertyId]: (prev[propertyId] || 0) + 1,
     }));
   }, []);
 
   const decrementProperty = useCallback((propertyId: string) => {
-    setSelections(prev => ({
+    setInternalSelections(prev => ({
       ...prev,
       [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
     }));
@@ -178,7 +184,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   };
 
   const resetSelections = () => {
-    setSelections({});
+    setInternalSelections({});
   };
 
   const value = {

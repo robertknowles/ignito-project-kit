@@ -114,12 +114,12 @@ export const Dashboard = () => {
             </div>
             {/* Tab Content */}
             <div className="p-6">
-              {activeTab === 'timeline' && <InvestmentTimeline />}
-              {activeTab === 'portfolio' && <PortfolioGrowthChart />}
-              {activeTab === 'cashflow' && <CashflowChart />}
-              {activeTab === 'analysis' && <CashFlowAnalysis />}
-              {activeTab === 'projections' && <GrowthProjections />}
-              {activeTab === 'breakdown' && <DecisionEngineView />}
+              {activeTab === 'timeline' ? <InvestmentTimeline /> : null}
+              {activeTab === 'portfolio' ? <PortfolioGrowthChart /> : null}
+              {activeTab === 'cashflow' ? <CashflowChart /> : null}
+              {activeTab === 'analysis' ? <CashFlowAnalysis /> : null}
+              {activeTab === 'projections' ? <GrowthProjections /> : null}
+              {activeTab === 'breakdown' ? <DecisionEngineView /> : null}
             </div>
           </div>
         </div>
