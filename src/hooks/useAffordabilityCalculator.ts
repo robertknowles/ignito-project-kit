@@ -76,15 +76,15 @@ export const useAffordabilityCalculator = () => {
               const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
               const rentalIncome = currentValue * yieldRate * recognitionRate;
               
-              // Calculate loan repayments (interest only for simplicity)
+              // Interest-only loans - principal does not reduce
               const interestRate = parseFloat(globalFactors.interestRate) / 100;
-              const loanRepayments = purchase.loanAmount * interestRate;
+              const loanInterest = purchase.loanAmount * interestRate;
               
-              // Calculate expenses (simplified - 1% of property value annually)
-              const expenses = currentValue * 0.01; // 1% for maintenance, management, etc.
+              // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
+              const expenses = rentalIncome * 0.30;
               
               // Net cashflow for this property
-              const propertyCashflow = rentalIncome - loanRepayments - expenses;
+              const propertyCashflow = rentalIncome - loanInterest - expenses;
               netCashflow += propertyCashflow;
             }
           }
@@ -152,10 +152,12 @@ export const useAffordabilityCalculator = () => {
       // Cashflow Score (rental income - loan payments - expenses)
       const yieldRate = parseFloat(propertyData.yield) / 100;
       const rentalIncome = currentValue * yieldRate;
+      // Interest-only loans - principal does not reduce
       const interestRate = parseFloat(globalFactors.interestRate) / 100;
-      const loanRepayments = purchase.loanAmount * interestRate;
-      const expenses = currentValue * 0.01; // 1% for maintenance, etc.
-      const netCashflow = rentalIncome - loanRepayments - expenses;
+      const loanInterest = purchase.loanAmount * interestRate;
+      // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
+      const expenses = rentalIncome * 0.30;
+      const netCashflow = rentalIncome - loanInterest - expenses;
       
       // Equity Score (current equity in property)
       const currentEquity = currentValue - purchase.loanAmount;
@@ -313,7 +315,7 @@ export const useAffordabilityCalculator = () => {
       // Calculate net cashflow from all current properties
       let netCashflow = 0;
       let grossRentalIncome = 0;
-      let loanRepayments = 0;
+      let loanInterest = 0;
       let expenses = 0;
       
       previousPurchases.forEach(purchase => {
@@ -329,14 +331,16 @@ export const useAffordabilityCalculator = () => {
             const portfolioSize = previousPurchases.filter(p => p.year <= currentYear).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
             const rentalIncome = currentValue * yieldRate * recognitionRate;
+            // Interest-only loans - principal does not reduce
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
-            const propertyLoanRepayments = purchase.loanAmount * interestRate;
-            const propertyExpenses = currentValue * 0.01;
+            const propertyLoanInterest = purchase.loanAmount * interestRate;
+            // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
+            const propertyExpenses = rentalIncome * 0.30;
             
             grossRentalIncome += rentalIncome;
-            loanRepayments += propertyLoanRepayments;
+            loanInterest += propertyLoanInterest;
             expenses += propertyExpenses;
-            netCashflow += (rentalIncome - propertyLoanRepayments - propertyExpenses);
+            netCashflow += (rentalIncome - propertyLoanInterest - propertyExpenses);
           }
         }
       });
@@ -391,32 +395,33 @@ export const useAffordabilityCalculator = () => {
       const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
       
       // NEW SERVICEABILITY-BASED DEBT TEST
-      // Calculate annual loan repayments for all properties
-      let totalAnnualLoanRepayments = 0;
+      // Interest-only loans - principal does not reduce
+      // Calculate annual loan interest for all properties
+      let totalAnnualLoanInterest = 0;
       const interestRate = parseFloat(globalFactors.interestRate) / 100;
       
-      // Existing debt repayments
+      // Existing debt interest
       if (profile.currentDebt > 0) {
-        totalAnnualLoanRepayments += profile.currentDebt * interestRate;
+        totalAnnualLoanInterest += profile.currentDebt * interestRate;
       }
       
-      // Previous purchases loan repayments
+      // Previous purchases loan interest
       previousPurchases.forEach(purchase => {
         if (purchase.year <= currentYear) {
-          totalAnnualLoanRepayments += purchase.loanAmount * interestRate;
+          totalAnnualLoanInterest += purchase.loanAmount * interestRate;
         }
       });
       
-      // Add new property loan repayment
-      const newPropertyLoanRepayment = newLoanAmount * interestRate;
-      totalAnnualLoanRepayments += newPropertyLoanRepayment;
+      // Add new property loan interest
+      const newPropertyLoanInterest = newLoanAmount * interestRate;
+      totalAnnualLoanInterest += newPropertyLoanInterest;
       
       // Simple serviceability test using borrowing capacity  
-      const maxAnnualRepayments = profile.borrowingCapacity * 0.10;
+      const maxAnnualInterest = profile.borrowingCapacity * 0.10;
       
-      // SERVICEABILITY TEST: Annual Repayments <= Borrowing Capacity × Interest Rate
+      // SERVICEABILITY TEST: Annual Interest <= Borrowing Capacity × 10%
       const canAffordDeposit = (availableFunds - profile.depositBuffer) >= property.depositRequired;
-      const canAffordServiceability = totalAnnualLoanRepayments <= maxAnnualRepayments;
+      const canAffordServiceability = totalAnnualLoanInterest <= maxAnnualInterest;
       
       // Debug trace output
       if (DEBUG_MODE) {
@@ -482,24 +487,24 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Gross Rental: £${rentalIncome.toLocaleString()}`
         );
         console.log(
-          `   ├─ Loan Repayments: -£${loanRepayments.toLocaleString()}`
+          `   ├─ Loan Interest: -£${loanInterest.toLocaleString()}`
         );
         console.log(
-          `   └─ Expenses: -£${expenses.toLocaleString()}`
+          `   └─ Expenses: -£${expenses.toLocaleString()} (30% of rental income)`
         );
 
         // === SERVICEABILITY TEST ===
-        const annualLoanRepayments = totalAnnualLoanRepayments;
-        const maxAnnualCapacity = maxAnnualRepayments;
+        const annualLoanInterest = totalAnnualLoanInterest;
+        const maxAnnualCapacity = maxAnnualInterest;
         
         console.log(
           `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (via ${serviceabilityMethod})`
         );
         console.log(
-          `   ├─ Annual Loan Repayments: £${annualLoanRepayments.toLocaleString()}`
+          `   ├─ Annual Loan Interest: £${annualLoanInterest.toLocaleString()}`
         );
         console.log(
-          `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (£${profile.borrowingCapacity.toLocaleString()} × ${(interestRate * 100).toFixed(1)}%)`
+          `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (£${profile.borrowingCapacity.toLocaleString()} × 10%)`
         );
         console.log(
           `   └─ Deposit Test: £${availableFunds.toLocaleString()} - £${profile.depositBuffer.toLocaleString()} buffer ≥ £${property.depositRequired.toLocaleString()} required`
