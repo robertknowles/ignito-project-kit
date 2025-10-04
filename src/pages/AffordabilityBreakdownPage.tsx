@@ -1,34 +1,204 @@
-import React from 'react';
-import { useAffordabilityBreakdown } from '../hooks/useAffordabilityBreakdown';
+import React, { useMemo } from 'react';
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
+import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import AffordabilityBreakdownTable from '../components/AffordabilityBreakdownTable';
 import { Navbar } from '../components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { YearBreakdownData } from '../types/property';
 import { 
   Download, Info, TrendingUp, 
   DollarSign, Home, Clock, Zap, Loader2
 } from 'lucide-react';
 
 export const AffordabilityBreakdownPage: React.FC = () => {
-  const { data: yearlyData, isCalculating, hasChanges } = useAffordabilityBreakdown();
+  const { timelineProperties } = useAffordabilityCalculator();
   const { isLoading: isSelectionsLoading } = usePropertySelection();
+  const { profile } = useInvestmentProfile();
+  const { globalFactors } = useDataAssumptions();
   
-  // Calculate summary metrics - with safety checks
-  const totalPurchases = yearlyData?.filter(y => y.status === 'purchased').length || 0;
-  const finalYear = yearlyData?.[yearlyData.length - 1];
+  // Transform TimelineProperty[] to YearBreakdownData[] for the table
+  const yearlyData = useMemo((): YearBreakdownData[] => {
+    if (!timelineProperties.length) return [];
+    
+    const startYear = 2025;
+    const endYear = startYear + profile.timelineYears;
+    const interestRate = parseFloat(globalFactors.interestRate);
+    const data: YearBreakdownData[] = [];
+    
+    // Group properties by affordable year
+    const propertiesByYear = new Map<number, typeof timelineProperties>();
+    timelineProperties.forEach(prop => {
+      const year = prop.affordableYear;
+      if (!propertiesByYear.has(year)) {
+        propertiesByYear.set(year, []);
+      }
+      propertiesByYear.get(year)!.push(prop);
+    });
+    
+    // Create year breakdown for entire timeline
+    for (let year = startYear; year < endYear; year++) {
+      const yearIndex = year - startYear + 1;
+      const propertiesThisYear = propertiesByYear.get(year) || [];
+      const property = propertiesThisYear[0]; // Take first property if multiple
+      
+      if (property) {
+        // Year with purchase
+        const lvr = property.portfolioValueAfter > 0 
+          ? (property.totalDebtAfter / property.portfolioValueAfter) * 100 
+          : 0;
+        
+        const rentalRecognition = 75; // Standard 75% recognition
+        
+        data.push({
+          year: yearIndex,
+          displayYear: year,
+          status: 'purchased',
+          propertyNumber: property.propertyIndex + 1,
+          propertyType: property.title,
+          
+          portfolioValue: property.portfolioValueAfter,
+          totalEquity: property.totalEquityAfter,
+          totalDebt: property.totalDebtAfter,
+          
+          availableDeposit: property.availableFundsUsed,
+          annualCashFlow: 0, // Would need to calculate from full timeline
+          
+          baseDeposit: profile.depositPool,
+          cumulativeSavings: 0,
+          cashflowReinvestment: 0,
+          equityRelease: 0,
+          
+          grossRental: 0,
+          loanRepayments: property.loanAmount * (interestRate / 100),
+          expenses: 0,
+          
+          requiredDeposit: property.depositRequired,
+          requiredLoan: property.loanAmount,
+          propertyCost: property.cost,
+          
+          availableBorrowingCapacity: profile.borrowingCapacity - property.totalDebtAfter,
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          interestRate: interestRate,
+          rentalRecognition: rentalRecognition,
+          
+          depositTest: {
+            pass: true,
+            surplus: 0,
+            available: property.availableFundsUsed,
+            required: property.depositRequired
+          },
+          
+          serviceabilityTest: {
+            pass: true,
+            surplus: 0,
+            available: profile.borrowingCapacity - property.totalDebtAfter,
+            required: property.loanAmount
+          },
+          
+          gapRule: false,
+          equityReleaseYear: yearIndex % 3 === 0,
+          
+          portfolioScaling: property.propertyIndex + 1,
+          selfFundingEfficiency: 0,
+          equityRecyclingImpact: 0,
+          dsr: 0,
+          lvr: lvr,
+          
+          purchases: [{
+            propertyId: property.id,
+            propertyType: property.title,
+            cost: property.cost,
+            deposit: property.depositRequired,
+            loanAmount: property.loanAmount,
+            year: year
+          }]
+        });
+      } else {
+        // Year without purchase - use cumulative values from last property
+        const lastProperty = timelineProperties
+          .filter(p => p.affordableYear < year)
+          .sort((a, b) => b.affordableYear - a.affordableYear)[0];
+        
+        data.push({
+          year: yearIndex,
+          displayYear: year,
+          status: 'waiting',
+          propertyNumber: null,
+          propertyType: null,
+          
+          portfolioValue: lastProperty?.portfolioValueAfter || profile.portfolioValue,
+          totalEquity: lastProperty?.totalEquityAfter || 0,
+          totalDebt: lastProperty?.totalDebtAfter || profile.currentDebt,
+          
+          availableDeposit: 0,
+          annualCashFlow: 0,
+          
+          baseDeposit: profile.depositPool,
+          cumulativeSavings: 0,
+          cashflowReinvestment: 0,
+          equityRelease: 0,
+          
+          grossRental: 0,
+          loanRepayments: 0,
+          expenses: 0,
+          
+          requiredDeposit: 0,
+          requiredLoan: 0,
+          propertyCost: 0,
+          
+          availableBorrowingCapacity: profile.borrowingCapacity - (lastProperty?.totalDebtAfter || profile.currentDebt),
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          interestRate: interestRate,
+          rentalRecognition: 75,
+          
+          depositTest: {
+            pass: true,
+            surplus: 0,
+            available: 0,
+            required: 0
+          },
+          
+          serviceabilityTest: {
+            pass: true,
+            surplus: 0,
+            available: 0,
+            required: 0
+          },
+          
+          gapRule: false,
+          equityReleaseYear: yearIndex % 3 === 0,
+          
+          portfolioScaling: lastProperty ? lastProperty.propertyIndex + 1 : 0,
+          selfFundingEfficiency: 0,
+          equityRecyclingImpact: 0,
+          dsr: 0,
+          lvr: 0,
+          
+          purchases: []
+        });
+      }
+    }
+    
+    return data;
+  }, [timelineProperties, profile, globalFactors.interestRate]);
+  
+  // Calculate summary metrics
+  const totalPurchases = timelineProperties.length;
+  const finalProperty = timelineProperties[timelineProperties.length - 1];
   const cashflowPositiveYear = yearlyData?.find(y => y.annualCashFlow > 0);
-  const totalPropertyValue = finalYear?.portfolioValue || 0;
-  const totalEquity = finalYear?.totalEquity || 0;
+  const totalPropertyValue = finalProperty?.portfolioValueAfter || 0;
+  const totalEquity = finalProperty?.totalEquityAfter || 0;
   
-  // Calculate average annual cash flow growth
-  const avgCashFlowGrowth = yearlyData && yearlyData.length > 1
-    ? ((finalYear?.annualCashFlow || 0) - (yearlyData[0]?.annualCashFlow || 0)) / yearlyData.length
-    : 0;
+  const avgCashFlowGrowth = 0; // Simplified - would need full cashflow tracking
   
-  // Show loading state if selections are loading or calculating with no data yet
-  if (isSelectionsLoading || (isCalculating && (!yearlyData || yearlyData.length === 0))) {
+  // Show loading state
+  if (isSelectionsLoading) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
         <Navbar />
@@ -44,7 +214,7 @@ export const AffordabilityBreakdownPage: React.FC = () => {
     );
   }
   
-  // Show empty state if no data
+  // Show empty state
   if (!yearlyData || yearlyData.length === 0) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
@@ -137,17 +307,10 @@ export const AffordabilityBreakdownPage: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {isCalculating && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Calculating...</span>
-            </div>
-          )}
           <Button
             onClick={exportToCSV}
             variant="outline"
             className="flex items-center gap-2"
-            disabled={isCalculating}
           >
             <Download className="w-4 h-4" />
             Export Report
@@ -239,8 +402,8 @@ export const AffordabilityBreakdownPage: React.FC = () => {
       {/* Main Table */}
       <AffordabilityBreakdownTable 
         data={yearlyData} 
-        isCalculating={isCalculating}
-        hasChanges={hasChanges}
+        isCalculating={false}
+        hasChanges={false}
       />
       
       {/* Legend */}

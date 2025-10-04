@@ -3,7 +3,7 @@ import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import { AffordabilityBreakdownTable } from './AffordabilityBreakdownTable';
-import type { YearBreakdownData } from '@/hooks/useAffordabilityBreakdown';
+import type { YearBreakdownData } from '@/types/property';
 
 export const DecisionEngineView: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();

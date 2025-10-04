@@ -845,6 +845,7 @@ export const useAffordabilityCalculator = () => {
   // Only expose the memoized result
   return {
     timelineProperties: calculateTimelineProperties,
+    isCalculating: false, // Could add state tracking if needed
     calculateAffordabilityForProperty: () => {} // Placeholder since this is now internal
   };
 };

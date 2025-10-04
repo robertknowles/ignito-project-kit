@@ -76,3 +76,91 @@ export interface TimelineProperty {
     debtReduced: number;
   };
 }
+
+export interface YearBreakdownData {
+  year: number;
+  displayYear: number;
+  status: 'initial' | 'purchased' | 'blocked' | 'waiting' | 'consolidated';
+  propertyNumber: number | null;
+  propertyType: string | null;
+  
+  // Portfolio metrics
+  portfolioValue: number;
+  totalEquity: number;
+  totalDebt: number;
+  
+  // Cash engine
+  availableDeposit: number;
+  annualCashFlow: number;
+  
+  // Available funds breakdown
+  baseDeposit: number;
+  cumulativeSavings: number;
+  cashflowReinvestment: number;
+  equityRelease: number;
+  
+  // Cashflow components
+  grossRental: number;
+  loanRepayments: number;
+  expenses: number;
+  
+  // Requirements
+  requiredDeposit: number;
+  requiredLoan: number;
+  propertyCost: number;
+  
+  // Capacity
+  availableBorrowingCapacity: number;
+  borrowingCapacity: number;
+  
+  // Assumptions
+  interestRate: number;
+  rentalRecognition: number;
+  
+  // Tests
+  depositTest: {
+    pass: boolean;
+    surplus: number;
+    available: number;
+    required: number;
+  };
+  
+  serviceabilityTest: {
+    pass: boolean;
+    surplus: number;
+    available: number;
+    required: number;
+  };
+  
+  // Flags
+  gapRule: boolean;
+  equityReleaseYear: boolean;
+  
+  // Consolidation
+  consolidation?: {
+    triggered: boolean;
+    eligible: boolean;
+    consecutiveFailures: number;
+    propertiesSold?: number;
+    equityFreed?: number;
+    debtReduced?: number;
+    newLvr?: number;
+  };
+  
+  // Strategy metrics
+  portfolioScaling: number;
+  selfFundingEfficiency: number;
+  equityRecyclingImpact: number;
+  dsr: number;
+  lvr: number;
+  
+  // Breakdown details
+  purchases: Array<{
+    propertyId: string;
+    propertyType: string;
+    cost: number;
+    deposit: number;
+    loanAmount: number;
+    year: number;
+  }>;
+}
