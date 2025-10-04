@@ -59,8 +59,8 @@ export const DecisionEngineView: React.FC = () => {
         else if (portfolioSize <= 4) rentalRecognition = 0.70;
         else rentalRecognition = 0.65;
 
-        // Calculate basic metrics
-        const totalDebt = property.portfolioValueAfter - property.totalEquityAfter;
+        // Use calculated debt from calculator
+        const totalDebt = property.totalDebtAfter || 0;
         const lvr = property.portfolioValueAfter > 0 
           ? (totalDebt / property.portfolioValueAfter) * 100 
           : 0;

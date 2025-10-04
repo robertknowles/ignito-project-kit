@@ -787,6 +787,7 @@ export const useAffordabilityCalculator = () => {
         propertyIndex: index,
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
+        totalDebtAfter: totalDebtAfter,
         availableFundsUsed: availableFundsUsed
       };
       

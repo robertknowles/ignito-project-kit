@@ -67,6 +67,7 @@ export interface TimelineProperty {
   propertyIndex: number;
   portfolioValueAfter: number;
   totalEquityAfter: number;
+  totalDebtAfter: number;
   availableFundsUsed: number;
   isConsolidationPhase?: boolean;
   consolidationDetails?: {
