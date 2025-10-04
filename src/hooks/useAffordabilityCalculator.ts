@@ -741,6 +741,41 @@ export const useAffordabilityCalculator = () => {
       const result = determineNextPurchaseYear(property, purchaseHistory);
       const loanAmount = property.cost - property.depositRequired;
       
+      // Calculate portfolio metrics at time of purchase
+      let portfolioValueAfter = 0;
+      let totalEquityAfter = 0;
+      let availableFundsUsed = 0;
+      let totalDebtAfter = 0;
+      
+      if (result.year !== Infinity) {
+        const purchaseYear = result.year - 2025 + 1; // Convert to relative year
+        
+        // Calculate existing portfolio value (with growth)
+        if (profile.portfolioValue > 0) {
+          portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchaseYear - 1);
+        }
+        
+        // Calculate total debt from existing portfolio
+        totalDebtAfter = profile.currentDebt;
+        
+        // Add all previous purchases (with growth based on years owned)
+        purchaseHistory.forEach(purchase => {
+          const yearsOwned = purchaseYear - purchase.year;
+          portfolioValueAfter += calculatePropertyGrowth(purchase.cost, yearsOwned);
+          totalDebtAfter += purchase.loanAmount;
+        });
+        
+        // Add the current property being purchased
+        portfolioValueAfter += property.cost;
+        totalDebtAfter += loanAmount;
+        
+        // Calculate equity
+        totalEquityAfter = portfolioValueAfter - totalDebtAfter;
+        
+        // Calculate available funds used
+        availableFundsUsed = calculateAvailableFunds(purchaseYear, purchaseHistory);
+      }
+      
       const timelineProperty: TimelineProperty = {
         id: `${property.id}_${index}`,
         title: property.title,
@@ -750,9 +785,9 @@ export const useAffordabilityCalculator = () => {
         affordableYear: result.year,
         status: result.year === Infinity ? 'challenging' : (result.consolidation ? 'consolidation' : 'feasible'),
         propertyIndex: index,
-        portfolioValueAfter: 0, // Will be calculated properly
-        totalEquityAfter: 0, // Will be calculated properly
-        availableFundsUsed: 0 // Will be calculated properly
+        portfolioValueAfter: portfolioValueAfter,
+        totalEquityAfter: totalEquityAfter,
+        availableFundsUsed: availableFundsUsed
       };
       
       // Add consolidation details if present
