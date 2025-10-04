@@ -725,6 +725,46 @@ export const useAffordabilityCalculator = () => {
         if (affordabilityResult.canAfford) {
           const absoluteYear = year + 2025 - 1;
           
+          // REALISTIC CASH ACCUMULATION VALIDATION
+          // Ensure enough time has passed for funds to build up realistically
+          const depositBuffer = 40000;
+          const requiredFunds = property.depositRequired + depositBuffer;
+          
+          // Calculate realistic fund accumulation without equity (baseline check)
+          const baseDeposit = calculatedValues.availableDeposit;
+          const annualSavings = profile.annualSavings;
+          const yearsSinceStart = year - 1;
+          const accumulatedSavings = baseDeposit + (annualSavings * yearsSinceStart);
+          
+          // Calculate years needed to save this deposit from scratch
+          const yearsToSave = requiredFunds > baseDeposit 
+            ? Math.ceil((requiredFunds - baseDeposit) / annualSavings) 
+            : 0;
+          
+          // If this is not the first property, check time since last purchase
+          if (lastPurchaseYear > 0) {
+            const yearsSinceLastPurchase = year - lastPurchaseYear;
+            const minimumYearsRequired = Math.max(2, Math.min(yearsToSave, 4)); // At least 2 years, max 4 years between purchases
+            
+            if (yearsSinceLastPurchase < minimumYearsRequired) {
+              if (DEBUG_MODE) {
+                console.log(`[CASH ACCUMULATION] Year ${year + 2025 - 1}: Insufficient time to accumulate funds. Only ${yearsSinceLastPurchase} years since last purchase, need ${minimumYearsRequired} years`);
+              }
+              continue; // Skip this year, funds haven't accumulated enough
+            }
+          }
+          
+          // Verify deposit test surplus is meaningful (not barely passing)
+          const depositTestSurplus = availableFunds - depositBuffer - property.depositRequired;
+          const minimumSurplus = property.depositRequired * 0.1; // At least 10% surplus
+          
+          if (depositTestSurplus < minimumSurplus && !affordabilityResult.consolidationTriggered) {
+            if (DEBUG_MODE) {
+              console.log(`[DEPOSIT SURPLUS] Year ${year + 2025 - 1}: Insufficient deposit surplus (£${depositTestSurplus.toLocaleString()}). Need at least £${minimumSurplus.toLocaleString()}`);
+            }
+            continue; // Barely passing - wait for more accumulation
+          }
+          
           if (affordabilityResult.consolidationTriggered) {
             // Update the purchase history to reflect consolidation
             currentPurchases = affordabilityResult.consolidationDetails.updatedPurchases;
@@ -774,6 +814,15 @@ export const useAffordabilityCalculator = () => {
     // Process properties sequentially, determining purchase year for each
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
       const result = determineNextPurchaseYear(property, purchaseHistory);
+      
+      // STOP PROCESSING if this property cannot be afforded within timeline
+      if (result.year === Infinity) {
+        if (DEBUG_MODE) {
+          console.log(`[TIMELINE END] Property ${globalIndex + 1} (${property.title}) cannot be afforded within ${profile.timelineYears} year timeline. Stopping further property scheduling.`);
+        }
+        // Continue to create the entry but don't process remaining properties after this one
+      }
+      
       const loanAmount = property.cost - property.depositRequired;
       
       // Calculate portfolio metrics at time of purchase
