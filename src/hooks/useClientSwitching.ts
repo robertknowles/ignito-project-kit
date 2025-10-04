@@ -37,6 +37,7 @@ export const useClientSwitching = () => {
       return;
     }
     
+    console.log('Loading client data for:', clientId);
     lastLoadedClientRef.current = clientId;
     
     const savedData: ScenarioData | null = loadClientScenario(clientId);
@@ -93,6 +94,7 @@ export const useClientSwitching = () => {
   // Handle client switching - only when client ID actually changes
   useEffect(() => {
     if (activeClient && activeClient.id !== lastLoadedClientRef.current) {
+      console.log('Client changed, loading new data:', activeClient.id);
       loadClientData(activeClient.id);
     }
   }, [activeClient?.id, loadClientData]);

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
 import { useDataAssumptions } from './DataAssumptionsContext';
-import { PropertySelectionContext } from './PropertySelectionContext';
+import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -53,32 +53,13 @@ export const useScenarioSave = () => {
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient } = useClient();
   const { globalFactors, propertyAssumptions } = useDataAssumptions();
-  const propertySelectionContext = useContext(PropertySelectionContext);
+  const { selections } = usePropertySelection();
   const { profile } = useInvestmentProfile();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
-
-  // Don't render children until context is ready
-  if (!propertySelectionContext) {
-    // Return a minimal provider while PropertySelectionProvider initializes
-    return (
-      <ScenarioSaveContext.Provider value={{
-        hasUnsavedChanges: false,
-        isLoading: true,
-        lastSaved: null,
-        saveScenario: () => {},
-        loadClientScenario: () => null
-      }}>
-        {children}
-      </ScenarioSaveContext.Provider>
-    );
-  }
-
-  // Safely access selections, defaulting to empty object if context not ready
-  const selections = propertySelectionContext.selections || {};
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {

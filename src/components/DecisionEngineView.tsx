@@ -5,7 +5,7 @@ import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import { AffordabilityBreakdownTable } from './AffordabilityBreakdownTable';
 import type { YearBreakdownData } from '@/types/property';
 
-export const DecisionEngineView: React.FC = React.memo(() => {
+export const DecisionEngineView: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
   const { globalFactors } = useDataAssumptions();
@@ -40,12 +40,7 @@ export const DecisionEngineView: React.FC = React.memo(() => {
       const yearData: YearBreakdownData = {
         year,
         displayYear: yearIndex,
-        status: property.status === 'feasible' ? 'purchased' :
-                property.status === 'consolidation' ? 'consolidated' :
-                property.status === 'waiting' ? 'waiting' :
-                property.status === 'blocked' ? 'blocked' :
-                property.status === 'challenging' ? 'blocked' :
-                'purchased', // fallback
+        status: property.isConsolidationPhase ? 'consolidated' : 'purchased',
         propertyNumber: propertyIndex,
         propertyType: property.title,
         
@@ -143,4 +138,4 @@ export const DecisionEngineView: React.FC = React.memo(() => {
       hasChanges={false}
     />
   );
-});
+};

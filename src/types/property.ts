@@ -63,14 +63,13 @@ export interface TimelineProperty {
   depositRequired: number;
   loanAmount: number;
   affordableYear: number;
-  status: 'feasible' | 'challenging' | 'consolidation' | 'waiting' | 'blocked';
+  status: 'feasible' | 'challenging' | 'consolidation';
   propertyIndex: number;
   portfolioValueAfter: number;
   totalEquityAfter: number;
   totalDebtAfter: number;
   availableFundsUsed: number;
   isConsolidationPhase?: boolean;
-  isConsolidationEvent?: boolean; // FIX 10: Flag to distinguish consolidation events
   consolidationDetails?: {
     propertiesSold: number;
     equityFreed: number;

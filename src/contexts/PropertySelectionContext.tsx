@@ -46,7 +46,7 @@ interface PropertySelectionContextType {
   isLoading: boolean;
 }
 
-export const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
+const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
 
 export const usePropertySelection = () => {
   const context = useContext(PropertySelectionContext);
@@ -62,22 +62,9 @@ interface PropertySelectionProviderProps {
 
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const { activeClient } = useClient();
-  const [internalSelections, setInternalSelections] = useState<PropertySelection>({});
+  const [selections, setSelections] = useState<PropertySelection>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
-
-  // Stabilize selections reference using proper deep comparison
-  const selectionsRef = useRef(internalSelections);
-  const selections = useMemo(() => {
-    // Only update if values actually changed
-    const hasChanged = Object.keys(internalSelections).length !== Object.keys(selectionsRef.current).length ||
-      Object.entries(internalSelections).some(([key, value]) => selectionsRef.current[key] !== value);
-    
-    if (hasChanged) {
-      selectionsRef.current = { ...internalSelections };
-    }
-    return selectionsRef.current;
-  }, [internalSelections]);
 
   // Load selections from localStorage on mount or when client changes
   useEffect(() => {
@@ -87,13 +74,13 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         try {
-          setInternalSelections(JSON.parse(stored));
+          setSelections(JSON.parse(stored));
         } catch (error) {
           console.error('Failed to load property selections from localStorage:', error);
-          setInternalSelections({});
+          setSelections({});
         }
       } else {
-        setInternalSelections({});
+        setSelections({});
       }
       setIsLoading(false);
     }
@@ -103,9 +90,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   useEffect(() => {
     if (activeClient?.id) {
       const storageKey = `property_selections_${activeClient.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(internalSelections));
+      localStorage.setItem(storageKey, JSON.stringify(selections));
     }
-  }, [internalSelections, activeClient?.id]);
+  }, [selections, activeClient?.id]);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
@@ -166,21 +153,21 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   };
 
   const updatePropertyQuantity = useCallback((propertyId: string, quantity: number) => {
-    setInternalSelections(prev => ({
+    setSelections(prev => ({
       ...prev,
       [propertyId]: Math.max(0, quantity), // Ensure non-negative
     }));
   }, []);
 
   const incrementProperty = useCallback((propertyId: string) => {
-    setInternalSelections(prev => ({
+    setSelections(prev => ({
       ...prev,
       [propertyId]: (prev[propertyId] || 0) + 1,
     }));
   }, []);
 
   const decrementProperty = useCallback((propertyId: string) => {
-    setInternalSelections(prev => ({
+    setSelections(prev => ({
       ...prev,
       [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
     }));
@@ -191,7 +178,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   };
 
   const resetSelections = () => {
-    setInternalSelections({});
+    setSelections({});
   };
 
   const value = {

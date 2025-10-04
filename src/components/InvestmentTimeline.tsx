@@ -11,10 +11,10 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
-export const InvestmentTimeline = React.memo(() => {
+export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility } = usePropertySelection()
-  const { timelineProperties, isCalculating } = useAffordabilityCalculator()
+  const { timelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
   // Get feasibility status based on current selections
@@ -62,7 +62,7 @@ export const InvestmentTimeline = React.memo(() => {
       loanAmount?: string;
       portfolioValue: string;
       equity: string;
-      status: 'feasible' | 'delayed' | 'challenging' | 'consolidation' | 'waiting' | 'blocked';
+      status: 'feasible' | 'delayed' | 'challenging' | 'consolidation';
       number?: string;
       affordableYear: number;
       eventType: 'purchase' | 'consolidation';
@@ -75,10 +75,8 @@ export const InvestmentTimeline = React.memo(() => {
       };
     }> = [];
 
-    // Add purchase events - ONLY for actual purchases
-    timelineProperties
-      .filter(property => property.title !== '' && property.propertyIndex >= 0)
-      .forEach((property, index) => {
+    // Add purchase events
+    timelineProperties.forEach((property, index) => {
       const isAffordable = property.status === 'feasible' || property.status === 'consolidation';
       const timelineEndYear = 2025 + profile.timelineYears;
       
@@ -147,14 +145,7 @@ export const InvestmentTimeline = React.memo(() => {
   const timelineItems = generateTimelineItems()
 
   return (
-    <div className="relative">
-      {isCalculating && (
-        <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-lg">
-          <div className="text-sm text-[#6b7280] bg-white px-4 py-2 rounded-md shadow-sm border border-[#f3f4f6]">
-            Calculating timeline...
-          </div>
-        </div>
-      )}
+    <div>
       <div className="flex items-center gap-3 mb-8">
         <CalendarIcon size={16} className="text-[#6b7280]" />
         <h3 className="text-[#111827] font-medium text-sm">
@@ -233,7 +224,7 @@ export const InvestmentTimeline = React.memo(() => {
       </div>
     </div>
   )
-});
+}
 interface TimelineItemProps {
   year: string
   quarter: string

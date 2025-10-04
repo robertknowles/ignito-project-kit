@@ -91,6 +91,7 @@ export const calculateUpdatedBorrowingCapacity = (
 ): number => {
   // Simplified logic: just return the base capacity for now
   // Advanced serviceability calculations can be added later as enhancement
+  console.log('🏦 [SIMPLE BORROWING CHECK] Base capacity:', Math.round(baseCapacity));
   return baseCapacity;
 };
 

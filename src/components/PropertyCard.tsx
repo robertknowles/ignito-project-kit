@@ -12,7 +12,7 @@ interface PropertyCardProps {
   onIncrement?: () => void;
   onDecrement?: () => void;
 }
-export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
+export const PropertyCard: React.FC<PropertyCardProps> = ({
   title,
   priceRange,
   yield: yieldValue,
@@ -97,4 +97,4 @@ export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
         <InfoIcon size={16} className="text-[#6b7280] opacity-60" />
       </div>
     </div>;
-});
+};
