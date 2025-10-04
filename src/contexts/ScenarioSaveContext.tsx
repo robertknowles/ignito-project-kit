@@ -53,22 +53,16 @@ export const useScenarioSave = () => {
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient } = useClient();
   const { globalFactors, propertyAssumptions } = useDataAssumptions();
-  const { selections, isLoading: selectionsLoading } = usePropertySelection();
+  const propertySelectionContext = usePropertySelection();
   const { profile } = useInvestmentProfile();
-  
-  // Don't render children until selections are loaded
-  const [isReady, setIsReady] = React.useState(false);
-  
-  React.useEffect(() => {
-    if (!selectionsLoading) {
-      setIsReady(true);
-    }
-  }, [selectionsLoading]);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
+
+  // Safely access selections, defaulting to empty object if loading
+  const selections = propertySelectionContext?.selections || {};
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
@@ -177,11 +171,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     saveScenario,
     loadClientScenario,
   };
-
-  // Wait for dependencies to be ready
-  if (!isReady) {
-    return null;
-  }
 
   return (
     <ScenarioSaveContext.Provider value={value}>
