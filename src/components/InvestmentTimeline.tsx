@@ -25,7 +25,7 @@ export const InvestmentTimeline = () => {
     if (calculations.totalProperties === 0) return 'feasible'
     
     const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible')
-    const challengingProperties = timelineProperties.filter(p => p.status === 'challenging')
+    const challengingProperties = timelineProperties.filter(p => p.status === 'challenging' || p.status === 'blocked')
     
     if (challengingProperties.length > 0) return 'challenging'
     if (feasibleProperties.length < timelineProperties.length) return 'delayed'
@@ -129,7 +129,7 @@ export const InvestmentTimeline = () => {
         loanAmount: `$${Math.round(property.loanAmount / 1000)}k`,
         portfolioValue: `$${Math.round(property.portfolioValueAfter / 1000)}k`,
         equity: `$${Math.round(property.totalEquityAfter / 1000)}k`,
-        status: property.status,
+        status: property.status === 'blocked' || property.status === 'waiting' ? 'challenging' : property.status,
         number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
         affordableYear: property.affordableYear,
         eventType: 'purchase'
