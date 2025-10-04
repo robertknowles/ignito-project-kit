@@ -70,6 +70,7 @@ export interface TimelineProperty {
   totalDebtAfter: number;
   availableFundsUsed: number;
   isConsolidationPhase?: boolean;
+  isConsolidationEvent?: boolean; // FIX 10: Flag to distinguish consolidation events
   consolidationDetails?: {
     propertiesSold: number;
     equityFreed: number;

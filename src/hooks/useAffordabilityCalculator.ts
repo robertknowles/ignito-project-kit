@@ -51,8 +51,11 @@ export const useAffordabilityCalculator = () => {
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
       additionalEquity: number = 0
     ) => {
+      // FIX 2-3: Return detailed breakdown object instead of single number
       // Calculate enhanced annual savings with cashflow feedback
       let totalEnhancedSavings = 0;
+      let totalCashflowReinvestment = 0;
+      let totalDepositsUsed = 0;
       
       for (let year = 1; year <= currentYear; year++) {
         // Base annual savings
@@ -72,7 +75,7 @@ export const useAffordabilityCalculator = () => {
               
               // Calculate rental income with progressive recognition rates
               const yieldRate = parseFloat(propertyData.yield) / 100;
-              const portfolioSize = previousPurchases.filter(p => p.year < year).length + 1; // Count properties purchased before current year + this one
+              const portfolioSize = previousPurchases.filter(p => p.year < year).length;
               const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
               const rentalIncome = currentValue * yieldRate * recognitionRate;
               
@@ -93,24 +96,33 @@ export const useAffordabilityCalculator = () => {
         // Total savings for this year = base savings + net cashflow
         const totalYearSavings = yearSavings + netCashflow;
         totalEnhancedSavings += totalYearSavings;
+        totalCashflowReinvestment += netCashflow;
       }
+      
+      // Track deposits used
+      previousPurchases.forEach(purchase => {
+        if (purchase.year <= currentYear) {
+          totalDepositsUsed += purchase.depositRequired;
+        }
+      });
       
       // Calculate available cash: base deposit + accumulated enhanced savings + additional equity from consolidations
       let availableCash = calculatedValues.availableDeposit + (currentYear > 1 ? totalEnhancedSavings : 0) + additionalEquity;
       
       // Subtract deposits used for previous purchases
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          availableCash -= purchase.depositRequired;
-        }
-      });
+      availableCash -= totalDepositsUsed;
 
-      // 3-YEAR EQUITY RECYCLING CYCLE: Only release equity every 3 years
+      // FIX 4: 3-YEAR EQUITY RECYCLING CYCLE from first purchase year
       let existingPortfolioEquity = 0;
       let totalUsableEquity = 0;
       
-      if (currentYear % 3 === 0) {
-        // Only in 3-year cycle years (year 3, 6, 9, etc.)
+      const firstPurchaseYear = previousPurchases.length > 0 
+        ? Math.min(...previousPurchases.map(p => p.year))
+        : currentYear;
+      const yearsSinceFirstPurchase = currentYear - firstPurchaseYear;
+      
+      if (yearsSinceFirstPurchase > 0 && yearsSinceFirstPurchase % 3 === 0) {
+        // Only in 3-year cycle years from first purchase
         if (profile.portfolioValue > 0) {
           const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
           existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
@@ -128,9 +140,17 @@ export const useAffordabilityCalculator = () => {
       }
       
       // NEW AGGRESSIVE FORMULA: AvailableFunds = DepositPool + CumulativeSavings + NetCashflowReinvestment + UsableEquity
-      // No consolidation dependency - immediate equity release simulation
       const finalFunds = availableCash + totalUsableEquity;
-      return finalFunds;
+      
+      // FIX 2-3: Return detailed breakdown
+      return {
+        total: finalFunds,
+        baseDeposit: Math.max(0, calculatedValues.availableDeposit - totalDepositsUsed),
+        cumulativeSavings: profile.annualSavings * (currentYear - 1),
+        cashflowReinvestment: totalCashflowReinvestment,
+        equityRelease: totalUsableEquity,
+        depositsUsed: totalDepositsUsed
+      };
     };
 
 
@@ -188,9 +208,9 @@ export const useAffordabilityCalculator = () => {
         reasons.push('Borrowing capacity reached');
       }
       
-      // Trigger 2: Portfolio LVR > 85%
+      // FIX 6: Trigger 2: Portfolio LVR > 80% (was 85%)
       const currentLVR = totalPortfolioValue > 0 ? (totalDebt / totalPortfolioValue) * 100 : 0;
-      if (currentLVR > 85) {
+      if (currentLVR > 80) {
         reasons.push(`Portfolio LVR too high (${currentLVR.toFixed(1)}%)`);
       }
       
@@ -378,8 +398,13 @@ export const useAffordabilityCalculator = () => {
           const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
           propertyValues.push(grownPortfolioValue);
           
-          // 3-year equity cycle
-          if (currentYear % 3 === 0) {
+          // FIX 4: 3-year equity cycle from first purchase
+          const firstPurchaseYear = previousPurchases.length > 0 
+            ? Math.min(...previousPurchases.map(p => p.year))
+            : currentYear;
+          const yearsSinceFirstPurchase = currentYear - firstPurchaseYear;
+          
+          if (yearsSinceFirstPurchase > 0 && yearsSinceFirstPurchase % 3 === 0) {
             const portfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * profile.equityReleaseFactor);
             usableEquityPerProperty.push(portfolioEquity);
           } else {
@@ -394,8 +419,13 @@ export const useAffordabilityCalculator = () => {
             totalPortfolioValue += currentValue;
             propertyValues.push(currentValue);
             
-            // 3-year equity cycle
-            if (currentYear % 3 === 0) {
+            // FIX 4: 3-year equity cycle from first purchase
+            const firstPurchaseYear = previousPurchases.length > 0 
+              ? Math.min(...previousPurchases.map(p => p.year))
+              : currentYear;
+            const yearsSinceFirstPurchase = currentYear - firstPurchaseYear;
+            
+            if (yearsSinceFirstPurchase > 0 && yearsSinceFirstPurchase % 3 === 0) {
               const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
               usableEquityPerProperty.push(usableEquity);
             } else {
@@ -434,14 +464,14 @@ export const useAffordabilityCalculator = () => {
       
       // Hardcoded values for consistency
       const depositBuffer = 40000; // £40,000 deposit buffer
-      const serviceabilityFactor = 0.10; // 10% serviceability factor
       
-      // Simple serviceability test using borrowing capacity  
-      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
+      // FIX 7: Actual DSR calculation instead of borrowing capacity method
+      const dsr = grossRentalIncome > 0 ? (loanInterest / grossRentalIncome) * 100 : 999;
+      const maxDSR = 80; // 80% DSR limit
       
-      // SERVICEABILITY TEST: Annual Interest <= Borrowing Capacity × 10%
+      // SERVICEABILITY TEST: DSR <= 80%
       const canAffordDeposit = (availableFunds - depositBuffer) >= property.depositRequired;
-      const canAffordServiceability = totalAnnualLoanInterest <= maxAnnualInterest;
+      const canAffordServiceability = dsr <= maxDSR;
       
       // Debug trace output
       if (DEBUG_MODE) {
@@ -515,16 +545,23 @@ export const useAffordabilityCalculator = () => {
 
         // === SERVICEABILITY TEST ===
         const annualLoanInterest = totalAnnualLoanInterest;
-        const maxAnnualCapacity = maxAnnualInterest;
+        const dsrRatio = dsr;
+        const serviceabilitySurplus = (grossRentalIncome * (maxDSR / 100)) - loanInterest;
         
         console.log(
-          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (via ${serviceabilityMethod})`
+          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (DSR method)`
+        );
+        console.log(
+          `   ├─ DSR: ${dsrRatio.toFixed(1)}% (limit: ${maxDSR}%)`
         );
         console.log(
           `   ├─ Annual Loan Interest: £${annualLoanInterest.toLocaleString()}`
         );
         console.log(
-          `   ├─ Max Annual Capacity: £${maxAnnualCapacity.toLocaleString()} (£${profile.borrowingCapacity.toLocaleString()} × 10%)`
+          `   ├─ Gross Rental Income: £${grossRentalIncome.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Surplus: £${serviceabilitySurplus.toLocaleString()}`
         );
         const depositBufferDisplay = 40000;
         console.log(
@@ -686,8 +723,8 @@ export const useAffordabilityCalculator = () => {
         }
         
         // Recheck affordability with freed equity and reduced debt
-        const newAvailableFunds = calculateAvailableFunds(currentYear, consolidationResult.updatedPurchases, consolidationResult.equityFreed);
-        const recheck = checkAffordability(property, newAvailableFunds, consolidationResult.updatedPurchases, currentYear, consolidationResult.equityFreed);
+        const newAvailableFundsResult = calculateAvailableFunds(currentYear, consolidationResult.updatedPurchases, consolidationResult.equityFreed);
+        const recheck = checkAffordability(property, newAvailableFundsResult.total, consolidationResult.updatedPurchases, currentYear, consolidationResult.equityFreed);
         
         return { 
           canAfford: recheck.canAfford, 
@@ -706,21 +743,21 @@ export const useAffordabilityCalculator = () => {
       let currentPurchases = [...previousPurchases];
       
       for (let year = 1; year <= profile.timelineYears; year++) {
-        // 12-MONTH PURCHASE GAP: Enforce minimum gap between purchases
+        // FIX 1: 12-MONTH PURCHASE GAP - don't block year 1
         const lastPurchaseYear = currentPurchases.length > 0 
           ? Math.max(...currentPurchases.map(p => p.year)) 
           : 0;
         
         // Skip years that don't meet the 12-month gap requirement
-        if (year <= lastPurchaseYear + 1) {
+        if (lastPurchaseYear > 0 && year <= lastPurchaseYear + 1) {
           if (DEBUG_MODE) {
             console.log(`[GAP CHECK] Year ${year + 2025 - 1}: Skipped due to 12-month gap rule (last purchase: ${lastPurchaseYear + 2025 - 1})`);
           }
           continue;
         }
         
-        const availableFunds = calculateAvailableFunds(year, currentPurchases);
-        const affordabilityResult = checkAffordability(property, availableFunds, currentPurchases, year);
+        const availableFundsResult = calculateAvailableFunds(year, currentPurchases);
+        const affordabilityResult = checkAffordability(property, availableFundsResult.total, currentPurchases, year);
         
         if (affordabilityResult.canAfford) {
           const absoluteYear = year + 2025 - 1;
@@ -807,7 +844,8 @@ export const useAffordabilityCalculator = () => {
         totalEquityAfter = portfolioValueAfter - totalDebtAfter;
         
         // Calculate available funds used
-        availableFundsUsed = calculateAvailableFunds(purchaseYear, purchaseHistory);
+        const availableFundsResult = calculateAvailableFunds(purchaseYear, purchaseHistory);
+        availableFundsUsed = availableFundsResult.total;
       }
       
       // Calculate cashflow breakdown for this property
@@ -817,7 +855,7 @@ export const useAffordabilityCalculator = () => {
       let expenses = 0;
       let netCashflow = 0;
       
-      // Calculate portfolio size for rental recognition
+      // FIX 5: Calculate portfolio size for rental recognition AFTER this purchase
       const portfolioSize = purchaseHistory.filter(p => p.year <= purchaseYear).length + 1;
       const rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
       
@@ -848,30 +886,18 @@ export const useAffordabilityCalculator = () => {
       const depositTestSurplus = availableFundsUsed - depositBuffer - property.depositRequired;
       const depositTestPass = depositTestSurplus >= 0;
       
-      const serviceabilityFactor = 0.10;
-      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
-      const serviceabilityTestSurplus = maxAnnualInterest - loanInterest;
-      const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
+      // FIX 7: Use actual DSR calculation
+      const dsr = grossRentalIncome > 0 ? (loanInterest / grossRentalIncome) * 100 : 999;
+      const maxDSR = 80;
+      const serviceabilityTestSurplus = (grossRentalIncome * (maxDSR / 100)) - loanInterest;
+      const serviceabilityTestPass = dsr <= maxDSR;
       
-      // Calculate available funds breakdown
-      const annualSavings = profile.annualSavings;
-      const cumulativeSavings = annualSavings * (purchaseYear - 1);
-      const baseDeposit = calculatedValues.availableDeposit;
-      
-      // Calculate equity release (3-year cycle)
-      let equityRelease = 0;
-      if (purchaseYear % 3 === 0) {
-        purchaseHistory.forEach(purchase => {
-          if (purchase.year <= purchaseYear) {
-            const yearsOwned = purchaseYear - purchase.year;
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * profile.equityReleaseFactor);
-            equityRelease += usableEquity;
-          }
-        });
-      }
-      
-      const cashflowReinvestment = Math.max(0, netCashflow);
+      // FIX 2-3, 4, 9: Get detailed breakdown from calculateAvailableFunds
+      const fundsBreakdown = calculateAvailableFunds(purchaseYear, purchaseHistory);
+      const baseDeposit = fundsBreakdown.baseDeposit;
+      const cumulativeSavings = fundsBreakdown.cumulativeSavings;
+      const cashflowReinvestment = fundsBreakdown.cashflowReinvestment;
+      const equityRelease = fundsBreakdown.equityRelease;
       
       const timelineProperty: TimelineProperty = {
         id: `${property.id}_${index}`,
@@ -881,6 +907,7 @@ export const useAffordabilityCalculator = () => {
         loanAmount: loanAmount,
         affordableYear: result.year,
         status: result.year === Infinity ? 'challenging' : (result.consolidation ? 'consolidation' : 'feasible'),
+        isConsolidationEvent: !!result.consolidation, // FIX 10: Flag consolidation events
         propertyIndex: index,
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
@@ -1010,13 +1037,14 @@ export const useAffordabilityCalculator = () => {
       const netCashflow = grossRentalIncome - loanInterest - expenses;
       
       // Calculate available funds
-      const availableFunds = calculateAvailableFunds(relativeYear, purchasesUpToThisYear);
+      const availableFundsResult = calculateAvailableFunds(relativeYear, purchasesUpToThisYear);
+      const availableFunds = availableFundsResult.total;
       
-      // Determine blocking reason
+      // FIX 1: Determine blocking reason - don't block year 1
       const lastPurchaseYear = purchasesUpToThisYear.length > 0 
         ? Math.max(...purchasesUpToThisYear.map(p => p.year))
         : 0;
-      const isGapBlocked = relativeYear <= lastPurchaseYear + 1;
+      const isGapBlocked = lastPurchaseYear > 0 && relativeYear <= lastPurchaseYear + 1;
       
       // Try to determine if deposit or serviceability would fail
       const nextPropertyInQueue = allPropertiesToPurchase.find((_, idx) => 
@@ -1087,10 +1115,11 @@ export const useAffordabilityCalculator = () => {
         totalEquityBefore: totalEquity,
         totalDebtBefore: totalDebt,
         
-        baseDeposit: calculatedValues.availableDeposit,
-        cumulativeSavings: profile.annualSavings * (relativeYear - 1),
-        cashflowReinvestment: 0,
-        equityRelease: 0
+        // FIX 2-3, 9: Use breakdown from calculateAvailableFunds
+        baseDeposit: availableFundsResult.baseDeposit,
+        cumulativeSavings: availableFundsResult.cumulativeSavings,
+        cashflowReinvestment: availableFundsResult.cashflowReinvestment,
+        equityRelease: availableFundsResult.equityRelease
       };
       
       completeTimeline.push(nonPurchaseYear);
