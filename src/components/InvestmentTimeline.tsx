@@ -62,7 +62,7 @@ export const InvestmentTimeline = () => {
       loanAmount?: string;
       portfolioValue: string;
       equity: string;
-      status: 'feasible' | 'delayed' | 'challenging' | 'consolidation';
+      status: 'feasible' | 'delayed' | 'challenging' | 'consolidation' | 'waiting' | 'blocked';
       number?: string;
       affordableYear: number;
       eventType: 'purchase' | 'consolidation';

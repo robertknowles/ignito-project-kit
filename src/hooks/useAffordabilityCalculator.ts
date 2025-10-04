@@ -950,9 +950,155 @@ export const useAffordabilityCalculator = () => {
       }
     });
     
-    // Sort by affordable year for display
-    const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-    return sortedProperties;
+    // PHASE 2: Generate complete year-by-year breakdown
+    const completeTimeline: TimelineProperty[] = [];
+    const purchaseMap = new Map<number, TimelineProperty>();
+    
+    // Index purchases by absolute year for quick lookup
+    timelineProperties.forEach(prop => {
+      purchaseMap.set(prop.affordableYear, prop);
+    });
+    
+    // Generate entry for each year
+    for (let relativeYear = 1; relativeYear <= profile.timelineYears; relativeYear++) {
+      const absoluteYear = relativeYear + 2024; // 2025, 2026, etc.
+      
+      // Check if this is a purchase year
+      if (purchaseMap.has(absoluteYear)) {
+        completeTimeline.push(purchaseMap.get(absoluteYear)!);
+        continue;
+      }
+      
+      // This is a non-purchase year - calculate portfolio state
+      const purchasesUpToThisYear = purchaseHistory.filter(p => p.year < relativeYear);
+      
+      // Calculate portfolio value with growth
+      let portfolioValue = profile.portfolioValue > 0 
+        ? calculatePropertyGrowth(profile.portfolioValue, relativeYear - 1)
+        : 0;
+        
+      let totalDebt = profile.currentDebt;
+      let grossRentalIncome = 0;
+      let loanInterest = 0;
+      let expenses = 0;
+      
+      purchasesUpToThisYear.forEach(purchase => {
+        const yearsOwned = relativeYear - purchase.year;
+        portfolioValue += calculatePropertyGrowth(purchase.cost, yearsOwned);
+        totalDebt += purchase.loanAmount;
+        
+        // Calculate cashflow from this property
+        const propertyData = getPropertyData(purchase.title);
+        if (propertyData) {
+          const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
+          const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+          const yieldRate = parseFloat(propertyData.yield) / 100;
+          const portfolioSize = purchasesUpToThisYear.length;
+          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          const rentalIncome = currentValue * yieldRate * recognitionRate;
+          const interestRate = parseFloat(globalFactors.interestRate) / 100;
+          const propertyLoanInterest = purchase.loanAmount * interestRate;
+          const propertyExpenses = rentalIncome * 0.30;
+          
+          grossRentalIncome += rentalIncome;
+          loanInterest += propertyLoanInterest;
+          expenses += propertyExpenses;
+        }
+      });
+      
+      const totalEquity = portfolioValue - totalDebt;
+      const netCashflow = grossRentalIncome - loanInterest - expenses;
+      
+      // Calculate available funds
+      const availableFunds = calculateAvailableFunds(relativeYear, purchasesUpToThisYear);
+      
+      // Determine blocking reason
+      const lastPurchaseYear = purchasesUpToThisYear.length > 0 
+        ? Math.max(...purchasesUpToThisYear.map(p => p.year))
+        : 0;
+      const isGapBlocked = relativeYear <= lastPurchaseYear + 1;
+      
+      // Try to determine if deposit or serviceability would fail
+      const nextPropertyInQueue = allPropertiesToPurchase.find((_, idx) => 
+        idx >= timelineProperties.length
+      );
+      
+      let depositTestPass = true;
+      let serviceabilityTestPass = true;
+      let depositTestSurplus = 0;
+      let serviceabilityTestSurplus = 0;
+      
+      if (nextPropertyInQueue && !isGapBlocked) {
+        const property = nextPropertyInQueue.property;
+        const depositBuffer = 40000;
+        const requiredFunds = property.depositRequired + depositBuffer;
+        depositTestPass = availableFunds >= requiredFunds;
+        depositTestSurplus = availableFunds - requiredFunds;
+        
+        // Simplified serviceability check
+        const loanAmount = property.cost - property.depositRequired;
+        const totalDebtAfter = totalDebt + loanAmount;
+        serviceabilityTestPass = profile.borrowingCapacity >= totalDebtAfter;
+        serviceabilityTestSurplus = profile.borrowingCapacity - totalDebtAfter;
+      }
+      
+      // Determine status
+      let status: 'feasible' | 'challenging' | 'consolidation' | 'waiting' | 'blocked';
+      if (isGapBlocked) {
+        status = 'waiting';
+      } else if (!depositTestPass || !serviceabilityTestPass) {
+        status = 'blocked';
+      } else {
+        status = 'waiting';
+      }
+      
+      // Create non-purchase year entry
+      const nonPurchaseYear: TimelineProperty = {
+        id: `year_${relativeYear}`,
+        title: '', // No property
+        cost: 0,
+        depositRequired: 0,
+        loanAmount: 0,
+        affordableYear: absoluteYear,
+        status,
+        propertyIndex: -1, // No property purchased
+        portfolioValueAfter: portfolioValue,
+        totalEquityAfter: totalEquity,
+        totalDebtAfter: totalDebt,
+        availableFundsUsed: availableFunds,
+        
+        // Cashflow from existing properties
+        grossRentalIncome,
+        loanInterest,
+        expenses,
+        netCashflow,
+        
+        depositTestSurplus,
+        depositTestPass,
+        serviceabilityTestSurplus,
+        serviceabilityTestPass,
+        borrowingCapacityUsed: totalDebt,
+        borrowingCapacityRemaining: profile.borrowingCapacity - totalDebt,
+        
+        isGapRuleBlocked: isGapBlocked,
+        rentalRecognitionRate: calculateRentalRecognitionRate(purchasesUpToThisYear.length),
+        
+        portfolioValueBefore: portfolioValue,
+        totalEquityBefore: totalEquity,
+        totalDebtBefore: totalDebt,
+        
+        baseDeposit: calculatedValues.availableDeposit,
+        cumulativeSavings: profile.annualSavings * (relativeYear - 1),
+        cashflowReinvestment: 0,
+        equityRelease: 0
+      };
+      
+      completeTimeline.push(nonPurchaseYear);
+    }
+    
+    // Sort by year for display
+    const sortedTimeline = completeTimeline.sort((a, b) => a.affordableYear - b.affordableYear);
+    return sortedTimeline;
   }, [
     // Only re-calculate when these specific values change
     JSON.stringify(selections),

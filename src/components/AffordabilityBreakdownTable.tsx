@@ -256,9 +256,9 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                         <div>
                           <h4 className="font-semibold mb-2">💵 Portfolio Cashflow</h4>
                           <div className="space-y-1 text-gray-600">
-                            <div>Gross Rental: {formatCurrency(year.grossRental || 0)}</div>
-                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments || 0)}</div>
-                            <div>Expenses: -{formatCurrency(year.expenses || 0)}</div>
+                            <div>Gross Rental: {formatCurrency(year.grossRental)}</div>
+                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments)}</div>
+                            <div>Expenses: -{formatCurrency(year.expenses)}</div>
                             <div className="pt-2 border-t font-semibold text-gray-900">
                               Net Cashflow: {formatCurrency(netCashflow)}/year
                             </div>
