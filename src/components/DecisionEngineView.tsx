@@ -66,6 +66,36 @@ export const DecisionEngineView: React.FC = () => {
           ? (property.loanInterest / property.grossRentalIncome) * 100 
           : 0;
 
+        // Calculate new fields for pure presentation
+        const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
+        const existingDebt = property.totalDebtAfter - property.loanAmount;
+        const newDebt = property.loanAmount;
+        const existingLoanInterest = existingDebt * interestRate;
+        const newLoanInterest = newDebt * interestRate;
+        const annualSavingsRate = profile.annualSavings;
+        const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
+        
+        // Build all portfolio properties array
+        const allPortfolioProperties = timelineProperties
+          .filter(p => p.affordableYear <= year)
+          .map(p => {
+            const yearsOwned = year - p.affordableYear;
+            const currentValue = p.cost * Math.pow(1 + growthRate, yearsOwned);
+            const equity = currentValue - p.loanAmount;
+            const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+            
+            return {
+              propertyId: p.id,
+              propertyType: p.title,
+              purchaseYear: p.affordableYear,
+              originalCost: p.cost,
+              currentValue,
+              loanAmount: p.loanAmount,
+              equity,
+              extractableEquity: extractable,
+            };
+          });
+
         const yearData: YearBreakdownData = {
           year,
           displayYear: yearIndex,
@@ -77,6 +107,7 @@ export const DecisionEngineView: React.FC = () => {
           portfolioValue: property.portfolioValueAfter,
           totalEquity: property.totalEquityAfter,
           totalDebt: property.totalDebtAfter,
+          extractableEquity,
           
           // Cash engine (from calculator)
           availableDeposit: property.availableFundsUsed,
@@ -87,6 +118,8 @@ export const DecisionEngineView: React.FC = () => {
           cumulativeSavings: property.cumulativeSavings,
           cashflowReinvestment: property.cashflowReinvestment,
           equityRelease: property.equityRelease,
+          annualSavingsRate,
+          totalAnnualCapacity,
           
           // Cashflow components (from calculator)
           grossRental: property.grossRentalIncome,
@@ -102,6 +135,12 @@ export const DecisionEngineView: React.FC = () => {
           availableBorrowingCapacity: property.borrowingCapacityRemaining,
           borrowingCapacity: profile.borrowingCapacity,
           
+          // Debt breakdown
+          existingDebt,
+          newDebt,
+          existingLoanInterest,
+          newLoanInterest,
+          
           // Assumptions (from calculator)
           interestRate: interestRate * 100,
           rentalRecognition: property.rentalRecognitionRate * 100,
@@ -112,6 +151,13 @@ export const DecisionEngineView: React.FC = () => {
             surplus: property.depositTestSurplus,
             available: property.availableFundsUsed,
             required: property.depositRequired,
+          },
+          
+          borrowingCapacityTest: {
+            pass: property.totalDebtAfter <= profile.borrowingCapacity,
+            surplus: profile.borrowingCapacity - property.totalDebtAfter,
+            available: profile.borrowingCapacity,
+            required: property.totalDebtAfter,
           },
           
           serviceabilityTest: {
@@ -143,7 +189,7 @@ export const DecisionEngineView: React.FC = () => {
           dsr,
           lvr,
           
-          // Breakdown details
+          // Breakdown details - Enhanced with equity calculations
           purchases: [{
             propertyId: property.id,
             propertyType: property.title,
@@ -151,7 +197,13 @@ export const DecisionEngineView: React.FC = () => {
             deposit: property.depositRequired,
             loanAmount: property.loanAmount,
             year,
+            currentValue: property.cost,
+            equity: property.cost - property.loanAmount,
+            extractableEquity: Math.max(0, (property.cost * 0.80) - property.loanAmount),
           }],
+          
+          // All portfolio properties
+          allPortfolioProperties,
         };
 
         years.push(yearData);
@@ -291,6 +343,42 @@ function interpolateYearData(
     }
   }
   
+  // Calculate new fields for pure presentation
+  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const existingDebt = totalDebt;
+  const newDebt = requiredLoan;
+  const existingLoanInterest = existingDebt * interestRate;
+  const newLoanInterest = newDebt * interestRate;
+  const annualSavingsRate = profile.annualSavings;
+  const totalAnnualCapacity = annualSavingsRate + Math.max(0, netCashflow);
+  
+  // Calculate base deposit remaining (after previous purchases)
+  const totalDepositsUsed = timelineProperties
+    .filter(p => p.affordableYear < year)
+    .reduce((sum, p) => sum + p.depositRequired, 0);
+  const baseDepositRemaining = Math.max(0, profile.depositPool - totalDepositsUsed);
+  
+  // Build all portfolio properties array
+  const allPortfolioProperties = timelineProperties
+    .filter(p => p.affordableYear < year)
+    .map(p => {
+      const yearsOwned = year - p.affordableYear;
+      const currentValue = p.cost * Math.pow(1 + growthRate, yearsOwned);
+      const equity = currentValue - p.loanAmount;
+      const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+      
+      return {
+        propertyId: p.id,
+        propertyType: p.title,
+        purchaseYear: p.affordableYear,
+        originalCost: p.cost,
+        currentValue,
+        loanAmount: p.loanAmount,
+        equity,
+        extractableEquity: extractable,
+      };
+    });
+
   return {
     year,
     displayYear: yearIndex,
@@ -302,16 +390,19 @@ function interpolateYearData(
     portfolioValue,
     totalEquity,
     totalDebt,
+    extractableEquity,
     
     // Cash engine (interpolated)
     availableDeposit,
     annualCashFlow: netCashflow,
     
     // Available funds breakdown (interpolated)
-    baseDeposit: profile.depositPool,
+    baseDeposit: baseDepositRemaining, // Rolling amount based on deposits used
     cumulativeSavings,
     cashflowReinvestment: Math.max(0, netCashflow),
     equityRelease: 0, // No equity release in non-purchase years
+    annualSavingsRate,
+    totalAnnualCapacity,
     
     // Cashflow components (interpolated)
     grossRental,
@@ -324,8 +415,14 @@ function interpolateYearData(
     propertyCost,
     
     // Capacity
-    availableBorrowingCapacity: profile.borrowingCapacity - totalDebt,
+    availableBorrowingCapacity: Math.max(0, profile.borrowingCapacity - totalDebt),
     borrowingCapacity: profile.borrowingCapacity,
+    
+    // Debt breakdown
+    existingDebt,
+    newDebt,
+    existingLoanInterest,
+    newLoanInterest,
     
     // Assumptions
     interestRate: interestRate * 100,
@@ -337,6 +434,13 @@ function interpolateYearData(
       surplus: depositTestSurplus,
       available: availableDeposit,
       required: requiredDeposit,
+    },
+    
+    borrowingCapacityTest: {
+      pass: totalDebt <= profile.borrowingCapacity,
+      surplus: profile.borrowingCapacity - totalDebt,
+      available: profile.borrowingCapacity,
+      required: totalDebt,
     },
     
     serviceabilityTest: {
@@ -362,6 +466,9 @@ function interpolateYearData(
     
     // Breakdown details
     purchases: [],
+    
+    // All portfolio properties
+    allPortfolioProperties,
   };
 }
 
@@ -401,6 +508,11 @@ function findNextPropertyToPurchase(
 
 // Helper function to create initial year data
 function createInitialYearData(year: number, yearIndex: number, profile: any, interestRate: number): YearBreakdownData {
+  const portfolioValue = profile.portfolioValue;
+  const totalDebt = profile.currentDebt;
+  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const annualSavingsRate = profile.annualSavings;
+  
   return {
     year,
     displayYear: yearIndex,
@@ -409,9 +521,10 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     propertyType: null,
     
     // Portfolio metrics (initial state)
-    portfolioValue: profile.portfolioValue,
-    totalEquity: profile.portfolioValue - profile.currentDebt,
-    totalDebt: profile.currentDebt,
+    portfolioValue,
+    totalEquity: portfolioValue - totalDebt,
+    totalDebt,
+    extractableEquity,
     
     // Cash engine (initial state)
     availableDeposit: profile.depositPool,
@@ -422,6 +535,8 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     cumulativeSavings: 0,
     cashflowReinvestment: 0,
     equityRelease: 0,
+    annualSavingsRate,
+    totalAnnualCapacity: annualSavingsRate,
     
     // Cashflow components (initial state)
     grossRental: 0,
@@ -437,6 +552,12 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     availableBorrowingCapacity: profile.borrowingCapacity,
     borrowingCapacity: profile.borrowingCapacity,
     
+    // Debt breakdown
+    existingDebt: totalDebt,
+    newDebt: 0,
+    existingLoanInterest: totalDebt * interestRate,
+    newLoanInterest: 0,
+    
     // Assumptions
     interestRate: interestRate * 100,
     rentalRecognition: 75,
@@ -447,6 +568,13 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
       surplus: 0,
       available: profile.depositPool,
       required: 0,
+    },
+    
+    borrowingCapacityTest: {
+      pass: true,
+      surplus: profile.borrowingCapacity - totalDebt,
+      available: profile.borrowingCapacity,
+      required: totalDebt,
     },
     
     serviceabilityTest: {
@@ -468,9 +596,12 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     selfFundingEfficiency: 0,
     equityRecyclingImpact: 0,
     dsr: 0,
-    lvr: profile.portfolioValue > 0 ? (profile.currentDebt / profile.portfolioValue) * 100 : 0,
+    lvr: portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0,
     
     // Breakdown details
     purchases: [],
+    
+    // All portfolio properties (empty initially)
+    allPortfolioProperties: [],
   };
 }

@@ -117,6 +117,7 @@ export interface YearBreakdownData {
   portfolioValue: number;
   totalEquity: number;
   totalDebt: number;
+  extractableEquity: number; // NEW: (portfolioValue * 0.80) - totalDebt
   
   // Cash engine
   availableDeposit: number;
@@ -127,6 +128,8 @@ export interface YearBreakdownData {
   cumulativeSavings: number;
   cashflowReinvestment: number;
   equityRelease: number;
+  annualSavingsRate: number; // NEW: Annual savings (not cumulative)
+  totalAnnualCapacity: number; // NEW: Annual savings + cashflow reinvestment
   
   // Cashflow components
   grossRental: number;
@@ -142,12 +145,25 @@ export interface YearBreakdownData {
   availableBorrowingCapacity: number;
   borrowingCapacity: number;
   
+  // Debt breakdown (NEW)
+  existingDebt: number; // Debt before current purchase
+  newDebt: number; // Just the new loan for this purchase
+  existingLoanInterest: number; // Interest on existing debt only
+  newLoanInterest: number; // Interest on new loan only
+  
   // Assumptions
   interestRate: number;
   rentalRecognition: number;
   
   // Tests
   depositTest: {
+    pass: boolean;
+    surplus: number;
+    available: number;
+    required: number;
+  };
+  
+  borrowingCapacityTest: {
     pass: boolean;
     surplus: number;
     available: number;
@@ -183,7 +199,7 @@ export interface YearBreakdownData {
   dsr: number;
   lvr: number;
   
-  // Breakdown details
+  // Breakdown details - Enhanced with equity calculations
   purchases: Array<{
     propertyId: string;
     propertyType: string;
@@ -191,5 +207,20 @@ export interface YearBreakdownData {
     deposit: number;
     loanAmount: number;
     year: number;
+    currentValue: number; // NEW: Current value with growth
+    equity: number; // NEW: currentValue - loanAmount
+    extractableEquity: number; // NEW: (currentValue * 0.80) - loanAmount
+  }>;
+  
+  // All portfolio properties at this point in time (NEW)
+  allPortfolioProperties: Array<{
+    propertyId: string;
+    propertyType: string;
+    purchaseYear: number;
+    originalCost: number;
+    currentValue: number;
+    loanAmount: number;
+    equity: number;
+    extractableEquity: number;
   }>;
 }

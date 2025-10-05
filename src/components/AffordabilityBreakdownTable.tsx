@@ -96,27 +96,30 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
         <thead className="sticky top-0 z-10">
           <tr className="bg-gray-50 border-b-2 border-gray-200">
             <th className="text-left p-3 font-semibold text-sm text-gray-700">Year</th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">Events This Year</th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">Events</th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              📈 Portfolio<br/>Value / Equity
+              Portfolio Value/Equity
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              💰 Cash Engine<br/>Available / Net Flow
+              Available Funds
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              🏦 Core Assumptions<br/>Int. Rate / Rental Rec.
+              Net Cashflow
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              🔑 Key Ratios<br/>LVR / DSR
+              LVR
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              💰 Deposit Test<br/>(Surplus/Shortfall)
+              Rental Recognition
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              📊 Serviceability<br/>Test (Surplus/Shortfall)
+              Deposit Test
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              ✅ Decision
+              Serviceability Test
+            </th>
+            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+              Decision
             </th>
           </tr>
         </thead>
@@ -171,24 +174,25 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   
                   <td className="p-3">
                     <div className="text-sm">
-                      <div>{formatCurrency(availableFunds, true)}</div>
-                      <div className={netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
-                      </div>
+                      {formatCurrency(availableFunds, true)}
+                    </div>
+                  </td>
+                  
+                  <td className="p-3">
+                    <div className={`text-sm ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
                     </div>
                   </td>
                   
                   <td className="p-3">
                     <div className="text-sm">
-                      <div>{formatPercentage(interestRate)}</div>
-                      <div className="text-gray-600">{formatPercentage(rentalRecognition)}</div>
+                      {formatPercentage(lvr)}
                     </div>
                   </td>
                   
                   <td className="p-3">
                     <div className="text-sm">
-                      <div>{formatPercentage(lvr)}</div>
-                      <div className="text-gray-600">{formatPercentage(dsr)}</div>
+                      {formatPercentage(rentalRecognition)}
                     </div>
                   </td>
                   
@@ -236,82 +240,153 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                 {/* Expanded Detail Row */}
                 {isExpanded && (
                   <tr className="bg-gray-50 border-b">
-                    <td colSpan={9} className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                        {/* Available Funds Breakdown */}
-                        <div>
-                          <h4 className="font-semibold mb-2">💰 Available Funds Breakdown</h4>
-                          <div className="space-y-1 text-gray-600">
-                            <div>Base Deposit: {formatCurrency(year.baseDeposit || 0)}</div>
-                            <div>Cumulative Savings: {formatCurrency(year.cumulativeSavings || 0)}</div>
-                            <div>Cashflow Reinvestment: {formatCurrency(year.cashflowReinvestment || 0)}</div>
-                            <div>Equity Release: {formatCurrency(year.equityRelease || 0)}</div>
-                            <div className="pt-2 border-t font-semibold text-gray-900">
-                              Total: {formatCurrency(availableFunds)}
-                            </div>
-                          </div>
-                        </div>
+                    <td colSpan={10} className="py-1 px-4">
+                      <div className="space-y-4 text-xs">
                         
-                        {/* Cashflow Details */}
-                        <div>
-                          <h4 className="font-semibold mb-2">💵 Portfolio Cashflow</h4>
-                          <div className="space-y-1 text-gray-600">
-                            <div>Gross Rental: {formatCurrency(year.grossRental || 0)}</div>
-                            <div>Loan Repayments: -{formatCurrency(year.loanRepayments || 0)}</div>
-                            <div>Expenses: -{formatCurrency(year.expenses || 0)}</div>
-                            <div className="pt-2 border-t font-semibold text-gray-900">
-                              Net Cashflow: {formatCurrency(netCashflow)}/year
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Debt Position */}
+                        {/* ROW 1: Annual Cashflow & Funding */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          {/* Annual Cashflow Performance */}
                           <div>
-                            <h4 className="font-semibold mb-2">💳 Debt Position</h4>
+                            <h4 className="font-semibold mb-0.5 text-sm">💵 Annual Cashflow Performance</h4>
                             <div className="space-y-1 text-gray-600">
-                              <div>Existing Debt: {formatCurrency(year.totalDebt - (year.status === 'purchased' ? year.requiredLoan : 0))}</div>
-                              {year.status === 'purchased' && <div>New Loan Required: {formatCurrency(year.requiredLoan)}</div>}
-                              <div>Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity)}</div>
-                              <div className="pt-2 border-t font-semibold text-gray-900">
-                                Total Debt: {formatCurrency(year.totalDebt)}
+                              <div className="pl-3">├─ Gross Rental Income: {formatCurrency(year.grossRental || 0, true)}</div>
+                              <div className="pl-3">├─ Loan Interest: -{formatCurrency(year.loanRepayments || 0, true)}</div>
+                              <div className="pl-3">├─ Expenses (30%): -{formatCurrency(year.expenses || 0, true)}</div>
+                              <div className={`pl-3 ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                └─ Net Cashflow: {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}/year {netCashflow < 0 ? '(reduces funding capacity)' : ''}
                               </div>
                             </div>
                           </div>
-                        
-                        {/* Consolidation Details if applicable */}
-                        {year.consolidation?.triggered && (
+                          
+                          {/* Annual Funding Capacity */}
                           <div>
-                            <h4 className="font-semibold mb-2">🔄 Consolidation Details</h4>
+                            <h4 className="font-semibold mb-0.5 text-sm">💰 Annual Funding Capacity</h4>
                             <div className="space-y-1 text-gray-600">
-                              <div>Properties Sold: {year.consolidation.propertiesSold || 1}</div>
-                              <div>Equity Freed: {formatCurrency(year.consolidation.equityFreed || 0)}</div>
-                              <div>Debt Reduced: {formatCurrency(year.consolidation.debtReduced || 0)}</div>
-                              <div>New LVR: {formatPercentage(year.consolidation.newLvr || 60)}</div>
+                              <div className="pl-3">├─ Base Annual Savings: {formatCurrency(year.annualSavingsRate || 0, true)}</div>
+                              <div className="pl-3">├─ Cashflow Impact: {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}</div>
+                              <div className="pl-3 font-medium">└─ Net Annual Capacity: {formatCurrency(year.totalAnnualCapacity || 0, true)}</div>
                             </div>
                           </div>
-                        )}
-                        
-                        {/* Strategy Insights */}
-                        <div>
-                          <h4 className="font-semibold mb-2">📈 Strategy Insights</h4>
-                          <div className="space-y-1 text-gray-600">
-                            <div>Portfolio Scaling: {year.portfolioScaling || 0} properties</div>
-                            <div>Self-Funding Efficiency: {formatPercentage(year.selfFundingEfficiency || 0)}</div>
-                            <div>Equity Recycling Impact: {formatPercentage(year.equityRecyclingImpact || 0)}</div>
+                          
+                          {/* This Purchase Funding */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">🏠 This Purchase Funding</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="font-medium">Total Funds Used: {formatCurrency((year.requiredDeposit || 0) + 40000, true)}</div>
+                              <div className="pl-3">├─ Deposit Required: {formatCurrency(year.requiredDeposit || 0, true)}</div>
+                              <div className="pl-6">├─ From Base Deposit: {formatCurrency(Math.min(year.requiredDeposit || 0, year.baseDeposit || 0), true)}</div>
+                              <div className="pl-6">├─ From Annual Savings: {formatCurrency(Math.max(0, (year.requiredDeposit || 0) - (year.baseDeposit || 0)), true)}</div>
+                              <div className="pl-6">└─ From Equity Release: {formatCurrency(0, true)}</div>
+                              <div className="pl-3">├─ Safety Buffer: £40k</div>
+                              <div className="pl-6">├─ From Base Deposit: £40k</div>
+                              <div className="pl-6">├─ From Annual Savings: £0</div>
+                              <div className="pl-6">└─ From Equity Release: £0</div>
+                              <div className="pl-3 font-medium flex items-center gap-1">
+                                └─ Total Sourced: {formatCurrency((year.requiredDeposit || 0) + 40000, true)} 
+                                <CheckCircle className="w-3 h-3 text-green-500" />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Remaining After Purchase */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">💰 Remaining After Purchase</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="pl-3">├─ Base Deposit: {formatCurrency(Math.max(0, (year.baseDeposit || 0) - (year.requiredDeposit || 0) - 40000), true)} (was {formatCurrency((year.baseDeposit || 0) + (year.requiredDeposit || 0) + 40000, true)}, used {formatCurrency((year.requiredDeposit || 0) + 40000, true)})</div>
+                              <div className="pl-3">├─ Accumulated Savings: {formatCurrency(year.cumulativeSavings || 0, true)} (unused)</div>
+                              <div className="pl-3">├─ Equity Release: {formatCurrency(year.equityRelease || 0, true)} (unused)</div>
+                              <div className="pl-3 font-medium">└─ Total Remaining: {formatCurrency((depositTest.available || 0) - (year.requiredDeposit || 0) - 40000, true)}</div>
+                              <div className={`pt-1 font-medium ${depositTest.surplus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                Purchase Result: {formatCurrency(depositTest.surplus || 0, true)} surplus ({formatCurrency(depositTest.available || 0, true)} available - {formatCurrency((year.requiredDeposit || 0) + 40000, true)} used)
+                              </div>
+                            </div>
                           </div>
                         </div>
                         
-                        {/* Decision Logic */}
-                        <div>
-                          <h4 className="font-semibold mb-2">🚦 Decision Logic</h4>
-                          <div className="space-y-1 text-gray-600">
-                            {year.gapRule && <div className="text-blue-600">⏸️ 12-month gap rule enforced</div>}
-                            {!depositTest.pass && <div className="text-red-600">❌ Deposit test failed</div>}
-                            {!serviceabilityTest.pass && <div className="text-red-600">❌ Serviceability test failed</div>}
-                            {year.status === 'purchased' && <div className="text-green-600">✅ All tests passed</div>}
-                            {year.consolidation?.eligible && <div className="text-orange-600">⚠️ Consolidation eligible</div>}
+                        {/* ROW 2: Portfolio & Debt Analysis */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                          {/* Portfolio Equity Growth */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">🏠 Portfolio Equity Growth</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div>Current Portfolio Value: {formatCurrency(portfolioValue, true)}</div>
+                              <div>Total Equity: {formatCurrency(equity, true)}</div>
+                              <div>Available for Extraction (80% LVR): {formatCurrency(year.extractableEquity || 0, true)}</div>
+                              
+                              {year.allPortfolioProperties && year.allPortfolioProperties.length > 0 && (
+                                <>
+                                  <div className="pt-1 font-medium text-gray-700">Property Breakdown:</div>
+                                  {year.allPortfolioProperties.map((property: any, idx: number) => (
+                                    <div key={idx} className="pl-3 text-[11px]">
+                                      Property #{idx + 1} ({property.purchaseYear}): {formatCurrency(property.currentValue, true)} value → {formatCurrency(property.equity, true)} equity → {formatCurrency(property.extractableEquity, true)} extractable
+                                    </div>
+                                  ))}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* LVR Status */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">📊 LVR Status</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="pl-3">Current LVR: {formatPercentage(lvr)}</div>
+                              <div className="pl-3">Trigger Level: 80.0%</div>
+                              <div className="pl-3">Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity || 0, true)}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Debt Position */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">💳 Debt Position</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="pl-3">├─ Existing Debt: {formatCurrency(year.existingDebt || 0, true)}</div>
+                              <div className="pl-3">├─ New Loan Required: {formatCurrency(year.newDebt || 0, true)}</div>
+                              <div className="pl-3">├─ Total Debt After: {formatCurrency(year.totalDebt || 0, true)}</div>
+                              <div className="pl-3">└─ Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity || 0, true)}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Borrowing Capacity Test */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">🔍 Borrowing Capacity Test</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="pl-3 flex items-center gap-1">
+                                {year.borrowingCapacityTest?.pass ? 
+                                  <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                                  <XCircle className="w-3 h-3 text-red-500" />
+                                }
+                                <span className={`text-xs ${year.borrowingCapacityTest?.pass ? 'text-green-600' : 'text-red-600'}`}>
+                                  {year.borrowingCapacityTest?.pass ? 'PASS' : 'FAIL'}
+                                </span>
+                              </div>
+                              <div className="pl-3">├─ Borrowing Capacity Limit: {formatCurrency(year.borrowingCapacityTest?.available || 0, true)}</div>
+                              <div className="pl-3">├─ Total Debt After Purchase: {formatCurrency(year.borrowingCapacityTest?.required || 0, true)}</div>
+                              <div className="pl-3">└─ Remaining Capacity: {formatCurrency(year.borrowingCapacityTest?.surplus || 0, true)}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Serviceability Test */}
+                          <div>
+                            <h4 className="font-semibold mb-0.5 text-sm">⚖️ Serviceability Test</h4>
+                            <div className="space-y-1 text-gray-600">
+                              <div className="pl-3 flex items-center gap-1">
+                                {serviceabilityTest.pass ? 
+                                  <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                                  <XCircle className="w-3 h-3 text-red-500" />
+                                }
+                                <span className={`text-xs ${serviceabilityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                                  {serviceabilityTest.pass ? 'PASS' : 'FAIL'}
+                                </span>
+                              </div>
+                              <div className="pl-3">├─ Existing Loan Interest: {formatCurrency(year.existingLoanInterest || 0, true)}</div>
+                              <div className="pl-3">├─ New Loan Interest: {formatCurrency(year.newLoanInterest || 0, true)}</div>
+                              <div className="pl-3">├─ Max Allowable (10% rule): {formatCurrency(serviceabilityTest.available || 0, true)}</div>
+                              <div className="pl-3">└─ Surplus/Shortfall: {formatCurrency(serviceabilityTest.surplus || 0, true)}</div>
+                            </div>
                           </div>
                         </div>
+                        
                       </div>
                     </td>
                   </tr>
@@ -321,6 +396,25 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
           })}
         </tbody>
       </table>
+      
+      {/* Key Assumptions - Static Values */}
+      <div className="mt-6 bg-white border rounded-lg p-6">
+        <h4 className="font-semibold mb-1 text-sm">🔑 Key Assumptions</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+          <div className="space-y-2">
+            <div className="pl-4">├─ Interest Rate: 6.0%</div>
+            <div className="pl-4">├─ Expense Ratio: 30% of rental income</div>
+          </div>
+          <div className="space-y-2">
+            <div className="pl-4">├─ Deposit Buffer: £40,000</div>
+            <div className="pl-4">├─ LVR Limits: 80%</div>
+          </div>
+          <div className="space-y-2">
+            <div className="pl-4">├─ Serviceability: 10% of borrowing capacity</div>
+            <div className="pl-4">└─ Loan Type: Interest-only</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

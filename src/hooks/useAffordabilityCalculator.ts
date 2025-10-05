@@ -22,7 +22,7 @@ export const useAffordabilityCalculator = () => {
   // Simplified consolidation - only trigger on consecutive failures
 
   // Debug flag - set to true to enable detailed debugging
-  const DEBUG_MODE = true;
+  const DEBUG_MODE = false; // Disabled for performance
   console.log('useAffordabilityCalculator loaded - no dynamic capacity');
 
   // Move helper functions outside useMemo so they can be accessed by other functions
@@ -461,9 +461,14 @@ export const useAffordabilityCalculator = () => {
       const serviceabilityTestSurplus = maxAnnualInterest - totalAnnualLoanInterest;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
+      // BORROWING CAPACITY TEST: Total debt cannot exceed borrowing capacity
+      const borrowingCapacityTestPass = totalDebtAfterPurchase <= profile.borrowingCapacity;
+      const borrowingCapacityTestSurplus = profile.borrowingCapacity - totalDebtAfterPurchase;
+      
       // SERVICEABILITY TEST: Capacity-based (10% of borrowing capacity)
       const canAffordDeposit = (availableFunds - depositBuffer) >= property.depositRequired;
       const canAffordServiceability = serviceabilityTestPass;
+      const canAffordBorrowingCapacity = borrowingCapacityTestPass;
       
       // Debug trace output
       if (DEBUG_MODE) {
@@ -571,6 +576,20 @@ export const useAffordabilityCalculator = () => {
         console.log(
           `   └─ New Loan Required: £${newLoan.toLocaleString()}`
         );
+        
+        // === BORROWING CAPACITY CHECK ===
+        console.log(
+          `🏦 Borrowing Capacity Check: ${borrowingCapacityTestPass ? "PASS" : "FAIL"}`
+        );
+        console.log(
+          `   ├─ Total Debt After Purchase: £${totalDebtAfterPurchase.toLocaleString()}`
+        );
+        console.log(
+          `   ├─ Borrowing Capacity Limit: £${profile.borrowingCapacity.toLocaleString()}`
+        );
+        console.log(
+          `   └─ Remaining Capacity: £${borrowingCapacityTestSurplus.toLocaleString()}`
+        );
 
         // === ENHANCED CONSOLIDATION STATUS ===
         // Hardcoded consolidation limits
@@ -622,7 +641,7 @@ export const useAffordabilityCalculator = () => {
 
         // === FINAL DECISION ===
         console.log(
-          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | ServiceabilityTest = ${serviceabilityPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
+          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | BorrowingCapacity = ${borrowingCapacityTestPass ? "PASS" : "FAIL"} | ServiceabilityTest = ${serviceabilityPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
         );
       }
       
@@ -630,17 +649,18 @@ export const useAffordabilityCalculator = () => {
         return { canAfford: false };
       }
       
-      if (canAffordServiceability) {
+      // Check if all tests pass
+      if (canAffordServiceability && canAffordBorrowingCapacity) {
         // Reset failure count on success
         localConsolidationState.consecutiveDebtTestFailures = 0;
         return { canAfford: true };
       }
       
-       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive serviceability failures
-       if (!canAffordServiceability) {
+       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive failures (serviceability OR borrowing capacity)
+       if (!canAffordServiceability || !canAffordBorrowingCapacity) {
          localConsolidationState.consecutiveDebtTestFailures++;
        } else {
-         localConsolidationState.consecutiveDebtTestFailures = 0; // Reset when serviceability passes
+         localConsolidationState.consecutiveDebtTestFailures = 0; // Reset when both pass
        }
        
        // Hardcoded consolidation limits
@@ -726,6 +746,9 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
+    const startTime = performance.now();
+    console.log('[PERF] Starting calculateTimelineProperties');
+    
     // Track consolidation state - simplified to only consecutive failures
     let consolidationState = {
       consecutiveDebtTestFailures: 0 // Count consecutive serviceability failures
@@ -736,8 +759,15 @@ export const useAffordabilityCalculator = () => {
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): { year: number; consolidation?: any; updatedPurchases?: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> } => {
       let currentPurchases = [...previousPurchases];
+      let iterationCount = 0;
+      const maxIterations = profile.timelineYears * 2; // Safety limit
       
       for (let year = 1; year <= profile.timelineYears; year++) {
+        iterationCount++;
+        if (iterationCount > maxIterations) {
+          console.error('[SAFETY] Max iterations exceeded in determineNextPurchaseYear');
+          return { year: Infinity };
+        }
         // 6-MONTH PURCHASE GAP: Enforce minimum gap between purchases
         const lastPurchaseYear = currentPurchases.length > 0 
           ? Math.max(...currentPurchases.map(p => p.year)) 
@@ -828,10 +858,13 @@ export const useAffordabilityCalculator = () => {
         totalDebtAfter = profile.currentDebt;
         
         // Add all previous purchases (with growth based on years owned)
+        // CRITICAL FIX: Only include purchases made by or before the current purchase year
         purchaseHistory.forEach(purchase => {
-          const yearsOwned = purchaseYear - purchase.year;
-          portfolioValueAfter += calculatePropertyGrowth(purchase.cost, yearsOwned);
-          totalDebtAfter += purchase.loanAmount;
+          if (purchase.year <= purchaseYear) {
+            const yearsOwned = purchaseYear - purchase.year;
+            portfolioValueAfter += calculatePropertyGrowth(purchase.cost, yearsOwned);
+            totalDebtAfter += purchase.loanAmount;
+          }
         });
         
         // Add the current property being purchased
@@ -842,7 +875,8 @@ export const useAffordabilityCalculator = () => {
         totalEquityAfter = portfolioValueAfter - totalDebtAfter;
         
         // Calculate available funds used
-        availableFundsUsed = calculateAvailableFunds(purchaseYear, purchaseHistory).total;
+        const fundsBreakdown = calculateAvailableFunds(purchaseYear, purchaseHistory);
+        availableFundsUsed = fundsBreakdown.total;
       }
       
       // Calculate cashflow breakdown for this property
@@ -890,10 +924,11 @@ export const useAffordabilityCalculator = () => {
       const serviceabilityTestSurplus = maxAnnualInterest - loanInterest;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
-      // Calculate available funds breakdown
+      // Calculate available funds breakdown - USE CALCULATED VALUES
+      const fundsBreakdownFinal = calculateAvailableFunds(purchaseYear, purchaseHistory);
       const annualSavings = profile.annualSavings;
-      const cumulativeSavings = annualSavings * (purchaseYear - 1);
-      const baseDeposit = calculatedValues.availableDeposit;
+      const cumulativeSavings = fundsBreakdownFinal.cumulativeSavings;
+      const baseDeposit = fundsBreakdownFinal.baseDeposit; // Rolling amount based on deposits used
       
       // Calculate equity release (continuous, 80% release rate)
       let equityRelease = 0;
@@ -936,7 +971,9 @@ export const useAffordabilityCalculator = () => {
         serviceabilityTestSurplus,
         serviceabilityTestPass,
         borrowingCapacityUsed: loanAmount,
-        borrowingCapacityRemaining: profile.borrowingCapacity - totalDebtAfter,
+        // CRITICAL: This calculation MUST match the borrowing capacity test in checkAffordability
+        // Both use: borrowingCapacity - totalDebt (where totalDebt is filtered by year)
+        borrowingCapacityRemaining: Math.max(0, profile.borrowingCapacity - totalDebtAfter),
         
         // Flags and rates
         isGapRuleBlocked: false, // Set based on gap rule logic
@@ -989,6 +1026,11 @@ export const useAffordabilityCalculator = () => {
     
     // Sort by affordable year for display
     const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
+    
+    const endTime = performance.now();
+    console.log(`[PERF] calculateTimelineProperties completed in ${(endTime - startTime).toFixed(2)}ms`);
+    console.log(`[PERF] Processed ${allPropertiesToPurchase.length} properties, generated ${sortedProperties.length} timeline entries`);
+    
     return sortedProperties;
   }, [
     // Only re-calculate when these specific values change
