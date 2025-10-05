@@ -22,6 +22,14 @@ export const Dashboard = () => {
   
   // State for tabs
   const [activeTab, setActiveTab] = useState('timeline');
+
+  // Debug logging for tab changes
+  const handleTabChange = (tab: string) => {
+    console.log('Dashboard: Tab changing to:', tab);
+    console.log('Dashboard: Current activeTab:', activeTab);
+    setActiveTab(tab);
+    console.log('Dashboard: Tab change completed');
+  };
   
   const { calculations } = usePropertySelection();
 
@@ -93,33 +101,45 @@ export const Dashboard = () => {
             </div>
             {/* Tabs */}
             <div className="flex border-b border-[#f3f4f6]">
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('timeline')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('timeline')}>
                 Timeline
               </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'portfolio' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('portfolio')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'portfolio' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('portfolio')}>
                 Portfolio Growth
               </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('cashflow')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('cashflow')}>
                 Cashflow Chart
               </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('analysis')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('analysis')}>
                 Cash Flow Analysis
               </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('projections')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('projections')}>
                 Growth Projections
               </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'breakdown' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => setActiveTab('breakdown')}>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'breakdown' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('breakdown')}>
                 Decision Engine
               </button>
             </div>
             {/* Tab Content */}
             <div className="p-6">
+              {(() => {
+                console.log('Dashboard: Rendering tab content for activeTab:', activeTab);
+                return null;
+              })()}
               {activeTab === 'timeline' && <InvestmentTimeline />}
               {activeTab === 'portfolio' && <PortfolioGrowthChart />}
               {activeTab === 'cashflow' && <CashflowChart />}
               {activeTab === 'analysis' && <CashFlowAnalysis />}
               {activeTab === 'projections' && <GrowthProjections />}
-              {activeTab === 'breakdown' && <DecisionEngineView />}
+              {activeTab === 'breakdown' && (
+                <div>
+                  {(() => {
+                    console.log('Dashboard: About to render DecisionEngineView');
+                    return null;
+                  })()}
+                  <DecisionEngineView />
+                </div>
+              )}
             </div>
           </div>
         </div>
