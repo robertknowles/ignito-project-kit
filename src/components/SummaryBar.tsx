@@ -22,7 +22,7 @@ export const SummaryBar = () => {
         totalProperties: 0,
         annualCashflow: 0,
         totalEquity: 0,
-        cashRequired: 0
+        totalDebt: 0
       }
     }
 
@@ -66,15 +66,12 @@ export const SummaryBar = () => {
     // Combine metrics
     const totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics)
 
-    // Calculate cash required
-    const cashRequired = feasibleProperties.reduce((sum, property) => sum + property.depositRequired, 0)
-
     return {
       finalPortfolioValue: Math.round(totalMetrics.portfolioValue),
       totalProperties: feasibleProperties.length,
       annualCashflow: Math.round(totalMetrics.annualCashflow),
       totalEquity: Math.round(totalMetrics.totalEquity),
-      cashRequired: Math.round(cashRequired)
+      totalDebt: Math.round(totalMetrics.totalDebt)
     }
   }
 
@@ -100,16 +97,20 @@ export const SummaryBar = () => {
           <p className="text-[#111827] font-medium">{kpis.totalProperties}</p>
         </div>
         <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Annual Cashflow</h4>
-          <p className="text-[#111827] font-medium">{formatCurrency(kpis.annualCashflow)}</p>
+          <h4 className="text-xs text-[#6b7280] mb-2">Cashflow Goal</h4>
+          <p className="text-[#111827] font-medium">
+            {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
+          </p>
         </div>
         <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Total Equity</h4>
-          <p className="text-[#111827] font-medium">{formatCurrency(kpis.totalEquity)}</p>
+          <h4 className="text-xs text-[#6b7280] mb-2">Equity Goal</h4>
+          <p className="text-[#111827] font-medium">
+            {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
+          </p>
         </div>
         <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Cash Required</h4>
-          <p className="text-[#111827] font-medium">{formatCurrency(kpis.cashRequired)}</p>
+          <h4 className="text-xs text-[#6b7280] mb-2">Total Debt</h4>
+          <p className="text-[#111827] font-medium">{formatCurrency(kpis.totalDebt)}</p>
         </div>
       </div>
     </div>

@@ -14,21 +14,47 @@ export interface AffordabilityResult {
 }
 
 export const useAffordabilityCalculator = () => {
-  console.log('DEBUGGING: useAffordabilityCalculator function called - REBUILD FORCED');
   const { profile, calculatedValues } = useInvestmentProfile();
   const { selections, propertyTypes } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
+
+  // Create stable selections hash to avoid expensive JSON.stringify on every render
+  const selectionsHash = useMemo(() => {
+    return Object.entries(selections)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([id, qty]) => `${id}:${qty}`)
+      .join('|');
+  }, [selections]);
 
   // Simplified consolidation - only trigger on consecutive failures
 
   // Debug flag - set to true to enable detailed debugging
   const DEBUG_MODE = false; // Disabled for performance
-  console.log('useAffordabilityCalculator loaded - no dynamic capacity');
 
   // Move helper functions outside useMemo so they can be accessed by other functions
   const calculatePropertyGrowth = (initialValue: number, years: number) => {
-    const growthRate = parseFloat(globalFactors.growthRate) / 100;
-    return initialValue * Math.pow(1 + growthRate, years);
+    let currentValue = initialValue;
+    
+    for (let year = 1; year <= years; year++) {
+      let growthRate;
+      if (year <= 2) {
+        growthRate = 0.10; // 10% for years 1-2
+      } else {
+        growthRate = 0.06; // 6% for years 3+
+      }
+      currentValue *= (1 + growthRate);
+    }
+    
+    return currentValue;
+  };
+
+  // Helper function to get the growth rate for a specific year
+  const getGrowthRateForYear = (yearsOwned: number): number => {
+    if (yearsOwned <= 2) {
+      return 0.10; // 10% for years 1-2
+    } else {
+      return 0.06; // 6% for years 3+
+    }
   };
 
   // Progressive rental recognition rates based on portfolio size
@@ -65,9 +91,8 @@ export const useAffordabilityCalculator = () => {
             const propertyData = getPropertyData(purchase.title);
             
             if (propertyData) {
-              // Calculate current property value with growth
-              const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-              const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+              // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
+              const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
               
               // Calculate rental income with progressive recognition rates
               const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -80,8 +105,8 @@ export const useAffordabilityCalculator = () => {
               const interestRate = parseFloat(globalFactors.interestRate) / 100;
               const loanInterest = purchase.loanAmount * interestRate;
               
-              // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
-              const expenses = rentalIncome * 0.30;
+              // Calculate expenses (30% of rental income + 3% annual inflation)
+              const expenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
               
               // Net cashflow for this property
               const propertyCashflow = rentalIncome - loanInterest - expenses;
@@ -109,21 +134,21 @@ export const useAffordabilityCalculator = () => {
       // Calculate net cashflow reinvestment - fix for non-purchase years
       const netCashflow = totalEnhancedSavings - baseSavings;
       
-      // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (80% release rate)
+      // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (88% LVR cap)
       let existingPortfolioEquity = 0;
       let totalUsableEquity = 0;
       
-      // Calculate existing portfolio equity with 80% release rate
+      // Calculate existing portfolio equity with 88% LVR cap
       if (profile.portfolioValue > 0) {
         const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
-        existingPortfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * 0.8);
+        existingPortfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
       }
 
-      // Calculate usable equity from previous purchases - with 80% equity release rate
+      // Calculate usable equity from previous purchases - with 88% LVR cap
       totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.year <= currentYear) {
           const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
-          const usableEquity = Math.max(0, (propertyCurrentValue * 0.8 - purchase.loanAmount) * 0.8);
+          const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - purchase.loanAmount);
           return acc + usableEquity;
         }
         return acc;
@@ -153,9 +178,8 @@ export const useAffordabilityCalculator = () => {
       return { cashflowScore: 0, equityScore: 0, totalScore: 0 };
     }
     
-    // Calculate current property value
-    const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-    const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+    // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
+    const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
     
     // Cashflow Score (rental income - loan payments - expenses)
     const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -163,8 +187,8 @@ export const useAffordabilityCalculator = () => {
     // Interest-only loans - principal does not reduce
     const interestRate = parseFloat(globalFactors.interestRate) / 100;
     const loanInterest = purchase.loanAmount * interestRate;
-    // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
-    const expenses = rentalIncome * 0.30;
+    // Calculate expenses (30% of rental income + 3% annual inflation)
+    const expenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
     const netCashflow = rentalIncome - loanInterest - expenses;
     
     // Equity Score (current equity in property)
@@ -264,8 +288,8 @@ export const useAffordabilityCalculator = () => {
         const propertyData = getPropertyData(property.title);
         
         if (propertyData) {
-          const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-          const currentValue = property.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+          // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
+          const currentValue = calculatePropertyGrowth(property.cost, yearsOwned);
           const equity = currentValue - property.loanAmount;
           
           // Remove property from purchases
@@ -289,8 +313,8 @@ export const useAffordabilityCalculator = () => {
             const yearsOwned = currentYear - p.year;
             const propData = getPropertyData(p.title);
             if (propData) {
-              const growth = parseFloat(propData.growth) / 100;
-              return sum + (p.cost * Math.pow(1 + growth, yearsOwned));
+              // Calculate with tiered growth (10% years 1-2, 6% years 3+)
+              return sum + calculatePropertyGrowth(p.cost, yearsOwned);
             }
             return sum;
           }, profile.portfolioValue);
@@ -353,9 +377,9 @@ export const useAffordabilityCalculator = () => {
           const yearsOwned = currentYear - purchase.year;
           const propertyData = getPropertyData(purchase.title);
           
-          if (propertyData) {
-            const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-            const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+        if (propertyData) {
+          // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
+          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             // Apply progressive rental recognition based on portfolio size at time of evaluation
             // Fix: Portfolio size should exclude current property for non-purchase years
@@ -365,8 +389,8 @@ export const useAffordabilityCalculator = () => {
             // Interest-only loans - principal does not reduce
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
             const propertyLoanInterest = purchase.loanAmount * interestRate;
-            // Calculate expenses (30% of rental income for management, maintenance, vacancy, insurance)
-            const propertyExpenses = rentalIncome * 0.30;
+            // Calculate expenses (30% of rental income + 3% annual inflation)
+            const propertyExpenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
             
             grossRentalIncome += rentalIncome;
             loanInterest += propertyLoanInterest;
@@ -393,8 +417,8 @@ export const useAffordabilityCalculator = () => {
           const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
           propertyValues.push(grownPortfolioValue);
           
-          // Continuous equity release - 80% release rate, no time constraint
-          const portfolioEquity = Math.max(0, (grownPortfolioValue * 0.8 - profile.currentDebt) * 0.8);
+          // Continuous equity release - 88% LVR cap, no time constraint
+          const portfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
           usableEquityPerProperty.push(portfolioEquity);
         }
         
@@ -405,8 +429,8 @@ export const useAffordabilityCalculator = () => {
             totalPortfolioValue += currentValue;
             propertyValues.push(currentValue);
             
-            // Continuous equity release - 80% release rate, no time constraint
-            const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * 0.8);
+            // Continuous equity release - 88% LVR cap, no time constraint
+            const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
             usableEquityPerProperty.push(usableEquity);
           }
         });
@@ -455,9 +479,11 @@ export const useAffordabilityCalculator = () => {
       // Hardcoded values for consistency
       const depositBuffer = 40000; // £40,000 deposit buffer
       
-      // Capacity-based serviceability test (restored from previous logic)
-      const serviceabilityFactor = 0.10;
-      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
+      // Enhanced serviceability test with rental income contribution
+      const baseCapacity = profile.borrowingCapacity * 0.10;
+      const rentalContribution = totalRentalIncome * 0.70; // 70% of rental income counts
+      const enhancedCapacity = baseCapacity + rentalContribution;
+      const maxAnnualInterest = enhancedCapacity;
       const serviceabilityTestSurplus = maxAnnualInterest - totalAnnualLoanInterest;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
@@ -507,7 +533,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Net Cashflow Reinvestment: £${netCashflow.toLocaleString()}`
         );
         console.log(
-          `   └─ Continuous Equity Access: £${continuousEquityAccess.toLocaleString()} (80% of usable equity)`
+          `   └─ Continuous Equity Access: £${continuousEquityAccess.toLocaleString()} (88% LVR cap)`
         );
 
         // === SELF-FUNDING FLYWHEEL ===
@@ -537,7 +563,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Loan Interest: -£${loanInterest.toLocaleString()}`
         );
         console.log(
-          `   └─ Expenses: -£${expenses.toLocaleString()} (30% of rental income)`
+          `   └─ Expenses: -£${expenses.toLocaleString()} (30% + 3% annual inflation)`
         );
 
         // === SERVICEABILITY TEST ===
@@ -546,13 +572,19 @@ export const useAffordabilityCalculator = () => {
         const serviceabilitySurplus = serviceabilityTestSurplus;
         
         console.log(
-          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (via Capacity)`
+          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (Enhanced with Rental)`
         );
         console.log(
           `   ├─ Loan Interest: £${annualLoanInterest.toLocaleString()}`
         );
         console.log(
-          `   ├─ Max Annual Interest: £${maxAnnualInterestValue.toLocaleString()} (10% of £${profile.borrowingCapacity.toLocaleString()} capacity)`
+          `   ├─ Base Capacity: £${baseCapacity.toLocaleString()} (10% of £${profile.borrowingCapacity.toLocaleString()})`
+        );
+        console.log(
+          `   ├─ Rental Contribution: £${rentalContribution.toLocaleString()} (70% of £${totalRentalIncome.toLocaleString()})`
+        );
+        console.log(
+          `   ├─ Max Annual Interest: £${maxAnnualInterestValue.toLocaleString()} (base + rental)`
         );
         console.log(
           `   └─ Surplus: £${serviceabilitySurplus.toLocaleString()}`
@@ -691,8 +723,8 @@ export const useAffordabilityCalculator = () => {
             const yearsOwned = currentYear - p.year;
             const propData = getPropertyData(p.title);
             if (propData) {
-              const growth = parseFloat(propData.growth) / 100;
-              return sum + (p.cost * Math.pow(1 + growth, yearsOwned));
+              // Calculate with tiered growth (10% years 1-2, 6% years 3+)
+              return sum + calculatePropertyGrowth(p.cost, yearsOwned);
             }
             return sum;
           }, profile.portfolioValue);
@@ -746,9 +778,6 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    const startTime = performance.now();
-    console.log('[PERF] Starting calculateTimelineProperties');
-    
     // Track consolidation state - simplified to only consecutive failures
     let consolidationState = {
       consecutiveDebtTestFailures: 0 // Count consecutive serviceability failures
@@ -897,13 +926,13 @@ export const useAffordabilityCalculator = () => {
         const propertyData = getPropertyData(purchase.title);
         
         if (propertyData && purchase.year <= purchaseYear) {
-          const propertyGrowthRate = parseFloat(propertyData.growth) / 100;
-          const currentValue = purchase.cost * Math.pow(1 + propertyGrowthRate, yearsOwned);
+          // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
+          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
           const yieldRate = parseFloat(propertyData.yield) / 100;
           const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
           const interestRate = parseFloat(globalFactors.interestRate) / 100;
           const propertyLoanInterest = purchase.loanAmount * interestRate;
-          const propertyExpenses = rentalIncome * 0.30;
+          const propertyExpenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
           
           grossRentalIncome += rentalIncome;
           loanInterest += propertyLoanInterest;
@@ -918,9 +947,11 @@ export const useAffordabilityCalculator = () => {
       const depositTestSurplus = availableFundsUsed - depositBuffer - property.depositRequired;
       const depositTestPass = depositTestSurplus >= 0;
       
-      // Capacity-based serviceability test (restored from previous logic)
-      const serviceabilityFactor = 0.10;
-      const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
+      // Enhanced serviceability test with rental income contribution
+      const baseCapacity = profile.borrowingCapacity * 0.10;
+      const rentalContribution = grossRentalIncome * 0.70; // 70% of rental income counts
+      const enhancedCapacity = baseCapacity + rentalContribution;
+      const maxAnnualInterest = enhancedCapacity;
       const serviceabilityTestSurplus = maxAnnualInterest - loanInterest;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
@@ -930,14 +961,14 @@ export const useAffordabilityCalculator = () => {
       const cumulativeSavings = fundsBreakdownFinal.cumulativeSavings;
       const baseDeposit = fundsBreakdownFinal.baseDeposit; // Rolling amount based on deposits used
       
-      // Calculate equity release (continuous, 80% release rate)
+      // Calculate equity release (continuous, 88% LVR cap)
       let equityRelease = 0;
       
       purchaseHistory.forEach(purchase => {
         if (purchase.year <= purchaseYear) {
           const yearsOwned = purchaseYear - purchase.year;
           const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
-          const usableEquity = Math.max(0, (currentValue * 0.8 - purchase.loanAmount) * 0.8);
+          const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
           equityRelease += usableEquity;
         }
       });
@@ -1025,16 +1056,10 @@ export const useAffordabilityCalculator = () => {
     });
     
     // Sort by affordable year for display
-    const sortedProperties = timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
-    
-    const endTime = performance.now();
-    console.log(`[PERF] calculateTimelineProperties completed in ${(endTime - startTime).toFixed(2)}ms`);
-    console.log(`[PERF] Processed ${allPropertiesToPurchase.length} properties, generated ${sortedProperties.length} timeline entries`);
-    
-    return sortedProperties;
+    return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
   }, [
     // Only re-calculate when these specific values change
-    JSON.stringify(selections),
+    selectionsHash,
     propertyTypes.length,
     profile.timelineYears,
     profile.borrowingCapacity,
@@ -1044,7 +1069,8 @@ export const useAffordabilityCalculator = () => {
     profile.lastConsolidationYear,
     calculatedValues.availableDeposit,
     globalFactors.growthRate,
-    globalFactors.interestRate
+    globalFactors.interestRate,
+    getPropertyData
   ]);
 
   // Function to calculate affordability for any year and property
@@ -1061,9 +1087,30 @@ export const useAffordabilityCalculator = () => {
     const depositTestSurplus = availableFunds.total - depositBuffer - property.depositRequired;
     const depositTestPass = depositTestSurplus >= 0;
     
-    // Serviceability test
-    const serviceabilityFactor = 0.10;
-    const maxAnnualInterest = profile.borrowingCapacity * serviceabilityFactor;
+    // Calculate rental income for enhanced serviceability test
+    let totalRentalIncome = 0;
+    previousPurchases.forEach(purchase => {
+      if (purchase.year <= year) {
+        const yearsOwned = year - purchase.year;
+        const propertyData = getPropertyData(purchase.title);
+        if (propertyData) {
+          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          const yieldRate = parseFloat(propertyData.yield) / 100;
+          const portfolioSize = previousPurchases.filter(p => p.year <= year).length;
+          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          totalRentalIncome += currentValue * yieldRate * recognitionRate;
+        }
+      }
+    });
+    
+    // Add new property rental income
+    const propertyData = getPropertyData(property.title);
+    if (propertyData) {
+      const yieldRate = parseFloat(propertyData.yield) / 100;
+      const portfolioSize = previousPurchases.filter(p => p.year <= year).length;
+      const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+      totalRentalIncome += property.cost * yieldRate * recognitionRate;
+    }
     
     // Calculate total loan interest for serviceability test
     let totalAnnualLoanInterest = 0;
@@ -1086,6 +1133,11 @@ export const useAffordabilityCalculator = () => {
     const newPropertyLoanInterest = newLoanAmount * interestRate;
     totalAnnualLoanInterest += newPropertyLoanInterest;
     
+    // Enhanced serviceability test with rental income contribution
+    const baseCapacity = profile.borrowingCapacity * 0.10;
+    const rentalContribution = totalRentalIncome * 0.70; // 70% of rental income counts
+    const enhancedCapacity = baseCapacity + rentalContribution;
+    const maxAnnualInterest = enhancedCapacity;
     const serviceabilityTestSurplus = maxAnnualInterest - totalAnnualLoanInterest;
     const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
     

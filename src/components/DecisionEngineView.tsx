@@ -6,41 +6,35 @@ import { usePropertySelection } from '@/contexts/PropertySelectionContext';
 import { AffordabilityBreakdownTable } from './AffordabilityBreakdownTable';
 import type { YearBreakdownData } from '@/types/property';
 
-export const DecisionEngineView: React.FC = () => {
-  console.log('DecisionEngineView: Component starting to render');
+// Tiered growth function: 10% for years 1-2, 6% for years 3+
+const calculatePropertyGrowth = (initialValue: number, years: number): number => {
+  let currentValue = initialValue;
   
-  const { timelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
-  console.log('DecisionEngineView: useAffordabilityCalculator loaded');
+  for (let year = 1; year <= years; year++) {
+    let growthRate;
+    if (year <= 2) {
+      growthRate = 0.10; // 10% for years 1-2
+    } else {
+      growthRate = 0.06; // 6% for years 3+
+    }
+    currentValue *= (1 + growthRate);
+  }
   
-  const { profile } = useInvestmentProfile();
-  console.log('DecisionEngineView: useInvestmentProfile loaded');
-  
-  const { globalFactors } = useDataAssumptions();
-  console.log('DecisionEngineView: useDataAssumptions loaded');
-  
-  const { selections, propertyTypes } = usePropertySelection();
-  console.log('DecisionEngineView: usePropertySelection loaded');
+  return currentValue;
+};
 
-  // Debug logging
-  console.log('DecisionEngineView: All hooks loaded successfully');
-  console.log('timelineProperties:', timelineProperties);
-  console.log('profile:', profile);
-  console.log('globalFactors:', globalFactors);
-  console.log('selections:', selections);
-  console.log('propertyTypes:', propertyTypes);
+export const DecisionEngineView: React.FC = () => {
+  const { timelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
+  const { globalFactors } = useDataAssumptions();
+  const { selections, propertyTypes } = usePropertySelection();
 
   // Generate ALL years (2025-2050) by interpolating between purchase events
   const yearBreakdownData = useMemo((): YearBreakdownData[] => {
-    console.log('DecisionEngineView: Starting yearBreakdownData calculation');
-    console.log('DecisionEngineView: profile.timelineYears:', profile.timelineYears);
-    console.log('DecisionEngineView: globalFactors:', globalFactors);
-    
     const baseYear = 2025;
     const endYear = baseYear + profile.timelineYears - 1; // e.g., 2025 + 15 - 1 = 2039
     const interestRate = parseFloat(globalFactors.interestRate) / 100;
     const growthRate = parseFloat(globalFactors.growthRate) / 100;
-    
-    console.log('DecisionEngineView: Calculated values - baseYear:', baseYear, 'endYear:', endYear, 'interestRate:', interestRate, 'growthRate:', growthRate);
     
     // Create a map of years to properties for quick lookup
     const propertyByYear = new Map<number, typeof timelineProperties[0]>();
@@ -75,12 +69,17 @@ export const DecisionEngineView: React.FC = () => {
         const annualSavingsRate = profile.annualSavings;
         const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
         
+        // Calculate enhanced serviceability values
+        const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
+        const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
+        
         // Build all portfolio properties array
         const allPortfolioProperties = timelineProperties
           .filter(p => p.affordableYear <= year)
           .map(p => {
             const yearsOwned = year - p.affordableYear;
-            const currentValue = p.cost * Math.pow(1 + growthRate, yearsOwned);
+            // Use tiered growth (10% years 1-2, 6% years 3+)
+            const currentValue = calculatePropertyGrowth(p.cost, yearsOwned);
             const equity = currentValue - p.loanAmount;
             const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
             
@@ -141,6 +140,10 @@ export const DecisionEngineView: React.FC = () => {
           existingLoanInterest,
           newLoanInterest,
           
+          // Enhanced serviceability breakdown
+          baseServiceabilityCapacity,
+          rentalServiceabilityContribution,
+          
           // Assumptions (from calculator)
           interestRate: interestRate * 100,
           rentalRecognition: property.rentalRecognitionRate * 100,
@@ -163,7 +166,7 @@ export const DecisionEngineView: React.FC = () => {
           serviceabilityTest: {
             pass: property.serviceabilityTestPass,
             surplus: property.serviceabilityTestSurplus,
-            available: profile.borrowingCapacity,
+            available: baseServiceabilityCapacity + rentalServiceabilityContribution,
             required: property.loanAmount,
           },
           
@@ -215,11 +218,7 @@ export const DecisionEngineView: React.FC = () => {
     }
 
     return years;
-  }, [timelineProperties, profile, globalFactors, selections, propertyTypes]);
-
-  // Debug: Check if we have data
-  console.log('yearBreakdownData length:', yearBreakdownData.length);
-  console.log('yearBreakdownData sample:', yearBreakdownData.slice(0, 2));
+  }, [timelineProperties, profile.timelineYears, globalFactors.interestRate, globalFactors.growthRate]);
 
   return (
     <div>
@@ -260,8 +259,8 @@ function interpolateYearData(
   // Calculate years since last purchase
   const yearsSinceLastPurchase = year - lastPurchase.affordableYear;
   
-  // Interpolate portfolio growth
-  const portfolioValue = lastPurchase.portfolioValueAfter * Math.pow(1 + growthRate, yearsSinceLastPurchase);
+  // Interpolate portfolio growth with tiered rates (10% years 1-2, 6% years 3+)
+  const portfolioValue = calculatePropertyGrowth(lastPurchase.portfolioValueAfter, yearsSinceLastPurchase);
   const totalDebt = lastPurchase.totalDebtAfter; // Debt stays constant (interest-only loans)
   const totalEquity = portfolioValue - totalDebt;
   
@@ -276,11 +275,12 @@ function interpolateYearData(
   previousPurchases.forEach(purchase => {
     const yearsOwned = year - purchase.affordableYear;
     if (yearsOwned > 0) {
-      const propertyValue = purchase.cost * Math.pow(1 + growthRate, yearsOwned);
+      // Use tiered growth (10% years 1-2, 6% years 3+)
+      const propertyValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
       const yieldRate = 0.05; // Assume 5% yield
       const rentalIncome = propertyValue * yieldRate;
       const propertyLoanInterest = purchase.loanAmount * interestRate;
-      const propertyExpenses = rentalIncome * 0.30;
+      const propertyExpenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
       
       grossRental += rentalIncome;
       loanInterest += propertyLoanInterest;
@@ -363,7 +363,8 @@ function interpolateYearData(
     .filter(p => p.affordableYear < year)
     .map(p => {
       const yearsOwned = year - p.affordableYear;
-      const currentValue = p.cost * Math.pow(1 + growthRate, yearsOwned);
+      // Use tiered growth (10% years 1-2, 6% years 3+)
+      const currentValue = calculatePropertyGrowth(p.cost, yearsOwned);
       const equity = currentValue - p.loanAmount;
       const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
       
@@ -424,6 +425,10 @@ function interpolateYearData(
     existingLoanInterest,
     newLoanInterest,
     
+    // Enhanced serviceability breakdown
+    baseServiceabilityCapacity: profile.borrowingCapacity * 0.10,
+    rentalServiceabilityContribution: grossRental * 0.70,
+    
     // Assumptions
     interestRate: interestRate * 100,
     rentalRecognition: 75, // Default recognition rate
@@ -446,7 +451,7 @@ function interpolateYearData(
     serviceabilityTest: {
       pass: serviceabilityTestPass,
       surplus: serviceabilityTestSurplus,
-      available: profile.borrowingCapacity,
+      available: profile.borrowingCapacity * 0.10 + grossRental * 0.70,
       required: requiredLoan,
     },
     
@@ -557,6 +562,10 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     newDebt: 0,
     existingLoanInterest: totalDebt * interestRate,
     newLoanInterest: 0,
+    
+    // Enhanced serviceability breakdown
+    baseServiceabilityCapacity: profile.borrowingCapacity * 0.10,
+    rentalServiceabilityContribution: 0,
     
     // Assumptions
     interestRate: interestRate * 100,

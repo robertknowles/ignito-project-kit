@@ -17,8 +17,8 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     profile, 
     calculatedValues, 
     updateProfile, 
-    handleEquityGrowthChange, 
-    handleCashflowChange 
+    handleEquityGoalChange, 
+    handleCashflowGoalChange 
   } = useInvestmentProfile()
 
   const {
@@ -173,59 +173,59 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
             <span className="text-xs text-[#6b7280]">$100k</span>
           </div>
         </div>
-        {/* Investment Goal Weighting Section */}
+        {/* Investment Goals Section */}
         <div className="mb-5">
           <label className="block text-xs font-normal text-[#374151] mb-3">
-            Investment Goal Weighting
+            Investment Goals
           </label>
-          {/* Equity Growth Slider */}
+          {/* Equity Goal Slider */}
           <div className="mb-3">
             <div className="mb-1">
-              <span className="text-xs text-[#374151]">Equity Growth</span>
+              <span className="text-xs text-[#374151]">Equity Goal</span>
             </div>
             <div className="relative mb-2">
               <input
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.equityGrowth}%, #f3f4f6 ${profile.equityGrowth}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(profile.equityGoal / 5000000) * 100}%, #f3f4f6 ${(profile.equityGoal / 5000000) * 100}%, #f3f4f6 100%)`,
                   height: '4px',
                   opacity: '0.8',
                 }}
                 min="0"
-                max="100"
-                step="5"
-                value={profile.equityGrowth}
-                onChange={(e) => handleEquityGrowthChange(parseInt(e.target.value))}
+                max="5000000"
+                step="50000"
+                value={profile.equityGoal}
+                onChange={(e) => handleEquityGoalChange(parseInt(e.target.value))}
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{profile.equityGrowth}%</span>
+              <span className="text-xs text-[#374151]">${formatCurrency(profile.equityGoal)}</span>
             </div>
           </div>
-          {/* Cashflow Slider */}
+          {/* Cashflow Goal Slider */}
           <div>
             <div className="mb-1">
-              <span className="text-xs text-[#374151]">Cashflow</span>
+              <span className="text-xs text-[#374151]">Cashflow Goal (Annual)</span>
             </div>
             <div className="relative mb-2">
               <input
                 type="range"
                 className="w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${profile.cashflow}%, #f3f4f6 ${profile.cashflow}%, #f3f4f6 100%)`,
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(profile.cashflowGoal / 200000) * 100}%, #f3f4f6 ${(profile.cashflowGoal / 200000) * 100}%, #f3f4f6 100%)`,
                   height: '4px',
                   opacity: '0.8',
                 }}
                 min="0"
-                max="100"
-                step="5"
-                value={profile.cashflow}
-                onChange={(e) => handleCashflowChange(parseInt(e.target.value))}
+                max="200000"
+                step="5000"
+                value={profile.cashflowGoal}
+                onChange={(e) => handleCashflowGoalChange(parseInt(e.target.value))}
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{profile.cashflow}%</span>
+              <span className="text-xs text-[#374151]">${formatCurrency(profile.cashflowGoal)}</span>
             </div>
           </div>
         </div>

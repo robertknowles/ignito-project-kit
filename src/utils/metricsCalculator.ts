@@ -1,5 +1,31 @@
 import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis, GrowthProjection } from '../types/property';
 
+// Tiered growth function: 10% for years 1-2, 6% for years 3+
+const calculatePropertyGrowth = (initialValue: number, years: number): number => {
+  let currentValue = initialValue;
+  
+  for (let year = 1; year <= years; year++) {
+    let growthRate;
+    if (year <= 2) {
+      growthRate = 0.10; // 10% for years 1-2
+    } else {
+      growthRate = 0.06; // 6% for years 3+
+    }
+    currentValue *= (1 + growthRate);
+  }
+  
+  return currentValue;
+};
+
+// Helper function to get the growth rate for a specific year
+export const getGrowthRateForYear = (yearsOwned: number): number => {
+  if (yearsOwned <= 2) {
+    return 0.10; // 10% for years 1-2
+  } else {
+    return 0.06; // 6% for years 3+
+  }
+};
+
 // Default property expenses (typical Australian property investment)
 export const DEFAULT_PROPERTY_EXPENSES: PropertyExpenses = {
   managementFeeRate: 0.08, // 8% of rental income
@@ -32,14 +58,18 @@ export const calculateMortgagePayments = (
 export const calculateAnnualExpenses = (
   propertyValue: number,
   rentalIncome: number,
-  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
+  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES,
+  yearsOwned: number = 0
 ): { total: number; breakdown: CashFlowAnalysis['expenseBreakdown'] } => {
-  const managementFees = rentalIncome * expenses.managementFeeRate;
-  const councilRates = expenses.councilRates;
-  const insurance = expenses.insurance;
-  const maintenance = propertyValue * expenses.maintenanceRate;
-  const vacancyAllowance = rentalIncome * expenses.vacancyRate;
-  const strataFees = expenses.strataFees || 0;
+  // Apply 3% annual inflation to all expenses
+  const inflationFactor = Math.pow(1.03, yearsOwned);
+  
+  const managementFees = rentalIncome * expenses.managementFeeRate * inflationFactor;
+  const councilRates = expenses.councilRates * inflationFactor;
+  const insurance = expenses.insurance * inflationFactor;
+  const maintenance = propertyValue * expenses.maintenanceRate * inflationFactor;
+  const vacancyAllowance = rentalIncome * expenses.vacancyRate * inflationFactor;
+  const strataFees = (expenses.strataFees || 0) * inflationFactor;
   
   const breakdown = {
     managementFees: Math.round(managementFees),
@@ -61,7 +91,8 @@ export const analyzeCashFlow = (
   expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
 ): CashFlowAnalysis => {
   const yearsHeld = Math.max(0, currentYear - purchase.year);
-  const currentValue = purchase.cost * Math.pow(1 + purchase.growthRate, yearsHeld);
+  // Use tiered growth (10% years 1-2, 6% years 3+)
+  const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
   const annualRent = currentValue * purchase.rentalYield;
   
   const mortgagePayments = calculateMortgagePayments(
@@ -69,7 +100,7 @@ export const analyzeCashFlow = (
     purchase.interestRate || 0.05
   );
   
-  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses);
+  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses, yearsHeld);
   
   const netCashflow = annualRent - mortgagePayments - expensesAnalysis.total;
   
@@ -91,7 +122,6 @@ export const calculateUpdatedBorrowingCapacity = (
 ): number => {
   // Simplified logic: just return the base capacity for now
   // Advanced serviceability calculations can be added later as enhancement
-  console.log('🏦 [SIMPLE BORROWING CHECK] Base capacity:', Math.round(baseCapacity));
   return baseCapacity;
 };
 
@@ -105,9 +135,8 @@ export const calculatePortfolioMetrics = (
   return purchases.reduce((metrics, purchase) => {
     const yearsHeld = Math.max(0, currentYear - purchase.year);
     
-    // Use property-specific growth rate if available, otherwise use base rate
-    const growthRate = purchase.growthRate || baseGrowthRate;
-    const currentValue = purchase.cost * Math.pow(1 + growthRate, yearsHeld);
+    // Use tiered growth (10% years 1-2, 6% years 3+)
+    const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
     
     // Use detailed cash flow analysis
     const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, expenses);
@@ -149,7 +178,8 @@ export const calculateExistingPortfolioMetrics = (
     };
   }
 
-  const currentValue = portfolioValue * Math.pow(1 + growthRate, yearsGrown);
+  // Use tiered growth (10% years 1-2, 6% years 3+)
+  const currentValue = calculatePropertyGrowth(portfolioValue, yearsGrown);
   const equity = Math.max(0, currentValue - currentDebt);
   const annualRepayments = currentDebt * interestRate;
 
@@ -169,8 +199,8 @@ export const calculateTotalRentalIncome = (
 ): number => {
   return purchases.reduce((totalIncome, purchase) => {
     const yearsHeld = Math.max(0, currentYear - purchase.year);
-    const growthRateToUse = purchase.growthRate || growthRate;
-    const currentValue = purchase.cost * Math.pow(1 + growthRateToUse, yearsHeld);
+    // Use tiered growth (10% years 1-2, 6% years 3+)
+    const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
     const annualRent = purchase.rentalYield * currentValue;
     return totalIncome + annualRent;
   }, 0);
@@ -221,11 +251,12 @@ export const calculateGrowthProjections = (
   for (let year = 0; year <= timelineYears; year++) {
     const currentYear = baseYear + year;
     
-    // Calculate existing portfolio growth
+    // Calculate existing portfolio growth with tiered rates
     let existingValue = 0;
     let existingEquity = 0;
     if (existingPortfolioValue > 0) {
-      existingValue = existingPortfolioValue * Math.pow(1.05, year); // 5% default growth
+      // Use tiered growth (10% years 1-2, 6% years 3+)
+      existingValue = calculatePropertyGrowth(existingPortfolioValue, year);
       existingEquity = Math.max(0, existingValue - existingDebt);
     }
     
@@ -234,7 +265,8 @@ export const calculateGrowthProjections = (
       .filter(p => p.year <= currentYear)
       .map(purchase => {
         const yearsHeld = Math.max(0, currentYear - purchase.year);
-        const currentValue = purchase.cost * Math.pow(1 + purchase.growthRate, yearsHeld);
+        // Use tiered growth (10% years 1-2, 6% years 3+)
+        const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
         const remainingDebt = purchase.loanAmount; // Simplified - no principal reduction
         const equity = Math.max(0, currentValue - remainingDebt);
         const rentalIncome = currentValue * purchase.rentalYield;

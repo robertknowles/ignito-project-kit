@@ -251,7 +251,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                             <div className="space-y-1 text-gray-600">
                               <div className="pl-3">├─ Gross Rental Income: {formatCurrency(year.grossRental || 0, true)}</div>
                               <div className="pl-3">├─ Loan Interest: -{formatCurrency(year.loanRepayments || 0, true)}</div>
-                              <div className="pl-3">├─ Expenses (30%): -{formatCurrency(year.expenses || 0, true)}</div>
+                              <div className="pl-3">├─ Expenses (30% + 3% inflation): -{formatCurrency(year.expenses || 0, true)}</div>
                               <div className={`pl-3 ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 └─ Net Cashflow: {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}/year {netCashflow < 0 ? '(reduces funding capacity)' : ''}
                               </div>
@@ -311,16 +311,23 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                             <div className="space-y-1 text-gray-600">
                               <div>Current Portfolio Value: {formatCurrency(portfolioValue, true)}</div>
                               <div>Total Equity: {formatCurrency(equity, true)}</div>
-                              <div>Available for Extraction (80% LVR): {formatCurrency(year.extractableEquity || 0, true)}</div>
+                              <div>Available for Extraction (88% LVR): {formatCurrency(year.extractableEquity || 0, true)}</div>
                               
                               {year.allPortfolioProperties && year.allPortfolioProperties.length > 0 && (
                                 <>
                                   <div className="pt-1 font-medium text-gray-700">Property Breakdown:</div>
-                                  {year.allPortfolioProperties.map((property: any, idx: number) => (
-                                    <div key={idx} className="pl-3 text-[11px]">
-                                      Property #{idx + 1} ({property.purchaseYear}): {formatCurrency(property.currentValue, true)} value → {formatCurrency(property.equity, true)} equity → {formatCurrency(property.extractableEquity, true)} extractable
-                                    </div>
-                                  ))}
+                                  {year.allPortfolioProperties.map((property: any, idx: number) => {
+                                    // Calculate years owned to determine growth rate
+                                    const yearsOwned = (yearNumber - property.purchaseYear);
+                                    const growthRate = yearsOwned <= 2 ? 10 : 6;
+                                    const growthLabel = yearsOwned <= 2 ? '(early years)' : '(steady state)';
+                                    
+                                    return (
+                                      <div key={idx} className="pl-3 text-[11px]">
+                                        Property #{idx + 1} ({property.purchaseYear}): {formatCurrency(property.currentValue, true)} value → {formatCurrency(property.equity, true)} equity → {formatCurrency(property.extractableEquity, true)} extractable (88% LVR) → {growthRate}% growth {growthLabel}
+                                      </div>
+                                    );
+                                  })}
                                 </>
                               )}
                             </div>
@@ -381,7 +388,12 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               </div>
                               <div className="pl-3">├─ Existing Loan Interest: {formatCurrency(year.existingLoanInterest || 0, true)}</div>
                               <div className="pl-3">├─ New Loan Interest: {formatCurrency(year.newLoanInterest || 0, true)}</div>
-                              <div className="pl-3">├─ Max Allowable (10% rule): {formatCurrency(serviceabilityTest.available || 0, true)}</div>
+                              <div className="pl-3">├─ Total Loan Interest: {formatCurrency((year.existingLoanInterest || 0) + (year.newLoanInterest || 0), true)}</div>
+                              <div className="pl-3 font-medium text-gray-700">Max Allowable (Enhanced):</div>
+                              <div className="pl-6">├─ Base Capacity (10%): {formatCurrency(year.baseServiceabilityCapacity || 0, true)}</div>
+                              <div className="pl-6">├─ Rental Contribution (70%): {formatCurrency(year.rentalServiceabilityContribution || 0, true)}</div>
+                              <div className="pl-6">├─ Gross Rental Income: {formatCurrency(year.grossRental || 0, true)}</div>
+                              <div className="pl-6">└─ Total Max Allowable: {formatCurrency(serviceabilityTest.available || 0, true)}</div>
                               <div className="pl-3">└─ Surplus/Shortfall: {formatCurrency(serviceabilityTest.surplus || 0, true)}</div>
                             </div>
                           </div>
@@ -403,7 +415,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
           <div className="space-y-2">
             <div className="pl-4">├─ Interest Rate: 6.0%</div>
-            <div className="pl-4">├─ Expense Ratio: 30% of rental income</div>
+            <div className="pl-4">├─ Expense Ratio: 30% of rental income + 3% annual inflation</div>
           </div>
           <div className="space-y-2">
             <div className="pl-4">├─ Deposit Buffer: £40,000</div>

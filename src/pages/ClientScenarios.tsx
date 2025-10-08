@@ -8,9 +8,14 @@ import {
 import { YearlyCalendar } from '../components/YearlyCalendar'
 import { Navbar } from '../components/Navbar'
 import { ClientCreationForm } from '../components/ClientCreationForm'
-import { useClient } from '@/contexts/ClientContext'
+import { PDFReportRenderer } from '../components/PDFReportRenderer'
+import { useClient, Client } from '@/contexts/ClientContext'
+import { generateClientReport } from '../utils/pdfGenerator'
+import { toast } from 'sonner'
 export const ClientScenarios = () => {
   const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [showPDFRenderer, setShowPDFRenderer] = useState(false);
   const { clients, setActiveClient } = useClient();
 
   const handleViewClient = (clientId: number) => {
@@ -18,6 +23,37 @@ export const ClientScenarios = () => {
     if (client) {
       setActiveClient(client);
     }
+  };
+
+  const handleGeneratePDF = async (client: Client) => {
+    // Set this client as active to ensure data is loaded
+    setActiveClient(client);
+    
+    // Show the PDF renderer components
+    setShowPDFRenderer(true);
+    setPdfGenerating(true);
+    
+    // Wait for components to render
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast.info('Generating PDF report...');
+    
+    await generateClientReport({
+      clientName: client.name,
+      onProgress: (stage) => {
+        console.log('PDF Generation:', stage);
+      },
+      onComplete: () => {
+        toast.success('PDF report generated successfully!');
+        setPdfGenerating(false);
+        setShowPDFRenderer(false);
+      },
+      onError: (error) => {
+        toast.error(`Failed to generate PDF: ${error.message}`);
+        setPdfGenerating(false);
+        setShowPDFRenderer(false);
+      },
+    });
   };
 
   return (
@@ -163,8 +199,12 @@ export const ClientScenarios = () => {
                               >
                                 View
                               </button>
-                              <button className="px-3 py-1 text-xs bg-[#3b82f6] rounded text-white hover:bg-opacity-90 transition-colors">
-                                Send
+                              <button 
+                                onClick={() => handleGeneratePDF(client)}
+                                disabled={pdfGenerating}
+                                className="px-3 py-1 text-xs bg-[#3b82f6] rounded text-white hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {pdfGenerating ? 'Generating...' : 'Download'}
                               </button>
                               <button className="p-1 text-[#6b7280] hover:text-[#374151] transition-colors">
                                 <MoreHorizontalIcon size={16} />
@@ -186,6 +226,8 @@ export const ClientScenarios = () => {
         open={createFormOpen} 
         onOpenChange={setCreateFormOpen} 
       />
+      
+      {showPDFRenderer && <PDFReportRenderer visible={false} />}
     </div>
   )
 }

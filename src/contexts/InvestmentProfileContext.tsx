@@ -7,8 +7,8 @@ export interface InvestmentProfileData {
   currentDebt: number;
   annualSavings: number;
   timelineYears: number;
-  equityGrowth: number;
-  cashflow: number;
+  equityGoal: number; // Changed from equityGrowth percentage to dollar amount
+  cashflowGoal: number; // Changed from cashflow percentage to dollar amount
   // Enhanced dynamic features
   equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
   consecutiveFailureThreshold: number; // Years of consecutive debt test failures before consolidation
@@ -36,8 +36,8 @@ interface InvestmentProfileContextType {
   profile: InvestmentProfileData;
   calculatedValues: CalculatedValues;
   updateProfile: (updates: Partial<InvestmentProfileData>) => void;
-  handleEquityGrowthChange: (newEquityGrowth: number) => void;
-  handleCashflowChange: (newCashflow: number) => void;
+  handleEquityGoalChange: (newEquityGoal: number) => void;
+  handleCashflowGoalChange: (newCashflowGoal: number) => void;
 }
 
 const InvestmentProfileContext = createContext<InvestmentProfileContextType | undefined>(undefined);
@@ -54,8 +54,8 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     currentDebt: 0,
     annualSavings: 24000,
     timelineYears: 15,
-    equityGrowth: 75,
-    cashflow: 25,
+    equityGoal: 1000000, // Default $1M equity goal
+    cashflowGoal: 50000, // Default $50k annual cashflow goal
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
     consecutiveFailureThreshold: 2, // Trigger consolidation after 2 consecutive failures (reduced from 3)
@@ -100,17 +100,15 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     setProfile(prev => ({ ...prev, ...updates }));
   };
 
-  const handleEquityGrowthChange = (newEquityGrowth: number) => {
+  const handleEquityGoalChange = (newEquityGoal: number) => {
     updateProfile({
-      equityGrowth: newEquityGrowth,
-      cashflow: 100 - newEquityGrowth,
+      equityGoal: newEquityGoal,
     });
   };
 
-  const handleCashflowChange = (newCashflow: number) => {
+  const handleCashflowGoalChange = (newCashflowGoal: number) => {
     updateProfile({
-      cashflow: newCashflow,
-      equityGrowth: 100 - newCashflow,
+      cashflowGoal: newCashflowGoal,
     });
   };
 
@@ -118,8 +116,8 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     profile,
     calculatedValues,
     updateProfile,
-    handleEquityGrowthChange,
-    handleCashflowChange,
+    handleEquityGoalChange,
+    handleCashflowGoalChange,
   };
 
   return (
