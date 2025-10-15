@@ -11,7 +11,6 @@ export interface InvestmentProfileData {
   cashflowGoal: number; // Changed from cashflow percentage to dollar amount
   // Enhanced dynamic features
   equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
-  consecutiveFailureThreshold: number; // Years of consecutive debt test failures before consolidation
   // NEW: Dual serviceability model
   baseSalary: number; // Annual base salary for serviceability calculations
   salaryServiceabilityMultiplier: number; // Salary multiplier for debt serviceability (typically 6.0)
@@ -20,11 +19,6 @@ export interface InvestmentProfileData {
   equityReleaseFactor: number; // Factor to slow down equity recycling (0.5-0.7)
   depositBuffer: number; // Extra cash buffer required for deposits (£30k)
   rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
-  maxConsolidations: number; // Maximum consolidations allowed per plan
-  minConsolidationGap: number; // Minimum years between consolidations
-  // Consolidation tracking (updated to be more flexible)
-  consolidationsRemaining: number; // No longer hard-capped
-  lastConsolidationYear: number;
 }
 
 export interface CalculatedValues {
@@ -58,7 +52,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     cashflowGoal: 50000, // Default $50k annual cashflow goal
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
-    consecutiveFailureThreshold: 2, // Trigger consolidation after 2 consecutive failures (reduced from 3)
     // NEW: Dual serviceability model
     baseSalary: 60000, // £60,000 annual salary
     salaryServiceabilityMultiplier: 4.0, // 4x salary lending capacity (reduced from 5x)
@@ -67,11 +60,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     equityReleaseFactor: 0.35, // 35% of equity available for recycling (reduced)
     depositBuffer: 40000, // £40k extra cash buffer for deposits
     rentFactor: 0.75, // 75% factor to temper rental income boost
-    maxConsolidations: 2, // Maximum 2 consolidations per plan (reduced from 3)
-    minConsolidationGap: 7, // Minimum 7 years between consolidations (increased from 5)
-    // Flexible consolidation tracking
-    consolidationsRemaining: 99, // Effectively unlimited
-    lastConsolidationYear: 0,
   });
 
   // Background calculations - not displayed in UI but available for simulation engine

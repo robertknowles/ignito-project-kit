@@ -26,8 +26,6 @@ export const useAffordabilityCalculator = () => {
       .join('|');
   }, [selections]);
 
-  // Simplified consolidation - only trigger on consecutive failures
-
   // Debug flag - set to true to enable detailed debugging
   const DEBUG_MODE = false; // Disabled for performance
 
@@ -66,8 +64,7 @@ export const useAffordabilityCalculator = () => {
 
   const calculateAvailableFunds = (
       currentYear: number, 
-      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
-      additionalEquity: number = 0
+      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): {
       total: number;
       baseDeposit: number;
@@ -155,7 +152,7 @@ export const useAffordabilityCalculator = () => {
       }, existingPortfolioEquity);
       
       // Calculate final funds
-      const finalFunds = calculatedValues.availableDeposit + totalEnhancedSavings + additionalEquity + totalUsableEquity - totalDepositsUsed;
+      const finalFunds = calculatedValues.availableDeposit + totalEnhancedSavings + totalUsableEquity - totalDepositsUsed;
       
       return {
         total: finalFunds,
@@ -204,163 +201,12 @@ export const useAffordabilityCalculator = () => {
     };
   };
 
-  const checkConsolidationTriggers = (
-    currentYear: number,
-    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
-    totalPortfolioValue: number,
-    totalDebt: number,
-    property: any
-  ): { shouldConsolidate: boolean; reasons: string[] } => {
-      const reasons: string[] = [];
-      
-      // Trigger 1: Borrowing capacity reached
-      const newLoanAmount = property.cost - property.depositRequired;
-      const futureDebt = totalDebt + newLoanAmount;
-      if (futureDebt > profile.borrowingCapacity) {
-        reasons.push('Borrowing capacity reached');
-      }
-      
-      // Trigger 2: Portfolio LVR > 80%
-      const currentLVR = totalPortfolioValue > 0 ? (totalDebt / totalPortfolioValue) * 100 : 0;
-      if (currentLVR > 80) {
-        reasons.push(`Portfolio LVR too high (${currentLVR.toFixed(1)}%)`);
-      }
-      
-      // Trigger 3: Net cashflow < 0
-      let totalNetCashflow = 0;
-      previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          const score = calculatePropertyScore(purchase, currentYear);
-          totalNetCashflow += score.cashflowScore;
-        }
-      });
-      
-      if (totalNetCashflow < 0) {
-        reasons.push(`Negative net cashflow (£${totalNetCashflow.toLocaleString()})`);
-      }
-      
-      return {
-        shouldConsolidate: reasons.length > 0,
-        reasons
-      };
-    };
-
-  const executeConsolidation = (
-    currentYear: number,
-    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
-    consolidationState?: { consecutiveDebtTestFailures: number }
-  ): { 
-    updatedPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>;
-    equityFreed: number;
-    debtReduced: number;
-    propertiesSold: number;
-  } => {
-      // Safety check: prevent consolidation on empty portfolio
-      if (previousPurchases.length === 0) {
-        console.warn(`[CONSOLIDATION] Warning: Attempted consolidation with empty portfolio in year ${currentYear + 2025 - 1}`);
-        return {
-          updatedPurchases: [],
-          equityFreed: 0,
-          debtReduced: 0,
-          propertiesSold: 0,
-        };
-      }
-      // Rank properties by score (lowest first)
-      const rankedProperties = previousPurchases
-        .filter(purchase => purchase.year <= currentYear)
-        .map(purchase => ({
-          ...purchase,
-          score: calculatePropertyScore(purchase, currentYear)
-        }))
-        .sort((a, b) => a.score.totalScore - b.score.totalScore);
-      
-      let updatedPurchases = [...previousPurchases];
-      let totalEquityFreed = 0;
-      let totalDebtReduced = 0;
-      let propertiesSold = 0;
-      
-      // Sell lowest-scoring properties until conditions are met:
-      // - LVR <= 80%
-      // - Net Cashflow >= 0
-      // - Affordability test for new purchase passes
-      for (const property of rankedProperties) {
-        const yearsOwned = currentYear - property.year;
-        const propertyData = getPropertyData(property.title);
-        
-        if (propertyData) {
-          // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
-          const currentValue = calculatePropertyGrowth(property.cost, yearsOwned);
-          const equity = currentValue - property.loanAmount;
-          
-          // Remove property from purchases
-          updatedPurchases = updatedPurchases.filter(p => 
-            !(p.year === property.year && p.title === property.title && p.cost === property.cost)
-          );
-          
-          totalEquityFreed += equity;
-          totalDebtReduced += property.loanAmount;
-          propertiesSold++;
-          
-          // Check if conditions are now met
-          const remainingDebt = previousPurchases.reduce((sum, p) => {
-            const stillOwned = updatedPurchases.some(up => 
-              up.year === p.year && up.title === p.title && up.cost === p.cost
-            );
-            return stillOwned ? sum + p.loanAmount : sum;
-          }, profile.currentDebt);
-          
-          const remainingValue = updatedPurchases.reduce((sum, p) => {
-            const yearsOwned = currentYear - p.year;
-            const propData = getPropertyData(p.title);
-            if (propData) {
-              // Calculate with tiered growth (10% years 1-2, 6% years 3+)
-              return sum + calculatePropertyGrowth(p.cost, yearsOwned);
-            }
-            return sum;
-          }, profile.portfolioValue);
-          
-          // Calculate net cashflow for remaining properties
-          let netCashflow = 0;
-          updatedPurchases.forEach(p => {
-            const score = calculatePropertyScore(p, currentYear);
-            netCashflow += score.cashflowScore;
-          });
-          
-          const newLVR = remainingValue > 0 ? (remainingDebt / remainingValue) * 100 : 0;
-          
-          // Stop when all conditions are met:
-          // 1. LVR <= 80%
-          // 2. Net cashflow >= 0
-          // 3. At least one property sold
-          if (newLVR <= 80 && netCashflow >= 0 && propertiesSold >= 1) {
-            break;
-          }
-        }
-      }
-      
-        // Reset failure count after consolidation - simplified tracking
-        if (consolidationState) {
-          consolidationState.consecutiveDebtTestFailures = 0;
-        }
-      
-      return {
-        updatedPurchases,
-        equityFreed: totalEquityFreed,
-        debtReduced: totalDebtReduced,
-        propertiesSold
-      };
-    };
-
   const checkAffordability = (
     property: any,
     availableFunds: number,
     previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
-    currentYear: number,
-    additionalEquity: number = 0,
-    consolidationState?: { consecutiveDebtTestFailures: number }
-  ): { canAfford: boolean; consolidationTriggered?: boolean; consolidationDetails?: any } => {
-      // Create a default consolidation state if not provided
-      const localConsolidationState = consolidationState || { consecutiveDebtTestFailures: 0 };
+    currentYear: number
+  ): { canAfford: boolean } => {
       
       // Calculate key financial metrics for debugging
       const baseDeposit = calculatedValues.availableDeposit;
@@ -500,7 +346,7 @@ export const useAffordabilityCalculator = () => {
       if (DEBUG_MODE) {
         const timelineYear = currentYear + 2025 - 1;
         const depositPool = availableFunds;
-        const equityFreed = 0; // Initialize to 0, will be updated if consolidation occurs
+        const equityFreed = 0;
         const rentalIncome = grossRentalIncome;
         const adjustedCapacity = profile.borrowingCapacity;
         const serviceabilityMethod = 'borrowing-capacity';
@@ -511,7 +357,6 @@ export const useAffordabilityCalculator = () => {
         const serviceabilityPass = canAffordServiceability;
         const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineYear : '❌';
         const requiredDeposit = property.depositRequired;
-        const consolidationTriggered = false;
 
         console.log(`\n--- Year ${timelineYear} Debug Trace ---`);
 
@@ -623,36 +468,6 @@ export const useAffordabilityCalculator = () => {
           `   └─ Remaining Capacity: £${borrowingCapacityTestSurplus.toLocaleString()}`
         );
 
-        // === ENHANCED CONSOLIDATION STATUS ===
-        // Hardcoded consolidation limits
-        const maxConsolidations = 3;
-        const minConsolidationGap = 5; // years
-        
-        const consecutiveFailuresCount = localConsolidationState.consecutiveDebtTestFailures;
-        const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
-        const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining;
-        const consolidationEligible = yearsSinceLastConsolidation >= minConsolidationGap && totalConsolidationsSoFar < maxConsolidations;
-        const shouldConsolidateDebug = localConsolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
-        
-        console.log(
-          `🔄 Enhanced Consolidation Status:`
-        );
-        console.log(
-          `   ├─ Consecutive Dual Failures: ${consecutiveFailuresCount}/2 (deposit AND serviceability) - reduced threshold`
-        );
-        console.log(
-          `   ├─ Years Since Last: ${yearsSinceLastConsolidation}/${minConsolidationGap} - increased gap requirement`
-        );
-        console.log(
-          `   ├─ Total Used: ${totalConsolidationsSoFar}/${maxConsolidations} - reduced max consolidations`
-        );
-        console.log(
-          `   ├─ Eligible: ${consolidationEligible ? 'YES' : 'NO'}`
-        );
-        console.log(
-          `   └─ Trigger: ${shouldConsolidateDebug ? 'YES (all conditions met)' : 'NO'}`
-        );
-
         // === STRATEGY INSIGHTS ===
         const portfolioScalingVelocity = previousPurchases.filter(p => p.year <= currentYear).length;
         const selfFundingEfficiency = netCashflow > 0 ? (netCashflow / totalAnnualSavings * 100) : 0;
@@ -683,110 +498,17 @@ export const useAffordabilityCalculator = () => {
       
       // Check if all tests pass
       if (canAffordServiceability && canAffordBorrowingCapacity) {
-        // Reset failure count on success
-        localConsolidationState.consecutiveDebtTestFailures = 0;
         return { canAfford: true };
-      }
-      
-       // UPDATED CONSOLIDATION LOGIC - trigger after 2 consecutive failures (serviceability OR borrowing capacity)
-       if (!canAffordServiceability || !canAffordBorrowingCapacity) {
-         localConsolidationState.consecutiveDebtTestFailures++;
-       } else {
-         localConsolidationState.consecutiveDebtTestFailures = 0; // Reset when both pass
-       }
-       
-       // Hardcoded consolidation limits
-       const maxConsolidations = 3;
-       const minConsolidationGap = 5; // years
-       
-       // Enhanced consolidation logic: check eligibility and caps
-       const yearsSinceLastConsolidation = currentYear - profile.lastConsolidationYear;
-       const totalConsolidationsSoFar = 3 - profile.consolidationsRemaining; // Calculate from remaining
-       const consolidationEligible = yearsSinceLastConsolidation >= minConsolidationGap && totalConsolidationsSoFar < maxConsolidations;
-       const shouldConsolidate = localConsolidationState.consecutiveDebtTestFailures >= 2 && consolidationEligible;
-      
-      if (shouldConsolidate && previousPurchases.length > 0) {
-        
-        const consolidationResult = executeConsolidation(currentYear, previousPurchases, localConsolidationState);
-        
-        // Debug trace for consolidation
-        if (DEBUG_MODE) {
-          const timelineYear = currentYear + 2025 - 1;
-          const propertiesSoldList = previousPurchases
-            .filter(p => !consolidationResult.updatedPurchases.some(up => 
-              up.year === p.year && up.title === p.title && up.cost === p.cost
-            ))
-            .map(p => p.title);
-          
-          const newDebt = consolidationResult.updatedPurchases.reduce((sum, p) => sum + p.loanAmount, profile.currentDebt);
-          const portfolioValue = consolidationResult.updatedPurchases.reduce((sum, p) => {
-            const yearsOwned = currentYear - p.year;
-            const propData = getPropertyData(p.title);
-            if (propData) {
-              // Calculate with tiered growth (10% years 1-2, 6% years 3+)
-              return sum + calculatePropertyGrowth(p.cost, yearsOwned);
-            }
-            return sum;
-          }, profile.portfolioValue);
-          
-          const equityFreed = consolidationResult.equityFreed;
-
-          // === DYNAMIC CONSOLIDATION EXECUTION ===
-          const newLVR = portfolioValue > 0 ? (newDebt / portfolioValue * 100) : 0;
-          const propertiesSoldCount = consolidationResult.propertiesSold;
-          const debtReduced = consolidationResult.debtReduced;
-          
-           console.log(
-             `🔄 Consolidation Executed (${localConsolidationState.consecutiveDebtTestFailures} consecutive dual failures):`
-           );
-          console.log(
-            `   ├─ Properties Sold: ${propertiesSoldCount} (${JSON.stringify(propertiesSoldList)})`
-          );
-          console.log(
-            `   ├─ Equity Freed: £${equityFreed.toLocaleString()}`
-          );
-          console.log(
-            `   ├─ Debt Reduced: £${debtReduced.toLocaleString()}`
-          );
-          console.log(
-            `   ├─ New Portfolio LVR: ${newLVR.toFixed(1)}% (target: ≤80%)`
-          );
-           console.log(
-             `   └─ Static Borrowing Capacity: £${profile.borrowingCapacity.toLocaleString()}`
-           );
-          
-           console.log(
-             `🎯 Updated Consolidation: "Trigger after 2 consecutive dual failures (deposit AND serviceability)"`
-           );
-          console.log(
-            `   └─ Consecutive Failures Reset: 0 (was ${localConsolidationState.consecutiveDebtTestFailures})`
-          );
-        }
-        
-        // Recheck affordability with freed equity and reduced debt
-        const newAvailableFunds = calculateAvailableFunds(currentYear, consolidationResult.updatedPurchases, consolidationResult.equityFreed);
-        const recheck = checkAffordability(property, newAvailableFunds.total, consolidationResult.updatedPurchases, currentYear, consolidationResult.equityFreed, localConsolidationState);
-        
-        return { 
-          canAfford: recheck.canAfford, 
-          consolidationTriggered: true, 
-          consolidationDetails: consolidationResult 
-        };
       }
       
       return { canAfford: false };
     };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    // Track consolidation state - simplified to only consecutive failures
-    let consolidationState = {
-      consecutiveDebtTestFailures: 0 // Count consecutive serviceability failures
-    };
-
     const determineNextPurchaseYear = (
       property: any,
       previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
-    ): { year: number; consolidation?: any; updatedPurchases?: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> } => {
+    ): { year: number } => {
       let currentPurchases = [...previousPurchases];
       let iterationCount = 0;
       const maxIterations = profile.timelineYears * 2; // Safety limit
@@ -814,32 +536,10 @@ export const useAffordabilityCalculator = () => {
         }
         
         const availableFunds = calculateAvailableFunds(year, currentPurchases);
-        const affordabilityResult = checkAffordability(property, availableFunds.total, currentPurchases, year, 0, consolidationState);
+        const affordabilityResult = checkAffordability(property, availableFunds.total, currentPurchases, year);
         
         if (affordabilityResult.canAfford) {
           const absoluteYear = year + 2025 - 1;
-          
-          if (affordabilityResult.consolidationTriggered) {
-            // Update the purchase history to reflect consolidation
-            currentPurchases = affordabilityResult.consolidationDetails.updatedPurchases;
-            
-            // Add the new property to the consolidated purchase history
-            const newPurchase = {
-              year: year, // Use relative year
-              cost: property.cost,
-              depositRequired: property.depositRequired,
-              loanAmount: property.cost - property.depositRequired,
-              title: property.title
-            };
-            currentPurchases.push(newPurchase);
-            
-            return { 
-              year: absoluteYear, 
-              consolidation: affordabilityResult.consolidationDetails,
-              updatedPurchases: currentPurchases
-            };
-          }
-          
           return { year: absoluteYear };
         }
       }
@@ -983,7 +683,7 @@ export const useAffordabilityCalculator = () => {
         depositRequired: property.depositRequired,
         loanAmount: loanAmount,
         affordableYear: result.year,
-        status: result.year === Infinity ? 'challenging' : (result.consolidation ? 'consolidation' : 'feasible'),
+        status: result.year === Infinity ? 'challenging' : 'feasible',
         propertyIndex: index,
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
@@ -1022,33 +722,17 @@ export const useAffordabilityCalculator = () => {
         equityRelease
       };
       
-      // Add consolidation details if present
-      if (result.consolidation) {
-        timelineProperty.isConsolidationPhase = true;
-        timelineProperty.consolidationDetails = {
-          propertiesSold: result.consolidation.propertiesSold,
-          equityFreed: result.consolidation.equityFreed,
-          debtReduced: result.consolidation.debtReduced
-        };
-      }
-      
       timelineProperties.push(timelineProperty);
       
       // Add to purchase history if affordable
       if (result.year !== Infinity) {
-        if (result.consolidation && result.updatedPurchases) {
-          // If consolidation occurred, replace entire purchase history with consolidated results
-          purchaseHistory = [...result.updatedPurchases];
-        } else {
-          // Normal property addition
-          purchaseHistory.push({
-            year: result.year - 2025 + 1, // Convert back to relative year
-            cost: property.cost,
-            depositRequired: property.depositRequired,
-            loanAmount: loanAmount,
-            title: property.title
-          });
-        }
+        purchaseHistory.push({
+          year: result.year - 2025 + 1, // Convert back to relative year
+          cost: property.cost,
+          depositRequired: property.depositRequired,
+          loanAmount: loanAmount,
+          title: property.title
+        });
         
         // Sort purchase history by year to maintain chronological order
         purchaseHistory.sort((a, b) => a.year - b.year);
@@ -1065,8 +749,6 @@ export const useAffordabilityCalculator = () => {
     profile.borrowingCapacity,
     profile.depositPool,
     profile.annualSavings,
-    profile.consolidationsRemaining,
-    profile.lastConsolidationYear,
     calculatedValues.availableDeposit,
     globalFactors.growthRate,
     globalFactors.interestRate,
@@ -1147,9 +829,7 @@ export const useAffordabilityCalculator = () => {
       depositTestPass,
       serviceabilityTestSurplus,
       serviceabilityTestPass,
-      availableFunds: availableFunds.total,
-      consolidationTriggered: affordabilityResult.consolidationTriggered,
-      consolidationDetails: affordabilityResult.consolidationDetails
+      availableFunds: availableFunds.total
     };
   }, [profile, globalFactors, calculatedValues, getPropertyData]);
 

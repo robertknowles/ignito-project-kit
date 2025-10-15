@@ -50,7 +50,7 @@ export const DecisionEngineView: React.FC = () => {
       const property = propertyByYear.get(year);
       
       if (property) {
-        // This is a purchase/consolidation year - use calculator data directly
+        // This is a purchase year - use calculator data directly
         const propertyIndex = property.propertyIndex + 1;
         
         const lvr = property.portfolioValueAfter > 0 
@@ -98,7 +98,7 @@ export const DecisionEngineView: React.FC = () => {
         const yearData: YearBreakdownData = {
           year,
           displayYear: yearIndex,
-          status: property.isConsolidationPhase ? 'consolidated' : 'purchased',
+          status: 'purchased',
           propertyNumber: propertyIndex,
           propertyType: property.title,
           
@@ -173,17 +173,6 @@ export const DecisionEngineView: React.FC = () => {
           // Flags (from calculator)
           gapRule: property.isGapRuleBlocked,
           equityReleaseYear: property.equityRelease > 0,
-          
-          // Consolidation
-          consolidation: property.consolidationDetails ? {
-            triggered: true,
-            eligible: true,
-            consecutiveFailures: 0,
-            propertiesSold: property.consolidationDetails.propertiesSold,
-            equityFreed: property.consolidationDetails.equityFreed,
-            debtReduced: property.consolidationDetails.debtReduced,
-            newLvr: lvr,
-          } : undefined,
           
           // Strategy metrics
           portfolioScaling: propertyIndex,
@@ -303,7 +292,7 @@ function interpolateYearData(
   let requiredDeposit = 0;
   let requiredLoan = 0;
   let propertyCost = 0;
-  let status: 'initial' | 'purchased' | 'blocked' | 'waiting' | 'consolidated' = 'waiting';
+  let status: 'initial' | 'purchased' | 'blocked' | 'waiting' = 'waiting';
   
   if (year === 2025) {
     status = 'initial';
@@ -459,9 +448,6 @@ function interpolateYearData(
     gapRule: false,
     equityReleaseYear: false,
     
-    // Consolidation (not applicable)
-    consolidation: undefined,
-    
     // Strategy metrics
     portfolioScaling: previousPurchases.length,
     selfFundingEfficiency: 0,
@@ -596,9 +582,6 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     // Flags
     gapRule: false,
     equityReleaseYear: false,
-    
-    // Consolidation (not applicable)
-    consolidation: undefined,
     
     // Strategy metrics
     portfolioScaling: 0,

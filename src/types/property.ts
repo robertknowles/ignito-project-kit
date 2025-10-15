@@ -63,18 +63,12 @@ export interface TimelineProperty {
   depositRequired: number;
   loanAmount: number;
   affordableYear: number;
-  status: 'feasible' | 'challenging' | 'consolidation';
+  status: 'feasible' | 'challenging';
   propertyIndex: number;
   portfolioValueAfter: number;
   totalEquityAfter: number;
   totalDebtAfter: number;
   availableFundsUsed: number;
-  isConsolidationPhase?: boolean;
-  consolidationDetails?: {
-    propertiesSold: number;
-    equityFreed: number;
-    debtReduced: number;
-  };
   
   // Year-by-year cashflow breakdown
   grossRentalIncome: number;
@@ -109,7 +103,7 @@ export interface TimelineProperty {
 export interface YearBreakdownData {
   year: number;
   displayYear: number;
-  status: 'initial' | 'purchased' | 'blocked' | 'waiting' | 'consolidated';
+  status: 'initial' | 'purchased' | 'blocked' | 'waiting';
   propertyNumber: number | null;
   propertyType: string | null;
   
@@ -180,17 +174,6 @@ export interface YearBreakdownData {
   // Flags
   gapRule: boolean;
   equityReleaseYear: boolean;
-  
-  // Consolidation
-  consolidation?: {
-    triggered: boolean;
-    eligible: boolean;
-    consecutiveFailures: number;
-    propertiesSold?: number;
-    equityFreed?: number;
-    debtReduced?: number;
-    newLvr?: number;
-  };
   
   // Strategy metrics
   portfolioScaling: number;

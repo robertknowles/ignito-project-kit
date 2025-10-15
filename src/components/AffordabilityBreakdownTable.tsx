@@ -66,9 +66,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
     if (year.status === 'purchased') {
       return `✅ BUY Prop #${year.propertyNumber || 1}`;
     }
-    if (year.consolidation?.triggered) {
-      return `🔄 SELL Prop #${year.consolidation.propertyNumber || 1}`;
-    }
     if (year.equityRelease > 0) {
       return `🔄 Equity Release`;
     }
@@ -84,7 +81,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
   // Determine decision status
   const getDecisionStatus = (year: any) => {
     if (year.status === 'purchased') return 'PURCHASED';
-    if (year.consolidation?.triggered) return 'CONSOLIDATED';
     if (year.gapRule) return 'Waiting...';
     if (!year.depositTest?.pass || !year.serviceabilityTest?.pass) return 'Blocked';
     return '-';
@@ -148,7 +144,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   className={`
                     border-b hover:bg-gray-50 cursor-pointer transition-colors
                     ${year.status === 'purchased' ? 'bg-green-50/50' : ''}
-                    ${year.consolidation?.triggered ? 'bg-orange-50/50' : ''}
                   `}
                   onClick={() => toggleYear(yearNumber)}
                 >
@@ -223,13 +218,10 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   <td className="p-3">
                     <Badge 
                       variant={
-                        year.status === 'purchased' ? 'default' : 
-                        year.consolidation?.triggered ? 'secondary' :
-                        'outline'
+                        year.status === 'purchased' ? 'default' : 'outline'
                       }
                       className={
-                        year.status === 'purchased' ? 'bg-green-500' :
-                        year.consolidation?.triggered ? 'bg-orange-500' : ''
+                        year.status === 'purchased' ? 'bg-green-500' : ''
                       }
                     >
                       {getDecisionStatus(year)}
