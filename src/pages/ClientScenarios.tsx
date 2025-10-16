@@ -5,13 +5,70 @@ import {
   MoreHorizontalIcon,
   CalendarIcon,
 } from 'lucide-react'
-import { YearlyCalendar } from '../components/YearlyCalendar'
+import { PropertyTimeline, Client as TimelineClient } from '../components/PropertyTimeline'
 import { Navbar } from '../components/Navbar'
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { generateClientReport } from '../utils/pdfGenerator'
 import { toast } from 'sonner'
+
+const sampleClients: TimelineClient[] = [
+  {
+    id: '1',
+    name: 'Sarah Johnson',
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    purchases: [
+      { year: 2025, propertyType: 'Unit', cost: 450000, propertyNumber: 1 },
+      { year: 2027, propertyType: 'House', cost: 680000, propertyNumber: 2 },
+      { year: 2029, propertyType: 'Apartment', cost: 520000, propertyNumber: 3 },
+      { year: 2032, propertyType: 'Unit', cost: 480000, propertyNumber: 4 },
+    ],
+  },
+  {
+    id: '2',
+    name: 'Michael Chen',
+    avatar: 'https://i.pravatar.cc/150?img=2',
+    purchases: [
+      { year: 2026, propertyType: 'House', cost: 720000, propertyNumber: 1 },
+      { year: 2028, propertyType: 'Apartment', cost: 550000, propertyNumber: 2 },
+      { year: 2031, propertyType: 'Unit', cost: 460000, propertyNumber: 3 },
+      { year: 2034, propertyType: 'House', cost: 750000, propertyNumber: 4 },
+    ],
+  },
+  {
+    id: '3',
+    name: 'Emily Rodriguez',
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    purchases: [
+      { year: 2025, propertyType: 'Apartment', cost: 500000, propertyNumber: 1 },
+      { year: 2026, propertyType: 'Unit', cost: 440000, propertyNumber: 2 },
+      { year: 2027, propertyType: 'House', cost: 690000, propertyNumber: 3 },
+      { year: 2030, propertyType: 'Apartment', cost: 530000, propertyNumber: 4 },
+    ],
+  },
+  {
+    id: '4',
+    name: 'David Kim',
+    avatar: 'https://i.pravatar.cc/150?img=4',
+    purchases: [
+      { year: 2025, propertyType: 'Unit', cost: 470000, propertyNumber: 1 },
+      { year: 2028, propertyType: 'House', cost: 700000, propertyNumber: 2 },
+      { year: 2031, propertyType: 'Apartment', cost: 540000, propertyNumber: 3 },
+    ],
+  },
+  {
+    id: '5',
+    name: 'Lisa Anderson',
+    avatar: 'https://i.pravatar.cc/150?img=5',
+    purchases: [
+      { year: 2026, propertyType: 'House', cost: 710000, propertyNumber: 1 },
+      { year: 2029, propertyType: 'Unit', cost: 490000, propertyNumber: 2 },
+      { year: 2033, propertyType: 'Apartment', cost: 560000, propertyNumber: 3 },
+    ],
+  },
+]
+
 export const ClientScenarios = () => {
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -114,16 +171,6 @@ export const ClientScenarios = () => {
                 <div className="text-sm text-[#6b7280]">Purchasing Soon</div>
               </div>
             </div>
-            {/* 5 Year Calendar */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <CalendarIcon size={18} className="text-[#6b7280]" />
-                <h2 className="text-lg font-medium text-[#111827]">
-                  Planning Calendar
-                </h2>
-              </div>
-              <YearlyCalendar />
-            </div>
             {/* Client Portfolio */}
             <div className="mb-8">
               <h2 className="text-lg font-medium text-[#111827] mb-4">
@@ -216,6 +263,22 @@ export const ClientScenarios = () => {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+            {/* Planning Calendar */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <CalendarIcon size={18} className="text-[#6b7280]" />
+                <h2 className="text-lg font-medium text-[#111827]">
+                  Planning Calendar
+                </h2>
+              </div>
+              <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
+                <PropertyTimeline
+                  clients={sampleClients}
+                  startYear={2025}
+                  endYear={2040}
+                />
               </div>
             </div>
           </div>

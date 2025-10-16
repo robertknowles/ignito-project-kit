@@ -157,8 +157,8 @@ export const DecisionEngineView: React.FC = () => {
           },
           
           borrowingCapacityTest: {
-            pass: property.totalDebtAfter <= profile.borrowingCapacity,
-            surplus: profile.borrowingCapacity - property.totalDebtAfter,
+            pass: property.borrowingCapacityRemaining >= 0,
+            surplus: property.borrowingCapacityRemaining,
             available: profile.borrowingCapacity,
             required: property.totalDebtAfter,
           },
@@ -369,6 +369,23 @@ function interpolateYearData(
       };
     });
 
+  // Calculate effective borrowing capacity with equity boost
+  let totalUsableEquity = 0;
+  if (profile.portfolioValue > 0) {
+    const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, year - 2025);
+    totalUsableEquity += Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
+  }
+  previousPurchases.forEach(purchase => {
+    const yearsOwned = year - purchase.affordableYear;
+    const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+    const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
+    totalUsableEquity += usableEquity;
+  });
+  
+  const equityBoost = totalUsableEquity * profile.equityFactor;
+  const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+  const availableBorrowingCapacityValue = Math.max(0, effectiveBorrowingCapacity - totalDebt);
+
   return {
     year,
     displayYear: yearIndex,
@@ -405,7 +422,7 @@ function interpolateYearData(
     propertyCost,
     
     // Capacity
-    availableBorrowingCapacity: Math.max(0, profile.borrowingCapacity - totalDebt),
+    availableBorrowingCapacity: availableBorrowingCapacityValue,
     borrowingCapacity: profile.borrowingCapacity,
     
     // Debt breakdown
@@ -431,10 +448,10 @@ function interpolateYearData(
     },
     
     borrowingCapacityTest: {
-      pass: totalDebt <= profile.borrowingCapacity,
-      surplus: profile.borrowingCapacity - totalDebt,
+      pass: availableBorrowingCapacityValue >= newDebt,
+      surplus: availableBorrowingCapacityValue - newDebt,
       available: profile.borrowingCapacity,
-      required: totalDebt,
+      required: totalDebt + newDebt,
     },
     
     serviceabilityTest: {
@@ -504,6 +521,15 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
   const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
   const annualSavingsRate = profile.annualSavings;
   
+  // Calculate effective borrowing capacity with equity boost (for initial portfolio)
+  let totalUsableEquity = 0;
+  if (portfolioValue > 0) {
+    totalUsableEquity = Math.max(0, portfolioValue * 0.88 - totalDebt);
+  }
+  const equityBoost = totalUsableEquity * profile.equityFactor;
+  const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+  const availableBorrowingCapacityValue = Math.max(0, effectiveBorrowingCapacity - totalDebt);
+  
   return {
     year,
     displayYear: yearIndex,
@@ -540,7 +566,7 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     propertyCost: 0,
     
     // Capacity
-    availableBorrowingCapacity: profile.borrowingCapacity,
+    availableBorrowingCapacity: availableBorrowingCapacityValue,
     borrowingCapacity: profile.borrowingCapacity,
     
     // Debt breakdown
@@ -566,8 +592,8 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     },
     
     borrowingCapacityTest: {
-      pass: true,
-      surplus: profile.borrowingCapacity - totalDebt,
+      pass: availableBorrowingCapacityValue >= 0,
+      surplus: availableBorrowingCapacityValue,
       available: profile.borrowingCapacity,
       required: totalDebt,
     },

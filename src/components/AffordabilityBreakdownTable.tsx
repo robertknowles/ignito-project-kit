@@ -264,19 +264,30 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                           <div>
                             <h4 className="font-semibold mb-0.5 text-sm">🏠 This Purchase Funding</h4>
                             <div className="space-y-1 text-gray-600">
-                              <div className="font-medium">Total Funds Used: {formatCurrency((year.requiredDeposit || 0) + 40000, true)}</div>
-                              <div className="pl-3">├─ Deposit Required: {formatCurrency(year.requiredDeposit || 0, true)}</div>
-                              <div className="pl-6">├─ From Base Deposit: {formatCurrency(Math.min(year.requiredDeposit || 0, year.baseDeposit || 0), true)}</div>
-                              <div className="pl-6">├─ From Annual Savings: {formatCurrency(Math.max(0, (year.requiredDeposit || 0) - (year.baseDeposit || 0)), true)}</div>
-                              <div className="pl-6">└─ From Equity Release: {formatCurrency(0, true)}</div>
-                              <div className="pl-3">├─ Safety Buffer: £40k</div>
-                              <div className="pl-6">├─ From Base Deposit: £40k</div>
-                              <div className="pl-6">├─ From Annual Savings: £0</div>
-                              <div className="pl-6">└─ From Equity Release: £0</div>
-                              <div className="pl-3 font-medium flex items-center gap-1">
-                                └─ Total Sourced: {formatCurrency((year.requiredDeposit || 0) + 40000, true)} 
-                                <CheckCircle className="w-3 h-3 text-green-500" />
-                              </div>
+                              {(() => {
+                                // Calculate how deposit is sourced from available funds
+                                const depositFromBase = Math.min(year.requiredDeposit || 0, year.baseDeposit || 0);
+                                const depositFromSavings = Math.max(0, Math.min((year.requiredDeposit || 0) - depositFromBase, year.cumulativeSavings || 0));
+                                const depositFromEquity = Math.max(0, (year.requiredDeposit || 0) - depositFromBase - depositFromSavings);
+                                
+                                return (
+                                  <>
+                                    <div className="font-medium">Total Funds Used: {formatCurrency((year.requiredDeposit || 0) + 40000, true)}</div>
+                                    <div className="pl-3">├─ Deposit Required: {formatCurrency(year.requiredDeposit || 0, true)}</div>
+                                    <div className="pl-6">├─ From Base Deposit: {formatCurrency(depositFromBase, true)}</div>
+                                    <div className="pl-6">├─ From Annual Savings: {formatCurrency(depositFromSavings, true)}</div>
+                                    <div className="pl-6">└─ From Equity Release: {formatCurrency(depositFromEquity, true)}</div>
+                                    <div className="pl-3">├─ Safety Buffer: £40k</div>
+                                    <div className="pl-6">├─ From Base Deposit: £40k</div>
+                                    <div className="pl-6">├─ From Annual Savings: £0</div>
+                                    <div className="pl-6">└─ From Equity Release: £0</div>
+                                    <div className="pl-3 font-medium flex items-center gap-1">
+                                      └─ Total Sourced: {formatCurrency((year.requiredDeposit || 0) + 40000, true)} 
+                                      <CheckCircle className="w-3 h-3 text-green-500" />
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                           
