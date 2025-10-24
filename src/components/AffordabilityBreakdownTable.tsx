@@ -232,172 +232,322 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                 {/* Expanded Detail Row */}
                 {isExpanded && (
                   <tr className="bg-gray-50 border-b">
-                    <td colSpan={10} className="py-1 px-4">
-                      <div className="space-y-4 text-xs">
+                    <td colSpan={10} className="py-3 px-4">
+                      <div className="space-y-3 text-xs">
                         
-                        {/* ROW 1: Annual Cashflow & Funding */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          {/* Annual Cashflow Performance */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">💵 Annual Cashflow Performance</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3">├─ Gross Rental Income: {formatCurrency(year.grossRental || 0, true)}</div>
-                              <div className="pl-3">├─ Loan Interest: -{formatCurrency(year.loanRepayments || 0, true)}</div>
-                              <div className="pl-3">├─ Expenses (30% + 3% inflation): -{formatCurrency(year.expenses || 0, true)}</div>
-                              <div className={`pl-3 ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                └─ Net Cashflow: {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}/year {netCashflow < 0 ? '(reduces funding capacity)' : ''}
+                        {/* ROW 1: Annual Cashflow & Funding (4 sections) - Reordered */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          {/* Section 1: This Purchase Funding (moved to first position) */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">🏠 This Purchase Funding</h4>
+                            </div>
+                            {(() => {
+                              const depositFromBase = Math.min(year.requiredDeposit || 0, year.baseDeposit || 0);
+                              const depositFromSavings = Math.max(0, Math.min((year.requiredDeposit || 0) - depositFromBase, year.cumulativeSavings || 0));
+                              const depositFromEquity = Math.max(0, (year.requiredDeposit || 0) - depositFromBase - depositFromSavings);
+                              
+                              return (
+                                <div className="divide-y divide-gray-100">
+                                  <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
+                                    <span className="font-medium text-[#374151]">Total Funds Used</span>
+                                    <span className="font-bold text-right text-[#111827]">{formatCurrency((year.requiredDeposit || 0) + 40000, true)}</span>
+                                  </div>
+                                  <div className="px-3 py-1 bg-white">
+                                    <div className="flex justify-between mb-0.5">
+                                      <span className="font-medium text-[#374151]">Deposit Required</span>
+                                      <span className="font-medium text-right text-[#111827]">{formatCurrency(year.requiredDeposit || 0, true)}</span>
+                                    </div>
+                                    <div className="flex justify-between pl-3 py-0.5">
+                                      <span className="text-[#6b7280] text-[10px]">From Base</span>
+                                      <span className="text-[10px] text-right text-[#374151]">{formatCurrency(depositFromBase, true)}</span>
+                                    </div>
+                                    <div className="flex justify-between pl-3 py-0.5">
+                                      <span className="text-[#6b7280] text-[10px]">From Savings</span>
+                                      <span className="text-[10px] text-right text-[#374151]">{formatCurrency(depositFromSavings, true)}</span>
+                                    </div>
+                                    <div className="flex justify-between pl-3 py-0.5">
+                                      <span className="text-[#6b7280] text-[10px]">From Equity</span>
+                                      <span className="text-[10px] text-right text-[#374151]">{formatCurrency(depositFromEquity, true)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between px-3 py-1 bg-white">
+                                    <span className="text-[#374151]">Safety Buffer</span>
+                                    <span className="font-medium text-right text-[#111827]">£40k</span>
+                                  </div>
+                                  <div className="flex justify-between px-3 py-1 bg-green-50">
+                                    <span className="font-medium text-[#374151] flex items-center gap-1">
+                                      Total Sourced
+                                      <CheckCircle className="w-3 h-3 text-green-500" />
+                                    </span>
+                                    <span className="font-bold text-right text-[#111827]">{formatCurrency((year.requiredDeposit || 0) + 40000, true)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          
+                          {/* Section 2: Annual Funding Capacity (stays at position 2) */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">💰 Annual Funding Capacity</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Base Annual Savings</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.annualSavingsRate || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Cashflow Impact</span>
+                                <span className={`font-medium text-right ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1.5 bg-[#f9fafb]">
+                                <span className="font-medium text-[#374151]">Net Annual Capacity</span>
+                                <span className="font-bold text-right text-[#111827]">{formatCurrency(year.totalAnnualCapacity || 0, true)}</span>
                               </div>
                             </div>
                           </div>
                           
-                          {/* Annual Funding Capacity */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">💰 Annual Funding Capacity</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3">├─ Base Annual Savings: {formatCurrency(year.annualSavingsRate || 0, true)}</div>
-                              <div className="pl-3">├─ Cashflow Impact: {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}</div>
-                              <div className="pl-3 font-medium">└─ Net Annual Capacity: {formatCurrency(year.totalAnnualCapacity || 0, true)}</div>
+                          {/* Section 3: Annual Cashflow Performance (moved to position 3) */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">💵 Annual Cashflow Performance</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Gross Rental Income</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.grossRental || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Loan Interest</span>
+                                <span className="font-medium text-right text-red-600">-{formatCurrency(year.loanRepayments || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Expenses (30% + 3%)</span>
+                                <span className="font-medium text-right text-red-600">-{formatCurrency(year.expenses || 0, true)}</span>
+                              </div>
+                              <div className={`flex justify-between px-3 py-1.5 bg-[#f9fafb] ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <span className="font-medium">Net Cashflow</span>
+                                <span className="font-bold text-right">{netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}</span>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* This Purchase Funding */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">🏠 This Purchase Funding</h4>
-                            <div className="space-y-1 text-gray-600">
-                              {(() => {
-                                // Calculate how deposit is sourced from available funds
-                                const depositFromBase = Math.min(year.requiredDeposit || 0, year.baseDeposit || 0);
-                                const depositFromSavings = Math.max(0, Math.min((year.requiredDeposit || 0) - depositFromBase, year.cumulativeSavings || 0));
-                                const depositFromEquity = Math.max(0, (year.requiredDeposit || 0) - depositFromBase - depositFromSavings);
-                                
-                                return (
-                                  <>
-                                    <div className="font-medium">Total Funds Used: {formatCurrency((year.requiredDeposit || 0) + 40000, true)}</div>
-                                    <div className="pl-3">├─ Deposit Required: {formatCurrency(year.requiredDeposit || 0, true)}</div>
-                                    <div className="pl-6">├─ From Base Deposit: {formatCurrency(depositFromBase, true)}</div>
-                                    <div className="pl-6">├─ From Annual Savings: {formatCurrency(depositFromSavings, true)}</div>
-                                    <div className="pl-6">└─ From Equity Release: {formatCurrency(depositFromEquity, true)}</div>
-                                    <div className="pl-3">├─ Safety Buffer: £40k</div>
-                                    <div className="pl-6">├─ From Base Deposit: £40k</div>
-                                    <div className="pl-6">├─ From Annual Savings: £0</div>
-                                    <div className="pl-6">└─ From Equity Release: £0</div>
-                                    <div className="pl-3 font-medium flex items-center gap-1">
-                                      └─ Total Sourced: {formatCurrency((year.requiredDeposit || 0) + 40000, true)} 
-                                      <CheckCircle className="w-3 h-3 text-green-500" />
-                                    </div>
-                                  </>
-                                );
-                              })()}
+                          {/* Section 4: Remaining After Purchase (stays at position 4) */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">💰 Remaining After Purchase</h4>
                             </div>
-                          </div>
-                          
-                          {/* Remaining After Purchase */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">💰 Remaining After Purchase</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3">├─ Base Deposit: {formatCurrency(Math.max(0, (year.baseDeposit || 0) - (year.requiredDeposit || 0) - 40000), true)} (was {formatCurrency((year.baseDeposit || 0) + (year.requiredDeposit || 0) + 40000, true)}, used {formatCurrency((year.requiredDeposit || 0) + 40000, true)})</div>
-                              <div className="pl-3">├─ Accumulated Savings: {formatCurrency(year.cumulativeSavings || 0, true)} (unused)</div>
-                              <div className="pl-3">├─ Equity Release: {formatCurrency(year.equityRelease || 0, true)} (unused)</div>
-                              <div className="pl-3 font-medium">└─ Total Remaining: {formatCurrency((depositTest.available || 0) - (year.requiredDeposit || 0) - 40000, true)}</div>
-                              <div className={`pt-1 font-medium ${depositTest.surplus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                Purchase Result: {formatCurrency(depositTest.surplus || 0, true)} surplus ({formatCurrency(depositTest.available || 0, true)} available - {formatCurrency((year.requiredDeposit || 0) + 40000, true)} used)
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Base Deposit</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(Math.max(0, (year.baseDeposit || 0) - (year.requiredDeposit || 0) - 40000), true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Accumulated Savings</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.cumulativeSavings || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Equity Release</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.equityRelease || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
+                                <span className="font-medium text-[#374151]">Total Remaining</span>
+                                <span className="font-bold text-right text-[#111827]">{formatCurrency((depositTest.available || 0) - (year.requiredDeposit || 0) - 40000, true)}</span>
+                              </div>
+                              <div className={`px-3 py-1.5 ${depositTest.surplus >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                                <div className="flex justify-between">
+                                  <span className={`font-medium ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>Purchase Result</span>
+                                  <span className={`font-bold text-right ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                    {formatCurrency(depositTest.surplus || 0, true)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                         
-                        {/* ROW 2: Portfolio & Debt Analysis */}
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                          {/* Portfolio Equity Growth */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">🏠 Portfolio Equity Growth</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div>Current Portfolio Value: {formatCurrency(portfolioValue, true)}</div>
-                              <div>Total Equity: {formatCurrency(equity, true)}</div>
-                              <div>Available for Extraction (88% LVR): {formatCurrency(year.extractableEquity || 0, true)}</div>
-                              
+                        {/* ROW 2: Portfolio & Debt Analysis (5 sections) */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                          {/* Section 5: Portfolio Equity Growth */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">🏠 Portfolio Equity Growth</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Portfolio Value</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(portfolioValue, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Total Equity</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(equity, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Extractable (88% LVR)</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.extractableEquity || 0, true)}</span>
+                              </div>
                               {year.allPortfolioProperties && year.allPortfolioProperties.length > 0 && (
-                                <>
-                                  <div className="pt-1 font-medium text-gray-700">Property Breakdown:</div>
+                                <div className="px-3 py-1 bg-[#f9fafb]">
+                                  <div className="font-medium text-[#374151] mb-1 text-[10px]">Property Breakdown:</div>
                                   {year.allPortfolioProperties.map((property: any, idx: number) => {
-                                    // Calculate years owned to determine growth rate
                                     const yearsOwned = (yearNumber - property.purchaseYear);
                                     const growthRate = yearsOwned <= 2 ? 10 : 6;
-                                    const growthLabel = yearsOwned <= 2 ? '(early years)' : '(steady state)';
                                     
                                     return (
-                                      <div key={idx} className="pl-3 text-[11px]">
-                                        Property #{idx + 1} ({property.purchaseYear}): {formatCurrency(property.currentValue, true)} value → {formatCurrency(property.equity, true)} equity → {formatCurrency(property.extractableEquity, true)} extractable (88% LVR) → {growthRate}% growth {growthLabel}
+                                      <div key={idx} className="text-[9px] text-[#6b7280] leading-tight mb-0.5">
+                                        <div className="flex justify-between">
+                                          <span>Prop #{idx + 1} ({property.purchaseYear})</span>
+                                          <span>{growthRate}%</span>
+                                        </div>
+                                        <div className="flex justify-between pl-2">
+                                          <span>Value/Equity/Extract</span>
+                                          <span>{formatCurrency(property.currentValue, true)}/{formatCurrency(property.equity, true)}/{formatCurrency(property.extractableEquity, true)}</span>
+                                        </div>
                                       </div>
                                     );
                                   })}
-                                </>
+                                </div>
                               )}
                             </div>
                           </div>
                           
-                          {/* LVR Status */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">📊 LVR Status</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3">Current LVR: {formatPercentage(lvr)}</div>
-                              <div className="pl-3">Trigger Level: 80.0%</div>
-                              <div className="pl-3">Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity || 0, true)}</div>
+                          {/* Section 6: LVR Status */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">📊 LVR Status</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Current LVR</span>
+                                <span className="font-medium text-right text-[#111827]">{formatPercentage(lvr)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Trigger Level</span>
+                                <span className="font-medium text-right text-[#111827]">80.0%</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
+                                <span className="font-medium text-[#374151]">Capacity Remaining</span>
+                                <span className="font-bold text-right text-[#111827]">{formatCurrency(year.availableBorrowingCapacity || 0, true)}</span>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* Debt Position */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">💳 Debt Position</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3">├─ Existing Debt: {formatCurrency(year.existingDebt || 0, true)}</div>
-                              <div className="pl-3">├─ New Loan Required: {formatCurrency(year.newDebt || 0, true)}</div>
-                              <div className="pl-3">├─ Total Debt After: {formatCurrency(year.totalDebt || 0, true)}</div>
-                              <div className="pl-3">└─ Borrowing Capacity Remaining: {formatCurrency(year.availableBorrowingCapacity || 0, true)}</div>
+                          {/* Section 7: Debt Position */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">💳 Debt Position</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Existing Debt</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.existingDebt || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">New Loan Required</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.newDebt || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Total Debt After</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.totalDebt || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
+                                <span className="font-medium text-[#374151]">Capacity Remaining</span>
+                                <span className="font-bold text-right text-[#111827]">{formatCurrency(year.availableBorrowingCapacity || 0, true)}</span>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* Borrowing Capacity Test */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">🔍 Borrowing Capacity Test</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3 flex items-center gap-1">
-                                {year.borrowingCapacityTest?.pass ? 
-                                  <CheckCircle className="w-3 h-3 text-green-500" /> : 
-                                  <XCircle className="w-3 h-3 text-red-500" />
-                                }
-                                <span className={`text-xs ${year.borrowingCapacityTest?.pass ? 'text-green-600' : 'text-red-600'}`}>
-                                  {year.borrowingCapacityTest?.pass ? 'PASS' : 'FAIL'}
+                          {/* Section 8: Borrowing Capacity Test */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">🔍 Borrowing Capacity Test</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className={`flex justify-between px-3 py-1 ${year.borrowingCapacityTest?.pass ? 'bg-green-50' : 'bg-red-50'}`}>
+                                <span className="flex items-center gap-1">
+                                  {year.borrowingCapacityTest?.pass ? 
+                                    <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                                    <XCircle className="w-3 h-3 text-red-500" />
+                                  }
+                                  <span className={`font-medium ${year.borrowingCapacityTest?.pass ? 'text-green-700' : 'text-red-700'}`}>
+                                    {year.borrowingCapacityTest?.pass ? 'PASS' : 'FAIL'}
+                                  </span>
                                 </span>
                               </div>
-                              <div className="pl-3">├─ Borrowing Capacity Limit: {formatCurrency(year.borrowingCapacityTest?.available || 0, true)}</div>
-                              <div className="pl-3">├─ Total Debt After Purchase: {formatCurrency(year.borrowingCapacityTest?.required || 0, true)}</div>
-                              <div className="pl-3">└─ Remaining Capacity: {formatCurrency(year.borrowingCapacityTest?.surplus || 0, true)}</div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Capacity Limit</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.borrowingCapacityTest?.available || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Debt After Purchase</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.borrowingCapacityTest?.required || 0, true)}</span>
+                              </div>
+                              <div className={`flex justify-between px-3 py-1 ${year.borrowingCapacityTest?.surplus >= 0 ? 'bg-[#f9fafb]' : 'bg-red-50'}`}>
+                                <span className="font-medium text-[#374151]">Remaining Capacity</span>
+                                <span className={`font-bold text-right ${year.borrowingCapacityTest?.surplus >= 0 ? 'text-[#111827]' : 'text-red-700'}`}>
+                                  {formatCurrency(year.borrowingCapacityTest?.surplus || 0, true)}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           
-                          {/* Serviceability Test */}
-                          <div>
-                            <h4 className="font-semibold mb-0.5 text-sm">⚖️ Serviceability Test</h4>
-                            <div className="space-y-1 text-gray-600">
-                              <div className="pl-3 flex items-center gap-1">
-                                {serviceabilityTest.pass ? 
-                                  <CheckCircle className="w-3 h-3 text-green-500" /> : 
-                                  <XCircle className="w-3 h-3 text-red-500" />
-                                }
-                                <span className={`text-xs ${serviceabilityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
-                                  {serviceabilityTest.pass ? 'PASS' : 'FAIL'}
+                          {/* Section 9: Serviceability Test */}
+                          <div className="bg-[#fafafa] border border-[#e5e7eb] rounded-md overflow-hidden">
+                            <div className="bg-[#f3f4f6] px-3 py-1.5 border-b border-[#e5e7eb]">
+                              <h4 className="font-semibold text-[11px] text-[#374151]">⚖️ Serviceability Test</h4>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              <div className={`flex justify-between px-3 py-1 ${serviceabilityTest.pass ? 'bg-green-50' : 'bg-red-50'}`}>
+                                <span className="flex items-center gap-1">
+                                  {serviceabilityTest.pass ? 
+                                    <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                                    <XCircle className="w-3 h-3 text-red-500" />
+                                  }
+                                  <span className={`font-medium ${serviceabilityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
+                                    {serviceabilityTest.pass ? 'PASS' : 'FAIL'}
+                                  </span>
                                 </span>
                               </div>
-                              <div className="pl-3">├─ Existing Loan Interest: {formatCurrency(year.existingLoanInterest || 0, true)}</div>
-                              <div className="pl-3">├─ New Loan Interest: {formatCurrency(year.newLoanInterest || 0, true)}</div>
-                              <div className="pl-3">├─ Total Loan Interest: {formatCurrency((year.existingLoanInterest || 0) + (year.newLoanInterest || 0), true)}</div>
-                              <div className="pl-3 font-medium text-gray-700">Max Allowable (Enhanced):</div>
-                              <div className="pl-6">├─ Base Capacity (10%): {formatCurrency(year.baseServiceabilityCapacity || 0, true)}</div>
-                              <div className="pl-6">├─ Rental Contribution (70%): {formatCurrency(year.rentalServiceabilityContribution || 0, true)}</div>
-                              <div className="pl-6">├─ Gross Rental Income: {formatCurrency(year.grossRental || 0, true)}</div>
-                              <div className="pl-6">└─ Total Max Allowable: {formatCurrency(serviceabilityTest.available || 0, true)}</div>
-                              <div className="pl-3">└─ Surplus/Shortfall: {formatCurrency(serviceabilityTest.surplus || 0, true)}</div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">Existing Interest</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.existingLoanInterest || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-white">
+                                <span className="text-[#374151]">New Interest</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.newLoanInterest || 0, true)}</span>
+                              </div>
+                              <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
+                                <span className="font-medium text-[#374151]">Total Interest</span>
+                                <span className="font-bold text-right text-[#111827]">{formatCurrency((year.existingLoanInterest || 0) + (year.newLoanInterest || 0), true)}</span>
+                              </div>
+                              <div className="px-3 py-1 bg-white">
+                                <div className="text-[10px] font-medium text-[#374151] mb-0.5">Max Allowable:</div>
+                                <div className="flex justify-between pl-2 py-0.5">
+                                  <span className="text-[#6b7280] text-[10px]">Base (10%)</span>
+                                  <span className="text-[10px] text-right text-[#374151]">{formatCurrency(year.baseServiceabilityCapacity || 0, true)}</span>
+                                </div>
+                                <div className="flex justify-between pl-2 py-0.5">
+                                  <span className="text-[#6b7280] text-[10px]">Rental (70%)</span>
+                                  <span className="text-[10px] text-right text-[#374151]">{formatCurrency(year.rentalServiceabilityContribution || 0, true)}</span>
+                                </div>
+                                <div className="flex justify-between pl-2 py-0.5">
+                                  <span className="text-[#6b7280] text-[10px]">Gross Rental</span>
+                                  <span className="text-[10px] text-right text-[#374151]">{formatCurrency(year.grossRental || 0, true)}</span>
+                                </div>
+                                <div className="flex justify-between font-medium text-[#374151] pt-0.5">
+                                  <span className="text-[10px]">Total Max</span>
+                                  <span className="text-[10px] text-right">{formatCurrency(serviceabilityTest.available || 0, true)}</span>
+                                </div>
+                              </div>
+                              <div className={`flex justify-between px-3 py-1 ${serviceabilityTest.surplus >= 0 ? 'bg-[#f9fafb]' : 'bg-red-50'}`}>
+                                <span className="font-medium text-[#374151]">Surplus/Shortfall</span>
+                                <span className={`font-bold text-right ${serviceabilityTest.surplus >= 0 ? 'text-[#111827]' : 'text-red-700'}`}>
+                                  {formatCurrency(serviceabilityTest.surplus || 0, true)}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -412,21 +562,41 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
         </tbody>
       </table>
       
-      {/* Key Assumptions - Static Values */}
-      <div className="mt-6 bg-white border rounded-lg p-6">
-        <h4 className="font-semibold mb-1 text-sm">🔑 Key Assumptions</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-          <div className="space-y-2">
-            <div className="pl-4">├─ Interest Rate: 6.0%</div>
-            <div className="pl-4">├─ Expense Ratio: 30% of rental income + 3% annual inflation</div>
+      {/* Key Assumptions - Clean Table Format */}
+      <div className="mt-4 bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+          <h4 className="font-semibold text-sm">🔑 Key Assumptions</h4>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">Interest Rate</span>
+              <span className="font-medium">6.0%</span>
+            </div>
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">Expense Ratio</span>
+              <span className="font-medium">30% + 3%</span>
+            </div>
           </div>
-          <div className="space-y-2">
-            <div className="pl-4">├─ Deposit Buffer: £40,000</div>
-            <div className="pl-4">├─ LVR Limits: 80%</div>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">Deposit Buffer</span>
+              <span className="font-medium">£40,000</span>
+            </div>
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">LVR Limits</span>
+              <span className="font-medium">80%</span>
+            </div>
           </div>
-          <div className="space-y-2">
-            <div className="pl-4">├─ Serviceability: 10% of borrowing capacity</div>
-            <div className="pl-4">└─ Loan Type: Interest-only</div>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">Serviceability</span>
+              <span className="font-medium">10% + 70% rental</span>
+            </div>
+            <div className="flex justify-between py-0.5">
+              <span className="text-gray-600">Loan Type</span>
+              <span className="font-medium">Interest-only</span>
+            </div>
           </div>
         </div>
       </div>

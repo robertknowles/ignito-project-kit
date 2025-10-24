@@ -11,6 +11,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
+import { ExportPDFButton } from './ExportPDFButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 export const Navbar = () => {
   const navigate = useNavigate()
@@ -75,6 +76,7 @@ export const Navbar = () => {
       </div>
       
       <div className="flex items-center gap-4">
+        {location.pathname === '/dashboard' && <ExportPDFButton />}
         <SaveButton />
         <div className="relative" ref={dropdownRef}>
           <button

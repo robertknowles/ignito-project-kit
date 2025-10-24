@@ -39,8 +39,12 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { user, loading: authLoading } = useAuth();
 
   const fetchClients = async () => {
-    if (!user || authLoading) return;
+    if (!user || authLoading) {
+      console.log('ClientContext - fetchClients skipped:', { user: !!user, authLoading });
+      return;
+    }
     
+    console.log('ClientContext - Fetching clients for user:', user.id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -51,10 +55,12 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (error) throw error;
       
+      console.log('ClientContext - Fetched clients:', data);
       setClients(data || []);
       
       // Set first client as active if none is selected
       if (!activeClient && data && data.length > 0) {
+        console.log('ClientContext - Setting active client:', data[0]);
         setActiveClient(data[0]);
       }
     } catch (error) {
