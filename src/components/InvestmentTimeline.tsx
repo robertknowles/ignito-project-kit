@@ -11,9 +11,19 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
+// Period conversion helpers
+const PERIODS_PER_YEAR = 2;
+const BASE_YEAR = 2025;
+
+const periodToDisplay = (period: number): string => {
+  const year = BASE_YEAR + Math.floor((period - 1) / PERIODS_PER_YEAR);
+  const half = ((period - 1) % PERIODS_PER_YEAR) + 1;
+  return `${year} H${half}`;
+};
+
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility } = usePropertySelection()
+  const { calculations, checkFeasibility, pauseBlocks } = usePropertySelection()
   const { timelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
@@ -65,7 +75,9 @@ export const InvestmentTimeline = () => {
       status: 'feasible' | 'delayed' | 'challenging';
       number?: string;
       affordableYear: number;
-      eventType: 'purchase';
+      period: number;
+      eventType: 'purchase' | 'pause';
+      duration?: number;
     }> = [];
 
     // Add purchase events
@@ -74,26 +86,26 @@ export const InvestmentTimeline = () => {
       const timelineEndYear = 2025 + profile.timelineYears;
       
       let yearDisplay: string;
-      let quarterDisplay: string;
+      let periodDisplay: string;
       
-      if (property.affordableYear === Infinity) {
+      if (property.affordableYear === Infinity || property.period === Infinity) {
         yearDisplay = "Beyond Timeline";
-        quarterDisplay = "N/A";
+        periodDisplay = "N/A";
       } else if (isAffordable && property.affordableYear <= timelineEndYear) {
-        yearDisplay = property.affordableYear.toString();
-        quarterDisplay = `Yr ${property.affordableYear - 2025}`;
+        yearDisplay = Math.floor(property.affordableYear).toString();
+        periodDisplay = property.displayPeriod || periodToDisplay(property.period);
       } else if (property.affordableYear > timelineEndYear) {
-        yearDisplay = `${property.affordableYear}`;
-        quarterDisplay = `Yr ${property.affordableYear - 2025}`;
+        yearDisplay = Math.floor(property.affordableYear).toString();
+        periodDisplay = property.displayPeriod || periodToDisplay(property.period);
       } else {
         yearDisplay = "Beyond Timeline";
-        quarterDisplay = "N/A";
+        periodDisplay = "N/A";
       }
 
       // Add purchase event
       allTimelineEvents.push({
         year: yearDisplay,
-        quarter: quarterDisplay,
+        quarter: periodDisplay,
         type: property.title,
         deposit: `$${Math.round(property.depositRequired / 1000)}k`,
         price: `$${Math.round(property.cost / 1000)}k`,
@@ -103,13 +115,46 @@ export const InvestmentTimeline = () => {
         status: property.status,
         number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
         affordableYear: property.affordableYear,
+        period: property.period,
         eventType: 'purchase'
       });
     });
 
-    // Sort all events by year chronologically
+    // Add pause events - insert pauses between properties based on order
+    pauseBlocks.forEach((pause) => {
+      // Find the property purchase that comes just before this pause
+      const propertiesBeforePause = timelineProperties
+        .filter((_, idx) => idx < pause.order)
+        .sort((a, b) => a.period - b.period);
+      
+      if (propertiesBeforePause.length > 0) {
+        const lastPropertyBeforePause = propertiesBeforePause[propertiesBeforePause.length - 1];
+        const pauseStartPeriod = lastPropertyBeforePause.period + 1;
+        const pauseDurationPeriods = Math.ceil(pause.duration * PERIODS_PER_YEAR);
+        const pauseEndPeriod = pauseStartPeriod + pauseDurationPeriods - 1;
+        
+        // Use the portfolio metrics from the last property
+        const portfolioValue = lastPropertyBeforePause.portfolioValueAfter;
+        const equity = lastPropertyBeforePause.totalEquityAfter;
+        
+        allTimelineEvents.push({
+          year: periodToDisplay(pauseStartPeriod).split(' ')[0],
+          quarter: `${periodToDisplay(pauseStartPeriod)} - ${periodToDisplay(pauseEndPeriod)}`,
+          type: '⏸️ Pause Period',
+          portfolioValue: `$${Math.round(portfolioValue / 1000)}k`,
+          equity: `$${Math.round(equity / 1000)}k`,
+          status: 'feasible',
+          affordableYear: 2025 + (pauseStartPeriod - 1) / PERIODS_PER_YEAR,
+          period: pauseStartPeriod,
+          eventType: 'pause',
+          duration: pause.duration
+        });
+      }
+    });
+
+    // Sort all events by period chronologically
     return allTimelineEvents
-      .sort((a, b) => a.affordableYear - b.affordableYear)
+      .sort((a, b) => a.period - b.period)
       .slice(0, 12); // Show timeline events
   }
 
@@ -139,35 +184,45 @@ export const InvestmentTimeline = () => {
       </div>
       <div className="flex flex-col gap-6">
         {timelineItems.map((item, index) => (
-          <TimelineItem
-            key={`${item.year}-${item.type}-${index}`}
-            year={item.year}
-            quarter={item.quarter}
-            type={item.type}
-            number={item.number}
-            deposit={item.deposit!}
-            loanAmount={item.loanAmount!}
-            source="Savings & Equity"
-            equity={item.equity}
-            portfolioValue={item.portfolioValue}
-            price={item.price!}
-            status={item.status as 'feasible' | 'delayed' | 'challenging'}
-            isLast={index === timelineItems.length - 1}
-          />
+          item.eventType === 'pause' ? (
+            <PauseItem
+              key={`${item.year}-pause-${index}`}
+              quarter={item.quarter}
+              duration={item.duration!}
+              equity={item.equity}
+              portfolioValue={item.portfolioValue}
+            />
+          ) : (
+            <TimelineItem
+              key={`${item.year}-${item.type}-${index}`}
+              year={item.year}
+              quarter={item.quarter}
+              type={item.type}
+              number={item.number}
+              deposit={item.deposit!}
+              loanAmount={item.loanAmount!}
+              source="Savings & Equity"
+              equity={item.equity}
+              portfolioValue={item.portfolioValue}
+              price={item.price!}
+              status={item.status as 'feasible' | 'delayed' | 'challenging'}
+              isLast={index === timelineItems.length - 1}
+            />
+          )
         ))}
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
         <p className="mb-3">
           {calculations.totalProperties > 0 
-            ? `Timeline shows ${timelineProperties.length} properties with realistic purchase progression. ${timelineProperties.filter(p => p.status === 'feasible').length} properties are feasible within timeline. Total investment: $${Math.round(calculations.totalCost / 1000)}k.`
-            : "Select properties to generate an investment timeline. Timeline shows sequential property purchases based on accumulated equity and cash flow."
+            ? `Timeline shows ${timelineProperties.length} properties with realistic purchase progression in 6-month periods. ${timelineProperties.filter(p => p.status === 'feasible').length} properties are feasible within timeline. Total investment: $${Math.round(calculations.totalCost / 1000)}k.`
+            : "Select properties to generate an investment timeline. Timeline shows sequential property purchases in 6-month periods (H1/H2) based on accumulated equity and cash flow."
           }
         </p>
         {timelineProperties.length > 0 && (
           <div className="mb-3">
-            <p>Properties by year: {timelineProperties.filter(p => p.status === 'feasible').map(p => `${p.title} (${p.affordableYear})`).join(', ') || 'None within timeline'}</p>
+            <p>Properties by period: {timelineProperties.filter(p => p.status === 'feasible').map(p => `${p.title} (${p.displayPeriod || periodToDisplay(p.period)})`).join(', ') || 'None within timeline'}</p>
             <p className="mt-2 text-[#059669]">
-              💡 Borrowing capacity improves over time: Rental income (70% counted by banks) increases your borrowing power for subsequent purchases, enabling faster property accumulation.
+              💡 6-Month Periods: You can purchase properties every 6 months (minimum gap). Borrowing capacity improves over time as rental income (70% counted by banks) increases your borrowing power for subsequent purchases.
             </p>
           </div>
         )}
@@ -270,6 +325,57 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           <span className={`w-2 h-2 rounded-full ${statusDots[status]}`}></span>
           <span className={`ml-2 text-xs ${statusColors[status]} font-normal`}>
             {status}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface PauseItemProps {
+  quarter: string
+  duration: number
+  equity: string
+  portfolioValue: string
+}
+
+const PauseItem: React.FC<PauseItemProps> = ({
+  quarter,
+  duration,
+  equity,
+  portfolioValue,
+}) => {
+  return (
+    <div className="relative bg-gray-50 rounded-lg border-2 border-gray-300 shadow-sm">
+      <div className="flex items-center p-6">
+        {/* Pause icon circle */}
+        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mr-6 border-2 border-gray-300">
+          <div className="text-center">
+            <div className="text-2xl">⏸️</div>
+          </div>
+        </div>
+        {/* Content */}
+        <div className="flex-1">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <h4 className="text-gray-700 font-medium">Pause Period</h4>
+            </div>
+            <div className="text-sm text-gray-600 mt-3 leading-relaxed font-normal">
+              Duration: {duration} year{duration !== 1 ? 's' : ''} • Period: {quarter}
+              <br />
+              <span className="text-gray-500">
+                No purchases during this period. Existing properties continue to grow and generate cashflow.
+              </span>
+              <br />
+              <span className="text-gray-400">Portfolio Value: {portfolioValue} • Total Equity: {equity}</span>
+            </div>
+          </div>
+        </div>
+        {/* Status indicator */}
+        <div className="ml-4 flex items-center">
+          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+          <span className="ml-2 text-xs text-gray-600 font-normal">
+            Paused
           </span>
         </div>
       </div>

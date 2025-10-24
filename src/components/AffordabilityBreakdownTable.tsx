@@ -39,6 +39,25 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
     );
   }
   
+  // Aggregate periods into years - take the last period of each year (H2) but merge purchases
+  const yearlyData = data
+    .filter((row, index, array) => {
+      const currentYear = Math.floor(row.year);
+      const nextYear = array[index + 1] ? Math.floor(array[index + 1].year) : null;
+      return currentYear !== nextYear; // Keep only the last period of each year
+    })
+    .map((row) => {
+      // Find all periods from the same year and merge their purchases
+      const currentYear = Math.floor(row.year);
+      const samePeriods = data.filter(r => Math.floor(r.year) === currentYear);
+      const allPurchases = samePeriods.flatMap(p => p.purchases || []);
+      
+      return {
+        ...row,
+        purchases: allPurchases
+      };
+    });
+  
   const toggleYear = (year: number) => {
     setExpandedYears(prev => {
       const newExpanded = new Set(prev);
@@ -120,9 +139,9 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
           </tr>
         </thead>
         <tbody>
-          {data.map((year, index) => {
-            const isExpanded = expandedYears.has(year.year || year.displayYear);
-            const yearNumber = year.year || year.displayYear || 2025 + index;
+          {yearlyData.map((year, index) => {
+            const displayYear = Math.floor(year.year);
+            const isExpanded = expandedYears.has(displayYear);
             
             // Use values directly from calculator (no fallbacks needed)
             const portfolioValue = year.portfolioValue;
@@ -139,18 +158,18 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
             const serviceabilityTest = year.serviceabilityTest;
             
             return (
-              <React.Fragment key={yearNumber}>
+              <React.Fragment key={displayYear}>
                 <tr 
                   className={`
                     border-b hover:bg-gray-50 cursor-pointer transition-colors
                     ${year.status === 'purchased' ? 'bg-green-50/50' : ''}
                   `}
-                  onClick={() => toggleYear(yearNumber)}
+                  onClick={() => toggleYear(displayYear)}
                 >
                   <td className="p-3 font-medium">
                     <div className="flex items-center gap-2">
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      {yearNumber}
+                      <span>{displayYear}</span>
                     </div>
                   </td>
                   
@@ -393,13 +412,13 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                 <div className="px-3 py-1 bg-[#f9fafb]">
                                   <div className="font-medium text-[#374151] mb-1 text-[10px]">Property Breakdown:</div>
                                   {year.allPortfolioProperties.map((property: any, idx: number) => {
-                                    const yearsOwned = (yearNumber - property.purchaseYear);
+                                    const yearsOwned = (displayYear - property.purchaseYear);
                                     const growthRate = yearsOwned <= 2 ? 10 : 6;
                                     
                                     return (
                                       <div key={idx} className="text-[9px] text-[#6b7280] leading-tight mb-0.5">
                                         <div className="flex justify-between">
-                                          <span>Prop #{idx + 1} ({property.purchaseYear})</span>
+                                          <span>Prop #{idx + 1} ({property.displayPeriod})</span>
                                           <span>{growthRate}%</span>
                                         </div>
                                         <div className="flex justify-between pl-2">

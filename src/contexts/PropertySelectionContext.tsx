@@ -19,6 +19,13 @@ export interface PropertySelection {
   [propertyId: string]: number; // quantity of each property type
 }
 
+export interface PauseBlock {
+  id: string;
+  type: 'pause';
+  duration: number; // Duration in years (0.5, 1, 1.5, 2, 3)
+  order: number; // Sequence position in timeline
+}
+
 export interface PortfolioCalculations {
   totalProperties: number;
   totalCost: number;
@@ -44,6 +51,13 @@ interface PropertySelectionContextType {
   resetSelections: () => void;
   propertyTypes: PropertyType[];
   isLoading: boolean;
+  
+  // Pause block management
+  pauseBlocks: PauseBlock[];
+  addPause: (duration?: number) => void;
+  removePause: () => void;
+  updatePauseDuration: (pauseId: string, duration: number) => void;
+  getPauseCount: () => number;
 }
 
 const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
@@ -63,6 +77,7 @@ interface PropertySelectionProviderProps {
 export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps> = ({ children }) => {
   const { activeClient } = useClient();
   const [selections, setSelections] = useState<PropertySelection>({});
+  const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
 
@@ -82,6 +97,21 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       } else {
         setSelections({});
       }
+      
+      // Load pause blocks
+      const pauseStorageKey = `pause_blocks_${activeClient.id}`;
+      const storedPauses = localStorage.getItem(pauseStorageKey);
+      if (storedPauses) {
+        try {
+          setPauseBlocks(JSON.parse(storedPauses));
+        } catch (error) {
+          console.error('Failed to load pause blocks from localStorage:', error);
+          setPauseBlocks([]);
+        }
+      } else {
+        setPauseBlocks([]);
+      }
+      
       setIsLoading(false);
     }
   }, [activeClient?.id]);
@@ -93,6 +123,14 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       localStorage.setItem(storageKey, JSON.stringify(selections));
     }
   }, [selections, activeClient?.id]);
+
+  // Save pause blocks to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const pauseStorageKey = `pause_blocks_${activeClient.id}`;
+      localStorage.setItem(pauseStorageKey, JSON.stringify(pauseBlocks));
+    }
+  }, [pauseBlocks, activeClient?.id]);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
@@ -181,6 +219,34 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     setSelections({});
   };
 
+  // Pause block management functions
+  const addPause = useCallback((duration: number = 1) => {
+    const totalItems = Object.values(selections).reduce((sum, qty) => sum + qty, 0) + pauseBlocks.length;
+    const newPause: PauseBlock = {
+      id: `pause-${Date.now()}`,
+      type: 'pause',
+      duration,
+      order: totalItems,
+    };
+    setPauseBlocks(prev => [...prev, newPause]);
+  }, [selections, pauseBlocks.length]);
+
+  const removePause = useCallback(() => {
+    if (pauseBlocks.length > 0) {
+      setPauseBlocks(prev => prev.slice(0, -1));
+    }
+  }, [pauseBlocks.length]);
+
+  const updatePauseDuration = useCallback((pauseId: string, duration: number) => {
+    setPauseBlocks(prev => prev.map(p => 
+      p.id === pauseId ? { ...p, duration } : p
+    ));
+  }, []);
+
+  const getPauseCount = useCallback(() => {
+    return pauseBlocks.length;
+  }, [pauseBlocks.length]);
+
   const value = {
     selections,
     calculations,
@@ -192,6 +258,13 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     resetSelections,
     propertyTypes,
     isLoading,
+    
+    // Pause block management
+    pauseBlocks,
+    addPause,
+    removePause,
+    updatePauseDuration,
+    getPauseCount,
   };
 
   return (

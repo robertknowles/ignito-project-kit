@@ -6,19 +6,23 @@ import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMe
 import type { PropertyPurchase } from '../types/property';
 
 export interface PortfolioGrowthDataPoint {
-  year: string;
+  year: string; // Year label for chart display
   portfolioValue: number;
   equity: number;
   property?: string;
 }
 
 export interface CashflowDataPoint {
-  year: string;
+  year: string; // Year label for chart display
   cashflow: number;
   rentalIncome: number;
   loanRepayments: number;
   highlight?: boolean;
 }
+
+// Note: Charts display year-level aggregation for clarity
+// Individual purchases happen at 6-month periods (H1/H2)
+// but are aggregated to annual values for chart visualization
 
 export const useChartDataGenerator = () => {
   const { profile } = useInvestmentProfile();

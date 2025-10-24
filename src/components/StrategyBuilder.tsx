@@ -28,6 +28,11 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     decrementProperty,
     getPropertyQuantity,
     propertyTypes,
+    pauseBlocks,
+    addPause,
+    removePause,
+    updatePauseDuration,
+    getPauseCount,
   } = usePropertySelection()
   // Format currency
   const formatCurrency = (value: number) => {
@@ -260,6 +265,9 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   }
   // Render only the property building blocks section
   if (propertyOnly) {
+    const pauseCount = getPauseCount();
+    const defaultPauseDuration = pauseBlocks.length > 0 ? pauseBlocks[pauseBlocks.length - 1].duration : 1;
+
     return (
       <div>
         <div className="flex gap-4 mb-6">
@@ -286,6 +294,66 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onDecrement={() => decrementProperty(property.id)}
             />
           ))}
+          
+          {/* Pause Period Block */}
+          <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 transition-colors">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-medium text-gray-700">⏸️ Pause Period</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Strategic pause in acquisitions
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex-1">
+                <select 
+                  value={defaultPauseDuration}
+                  onChange={(e) => {
+                    const newDuration = parseFloat(e.target.value);
+                    if (pauseBlocks.length > 0) {
+                      updatePauseDuration(pauseBlocks[pauseBlocks.length - 1].id, newDuration);
+                    }
+                  }}
+                  className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 w-full"
+                >
+                  <option value="0.5">6 months</option>
+                  <option value="1">1 year</option>
+                  <option value="1.5">1.5 years</option>
+                  <option value="2">2 years</option>
+                  <option value="3">3 years</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2 ml-3">
+                <button 
+                  onClick={() => removePause()}
+                  disabled={pauseCount === 0}
+                  className={`w-7 h-7 flex items-center justify-center rounded text-sm font-medium transition-colors ${
+                    pauseCount === 0
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  -
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-[1.5rem] text-center">
+                  {pauseCount}
+                </span>
+                <button 
+                  onClick={() => addPause(defaultPauseDuration)}
+                  className="w-7 h-7 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            
+            <div className="text-xs text-gray-400 mt-3">
+              {pauseCount} pause{pauseCount !== 1 ? 's' : ''} added to timeline
+            </div>
+          </div>
         </div>
       </div>
     )

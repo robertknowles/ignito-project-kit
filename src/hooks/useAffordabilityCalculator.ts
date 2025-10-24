@@ -4,8 +4,34 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
 
+// Period conversion constants
+const PERIODS_PER_YEAR = 2;
+const BASE_YEAR = 2025;
+
+// Convert annual rate to per-period rate using compound interest formula
+const annualRateToPeriodRate = (annualRate: number): number => {
+  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
+};
+
+// Convert period number to display format
+const periodToDisplay = (period: number): string => {
+  const year = BASE_YEAR + Math.floor((period - 1) / PERIODS_PER_YEAR);
+  const half = ((period - 1) % PERIODS_PER_YEAR) + 1;
+  return `${year} H${half}`;
+};
+
+// Convert period to absolute year (for backwards compatibility)
+const periodToYear = (period: number): number => {
+  return BASE_YEAR + (period - 1) / PERIODS_PER_YEAR;
+};
+
+// Convert year to period
+const yearToPeriod = (year: number): number => {
+  return Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
+};
+
 export interface AffordabilityResult {
-  year: number;
+  period: number;
   canAfford: boolean;
   availableFunds: number;
   usableEquity: number;
@@ -15,7 +41,7 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, propertyTypes } = usePropertySelection();
+  const { selections, propertyTypes, pauseBlocks } = usePropertySelection();
   const { globalFactors, getPropertyData } = useDataAssumptions();
 
   // Create stable selections hash to avoid expensive JSON.stringify on every render
@@ -30,28 +56,28 @@ export const useAffordabilityCalculator = () => {
   const DEBUG_MODE = false; // Disabled for performance
 
   // Move helper functions outside useMemo so they can be accessed by other functions
-  const calculatePropertyGrowth = (initialValue: number, years: number) => {
+  const calculatePropertyGrowth = (initialValue: number, periods: number) => {
     let currentValue = initialValue;
     
-    for (let year = 1; year <= years; year++) {
-      let growthRate;
-      if (year <= 2) {
-        growthRate = 0.10; // 10% for years 1-2
-      } else {
-        growthRate = 0.06; // 6% for years 3+
-      }
-      currentValue *= (1 + growthRate);
+    // First 4 periods (2 years): 10% annual = ~4.88% per period
+    // Period 5+ (years 3+): 6% annual = ~2.96% per period
+    const firstTierRate = annualRateToPeriodRate(0.10); // 10% annual
+    const secondTierRate = annualRateToPeriodRate(0.06); // 6% annual
+    
+    for (let period = 1; period <= periods; period++) {
+      const periodRate = period <= 4 ? firstTierRate : secondTierRate;
+      currentValue *= (1 + periodRate);
     }
     
     return currentValue;
   };
 
-  // Helper function to get the growth rate for a specific year
-  const getGrowthRateForYear = (yearsOwned: number): number => {
-    if (yearsOwned <= 2) {
-      return 0.10; // 10% for years 1-2
+  // Helper function to get the growth rate for a specific period
+  const getGrowthRateForPeriod = (periodsOwned: number): number => {
+    if (periodsOwned <= 4) {
+      return annualRateToPeriodRate(0.10); // 10% annual for first 2 years (4 periods)
     } else {
-      return 0.06; // 6% for years 3+
+      return annualRateToPeriodRate(0.06); // 6% annual for years 3+ (period 5+)
     }
   };
 
@@ -63,8 +89,8 @@ export const useAffordabilityCalculator = () => {
   };
 
   const calculateAvailableFunds = (
-      currentYear: number, 
-      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
+      currentPeriod: number, 
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
     ): {
       total: number;
       baseDeposit: number;
@@ -73,62 +99,66 @@ export const useAffordabilityCalculator = () => {
       equityRelease: number;
       depositsUsed: number;
     } => {
-      // Calculate enhanced annual savings with cashflow feedback
+      // Calculate enhanced period savings with cashflow feedback
       let totalEnhancedSavings = 0;
+      const periodSavings = profile.annualSavings / PERIODS_PER_YEAR;
       
-      for (let year = 1; year <= currentYear; year++) {
-        // Base annual savings
-        let yearSavings = profile.annualSavings;
+      for (let period = 1; period <= currentPeriod; period++) {
+        // Base period savings
+        let currentPeriodSavings = periodSavings;
         
-        // Calculate net cashflow from all properties purchased before this year
+        // Calculate net cashflow from all properties purchased before this period
         let netCashflow = 0;
         previousPurchases.forEach(purchase => {
-          if (purchase.year < year) { // Only properties purchased in previous years generate cashflow
-            const yearsOwned = year - purchase.year;
+          if (purchase.period < period) { // Only properties purchased in previous periods generate cashflow
+            const periodsOwned = period - purchase.period;
             const propertyData = getPropertyData(purchase.title);
             
             if (propertyData) {
-              // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
-              const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+              // Calculate current property value with tiered growth
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
               
               // Calculate rental income with progressive recognition rates
               const yieldRate = parseFloat(propertyData.yield) / 100;
-              // Fix: Portfolio size should exclude current property for non-purchase years
-              const portfolioSize = previousPurchases.filter(p => p.year < year).length;
+              // Fix: Portfolio size should exclude current property for non-purchase periods
+              const portfolioSize = previousPurchases.filter(p => p.period < period).length;
               const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
-              const rentalIncome = currentValue * yieldRate * recognitionRate;
+              const annualRentalIncome = currentValue * yieldRate * recognitionRate;
+              const periodRentalIncome = annualRentalIncome / PERIODS_PER_YEAR;
               
               // Interest-only loans - principal does not reduce
               const interestRate = parseFloat(globalFactors.interestRate) / 100;
-              const loanInterest = purchase.loanAmount * interestRate;
+              const annualLoanInterest = purchase.loanAmount * interestRate;
+              const periodLoanInterest = annualLoanInterest / PERIODS_PER_YEAR;
               
               // Calculate expenses (30% of rental income + 3% annual inflation)
-              const expenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
+              const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+              const periodExpenses = periodRentalIncome * 0.30 * inflationFactor;
               
-              // Net cashflow for this property
-              const propertyCashflow = rentalIncome - loanInterest - expenses;
+              // Net cashflow for this property (per period)
+              const propertyCashflow = periodRentalIncome - periodLoanInterest - periodExpenses;
               netCashflow += propertyCashflow;
             }
           }
         });
         
-        // Total savings for this year = base savings + net cashflow
-        const totalYearSavings = yearSavings + netCashflow;
-        totalEnhancedSavings += totalYearSavings;
+        // Total savings for this period = base savings + net cashflow
+        const totalPeriodSavings = currentPeriodSavings + netCashflow;
+        totalEnhancedSavings += totalPeriodSavings;
       }
       
       // Calculate deposits used for previous purchases
       const totalDepositsUsed = previousPurchases.reduce((sum, purchase) => {
-        if (purchase.year <= currentYear) {
+        if (purchase.period <= currentPeriod) {
           return sum + purchase.depositRequired;
         }
         return sum;
       }, 0);
 
       // Calculate base savings (without cashflow)
-      const baseSavings = profile.annualSavings * currentYear;
+      const baseSavings = profile.annualSavings * (currentPeriod / PERIODS_PER_YEAR);
       
-      // Calculate net cashflow reinvestment - fix for non-purchase years
+      // Calculate net cashflow reinvestment
       const netCashflow = totalEnhancedSavings - baseSavings;
       
       // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (88% LVR cap)
@@ -137,14 +167,14 @@ export const useAffordabilityCalculator = () => {
       
       // Calculate existing portfolio equity with 88% LVR cap
       if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1);
         existingPortfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
       }
 
       // Calculate usable equity from previous purchases - with 88% LVR cap
       totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
-        if (purchase.year <= currentYear) {
-          const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentYear - purchase.year);
+        if (purchase.period <= currentPeriod) {
+          const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period);
           const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - purchase.loanAmount);
           return acc + usableEquity;
         }
@@ -165,18 +195,18 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculatePropertyScore = (
-    purchase: { year: number; cost: number; depositRequired: number; loanAmount: number; title: string },
-    currentYear: number
+    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string },
+    currentPeriod: number
   ): { cashflowScore: number; equityScore: number; totalScore: number } => {
-    const yearsOwned = currentYear - purchase.year;
+    const periodsOwned = currentPeriod - purchase.period;
     const propertyData = getPropertyData(purchase.title);
     
     if (!propertyData) {
       return { cashflowScore: 0, equityScore: 0, totalScore: 0 };
     }
     
-    // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
-    const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+    // Calculate current property value with tiered growth
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
     
     // Cashflow Score (rental income - loan payments - expenses)
     const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -185,7 +215,8 @@ export const useAffordabilityCalculator = () => {
     const interestRate = parseFloat(globalFactors.interestRate) / 100;
     const loanInterest = purchase.loanAmount * interestRate;
     // Calculate expenses (30% of rental income + 3% annual inflation)
-    const expenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
+    const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+    const expenses = rentalIncome * 0.30 * inflationFactor;
     const netCashflow = rentalIncome - loanInterest - expenses;
     
     // Equity Score (current equity in property)
@@ -204,8 +235,8 @@ export const useAffordabilityCalculator = () => {
   const checkAffordability = (
     property: any,
     availableFunds: number,
-    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
-    currentYear: number
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
+    currentPeriod: number
   ): { canAfford: boolean } => {
       
       // Calculate key financial metrics for debugging
@@ -219,24 +250,24 @@ export const useAffordabilityCalculator = () => {
       let expenses = 0;
       
       previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
-          const yearsOwned = currentYear - purchase.year;
+        if (purchase.period <= currentPeriod) {
+          const periodsOwned = currentPeriod - purchase.period;
           const propertyData = getPropertyData(purchase.title);
           
         if (propertyData) {
-          // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
-          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          // Calculate current property value with tiered growth
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             // Apply progressive rental recognition based on portfolio size at time of evaluation
-            // Fix: Portfolio size should exclude current property for non-purchase years
-            const portfolioSize = previousPurchases.filter(p => p.year < currentYear).length;
+            const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
             const rentalIncome = currentValue * yieldRate * recognitionRate;
             // Interest-only loans - principal does not reduce
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
             const propertyLoanInterest = purchase.loanAmount * interestRate;
             // Calculate expenses (30% of rental income + 3% annual inflation)
-            const propertyExpenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
+            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+            const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
             
             grossRentalIncome += rentalIncome;
             loanInterest += propertyLoanInterest;
@@ -249,7 +280,7 @@ export const useAffordabilityCalculator = () => {
       // Calculate total existing debt
       let totalExistingDebt = profile.currentDebt;
       previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
+        if (purchase.period <= currentPeriod) {
           totalExistingDebt += purchase.loanAmount;
         }
       });
@@ -260,7 +291,7 @@ export const useAffordabilityCalculator = () => {
       let usableEquityPerProperty: number[] = [];
       
         if (profile.portfolioValue > 0) {
-          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentYear - 1);
+          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1);
           propertyValues.push(grownPortfolioValue);
           
           // Continuous equity release - 88% LVR cap, no time constraint
@@ -269,9 +300,9 @@ export const useAffordabilityCalculator = () => {
         }
         
         previousPurchases.forEach(purchase => {
-          if (purchase.year <= currentYear) {
-            const yearsOwned = currentYear - purchase.year;
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          if (purchase.period <= currentPeriod) {
+            const periodsOwned = currentPeriod - purchase.period;
+            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
             totalPortfolioValue += currentValue;
             propertyValues.push(currentValue);
             
@@ -303,7 +334,7 @@ export const useAffordabilityCalculator = () => {
       
       // Previous purchases loan interest
       previousPurchases.forEach(purchase => {
-        if (purchase.year <= currentYear) {
+        if (purchase.period <= currentPeriod) {
           totalAnnualLoanInterest += purchase.loanAmount * interestRate;
         }
       });
@@ -317,7 +348,7 @@ export const useAffordabilityCalculator = () => {
       let newPropertyRentalIncome = 0;
       if (propertyData) {
         const yieldRate = parseFloat(propertyData.yield) / 100;
-        const portfolioSize = previousPurchases.filter(p => p.year <= currentYear).length;
+        const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
         const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
         newPropertyRentalIncome = property.cost * yieldRate * recognitionRate;
       }
@@ -347,7 +378,8 @@ export const useAffordabilityCalculator = () => {
       
       // Debug trace output
       if (DEBUG_MODE) {
-        const timelineYear = currentYear + 2025 - 1;
+        const timelineDisplay = periodToDisplay(currentPeriod);
+        const timelineYear = periodToYear(currentPeriod);
         const depositPool = availableFunds;
         const equityFreed = 0;
         const rentalIncome = grossRentalIncome;
@@ -359,13 +391,13 @@ export const useAffordabilityCalculator = () => {
         const totalDebt = totalDebtAfterPurchase;
         const depositPass = canAffordDeposit;
         const serviceabilityPass = canAffordServiceability;
-        const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineYear : '❌';
+        const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineDisplay : '❌';
         const requiredDeposit = property.depositRequired;
 
-        console.log(`\n--- Year ${timelineYear} Debug Trace ---`);
+        console.log(`\n--- Period ${timelineDisplay} (Year ${timelineYear.toFixed(1)}) Debug Trace ---`);
 
         // === AVAILABLE FUNDS BREAKDOWN ===
-        const cumulativeSavings = annualSavings * (currentYear - 1);
+        const cumulativeSavings = annualSavings * (currentPeriod / PERIODS_PER_YEAR);
         const continuousEquityAccess = totalUsableEquity;
         const totalAnnualSavings = profile.annualSavings + netCashflow; // Self-funding flywheel
         
@@ -376,7 +408,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Base Deposit Pool: £${baseDeposit.toLocaleString()}`
         );
         console.log(
-          `   ├─ Cumulative Savings: £${cumulativeSavings.toLocaleString()} (${currentYear-1} years × £${profile.annualSavings.toLocaleString()})`
+          `   ├─ Cumulative Savings: £${cumulativeSavings.toLocaleString()} (${(currentPeriod / PERIODS_PER_YEAR).toFixed(1)} years × £${profile.annualSavings.toLocaleString()})`
         );
         console.log(
           `   ├─ Net Cashflow Reinvestment: £${netCashflow.toLocaleString()}`
@@ -525,46 +557,129 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    const determineNextPurchaseYear = (
+    // Helper function to check if a period falls within any pause block
+    const isPausedPeriod = (
+      period: number, 
+      propertyIndex: number
+    ): boolean => {
+      // Calculate which pause blocks should be active based on property sequence
+      let propertiesProcessed = 0;
+      let pausesProcessed = 0;
+      let totalItemsProcessed = 0;
+      
+      // Walk through the sequence to determine if we're in a pause at this property index
+      for (let i = 0; i <= propertyIndex; i++) {
+        // Check if we should insert a pause at this position
+        while (pausesProcessed < pauseBlocks.length && 
+               pauseBlocks[pausesProcessed].order === totalItemsProcessed) {
+          pausesProcessed++;
+          totalItemsProcessed++;
+        }
+        
+        if (i < propertyIndex) {
+          propertiesProcessed++;
+          totalItemsProcessed++;
+        }
+      }
+      
+      // Now check if there's an active pause at the current property index
+      if (pausesProcessed < pauseBlocks.length && 
+          pauseBlocks[pausesProcessed].order === totalItemsProcessed) {
+        // Calculate pause period range
+        // The pause starts after the last property and extends for the pause duration
+        // This is handled by the main loop - we just need to know if we should skip this period
+        return false; // Pauses are handled by extending the timeline, not blocking periods
+      }
+      
+      return false;
+    };
+
+    const determineNextPurchasePeriod = (
       property: any,
-      previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
-    ): { year: number } => {
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
+      propertyIndex: number
+    ): { period: number } => {
       let currentPurchases = [...previousPurchases];
       let iterationCount = 0;
-      const maxIterations = profile.timelineYears * 2; // Safety limit
+      const maxPeriods = profile.timelineYears * PERIODS_PER_YEAR;
+      const maxIterations = profile.timelineYears * PERIODS_PER_YEAR * 2; // Double the periods
       
-      for (let year = 1; year <= profile.timelineYears; year++) {
+      // Calculate pause offset: how many periods to add due to pauses before this property
+      let pausePeriodsToAdd = 0;
+      let itemsProcessed = 0;
+      
+      // Determine pauses that should occur before this property
+      for (let i = 0; i < pauseBlocks.length; i++) {
+        const pause = pauseBlocks[i];
+        if (pause.order <= propertyIndex) {
+          pausePeriodsToAdd += Math.ceil(pause.duration * PERIODS_PER_YEAR);
+        }
+      }
+      
+      for (let period = 1; period <= maxPeriods + pausePeriodsToAdd; period++) {
         iterationCount++;
         if (iterationCount > maxIterations) {
-          console.error('[SAFETY] Max iterations exceeded in determineNextPurchaseYear');
-          return { year: Infinity };
+          console.error('[SAFETY] Max iterations exceeded in determineNextPurchasePeriod');
+          return { period: Infinity };
         }
-        // 6-MONTH PURCHASE GAP: Enforce minimum gap between purchases
-        const lastPurchaseYear = currentPurchases.length > 0 
-          ? Math.max(...currentPurchases.map(p => p.year)) 
-          : 0;
         
-        // Skip years that don't meet the 6-month gap requirement
-        // 6 months = 0.5 years, so we allow purchases in the same year or next year
-        // Only block if trying to purchase in the exact same year
-        const isGapBlocked = lastPurchaseYear > 0 && year <= lastPurchaseYear;
-        if (isGapBlocked) {
+        // Check if this period is within a pause range
+        let isInPause = false;
+        let pauseEndPeriod = 0;
+        
+        // Calculate pause periods based on purchase sequence
+        let currentPauseStartPeriod = 0;
+        for (let i = 0; i < pauseBlocks.length; i++) {
+          const pause = pauseBlocks[i];
+          
+          // Find when this pause should start (after property at pause.order position)
+          if (pause.order <= propertyIndex) {
+            // Find the last purchase period before or at this pause order
+            const purchasesBeforePause = previousPurchases.filter((_, idx) => idx < pause.order);
+            if (purchasesBeforePause.length > 0) {
+              const lastPurchasePeriod = Math.max(...purchasesBeforePause.map(p => p.period));
+              currentPauseStartPeriod = lastPurchasePeriod + 1;
+              pauseEndPeriod = currentPauseStartPeriod + Math.ceil(pause.duration * PERIODS_PER_YEAR);
+              
+              if (period >= currentPauseStartPeriod && period < pauseEndPeriod) {
+                isInPause = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (isInPause) {
           if (DEBUG_MODE) {
-            console.log(`[GAP CHECK] Year ${year + 2025 - 1}: Skipped due to 6-month gap rule (last purchase: ${lastPurchaseYear + 2025 - 1})`);
+            console.log(`[PAUSE] Period ${period} (${periodToDisplay(period)}): Skipped due to active pause period`);
           }
           continue;
         }
         
-        const availableFunds = calculateAvailableFunds(year, currentPurchases);
-        const affordabilityResult = checkAffordability(property, availableFunds.total, currentPurchases, year);
+        // 6-MONTH (1 PERIOD) PURCHASE GAP: Enforce minimum gap between purchases
+        const lastPurchasePeriod = currentPurchases.length > 0 
+          ? Math.max(...currentPurchases.map(p => p.period)) 
+          : 0;
+        
+        // Skip periods that don't meet the 1-period gap requirement
+        // Must wait at least 1 period (6 months) between purchases
+        const isGapBlocked = lastPurchasePeriod > 0 && period < lastPurchasePeriod + 1;
+        if (isGapBlocked) {
+          if (DEBUG_MODE) {
+            console.log(`[GAP CHECK] Period ${period} (${periodToDisplay(period)}): Skipped due to 6-month gap rule (last purchase: ${periodToDisplay(lastPurchasePeriod)})`);
+          }
+          continue;
+        }
+        
+        const availableFunds = calculateAvailableFunds(period, currentPurchases);
+        const affordabilityResult = checkAffordability(property, availableFunds.total, currentPurchases, period);
         
         if (affordabilityResult.canAfford) {
-          const absoluteYear = year + 2025 - 1;
-          return { year: absoluteYear };
+          return { period };
         }
       }
       
-      return { year: Infinity };
+      return { period: Infinity };
     };
 
     // Main calculation logic - Create a list of all properties to purchase
@@ -582,11 +697,11 @@ export const useAffordabilityCalculator = () => {
     });
 
     const timelineProperties: TimelineProperty[] = [];
-    let purchaseHistory: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
+    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }> = [];
     
-    // Process properties sequentially, determining purchase year for each
+    // Process properties sequentially, determining purchase period for each
     allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
-      const result = determineNextPurchaseYear(property, purchaseHistory);
+      const result = determineNextPurchasePeriod(property, purchaseHistory, globalIndex);
       const loanAmount = property.cost - property.depositRequired;
       
       // Calculate portfolio metrics at time of purchase
@@ -603,23 +718,23 @@ export const useAffordabilityCalculator = () => {
       let portfolioSize = 0;
       let rentalRecognitionRate = 0.75;
       
-      if (result.year !== Infinity) {
-        const purchaseYear = result.year - 2025 + 1; // Convert to relative year
+      if (result.period !== Infinity) {
+        const purchasePeriod = result.period;
         
         // Calculate existing portfolio value (with growth)
         if (profile.portfolioValue > 0) {
-          portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchaseYear - 1);
+          portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchasePeriod - 1);
         }
         
         // Calculate total debt from existing portfolio
         totalDebtAfter = profile.currentDebt;
         
-        // Add all previous purchases (with growth based on years owned)
-        // CRITICAL FIX: Only include purchases made by or before the current purchase year
+        // Add all previous purchases (with growth based on periods owned)
+        // CRITICAL FIX: Only include purchases made by or before the current purchase period
         purchaseHistory.forEach(purchase => {
-          if (purchase.year <= purchaseYear) {
-            const yearsOwned = purchaseYear - purchase.year;
-            portfolioValueAfter += calculatePropertyGrowth(purchase.cost, yearsOwned);
+          if (purchase.period <= purchasePeriod) {
+            const periodsOwned = purchasePeriod - purchase.period;
+            portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned);
             totalDebtAfter += purchase.loanAmount;
           }
         });
@@ -632,28 +747,28 @@ export const useAffordabilityCalculator = () => {
         totalEquityAfter = portfolioValueAfter - totalDebtAfter;
         
         // Calculate available funds used
-        const fundsBreakdown = calculateAvailableFunds(purchaseYear, purchaseHistory);
+        const fundsBreakdown = calculateAvailableFunds(purchasePeriod, purchaseHistory);
         availableFundsUsed = fundsBreakdown.total;
         
         // Calculate cashflow breakdown for this property
         // Calculate portfolio size for rental recognition
-        // Fix: For purchase years, include the current property; for non-purchase years, exclude it
-        portfolioSize = purchaseHistory.filter(p => p.year <= purchaseYear).length + 1;
+        portfolioSize = purchaseHistory.filter(p => p.period <= purchasePeriod).length + 1;
         rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
         
         // Calculate cashflow from all properties including this one
-        [...purchaseHistory, { year: purchaseYear, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title }].forEach(purchase => {
-          const yearsOwned = purchaseYear - purchase.year;
+        [...purchaseHistory, { period: purchasePeriod, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title }].forEach(purchase => {
+          const periodsOwned = purchasePeriod - purchase.period;
           const propertyData = getPropertyData(purchase.title);
           
-          if (propertyData && purchase.year <= purchaseYear) {
-            // Calculate current property value with tiered growth (10% years 1-2, 6% years 3+)
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          if (propertyData && purchase.period <= purchasePeriod) {
+            // Calculate current property value with tiered growth
+            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
             const propertyLoanInterest = purchase.loanAmount * interestRate;
-            const propertyExpenses = rentalIncome * 0.30 * Math.pow(1.03, yearsOwned);
+            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+            const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
             
             grossRentalIncome += rentalIncome;
             loanInterest += propertyLoanInterest;
@@ -684,23 +799,23 @@ export const useAffordabilityCalculator = () => {
       let cashflowReinvestment = 0;
       
       // Calculate available funds breakdown only if property is affordable
-      if (result.year !== Infinity) {
-        const purchaseYear = result.year - 2025 + 1;
-        const fundsBreakdownFinal = calculateAvailableFunds(purchaseYear, purchaseHistory);
+      if (result.period !== Infinity) {
+        const purchasePeriod = result.period;
+        const fundsBreakdownFinal = calculateAvailableFunds(purchasePeriod, purchaseHistory);
         cumulativeSavings = fundsBreakdownFinal.cumulativeSavings;
         baseDeposit = fundsBreakdownFinal.baseDeposit; // Rolling amount based on deposits used
         
         // Calculate equity release (continuous, 88% LVR cap)
         purchaseHistory.forEach(purchase => {
-          if (purchase.year <= purchaseYear) {
-            const yearsOwned = purchaseYear - purchase.year;
-            const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          if (purchase.period <= purchasePeriod) {
+            const periodsOwned = purchasePeriod - purchase.period;
+            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
             const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
             equityRelease += usableEquity;
           }
         });
         
-        // Fix: Display accumulated reinvestment correctly for non-purchase years
+        // Fix: Display accumulated reinvestment correctly
         cashflowReinvestment = Math.max(0, netCashflow);
       }
       
@@ -714,8 +829,10 @@ export const useAffordabilityCalculator = () => {
         cost: property.cost,
         depositRequired: property.depositRequired,
         loanAmount: loanAmount,
-        affordableYear: result.year,
-        status: result.year === Infinity ? 'challenging' : 'feasible',
+        period: result.period !== Infinity ? result.period : Infinity,
+        affordableYear: result.period !== Infinity ? periodToYear(result.period) : Infinity,
+        displayPeriod: result.period !== Infinity ? periodToDisplay(result.period) : 'N/A',
+        status: result.period === Infinity ? 'challenging' : 'feasible',
         propertyIndex: index,
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
@@ -757,22 +874,22 @@ export const useAffordabilityCalculator = () => {
       timelineProperties.push(timelineProperty);
       
       // Add to purchase history if affordable
-      if (result.year !== Infinity) {
+      if (result.period !== Infinity) {
         purchaseHistory.push({
-          year: result.year - 2025 + 1, // Convert back to relative year
+          period: result.period,
           cost: property.cost,
           depositRequired: property.depositRequired,
           loanAmount: loanAmount,
           title: property.title
         });
         
-        // Sort purchase history by year to maintain chronological order
-        purchaseHistory.sort((a, b) => a.year - b.year);
+        // Sort purchase history by period to maintain chronological order
+        purchaseHistory.sort((a, b) => a.period - b.period);
       }
     });
     
-    // Sort by affordable year for display
-    return timelineProperties.sort((a, b) => a.affordableYear - b.affordableYear);
+    // Sort by period for display
+    return timelineProperties.sort((a, b) => a.period - b.period);
   }, [
     // Only re-calculate when these specific values change
     selectionsHash,
@@ -784,17 +901,18 @@ export const useAffordabilityCalculator = () => {
     calculatedValues.availableDeposit,
     globalFactors.growthRate,
     globalFactors.interestRate,
-    getPropertyData
+    getPropertyData,
+    pauseBlocks
   ]);
 
-  // Function to calculate affordability for any year and property
-  const calculateAffordabilityForYear = useCallback((
-    year: number,
+  // Function to calculate affordability for any period and property
+  const calculateAffordabilityForPeriod = useCallback((
+    period: number,
     property: any,
-    previousPurchases: Array<{ year: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }>
   ) => {
-    const availableFunds = calculateAvailableFunds(year, previousPurchases);
-    const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, year);
+    const availableFunds = calculateAvailableFunds(period, previousPurchases);
+    const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, period);
     
     // Calculate test results even if affordability fails
     const depositBuffer = 40000;
@@ -804,13 +922,13 @@ export const useAffordabilityCalculator = () => {
     // Calculate rental income for enhanced serviceability test
     let totalRentalIncome = 0;
     previousPurchases.forEach(purchase => {
-      if (purchase.year <= year) {
-        const yearsOwned = year - purchase.year;
+      if (purchase.period <= period) {
+        const periodsOwned = period - purchase.period;
         const propertyData = getPropertyData(purchase.title);
         if (propertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, yearsOwned);
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
           const yieldRate = parseFloat(propertyData.yield) / 100;
-          const portfolioSize = previousPurchases.filter(p => p.year <= year).length;
+          const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
           const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
           totalRentalIncome += currentValue * yieldRate * recognitionRate;
         }
@@ -821,7 +939,7 @@ export const useAffordabilityCalculator = () => {
     const propertyData = getPropertyData(property.title);
     if (propertyData) {
       const yieldRate = parseFloat(propertyData.yield) / 100;
-      const portfolioSize = previousPurchases.filter(p => p.year <= year).length;
+      const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
       const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
       totalRentalIncome += property.cost * yieldRate * recognitionRate;
     }
@@ -837,7 +955,7 @@ export const useAffordabilityCalculator = () => {
     
     // Previous purchases loan interest
     previousPurchases.forEach(purchase => {
-      if (purchase.year <= year) {
+      if (purchase.period <= period) {
         totalAnnualLoanInterest += purchase.loanAmount * interestRate;
       }
     });
@@ -869,6 +987,6 @@ export const useAffordabilityCalculator = () => {
   return {
     timelineProperties: calculateTimelineProperties,
     isCalculating: false, // Could add state tracking if needed
-    calculateAffordabilityForProperty: calculateAffordabilityForYear
+    calculateAffordabilityForProperty: calculateAffordabilityForPeriod
   };
 };

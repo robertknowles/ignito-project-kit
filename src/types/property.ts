@@ -62,7 +62,9 @@ export interface TimelineProperty {
   cost: number;
   depositRequired: number;
   loanAmount: number;
-  affordableYear: number;
+  period: number;              // NEW: Period when affordable (1, 2, 3, 4...)
+  affordableYear: number;      // KEEP: For backwards compatibility (2025, 2025.5, 2026...)
+  displayPeriod: string;       // NEW: "2025 H1", "2025 H2", "2026 H1"...
   status: 'feasible' | 'challenging';
   propertyIndex: number;
   portfolioValueAfter: number;
@@ -70,7 +72,7 @@ export interface TimelineProperty {
   totalDebtAfter: number;
   availableFundsUsed: number;
   
-  // Year-by-year cashflow breakdown
+  // Period-by-period cashflow breakdown
   grossRentalIncome: number;
   loanInterest: number;
   expenses: number;
@@ -101,8 +103,10 @@ export interface TimelineProperty {
 }
 
 export interface YearBreakdownData {
-  year: number;
-  displayYear: number;
+  period: number;              // NEW: 1, 2, 3, 4... (6-month periods)
+  year: number;                // KEEP: For backwards compatibility (2025, 2025.5, 2026...)
+  displayYear: number;         // DEPRECATED: Kept for compatibility, consider removing
+  displayPeriod: string;       // NEW: "2025 H1", "2025 H2", "2026 H1"...
   status: 'initial' | 'purchased' | 'blocked' | 'waiting';
   propertyNumber: number | null;
   propertyType: string | null;
@@ -190,6 +194,7 @@ export interface YearBreakdownData {
     deposit: number;
     loanAmount: number;
     year: number;
+    displayPeriod: string;
     currentValue: number; // NEW: Current value with growth
     equity: number; // NEW: currentValue - loanAmount
     extractableEquity: number; // NEW: (currentValue * 0.80) - loanAmount
@@ -200,6 +205,7 @@ export interface YearBreakdownData {
     propertyId: string;
     propertyType: string;
     purchaseYear: number;
+    displayPeriod: string;
     originalCost: number;
     currentValue: number;
     loanAmount: number;

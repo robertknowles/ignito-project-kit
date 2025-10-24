@@ -1,28 +1,36 @@
 import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis, GrowthProjection } from '../types/property';
 
-// Tiered growth function: 10% for years 1-2, 6% for years 3+
-const calculatePropertyGrowth = (initialValue: number, years: number): number => {
+// Period conversion constants
+const PERIODS_PER_YEAR = 2;
+
+// Convert annual rate to per-period rate using compound interest formula
+const annualRateToPeriodRate = (annualRate: number): number => {
+  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
+};
+
+// Tiered growth function: 10% annual for first 2 years (4 periods), 6% annual for years 3+ (period 5+)
+const calculatePropertyGrowth = (initialValue: number, periods: number): number => {
   let currentValue = initialValue;
   
-  for (let year = 1; year <= years; year++) {
-    let growthRate;
-    if (year <= 2) {
-      growthRate = 0.10; // 10% for years 1-2
-    } else {
-      growthRate = 0.06; // 6% for years 3+
-    }
-    currentValue *= (1 + growthRate);
+  // First 4 periods (2 years): 10% annual = ~4.88% per period
+  // Period 5+ (years 3+): 6% annual = ~2.96% per period
+  const firstTierRate = annualRateToPeriodRate(0.10); // 10% annual
+  const secondTierRate = annualRateToPeriodRate(0.06); // 6% annual
+  
+  for (let period = 1; period <= periods; period++) {
+    const periodRate = period <= 4 ? firstTierRate : secondTierRate;
+    currentValue *= (1 + periodRate);
   }
   
   return currentValue;
 };
 
-// Helper function to get the growth rate for a specific year
-export const getGrowthRateForYear = (yearsOwned: number): number => {
-  if (yearsOwned <= 2) {
-    return 0.10; // 10% for years 1-2
+// Helper function to get the growth rate for a specific period
+export const getGrowthRateForPeriod = (periodsOwned: number): number => {
+  if (periodsOwned <= 4) {
+    return annualRateToPeriodRate(0.10); // 10% annual for first 2 years (4 periods)
   } else {
-    return 0.06; // 6% for years 3+
+    return annualRateToPeriodRate(0.06); // 6% annual for years 3+ (period 5+)
   }
 };
 
@@ -59,10 +67,10 @@ export const calculateAnnualExpenses = (
   propertyValue: number,
   rentalIncome: number,
   expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES,
-  yearsOwned: number = 0
+  periodsOwned: number = 0
 ): { total: number; breakdown: CashFlowAnalysis['expenseBreakdown'] } => {
   // Apply 3% annual inflation to all expenses
-  const inflationFactor = Math.pow(1.03, yearsOwned);
+  const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
   
   const managementFees = rentalIncome * expenses.managementFeeRate * inflationFactor;
   const councilRates = expenses.councilRates * inflationFactor;
@@ -91,8 +99,9 @@ export const analyzeCashFlow = (
   expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
 ): CashFlowAnalysis => {
   const yearsHeld = Math.max(0, currentYear - purchase.year);
-  // Use tiered growth (10% years 1-2, 6% years 3+)
-  const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
+  const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
+  // Use tiered growth with period-based calculations
+  const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld);
   const annualRent = currentValue * purchase.rentalYield;
   
   const mortgagePayments = calculateMortgagePayments(
@@ -100,7 +109,7 @@ export const analyzeCashFlow = (
     purchase.interestRate || 0.05
   );
   
-  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses, yearsHeld);
+  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses, periodsHeld);
   
   const netCashflow = annualRent - mortgagePayments - expensesAnalysis.total;
   
@@ -134,9 +143,10 @@ export const calculatePortfolioMetrics = (
 ): PropertyMetrics => {
   return purchases.reduce((metrics, purchase) => {
     const yearsHeld = Math.max(0, currentYear - purchase.year);
+    const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
     
-    // Use tiered growth (10% years 1-2, 6% years 3+)
-    const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
+    // Use tiered growth with period-based calculations
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld);
     
     // Use detailed cash flow analysis
     const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, expenses);
@@ -178,8 +188,9 @@ export const calculateExistingPortfolioMetrics = (
     };
   }
 
-  // Use tiered growth (10% years 1-2, 6% years 3+)
-  const currentValue = calculatePropertyGrowth(portfolioValue, yearsGrown);
+  // Use tiered growth with period-based calculations
+  const periodsGrown = yearsGrown * PERIODS_PER_YEAR;
+  const currentValue = calculatePropertyGrowth(portfolioValue, periodsGrown);
   const equity = Math.max(0, currentValue - currentDebt);
   const annualRepayments = currentDebt * interestRate;
 
@@ -199,8 +210,9 @@ export const calculateTotalRentalIncome = (
 ): number => {
   return purchases.reduce((totalIncome, purchase) => {
     const yearsHeld = Math.max(0, currentYear - purchase.year);
-    // Use tiered growth (10% years 1-2, 6% years 3+)
-    const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
+    const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
+    // Use tiered growth with period-based calculations
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld);
     const annualRent = purchase.rentalYield * currentValue;
     return totalIncome + annualRent;
   }, 0);
@@ -250,13 +262,14 @@ export const calculateGrowthProjections = (
   
   for (let year = 0; year <= timelineYears; year++) {
     const currentYear = baseYear + year;
+    const periodsElapsed = year * PERIODS_PER_YEAR;
     
     // Calculate existing portfolio growth with tiered rates
     let existingValue = 0;
     let existingEquity = 0;
     if (existingPortfolioValue > 0) {
-      // Use tiered growth (10% years 1-2, 6% years 3+)
-      existingValue = calculatePropertyGrowth(existingPortfolioValue, year);
+      // Use tiered growth with period-based calculations
+      existingValue = calculatePropertyGrowth(existingPortfolioValue, periodsElapsed);
       existingEquity = Math.max(0, existingValue - existingDebt);
     }
     
@@ -265,8 +278,9 @@ export const calculateGrowthProjections = (
       .filter(p => p.year <= currentYear)
       .map(purchase => {
         const yearsHeld = Math.max(0, currentYear - purchase.year);
-        // Use tiered growth (10% years 1-2, 6% years 3+)
-        const currentValue = calculatePropertyGrowth(purchase.cost, yearsHeld);
+        const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
+        // Use tiered growth with period-based calculations
+        const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld);
         const remainingDebt = purchase.loanAmount; // Simplified - no principal reduction
         const equity = Math.max(0, currentValue - remainingDebt);
         const rentalIncome = currentValue * purchase.rentalYield;
