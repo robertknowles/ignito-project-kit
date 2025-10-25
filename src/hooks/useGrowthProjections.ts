@@ -36,7 +36,8 @@ export const useGrowthProjections = () => {
       purchases,
       profile.portfolioValue,
       profile.currentDebt,
-      profile.timelineYears
+      profile.timelineYears,
+      profile.growthCurve
     );
   }, [timelineProperties, profile, globalFactors, getPropertyData]);
 

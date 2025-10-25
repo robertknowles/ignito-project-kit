@@ -51,6 +51,7 @@ export const SummaryBar = () => {
       profile.currentDebt,
       timelineEnd - 2025,
       growthRate,
+      profile.growthCurve,
       interestRate
     )
 
@@ -59,6 +60,7 @@ export const SummaryBar = () => {
       purchases,
       timelineEnd,
       growthRate,
+      profile.growthCurve,
       interestRate,
       DEFAULT_PROPERTY_EXPENSES
     )

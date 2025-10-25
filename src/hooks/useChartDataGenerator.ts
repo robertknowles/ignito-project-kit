@@ -68,6 +68,7 @@ export const useChartDataGenerator = () => {
         profile.currentDebt,
         year - startYear,
         growthRate,
+        profile.growthCurve,
         interestRate
       );
 
@@ -77,6 +78,7 @@ export const useChartDataGenerator = () => {
         relevantPurchases,
         year,
         growthRate,
+        profile.growthCurve,
         interestRate,
         DEFAULT_PROPERTY_EXPENSES
       );
@@ -129,6 +131,7 @@ export const useChartDataGenerator = () => {
         profile.currentDebt,
         year - startYear,
         growthRate,
+        profile.growthCurve,
         interestRate
       );
 
@@ -138,6 +141,7 @@ export const useChartDataGenerator = () => {
         relevantPurchases,
         year,
         growthRate,
+        profile.growthCurve,
         interestRate,
         DEFAULT_PROPERTY_EXPENSES
       );

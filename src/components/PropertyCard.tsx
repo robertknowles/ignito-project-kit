@@ -11,6 +11,8 @@ interface PropertyCardProps {
   selected?: boolean;
   onIncrement?: () => void;
   onDecrement?: () => void;
+  loanType?: 'IO' | 'PI';
+  onLoanTypeChange?: (loanType: 'IO' | 'PI') => void;
 }
 export const PropertyCard: React.FC<PropertyCardProps> = ({
   title,
@@ -21,7 +23,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   count = 0,
   selected,
   onIncrement,
-  onDecrement
+  onDecrement,
+  loanType = 'IO',
+  onLoanTypeChange
 }) => {
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -68,6 +72,38 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
       <div className="text-xs text-[#6b7280] mt-1">
         Yield: {yieldValue} • Cash Flow: {cashFlow}
+      </div>
+      {/* Loan Type Toggle */}
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-xs text-[#6b7280]">Loan:</span>
+        <div className="flex rounded-md overflow-hidden border border-[#e5e7eb]">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onLoanTypeChange?.('IO');
+            }}
+            className={`px-2 py-0.5 text-xs transition-colors ${
+              loanType === 'IO' 
+                ? 'bg-[#3b82f6] text-white' 
+                : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
+            }`}
+          >
+            IO
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onLoanTypeChange?.('PI');
+            }}
+            className={`px-2 py-0.5 text-xs transition-colors ${
+              loanType === 'PI' 
+                ? 'bg-[#3b82f6] text-white' 
+                : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
+            }`}
+          >
+            P&I
+          </button>
+        </div>
       </div>
       <div className="absolute bottom-3 right-3 flex items-center space-x-2">
         {count > 0 && (

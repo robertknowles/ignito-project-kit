@@ -28,7 +28,7 @@ export const CashFlowAnalysis = () => {
 
     return {
       property: property.title,
-      analysis: analyzeCashFlow(purchase, currentYear, DEFAULT_PROPERTY_EXPENSES),
+      analysis: analyzeCashFlow(purchase, currentYear, profile.growthCurve, DEFAULT_PROPERTY_EXPENSES),
       purchaseYear: property.affordableYear
     };
   });

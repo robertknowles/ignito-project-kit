@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CalendarIcon,
   BuildingIcon,
@@ -11,6 +11,8 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
+import { analyzeFeasibility } from '../utils/feasibilityChecker'
+import { FeasibilityWarning } from './FeasibilityWarning'
 // Period conversion helpers
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
@@ -23,12 +25,28 @@ const periodToDisplay = (period: number): string => {
 
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, pauseBlocks } = usePropertySelection()
+  const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections } = usePropertySelection()
   const { timelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
+  // Dismissible state for feasibility warning
+  const [isDismissed, setIsDismissed] = useState(false)
+  
   // Get feasibility status based on current selections
   const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
+  
+  // Analyze feasibility in real-time
+  const feasibilityAnalysis = analyzeFeasibility(
+    profile,
+    propertyTypes,
+    selections,
+    timelineProperties
+  )
+  
+  // Reset dismissal when inputs change significantly
+  useEffect(() => {
+    setIsDismissed(false)
+  }, [calculations.totalProperties, profile.depositPool, profile.borrowingCapacity, profile.timelineYears])
   
   // Determine status based on timeline results
   const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
@@ -233,6 +251,14 @@ export const InvestmentTimeline = () => {
           </p>
         )}
       </div>
+      
+      {/* Feasibility Warning - Add at bottom of timeline */}
+      {!isDismissed && (
+        <FeasibilityWarning 
+          analysis={feasibilityAnalysis}
+          onDismiss={() => setIsDismissed(true)}
+        />
+      )}
     </div>
   )
 }

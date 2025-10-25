@@ -15,17 +15,34 @@ const annualRateToPeriodRate = (annualRate: number): number => {
   return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
 };
 
-// Tiered growth function: 10% annual for first 2 years (4 periods), 6% annual for years 3+ (period 5+)
-const calculatePropertyGrowth = (initialValue: number, periods: number): number => {
+// Tiered growth function: Uses customizable growth curve from profile
+// Default: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
+const calculatePropertyGrowth = (initialValue: number, periods: number, growthCurve: any): number => {
   let currentValue = initialValue;
   
-  // First 4 periods (2 years): 10% annual = ~4.88% per period
-  // Period 5+ (years 3+): 6% annual = ~2.96% per period
-  const firstTierRate = annualRateToPeriodRate(0.10); // 10% annual
-  const secondTierRate = annualRateToPeriodRate(0.06); // 6% annual
+  // Convert annual rates to per-period rates
+  const year1Rate = annualRateToPeriodRate(growthCurve.year1 / 100);
+  const years2to3Rate = annualRateToPeriodRate(growthCurve.years2to3 / 100);
+  const year4Rate = annualRateToPeriodRate(growthCurve.year4 / 100);
+  const year5plusRate = annualRateToPeriodRate(growthCurve.year5plus / 100);
   
   for (let period = 1; period <= periods; period++) {
-    const periodRate = period <= 4 ? firstTierRate : secondTierRate;
+    let periodRate;
+    
+    if (period <= 2) {
+      // Year 1 (periods 1-2)
+      periodRate = year1Rate;
+    } else if (period <= 6) {
+      // Years 2-3 (periods 3-6)
+      periodRate = years2to3Rate;
+    } else if (period <= 8) {
+      // Year 4 (periods 7-8)
+      periodRate = year4Rate;
+    } else {
+      // Year 5+ (period 9+)
+      periodRate = year5plusRate;
+    }
+    
     currentValue *= (1 + periodRate);
   }
   
@@ -89,7 +106,7 @@ export const DecisionEngineView: React.FC = () => {
             const yearsOwned = year - p.affordableYear;
             const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
             // Use tiered growth with period-based calculations
-            const currentValue = calculatePropertyGrowth(p.cost, periodsOwned);
+            const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
             const equity = currentValue - p.loanAmount;
             const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
             
@@ -210,6 +227,13 @@ export const DecisionEngineView: React.FC = () => {
             currentValue: property.cost,
             equity: property.cost - property.loanAmount,
             extractableEquity: Math.max(0, (property.cost * 0.80) - property.loanAmount),
+            // Acquisition costs
+            stampDuty: property.acquisitionCosts?.stampDuty || 0,
+            lmi: property.acquisitionCosts?.lmi || 0,
+            legalFees: property.acquisitionCosts?.legalFees || 2000,
+            inspectionFees: property.acquisitionCosts?.inspectionFees || 650,
+            otherFees: property.acquisitionCosts?.otherFees || 1500,
+            totalAcquisitionCosts: property.acquisitionCosts?.total || 0,
           }],
           
           // All portfolio properties
@@ -268,7 +292,7 @@ function interpolateYearData(
   const periodsSinceLastPurchase = yearsSinceLastPurchase * PERIODS_PER_YEAR;
   
   // Interpolate portfolio growth with tiered rates using period-based calculations
-  const portfolioValue = calculatePropertyGrowth(lastPurchase.portfolioValueAfter, periodsSinceLastPurchase);
+  const portfolioValue = calculatePropertyGrowth(lastPurchase.portfolioValueAfter, periodsSinceLastPurchase, profile.growthCurve);
   const totalDebt = lastPurchase.totalDebtAfter; // Debt stays constant (interest-only loans)
   const totalEquity = portfolioValue - totalDebt;
   
@@ -285,7 +309,7 @@ function interpolateYearData(
     const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
     if (yearsOwned > 0) {
       // Use tiered growth with period-based calculations
-      const propertyValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+      const propertyValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
       const yieldRate = 0.05; // Assume 5% yield
       const rentalIncome = propertyValue * yieldRate;
       const propertyLoanInterest = purchase.loanAmount * interestRate;
@@ -375,7 +399,7 @@ function interpolateYearData(
       const yearsOwned = year - p.affordableYear;
       const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
       // Use tiered growth with period-based calculations
-      const currentValue = calculatePropertyGrowth(p.cost, periodsOwned);
+      const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
       const equity = currentValue - p.loanAmount;
       const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
       
@@ -396,13 +420,13 @@ function interpolateYearData(
   let totalUsableEquity = 0;
   if (profile.portfolioValue > 0) {
     const periodsElapsed = (year - BASE_YEAR) * PERIODS_PER_YEAR;
-    const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed);
+    const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve);
     totalUsableEquity += Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
   }
   previousPurchases.forEach(purchase => {
     const yearsOwned = year - purchase.affordableYear;
     const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
-    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
     const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
     totalUsableEquity += usableEquity;
   });

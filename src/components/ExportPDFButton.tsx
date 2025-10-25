@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { DownloadIcon } from 'lucide-react';
 import { useClient } from '@/contexts/ClientContext';
-import { generateClientReport } from '../utils/pdfGenerator';
+import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext';
+import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
+import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
+import { useGrowthProjections } from '@/hooks/useGrowthProjections';
+import { generateEnhancedClientReport } from '../utils/pdfEnhancedGenerator';
 import { toast } from 'sonner';
 import { PDFReportRenderer } from './PDFReportRenderer';
 
@@ -9,6 +13,10 @@ export const ExportPDFButton: React.FC = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPDFRenderer, setShowPDFRenderer] = useState(false);
   const { activeClient } = useClient();
+  const { profile } = useInvestmentProfile();
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { projections } = useGrowthProjections();
+  const { propertyAssumptions, globalFactors } = useDataAssumptions();
 
   const handleGeneratePDF = async () => {
     if (!activeClient) {
@@ -25,8 +33,22 @@ export const ExportPDFButton: React.FC = () => {
     
     toast.info('Generating PDF report...');
     
-    await generateClientReport({
+    // Agent branding - could be made configurable via settings
+    const agentBranding = {
+      name: 'Your Buyers Agent',
+      email: 'agent@example.com',
+      website: 'www.example.com',
+      phone: '+1 234 567 8900'
+    };
+    
+    await generateEnhancedClientReport({
       clientName: activeClient.name,
+      profile,
+      timelineProperties: timelineProperties.filter(p => p.status === 'feasible'),
+      projections,
+      propertyAssumptions,
+      globalFactors,
+      agentBranding,
       onProgress: (stage) => {
         console.log('PDF Generation:', stage);
       },

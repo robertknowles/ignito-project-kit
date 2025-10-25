@@ -1,8 +1,10 @@
-import React from 'react'
-import { ClipboardIcon, SlidersIcon } from 'lucide-react'
+import React, { useState } from 'react'
+import { ClipboardIcon, SlidersIcon, Plus, X } from 'lucide-react'
 import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { CustomBlockModal } from './CustomBlockModal'
+import type { CustomPropertyBlock } from './CustomBlockModal'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -33,7 +35,18 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     removePause,
     updatePauseDuration,
     getPauseCount,
+    propertyLoanTypes,
+    updateLoanType,
+    customBlocks,
+    addCustomBlock,
+    removeCustomBlock,
   } = usePropertySelection()
+
+  const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
+
+  const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
+    addCustomBlock(block)
+  }
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -280,20 +293,36 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {propertyTypes.map((property) => (
-            <PropertyCard
-              key={property.id}
-              title={property.title}
-              priceRange={property.priceRange}
-              yield={property.yield}
-              cashFlow={property.cashFlow}
-              riskLevel={property.riskLevel}
-              count={getPropertyQuantity(property.id)}
-              selected={getPropertyQuantity(property.id) > 0}
-              onIncrement={() => incrementProperty(property.id)}
-              onDecrement={() => decrementProperty(property.id)}
-            />
-          ))}
+          {propertyTypes.map((property) => {
+            const isCustomProperty = property.isCustom;
+            
+            return (
+              <div key={property.id} className="relative">
+                <PropertyCard
+                  title={property.title}
+                  priceRange={property.priceRange}
+                  yield={property.yield}
+                  cashFlow={property.cashFlow}
+                  riskLevel={property.riskLevel}
+                  count={getPropertyQuantity(property.id)}
+                  selected={getPropertyQuantity(property.id) > 0}
+                  onIncrement={() => incrementProperty(property.id)}
+                  onDecrement={() => decrementProperty(property.id)}
+                  loanType={propertyLoanTypes[property.id] || 'IO'}
+                  onLoanTypeChange={(loanType) => updateLoanType(property.id, loanType)}
+                />
+                {isCustomProperty && (
+                  <button
+                    onClick={() => removeCustomBlock(property.id)}
+                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors z-10"
+                    title="Delete custom block"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
           
           {/* Pause Period Block */}
           <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 transition-colors">
@@ -355,6 +384,22 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Add Custom Block Button */}
+        <button
+          onClick={() => setShowCustomBlockModal(true)}
+          className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus size={16} />
+          Add Custom Property Block
+        </button>
+
+        {/* Custom Block Modal */}
+        <CustomBlockModal
+          isOpen={showCustomBlockModal}
+          onClose={() => setShowCustomBlockModal(false)}
+          onSave={handleSaveCustomBlock}
+        />
       </div>
     )
   }

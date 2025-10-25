@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import type { GrowthCurve } from '../types/property';
 
 export interface InvestmentProfileData {
   depositPool: number;
@@ -19,6 +20,8 @@ export interface InvestmentProfileData {
   equityReleaseFactor: number; // Factor to slow down equity recycling (0.5-0.7)
   depositBuffer: number; // Extra cash buffer required for deposits (£30k)
   rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
+  // NEW: Growth curve
+  growthCurve: GrowthCurve; // Tiered growth: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
 }
 
 export interface CalculatedValues {
@@ -60,6 +63,13 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     equityReleaseFactor: 0.35, // 35% of equity available for recycling (reduced)
     depositBuffer: 40000, // £40k extra cash buffer for deposits
     rentFactor: 0.75, // 75% factor to temper rental income boost
+    // NEW: Growth curve
+    growthCurve: {
+      year1: 12.5,      // 12.5% Year 1
+      years2to3: 10,    // 10% Years 2-3
+      year4: 7.5,       // 7.5% Year 4
+      year5plus: 6,     // 6% Year 5+
+    },
   });
 
   // Background calculations - not displayed in UI but available for simulation engine

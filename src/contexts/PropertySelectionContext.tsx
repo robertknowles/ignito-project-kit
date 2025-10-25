@@ -13,6 +13,20 @@ export interface PropertyType {
   depositRequired: number;
   yieldPercent: number;
   growthPercent: number;
+  state?: string; // 'NSW', 'VIC', 'QLD', etc.
+  loanType?: 'IO' | 'PI'; // Interest Only or Principal & Interest
+  isCustom?: boolean; // Flag to identify custom blocks
+}
+
+export interface CustomPropertyBlock {
+  id: string;
+  title: string;
+  cost: number;
+  yieldPercent: number;
+  lvr: number;
+  loanType: 'IO' | 'PI';
+  isCustom: true;
+  growthPercent: number;
 }
 
 export interface PropertySelection {
@@ -58,6 +72,16 @@ interface PropertySelectionContextType {
   removePause: () => void;
   updatePauseDuration: (pauseId: string, duration: number) => void;
   getPauseCount: () => number;
+  
+  // Loan type management
+  propertyLoanTypes: Record<string, 'IO' | 'PI'>;
+  updateLoanType: (propertyId: string, loanType: 'IO' | 'PI') => void;
+  
+  // Custom block management
+  customBlocks: CustomPropertyBlock[];
+  addCustomBlock: (block: CustomPropertyBlock) => void;
+  removeCustomBlock: (blockId: string) => void;
+  updateCustomBlock: (blockId: string, updates: Partial<CustomPropertyBlock>) => void;
 }
 
 const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
@@ -78,6 +102,8 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const { activeClient } = useClient();
   const [selections, setSelections] = useState<PropertySelection>({});
   const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
+  const [propertyLoanTypes, setPropertyLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
+  const [customBlocks, setCustomBlocks] = useState<CustomPropertyBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
 
@@ -112,6 +138,34 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         setPauseBlocks([]);
       }
       
+      // Load loan types
+      const loanTypeStorageKey = `property_loan_types_${activeClient.id}`;
+      const storedLoanTypes = localStorage.getItem(loanTypeStorageKey);
+      if (storedLoanTypes) {
+        try {
+          setPropertyLoanTypes(JSON.parse(storedLoanTypes));
+        } catch (error) {
+          console.error('Failed to load loan types from localStorage:', error);
+          setPropertyLoanTypes({});
+        }
+      } else {
+        setPropertyLoanTypes({});
+      }
+      
+      // Load custom blocks
+      const customBlocksStorageKey = `custom_blocks_${activeClient.id}`;
+      const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
+      if (storedCustomBlocks) {
+        try {
+          setCustomBlocks(JSON.parse(storedCustomBlocks));
+        } catch (error) {
+          console.error('Failed to load custom blocks from localStorage:', error);
+          setCustomBlocks([]);
+        }
+      } else {
+        setCustomBlocks([]);
+      }
+      
       setIsLoading(false);
     }
   }, [activeClient?.id]);
@@ -132,9 +186,26 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     }
   }, [pauseBlocks, activeClient?.id]);
 
+  // Save loan types to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const loanTypeStorageKey = `property_loan_types_${activeClient.id}`;
+      localStorage.setItem(loanTypeStorageKey, JSON.stringify(propertyLoanTypes));
+    }
+  }, [propertyLoanTypes, activeClient?.id]);
+
+  // Save custom blocks to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const customBlocksStorageKey = `custom_blocks_${activeClient.id}`;
+      localStorage.setItem(customBlocksStorageKey, JSON.stringify(customBlocks));
+    }
+  }, [customBlocks, activeClient?.id]);
+
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
-    return propertyAssumptions.map((assumption, index) => ({
+    // Predefined property types from assumptions
+    const predefinedTypes = propertyAssumptions.map((assumption, index) => ({
       id: `property_${index}`,
       title: assumption.type,
       priceRange: `$${parseFloat(assumption.averageCost).toLocaleString()}`,
@@ -145,8 +216,31 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       depositRequired: Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.deposit)) / 100),
       yieldPercent: parseFloat(assumption.yield),
       growthPercent: parseFloat(assumption.growth),
+      state: 'NSW', // Default to NSW for all properties
+      // Use user's selected loan type, or fall back to assumption's loan type, or default to IO
+      loanType: propertyLoanTypes[`property_${index}`] || assumption.loanType || 'IO',
+      isCustom: false,
     }));
-  }, [propertyAssumptions]);
+
+    // Custom property types
+    const customTypes = customBlocks.map((block) => ({
+      id: block.id,
+      title: block.title,
+      priceRange: `$${block.cost.toLocaleString()}`,
+      yield: `${block.yieldPercent}%`,
+      cashFlow: `$${Math.round((block.cost * block.yieldPercent) / 100 / 12)}`,
+      riskLevel: 'Medium' as const,
+      cost: block.cost,
+      depositRequired: Math.round(block.cost * (1 - block.lvr / 100)),
+      yieldPercent: block.yieldPercent,
+      growthPercent: block.growthPercent,
+      state: 'NSW', // Default to NSW for custom properties
+      loanType: propertyLoanTypes[block.id] || block.loanType,
+      isCustom: true,
+    }));
+
+    return [...predefinedTypes, ...customTypes];
+  }, [propertyAssumptions, propertyLoanTypes, customBlocks]);
 
   // Calculate portfolio totals
   const calculations = useMemo((): PortfolioCalculations => {
@@ -247,6 +341,54 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     return pauseBlocks.length;
   }, [pauseBlocks.length]);
 
+  // Update loan type for a property
+  const updateLoanType = useCallback((propertyId: string, loanType: 'IO' | 'PI') => {
+    setPropertyLoanTypes(prev => ({
+      ...prev,
+      [propertyId]: loanType,
+    }));
+    
+    // Also update in custom blocks if it's a custom property
+    setCustomBlocks(prev => prev.map(block => 
+      block.id === propertyId ? { ...block, loanType } : block
+    ));
+  }, []);
+
+  // Custom block management functions
+  const addCustomBlock = useCallback((block: CustomPropertyBlock) => {
+    setCustomBlocks(prev => [...prev, block]);
+    
+    // Initialize selection with quantity 0
+    setSelections(prev => ({
+      ...prev,
+      [block.id]: 0,
+    }));
+  }, []);
+
+  const removeCustomBlock = useCallback((blockId: string) => {
+    setCustomBlocks(prev => prev.filter(b => b.id !== blockId));
+    
+    // Remove from selections
+    setSelections(prev => {
+      const newSelections = { ...prev };
+      delete newSelections[blockId];
+      return newSelections;
+    });
+    
+    // Remove from loan types
+    setPropertyLoanTypes(prev => {
+      const newLoanTypes = { ...prev };
+      delete newLoanTypes[blockId];
+      return newLoanTypes;
+    });
+  }, []);
+
+  const updateCustomBlock = useCallback((blockId: string, updates: Partial<CustomPropertyBlock>) => {
+    setCustomBlocks(prev => prev.map(block => 
+      block.id === blockId ? { ...block, ...updates } : block
+    ));
+  }, []);
+
   const value = {
     selections,
     calculations,
@@ -265,6 +407,16 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     removePause,
     updatePauseDuration,
     getPauseCount,
+    
+    // Loan type management
+    propertyLoanTypes,
+    updateLoanType,
+    
+    // Custom block management
+    customBlocks,
+    addCustomBlock,
+    removeCustomBlock,
+    updateCustomBlock,
   };
 
   return (

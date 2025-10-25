@@ -1,3 +1,10 @@
+export interface GrowthCurve {
+  year1: number;        // Default: 12.5%
+  years2to3: number;    // Default: 10%
+  year4: number;        // Default: 7.5%
+  year5plus: number;    // Default: 6%
+}
+
 export interface PropertyPurchase {
   year: number;
   cost: number;
@@ -7,6 +14,7 @@ export interface PropertyPurchase {
   rentalYield: number;
   growthRate: number;
   interestRate?: number;
+  state?: string; // 'NSW', 'VIC', 'QLD', etc.
 }
 
 export interface PropertyExpenses {
@@ -71,6 +79,7 @@ export interface TimelineProperty {
   totalEquityAfter: number;
   totalDebtAfter: number;
   availableFundsUsed: number;
+  loanType?: 'IO' | 'PI';      // NEW: Interest Only or Principal & Interest
   
   // Period-by-period cashflow breakdown
   grossRentalIncome: number;
@@ -100,6 +109,18 @@ export interface TimelineProperty {
   cumulativeSavings: number;
   cashflowReinvestment: number;
   equityRelease: number;
+  
+  // Acquisition costs (NEW)
+  state?: string; // 'NSW', 'VIC', 'QLD', etc.
+  acquisitionCosts?: {
+    stampDuty: number;
+    lmi: number;
+    legalFees: number;
+    inspectionFees: number;
+    otherFees: number;
+    total: number;
+  };
+  totalCashRequired: number; // deposit + acquisition costs
 }
 
 export interface YearBreakdownData {

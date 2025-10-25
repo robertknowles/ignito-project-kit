@@ -6,6 +6,7 @@ export interface PropertyAssumption {
   yield: string;
   growth: string;
   deposit: string;
+  loanType?: 'IO' | 'PI';
 }
 
 export interface GlobalEconomicFactors {
@@ -50,6 +51,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '5',
       deposit: '15',
+      loanType: 'IO',
     },
     {
       type: 'Villas / Townhouses',
@@ -57,6 +59,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '6',
       deposit: '15',
+      loanType: 'IO',
     },
     {
       type: 'Houses (Regional focus)',
@@ -64,6 +67,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '6',
       deposit: '15',
+      loanType: 'IO',
     },
     {
       type: 'Granny Flats (add-on)',
@@ -71,6 +75,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '9',
       growth: '0',
       deposit: '100',
+      loanType: 'IO',
     },
     {
       type: 'Duplexes',
@@ -78,6 +83,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '6',
       deposit: '15',
+      loanType: 'IO',
     },
     {
       type: 'Small Blocks (3-4 units)',
@@ -85,6 +91,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '6',
       deposit: '20',
+      loanType: 'IO',
     },
     {
       type: 'Metro Houses',
@@ -92,6 +99,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '4',
       growth: '7',
       deposit: '15',
+      loanType: 'IO',
     },
     {
       type: 'Larger Blocks (10-20 units)',
@@ -99,6 +107,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '7',
       growth: '5',
       deposit: '45',
+      loanType: 'IO',
     },
     {
       type: 'Commercial Property',
@@ -106,6 +115,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       yield: '8',
       growth: '4',
       deposit: '40',
+      loanType: 'IO',
     },
   ]);
 
