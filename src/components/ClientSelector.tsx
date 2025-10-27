@@ -47,7 +47,7 @@ export const ClientSelector: React.FC = () => {
       </button>
 
       {dropdownOpen && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white rounded-lg shadow-lg z-[9999] border border-[#f3f4f6]">
+        <div className="fixed top-[3.5rem] left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white rounded-lg shadow-lg z-[9999] border border-[#f3f4f6]">
           <div className="py-2">
             {clients.length > 0 ? (
               clients.map((client) => (

@@ -584,7 +584,7 @@ export const useAffordabilityCalculator = () => {
         );
 
         // === STRATEGY INSIGHTS ===
-        const portfolioScalingVelocity = previousPurchases.filter(p => p.year <= currentYear).length;
+        const portfolioScalingVelocity = previousPurchases.filter(p => p.period <= currentPeriod).length;
         const selfFundingEfficiency = netCashflow > 0 ? (netCashflow / totalAnnualSavings * 100) : 0;
         const equityRecyclingImpact = continuousEquityAccess > 0 ? (continuousEquityAccess / depositPool * 100) : 0;
         

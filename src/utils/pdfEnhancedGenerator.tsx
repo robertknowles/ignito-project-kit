@@ -305,11 +305,12 @@ const addPageHeader = (
   pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, margin + 17, { align: 'right' });
   
   // Separator line
-  pdf.setDrawColor(243, 244, 246);
+  pdf.setDrawColor(229, 231, 235);
+  pdf.setLineWidth(0.5);
   pdf.line(margin, margin + 22, pageWidth - margin, margin + 22);
   
   // Page title
-  pdf.setFontSize(14);
+  pdf.setFontSize(12);
   pdf.setTextColor(17, 24, 39);
   pdf.text(pageTitle, margin, margin + 30);
   
@@ -329,14 +330,19 @@ const addPageFooter = (
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   
+  // Separator line above footer
+  pdf.setDrawColor(229, 231, 235);
+  pdf.setLineWidth(0.3);
+  pdf.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+  
   // Agent branding
   if (agentBranding) {
     pdf.setFontSize(8);
     pdf.setTextColor(107, 114, 128);
     
-    const brandingY = pageHeight - 18;
-    const phone = agentBranding.phone ? ` | 📞 ${agentBranding.phone}` : '';
-    const brandingText = `${agentBranding.name}${phone} | ✉️ ${agentBranding.email} | 🌐 ${agentBranding.website}`;
+    const brandingY = pageHeight - 15;
+    const phone = agentBranding.phone ? ` | Phone: ${agentBranding.phone}` : '';
+    const brandingText = `${agentBranding.name}${phone} | Email: ${agentBranding.email} | Web: ${agentBranding.website}`;
     
     pdf.text(brandingText, pageWidth / 2, brandingY, { align: 'center' });
     
@@ -349,7 +355,7 @@ const addPageFooter = (
   // Page number
   pdf.setFontSize(8);
   pdf.setTextColor(156, 163, 175);
-  pdf.text(`Page ${pageNumber} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+  pdf.text(`Page ${pageNumber} of ${totalPages}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
 };
 
 /**
@@ -367,17 +373,22 @@ const generatePage1 = async (
   let currentY = addPageHeader(pdf, clientName, 'Overview & Strategy', margin);
   
   // 1. Client Snapshot Table
-  currentY += 5;
-  pdf.setFontSize(11);
+  currentY += 8;
+  pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Client Snapshot', margin, currentY);
-  currentY += 7;
+  currentY += 2;
+  
+  // Draw table background
+  pdf.setFillColor(249, 250, 251);
+  pdf.rect(margin, currentY, pageWidth - (margin * 2), 32, 'F');
+  currentY += 6;
   
   const snapshotData = [
     ['Starting Savings', formatCurrency(profile.depositPool)],
     ['Annual Savings', formatCurrency(profile.annualSavings)],
     ['Borrowing Capacity', formatCurrency(profile.borrowingCapacity)],
-    ['Risk Profile', 'Moderate'], // Could be made dynamic
+    ['Risk Profile', 'Moderate'],
     ['Time Horizon', `${profile.timelineYears} Years`]
   ];
   
@@ -391,33 +402,39 @@ const generatePage1 = async (
   });
   
   // 2. Goals Section
-  currentY += 5;
-  pdf.setFontSize(11);
+  currentY += 8;
+  pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Investment Goals', margin, currentY);
-  currentY += 7;
+  currentY += 2;
+  
+  // Draw table background
+  pdf.setFillColor(249, 250, 251);
+  pdf.rect(margin, currentY, pageWidth - (margin * 2), 20, 'F');
+  currentY += 6;
   
   pdf.setFontSize(9);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('🎯 Equity Goal:', margin + 5, currentY);
+  pdf.text('Equity Goal:', margin + 5, currentY);
   pdf.setTextColor(17, 24, 39);
-  pdf.text(formatCurrency(profile.equityGoal), margin + 35, currentY);
+  pdf.text(formatCurrency(profile.equityGoal), margin + 40, currentY);
   currentY += 6;
   
   pdf.setTextColor(107, 114, 128);
-  pdf.text('💰 Passive Income Goal:', margin + 5, currentY);
+  pdf.text('Passive Income Goal:', margin + 5, currentY);
   pdf.setTextColor(17, 24, 39);
-  pdf.text(`${formatCurrency(profile.cashflowGoal)}/year`, margin + 50, currentY);
+  pdf.text(`${formatCurrency(profile.cashflowGoal)}/year`, margin + 55, currentY);
   currentY += 6;
   
   pdf.setTextColor(107, 114, 128);
-  pdf.text('🏆 Target Year:', margin + 5, currentY);
+  pdf.text('Target Year:', margin + 5, currentY);
   pdf.setTextColor(17, 24, 39);
-  pdf.text(`${2025 + profile.timelineYears}`, margin + 35, currentY);
+  pdf.text(`${2025 + profile.timelineYears}`, margin + 40, currentY);
   currentY += 10;
   
   // 3. Plain Language Summary
-  pdf.setFontSize(11);
+  currentY += 2;
+  pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Strategy Summary', margin, currentY);
   currentY += 7;
@@ -425,13 +442,13 @@ const generatePage1 = async (
   const summary = generateStrategySummary(timelineProperties, profile);
   pdf.setFontSize(9);
   pdf.setTextColor(55, 65, 81);
-  const summaryLines = pdf.splitTextToSize(summary, pageWidth - margin * 2);
-  pdf.text(summaryLines, margin, currentY);
+  const summaryLines = pdf.splitTextToSize(summary, pageWidth - margin * 2 - 4);
+  pdf.text(summaryLines, margin + 2, currentY);
   currentY += summaryLines.length * 5 + 10;
   
   // 4. Property Timeline Visual
   if (timelineProperties.length > 0) {
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setTextColor(17, 24, 39);
     pdf.text('Property Timeline', margin, currentY);
     currentY += 7;
@@ -442,32 +459,36 @@ const generatePage1 = async (
     displayProperties.forEach((property, index) => {
       const colX = margin + index * colWidth;
       
-      // Property icon
-      pdf.setFontSize(16);
-      pdf.text('🏠', colX + colWidth / 2 - 3, currentY);
+      // Property box
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.3);
+      pdf.rect(colX + 2, currentY - 2, colWidth - 4, 20);
       
       // Year
-      pdf.setFontSize(8);
+      pdf.setFontSize(7);
       pdf.setTextColor(107, 114, 128);
-      pdf.text(property.displayPeriod, colX + colWidth / 2, currentY + 7, { align: 'center' });
+      pdf.text(property.displayPeriod, colX + colWidth / 2, currentY + 2, { align: 'center' });
       
       // Property type
       pdf.setFontSize(7);
+      pdf.setTextColor(55, 65, 81);
       const typeText = property.title.length > 15 ? property.title.substring(0, 12) + '...' : property.title;
-      pdf.text(typeText, colX + colWidth / 2, currentY + 12, { align: 'center' });
+      pdf.text(typeText, colX + colWidth / 2, currentY + 7, { align: 'center' });
       
       // Price
+      pdf.setFontSize(8);
       pdf.setTextColor(59, 130, 246);
-      pdf.text(formatCurrency(property.cost), colX + colWidth / 2, currentY + 17, { align: 'center' });
+      pdf.text(formatCurrency(property.cost), colX + colWidth / 2, currentY + 13, { align: 'center' });
       
       // Arrow
       if (index < displayProperties.length - 1) {
+        pdf.setFontSize(10);
         pdf.setTextColor(200, 200, 200);
-        pdf.text('→', colX + colWidth - 3, currentY + 8);
+        pdf.text('>', colX + colWidth - 3, currentY + 8);
       }
     });
     
-    currentY += 25;
+    currentY += 28;
   }
   
   // 5. Milestone Callouts
@@ -478,10 +499,15 @@ const generatePage1 = async (
   ].filter(Boolean);
   
   if (milestonesList.length > 0) {
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setTextColor(17, 24, 39);
     pdf.text('Key Milestones', margin, currentY);
-    currentY += 7;
+    currentY += 2;
+    
+    // Draw background
+    pdf.setFillColor(249, 250, 251);
+    pdf.rect(margin, currentY, pageWidth - (margin * 2), milestonesList.length * 6 + 4, 'F');
+    currentY += 6;
     
     milestonesList.forEach((milestone) => {
       if (milestone) {
@@ -489,7 +515,7 @@ const generatePage1 = async (
         pdf.setTextColor(59, 130, 246);
         pdf.text(`${milestone.displayPeriod}`, margin + 5, currentY);
         pdf.setTextColor(55, 65, 81);
-        pdf.text(`→ ${milestone.message}`, margin + 25, currentY);
+        pdf.text(`- ${milestone.message}`, margin + 30, currentY);
         currentY += 6;
       }
     });
@@ -512,32 +538,108 @@ const addGoalBanner = (
     return currentY;
   }
   
-  // Draw banner box
+  currentY += 5;
+  
+  // Draw banner box with background
+  pdf.setFillColor(239, 246, 255);
+  pdf.rect(margin, currentY, pageWidth - margin * 2, 22, 'F');
   pdf.setDrawColor(59, 130, 246);
   pdf.setLineWidth(0.5);
-  pdf.rect(margin, currentY, pageWidth - margin * 2, 20);
+  pdf.rect(margin, currentY, pageWidth - margin * 2, 22);
   
-  currentY += 6;
+  currentY += 7;
   
   pdf.setFontSize(10);
   pdf.setTextColor(59, 130, 246);
   
   if (goalAchievement.bothAchieved) {
     const year = Math.max(goalAchievement.equityGoalYear!, goalAchievement.passiveIncomeGoalYear!);
-    pdf.text('✅ All goals achieved by year ' + Math.round(year), margin + 5, currentY);
+    pdf.text('GOALS ACHIEVED - All goals achieved by year ' + Math.round(year), margin + 5, currentY);
     currentY += 6;
     pdf.setFontSize(8);
     pdf.setTextColor(55, 65, 81);
-    pdf.text(`• Equity: ${formatCurrency(profile.equityGoal)}`, margin + 10, currentY);
+    pdf.text(`Equity: ${formatCurrency(profile.equityGoal)}`, margin + 10, currentY);
     currentY += 5;
-    pdf.text(`• Passive Income: ${formatCurrency(profile.cashflowGoal)}/year`, margin + 10, currentY);
+    pdf.text(`Passive Income: ${formatCurrency(profile.cashflowGoal)}/year`, margin + 10, currentY);
   } else if (goalAchievement.equityGoalYear) {
-    pdf.text(`🎯 Equity goal of ${formatCurrency(profile.equityGoal)} reached by year ${Math.round(goalAchievement.equityGoalYear)}`, margin + 5, currentY);
+    pdf.text(`EQUITY GOAL - ${formatCurrency(profile.equityGoal)} reached by year ${Math.round(goalAchievement.equityGoalYear)}`, margin + 5, currentY);
   } else if (goalAchievement.passiveIncomeGoalYear) {
-    pdf.text(`💰 Passive income goal of ${formatCurrency(profile.cashflowGoal)}/year reached by year ${Math.round(goalAchievement.passiveIncomeGoalYear)}`, margin + 5, currentY);
+    pdf.text(`INCOME GOAL - ${formatCurrency(profile.cashflowGoal)}/year reached by year ${Math.round(goalAchievement.passiveIncomeGoalYear)}`, margin + 5, currentY);
   }
   
   return currentY + 10;
+};
+
+/**
+ * Render performance charts (original size)
+ */
+const renderPerformanceCharts = async (
+  pdf: jsPDF,
+  options: PDFGenerationOptions,
+  startY: number,
+  margin: number,
+  pageNumber: number,
+  totalPages: number,
+  onProgress?: (stage: string) => void
+): Promise<void> => {
+  let currentY = startY;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - (margin * 2);
+  
+  // Capture Portfolio Growth Chart
+  const portfolioElement = document.getElementById('pdf-portfolio');
+  if (portfolioElement) {
+    onProgress?.('Capturing Portfolio Growth Chart...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const portfolioCanvas = await html2canvas(portfolioElement, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    } as any);
+    
+    const portfolioImgData = portfolioCanvas.toDataURL('image/png');
+    const portfolioHeight = (portfolioCanvas.height * contentWidth) / portfolioCanvas.width;
+    
+    if (currentY + portfolioHeight > pageHeight - margin - 30) {
+      pdf.addPage();
+      currentY = margin + 35; // Account for header
+      addPageHeader(pdf, options.clientName, 'Performance Charts (cont.)', margin);
+    }
+    
+    pdf.addImage(portfolioImgData, 'PNG', margin, currentY, contentWidth, portfolioHeight);
+    currentY += portfolioHeight + 10;
+  }
+  
+  // Capture Cashflow Chart
+  const cashflowElement = document.getElementById('pdf-cashflow');
+  if (cashflowElement) {
+    onProgress?.('Capturing Cashflow Analysis Chart...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const cashflowCanvas = await html2canvas(cashflowElement, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    } as any);
+    
+    const cashflowImgData = cashflowCanvas.toDataURL('image/png');
+    const cashflowHeight = (cashflowCanvas.height * contentWidth) / cashflowCanvas.width;
+    
+    if (currentY + cashflowHeight > pageHeight - margin - 30) {
+      pdf.addPage();
+      currentY = margin + 35; // Account for header
+      addPageHeader(pdf, options.clientName, 'Performance Charts (cont.)', margin);
+      pageNumber++;
+    }
+    
+    pdf.addImage(cashflowImgData, 'PNG', margin, currentY, contentWidth, cashflowHeight);
+  }
+  
+  addPageFooter(pdf, pageNumber, totalPages, options.agentBranding, margin);
 };
 
 /**
@@ -555,81 +657,100 @@ const generatePage4 = (
   let currentY = addPageHeader(pdf, clientName, 'Assumptions & Details', margin);
   
   // 1. Model Inputs & Key Assumptions Table
-  currentY += 5;
-  pdf.setFontSize(11);
+  currentY += 8;
+  pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Model Inputs & Key Assumptions', margin, currentY);
-  currentY += 7;
+  currentY += 6;
   
   const assumptionsData = [
-    ['Interest Rate', `${globalFactors.interestRate}%`, 'Reflects current lending conditions'],
+    ['Interest Rate', `${globalFactors.interestRate}%`, 'Current lending conditions'],
     ['LVR (Loan to Value)', `${globalFactors.loanToValueRatio}%`, 'Standard lending ratio'],
-    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year property growth'],
-    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 property growth'],
-    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 property growth'],
-    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ property growth'],
+    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year growth'],
+    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth'],
+    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth'],
+    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth'],
     ['Expense Ratio', '30%', 'Maintenance, insurance, rates'],
     ['Inflation', '3%', 'Annual cost inflation']
   ];
   
-  pdf.setFontSize(7);
-  
   // Table headers
   pdf.setFillColor(243, 244, 246);
-  pdf.rect(margin, currentY - 4, pageWidth - margin * 2, 6, 'F');
+  pdf.rect(margin, currentY, pageWidth - margin * 2, 6, 'F');
+  pdf.setDrawColor(229, 231, 235);
+  pdf.setLineWidth(0.3);
+  pdf.rect(margin, currentY, pageWidth - margin * 2, 6);
+  
+  pdf.setFontSize(8);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('Variable', margin + 2, currentY);
-  pdf.text('Value', margin + 60, currentY);
-  pdf.text('Rationale', margin + 85, currentY);
-  currentY += 5;
+  pdf.text('Variable', margin + 2, currentY + 4);
+  pdf.text('Value', margin + 55, currentY + 4);
+  pdf.text('Rationale', margin + 75, currentY + 4);
+  currentY += 8;
   
   // Table rows
-  pdf.setFontSize(7);
+  pdf.setFontSize(8);
   assumptionsData.forEach(([variable, value, rationale]) => {
     pdf.setTextColor(55, 65, 81);
     pdf.text(variable, margin + 2, currentY);
     pdf.setTextColor(17, 24, 39);
-    pdf.text(value, margin + 60, currentY);
+    pdf.text(value, margin + 55, currentY);
     pdf.setTextColor(107, 114, 128);
-    pdf.text(rationale, margin + 85, currentY);
-    currentY += 5;
+    const rationaleLines = pdf.splitTextToSize(rationale, 90);
+    pdf.text(rationaleLines, margin + 75, currentY);
+    currentY += 6;
   });
   
   // 2. Property Type Roles Table
-  currentY += 10;
-  pdf.setFontSize(11);
+  currentY += 8;
+  pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Property Type Roles', margin, currentY);
-  currentY += 7;
+  currentY += 6;
   
-  const propertyRoles = generatePropertyRoles(propertyAssumptions);
+  // Filter property roles to only show types used in the timeline
+  const allPropertyRoles = generatePropertyRoles(propertyAssumptions);
+  const usedPropertyTypes = new Set(options.timelineProperties.map(p => p.title));
+  const propertyRoles = allPropertyRoles.filter(role => usedPropertyTypes.has(role.type));
   
-  // Table headers
-  pdf.setFillColor(243, 244, 246);
-  pdf.rect(margin, currentY - 4, pageWidth - margin * 2, 6, 'F');
-  pdf.setFontSize(7);
-  pdf.setTextColor(17, 24, 39);
-  pdf.text('Type', margin + 2, currentY);
-  pdf.text('Price', margin + 55, currentY);
-  pdf.text('Yield', margin + 75, currentY);
-  pdf.text('Growth', margin + 90, currentY);
-  pdf.text('Role', margin + 110, currentY);
-  currentY += 5;
-  
-  // Table rows (limit to fit on page)
-  pdf.setFontSize(7);
-  propertyRoles.slice(0, 15).forEach((role) => {
-    pdf.setTextColor(55, 65, 81);
-    const typeText = role.type.length > 20 ? role.type.substring(0, 17) + '...' : role.type;
-    pdf.text(typeText, margin + 2, currentY);
+  if (propertyRoles.length > 0) {
+    // Table headers
+    pdf.setFillColor(243, 244, 246);
+    pdf.rect(margin, currentY, pageWidth - margin * 2, 6, 'F');
+    pdf.setDrawColor(229, 231, 235);
+    pdf.setLineWidth(0.3);
+    pdf.rect(margin, currentY, pageWidth - margin * 2, 6);
+    
+    pdf.setFontSize(8);
     pdf.setTextColor(17, 24, 39);
-    pdf.text(formatCurrency(role.avgCost), margin + 55, currentY);
-    pdf.text(formatPercent(role.yield), margin + 75, currentY);
-    pdf.text(formatPercent(role.growth), margin + 90, currentY);
-    pdf.setTextColor(59, 130, 246);
-    pdf.text(role.role, margin + 110, currentY);
-    currentY += 5;
-  });
+    pdf.text('Type', margin + 2, currentY + 4);
+    pdf.text('Price', margin + 50, currentY + 4);
+    pdf.text('Yield', margin + 70, currentY + 4);
+    pdf.text('Growth', margin + 88, currentY + 4);
+    pdf.text('Role', margin + 108, currentY + 4);
+    currentY += 8;
+    
+    // Table rows (show all filtered properties)
+    pdf.setFontSize(7);
+    propertyRoles.forEach((role) => {
+      pdf.setTextColor(55, 65, 81);
+      const typeText = role.type.length > 22 ? role.type.substring(0, 19) + '...' : role.type;
+      pdf.text(typeText, margin + 2, currentY);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(formatCurrency(role.avgCost), margin + 50, currentY);
+      pdf.text(formatPercent(role.yield), margin + 70, currentY);
+      pdf.text(formatPercent(role.growth), margin + 88, currentY);
+      pdf.setTextColor(59, 130, 246);
+      const roleText = role.role.length > 15 ? role.role.substring(0, 12) + '...' : role.role;
+      pdf.text(roleText, margin + 108, currentY);
+      currentY += 5;
+    });
+  } else {
+    // No properties in timeline
+    pdf.setFontSize(9);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text('No properties selected in investment timeline.', margin + 2, currentY + 6);
+  }
 };
 
 // ========================================
@@ -674,7 +795,7 @@ export const generateEnhancedClientReport = async (options: PDFGenerationOptions
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-      });
+      } as any);
       
       const timelineImgData = timelineCanvas.toDataURL('image/png');
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -682,12 +803,91 @@ export const generateEnhancedClientReport = async (options: PDFGenerationOptions
       const contentWidth = pageWidth - (margin * 2);
       const timelineHeight = (timelineCanvas.height * contentWidth) / timelineCanvas.width;
       
-      pdf.addImage(timelineImgData, 'PNG', margin, currentY, contentWidth, timelineHeight);
-      currentY += timelineHeight + 10;
+      // Check if timeline fits on one page
+      const availableHeight = pageHeight - currentY - 60; // Leave space for footer and banner
       
-      // Add goal achievement banner
-      if (currentY < pageHeight - 50) {
-        currentY = addGoalBanner(pdf, goalAchievement, profile, currentY, margin);
+      if (timelineHeight <= availableHeight) {
+        // Timeline fits on one page
+        pdf.addImage(timelineImgData, 'PNG', margin, currentY, contentWidth, timelineHeight);
+        currentY += timelineHeight + 10;
+        
+        // Add goal achievement banner
+        if (currentY < pageHeight - 50) {
+          currentY = addGoalBanner(pdf, goalAchievement, profile, currentY, margin);
+        }
+      } else {
+        // Timeline too large - split across pages
+        const numProperties = timelineProperties.length;
+        const propertiesPerPage = 5;
+        const numPages = Math.ceil(numProperties / propertiesPerPage);
+        
+        // Calculate height per property
+        const heightPerProperty = timelineHeight / numProperties;
+        const pageContentHeight = heightPerProperty * propertiesPerPage;
+        
+        for (let pageNum = 0; pageNum < numPages; pageNum++) {
+          if (pageNum > 0) {
+            pdf.addPage();
+            currentY = addPageHeader(pdf, clientName, `Investment Timeline (cont. ${pageNum + 1}/${numPages})`, margin);
+          }
+          
+          // Calculate source and destination dimensions for this slice
+          const sourceY = pageNum * propertiesPerPage * (timelineCanvas.height / numProperties);
+          const sourceHeight = Math.min(propertiesPerPage * (timelineCanvas.height / numProperties), timelineCanvas.height - sourceY);
+          const destHeight = (sourceHeight * contentWidth) / timelineCanvas.width;
+          
+          // Create a temporary canvas for this slice
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = timelineCanvas.width;
+          sliceCanvas.height = sourceHeight;
+          const sliceContext = sliceCanvas.getContext('2d');
+          
+          if (sliceContext) {
+            sliceContext.drawImage(
+              timelineCanvas,
+              0, sourceY, timelineCanvas.width, sourceHeight,
+              0, 0, timelineCanvas.width, sourceHeight
+            );
+            
+            const sliceImgData = sliceCanvas.toDataURL('image/png');
+            pdf.addImage(sliceImgData, 'PNG', margin, currentY, contentWidth, destHeight);
+            currentY += destHeight + 10;
+          }
+          
+          // Add goal banner on last page only
+          if (pageNum === numPages - 1 && currentY < pageHeight - 50) {
+            currentY = addGoalBanner(pdf, goalAchievement, profile, currentY, margin);
+          }
+          
+          addPageFooter(pdf, 2 + pageNum, 4 + numPages - 1, options.agentBranding, margin);
+        }
+        
+        // Return early since we've handled pagination
+        // Adjust page numbers for subsequent pages
+        const pagesAdded = numPages - 1;
+        
+        // Page 3: Performance Charts
+        onProgress?.('Capturing Performance Charts...');
+        pdf.addPage();
+        currentY = addPageHeader(pdf, clientName, 'Performance Charts', margin);
+        
+        const chartPageNum = 2 + numPages;
+        const totalPages = 4 + pagesAdded;
+        
+        await renderPerformanceCharts(pdf, options, currentY, margin, chartPageNum, totalPages, onProgress);
+        
+        // Page 4: Assumptions & Details
+        onProgress?.('Building assumptions page...');
+        generatePage4(pdf, options);
+        addPageFooter(pdf, totalPages, totalPages, options.agentBranding, margin);
+        
+        // Save the PDF
+        onProgress?.('Saving PDF...');
+        const fileName = `${clientName.replace(/\s+/g, '_')}_Investment_Report.pdf`;
+        pdf.save(fileName);
+        
+        onComplete?.();
+        return;
       }
     }
     
@@ -698,58 +898,7 @@ export const generateEnhancedClientReport = async (options: PDFGenerationOptions
     pdf.addPage();
     currentY = addPageHeader(pdf, clientName, 'Performance Charts', margin);
     
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const contentWidth = pageWidth - (margin * 2);
-    
-    // Capture Portfolio Growth Chart
-    const portfolioElement = document.getElementById('pdf-portfolio');
-    if (portfolioElement) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const portfolioCanvas = await html2canvas(portfolioElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-      
-      const portfolioImgData = portfolioCanvas.toDataURL('image/png');
-      const portfolioHeight = (portfolioCanvas.height * contentWidth) / portfolioCanvas.width;
-      
-      if (currentY + portfolioHeight > pageHeight - margin - 30) {
-        pdf.addPage();
-        currentY = margin;
-      }
-      
-      pdf.addImage(portfolioImgData, 'PNG', margin, currentY, contentWidth, portfolioHeight);
-      currentY += portfolioHeight + 10;
-    }
-    
-    // Capture Cashflow Chart
-    const cashflowElement = document.getElementById('pdf-cashflow');
-    if (cashflowElement) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const cashflowCanvas = await html2canvas(cashflowElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-      
-      const cashflowImgData = cashflowCanvas.toDataURL('image/png');
-      const cashflowHeight = (cashflowCanvas.height * contentWidth) / cashflowCanvas.width;
-      
-      if (currentY + cashflowHeight > pageHeight - margin - 30) {
-        pdf.addPage();
-        currentY = margin;
-      }
-      
-      pdf.addImage(cashflowImgData, 'PNG', margin, currentY, contentWidth, cashflowHeight);
-    }
-    
-    addPageFooter(pdf, 3, 4, options.agentBranding, margin);
+    await renderPerformanceCharts(pdf, options, currentY, margin, 3, 4, onProgress);
     
     // Page 4: Assumptions & Details
     onProgress?.('Building assumptions page...');

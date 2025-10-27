@@ -82,6 +82,9 @@ interface PropertySelectionContextType {
   addCustomBlock: (block: CustomPropertyBlock) => void;
   removeCustomBlock: (blockId: string) => void;
   updateCustomBlock: (blockId: string, updates: Partial<CustomPropertyBlock>) => void;
+  
+  // Client switching - load all data for a client
+  loadClientData: (clientId: number) => void;
 }
 
 const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
@@ -107,65 +110,10 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
 
-  // Load selections from localStorage on mount or when client changes
+  // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
+  // to prevent conflicts between individual context loading and unified scenario loading
   useEffect(() => {
     if (activeClient?.id) {
-      setIsLoading(true);
-      const storageKey = `property_selections_${activeClient.id}`;
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        try {
-          setSelections(JSON.parse(stored));
-        } catch (error) {
-          console.error('Failed to load property selections from localStorage:', error);
-          setSelections({});
-        }
-      } else {
-        setSelections({});
-      }
-      
-      // Load pause blocks
-      const pauseStorageKey = `pause_blocks_${activeClient.id}`;
-      const storedPauses = localStorage.getItem(pauseStorageKey);
-      if (storedPauses) {
-        try {
-          setPauseBlocks(JSON.parse(storedPauses));
-        } catch (error) {
-          console.error('Failed to load pause blocks from localStorage:', error);
-          setPauseBlocks([]);
-        }
-      } else {
-        setPauseBlocks([]);
-      }
-      
-      // Load loan types
-      const loanTypeStorageKey = `property_loan_types_${activeClient.id}`;
-      const storedLoanTypes = localStorage.getItem(loanTypeStorageKey);
-      if (storedLoanTypes) {
-        try {
-          setPropertyLoanTypes(JSON.parse(storedLoanTypes));
-        } catch (error) {
-          console.error('Failed to load loan types from localStorage:', error);
-          setPropertyLoanTypes({});
-        }
-      } else {
-        setPropertyLoanTypes({});
-      }
-      
-      // Load custom blocks
-      const customBlocksStorageKey = `custom_blocks_${activeClient.id}`;
-      const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
-      if (storedCustomBlocks) {
-        try {
-          setCustomBlocks(JSON.parse(storedCustomBlocks));
-        } catch (error) {
-          console.error('Failed to load custom blocks from localStorage:', error);
-          setCustomBlocks([]);
-        }
-      } else {
-        setCustomBlocks([]);
-      }
-      
       setIsLoading(false);
     }
   }, [activeClient?.id]);
@@ -389,6 +337,73 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     ));
   }, []);
 
+  // Load all client data from localStorage
+  const loadClientData = useCallback((clientId: number) => {
+    console.log('PropertySelectionContext: Loading data for client', clientId);
+    setIsLoading(true);
+    
+    // Use setTimeout to ensure state updates happen in next tick
+    // This prevents React batching issues
+    setTimeout(() => {
+      try {
+        // Load property selections
+        const storageKey = `property_selections_${clientId}`;
+        const stored = localStorage.getItem(storageKey);
+        console.log('PropertySelectionContext: localStorage key:', storageKey);
+        console.log('PropertySelectionContext: stored data:', stored);
+        
+        if (stored) {
+          const parsedSelections = JSON.parse(stored);
+          setSelections(parsedSelections);
+          console.log('PropertySelectionContext: Loaded selections', parsedSelections);
+        } else {
+          setSelections({});
+          console.log('PropertySelectionContext: No selections found, reset to empty');
+        }
+        
+        // Load pause blocks
+        const pauseStorageKey = `pause_blocks_${clientId}`;
+        const storedPauses = localStorage.getItem(pauseStorageKey);
+        if (storedPauses) {
+          setPauseBlocks(JSON.parse(storedPauses));
+          console.log('PropertySelectionContext: Loaded pause blocks');
+        } else {
+          setPauseBlocks([]);
+        }
+        
+        // Load loan types
+        const loanTypeStorageKey = `property_loan_types_${clientId}`;
+        const storedLoanTypes = localStorage.getItem(loanTypeStorageKey);
+        if (storedLoanTypes) {
+          setPropertyLoanTypes(JSON.parse(storedLoanTypes));
+          console.log('PropertySelectionContext: Loaded loan types');
+        } else {
+          setPropertyLoanTypes({});
+        }
+        
+        // Load custom blocks
+        const customBlocksStorageKey = `custom_blocks_${clientId}`;
+        const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
+        if (storedCustomBlocks) {
+          setCustomBlocks(JSON.parse(storedCustomBlocks));
+          console.log('PropertySelectionContext: Loaded custom blocks');
+        } else {
+          setCustomBlocks([]);
+        }
+        
+        console.log('PropertySelectionContext: Finished loading client data for client', clientId);
+      } catch (error) {
+        console.error('PropertySelectionContext: Failed to load client data:', error);
+        setSelections({});
+        setPauseBlocks([]);
+        setPropertyLoanTypes({});
+        setCustomBlocks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 0);
+  }, []);
+
   const value = {
     selections,
     calculations,
@@ -417,6 +432,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     addCustomBlock,
     removeCustomBlock,
     updateCustomBlock,
+    
+    // Client switching
+    loadClientData,
   };
 
   return (
