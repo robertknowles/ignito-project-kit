@@ -63,9 +63,14 @@ export const DecisionEngineView: React.FC = () => {
     const growthRate = parseFloat(globalFactors.growthRate) / 100;
     
     // Create a map of years to properties for quick lookup
-    const propertyByYear = new Map<number, typeof timelineProperties[0]>();
+    // Round affordableYear to nearest integer (2030.5 -> 2031, 2030.3 -> 2030)
+    const propertyByYear = new Map<number, typeof timelineProperties[0][]>();
     timelineProperties.forEach(prop => {
-      propertyByYear.set(prop.affordableYear, prop);
+      const roundedYear = Math.round(prop.affordableYear);
+      if (!propertyByYear.has(roundedYear)) {
+        propertyByYear.set(roundedYear, []);
+      }
+      propertyByYear.get(roundedYear)!.push(prop);
     });
 
     // Generate ALL years from 2025 to endYear
@@ -73,10 +78,12 @@ export const DecisionEngineView: React.FC = () => {
     
     for (let year = baseYear; year <= endYear; year++) {
       const yearIndex = year - baseYear;
-      const property = propertyByYear.get(year);
+      const properties = propertyByYear.get(year);
       
-      if (property) {
-        // This is a purchase year - use calculator data directly
+      if (properties && properties.length > 0) {
+        // This is a purchase year - use the first property's data for the year row
+        // (Multiple purchases in same year will be shown in the purchases array)
+        const property = properties[0];
         const propertyIndex = property.propertyIndex + 1;
         
         const lvr = property.portfolioValueAfter > 0 
@@ -215,26 +222,26 @@ export const DecisionEngineView: React.FC = () => {
           dsr,
           lvr,
           
-          // Breakdown details - Enhanced with equity calculations
-          purchases: [{
-            propertyId: property.id,
-            propertyType: property.title,
-            cost: property.cost,
-            deposit: property.depositRequired,
-            loanAmount: property.loanAmount,
+          // Breakdown details - Include all properties purchased this year
+          purchases: properties.map(prop => ({
+            propertyId: prop.id,
+            propertyType: prop.title,
+            cost: prop.cost,
+            deposit: prop.depositRequired,
+            loanAmount: prop.loanAmount,
             year,
-            displayPeriod,
-            currentValue: property.cost,
-            equity: property.cost - property.loanAmount,
-            extractableEquity: Math.max(0, (property.cost * 0.80) - property.loanAmount),
+            displayPeriod: prop.displayPeriod,
+            currentValue: prop.cost,
+            equity: prop.cost - prop.loanAmount,
+            extractableEquity: Math.max(0, (prop.cost * 0.80) - prop.loanAmount),
             // Acquisition costs
-            stampDuty: property.acquisitionCosts?.stampDuty || 0,
-            lmi: property.acquisitionCosts?.lmi || 0,
-            legalFees: property.acquisitionCosts?.legalFees || 2000,
-            inspectionFees: property.acquisitionCosts?.inspectionFees || 650,
-            otherFees: property.acquisitionCosts?.otherFees || 1500,
-            totalAcquisitionCosts: property.acquisitionCosts?.total || 0,
-          }],
+            stampDuty: prop.acquisitionCosts?.stampDuty || 0,
+            lmi: prop.acquisitionCosts?.lmi || 0,
+            legalFees: prop.acquisitionCosts?.legalFees || 2000,
+            inspectionFees: prop.acquisitionCosts?.inspectionFees || 650,
+            otherFees: prop.acquisitionCosts?.otherFees || 1500,
+            totalAcquisitionCosts: prop.acquisitionCosts?.total || 0,
+          })),
           
           // All portfolio properties
           allPortfolioProperties,

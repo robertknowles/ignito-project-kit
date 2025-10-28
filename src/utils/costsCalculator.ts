@@ -15,89 +15,8 @@ export interface CostCalculationParams {
   propertyPrice: number;
   loanAmount: number;
   lvr: number;
-  state: string; // e.g., 'NSW', 'VIC', 'QLD'
   isFirstHomeBuyer?: boolean;
 }
-
-// Simplified stamp duty rates (progressive brackets)
-// Note: These are simplified rates. In production, you'd want to use exact state rates
-const STAMP_DUTY_RATES: Record<string, Array<{ threshold: number; rate: number; base?: number }>> = {
-  NSW: [
-    { threshold: 16000, rate: 0.0125, base: 0 },
-    { threshold: 35000, rate: 0.015, base: 200 },
-    { threshold: 93000, rate: 0.0175, base: 485 },
-    { threshold: 351000, rate: 0.035, base: 1500 },
-    { threshold: 1168000, rate: 0.045, base: 10530 },
-    { threshold: Infinity, rate: 0.055, base: 47295 },
-  ],
-  VIC: [
-    { threshold: 25000, rate: 0.014, base: 0 },
-    { threshold: 130000, rate: 0.024, base: 350 },
-    { threshold: 960000, rate: 0.06, base: 2870 },
-    { threshold: Infinity, rate: 0.065, base: 52670 },
-  ],
-  QLD: [
-    { threshold: 5000, rate: 0.015, base: 0 },
-    { threshold: 75000, rate: 0.035, base: 75 },
-    { threshold: 540000, rate: 0.045, base: 2525 },
-    { threshold: 1000000, rate: 0.0575, base: 23400 },
-    { threshold: Infinity, rate: 0.0575, base: 23400 },
-  ],
-  // Add other states as needed
-};
-
-/**
- * Calculate stamp duty based on property price, state, and first home buyer status
- */
-const calculateStampDuty = (
-  propertyPrice: number,
-  state: string,
-  isFirstHomeBuyer: boolean
-): number => {
-  const rates = STAMP_DUTY_RATES[state] || STAMP_DUTY_RATES.NSW;
-  
-  // First home buyer exemptions (simplified - varies by state)
-  // NSW: Exemption for properties under $650k, concessions up to $800k
-  // VIC: Exemption for properties under $600k
-  // QLD: Concessions for properties under $550k
-  if (isFirstHomeBuyer) {
-    if (state === 'NSW' && propertyPrice <= 650000) {
-      return 0;
-    } else if (state === 'VIC' && propertyPrice <= 600000) {
-      return 0;
-    } else if (state === 'QLD' && propertyPrice <= 550000) {
-      // QLD offers concessions rather than full exemption
-      return calculateStampDutyProgressive(propertyPrice, rates) * 0.5; // 50% concession
-    }
-  }
-  
-  return calculateStampDutyProgressive(propertyPrice, rates);
-};
-
-/**
- * Calculate stamp duty using progressive bracket system
- */
-const calculateStampDutyProgressive = (
-  propertyPrice: number,
-  rates: Array<{ threshold: number; rate: number; base?: number }>
-): number => {
-  let duty = 0;
-  let previousThreshold = 0;
-  
-  for (const bracket of rates) {
-    if (propertyPrice > previousThreshold) {
-      const taxableAmount = Math.min(propertyPrice, bracket.threshold) - previousThreshold;
-      duty += taxableAmount * bracket.rate;
-      previousThreshold = bracket.threshold;
-      
-      if (propertyPrice <= bracket.threshold) {
-        break;
-      }
-    }
-  }
-  
-  return Math.round(duty);
-};
 
 /**
  * Calculate Lenders Mortgage Insurance (LMI)
@@ -133,10 +52,11 @@ const calculateLMI = (loanAmount: number, lvr: number): number => {
 export const calculateAcquisitionCosts = (
   params: CostCalculationParams
 ): AcquisitionCosts => {
-  const { propertyPrice, loanAmount, lvr, state, isFirstHomeBuyer = false } = params;
+  const { propertyPrice, loanAmount, lvr, isFirstHomeBuyer = false } = params;
   
-  // 1. Stamp Duty (state-based, with first home buyer considerations)
-  const stampDuty = calculateStampDuty(propertyPrice, state, isFirstHomeBuyer);
+  // 1. Stamp Duty (simplified as a flat percentage)
+  const STAMP_DUTY_AVERAGE_RATE = 0.04; // 4%
+  const stampDuty = propertyPrice * STAMP_DUTY_AVERAGE_RATE;
   
   // 2. LMI (only if LVR > 80%)
   const lmi = calculateLMI(loanAmount, lvr);

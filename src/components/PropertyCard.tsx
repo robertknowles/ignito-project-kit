@@ -1,5 +1,6 @@
 import React from 'react';
 import { InfoIcon, PlusIcon, MinusIcon } from 'lucide-react';
+import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
 
 interface PropertyCardProps {
   title: string;
@@ -11,8 +12,6 @@ interface PropertyCardProps {
   selected?: boolean;
   onIncrement?: () => void;
   onDecrement?: () => void;
-  loanType?: 'IO' | 'PI';
-  onLoanTypeChange?: (loanType: 'IO' | 'PI') => void;
 }
 export const PropertyCard: React.FC<PropertyCardProps> = ({
   title,
@@ -24,8 +23,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   selected,
   onIncrement,
   onDecrement,
-  loanType = 'IO',
-  onLoanTypeChange
 }) => {
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -61,7 +58,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   };
   return <div className={`bg-white rounded-lg p-3 border border-[#f3f4f6] ${selected ? 'bg-[#f9fafb]' : ''} hover:shadow-sm transition-shadow cursor-pointer h-full relative`}>
       <div className="flex justify-between items-start mb-2">
-        <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
+        <div className="flex items-center gap-2">
+          <PropertyTypeIcon propertyTitle={title} size={16} className="text-[#6b7280]" />
+          <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
+        </div>
         <div className="flex items-center">
           <span className={`w-2 h-2 rounded-full ${getRiskDot(riskLevel)}`}></span>
           <span className={`ml-2 text-xs ${getRiskColor(riskLevel)} font-normal`}>
@@ -72,38 +72,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
       <div className="text-xs text-[#6b7280] mt-1">
         Yield: {yieldValue} • Cash Flow: {cashFlow}
-      </div>
-      {/* Loan Type Toggle */}
-      <div className="mt-2 flex items-center gap-2">
-        <span className="text-xs text-[#6b7280]">Loan:</span>
-        <div className="flex rounded-md overflow-hidden border border-[#e5e7eb]">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onLoanTypeChange?.('IO');
-            }}
-            className={`px-2 py-0.5 text-xs transition-colors ${
-              loanType === 'IO' 
-                ? 'bg-[#3b82f6] text-white' 
-                : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
-            }`}
-          >
-            IO
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onLoanTypeChange?.('PI');
-            }}
-            className={`px-2 py-0.5 text-xs transition-colors ${
-              loanType === 'PI' 
-                ? 'bg-[#3b82f6] text-white' 
-                : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
-            }`}
-          >
-            P&I
-          </button>
-        </div>
       </div>
       <div className="absolute bottom-3 right-3 flex items-center space-x-2">
         {count > 0 && (

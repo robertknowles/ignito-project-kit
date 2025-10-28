@@ -45,7 +45,7 @@ export const Dashboard = () => {
     }
   }
 
-  return <div className="flex-1 overflow-auto p-8 bg-white relative">
+  return <div className="flex-1 overflow-auto p-8 bg-white">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
         <div className="w-1/2">

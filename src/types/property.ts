@@ -66,6 +66,7 @@ export interface PropertyMetrics {
 
 export interface TimelineProperty {
   id: string;
+  instanceId: string;          // NEW: Unique identifier for this property instance
   title: string;
   cost: number;
   depositRequired: number;
@@ -79,7 +80,7 @@ export interface TimelineProperty {
   totalEquityAfter: number;
   totalDebtAfter: number;
   availableFundsUsed: number;
-  loanType?: 'IO' | 'PI';      // NEW: Interest Only or Principal & Interest
+  loanType?: 'IO' | 'PI';      // NEW: Interest Only or Principal & Interest (per-instance)
   
   // Period-by-period cashflow breakdown
   grossRentalIncome: number;

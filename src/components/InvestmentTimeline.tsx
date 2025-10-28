@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import {
   CalendarIcon,
-  BuildingIcon,
-  HomeIcon,
-  Building2Icon,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
-import { calculateBorrowingCapacityProgression } from '../utils/metricsCalculator'
-import type { PropertyPurchase } from '../types/property'
-import { analyzeFeasibility } from '../utils/feasibilityChecker'
-import { FeasibilityWarning } from './FeasibilityWarning'
+import { AIStrategySummary } from './AIStrategySummary'
+import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
+import { LoanTypeToggle } from './LoanTypeToggle'
 // Period conversion helpers
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
@@ -26,27 +22,8 @@ const periodToDisplay = (period: number): string => {
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections } = usePropertySelection()
-  const { timelineProperties } = useAffordabilityCalculator()
+  const { timelineProperties, updateTimelinePropertyLoanType } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
-  
-  // Dismissible state for feasibility warning
-  const [isDismissed, setIsDismissed] = useState(false)
-  
-  // Get feasibility status based on current selections
-  const feasibility = checkFeasibility(calculatedValues.availableDeposit, profile.borrowingCapacity)
-  
-  // Analyze feasibility in real-time
-  const feasibilityAnalysis = analyzeFeasibility(
-    profile,
-    propertyTypes,
-    selections,
-    timelineProperties
-  )
-  
-  // Reset dismissal when inputs change significantly
-  useEffect(() => {
-    setIsDismissed(false)
-  }, [calculations.totalProperties, profile.depositPool, profile.borrowingCapacity, profile.timelineYears])
   
   // Determine status based on timeline results
   const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
@@ -96,6 +73,8 @@ export const InvestmentTimeline = () => {
       period: number;
       eventType: 'purchase' | 'pause';
       duration?: number;
+      instanceId?: string;
+      loanType?: 'IO' | 'PI';
     }> = [];
 
     // Add purchase events
@@ -134,7 +113,9 @@ export const InvestmentTimeline = () => {
         number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
         affordableYear: property.affordableYear,
         period: property.period,
-        eventType: 'purchase'
+        eventType: 'purchase',
+        instanceId: property.instanceId,
+        loanType: property.loanType
       });
     });
 
@@ -225,40 +206,19 @@ export const InvestmentTimeline = () => {
               price={item.price!}
               status={item.status as 'feasible' | 'delayed' | 'challenging'}
               isLast={index === timelineItems.length - 1}
+              instanceId={item.instanceId}
+              loanType={item.loanType}
+              onLoanTypeChange={updateTimelinePropertyLoanType}
             />
           )
         ))}
       </div>
       <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
-        <p className="mb-3">
-          {calculations.totalProperties > 0 
-            ? `Timeline shows ${timelineProperties.length} properties with realistic purchase progression in 6-month periods. ${timelineProperties.filter(p => p.status === 'feasible').length} properties are feasible within timeline. Total investment: $${Math.round(calculations.totalCost / 1000)}k.`
-            : "Select properties to generate an investment timeline. Timeline shows sequential property purchases in 6-month periods (H1/H2) based on accumulated equity and cash flow."
-          }
-        </p>
-        {timelineProperties.length > 0 && (
-          <div className="mb-3">
-            <p>Properties by period: {timelineProperties.filter(p => p.status === 'feasible').map(p => `${p.title} (${p.displayPeriod || periodToDisplay(p.period)})`).join(', ') || 'None within timeline'}</p>
-            <p className="mt-2 text-[#059669]">
-              💡 6-Month Periods: You can purchase properties every 6 months (minimum gap). Borrowing capacity improves over time as rental income (70% counted by banks) increases your borrowing power for subsequent purchases.
-            </p>
-          </div>
-        )}
-        {timelineProperties.some(p => p.status === 'challenging') && (
-          <p className="text-[#dc2626] text-xs mt-2">
-            Warning: {timelineProperties.filter(p => p.status === 'challenging').length} properties are not affordable within your financial capacity or timeline.
-            Consider adjusting your investment profile or property selections.
-          </p>
-        )}
-      </div>
-      
-      {/* Feasibility Warning - Add at bottom of timeline */}
-      {!isDismissed && (
-        <FeasibilityWarning 
-          analysis={feasibilityAnalysis}
-          onDismiss={() => setIsDismissed(true)}
+        <AIStrategySummary 
+          timelineProperties={timelineProperties}
+          profile={profile}
         />
-      )}
+      </div>
     </div>
   )
 }
@@ -275,6 +235,9 @@ interface TimelineItemProps {
   price: string
   status: 'feasible' | 'delayed' | 'challenging'
   isLast?: boolean
+  instanceId?: string
+  loanType?: 'IO' | 'PI'
+  onLoanTypeChange?: (instanceId: string, loanType: 'IO' | 'PI') => void
 }
 
 const TimelineItem: React.FC<TimelineItemProps> = ({
@@ -290,6 +253,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   price,
   status,
   isLast = false,
+  instanceId,
+  loanType = 'IO',
+  onLoanTypeChange,
 }) => {
   const statusColors = {
     feasible: 'text-[#374151]',
@@ -301,17 +267,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
     delayed: 'bg-[#3b82f6] bg-opacity-60',
     challenging: 'bg-[#3b82f6] bg-opacity-60',
   }
-  const getPropertyIcon = () => {
-    switch (type) {
-      case 'Metro Houses':
-        return <HomeIcon size={18} className="text-[#6b7280]" />
-      case 'Duplexes':
-        return <Building2Icon size={18} className="text-[#6b7280]" />
-      case 'Units / Apartments':
-      default:
-        return <BuildingIcon size={18} className="text-[#6b7280]" />
-    }
-  }
+  
   return (
     <div className="relative bg-white rounded-lg border border-[#f3f4f6] shadow-sm">
       <div className="flex items-center p-6">
@@ -336,14 +292,23 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         <div className="flex-1">
           <div className="flex flex-col">
             <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">{getPropertyTypeIcon(type, 18, 'text-[#6b7280]')}</div>
               <h4 className="text-[#111827] font-medium">{type}</h4>
-              <div className="flex items-center gap-1">{getPropertyIcon()}</div>
             </div>
             <div className="text-sm text-[#6b7280] mt-3 leading-relaxed font-normal">
               Deposit: {deposit} • Loan: {loanAmount} • Purchase Price: {price}
               <br />
               <span className="text-[#9ca3af]">Portfolio Value: {portfolioValue} • Total Equity: {equity}</span>
             </div>
+            {instanceId && onLoanTypeChange && (
+              <div className="mt-3">
+                <LoanTypeToggle
+                  loanType={loanType}
+                  onChange={(newLoanType) => onLoanTypeChange(instanceId, newLoanType)}
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
         </div>
         {/* Status indicator */}

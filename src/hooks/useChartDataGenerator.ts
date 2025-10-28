@@ -9,7 +9,7 @@ export interface PortfolioGrowthDataPoint {
   year: string; // Year label for chart display
   portfolioValue: number;
   equity: number;
-  property?: string;
+  properties?: string[]; // Array of property titles purchased this year
 }
 
 export interface CashflowDataPoint {
@@ -53,12 +53,14 @@ export const useChartDataGenerator = () => {
     });
 
     // Create purchase schedule for property display
+    // Round affordableYear to nearest integer for chart grouping (2025.5 -> 2026, 2025.3 -> 2025)
     const purchaseSchedule: { [year: number]: PropertyPurchase[] } = {};
     purchases.forEach(purchase => {
-      if (!purchaseSchedule[purchase.year]) {
-        purchaseSchedule[purchase.year] = [];
+      const chartYear = Math.round(purchase.year);
+      if (!purchaseSchedule[chartYear]) {
+        purchaseSchedule[chartYear] = [];
       }
-      purchaseSchedule[purchase.year].push(purchase);
+      purchaseSchedule[chartYear].push(purchase);
     });
 
     for (let year = startYear; year <= endYear; year++) {
@@ -88,13 +90,17 @@ export const useChartDataGenerator = () => {
 
       // Determine if there's a property purchase this year
       const purchasesThisYear = purchaseSchedule[year] || [];
-      const propertyPurchased = purchasesThisYear.length > 0 ? purchasesThisYear[0].title : undefined;
+      
+      // Collect all property titles for this year (one data point per year)
+      const propertiesPurchased = purchasesThisYear.length > 0 
+        ? purchasesThisYear.map(p => p.title)
+        : undefined;
 
       data.push({
         year: year.toString(),
         portfolioValue: Math.round(totalMetrics.portfolioValue),
         equity: Math.round(totalMetrics.totalEquity),
-        property: propertyPurchased
+        properties: propertiesPurchased
       });
     }
 

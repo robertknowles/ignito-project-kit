@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas';
 import type { TimelineProperty, GrowthProjection } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 import type { PropertyAssumption, GlobalEconomicFactors } from '../contexts/DataAssumptionsContext';
+import { generateStrategySummary } from './summaryGenerator';
 
 // ========================================
 // TYPES & INTERFACES
@@ -226,26 +227,6 @@ const generatePropertyRoles = (propertyAssumptions: PropertyAssumption[]): Prope
 // ========================================
 // NARRATIVE GENERATION
 // ========================================
-
-/**
- * Generate plain language strategy summary
- */
-const generateStrategySummary = (
-  timelineProperties: TimelineProperty[],
-  profile: InvestmentProfileData
-): string => {
-  if (timelineProperties.length === 0) {
-    return 'Your investment strategy is being developed. Add properties to see your personalized strategy summary.';
-  }
-
-  const firstProperty = timelineProperties[0];
-  const propertyTypes = [...new Set(timelineProperties.map(p => p.title))];
-  const subsequentTypes = propertyTypes.slice(1).join(', ') || 'additional properties';
-
-  const summary = `We begin with a ${firstProperty.title} purchase to build a foundation. As equity grows, it's recycled into ${subsequentTypes} that compound over time. By Year ${profile.timelineYears}, your portfolio becomes self-funding — meeting both equity and cash flow goals.`;
-
-  return summary;
-};
 
 /**
  * Format currency for display

@@ -1,5 +1,6 @@
 import React from 'react';
 import { InfoIcon, PlusIcon, MinusIcon } from 'lucide-react';
+import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
 
 interface PropertyCardProps {
   title: string;
@@ -61,7 +62,10 @@ const PropertyCardComponent: React.FC<PropertyCardProps> = ({
   return (
     <div className={`bg-white rounded-lg p-3 border border-[#f3f4f6] ${selected ? 'bg-[#f9fafb]' : ''} hover:shadow-sm transition-shadow cursor-pointer h-full relative`}>
       <div className="flex justify-between items-start mb-2">
-        <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
+        <div className="flex items-center gap-2">
+          <PropertyTypeIcon propertyTitle={title} size={16} className="text-[#6b7280]" />
+          <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
+        </div>
         <div className="flex items-center">
           <span className={`w-2 h-2 rounded-full ${getRiskDot(riskLevel)}`}></span>
           <span className={`ml-2 text-xs ${getRiskColor(riskLevel)} font-normal`}>

@@ -12,9 +12,10 @@ import {
   Label,
   ReferenceDot,
 } from 'recharts'
-import { BuildingIcon, HomeIcon, Building2Icon } from 'lucide-react'
+import { HomeIcon } from 'lucide-react'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
 
 export const PortfolioGrowthChart = () => {
   const { portfolioGrowthData } = useChartDataGenerator()
@@ -26,45 +27,71 @@ export const PortfolioGrowthChart = () => {
       year: '2025',
       portfolioValue: 0,
       equity: 0,
-      property: undefined,
+      properties: undefined,
     }
   ]
+  
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const properties = payload[0]?.payload?.properties || []
+      
       return (
         <div className="bg-white p-3 border border-[#f3f4f6] shadow-sm rounded-md">
           <p className="text-xs font-medium">{`Year: ${label}`}</p>
           <p className="text-xs text-[#93c5fd]">{`Portfolio Value: $${(payload[0].value / 1000000).toFixed(1)}M`}</p>
           <p className="text-xs text-[#86efac]">{`Equity: $${(payload[1].value / 1000000).toFixed(1)}M`}</p>
+          {properties.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-[#f3f4f6]">
+              <p className="text-xs font-medium mb-1">Properties Purchased:</p>
+              {properties.map((p: string, i: number) => (
+                <p key={i} className="text-xs text-[#6b7280]">• {p}</p>
+              ))}
+            </div>
+          )}
         </div>
       )
     }
     return null
   }
-  // Custom dot component that shows property icons
+  
+  // Custom dot component that shows property icons with offset for multiple properties in same year
   const CustomizedDot = (props: any) => {
     const { cx, cy, payload } = props
-    if (!payload.property) {
+    if (!payload.properties || payload.properties.length === 0) {
       return null
     }
-    const getPropertyIcon = () => {
-      switch (payload.property) {
-        case 'Metro Houses':
-          return <HomeIcon size={18} className="text-[#6b7280]" />
-        case 'Duplexes':
-          return <Building2Icon size={18} className="text-[#6b7280]" />
-        case 'Units / Apartments':
-        default:
-          return <BuildingIcon size={18} className="text-[#6b7280]" />
-      }
-    }
+    
+    // Render multiple icons if multiple properties purchased this year
     return (
-      <foreignObject x={cx - 10} y={cy - 10} width={20} height={20}>
-        <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-[#f3f4f6]">
-          {getPropertyIcon()}
-        </div>
-      </foreignObject>
+      <>
+        {payload.properties.map((propertyTitle: string, propIndex: number) => {
+          // Calculate offset for multiple properties in the same year
+          const totalInYear = payload.properties.length
+          let yOffset = 0
+          
+          if (totalInYear > 1) {
+            // Spread them vertically, centered around the line
+            const spacing = 25 // pixels between icons
+            const totalHeight = (totalInYear - 1) * spacing
+            yOffset = (propIndex * spacing) - (totalHeight / 2)
+          }
+          
+          return (
+            <foreignObject 
+              key={`${payload.year}-${propIndex}`}
+              x={cx - 10} 
+              y={cy - 10 + yOffset} 
+              width={20} 
+              height={20}
+            >
+              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-[#f3f4f6] shadow-sm">
+                {getPropertyTypeIcon(propertyTitle, 18, 'text-[#6b7280]')}
+              </div>
+            </foreignObject>
+          )
+        })}
+      </>
     )
   }
   // Format y-axis ticks
@@ -85,13 +112,14 @@ export const PortfolioGrowthChart = () => {
     if (!viewBox || !equityGoalYear) return null
     return (
       <text
-        x={viewBox.x + 10}
+        x={viewBox.x + viewBox.width - 10}
         y={viewBox.y - 5}
         fill="#F59E0B"
         fontSize={12}
         fontWeight={600}
+        textAnchor="end"
       >
-        🎯 Equity Goal: ${(profile.equityGoal / 1000000).toFixed(1)}M
+        Equity Goal: ${(profile.equityGoal / 1000000).toFixed(1)}M
       </text>
     )
   }
@@ -108,7 +136,7 @@ export const PortfolioGrowthChart = () => {
         fontWeight={600}
         textAnchor="middle"
       >
-        🎯 Goal Reached: {equityGoalYear}
+        Goal Reached: {equityGoalYear}
       </text>
     )
   }

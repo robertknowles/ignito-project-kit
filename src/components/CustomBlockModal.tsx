@@ -28,7 +28,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
     cost: 350000,
     yieldPercent: 7,
     lvr: 80,
-    loanType: 'IO' as 'IO' | 'PI',
     growthPercent: 5,
   });
 
@@ -39,7 +38,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
       cost: formData.cost,
       yieldPercent: formData.yieldPercent,
       lvr: formData.lvr,
-      loanType: formData.loanType,
+      loanType: 'IO', // Default to Interest Only (managed per-instance in timeline)
       isCustom: true,
       growthPercent: formData.growthPercent,
     };
@@ -53,7 +52,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
       cost: 350000,
       yieldPercent: 7,
       lvr: 80,
-      loanType: 'IO',
       growthPercent: 5,
     });
   };
@@ -152,37 +150,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
             <p className="text-xs text-gray-500 mt-1">
               Loan-to-Value Ratio (typically 70-90%)
             </p>
-          </div>
-
-          {/* Loan Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loan Type
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, loanType: 'IO' })}
-                className={`flex-1 py-2 px-4 rounded-md border transition-colors ${
-                  formData.loanType === 'IO'
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                Interest Only
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, loanType: 'PI' })}
-                className={`flex-1 py-2 px-4 rounded-md border transition-colors ${
-                  formData.loanType === 'PI'
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                Principal & Interest
-              </button>
-            </div>
           </div>
 
           {/* Calculated Values Preview */}

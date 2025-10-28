@@ -73,10 +73,6 @@ interface PropertySelectionContextType {
   updatePauseDuration: (pauseId: string, duration: number) => void;
   getPauseCount: () => number;
   
-  // Loan type management
-  propertyLoanTypes: Record<string, 'IO' | 'PI'>;
-  updateLoanType: (propertyId: string, loanType: 'IO' | 'PI') => void;
-  
   // Custom block management
   customBlocks: CustomPropertyBlock[];
   addCustomBlock: (block: CustomPropertyBlock) => void;
@@ -105,7 +101,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const { activeClient } = useClient();
   const [selections, setSelections] = useState<PropertySelection>({});
   const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
-  const [propertyLoanTypes, setPropertyLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
   const [customBlocks, setCustomBlocks] = useState<CustomPropertyBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { propertyAssumptions } = useDataAssumptions();
@@ -134,14 +129,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     }
   }, [pauseBlocks, activeClient?.id]);
 
-  // Save loan types to localStorage whenever they change
-  useEffect(() => {
-    if (activeClient?.id) {
-      const loanTypeStorageKey = `property_loan_types_${activeClient.id}`;
-      localStorage.setItem(loanTypeStorageKey, JSON.stringify(propertyLoanTypes));
-    }
-  }, [propertyLoanTypes, activeClient?.id]);
-
   // Save custom blocks to localStorage whenever they change
   useEffect(() => {
     if (activeClient?.id) {
@@ -163,10 +150,10 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       cost: parseFloat(assumption.averageCost),
       depositRequired: Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.deposit)) / 100),
       yieldPercent: parseFloat(assumption.yield),
-      growthPercent: parseFloat(assumption.growth),
+      growthPercent: parseFloat(assumption.growthYear1), // Use Year 1 growth rate for display
       state: 'NSW', // Default to NSW for all properties
-      // Use user's selected loan type, or fall back to assumption's loan type, or default to IO
-      loanType: propertyLoanTypes[`property_${index}`] || assumption.loanType || 'IO',
+      // Loan type will be managed per-instance in the timeline
+      loanType: assumption.loanType || 'IO',
       isCustom: false,
     }));
 
@@ -183,12 +170,12 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       yieldPercent: block.yieldPercent,
       growthPercent: block.growthPercent,
       state: 'NSW', // Default to NSW for custom properties
-      loanType: propertyLoanTypes[block.id] || block.loanType,
+      loanType: block.loanType,
       isCustom: true,
     }));
 
     return [...predefinedTypes, ...customTypes];
-  }, [propertyAssumptions, propertyLoanTypes, customBlocks]);
+  }, [propertyAssumptions, customBlocks]);
 
   // Calculate portfolio totals
   const calculations = useMemo((): PortfolioCalculations => {
@@ -289,19 +276,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     return pauseBlocks.length;
   }, [pauseBlocks.length]);
 
-  // Update loan type for a property
-  const updateLoanType = useCallback((propertyId: string, loanType: 'IO' | 'PI') => {
-    setPropertyLoanTypes(prev => ({
-      ...prev,
-      [propertyId]: loanType,
-    }));
-    
-    // Also update in custom blocks if it's a custom property
-    setCustomBlocks(prev => prev.map(block => 
-      block.id === propertyId ? { ...block, loanType } : block
-    ));
-  }, []);
-
   // Custom block management functions
   const addCustomBlock = useCallback((block: CustomPropertyBlock) => {
     setCustomBlocks(prev => [...prev, block]);
@@ -321,13 +295,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       const newSelections = { ...prev };
       delete newSelections[blockId];
       return newSelections;
-    });
-    
-    // Remove from loan types
-    setPropertyLoanTypes(prev => {
-      const newLoanTypes = { ...prev };
-      delete newLoanTypes[blockId];
-      return newLoanTypes;
     });
   }, []);
 
@@ -371,16 +338,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
           setPauseBlocks([]);
         }
         
-        // Load loan types
-        const loanTypeStorageKey = `property_loan_types_${clientId}`;
-        const storedLoanTypes = localStorage.getItem(loanTypeStorageKey);
-        if (storedLoanTypes) {
-          setPropertyLoanTypes(JSON.parse(storedLoanTypes));
-          console.log('PropertySelectionContext: Loaded loan types');
-        } else {
-          setPropertyLoanTypes({});
-        }
-        
         // Load custom blocks
         const customBlocksStorageKey = `custom_blocks_${clientId}`;
         const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
@@ -396,7 +353,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         console.error('PropertySelectionContext: Failed to load client data:', error);
         setSelections({});
         setPauseBlocks([]);
-        setPropertyLoanTypes({});
         setCustomBlocks([]);
       } finally {
         setIsLoading(false);
@@ -422,10 +378,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     removePause,
     updatePauseDuration,
     getPauseCount,
-    
-    // Loan type management
-    propertyLoanTypes,
-    updateLoanType,
     
     // Custom block management
     customBlocks,

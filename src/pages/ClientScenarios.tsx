@@ -69,7 +69,7 @@ export const ClientScenarios = () => {
               <h1 className="text-xl font-medium text-[#111827]">
                 Client Scenarios
               </h1>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 relative z-10">
                 <div className="relative">
                   <input
                     type="text"

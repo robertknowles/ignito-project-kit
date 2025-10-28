@@ -9,7 +9,11 @@ import { generateEnhancedClientReport } from '../utils/pdfEnhancedGenerator';
 import { toast } from 'sonner';
 import { PDFReportRenderer } from './PDFReportRenderer';
 
-export const ExportPDFButton: React.FC = () => {
+interface ExportPDFButtonProps {
+  iconOnly?: boolean;
+}
+
+export const ExportPDFButton: React.FC<ExportPDFButtonProps> = ({ iconOnly = false }) => {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPDFRenderer, setShowPDFRenderer] = useState(false);
   const { activeClient } = useClient();
@@ -65,12 +69,29 @@ export const ExportPDFButton: React.FC = () => {
     });
   };
 
+  if (iconOnly) {
+    return (
+      <>
+        <button 
+          onClick={handleGeneratePDF}
+          disabled={pdfGenerating || !activeClient}
+          className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!activeClient ? 'Select a client to export PDF' : 'Export PDF Report'}
+        >
+          <DownloadIcon size={15} />
+        </button>
+        
+        {showPDFRenderer && <PDFReportRenderer visible={false} />}
+      </>
+    );
+  }
+
   return (
     <>
       <button 
         onClick={handleGeneratePDF}
         disabled={pdfGenerating || !activeClient}
-        className="flex items-center gap-2 bg-[#3b82f6] text-white px-3 py-1.5 rounded-lg text-sm hover:bg-[#2563eb] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 h-8 bg-[#3b82f6] bg-opacity-60 hover:bg-opacity-80 text-white px-3 rounded-md text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         title={!activeClient ? 'Select a client to export PDF' : 'Export PDF Report'}
       >
         <DownloadIcon size={14} />

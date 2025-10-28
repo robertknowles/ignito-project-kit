@@ -35,8 +35,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     removePause,
     updatePauseDuration,
     getPauseCount,
-    propertyLoanTypes,
-    updateLoanType,
     customBlocks,
     addCustomBlock,
     removeCustomBlock,
@@ -308,8 +306,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                   selected={getPropertyQuantity(property.id) > 0}
                   onIncrement={() => incrementProperty(property.id)}
                   onDecrement={() => decrementProperty(property.id)}
-                  loanType={propertyLoanTypes[property.id] || 'IO'}
-                  onLoanTypeChange={(loanType) => updateLoanType(property.id, loanType)}
                 />
                 {isCustomProperty && (
                   <button

@@ -13,6 +13,12 @@ import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
 import { ExportPDFButton } from './ExportPDFButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -48,65 +54,94 @@ export const Navbar = () => {
     setDropdownOpen(false)
   }
   return (
-    <div className="flex items-center justify-between w-full h-14 px-8 bg-[#f9fafb]">
-      <div className="flex items-center gap-3">
-        <button
-          className={`w-8 h-8 ${location.pathname === '/clients' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-          onClick={() => navigate('/clients')}
-        >
-          <HomeIcon size={15} />
-        </button>
-        <button
-          className={`w-8 h-8 ${location.pathname === '/dashboard' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-          onClick={() => navigate('/dashboard')}
-        >
-          <BarChart3Icon size={15} />
-        </button>
-        <button
-          className={`w-8 h-8 ${location.pathname === '/data' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-          onClick={() => navigate('/data')}
-        >
-          <DatabaseIcon size={15} />
-        </button>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="absolute left-1/2 transform -translate-x-1/2">
-          <ClientSelector />
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        {location.pathname === '/dashboard' && <ExportPDFButton />}
-        <SaveButton />
-        <div className="relative" ref={dropdownRef}>
+    <TooltipProvider>
+      <div className="flex items-center justify-between w-full h-14 px-8 bg-[#f9fafb] relative z-50">
+        <div className="flex items-center gap-3">
           <button
-            className="w-8 h-8 bg-[#3b82f6] bg-opacity-60 text-white rounded-md flex items-center justify-center"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={`w-8 h-8 ${location.pathname === '/clients' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            onClick={() => navigate('/clients')}
           >
-            <UserIcon size={15} className="text-white" />
+            <HomeIcon size={15} />
           </button>
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-[#f3f4f6]">
-              <div className="py-1">
-                <button
-                  className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
-                  onClick={handleSettings}
-                >
-                  <SettingsIcon size={14} className="mr-2" />
-                  Settings
-                </button>
-                <button
-                  className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
-                  onClick={handleLogout}
-                >
-                  <LogOutIcon size={14} className="mr-2" />
-                  Logout
-                </button>
-              </div>
-            </div>
+          <button
+            className={`w-8 h-8 ${location.pathname === '/dashboard' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            onClick={() => navigate('/dashboard')}
+          >
+            <BarChart3Icon size={15} />
+          </button>
+          <button
+            className={`w-8 h-8 ${location.pathname === '/data' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            onClick={() => navigate('/data')}
+          >
+            <DatabaseIcon size={15} />
+          </button>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="absolute left-1/2 transform -translate-x-1/2">
+            <ClientSelector />
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {(location.pathname === '/dashboard' || location.pathname === '/') && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <ExportPDFButton iconOnly />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export PDF</p>
+              </TooltipContent>
+            </Tooltip>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <SaveButton iconOnly />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Save Scenario</p>
+            </TooltipContent>
+          </Tooltip>
+          <div className="relative" ref={dropdownRef}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  <UserIcon size={15} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>User Menu</p>
+              </TooltipContent>
+            </Tooltip>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-[#f3f4f6]">
+                <div className="py-1">
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
+                    onClick={handleSettings}
+                  >
+                    <SettingsIcon size={14} className="mr-2" />
+                    Settings
+                  </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm text-[#374151] hover:bg-[#f9fafb]"
+                    onClick={handleLogout}
+                  >
+                    <LogOutIcon size={14} className="mr-2" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

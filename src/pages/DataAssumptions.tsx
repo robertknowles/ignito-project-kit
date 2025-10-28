@@ -18,13 +18,10 @@ export const DataAssumptions = () => {
       <div className="flex-1 overflow-hidden pb-8 px-8">
         <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
           <div className="p-8">
-            <div className="flex justify-between items-center mb-8">
+            <div className="mb-8">
               <h1 className="text-[#111827] text-xl font-medium">
                 Investment Assumptions
               </h1>
-              <button className="text-sm text-[#3b82f6] px-4 py-2 border border-[#f3f4f6] rounded-md hover:bg-[#f9fafb] transition-colors">
-                Configure property and economic assumptions
-              </button>
             </div>
             {/* Global Economic Factors */}
             <div className="border border-[#f3f4f6] rounded-lg p-6 mb-6">
@@ -68,131 +65,6 @@ export const DataAssumptions = () => {
               </div>
             </div>
 
-            {/* Property Growth Curve */}
-            <div className="border border-[#f3f4f6] rounded-lg p-6 mb-6">
-              <h2 className="text-[#111827] font-medium text-base mb-4">
-                Property Growth Curve
-              </h2>
-              <p className="text-sm text-[#6b7280] mb-6">
-                Customize property value growth rates for different holding periods.
-              </p>
-              
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                {/* Year 1 */}
-                <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-2">
-                    Year 1 Growth Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={profile.growthCurve.year1}
-                    onChange={(e) => updateProfile({
-                      growthCurve: {
-                        ...profile.growthCurve,
-                        year1: parseFloat(e.target.value) || 0,
-                      }
-                    })}
-                    step="0.5"
-                    min="0"
-                    max="30"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                {/* Years 2-3 */}
-                <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-2">
-                    Years 2-3 Growth Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={profile.growthCurve.years2to3}
-                    onChange={(e) => updateProfile({
-                      growthCurve: {
-                        ...profile.growthCurve,
-                        years2to3: parseFloat(e.target.value) || 0,
-                      }
-                    })}
-                    step="0.5"
-                    min="0"
-                    max="30"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                {/* Year 4 */}
-                <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-2">
-                    Year 4 Growth Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={profile.growthCurve.year4}
-                    onChange={(e) => updateProfile({
-                      growthCurve: {
-                        ...profile.growthCurve,
-                        year4: parseFloat(e.target.value) || 0,
-                      }
-                    })}
-                    step="0.5"
-                    min="0"
-                    max="30"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                {/* Year 5+ */}
-                <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-2">
-                    Year 5+ Growth Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={profile.growthCurve.year5plus}
-                    onChange={(e) => updateProfile({
-                      growthCurve: {
-                        ...profile.growthCurve,
-                        year5plus: parseFloat(e.target.value) || 0,
-                      }
-                    })}
-                    step="0.5"
-                    min="0"
-                    max="30"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              {/* Visual preview */}
-              <div className="p-4 bg-[#f9fafb] rounded-md">
-                <p className="text-xs font-medium text-[#374151] mb-3">Growth Curve Preview:</p>
-                <div className="flex items-end gap-2 h-32">
-                  <div className="flex-1 bg-[#3b82f6] rounded-t flex flex-col justify-end items-center pb-2" style={{ height: `${(profile.growthCurve.year1 / 15) * 100}%` }}>
-                    <div className="text-xs font-medium text-white">{profile.growthCurve.year1}%</div>
-                  </div>
-                  <div className="flex-1 bg-[#60a5fa] rounded-t flex flex-col justify-end items-center pb-2" style={{ height: `${(profile.growthCurve.years2to3 / 15) * 100}%` }}>
-                    <div className="text-xs font-medium text-white">{profile.growthCurve.years2to3}%</div>
-                  </div>
-                  <div className="flex-1 bg-[#60a5fa] rounded-t flex flex-col justify-end items-center pb-2" style={{ height: `${(profile.growthCurve.years2to3 / 15) * 100}%` }}>
-                    <div className="text-xs font-medium text-white">{profile.growthCurve.years2to3}%</div>
-                  </div>
-                  <div className="flex-1 bg-[#93c5fd] rounded-t flex flex-col justify-end items-center pb-2" style={{ height: `${(profile.growthCurve.year4 / 15) * 100}%` }}>
-                    <div className="text-xs font-medium text-[#374151]">{profile.growthCurve.year4}%</div>
-                  </div>
-                  <div className="flex-1 bg-[#bfdbfe] rounded-t flex flex-col justify-end items-center pb-2" style={{ height: `${(profile.growthCurve.year5plus / 15) * 100}%` }}>
-                    <div className="text-xs font-medium text-[#374151]">{profile.growthCurve.year5plus}%</div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-2 text-xs text-[#6b7280]">
-                  <div className="flex-1 text-center">Y1</div>
-                  <div className="flex-1 text-center">Y2</div>
-                  <div className="flex-1 text-center">Y3</div>
-                  <div className="flex-1 text-center">Y4</div>
-                  <div className="flex-1 text-center">Y5+</div>
-                </div>
-              </div>
-            </div>
-
             {/* Property-Specific Assumptions */}
             <div className="border border-[#f3f4f6] rounded-lg p-6">
               <h2 className="text-[#111827] font-medium text-base mb-6">
@@ -212,13 +84,19 @@ export const DataAssumptions = () => {
                         Yield %
                       </th>
                       <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Growth %
+                        Growth Y1 %
+                      </th>
+                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
+                        Growth Y2-3 %
+                      </th>
+                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
+                        Growth Y4 %
+                      </th>
+                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
+                        Growth Y5+ %
                       </th>
                       <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
                         Deposit %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Loan Type
                       </th>
                     </tr>
                   </thead>
@@ -260,11 +138,53 @@ export const DataAssumptions = () => {
                           <input
                             type="text"
                             className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.growth}
+                            value={property.growthYear1}
                             onChange={(e) =>
                               handlePropertyChange(
                                 index,
-                                'growth',
+                                'growthYear1',
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
+                            value={property.growthYears2to3}
+                            onChange={(e) =>
+                              handlePropertyChange(
+                                index,
+                                'growthYears2to3',
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
+                            value={property.growthYear4}
+                            onChange={(e) =>
+                              handlePropertyChange(
+                                index,
+                                'growthYear4',
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
+                            value={property.growthYear5plus}
+                            onChange={(e) =>
+                              handlePropertyChange(
+                                index,
+                                'growthYear5plus',
                                 e.target.value,
                               )
                             }
@@ -283,42 +203,6 @@ export const DataAssumptions = () => {
                               )
                             }
                           />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex rounded-md overflow-hidden border border-[#e5e7eb] w-fit">
-                            <button
-                              onClick={() =>
-                                handlePropertyChange(
-                                  index,
-                                  'loanType',
-                                  'IO',
-                                )
-                              }
-                              className={`px-3 py-1.5 text-xs transition-colors ${
-                                (property.loanType || 'IO') === 'IO' 
-                                  ? 'bg-[#3b82f6] text-white' 
-                                  : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
-                              }`}
-                            >
-                              IO
-                            </button>
-                            <button
-                              onClick={() =>
-                                handlePropertyChange(
-                                  index,
-                                  'loanType',
-                                  'PI',
-                                )
-                              }
-                              className={`px-3 py-1.5 text-xs transition-colors ${
-                                property.loanType === 'PI' 
-                                  ? 'bg-[#3b82f6] text-white' 
-                                  : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
-                              }`}
-                            >
-                              P&I
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))}
@@ -353,9 +237,6 @@ export const DataAssumptions = () => {
                           LVR %
                         </th>
                         <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Loan Type
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
                           Actions
                         </th>
                       </tr>
@@ -377,9 +258,6 @@ export const DataAssumptions = () => {
                           </td>
                           <td className="p-3 text-sm text-[#374151]">
                             {block.lvr}%
-                          </td>
-                          <td className="p-3 text-sm text-[#374151]">
-                            {block.loanType === 'IO' ? 'Interest Only' : 'Principal & Interest'}
                           </td>
                           <td className="p-3">
                             <button

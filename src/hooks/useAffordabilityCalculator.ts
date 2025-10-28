@@ -1,9 +1,10 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
-import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import { useDataAssumptions, type PropertyAssumption } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
 import { calculateAcquisitionCosts } from '../utils/costsCalculator';
+import { useClient } from '../contexts/ClientContext';
 
 // Period conversion constants
 const PERIODS_PER_YEAR = 2;
@@ -42,8 +43,46 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, propertyTypes, pauseBlocks, propertyLoanTypes } = usePropertySelection();
-  const { globalFactors, getPropertyData } = useDataAssumptions();
+  const { selections, propertyTypes, pauseBlocks } = usePropertySelection();
+  const { globalFactors, getPropertyData, propertyAssumptions } = useDataAssumptions();
+  const { activeClient } = useClient();
+  
+  // Per-instance loan type state (keyed by instanceId)
+  const [timelineLoanTypes, setTimelineLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
+  
+  // Load timeline loan types from localStorage when client changes
+  useEffect(() => {
+    if (activeClient?.id) {
+      const storageKey = `timeline_loan_types_${activeClient.id}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          setTimelineLoanTypes(JSON.parse(stored));
+        } catch (error) {
+          console.error('Failed to load timeline loan types:', error);
+          setTimelineLoanTypes({});
+        }
+      } else {
+        setTimelineLoanTypes({});
+      }
+    }
+  }, [activeClient?.id]);
+  
+  // Save timeline loan types to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const storageKey = `timeline_loan_types_${activeClient.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(timelineLoanTypes));
+    }
+  }, [timelineLoanTypes, activeClient?.id]);
+  
+  // Function to update loan type for a specific timeline property instance
+  const updateTimelinePropertyLoanType = useCallback((instanceId: string, loanType: 'IO' | 'PI') => {
+    setTimelineLoanTypes(prev => ({
+      ...prev,
+      [instanceId]: loanType,
+    }));
+  }, []);
 
   // Create stable selections hash to avoid expensive JSON.stringify on every render
   const selectionsHash = useMemo(() => {
@@ -80,15 +119,14 @@ export const useAffordabilityCalculator = () => {
   };
 
   // Move helper functions outside useMemo so they can be accessed by other functions
-  const calculatePropertyGrowth = (initialValue: number, periods: number) => {
+  const calculatePropertyGrowth = (initialValue: number, periods: number, assumption: PropertyAssumption) => {
     let currentValue = initialValue;
     
-    // Use growth curve from profile: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
-    const growthCurve = profile.growthCurve;
-    const year1Rate = annualRateToPeriodRate(growthCurve.year1 / 100);
-    const years2to3Rate = annualRateToPeriodRate(growthCurve.years2to3 / 100);
-    const year4Rate = annualRateToPeriodRate(growthCurve.year4 / 100);
-    const year5plusRate = annualRateToPeriodRate(growthCurve.year5plus / 100);
+    // Use per-property tiered growth rates
+    const year1Rate = annualRateToPeriodRate(parseFloat(assumption.growthYear1) / 100);
+    const years2to3Rate = annualRateToPeriodRate(parseFloat(assumption.growthYears2to3) / 100);
+    const year4Rate = annualRateToPeriodRate(parseFloat(assumption.growthYear4) / 100);
+    const year5plusRate = annualRateToPeriodRate(parseFloat(assumption.growthYear5plus) / 100);
     
     for (let period = 1; period <= periods; period++) {
       let periodRate;
@@ -113,25 +151,6 @@ export const useAffordabilityCalculator = () => {
     return currentValue;
   };
 
-  // Helper function to get the growth rate for a specific period
-  const getGrowthRateForPeriod = (periodsOwned: number): number => {
-    const growthCurve = profile.growthCurve;
-    
-    if (periodsOwned <= 2) {
-      // Year 1 (periods 1-2)
-      return annualRateToPeriodRate(growthCurve.year1 / 100);
-    } else if (periodsOwned <= 6) {
-      // Years 2-3 (periods 3-6)
-      return annualRateToPeriodRate(growthCurve.years2to3 / 100);
-    } else if (periodsOwned <= 8) {
-      // Year 4 (periods 7-8)
-      return annualRateToPeriodRate(growthCurve.year4 / 100);
-    } else {
-      // Year 5+ (period 9+)
-      return annualRateToPeriodRate(growthCurve.year5plus / 100);
-    }
-  };
-
   // Progressive rental recognition rates based on portfolio size
   const calculateRentalRecognitionRate = (portfolioSize: number): number => {
     if (portfolioSize <= 2) return 0.75;      // Properties 1-2: 75%
@@ -141,7 +160,7 @@ export const useAffordabilityCalculator = () => {
 
   const calculateAvailableFunds = (
       currentPeriod: number, 
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; loanType?: 'IO' | 'PI' }>
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>
     ): {
       total: number;
       baseDeposit: number;
@@ -167,7 +186,7 @@ export const useAffordabilityCalculator = () => {
             
             if (propertyData) {
               // Calculate current property value with tiered growth
-              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
               
               // Calculate rental income with progressive recognition rates
               const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -219,16 +238,21 @@ export const useAffordabilityCalculator = () => {
       
       // Calculate existing portfolio equity with 88% LVR cap
       if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1);
+        // Use first property type's growth rates for existing portfolio
+        const defaultAssumption = propertyAssumptions[0];
+        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
         existingPortfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
       }
 
       // Calculate usable equity from previous purchases - with 88% LVR cap
       totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.period <= currentPeriod) {
-          const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period);
-          const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - purchase.loanAmount);
-          return acc + usableEquity;
+          const propertyData = getPropertyData(purchase.title);
+          if (propertyData) {
+            const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period, propertyData);
+            const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - purchase.loanAmount);
+            return acc + usableEquity;
+          }
         }
         return acc;
       }, existingPortfolioEquity);
@@ -247,7 +271,7 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculatePropertyScore = (
-    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string; loanType?: 'IO' | 'PI' },
+    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' },
     currentPeriod: number
   ): { cashflowScore: number; equityScore: number; totalScore: number } => {
     const periodsOwned = currentPeriod - purchase.period;
@@ -258,7 +282,7 @@ export const useAffordabilityCalculator = () => {
     }
     
     // Calculate current property value with tiered growth
-    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
     
     // Cashflow Score (rental income - loan payments - expenses)
     const yieldRate = parseFloat(propertyData.yield) / 100;
@@ -288,7 +312,7 @@ export const useAffordabilityCalculator = () => {
   const checkAffordability = (
     property: any,
     availableFunds: number,
-    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; loanType?: 'IO' | 'PI' }>,
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>,
     currentPeriod: number
   ): { canAfford: boolean } => {
       
@@ -309,7 +333,7 @@ export const useAffordabilityCalculator = () => {
           
         if (propertyData) {
           // Calculate current property value with tiered growth
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             // Apply progressive rental recognition based on portfolio size at time of evaluation
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
@@ -345,7 +369,9 @@ export const useAffordabilityCalculator = () => {
       let usableEquityPerProperty: number[] = [];
       
         if (profile.portfolioValue > 0) {
-          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1);
+          // Use first property type's growth rates for existing portfolio
+          const defaultAssumption = propertyAssumptions[0];
+          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
           propertyValues.push(grownPortfolioValue);
           
           // Continuous equity release - 88% LVR cap, no time constraint
@@ -356,13 +382,16 @@ export const useAffordabilityCalculator = () => {
         previousPurchases.forEach(purchase => {
           if (purchase.period <= currentPeriod) {
             const periodsOwned = currentPeriod - purchase.period;
-            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
-            totalPortfolioValue += currentValue;
-            propertyValues.push(currentValue);
-            
-            // Continuous equity release - 88% LVR cap, no time constraint
-            const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
-            usableEquityPerProperty.push(usableEquity);
+            const propertyData = getPropertyData(purchase.title);
+            if (propertyData) {
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              totalPortfolioValue += currentValue;
+              propertyValues.push(currentValue);
+              
+              // Continuous equity release - 88% LVR cap, no time constraint
+              const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
+              usableEquityPerProperty.push(usableEquity);
+            }
           }
         });
       
@@ -417,7 +446,6 @@ export const useAffordabilityCalculator = () => {
         propertyPrice: property.cost,
         loanAmount: newLoanAmount,
         lvr: lvr,
-        state: property.state || 'NSW', // Default to NSW if not specified
         isFirstHomeBuyer: false, // Could add this to profile in future
       });
       
@@ -659,7 +687,7 @@ export const useAffordabilityCalculator = () => {
 
     const determineNextPurchasePeriod = (
       property: any,
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string }>,
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>,
       propertyIndex: number
     ): { period: number } => {
       let currentPurchases = [...previousPurchases];
@@ -719,19 +747,15 @@ export const useAffordabilityCalculator = () => {
           continue;
         }
         
-        // 6-MONTH (1 PERIOD) PURCHASE GAP: Enforce minimum gap between purchases
-        const lastPurchasePeriod = currentPurchases.length > 0 
-          ? Math.max(...currentPurchases.map(p => p.period)) 
-          : 0;
+        // PURCHASE VELOCITY LIMIT: Max 3 properties per 6-month period
+        const MAX_PURCHASES_PER_PERIOD = 3;
+        const purchasesInThisPeriod = currentPurchases.filter(p => p.period === period).length;
         
-        // Skip periods that don't meet the 1-period gap requirement
-        // Must wait at least 1 period (6 months) between purchases
-        const isGapBlocked = lastPurchasePeriod > 0 && period < lastPurchasePeriod + 1;
-        if (isGapBlocked) {
+        if (purchasesInThisPeriod >= MAX_PURCHASES_PER_PERIOD) {
           if (DEBUG_MODE) {
-            console.log(`[GAP CHECK] Period ${period} (${periodToDisplay(period)}): Skipped due to 6-month gap rule (last purchase: ${periodToDisplay(lastPurchasePeriod)})`);
+            console.log(`[PURCHASE LIMIT] Period ${period} (${periodToDisplay(period)}): Blocked - already ${purchasesInThisPeriod} purchases in this period (max: ${MAX_PURCHASES_PER_PERIOD})`);
           }
-          continue;
+          continue; // Skip to the next period
         }
         
         const availableFunds = calculateAvailableFunds(period, currentPurchases);
@@ -746,24 +770,27 @@ export const useAffordabilityCalculator = () => {
     };
 
     // Main calculation logic - Create a list of all properties to purchase
-    const allPropertiesToPurchase: Array<{ property: any; index: number }> = [];
+    const allPropertiesToPurchase: Array<{ property: any; index: number; instanceId: string }> = [];
     
     Object.entries(selections).forEach(([propertyId, quantity]) => {
       if (quantity > 0) {
         const property = propertyTypes.find(p => p.id === propertyId);
         if (property) {
           for (let i = 0; i < quantity; i++) {
-            allPropertiesToPurchase.push({ property, index: i });
+            // Generate a stable instanceId for this property (based on propertyId and index)
+            // This ensures the same property in the same position keeps its loan type setting
+            const instanceId = `${propertyId}_instance_${i}`;
+            allPropertiesToPurchase.push({ property, index: i, instanceId });
           }
         }
       }
     });
 
     const timelineProperties: TimelineProperty[] = [];
-    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; loanType?: 'IO' | 'PI' }> = [];
+    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }> = [];
     
     // Process properties sequentially, determining purchase period for each
-    allPropertiesToPurchase.forEach(({ property, index }, globalIndex) => {
+    allPropertiesToPurchase.forEach(({ property, index, instanceId }, globalIndex) => {
       const result = determineNextPurchasePeriod(property, purchaseHistory, globalIndex);
       const loanAmount = property.cost - property.depositRequired;
       
@@ -786,7 +813,9 @@ export const useAffordabilityCalculator = () => {
         
         // Calculate existing portfolio value (with growth)
         if (profile.portfolioValue > 0) {
-          portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchasePeriod - 1);
+          // Use first property type's growth rates for existing portfolio
+          const defaultAssumption = propertyAssumptions[0];
+          portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchasePeriod - 1, defaultAssumption);
         }
         
         // Calculate total debt from existing portfolio
@@ -797,8 +826,11 @@ export const useAffordabilityCalculator = () => {
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
-            portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned);
-            totalDebtAfter += purchase.loanAmount;
+            const propertyData = getPropertyData(purchase.title);
+            if (propertyData) {
+              portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              totalDebtAfter += purchase.loanAmount;
+            }
           }
         });
         
@@ -818,14 +850,17 @@ export const useAffordabilityCalculator = () => {
         portfolioSize = purchaseHistory.filter(p => p.period <= purchasePeriod).length + 1;
         rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
         
+        // Get the loan type for this instance (default to 'IO' if not set)
+        const currentInstanceLoanType = timelineLoanTypes[instanceId] || 'IO';
+        
         // Calculate cashflow from all properties including this one
-        [...purchaseHistory, { period: purchasePeriod, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title, loanType: property.loanType }].forEach(purchase => {
+        [...purchaseHistory, { period: purchasePeriod, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
           const propertyData = getPropertyData(purchase.title);
           
           if (propertyData && purchase.period <= purchasePeriod) {
             // Calculate current property value with tiered growth
-            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
@@ -849,7 +884,6 @@ export const useAffordabilityCalculator = () => {
         propertyPrice: property.cost,
         loanAmount: loanAmount,
         lvr: lvr,
-        state: property.state || 'NSW',
         isFirstHomeBuyer: false,
       });
       
@@ -884,9 +918,12 @@ export const useAffordabilityCalculator = () => {
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
-            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
-            const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
-            equityRelease += usableEquity;
+            const propertyData = getPropertyData(purchase.title);
+            if (propertyData) {
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
+              equityRelease += usableEquity;
+            }
           }
         });
         
@@ -898,8 +935,12 @@ export const useAffordabilityCalculator = () => {
       const timelineEquityBoost = equityRelease * profile.equityFactor;
       const timelineEffectiveBorrowingCapacity = profile.borrowingCapacity + timelineEquityBoost;
       
+      // Get the loan type for this specific instance (default to 'IO' if not set)
+      const instanceLoanType = timelineLoanTypes[instanceId] || 'IO';
+      
       const timelineProperty: TimelineProperty = {
         id: `${property.id}_${index}`,
+        instanceId: instanceId,
         title: property.title,
         cost: property.cost,
         depositRequired: property.depositRequired,
@@ -913,7 +954,7 @@ export const useAffordabilityCalculator = () => {
         totalEquityAfter: totalEquityAfter,
         totalDebtAfter: totalDebtAfter,
         availableFundsUsed: availableFundsUsed,
-        loanType: property.loanType || 'IO',
+        loanType: instanceLoanType,
         
         // Cashflow breakdown
         grossRentalIncome,
@@ -969,7 +1010,8 @@ export const useAffordabilityCalculator = () => {
           depositRequired: property.depositRequired,
           loanAmount: loanAmount,
           title: property.title,
-          loanType: property.loanType || 'IO'
+          instanceId: instanceId,
+          loanType: instanceLoanType
         });
         
         // Sort purchase history by period to maintain chronological order
@@ -988,18 +1030,18 @@ export const useAffordabilityCalculator = () => {
     profile.depositPool,
     profile.annualSavings,
     calculatedValues.availableDeposit,
-    globalFactors.growthRate,
     globalFactors.interestRate,
     getPropertyData,
+    propertyAssumptions,
     pauseBlocks,
-    propertyLoanTypes
+    timelineLoanTypes
   ]);
 
   // Function to calculate affordability for any period and property
   const calculateAffordabilityForPeriod = useCallback((
     period: number,
     property: any,
-    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; loanType?: 'IO' | 'PI' }>
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>
   ) => {
     const availableFunds = calculateAvailableFunds(period, previousPurchases);
     const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, period);
@@ -1011,7 +1053,6 @@ export const useAffordabilityCalculator = () => {
       propertyPrice: property.cost,
       loanAmount: newLoanAmount,
       lvr: lvr,
-      state: property.state || 'NSW',
       isFirstHomeBuyer: false,
     });
     
@@ -1028,7 +1069,7 @@ export const useAffordabilityCalculator = () => {
         const periodsOwned = period - purchase.period;
         const propertyData = getPropertyData(purchase.title);
         if (propertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned);
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const yieldRate = parseFloat(propertyData.yield) / 100;
           const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
           const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
@@ -1090,6 +1131,7 @@ export const useAffordabilityCalculator = () => {
   return {
     timelineProperties: calculateTimelineProperties,
     isCalculating: false, // Could add state tracking if needed
-    calculateAffordabilityForProperty: calculateAffordabilityForPeriod
+    calculateAffordabilityForProperty: calculateAffordabilityForPeriod,
+    updateTimelinePropertyLoanType
   };
 };

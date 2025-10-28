@@ -101,7 +101,7 @@ export const CashflowChart = () => {
         fontSize={11}
         fontWeight={600}
       >
-        💰 Income Goal: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
+        Income Goal: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
     )
   }
@@ -130,12 +130,12 @@ export const CashflowChart = () => {
       <text
         x={props.x}
         y={props.y - 10}
-        fill="#F59E0B"
+        fill="#10B981"
         fontSize={11}
         fontWeight={600}
         textAnchor="middle"
       >
-        💰 Goal Reached: {incomeGoalYear}
+        Income: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
     )
   }
@@ -247,23 +247,11 @@ export const CashflowChart = () => {
               ))}
             </Bar>
 
-            {/* Cashflow Positive Marker */}
-            {firstPositivePoint && (
-              <ReferenceLine
-                x={firstPositivePoint.year}
-                stroke="#10B981"
-                strokeWidth={2}
-                strokeDasharray="3 3"
-              >
-                <Label content={<CashflowPositiveLabel />} position="top" />
-              </ReferenceLine>
-            )}
-
             {/* Income Goal Achievement Marker */}
             {incomeGoalReached && (
               <ReferenceLine
                 x={incomeGoalReached.year}
-                stroke="#F59E0B"
+                stroke="#10B981"
                 strokeWidth={2}
                 strokeDasharray="3 3"
               >
