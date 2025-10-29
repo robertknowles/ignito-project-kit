@@ -103,7 +103,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
   const [customBlocks, setCustomBlocks] = useState<CustomPropertyBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { propertyAssumptions } = useDataAssumptions();
+  const { propertyAssumptions } = useDataAssumptions(); // Get profile-level assumptions from DataAssumptionsContext
 
   // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
   // to prevent conflicts between individual context loading and unified scenario loading

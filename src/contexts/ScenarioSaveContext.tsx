@@ -1,24 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
-import { useDataAssumptions } from './DataAssumptionsContext';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ScenarioData {
   propertySelections: { [propertyId: string]: number };
-  globalFactors: {
-    growthRate: string;
-    loanToValueRatio: string;
-    interestRate: string;
-  };
-  propertyAssumptions: Array<{
-    type: string;
-    averageCost: string;
-    yield: string;
-    growth: string;
-    deposit: string;
-  }>;
   investmentProfile: {
     depositPool: number;
     borrowingCapacity: number;
@@ -52,37 +40,65 @@ export const useScenarioSave = () => {
 
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient } = useClient();
-  const { globalFactors, propertyAssumptions } = useDataAssumptions();
-  const { selections } = usePropertySelection();
-  const { profile } = useInvestmentProfile();
+  const { selections, resetSelections, updatePropertyQuantity } = usePropertySelection();
+  const { profile, updateProfile } = useInvestmentProfile();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
+  const loadedClientRef = useRef<number | null>(null);
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
     return {
       propertySelections: selections,
-      globalFactors,
-      propertyAssumptions,
       investmentProfile: profile,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, globalFactors, propertyAssumptions, profile]);
+  }, [selections, profile]);
 
   // Save scenario
-  const saveScenario = useCallback(() => {
+  const saveScenario = useCallback(async () => {
     if (!activeClient) return;
 
     setIsLoading(true);
     
     try {
       const scenarioData = getCurrentScenarioData();
-      const storageKey = `scenario_${activeClient.id}`;
       
-      localStorage.setItem(storageKey, JSON.stringify(scenarioData));
+      // Check if a scenario already exists for this client
+      const { data: existingScenarios } = await supabase
+        .from('scenarios')
+        .select('id')
+        .eq('client_id', activeClient.id)
+        .limit(1);
+      
+      if (existingScenarios && existingScenarios.length > 0) {
+        // Update existing scenario
+        const { error } = await supabase
+          .from('scenarios')
+          .update({
+            name: `${activeClient.name}'s Scenario`,
+            updated_at: new Date().toISOString(),
+            data: scenarioData
+          })
+          .eq('id', existingScenarios[0].id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new scenario
+        const { error } = await supabase
+          .from('scenarios')
+          .insert({
+            name: `${activeClient.name}'s Scenario`,
+            client_id: activeClient.id,
+            updated_at: new Date().toISOString(),
+            data: scenarioData
+          });
+        
+        if (error) throw error;
+      }
       
       setLastSavedData(scenarioData);
       setLastSaved(scenarioData.lastSaved);
@@ -105,13 +121,47 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [activeClient, getCurrentScenarioData]);
 
   // Load client scenario
-  const loadClientScenario = useCallback((clientId: number) => {
+  const loadClientScenario = useCallback(async (clientId: number) => {
+    console.log('ScenarioSaveContext: Loading scenario for client:', clientId);
+    
     try {
-      const storageKey = `scenario_${clientId}`;
-      const savedData = localStorage.getItem(storageKey);
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
       
-      if (savedData) {
-        const scenarioData: ScenarioData = JSON.parse(savedData);
+      if (error) {
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+          console.log('ScenarioSaveContext: No saved scenario found');
+          setLastSavedData(null);
+          setLastSaved(null);
+          setHasUnsavedChanges(false);
+          // Reset contexts to default
+          resetSelections();
+          return null;
+        }
+        throw error;
+      }
+      
+      if (data?.data) {
+        const scenarioData = data.data as ScenarioData;
+        console.log('ScenarioSaveContext: Loaded scenario data:', scenarioData);
+        
+        // Apply property selections
+        resetSelections();
+        Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+          if (quantity > 0) {
+            updatePropertyQuantity(propertyId, quantity);
+          }
+        });
+        
+        // Apply investment profile
+        updateProfile(scenarioData.investmentProfile);
+        
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
@@ -120,13 +170,23 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLastSavedData(null);
         setLastSaved(null);
         setHasUnsavedChanges(false);
+        resetSelections();
         return null;
       }
     } catch (error) {
-      console.error('Error loading scenario:', error);
+      console.error('ScenarioSaveContext: Error loading scenario:', error);
       return null;
     }
-  }, []);
+  }, [resetSelections, updateProfile, updatePropertyQuantity]);
+
+  // Load scenario when activeClient changes
+  useEffect(() => {
+    if (activeClient && loadedClientRef.current !== activeClient.id) {
+      console.log('ScenarioSaveContext: activeClient changed, loading scenario for client:', activeClient.id);
+      loadClientScenario(activeClient.id);
+      loadedClientRef.current = activeClient.id;
+    }
+  }, [activeClient?.id, loadClientScenario]);
 
   // Debounced change detection to prevent excessive calculations
   const changeDetectionTimer = useRef<NodeJS.Timeout | null>(null);
@@ -144,14 +204,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const hasSelectionChanges = Object.keys(currentData.propertySelections).length !== Object.keys(lastSavedData.propertySelections).length ||
           Object.entries(currentData.propertySelections).some(([key, value]) => lastSavedData.propertySelections[key] !== value);
         
-        const hasFactorChanges = currentData.globalFactors.growthRate !== lastSavedData.globalFactors.growthRate ||
-          currentData.globalFactors.loanToValueRatio !== lastSavedData.globalFactors.loanToValueRatio ||
-          currentData.globalFactors.interestRate !== lastSavedData.globalFactors.interestRate;
-        
-        const hasAssumptionChanges = JSON.stringify(currentData.propertyAssumptions) !== JSON.stringify(lastSavedData.propertyAssumptions);
         const hasProfileChanges = JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
         
-        const hasChanges = hasSelectionChanges || hasFactorChanges || hasAssumptionChanges || hasProfileChanges;
+        const hasChanges = hasSelectionChanges || hasProfileChanges;
         setHasUnsavedChanges(hasChanges);
       } else if (activeClient && !lastSavedData) {
         // New client with data = unsaved changes
@@ -159,7 +214,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(hasData);
       }
     }, 150); // 150ms debounce
-  }, [selections, globalFactors, propertyAssumptions, profile, activeClient, lastSavedData, getCurrentScenarioData]);
+  }, [selections, profile, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {
     hasUnsavedChanges,

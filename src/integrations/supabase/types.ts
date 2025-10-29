@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           company_name: string | null
           created_at: string
+          data: Json | null
           full_name: string | null
           id: string
           updated_at: string | null
@@ -58,6 +59,7 @@ export type Database = {
         Insert: {
           company_name?: string | null
           created_at?: string
+          data?: Json | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
@@ -65,6 +67,7 @@ export type Database = {
         Update: {
           company_name?: string | null
           created_at?: string
+          data?: Json | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
@@ -73,36 +76,27 @@ export type Database = {
       }
       scenarios: {
         Row: {
-          annual_savings: number | null
-          borrowing_capacity: number | null
-          client_id: number | null
+          client_id: number
           created_at: string
-          deposit_pool: number | null
+          data: Json | null
           id: number
           name: string | null
-          timeline_years: number | null
           updated_at: string | null
         }
         Insert: {
-          annual_savings?: number | null
-          borrowing_capacity?: number | null
-          client_id?: number | null
+          client_id: number
           created_at?: string
-          deposit_pool?: number | null
+          data?: Json | null
           id?: number
           name?: string | null
-          timeline_years?: number | null
           updated_at?: string | null
-        }
+ lawful       }
         Update: {
-          annual_savings?: number | null
-          borrowing_capacity?: number | null
-          client_id?: number | null
+          client_id?: number
           created_at?: string
-          deposit_pool?: number | null
+          data?: Json | null
           id?: number
           name?: string | null
-          timeline_years?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -152,7 +146,7 @@ export type Tables<
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
+    ? Rابع
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
@@ -161,8 +155,7 @@ export type Tables<
         Row: infer R
       }
       ? R
-      : never
-    : never
+ clarification    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -235,7 +228,7 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeName{itemize extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
