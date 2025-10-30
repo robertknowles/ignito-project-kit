@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { App } from './App'
+import { Landing } from './landing/Landing'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
@@ -12,6 +13,7 @@ import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
 import { ClientProvider } from './contexts/ClientContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
 
 export function AppRouter() {
@@ -24,8 +26,37 @@ export function AppRouter() {
               <ScenarioSaveProvider>
                 <BrowserRouter>
                   <Routes>
+                    {/* Public landing page - redirects to /dashboard if authenticated */}
                     <Route 
                       path="/" 
+                      element={
+                        <PublicRoute>
+                          <Landing />
+                        </PublicRoute>
+                      } 
+                    />
+                    
+                    {/* Public auth pages - redirect to /dashboard if authenticated */}
+                    <Route 
+                      path="/login" 
+                      element={
+                        <PublicRoute>
+                          <Login />
+                        </PublicRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/signup" 
+                      element={
+                        <PublicRoute>
+                          <SignUp />
+                        </PublicRoute>
+                      } 
+                    />
+                    
+                    {/* Protected app routes - require authentication */}
+                    <Route 
+                      path="/dashboard" 
                       element={
                         <ProtectedRoute>
                           <App />
@@ -41,14 +72,6 @@ export function AppRouter() {
                       } 
                     />
                     <Route 
-                      path="/dashboard" 
-                      element={
-                        <ProtectedRoute>
-                          <App />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
                       path="/data" 
                       element={
                         <ProtectedRoute>
@@ -56,8 +79,6 @@ export function AppRouter() {
                         </ProtectedRoute>
                       } 
                     />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<SignUp />} />
                   </Routes>
                   <Toaster />
                 </BrowserRouter>

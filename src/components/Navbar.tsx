@@ -46,7 +46,7 @@ export const Navbar = () => {
   const handleLogout = async () => {
     await signOut()
     setDropdownOpen(false)
-    navigate('/login')
+    navigate('/')
   }
   const handleSettings = () => {
     // Navigate to settings page or open settings modal
