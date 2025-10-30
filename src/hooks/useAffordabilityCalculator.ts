@@ -497,46 +497,46 @@ export const useAffordabilityCalculator = () => {
           `💰 Available Funds: Total = ${depositPool.toLocaleString()}`
         );
         console.log(
-          `   ├─ Base Deposit Pool: £${baseDeposit.toLocaleString()}`
+          `   ├─ Base Deposit Pool: $${baseDeposit.toLocaleString()}`
         );
         console.log(
-          `   ├─ Cumulative Savings: £${cumulativeSavings.toLocaleString()} (${(currentPeriod / PERIODS_PER_YEAR).toFixed(1)} years × £${profile.annualSavings.toLocaleString()})`
+          `   ├─ Cumulative Savings: $${cumulativeSavings.toLocaleString()} (${(currentPeriod / PERIODS_PER_YEAR).toFixed(1)} years × $${profile.annualSavings.toLocaleString()})`
         );
         console.log(
-          `   ├─ Net Cashflow Reinvestment: £${netCashflow.toLocaleString()}`
+          `   ├─ Net Cashflow Reinvestment: $${netCashflow.toLocaleString()}`
         );
         console.log(
-          `   └─ Continuous Equity Access: £${continuousEquityAccess.toLocaleString()} (88% LVR cap)`
+          `   └─ Continuous Equity Access: $${continuousEquityAccess.toLocaleString()} (88% LVR cap)`
         );
 
         // === SELF-FUNDING FLYWHEEL ===
         console.log(
-          `🔄 Self-Funding Flywheel: AnnualSavings = BaseSavings(£${profile.annualSavings.toLocaleString()}) + NetCashflowReinvestment(£${netCashflow.toLocaleString()}) = £${totalAnnualSavings.toLocaleString()}`
+          `🔄 Self-Funding Flywheel: AnnualSavings = BaseSavings($${profile.annualSavings.toLocaleString()}) + NetCashflowReinvestment($${netCashflow.toLocaleString()}) = $${totalAnnualSavings.toLocaleString()}`
         );
 
         // === EQUITY BREAKDOWN ===
         console.log(
-          `🏠 Equity Breakdown: Total Usable = £${totalUsableEquity.toLocaleString()}`
+          `🏠 Equity Breakdown: Total Usable = $${totalUsableEquity.toLocaleString()}`
         );
         propertyValues.forEach((value, i) => {
           const equity = usableEquityPerProperty[i];
           console.log(
-            `   Property ${i+1}: Value £${value.toLocaleString()} → Usable Equity £${equity.toLocaleString()}`
+            `   Property ${i+1}: Value $${value.toLocaleString()} → Usable Equity $${equity.toLocaleString()}`
           );
         });
 
         // === CASHFLOW BREAKDOWN ===
         console.log(
-          `💵 Cashflow: Net = £${netCashflow.toLocaleString()}/year`
+          `💵 Cashflow: Net = $${netCashflow.toLocaleString()}/year`
         );
         console.log(
-          `   ├─ Gross Rental: £${rentalIncome.toLocaleString()}`
+          `   ├─ Gross Rental: $${rentalIncome.toLocaleString()}`
         );
         console.log(
-          `   ├─ Loan Interest: -£${loanInterest.toLocaleString()}`
+          `   ├─ Loan Interest: -$${loanInterest.toLocaleString()}`
         );
         console.log(
-          `   └─ Expenses: -£${expenses.toLocaleString()} (30% + 3% annual inflation)`
+          `   └─ Expenses: -$${expenses.toLocaleString()} (30% + 3% annual inflation)`
         );
 
         // === SERVICEABILITY TEST ===
@@ -548,22 +548,22 @@ export const useAffordabilityCalculator = () => {
           `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (Enhanced with Rental)`
         );
         console.log(
-          `   ├─ Loan Payment: £${annualLoanPayment.toLocaleString()}`
+          `   ├─ Loan Payment: $${annualLoanPayment.toLocaleString()}`
         );
         console.log(
-          `   ├─ Base Capacity: £${baseCapacity.toLocaleString()} (10% of £${profile.borrowingCapacity.toLocaleString()})`
+          `   ├─ Base Capacity: $${baseCapacity.toLocaleString()} (10% of $${profile.borrowingCapacity.toLocaleString()})`
         );
         console.log(
-          `   ├─ Rental Contribution: £${rentalContribution.toLocaleString()} (70% of £${totalRentalIncome.toLocaleString()})`
+          `   ├─ Rental Contribution: $${rentalContribution.toLocaleString()} (70% of $${totalRentalIncome.toLocaleString()})`
         );
         console.log(
-          `   ├─ Max Annual Payment: £${maxAnnualPaymentValue.toLocaleString()} (base + rental)`
+          `   ├─ Max Annual Payment: $${maxAnnualPaymentValue.toLocaleString()} (base + rental)`
         );
         console.log(
-          `   └─ Surplus: £${serviceabilitySurplus.toLocaleString()}`
+          `   └─ Surplus: $${serviceabilitySurplus.toLocaleString()}`
         );
         console.log(
-          `   └─ Deposit Test: £${availableFunds.toLocaleString()} ≥ £${totalCashRequired.toLocaleString()} (deposit + costs)`
+          `   └─ Deposit Test: $${availableFunds.toLocaleString()} ≥ $${totalCashRequired.toLocaleString()} (deposit + costs)`
         );
         
         // === DYNAMIC BORROWING CAPACITY ===
@@ -571,30 +571,30 @@ export const useAffordabilityCalculator = () => {
           `📈 Dynamic Borrowing Capacity:`
         );
         console.log(
-          `   ├─ Base Capacity: £${baseCapacity.toLocaleString()}`
+          `   ├─ Base Capacity: $${baseCapacity.toLocaleString()}`
         );
         console.log(
-          `   ├─ Usable Equity: £${totalUsableEquity.toLocaleString()}`
+          `   ├─ Usable Equity: $${totalUsableEquity.toLocaleString()}`
         );
         console.log(
           `   ├─ Equity Factor: ${(profile.equityFactor * 100).toFixed(0)}%`
         );
         console.log(
-          `   ├─ Equity Boost: £${equityBoost.toLocaleString()}`
+          `   ├─ Equity Boost: $${equityBoost.toLocaleString()}`
         );
         console.log(
-          `   └─ Effective Capacity: £${effectiveBorrowingCapacity.toLocaleString()}`
+          `   └─ Effective Capacity: $${effectiveBorrowingCapacity.toLocaleString()}`
         );
 
         // === DEBT POSITION ===
         console.log(
-          `💳 Debt Position: Total After Purchase = £${totalDebt.toLocaleString()}`
+          `💳 Debt Position: Total After Purchase = $${totalDebt.toLocaleString()}`
         );
         console.log(
-          `   ├─ Existing Debt: £${existingDebt.toLocaleString()}`
+          `   ├─ Existing Debt: $${existingDebt.toLocaleString()}`
         );
         console.log(
-          `   └─ New Loan Required: £${newLoan.toLocaleString()}`
+          `   └─ New Loan Required: $${newLoan.toLocaleString()}`
         );
         
         // === BORROWING CAPACITY CHECK ===
@@ -602,13 +602,13 @@ export const useAffordabilityCalculator = () => {
           `🏦 Borrowing Capacity Check: ${borrowingCapacityTestPass ? "PASS" : "FAIL"}`
         );
         console.log(
-          `   ├─ Total Debt After Purchase: £${totalDebtAfterPurchase.toLocaleString()}`
+          `   ├─ Total Debt After Purchase: $${totalDebtAfterPurchase.toLocaleString()}`
         );
         console.log(
-          `   ├─ Effective Borrowing Capacity Limit: £${effectiveBorrowingCapacity.toLocaleString()}`
+          `   ├─ Effective Borrowing Capacity Limit: $${effectiveBorrowingCapacity.toLocaleString()}`
         );
         console.log(
-          `   └─ Remaining Capacity: £${borrowingCapacityTestSurplus.toLocaleString()}`
+          `   └─ Remaining Capacity: $${borrowingCapacityTestSurplus.toLocaleString()}`
         );
 
         // === STRATEGY INSIGHTS ===

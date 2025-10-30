@@ -44,7 +44,9 @@ export const generateStrategySummary = (
   const finalPortfolioValue = finalProperty.portfolioValueAfter;
   const finalEquity = finalProperty.totalEquityAfter;
   const finalDebt = finalProperty.totalDebtAfter;
-  const finalCashflow = finalProperty.netCashflow;
+  
+  // Calculate total portfolio cashflow by summing all property cashflows
+  const finalCashflow = feasibleProperties.reduce((sum, prop) => sum + prop.netCashflow, 0);
 
   // Format currency values
   const formatCurrency = (value: number): string => {

@@ -62,15 +62,15 @@ export const calculateAcquisitionCosts = (
   const lmi = calculateLMI(loanAmount, lvr);
   
   // 3. Legal Fees (conveyancing, solicitor fees)
-  // Typically £1,500 - £2,500 depending on complexity
+  // Typically $1,500 - $2,500 depending on complexity
   const legalFees = 2000;
   
   // 4. Inspection Fees (building + pest inspection)
-  // Typically £500 - £800 combined
+  // Typically $500 - $800 combined
   const inspectionFees = 650;
   
   // 5. Other Fees (searches, mortgage registration, settlement fees)
-  // Typically £1,000 - £2,000
+  // Typically $1,000 - $2,000
   const otherFees = 1500;
   
   // Calculate total acquisition costs
@@ -107,7 +107,7 @@ export const calculateLVR = (propertyPrice: number, deposit: number): number => 
 export const formatCostsBreakdown = (costs: AcquisitionCosts): string => {
   return costs.breakdown
     .filter(item => item.amount > 0)
-    .map(item => `${item.label}: £${item.amount.toLocaleString()}`)
+    .map(item => `${item.label}: $${item.amount.toLocaleString()}`)
     .join('\n');
 };
 

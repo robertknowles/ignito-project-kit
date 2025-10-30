@@ -4,6 +4,8 @@ import {
   PlusIcon,
   MoreHorizontalIcon,
   CalendarIcon,
+  Edit2Icon,
+  Trash2Icon,
 } from 'lucide-react'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { Navbar } from '../components/Navbar'
@@ -13,12 +15,44 @@ import { useClient, Client } from '@/contexts/ClientContext'
 import { generateClientReport } from '../utils/pdfGenerator'
 import { toast } from 'sonner'
 import { useAllClientScenarios } from '../hooks/useAllClientScenarios'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
 export const ClientScenarios = () => {
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPDFRenderer, setShowPDFRenderer] = useState(false);
-  const { clients, setActiveClient } = useClient();
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [newClientName, setNewClientName] = useState('');
+  const { clients, setActiveClient, updateClient, deleteClient } = useClient();
   const { timelineData, loading: timelineLoading } = useAllClientScenarios();
 
   const handleViewClient = (clientId: number) => {
@@ -57,6 +91,46 @@ export const ClientScenarios = () => {
         setShowPDFRenderer(false);
       },
     });
+  };
+
+  const handleRenameClick = (client: Client) => {
+    setSelectedClient(client);
+    setNewClientName(client.name);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRenameConfirm = async () => {
+    if (!selectedClient || !newClientName.trim()) return;
+
+    const success = await updateClient(selectedClient.id, { name: newClientName.trim() });
+    
+    if (success) {
+      toast.success('Client renamed successfully!');
+      setRenameDialogOpen(false);
+      setSelectedClient(null);
+      setNewClientName('');
+    } else {
+      toast.error('Failed to rename client');
+    }
+  };
+
+  const handleDeleteClick = (client: Client) => {
+    setSelectedClient(client);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedClient) return;
+
+    const success = await deleteClient(selectedClient.id);
+    
+    if (success) {
+      toast.success('Client deleted successfully!');
+      setDeleteDialogOpen(false);
+      setSelectedClient(null);
+    } else {
+      toast.error('Failed to delete client');
+    }
   };
 
   return (
@@ -199,9 +273,30 @@ export const ClientScenarios = () => {
                               >
                                 {pdfGenerating ? 'Generating...' : 'Download'}
                               </button>
-                              <button className="p-1 text-[#6b7280] hover:text-[#374151] transition-colors">
-                                <MoreHorizontalIcon size={16} />
-                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-1 text-[#6b7280] hover:text-[#374151] transition-colors">
+                                    <MoreHorizontalIcon size={16} />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRenameClick(client)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Edit2Icon size={14} className="mr-2" />
+                                    Rename Client
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteClick(client)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                  >
+                                    <Trash2Icon size={14} className="mr-2" />
+                                    Delete Client
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </td>
                         </tr>
@@ -214,7 +309,6 @@ export const ClientScenarios = () => {
             {/* Planning Calendar */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4">
-                <CalendarIcon size={18} className="text-[#6b7280]" />
                 <h2 className="text-lg font-medium text-[#111827]">
                   Planning Calendar
                 </h2>
@@ -251,6 +345,63 @@ export const ClientScenarios = () => {
       />
       
       {showPDFRenderer && <PDFReportRenderer visible={false} />}
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Client</DialogTitle>
+            <DialogDescription>
+              Enter a new name for {selectedClient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Client Name</Label>
+              <Input
+                id="name"
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                placeholder="Enter client name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameConfirm} disabled={!newClientName.trim()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedClient?.name}? This action cannot be undone and will permanently delete all associated data including properties, scenarios, and financial projections.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

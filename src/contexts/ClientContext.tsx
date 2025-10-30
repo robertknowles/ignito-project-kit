@@ -19,6 +19,8 @@ interface ClientContextType {
   loading: boolean;
   setActiveClient: (client: Client | null) => void;
   createClient: (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => Promise<Client | null>;
+  updateClient: (clientId: number, updates: Partial<Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>>) => Promise<boolean>;
+  deleteClient: (clientId: number) => Promise<boolean>;
   fetchClients: () => Promise<void>;
 }
 
@@ -98,6 +100,75 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const updateClient = async (clientId: number, updates: Partial<Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>>): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', clientId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setClients(prev => prev.map(client => 
+        client.id === clientId ? { ...client, ...updates } : client
+      ));
+
+      // Update active client if it's the one being updated
+      if (activeClient?.id === clientId) {
+        setActiveClient({ ...activeClient, ...updates });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating client:', error);
+      return false;
+    }
+  };
+
+  const deleteClient = async (clientId: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // First delete all related scenarios
+      const { error: scenariosError } = await supabase
+        .from('scenarios')
+        .delete()
+        .eq('client_id', clientId);
+
+      if (scenariosError) {
+        console.error('Error deleting scenarios:', scenariosError);
+        throw scenariosError;
+      }
+
+      // Then delete the client
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setClients(prev => prev.filter(client => client.id !== clientId));
+
+      // If the deleted client was active, set a new active client
+      if (activeClient?.id === clientId) {
+        const remainingClients = clients.filter(c => c.id !== clientId);
+        setActiveClient(remainingClients.length > 0 ? remainingClients[0] : null);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user && !authLoading) {
       fetchClients();
@@ -110,6 +181,8 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loading,
     setActiveClient,
     createClient,
+    updateClient,
+    deleteClient,
     fetchClients,
   };
 

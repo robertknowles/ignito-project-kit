@@ -14,7 +14,7 @@ export interface FeasibilityAnalysis {
     action: string;
     impact: string;
     priority: 'high' | 'medium' | 'low';
-    specificValue?: string; // e.g., "£120,000" or "12 years"
+    specificValue?: string; // e.g., "$120,000" or "12 years"
   }[];
   message: string;
 }

@@ -48,7 +48,7 @@ export const Dashboard = () => {
   return <div className="flex-1 overflow-auto p-8 bg-white">
       <div className="flex gap-8">
         {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
-        <div className="w-1/2">
+        <div className="w-2/5">
           <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
             {/* Client Investment Profile Pane */}
             <div className="border-b border-[#f3f4f6]">
@@ -97,7 +97,7 @@ export const Dashboard = () => {
           </div>
         </div>
         {/* Right Side - Results Analysis with Tabs */}
-        <div className="w-1/2">
+        <div className="w-3/5">
           <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
             {/* Summary Bar */}
             <div className="border-b border-[#f3f4f6]">

@@ -10,7 +10,6 @@ import {
   ReferenceLine,
   Cell,
   Label,
-  ReferenceDot,
 } from 'recharts'
 import { LineChartIcon } from 'lucide-react'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
@@ -80,9 +79,10 @@ export const CashflowChart = () => {
       <text
         x={viewBox.x + 10}
         y={viewBox.y - 5}
-        fill="#9CA3AF"
-        fontSize={11}
-        fontWeight={500}
+        fill="#374151"
+        fontSize={12}
+        fontWeight={400}
+        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Break-even
       </text>
@@ -97,9 +97,10 @@ export const CashflowChart = () => {
       <text
         x={viewBox.x + 10}
         y={viewBox.y - 5}
-        fill="#F59E0B"
-        fontSize={11}
-        fontWeight={600}
+        fill="#374151"
+        fontSize={12}
+        fontWeight={400}
+        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Income Goal: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
@@ -113,10 +114,11 @@ export const CashflowChart = () => {
       <text
         x={props.x}
         y={props.y - 10}
-        fill="#10B981"
-        fontSize={11}
-        fontWeight={600}
+        fill="#374151"
+        fontSize={12}
+        fontWeight={400}
         textAnchor="middle"
+        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         💚 Cash Flow Positive: {cashflowPositiveYear}
       </text>
@@ -130,10 +132,11 @@ export const CashflowChart = () => {
       <text
         x={props.x}
         y={props.y - 10}
-        fill="#10B981"
-        fontSize={11}
-        fontWeight={600}
+        fill="#374151"
+        fontSize={12}
+        fontWeight={400}
         textAnchor="middle"
+        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Income: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
@@ -146,24 +149,14 @@ export const CashflowChart = () => {
     if (!viewBox || !finalDataPoint) return null
     return (
       <g>
-        <rect
-          x={viewBox.x - 85}
-          y={viewBox.y - 20}
-          width={80}
-          height={18}
-          fill="white"
-          fillOpacity={0.95}
-          stroke="#e5e7eb"
-          strokeWidth={1}
-          rx={4}
-        />
         <text
           x={viewBox.x - 45}
           y={viewBox.y - 8}
-          fill="#10B981"
-          fontSize={10}
-          fontWeight={600}
+          fill="#374151"
+          fontSize={12}
+          fontWeight={400}
           textAnchor="middle"
+          fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         >
           Income: ${(finalDataPoint.cashflow / 1000).toFixed(0)}k/year
         </text>
@@ -184,7 +177,7 @@ export const CashflowChart = () => {
           <BarChart
             data={data}
             margin={{
-              top: 30,
+              top: 40,
               right: 100,
               left: 10,
               bottom: 5,
@@ -195,6 +188,7 @@ export const CashflowChart = () => {
               dataKey="year"
               tick={{
                 fontSize: 11,
+                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
               axisLine={{
@@ -208,6 +202,7 @@ export const CashflowChart = () => {
               tickFormatter={formatYAxis}
               tick={{
                 fontSize: 11,
+                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
               axisLine={{
@@ -251,9 +246,8 @@ export const CashflowChart = () => {
             {incomeGoalReached && (
               <ReferenceLine
                 x={incomeGoalReached.year}
-                stroke="#10B981"
-                strokeWidth={2}
-                strokeDasharray="3 3"
+                stroke="transparent"
+                strokeWidth={0}
               >
                 <Label content={<GoalAchievedLabel />} position="top" />
               </ReferenceLine>

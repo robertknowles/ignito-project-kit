@@ -54,7 +54,7 @@ export function PropertyTimeline({
   const currentYear = new Date().getFullYear();
 
   const formatCurrency = (amount: number) => {
-    return amount.toLocaleString('en-US', {
+    return '$' + amount.toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });

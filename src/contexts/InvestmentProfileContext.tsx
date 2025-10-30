@@ -18,7 +18,7 @@ export interface InvestmentProfileData {
   serviceabilityRatio: number; // Rental income multiplier for debt serviceability (1.0-1.2)
   // NEW: Engine fine-tuning parameters
   equityReleaseFactor: number; // Factor to slow down equity recycling (0.5-0.7)
-  depositBuffer: number; // Extra cash buffer required for deposits (£30k)
+  depositBuffer: number; // Extra cash buffer required for deposits ($30k)
   rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
   // NEW: Growth curve
   growthCurve: GrowthCurve; // Tiered growth: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
@@ -56,12 +56,12 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
     // NEW: Dual serviceability model
-    baseSalary: 60000, // £60,000 annual salary
+    baseSalary: 60000, // $60,000 annual salary
     salaryServiceabilityMultiplier: 4.0, // 4x salary lending capacity (reduced from 5x)
     serviceabilityRatio: 1.2, // 120% rental income serviceability ratio (tightened)
     // NEW: Engine fine-tuning parameters
     equityReleaseFactor: 0.35, // 35% of equity available for recycling (reduced)
-    depositBuffer: 40000, // £40k extra cash buffer for deposits
+    depositBuffer: 40000, // $40k extra cash buffer for deposits
     rentFactor: 0.75, // 75% factor to temper rental income boost
     // NEW: Growth curve
     growthCurve: {

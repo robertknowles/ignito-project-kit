@@ -72,10 +72,10 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
   
   const formatCurrency = (value: number, compact = false) => {
     if (compact) {
-      if (value >= 1000000) return `£${(value / 1000000).toFixed(1)}M`;
-      if (value >= 1000) return `£${(value / 1000).toFixed(0)}k`;
+      if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+      if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
     }
-    return `£${value.toLocaleString()}`;
+    return `$${value.toLocaleString()}`;
   };
   
   const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
@@ -637,45 +637,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
           })}
         </tbody>
       </table>
-      
-      {/* Key Assumptions - Clean Table Format */}
-      <div className="mt-4 bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
-          <h4 className="font-semibold text-sm">🔑 Key Assumptions</h4>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">Interest Rate</span>
-              <span className="font-medium">6.0%</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">Expense Ratio</span>
-              <span className="font-medium">30% + 3%</span>
-            </div>
-          </div>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">Acquisition Costs</span>
-              <span className="font-medium">Stamp Duty + LMI + Fees</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">LVR Limits</span>
-              <span className="font-medium">80%</span>
-            </div>
-          </div>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">Serviceability</span>
-              <span className="font-medium">10% + 70% rental</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">Loan Type</span>
-              <span className="font-medium">IO or P&I (per property)</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

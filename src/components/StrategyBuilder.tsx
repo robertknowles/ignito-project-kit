@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ClipboardIcon, SlidersIcon, Plus, X } from 'lucide-react'
+import { ClipboardIcon, SlidersIcon, Plus, X, Pause } from 'lucide-react'
 import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
@@ -53,7 +53,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
       maximumFractionDigits: 0,
     })
       .format(value)
-      .replace('$', '')
   }
   // Render only the client profile section
   if (profileOnly) {
@@ -81,7 +80,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$10k</span>
-            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.depositPool)}</span>
+            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.depositPool)}</span>
             <span className="text-xs text-[#6b7280]">$500k</span>
           </div>
         </div>
@@ -107,7 +106,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$100k</span>
-            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.borrowingCapacity)}</span>
+            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.borrowingCapacity)}</span>
             <span className="text-xs text-[#6b7280]">$2M</span>
           </div>
         </div>
@@ -133,7 +132,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.portfolioValue)}</span>
+            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.portfolioValue)}</span>
             <span className="text-xs text-[#6b7280]">$5M</span>
           </div>
         </div>
@@ -159,7 +158,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.currentDebt)}</span>
+            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.currentDebt)}</span>
             <span className="text-xs text-[#6b7280]">$4M</span>
           </div>
         </div>
@@ -185,15 +184,12 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">${formatCurrency(profile.annualSavings)}</span>
+            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.annualSavings)}</span>
             <span className="text-xs text-[#6b7280]">$100k</span>
           </div>
         </div>
         {/* Investment Goals Section */}
         <div className="mb-5">
-          <label className="block text-xs font-normal text-[#374151] mb-3">
-            Investment Goals
-          </label>
           {/* Equity Goal Slider */}
           <div className="mb-3">
             <div className="mb-1">
@@ -216,7 +212,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">${formatCurrency(profile.equityGoal)}</span>
+              <span className="text-xs text-[#374151]">{formatCurrency(profile.equityGoal)}</span>
             </div>
           </div>
           {/* Cashflow Goal Slider */}
@@ -241,7 +237,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               />
             </div>
             <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">${formatCurrency(profile.cashflowGoal)}</span>
+              <span className="text-xs text-[#374151]">{formatCurrency(profile.cashflowGoal)}</span>
             </div>
           </div>
         </div>
@@ -321,10 +317,13 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           })}
           
           {/* Pause Period Block */}
-          <div className="bg-gray-50 rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 transition-colors">
+          <div className="bg-white rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">⏸️ Pause Period</h3>
+                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Pause size={16} className="text-gray-400" />
+                  Pause Period
+                </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Strategic pause in acquisitions
                 </p>
