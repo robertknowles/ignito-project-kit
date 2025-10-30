@@ -229,6 +229,7 @@ export const DecisionEngineView: React.FC = () => {
             cost: prop.cost,
             deposit: prop.depositRequired,
             loanAmount: prop.loanAmount,
+            loanType: prop.loanType,
             year,
             displayPeriod: prop.displayPeriod,
             currentValue: prop.cost,

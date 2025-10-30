@@ -215,6 +215,7 @@ export interface YearBreakdownData {
     cost: number;
     deposit: number;
     loanAmount: number;
+    loanType?: 'IO' | 'PI';
     year: number;
     displayPeriod: string;
     currentValue: number; // NEW: Current value with growth
