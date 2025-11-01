@@ -47,8 +47,8 @@ export const Navbar = () => {
     try {
       setDropdownOpen(false)
       await signOut()
-      // No need to navigate - ProtectedRoute will automatically redirect to /login
-      // when auth state changes to null
+      // Redirect to landing page after logout
+      navigate('/')
     } catch (error) {
       console.error('Error during logout:', error)
     }

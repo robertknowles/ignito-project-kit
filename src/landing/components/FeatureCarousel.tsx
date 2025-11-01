@@ -6,6 +6,7 @@ interface Feature {
   title: string;
   description: string;
   highlight: boolean;
+  videoUrl?: string;
 }
 
 export const FeatureCarousel = () => {
@@ -13,38 +14,32 @@ export const FeatureCarousel = () => {
   
   const features: Feature[] = [
     {
-      title: 'Create client plans in minutes',
-      description: 'Build professional property roadmaps quickly without complex spreadsheets or manual calculations.',
-      highlight: true
+      title: 'Investment Profile',
+      description: 'Create comprehensive investment profiles for your clients with detailed financial planning and property investment strategies.',
+      highlight: true,
+      videoUrl: 'https://player.vimeo.com/video/1132703996'
     },
     {
-      title: 'Visualise the journey',
-      description: 'Transform complex strategies into clear visual timelines that clients can instantly understand.',
-      highlight: true
+      title: 'Property Blocks',
+      description: 'Build and visualize property portfolios with customizable property blocks that show equity, growth, and timing.',
+      highlight: true,
+      videoUrl: 'https://player.vimeo.com/video/1132704003'
     },
     {
-      title: 'Predict future buying moments',
-      description: 'Automatically calculate optimal timing for next purchases based on equity growth and market conditions.',
-      highlight: true
+      title: 'Output',
+      description: 'Generate professional reports and visualizations that clearly communicate the investment strategy to your clients.',
+      highlight: true,
+      videoUrl: 'https://player.vimeo.com/video/1132704462'
     },
     {
-      title: 'Explain the strategy clearly',
-      description: 'Present investment plans with plain-English explanations that build client confidence.',
-      highlight: true
+      title: 'CRM',
+      description: 'Manage all your client relationships in one place with integrated client management and scenario tracking.',
+      highlight: true,
+      videoUrl: 'https://player.vimeo.com/video/1132704462'
     },
     {
-      title: 'Adjust with confidence',
-      description: 'Make changes to plans on the fly and see instant updates across all calculations.',
-      highlight: true
-    },
-    {
-      title: 'Export branded PDFs',
-      description: 'Generate professional, branded documents that showcase your expertise and attention to detail.',
-      highlight: true
-    },
-    {
-      title: 'Stay consistent, look sharp',
-      description: 'Maintain a polished, professional appearance across all client presentations and materials.',
+      title: 'Coming Soon',
+      description: 'More exciting features are on the way to enhance your property investment planning experience.',
       highlight: true
     }
   ];
@@ -52,7 +47,7 @@ export const FeatureCarousel = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveFeature(prev => (prev + 1) % features.length);
-    }, 4000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [features.length]);
 
@@ -115,47 +110,62 @@ export const FeatureCarousel = () => {
           {/* Feature Visualization */}
           <div className="relative sticky top-8">
             <div
-              className="p-16 shadow-2xl min-h-[600px] flex items-center justify-center"
+              className="shadow-2xl min-h-[600px] flex items-center justify-center overflow-hidden"
               style={{
                 backgroundColor: '#1E1E1E',
                 borderRadius: '16px'
               }}
             >
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-10 w-full border border-white/10 font-figtree">
-                <div className="text-white space-y-8">
-                  <div className="flex items-center gap-4">
-                    {features[activeFeature].badge && (
-                      <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded">
-                        {features[activeFeature].badge}
-                      </span>
-                    )}
-                    <h3 className="text-2xl font-normal tracking-[0.01em]">
-                      {features[activeFeature].title}
-                    </h3>
-                  </div>
-                  <p className="text-white/90 text-lg leading-relaxed font-normal tracking-[0.01em]">
-                    {features[activeFeature].description}
-                  </p>
-                  <div className="grid grid-cols-2 gap-6 pt-8">
-                    <div className="bg-white/10 rounded-lg p-8 border border-white/10">
-                      <div className="text-4xl font-normal mb-3">
-                        {activeFeature + 1}
+              {features[activeFeature].videoUrl ? (
+                <div className="w-full h-full min-h-[600px]">
+                  <iframe
+                    src={`${features[activeFeature].videoUrl}?background=1&autoplay=1&loop=1&autopause=0&muted=1&title=0&byline=0&portrait=0&controls=0`}
+                    className="w-full h-full min-h-[600px]"
+                    frameBorder="0"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    title={features[activeFeature].title}
+                  />
+                </div>
+              ) : (
+                <div className="p-16 w-full">
+                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-10 w-full border border-white/10 font-figtree">
+                    <div className="text-white space-y-8">
+                      <div className="flex items-center gap-4">
+                        {features[activeFeature].badge && (
+                          <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded">
+                            {features[activeFeature].badge}
+                          </span>
+                        )}
+                        <h3 className="text-2xl font-normal tracking-[0.01em]">
+                          {features[activeFeature].title}
+                        </h3>
                       </div>
-                      <div className="text-sm text-white/80 font-normal tracking-[0.01em]">
-                        Active Feature
-                      </div>
-                    </div>
-                    <div className="bg-white/10 rounded-lg p-8 border border-white/10">
-                      <div className="text-4xl font-normal mb-3">
-                        {features.length}
-                      </div>
-                      <div className="text-sm text-white/80 font-normal tracking-[0.01em]">
-                        Total Features
+                      <p className="text-white/90 text-lg leading-relaxed font-normal tracking-[0.01em]">
+                        {features[activeFeature].description}
+                      </p>
+                      <div className="grid grid-cols-2 gap-6 pt-8">
+                        <div className="bg-white/10 rounded-lg p-8 border border-white/10">
+                          <div className="text-4xl font-normal mb-3">
+                            {activeFeature + 1}
+                          </div>
+                          <div className="text-sm text-white/80 font-normal tracking-[0.01em]">
+                            Active Feature
+                          </div>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-8 border border-white/10">
+                          <div className="text-4xl font-normal mb-3">
+                            {features.length}
+                          </div>
+                          <div className="text-sm text-white/80 font-normal tracking-[0.01em]">
+                            Total Features
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
             {/* Carousel Controls */}
             <div className="flex items-center justify-center gap-6 mt-10">
