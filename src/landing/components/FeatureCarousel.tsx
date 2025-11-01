@@ -35,7 +35,7 @@ export const FeatureCarousel = () => {
       title: 'CRM',
       description: 'Manage all your client relationships in one place with integrated client management and scenario tracking.',
       highlight: true,
-      videoUrl: 'https://player.vimeo.com/video/1132704462'
+      videoUrl: 'https://player.vimeo.com/video/1132704471'
     },
     {
       title: 'Coming Soon',
