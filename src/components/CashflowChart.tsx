@@ -79,10 +79,10 @@ export const CashflowChart = () => {
       <text
         x={viewBox.x + 10}
         y={viewBox.y - 5}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontWeight={500}
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Break-even
       </text>
@@ -97,10 +97,10 @@ export const CashflowChart = () => {
       <text
         x={viewBox.x + 10}
         y={viewBox.y - 5}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontWeight={500}
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Income Goal: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
@@ -114,11 +114,11 @@ export const CashflowChart = () => {
       <text
         x={props.x}
         y={props.y - 10}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
+        fontWeight={500}
         textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         💚 Cash Flow Positive: {cashflowPositiveYear}
       </text>
@@ -132,11 +132,11 @@ export const CashflowChart = () => {
       <text
         x={props.x}
         y={props.y - 10}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
+        fontWeight={500}
         textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Income: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
       </text>
@@ -152,11 +152,11 @@ export const CashflowChart = () => {
         <text
           x={viewBox.x - 45}
           y={viewBox.y - 8}
-          fill="#374151"
+          fill="#9ca3af"
           fontSize={12}
-          fontWeight={400}
+          fontWeight={500}
           textAnchor="middle"
-          fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         >
           Income: ${(finalDataPoint.cashflow / 1000).toFixed(0)}k/year
         </text>
@@ -188,7 +188,7 @@ export const CashflowChart = () => {
               dataKey="year"
               tick={{
                 fontSize: 11,
-                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
               axisLine={{
@@ -202,7 +202,7 @@ export const CashflowChart = () => {
               tickFormatter={formatYAxis}
               tick={{
                 fontSize: 11,
-                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
               axisLine={{

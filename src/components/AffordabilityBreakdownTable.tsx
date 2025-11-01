@@ -80,23 +80,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
   
   const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
   
-  // Determine event description
-  const getEventDescription = (year: any) => {
-    if (year.status === 'purchased') {
-      return `✅ BUY Prop #${year.propertyNumber || 1}`;
-    }
-    if (year.equityRelease > 0) {
-      return `🔄 Equity Release`;
-    }
-    if (year.gapRule) {
-      return '-';
-    }
-    if (year.status === 'blocked') {
-      return '-';
-    }
-    return 'Initial State';
-  };
-  
   // Determine decision status
   const getDecisionStatus = (year: any) => {
     if (year.status === 'purchased') return 'PURCHASED';
@@ -111,7 +94,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
         <thead className="sticky top-0 z-10">
           <tr className="bg-gray-50 border-b-2 border-gray-200">
             <th className="text-left p-3 font-semibold text-sm text-gray-700">Year</th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">Events</th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
               Portfolio Value/Equity
             </th>
@@ -171,12 +153,6 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       <span>{displayYear}</span>
                     </div>
-                  </td>
-                  
-                  <td className="p-3">
-                    <span className="text-sm font-medium">
-                      {getEventDescription(year)}
-                    </span>
                   </td>
                   
                   <td className="p-3">
@@ -251,7 +227,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                 {/* Expanded Detail Row */}
                 {isExpanded && (
                   <tr className="bg-gray-50 border-b">
-                    <td colSpan={10} className="py-3 px-4">
+                    <td colSpan={9} className="py-3 px-4">
                       <div className="space-y-3 text-xs">
                         
                         {/* ROW 1: Annual Cashflow & Funding (4 sections) - Reordered */}

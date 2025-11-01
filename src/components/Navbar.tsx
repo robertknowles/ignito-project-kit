@@ -44,9 +44,14 @@ export const Navbar = () => {
     }
   }, [])
   const handleLogout = async () => {
-    await signOut()
-    setDropdownOpen(false)
-    navigate('/')
+    try {
+      setDropdownOpen(false)
+      await signOut()
+      // No need to navigate - ProtectedRoute will automatically redirect to /login
+      // when auth state changes to null
+    } catch (error) {
+      console.error('Error during logout:', error)
+    }
   }
   const handleSettings = () => {
     // Navigate to settings page or open settings modal

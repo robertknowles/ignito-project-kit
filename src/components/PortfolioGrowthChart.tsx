@@ -114,11 +114,11 @@ export const PortfolioGrowthChart = () => {
       <text
         x={viewBox.x + viewBox.width - 10}
         y={viewBox.y - 5}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
+        fontWeight={500}
         textAnchor="end"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Equity Goal: ${(profile.equityGoal / 1000000).toFixed(1)}M
       </text>
@@ -132,11 +132,11 @@ export const PortfolioGrowthChart = () => {
       <text
         x={props.cx}
         y={props.cy - 20}
-        fill="#374151"
+        fill="#9ca3af"
         fontSize={12}
-        fontWeight={400}
+        fontWeight={500}
         textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Goal Reached: {equityGoalYear}
       </text>
@@ -149,36 +149,25 @@ export const PortfolioGrowthChart = () => {
     if (!viewBox || !finalDataPoint) return null
     return (
       <g>
-        <rect
-          x={viewBox.x - 100}
-          y={viewBox.y - 45}
-          width={95}
-          height={40}
-          fill="white"
-          fillOpacity={0.95}
-          stroke="#e5e7eb"
-          strokeWidth={1}
-          rx={4}
-        />
         <text
           x={viewBox.x - 52}
           y={viewBox.y - 28}
-          fill="#374151"
+          fill="#9ca3af"
           fontSize={12}
-          fontWeight={400}
+          fontWeight={500}
           textAnchor="middle"
-          fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         >
           Portfolio: ${(finalDataPoint.portfolioValue / 1000000).toFixed(1)}M
         </text>
         <text
           x={viewBox.x - 52}
           y={viewBox.y - 16}
-          fill="#374151"
+          fill="#9ca3af"
           fontSize={12}
-          fontWeight={400}
+          fontWeight={500}
           textAnchor="middle"
-          fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         >
           Equity: ${(finalDataPoint.equity / 1000000).toFixed(1)}M
         </text>
@@ -210,7 +199,7 @@ export const PortfolioGrowthChart = () => {
               dataKey="year"
               tick={{
                 fontSize: 12,
-                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
             />
@@ -218,7 +207,7 @@ export const PortfolioGrowthChart = () => {
               tickFormatter={formatYAxis}
               tick={{
                 fontSize: 12,
-                fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
             />
