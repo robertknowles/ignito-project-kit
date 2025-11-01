@@ -26,7 +26,7 @@ export function AppRouter() {
               <ScenarioSaveProvider>
                 <BrowserRouter>
                   <Routes>
-                    {/* Public landing page - redirects to /dashboard if authenticated */}
+                    {/* Public landing page - redirects to /clients if authenticated */}
                     <Route 
                       path="/" 
                       element={
@@ -36,7 +36,7 @@ export function AppRouter() {
                       } 
                     />
                     
-                    {/* Public auth pages - redirect to /dashboard if authenticated */}
+                    {/* Public auth pages - redirect to /clients if authenticated */}
                     <Route 
                       path="/login" 
                       element={

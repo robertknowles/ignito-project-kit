@@ -41,13 +41,13 @@ export function SignUp() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
+    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-10 h-10 bg-[#3b82f6] bg-opacity-60 text-white rounded-md flex items-center justify-center">
-                <UserIcon size={20} />
+              <div className="w-12 h-12 bg-white border-2 border-[#e5e7eb] rounded-lg flex items-center justify-center">
+                <UserIcon size={20} className="text-[#6b7280]" />
               </div>
             </div>
             <h2 className="text-2xl font-medium text-[#374151]">
@@ -57,13 +57,13 @@ export function SignUp() {
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-[#3b82f6] hover:text-[#2563eb] font-medium"
+                className="text-[#374151] hover:text-[#111827] font-medium underline"
               >
                 Sign in
               </Link>
             </p>
           </div>
-          <div className="bg-white py-8 px-6 shadow-sm rounded-lg">
+          <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-[#f3f4f6]">
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-600">{error}</p>
@@ -96,7 +96,7 @@ export function SignUp() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
@@ -120,7 +120,7 @@ export function SignUp() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -144,7 +144,7 @@ export function SignUp() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
+                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
                     placeholder="••••••••"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -181,7 +181,7 @@ export function SignUp() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
+                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
                     placeholder="••••••••"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -209,18 +209,18 @@ export function SignUp() {
                   required
                   checked={agreeToTerms}
                   onChange={(e) => setAgreeToTerms(e.target.checked)}
-                  className="h-4 w-4 text-[#3b82f6] focus:ring-[#3b82f6] border-[#e5e7eb] rounded"
+                  className="h-4 w-4 text-[#6b7280] focus:ring-[#9ca3af] border-[#e5e7eb] rounded"
                 />
                 <label
                   htmlFor="agree-terms"
                   className="ml-2 block text-sm text-[#6b7280]"
                 >
                   I agree to the{' '}
-                  <a href="#" className="text-[#3b82f6] hover:text-[#2563eb]">
+                  <a href="#" className="text-[#374151] hover:text-[#111827] underline">
                     Terms of Service
                   </a>{' '}
                   and{' '}
-                  <a href="#" className="text-[#3b82f6] hover:text-[#2563eb]">
+                  <a href="#" className="text-[#374151] hover:text-[#111827] underline">
                     Privacy Policy
                   </a>
                 </label>
@@ -229,7 +229,7 @@ export function SignUp() {
                 <button
                   type="submit"
                   disabled={loading || success}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-[#2563eb] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#6b7280] hover:bg-[#374151] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Creating account...' : success ? 'Account created!' : 'Create account'}
                 </button>

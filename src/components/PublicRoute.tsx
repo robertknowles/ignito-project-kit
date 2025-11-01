@@ -17,9 +17,9 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
-  // If user is authenticated, redirect to dashboard
+  // If user is authenticated, redirect to clients page
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/clients" replace />;
   }
 
   // If not authenticated, show the public page (landing page)

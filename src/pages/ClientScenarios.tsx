@@ -134,7 +134,7 @@ export const ClientScenarios = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f9fafb] font-sans">
+    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
       <Navbar />
       <div className="flex-1 overflow-hidden pb-8 px-8">
         <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">

@@ -8,7 +8,7 @@ import { FooterCTA } from './components/FooterCTA';
 
 export function Landing() {
   return (
-    <div className="min-h-screen bg-white font-figtree">
+    <div className="landing-page min-h-screen bg-white">
       <Navigation />
       <HeroSection />
       <FeatureCarousel />

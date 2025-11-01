@@ -61,9 +61,36 @@
     @apply bg-background text-foreground;
   }
 
-  /* Landing page font defaults */
-  h1, h2, h3, h4, h5, h6 {
+  /* Landing page scoped fonts */
+  .landing-page {
+    font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 500;
+  }
+
+  .landing-page h1,
+  .landing-page h2,
+  .landing-page h3,
+  .landing-page h4,
+  .landing-page h5,
+  .landing-page h6 {
     font-family: 'Hedvig Letters Serif', Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+  }
+
+  /* Main app scoped fonts */
+  .main-app {
+    font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 500;
+  }
+
+  .main-app h1,
+  .main-app h2,
+  .main-app h3,
+  .main-app h4,
+  .main-app h5,
+  .main-app h6 {
+    font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
   }
 }
 
