@@ -5,6 +5,14 @@ import { useDataAssumptions, type PropertyAssumption } from '../contexts/DataAss
 import type { TimelineProperty } from '../types/property';
 import { calculateAcquisitionCosts } from '../utils/costsCalculator';
 import { useClient } from '../contexts/ClientContext';
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
+import { calculateOneOffCosts, calculateDepositBalance } from '../utils/oneOffCostsCalculator';
+import { calculateLMI, calculateLoanAmount } from '../utils/lmiCalculator';
+import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { calculateLandTax } from '../utils/landTaxCalculator';
+import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
+import { calculateCascadeEffect, initializeCascadeState } from '../utils/cascadeCalculator';
 
 // Period conversion constants
 const PERIODS_PER_YEAR = 2;
@@ -46,6 +54,7 @@ export const useAffordabilityCalculator = () => {
   const { selections, propertyTypes, pauseBlocks } = usePropertySelection();
   const { globalFactors, getPropertyData, propertyAssumptions } = useDataAssumptions();
   const { activeClient } = useClient();
+  const { getInstance, instances } = usePropertyInstance();
   
   // Per-instance loan type state (keyed by instanceId)
   const [timelineLoanTypes, setTimelineLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
@@ -859,15 +868,39 @@ export const useAffordabilityCalculator = () => {
           const propertyData = getPropertyData(purchase.title);
           
           if (propertyData && purchase.period <= purchasePeriod) {
+            // Get property instance if it exists (user customizations)
+            const propertyInstance = getInstance(purchase.instanceId);
+            
+            // Use instance data if available, otherwise use defaults
+            const propertyDetails = propertyInstance 
+              ? applyPropertyOverrides(propertyData, propertyInstance)
+              : propertyData;
+            
             // Calculate current property value with tiered growth
             const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-            const yieldRate = parseFloat(propertyData.yield) / 100;
-            const rentalIncome = currentValue * yieldRate * rentalRecognitionRate;
-            const interestRate = parseFloat(globalFactors.interestRate) / 100;
-            const purchaseLoanType = purchase.loanType || 'IO';
-            const propertyLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, purchaseLoanType);
-            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-            const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
+            
+            // Calculate land tax if not overridden
+            const landTax = propertyDetails.landTaxOverride ?? calculateLandTax(
+              propertyDetails.state,
+              currentValue
+            );
+            
+            // Update property details with calculated land tax for cashflow calculation
+            const propertyWithLandTax = {
+              ...propertyDetails,
+              landTaxOverride: propertyDetails.landTaxOverride ?? landTax
+            };
+            
+            // Calculate detailed cashflow
+            const cashflowBreakdown = calculateDetailedCashflow(
+              propertyWithLandTax,
+              purchase.loanAmount
+            );
+            
+            // Use net annual cashflow instead of old 30% rule
+            const rentalIncome = cashflowBreakdown.adjustedIncome;
+            const propertyLoanPayment = cashflowBreakdown.loanInterest + cashflowBreakdown.principalPayments;
+            const propertyExpenses = cashflowBreakdown.totalOperatingExpenses + cashflowBreakdown.totalNonDeductibleExpenses - cashflowBreakdown.potentialDeductions;
             
             grossRentalIncome += rentalIncome;
             loanInterest += propertyLoanPayment;
@@ -1127,11 +1160,25 @@ export const useAffordabilityCalculator = () => {
     };
   }, [profile, globalFactors, calculatedValues, getPropertyData]);
 
+  // Trigger recalculation when property instances change
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  useEffect(() => {
+    // Debounce recalculation to avoid excessive updates
+    setIsRecalculating(true);
+    const timer = setTimeout(() => {
+      setIsRecalculating(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [instances]);
+
   // Only expose the memoized result
   return {
     timelineProperties: calculateTimelineProperties,
     isCalculating: false, // Could add state tracking if needed
     calculateAffordabilityForProperty: calculateAffordabilityForPeriod,
-    updateTimelinePropertyLoanType
+    updateTimelinePropertyLoanType,
+    isRecalculating,
   };
 };

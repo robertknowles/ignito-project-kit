@@ -2,8 +2,10 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { useClient } from './ClientContext';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
+import { usePropertyInstance } from './PropertyInstanceContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 export interface ScenarioData {
   propertySelections: { [propertyId: string]: number };
@@ -17,6 +19,7 @@ export interface ScenarioData {
     equityGrowth: number;
     cashflow: number;
   };
+  propertyInstances?: Record<string, PropertyInstanceDetails>;
   lastSaved: string;
 }
 
@@ -42,6 +45,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { activeClient } = useClient();
   const { selections, resetSelections, updatePropertyQuantity } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
+  const propertyInstanceContext = usePropertyInstance();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +58,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return {
       propertySelections: selections,
       investmentProfile: profile,
+      propertyInstances: propertyInstanceContext.instances,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, profile]);
+  }, [selections, profile, propertyInstanceContext.instances]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {
@@ -162,6 +167,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Apply investment profile
         updateProfile(scenarioData.investmentProfile);
         
+        // Load property instances
+        if (scenarioData.propertyInstances) {
+          propertyInstanceContext.setInstances(scenarioData.propertyInstances);
+        } else {
+          propertyInstanceContext.setInstances({});
+        }
+        
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
@@ -206,7 +218,11 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         const hasProfileChanges = JSON.stringify(currentData.investmentProfile) !== JSON.stringify(lastSavedData.investmentProfile);
         
-        const hasChanges = hasSelectionChanges || hasProfileChanges;
+        const currentInstances = JSON.stringify(propertyInstanceContext.instances);
+        const savedInstances = JSON.stringify(lastSavedData.propertyInstances || {});
+        const hasInstanceChanges = currentInstances !== savedInstances;
+        
+        const hasChanges = hasSelectionChanges || hasProfileChanges || hasInstanceChanges;
         setHasUnsavedChanges(hasChanges);
       } else if (activeClient && !lastSavedData) {
         // New client with data = unsaved changes
@@ -214,7 +230,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(hasData);
       }
     }, 150); // 150ms debounce
-  }, [selections, profile, activeClient, lastSavedData, getCurrentScenarioData]);
+  }, [selections, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {
     hasUnsavedChanges,

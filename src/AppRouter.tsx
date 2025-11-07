@@ -10,6 +10,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
 import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
+import { PropertyInstanceProvider } from './contexts/PropertyInstanceContext'
 import { ClientProvider } from './contexts/ClientContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -23,8 +24,9 @@ export function AppRouter() {
         <DataAssumptionsProvider>
           <PropertySelectionProvider>
             <InvestmentProfileProvider>
-              <ScenarioSaveProvider>
-                <BrowserRouter>
+              <PropertyInstanceProvider>
+                <ScenarioSaveProvider>
+                  <BrowserRouter>
                   <Routes>
                     {/* Public landing page - redirects to /clients if authenticated */}
                     <Route 
@@ -83,10 +85,11 @@ export function AppRouter() {
                   <Toaster />
                 </BrowserRouter>
               </ScenarioSaveProvider>
-            </InvestmentProfileProvider>
-          </PropertySelectionProvider>
-        </DataAssumptionsProvider>
-      </ClientProvider>
-    </AuthProvider>
+            </PropertyInstanceProvider>
+          </InvestmentProfileProvider>
+        </PropertySelectionProvider>
+      </DataAssumptionsProvider>
+    </ClientProvider>
+  </AuthProvider>
   )
 }

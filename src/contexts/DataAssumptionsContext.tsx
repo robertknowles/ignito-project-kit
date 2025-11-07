@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import propertyDefaults from '../data/property-defaults.json';
 
-export interface PropertyAssumption {
+export interface PropertyAssumption extends PropertyInstanceDetails {
+  // Keep existing fields for backward compatibility
   type: string;
   averageCost: string;
   yield: string;
@@ -42,6 +45,56 @@ interface DataAssumptionsProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Converts property defaults key to display name
+ */
+const keyToDisplayName = (key: string): string => {
+  const map: Record<string, string> = {
+    'units-apartments': 'Units / Apartments',
+    'villas-townhouses': 'Villas / Townhouses',
+    'houses-regional': 'Houses (Regional focus)',
+    'duplexes': 'Duplexes',
+    'small-blocks-3-4-units': 'Small Blocks (3-4 units)',
+    'metro-houses': 'Metro Houses',
+    'larger-blocks-10-20-units': 'Larger Blocks (10-20 units)',
+    'commercial-property': 'Commercial Property',
+  };
+  return map[key] || key;
+};
+
+/**
+ * Converts property defaults JSON to PropertyAssumption format
+ */
+const convertToPropertyAssumption = (key: string, defaults: PropertyInstanceDetails): PropertyAssumption => {
+  return {
+    // Existing fields (for backward compatibility)
+    type: keyToDisplayName(key),
+    averageCost: defaults.purchasePrice.toString(),
+    yield: ((defaults.rentPerWeek * 52 / defaults.purchasePrice) * 100).toFixed(1),
+    growthYear1: '12.5',
+    growthYears2to3: '10',
+    growthYear4: '7.5',
+    growthYear5plus: '6',
+    deposit: (100 - defaults.lvr).toString(),
+    loanType: defaults.loanProduct,
+    
+    // All 34 new fields
+    ...defaults,
+  };
+};
+
+/**
+ * Initialize default property assumptions from property-defaults.json
+ */
+const initializePropertyAssumptions = (): PropertyAssumption[] => {
+  return Object.keys(propertyDefaults).map(key => 
+    convertToPropertyAssumption(
+      key, 
+      propertyDefaults[key as keyof typeof propertyDefaults] as PropertyInstanceDetails
+    )
+  );
+};
+
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -53,107 +106,9 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     interestRate: '6',
   });
 
-  const [propertyAssumptions, setPropertyAssumptions] = useState<PropertyAssumption[]>([
-    {
-      type: 'Units / Apartments',
-      averageCost: '350000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '15',
-      loanType: 'IO',
-    },
-    {
-      type: 'Villas / Townhouses',
-      averageCost: '325000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '15',
-      loanType: 'IO',
-    },
-    {
-      type: 'Houses (Regional focus)',
-      averageCost: '350000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '15',
-      loanType: 'IO',
-    },
-    {
-      type: 'Granny Flats (add-on)',
-      averageCost: '195000',
-      yield: '9',
-      growthYear1: '0',
-      growthYears2to3: '0',
-      growthYear4: '0',
-      growthYear5plus: '0',
-      deposit: '100',
-      loanType: 'IO',
-    },
-    {
-      type: 'Duplexes',
-      averageCost: '550000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '15',
-      loanType: 'IO',
-    },
-    {
-      type: 'Small Blocks (3-4 units)',
-      averageCost: '900000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '20',
-      loanType: 'IO',
-    },
-    {
-      type: 'Metro Houses',
-      averageCost: '800000',
-      yield: '4',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '15',
-      loanType: 'IO',
-    },
-    {
-      type: 'Larger Blocks (10-20 units)',
-      averageCost: '3500000',
-      yield: '7',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '45',
-      loanType: 'IO',
-    },
-    {
-      type: 'Commercial Property',
-      averageCost: '3000000',
-      yield: '8',
-      growthYear1: '12.5',
-      growthYears2to3: '10',
-      growthYear4: '7.5',
-      growthYear5plus: '6',
-      deposit: '40',
-      loanType: 'IO',
-    },
-  ]);
+  const [propertyAssumptions, setPropertyAssumptions] = useState<PropertyAssumption[]>(
+    initializePropertyAssumptions()
+  );
 
   const saveAssumptionsToProfile = useCallback(async () => {
     if (!user) {
