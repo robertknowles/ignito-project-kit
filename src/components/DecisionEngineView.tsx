@@ -1,9 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import { usePropertySelection } from '@/contexts/PropertySelectionContext';
-import { AffordabilityBreakdownTable } from './AffordabilityBreakdownTable';
+import { DepositTestFunnel } from './DepositTestFunnel';
+import { ServiceabilityTestFunnel } from './ServiceabilityTestFunnel';
+import { BorrowingCapacityTestFunnel } from './BorrowingCapacityTestFunnel';
+import { ChevronDown, ChevronRight, Activity, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { YearBreakdownData } from '@/types/property';
 
 // Period conversion constants
@@ -54,6 +58,7 @@ export const DecisionEngineView: React.FC = () => {
   const { profile } = useInvestmentProfile();
   const { globalFactors } = useDataAssumptions();
   const { selections, propertyTypes } = usePropertySelection();
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
 
   // Generate ALL years (2025-2050) by interpolating between purchase events
   const yearBreakdownData = useMemo((): YearBreakdownData[] => {
@@ -259,13 +264,207 @@ export const DecisionEngineView: React.FC = () => {
     return years;
   }, [timelineProperties, profile.timelineYears, globalFactors.interestRate, globalFactors.growthRate]);
 
+  // Handle empty state
+  if (!yearBreakdownData || yearBreakdownData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600 font-medium mb-2">No Properties Selected</p>
+          <p className="text-sm text-gray-500">Select properties from the Building Blocks to see the decision engine analysis</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Aggregate periods into years - take the last period of each year (H2) but merge purchases
+  const yearlyData = yearBreakdownData
+    .filter((row, index, array) => {
+      const currentYear = Math.floor(row.year);
+      const nextYear = array[index + 1] ? Math.floor(array[index + 1].year) : null;
+      return currentYear !== nextYear; // Keep only the last period of each year
+    })
+    .map((row) => {
+      // Find all periods from the same year and merge their purchases
+      const currentYear = Math.floor(row.year);
+      const samePeriods = yearBreakdownData.filter(r => Math.floor(r.year) === currentYear);
+      const allPurchases = samePeriods.flatMap(p => p.purchases || []);
+      
+      return {
+        ...row,
+        purchases: allPurchases
+      };
+    });
+
+  const toggleYear = (year: number) => {
+    setExpandedYears(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(year)) {
+        newExpanded.delete(year);
+      } else {
+        newExpanded.add(year);
+      }
+      return newExpanded;
+    });
+  };
+
+  const formatCurrency = (value: number, compact = false) => {
+    if (compact) {
+      if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+      if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
+    }
+    return `$${value.toLocaleString()}`;
+  };
+
+  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
+
+  // Determine decision status
+  const getDecisionStatus = (year: any) => {
+    if (year.status === 'purchased') return 'PURCHASED';
+    if (year.gapRule) return 'Waiting...';
+    if (!year.depositTest?.pass || !year.serviceabilityTest?.pass || !year.borrowingCapacityTest?.pass) return 'Blocked';
+    return '-';
+  };
+
   return (
-    <div>
-      <AffordabilityBreakdownTable 
-        data={yearBreakdownData} 
-        isCalculating={false}
-        hasChanges={false}
-      />
+    <div className="w-full">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-lg">
+        <h2 className="text-2xl font-bold mb-2">Decision Engine Analysis</h2>
+        <p className="text-blue-100">Year-by-year breakdown of affordability tests and portfolio growth</p>
+      </div>
+
+      {/* Year-by-Year Funnels */}
+      <div className="space-y-6 p-6 bg-gray-50">
+        {yearlyData.map((year) => {
+          const displayYear = Math.floor(year.year);
+          const isExpanded = expandedYears.has(displayYear);
+          const allTestsPass = year.depositTest?.pass && year.serviceabilityTest?.pass && year.borrowingCapacityTest?.pass;
+
+          return (
+            <div key={displayYear} className="bg-white rounded-lg shadow-lg overflow-hidden">
+              {/* Year Header - Clickable with Essential Metrics */}
+              <div 
+                className={`p-3 cursor-pointer transition-colors border-b ${
+                  year.status === 'purchased' ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+                onClick={() => toggleYear(displayYear)}
+              >
+                <div className="flex items-center gap-3 text-sm overflow-x-auto">
+                  {/* Expand/Collapse Icon */}
+                  {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+                  
+                  {/* Year */}
+                  <span className="font-bold text-gray-800 whitespace-nowrap">
+                    Year {displayYear}
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Portfolio Value */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Portfolio:</span> <span className="font-medium">{formatCurrency(year.portfolioValue, true)}</span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Total Equity */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Equity:</span> <span className="font-medium">{formatCurrency(year.totalEquity, true)}</span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* LVR */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">LVR:</span> <span className="font-medium">{formatPercentage(year.lvr)}</span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Available Funds */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Available:</span> <span className="font-medium">{formatCurrency(year.availableDeposit, true)}</span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Deposit Test */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Deposit:</span> 
+                    <span className={`font-semibold ${year.depositTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                      {year.depositTest.pass ? 'PASS' : 'FAIL'}
+                    </span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Serviceability Test */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Serviceability:</span> 
+                    <span className={`font-semibold ${year.serviceabilityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                      {year.serviceabilityTest.pass ? 'PASS' : 'FAIL'}
+                    </span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Borrowing Capacity Test */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-gray-600">Borrowing:</span> 
+                    <span className={`font-semibold ${year.borrowingCapacityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                      {year.borrowingCapacityTest.pass ? 'PASS' : 'FAIL'}
+                    </span>
+                  </span>
+                  
+                  <span className="text-gray-300">|</span>
+                  
+                  {/* Purchase Status Badge - Only show if purchased */}
+                  {year.status === 'purchased' && (
+                    <Badge 
+                      variant="default"
+                      className="flex-shrink-0 bg-green-500"
+                    >
+                      PURCHASED
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Three Funnels - Side by Side */}
+              {isExpanded && (
+                <div className="p-6 bg-white">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Deposit Test Funnel */}
+                    <DepositTestFunnel yearData={year} />
+                    
+                    {/* Serviceability Test Funnel */}
+                    <ServiceabilityTestFunnel yearData={year} />
+                    
+                    {/* Borrowing Capacity Test Funnel */}
+                    <BorrowingCapacityTestFunnel yearData={year} />
+                  </div>
+
+                  {/* Overall Summary */}
+                  <div className={`mt-6 p-4 rounded-lg ${allTestsPass ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className="text-center">
+                      <h4 className={`text-lg font-bold mb-2 ${allTestsPass ? 'text-green-700' : 'text-red-700'}`}>
+                        {allTestsPass ? 'All Tests Passed' : 'One or More Tests Failed'}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {allTestsPass 
+                          ? 'This property purchase is feasible and can proceed'
+                          : 'This property purchase is blocked by one or more constraints'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
