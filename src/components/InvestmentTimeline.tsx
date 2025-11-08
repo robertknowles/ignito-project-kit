@@ -1,14 +1,18 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   CalendarIcon,
+  Pencil,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { AIStrategySummary } from './AIStrategySummary'
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
 import { LoanTypeToggle } from './LoanTypeToggle'
+import { PropertyDetailModal } from './PropertyDetailModal'
+import type { PropertyInstanceDetails } from '../types/propertyInstance'
 // Period conversion helpers
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
@@ -257,68 +261,213 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   loanType = 'IO',
   onLoanTypeChange,
 }) => {
-  const statusColors = {
-    feasible: 'text-[#374151]',
-    delayed: 'text-[#374151]',
-    challenging: 'text-[#374151]',
-  }
-  const statusDots = {
-    feasible: 'bg-[#10b981] bg-opacity-50',
-    delayed: 'bg-[#3b82f6] bg-opacity-60',
-    challenging: 'bg-[#3b82f6] bg-opacity-60',
-  }
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { getInstance, updateInstance, createInstance } = usePropertyInstance();
+  const { getPropertyData } = useDataAssumptions();
+  
+  // Get property instance data
+  const propertyInstance = instanceId ? getInstance(instanceId) : null;
+  const propertyDefaults = getPropertyData(type);
+  
+  // Fallback to safe defaults if both are undefined
+  const propertyData = propertyInstance || propertyDefaults || {
+    state: 'VIC',
+    purchasePrice: 350000,
+    valuationAtPurchase: 378000,
+    rentPerWeek: 471,
+    growthAssumption: 'High',
+    lvr: 85,
+    lmiWaiver: false,
+    loanProduct: 'IO',
+    interestRate: 6.5,
+    loanTerm: 30,
+    loanOffsetAccount: 0,
+  };
+  
+  // Calculate derived values
+  const calculateLMI = (purchasePrice: number, lvr: number, lmiWaiver: boolean) => {
+    if (lmiWaiver || lvr <= 80) return 0;
+    const loanAmount = purchasePrice * (lvr / 100);
+    if (lvr <= 85) return loanAmount * 0.015;
+    if (lvr <= 90) return loanAmount * 0.020;
+    if (lvr <= 95) return loanAmount * 0.035;
+    return loanAmount * 0.045;
+  };
+  
+  const lmi = calculateLMI(propertyData.purchasePrice, propertyData.lvr, propertyData.lmiWaiver);
+  const loanAmountCalc = (propertyData.purchasePrice * (propertyData.lvr / 100)) + lmi;
+  const yieldCalc = (propertyData.rentPerWeek * 52 / propertyData.purchasePrice * 100).toFixed(1);
+  const mvDiff = ((propertyData.purchasePrice / propertyData.valuationAtPurchase - 1) * 100).toFixed(1);
+  
+  // Inline edit handlers
+  const handleFieldUpdate = (field: keyof PropertyInstanceDetails, value: any) => {
+    if (!instanceId) return;
+    
+    // Create instance if it doesn't exist
+    if (!propertyInstance) {
+      createInstance(instanceId, type, 1);
+    }
+    
+    updateInstance(instanceId, { [field]: value });
+  };
+  
+  // Editable field component
+  const EditableField = ({ 
+    label, 
+    value, 
+    field, 
+    prefix = '', 
+    suffix = '',
+    type = 'number'
+  }: { 
+    label: string; 
+    value: any; 
+    field: keyof PropertyInstanceDetails; 
+    prefix?: string; 
+    suffix?: string;
+    type?: 'number' | 'text';
+  }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(value);
+    
+    const handleSave = () => {
+      const parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
+      handleFieldUpdate(field, parsedValue);
+      setIsEditing(false);
+    };
+    
+    if (isEditing) {
+      return (
+        <input
+          type={type}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Escape') {
+              setEditValue(value);
+              setIsEditing(false);
+            }
+          }}
+          autoFocus
+          className="inline-block w-20 px-1 py-0 text-sm border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      );
+    }
+    
+    return (
+      <span
+        onClick={() => setIsEditing(true)}
+        className="cursor-pointer hover:bg-blue-50 hover:text-blue-700 px-1 rounded transition-colors"
+        title="Click to edit"
+      >
+        {prefix}{value}{suffix}
+      </span>
+    );
+  };
   
   return (
-    <div className="relative bg-white rounded-lg border border-[#f3f4f6] shadow-sm">
-      <div className="flex items-center p-6">
-        {/* Year circle */}
-        <div className="flex-shrink-0 w-16 h-16 bg-white rounded-full flex items-center justify-center mr-6 border border-[#f3f4f6]">
-          <div className="text-center">
-            <div className={`text-xs font-medium ${
-              year === "Beyond Timeline" ? "text-[#dc2626]" : 
-              parseInt(year) > 2024 ? "text-[#111827]" : 
-              "text-[#6b7280]"
-            }`}>
-              {year === "Beyond Timeline" ? "N/A" : 
-               parseInt(year) > 2024 ? year : 
-               year}
-            </div>
-            <div className="text-[10px] text-[#9ca3af] mt-1">
-              {quarter}
-            </div>
-          </div>
+    <div className="relative bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+        <div className="flex items-center gap-1">
+          {getPropertyTypeIcon(type, 16, 'text-gray-600')}
         </div>
-        {/* Content */}
-        <div className="flex-1">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">{getPropertyTypeIcon(type, 18, 'text-[#6b7280]')}</div>
-              <h4 className="text-[#111827] font-medium">{type}</h4>
-            </div>
-            <div className="text-sm text-[#6b7280] mt-3 leading-relaxed font-normal">
-              Deposit: {deposit} • Loan: {loanAmount} • Purchase Price: {price}
-              <br />
-              <span className="text-[#9ca3af]">Portfolio Value: {portfolioValue} • Total Equity: {equity}</span>
-            </div>
-            {instanceId && onLoanTypeChange && (
-              <div className="mt-3">
-                <LoanTypeToggle
-                  loanType={loanType}
-                  onChange={(newLoanType) => onLoanTypeChange(instanceId, newLoanType)}
-                  size="sm"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Status indicator */}
-        <div className="ml-4 flex items-center">
-          <span className={`w-2 h-2 rounded-full ${statusDots[status]}`}></span>
-          <span className={`ml-2 text-xs ${statusColors[status]} font-normal`}>
-            {status}
-          </span>
+        <span className="font-medium text-gray-800">{type}</span>
+        <span>({propertyData.state})</span>
+        <span>|</span>
+        <span>Year: {year}</span>
+        <span>|</span>
+        <span>Growth: {propertyData.growthAssumption}</span>
+      </div>
+      
+      {/* Property Details Section */}
+      <div className="mb-3">
+        <div className="text-xs font-semibold text-green-700 mb-1">PROPERTY DETAILS</div>
+        <div className="text-sm text-gray-700">
+          <span>State: </span>
+          <EditableField label="State" value={propertyData.state} field="state" type="text" />
+          <span className="mx-2">|</span>
+          <span>Yield: </span>
+          <span>{yieldCalc}%</span>
+          <span className="mx-2">|</span>
+          <span>Rent: </span>
+          <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
         </div>
       </div>
+      
+      {/* Purchase Section */}
+      <div className="mb-3">
+        <div className="text-xs font-semibold text-green-700 mb-1">PURCHASE</div>
+        <div className="text-sm text-gray-700">
+          <span>Price: </span>
+          <EditableField 
+            label="Price" 
+            value={(propertyData.purchasePrice / 1000).toFixed(0)} 
+            field="purchasePrice" 
+            prefix="$" 
+            suffix="k" 
+          />
+          <span className="mx-2">|</span>
+          <span>Valuation: </span>
+          <EditableField 
+            label="Valuation" 
+            value={(propertyData.valuationAtPurchase / 1000).toFixed(0)} 
+            field="valuationAtPurchase" 
+            prefix="$" 
+            suffix="k" 
+          />
+          <span className="mx-2">|</span>
+          <span>%MV: {mvDiff}%</span>
+        </div>
+      </div>
+      
+      {/* Finance Section */}
+      <div className="mb-4">
+        <div className="text-xs font-semibold text-green-700 mb-1">FINANCE</div>
+        <div className="text-sm text-gray-700">
+          <span>LVR: </span>
+          <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
+          <span className="mx-2">|</span>
+          <span>{propertyData.loanProduct} @ </span>
+          <EditableField label="Interest Rate" value={propertyData.interestRate} field="interestRate" suffix="%" />
+          <span> </span>
+          <EditableField label="Loan Term" value={propertyData.loanTerm} field="loanTerm" suffix=" yrs" />
+          <span className="mx-2">|</span>
+          <span>Loan: ${(loanAmountCalc / 1000).toFixed(0)}k</span>
+          <span className="mx-2">|</span>
+          <span>LMI: ${lmi.toLocaleString()}</span>
+          <span className="mx-2">|</span>
+          <span>Offset: ${propertyData.loanOffsetAccount.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      {/* Buttons */}
+      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+        <button
+          onClick={() => {/* Save is auto on blur */}}
+          className="text-sm text-green-700 font-medium hover:text-green-800"
+        >
+          [ Save Changes ]
+        </button>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="text-sm text-green-700 font-medium hover:text-green-800"
+        >
+          [ Expand Full Details → ]
+        </button>
+      </div>
+      
+      {/* Property Detail Modal */}
+      {instanceId && (
+        <PropertyDetailModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          instanceId={instanceId}
+          propertyType={type}
+        />
+      )}
     </div>
   )
 }
