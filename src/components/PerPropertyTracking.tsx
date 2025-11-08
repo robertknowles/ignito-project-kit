@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -13,11 +13,11 @@ import {
 } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
-import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
+import { Loader2 } from 'lucide-react';
 
 export const PerPropertyTracking = () => {
   const { timelineProperties } = useAffordabilityCalculator();
-  const { getInstance } = usePropertyInstance();
   
   // Filter to only feasible properties with instanceId
   const availableProperties = timelineProperties.filter(
@@ -28,10 +28,18 @@ export const PerPropertyTracking = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
     availableProperties[0]?.instanceId || ''
   );
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Get selected property data
-  const selectedProperty = availableProperties.find(p => p.instanceId === selectedPropertyId);
-  const propertyInstance = selectedPropertyId ? getInstance(selectedPropertyId) : null;
+  // Get tracking data for selected property
+  const { trackingData } = usePerPropertyTracking(selectedPropertyId);
+  
+  // Simulate loading when property changes
+  useEffect(() => {
+    setIsLoading(true);
+    // Simulate calculation time
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, [selectedPropertyId]);
   
   if (availableProperties.length === 0) {
     return (
@@ -42,7 +50,7 @@ export const PerPropertyTracking = () => {
     );
   }
   
-  if (!selectedProperty || !propertyInstance) {
+  if (!trackingData) {
     return (
       <div className="text-center py-12 text-gray-500">
         <p>Property data not available.</p>
@@ -50,66 +58,28 @@ export const PerPropertyTracking = () => {
     );
   }
   
-  // Generate 10-year projection data for selected property
-  const generatePropertyProjection = () => {
-    const startYear = selectedProperty.affordableYear;
-    const data = [];
-    
-    let propertyValue = propertyInstance.purchasePrice;
-    let loanBalance = (propertyInstance.purchasePrice * propertyInstance.lvr) / 100;
-    let equity = propertyValue - loanBalance;
-    
-    // Growth rates (High assumption)
-    const growthRates = [0.12, 0.10, 0.08, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05];
-    const rentalGrowthRates = [0.04, 0.04, 0.04, 0.04, 0.04, 0.03, 0.03, 0.03, 0.03, 0.03];
-    
-    let annualRent = propertyInstance.rentPerWeek * 52;
-    const loanInterest = (loanBalance * propertyInstance.interestRate) / 100;
-    const propertyMgmt = annualRent * (propertyInstance.propertyManagementPercent / 100);
-    const operatingExpenses = 
-      propertyInstance.buildingInsuranceAnnual +
-      propertyInstance.councilRatesWater +
-      propertyInstance.strata +
-      propertyInstance.maintenanceAllowanceAnnual;
-    
-    for (let i = 0; i < 10; i++) {
-      const year = Math.floor(startYear) + i;
-      
-      // Apply growth
-      propertyValue *= (1 + growthRates[i]);
-      annualRent *= (1 + rentalGrowthRates[i]);
-      
-      // Recalculate equity
-      equity = propertyValue - loanBalance;
-      
-      // Calculate cashflow
-      const adjustedIncome = annualRent * (1 - propertyInstance.vacancyRate / 100);
-      const totalExpenses = loanInterest + propertyMgmt + operatingExpenses;
-      const netCashflow = adjustedIncome - totalExpenses;
-      
-      data.push({
-        year: year.toString(),
-        propertyValue: Math.round(propertyValue),
-        loanBalance: Math.round(loanBalance),
-        equity: Math.round(equity),
-        rentalIncome: Math.round(adjustedIncome),
-        expenses: Math.round(totalExpenses),
-        netCashflow: Math.round(netCashflow),
-      });
-    }
-    
-    return data;
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <span className="ml-3 text-gray-600">Loading property data...</span>
+      </div>
+    );
+  }
   
-  const projectionData = generatePropertyProjection();
-  
-  // Calculate metrics
-  const totalInvested = selectedProperty.deposit;
-  const finalEquity = projectionData[projectionData.length - 1].equity;
-  const totalCashflow = projectionData.reduce((sum, d) => sum + d.netCashflow, 0);
-  const avgAnnualCashflow = totalCashflow / 10;
-  const cashOnCashReturn = (avgAnnualCashflow / totalInvested) * 100;
-  const roic = ((finalEquity - totalInvested + totalCashflow) / totalInvested) * 100;
+  // Prepare chart data from tracking data
+  const chartData = trackingData.equityOverTime.map((equity, index) => {
+    const cashflow = trackingData.cashflowOverTime[index];
+    return {
+      year: (trackingData.purchaseYear + equity.year - 1).toString(),
+      propertyValue: equity.propertyValue,
+      loanBalance: equity.loanBalance,
+      equity: equity.equity,
+      rentalIncome: cashflow.grossIncome,
+      expenses: cashflow.totalExpenses,
+      netCashflow: cashflow.netCashflow,
+    };
+  });
   
   // Format currency
   const formatCurrency = (value: number) => {
@@ -147,7 +117,7 @@ export const PerPropertyTracking = () => {
           <SelectContent>
             {availableProperties.map((prop) => (
               <SelectItem key={prop.instanceId} value={prop.instanceId!}>
-                {prop.propertyType} - Year {Math.floor(prop.affordableYear)}
+                {prop.title} - {prop.displayPeriod}
               </SelectItem>
             ))}
           </SelectContent>
@@ -155,29 +125,45 @@ export const PerPropertyTracking = () => {
       </div>
       
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-xs text-gray-500 mb-1">Cash-on-Cash Return</div>
+          <div className="text-xs text-gray-500 mb-1">Current Property Value</div>
           <div className="text-2xl font-semibold text-gray-900">
-            {cashOnCashReturn.toFixed(1)}%
+            {formatCurrency(trackingData.currentPropertyValue)}
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-xs text-gray-500 mb-1">ROIC (10 years)</div>
+          <div className="text-xs text-gray-500 mb-1">Current Equity</div>
           <div className="text-2xl font-semibold text-gray-900">
-            {roic.toFixed(1)}%
+            {formatCurrency(trackingData.currentEquity)}
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-xs text-gray-500 mb-1">Total Equity (Year 10)</div>
+          <div className="text-xs text-gray-500 mb-1">Total Cash Invested</div>
           <div className="text-2xl font-semibold text-gray-900">
-            {formatCurrency(finalEquity)}
+            {formatCurrency(trackingData.totalCashInvested)}
+          </div>
+        </div>
+      </div>
+      
+      {/* Additional Metrics Row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">Annualized Return % (ROIC)</div>
+          <div className="text-2xl font-semibold text-gray-900">
+            {trackingData.roic.toFixed(1)}%
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-xs text-gray-500 mb-1">Total Cashflow (10 yrs)</div>
+          <div className="text-xs text-gray-500 mb-1">Cash-on-Cash Return %</div>
           <div className="text-2xl font-semibold text-gray-900">
-            {formatCurrency(totalCashflow)}
+            {trackingData.cashOnCashReturn.toFixed(1)}%
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">Years Held</div>
+          <div className="text-2xl font-semibold text-gray-900">
+            {trackingData.yearsHeld}
           </div>
         </div>
       </div>
@@ -186,7 +172,7 @@ export const PerPropertyTracking = () => {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-sm font-medium text-gray-900 mb-4">Equity Growth Over Time</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={projectionData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis 
               dataKey="year" 
@@ -241,7 +227,7 @@ export const PerPropertyTracking = () => {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-sm font-medium text-gray-900 mb-4">Cashflow Over Time</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={projectionData}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis 
               dataKey="year" 
@@ -272,4 +258,5 @@ export const PerPropertyTracking = () => {
     </div>
   );
 };
+
 

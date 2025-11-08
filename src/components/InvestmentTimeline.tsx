@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import {
   CalendarIcon,
   Pencil,
+  Loader2,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
@@ -26,7 +27,7 @@ const periodToDisplay = (period: number): string => {
 export const InvestmentTimeline = () => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections } = usePropertySelection()
-  const { timelineProperties, updateTimelinePropertyLoanType } = useAffordabilityCalculator()
+  const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
   // Determine status based on timeline results
@@ -164,7 +165,16 @@ export const InvestmentTimeline = () => {
   const timelineItems = generateTimelineItems()
 
   return (
-    <div>
+    <div className="relative">
+      {isRecalculating && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-blue-600">
+            <Loader2 className="animate-spin" size={20} />
+            <span className="text-sm font-medium">Recalculating timeline...</span>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center gap-3 mb-8">
         <CalendarIcon size={16} className="text-[#6b7280]" />
         <h3 className="text-[#111827] font-medium text-sm">
@@ -329,30 +339,52 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(value);
+    const [error, setError] = useState<string | null>(null);
     
     const handleSave = () => {
+      // Validate before saving
+      let validationError = null;
+      
+      if (field === 'lvr' && (editValue < 0 || editValue > 100)) {
+        validationError = 'LVR must be 0-100%';
+      } else if (field === 'interestRate' && (editValue < 0 || editValue > 20)) {
+        validationError = 'Interest must be 0-20%';
+      } else if (field === 'loanTerm' && (editValue < 1 || editValue > 40)) {
+        validationError = 'Term must be 1-40 years';
+      }
+      
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      
       const parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
       handleFieldUpdate(field, parsedValue);
       setIsEditing(false);
+      setError(null);
     };
     
     if (isEditing) {
       return (
-        <input
-          type={type}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
-            if (e.key === 'Escape') {
-              setEditValue(value);
-              setIsEditing(false);
-            }
-          }}
-          autoFocus
-          className="inline-block w-20 px-1 py-0 text-sm border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
+        <div className="inline-flex flex-col">
+          <input
+            type={type}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Escape') {
+                setEditValue(value);
+                setIsEditing(false);
+                setError(null);
+              }
+            }}
+            autoFocus
+            className="inline-block w-20 px-1 py-0 text-sm border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
+        </div>
       );
     }
     
