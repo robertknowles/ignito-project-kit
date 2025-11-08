@@ -37,3 +37,4 @@ export function calculateLoanAmount(
   return capitalizeLMI ? baseLoan + lmi : baseLoan;
 }
 
+

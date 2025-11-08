@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,32 +23,43 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   propertyType,
 }) => {
   const { getInstance, updateInstance, createInstance } = usePropertyInstance();
+  const { getPropertyData } = useDataAssumptions();
   
-  // Get existing instance or create new one
+  // Get existing instance
   const existingInstance = getInstance(instanceId);
   
   // Local state for form fields
-  const [formData, setFormData] = useState<PropertyInstanceDetails>(() => {
-    if (existingInstance) {
-      return existingInstance;
-    } else {
-      // Create instance with defaults
+  const [formData, setFormData] = useState<PropertyInstanceDetails | null>(existingInstance);
+  
+  // Create instance if it doesn't exist (in useEffect, not during render)
+  useEffect(() => {
+    if (!existingInstance) {
       createInstance(instanceId, propertyType, 1);
-      return getInstance(instanceId)!;
+      const newInstance = getInstance(instanceId);
+      if (newInstance) {
+        setFormData(newInstance);
+      }
+    } else {
+      setFormData(existingInstance);
     }
-  });
+  }, [instanceId, existingInstance, createInstance, getInstance, propertyType]);
   
   // Update local state when field changes
   const handleFieldChange = (field: keyof PropertyInstanceDetails, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
   };
   
   // Save changes to context
   const handleSave = () => {
-    updateInstance(instanceId, formData);
+    if (formData) {
+      updateInstance(instanceId, formData);
+    }
     onClose();
   };
   
@@ -63,6 +75,9 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           <DialogTitle>Property Details - {propertyType}</DialogTitle>
         </DialogHeader>
         
+        {!formData ? (
+          <div className="p-6 text-center text-gray-500">Loading...</div>
+        ) : (
         <Tabs defaultValue="property-loan" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="property-loan">Property & Loan</TabsTrigger>
@@ -500,19 +515,11 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           </TabsContent>
           
         </Tabs>
-        
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            Save Changes
-          </Button>
-        </div>
+        )}
         
       </DialogContent>
     </Dialog>
   );
 };
+
 

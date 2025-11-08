@@ -8,6 +8,7 @@ import { CashFlowAnalysis } from './CashFlowAnalysis';
 import { GrowthProjections } from './GrowthProjections';
 import { DecisionEngineView } from './DecisionEngineView';
 import { PropertyCard } from './PropertyCard';
+import { PerPropertyTracking } from './PerPropertyTracking';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 
@@ -114,6 +115,9 @@ export const Dashboard = () => {
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('cashflow')}>
                 Cashflow Chart
               </button>
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'per-property' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('per-property')}>
+                Per-Property
+              </button>
               {SHOW_ADVANCED_TABS && (
                 <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('analysis')}>
                   Cash Flow Analysis
@@ -137,6 +141,7 @@ export const Dashboard = () => {
               {activeTab === 'timeline' && <InvestmentTimeline />}
               {activeTab === 'portfolio' && <PortfolioGrowthChart />}
               {activeTab === 'cashflow' && <CashflowChart />}
+              {activeTab === 'per-property' && <PerPropertyTracking />}
               {SHOW_ADVANCED_TABS && activeTab === 'analysis' && <CashFlowAnalysis />}
               {SHOW_ADVANCED_TABS && activeTab === 'projections' && <GrowthProjections />}
               {activeTab === 'breakdown' && (

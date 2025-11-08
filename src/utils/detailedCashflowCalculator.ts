@@ -120,3 +120,4 @@ function calculatePrincipalPayment(
   return annualPrincipal;
 }
 
+

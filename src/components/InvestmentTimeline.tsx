@@ -437,9 +437,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           <span className="mx-2">|</span>
           <span>Loan: ${(loanAmountCalc / 1000).toFixed(0)}k</span>
           <span className="mx-2">|</span>
-          <span>LMI: ${lmi.toLocaleString()}</span>
+          <span>LMI: ${(lmi || 0).toLocaleString()}</span>
           <span className="mx-2">|</span>
-          <span>Offset: ${propertyData.loanOffsetAccount.toLocaleString()}</span>
+          <span>Offset: ${(propertyData.loanOffsetAccount || 0).toLocaleString()}</span>
         </div>
       </div>
       
