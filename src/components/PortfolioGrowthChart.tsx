@@ -266,7 +266,7 @@ export const PortfolioGrowthChart = () => {
             {equityGoalReached && (
               <ReferenceDot
                 x={equityGoalReached.year}
-                y={equityGoalReached.equity}
+                y={equityGoalReached?.equity ?? 0}
                 r={8}
                 fill="#F59E0B"
                 stroke="white"

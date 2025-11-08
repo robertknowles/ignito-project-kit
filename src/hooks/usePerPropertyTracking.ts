@@ -1,5 +1,5 @@
-import { useContext, useMemo } from 'react';
-import { PropertyInstanceContext } from '../contexts/PropertyInstanceContext';
+import { useMemo } from 'react';
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
@@ -49,7 +49,7 @@ export interface PerPropertyTrackingData {
 }
 
 export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
-  const { getInstance } = useContext(PropertyInstanceContext);
+  const { getInstance } = usePropertyInstance();
   const { timelineProperties } = useAffordabilityCalculator();
   const { getPropertyData, propertyAssumptions } = useDataAssumptions();
   
@@ -87,7 +87,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     const loanType = timelineProperty.loanType || 'IO';
     
     // Total cash invested = deposit + acquisition costs
-    const totalCashInvested = timelineProperty.totalCashRequired || 
+    const totalCashInvested = timelineProperty.upfrontCosts?.total ?? 
       (timelineProperty.depositRequired + (timelineProperty.acquisitionCosts?.total || 0));
     
     // Get tiered growth rates from property assumptions
