@@ -22,8 +22,8 @@ export const CashFlowAnalysis = () => {
       depositRequired: property.depositRequired,
       title: property.title,
       rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-      growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : parseFloat(globalFactors.growthRate) / 100,
-      interestRate: parseFloat(globalFactors.interestRate) / 100
+      growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : 0.06, // Default 6% for cashflow analysis
+      interestRate: 0.065 // Default 6.5% (NOTE: In reality, each property has its own interest rate from its instance)
     };
 
     return {

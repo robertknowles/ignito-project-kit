@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
-import { ClipboardIcon, SlidersIcon, Plus, X, Pause } from 'lucide-react'
+import { ClipboardIcon, SlidersIcon, Plus, X, Pause, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { CustomBlockModal } from './CustomBlockModal'
 import type { CustomPropertyBlock } from './CustomBlockModal'
+import { PropertyDetailModal } from './PropertyDetailModal'
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -41,9 +44,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   } = usePropertySelection()
 
   const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { getPropertyTypeTemplate } = useDataAssumptions()
 
   const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
     addCustomBlock(block)
+  }
+  
+  const handleEditTemplate = (propertyTitle: string) => {
+    // Open modal to edit the template
+    setEditingTemplate(propertyTitle)
   }
   // Format currency
   const formatCurrency = (value: number) => {
@@ -303,6 +314,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                   onIncrement={() => incrementProperty(property.id)}
                   onDecrement={() => decrementProperty(property.id)}
                 />
+                {/* Edit template button for non-custom properties */}
+                {!isCustomProperty && (
+                  <button
+                    onClick={() => handleEditTemplate(property.title)}
+                    className="absolute top-2 right-2 p-1.5 bg-white rounded shadow-sm text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors z-10 border border-gray-200"
+                    title="Edit template"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+                {/* Delete button for custom properties */}
                 {isCustomProperty && (
                   <button
                     onClick={() => removeCustomBlock(property.id)}
@@ -395,6 +417,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
           onClose={() => setShowCustomBlockModal(false)}
           onSave={handleSaveCustomBlock}
         />
+        
+        {/* Property Template Edit Modal */}
+        {editingTemplate && (
+          <PropertyDetailModal
+            isOpen={!!editingTemplate}
+            onClose={() => setEditingTemplate(null)}
+            instanceId={`template_${editingTemplate}`}
+            propertyType={editingTemplate}
+            isTemplate={true}
+          />
+        )}
       </div>
     )
   }

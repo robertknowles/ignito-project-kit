@@ -27,8 +27,9 @@ export const SummaryBar = () => {
     }
 
     const timelineEnd = 2025 + profile.timelineYears
-    const growthRate = parseFloat(globalFactors.growthRate) / 100
-    const interestRate = parseFloat(globalFactors.interestRate) / 100
+    // DEPRECATED: No longer using globalFactors - each property uses its own template values
+    const defaultGrowthRate = 0.06; // Default 6% for summary calculations only
+    const defaultInterestRate = 0.065; // Default 6.5% for summary calculations only
     
     // Convert feasible properties to PropertyPurchase format
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
@@ -40,8 +41,8 @@ export const SummaryBar = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04, // Default 4% if no data
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
-        interestRate: interestRate
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        interestRate: defaultInterestRate // NOTE: In reality, each property has its own interest rate from its instance
       }
     })
 
@@ -50,18 +51,18 @@ export const SummaryBar = () => {
       profile.portfolioValue,
       profile.currentDebt,
       timelineEnd - 2025,
-      growthRate,
+      defaultGrowthRate,
       profile.growthCurve,
-      interestRate
+      defaultInterestRate
     )
 
     // Calculate metrics for new purchases with detailed expense analysis
     const newPurchasesMetrics = calculatePortfolioMetrics(
       purchases,
       timelineEnd,
-      growthRate,
+      defaultGrowthRate,
       profile.growthCurve,
-      interestRate,
+      defaultInterestRate,
       DEFAULT_PROPERTY_EXPENSES
     )
 

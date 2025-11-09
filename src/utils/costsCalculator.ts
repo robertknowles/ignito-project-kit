@@ -16,6 +16,7 @@ export interface CostCalculationParams {
   loanAmount: number;
   lvr: number;
   isFirstHomeBuyer?: boolean;
+  lmiWaiver?: boolean; // NEW: Whether LMI is waived (e.g., professional packages)
 }
 
 /**
@@ -25,8 +26,12 @@ export interface CostCalculationParams {
  * - 80-85%: ~1% of loan amount
  * - 85-90%: ~2% of loan amount
  * - 90-95%: ~4% of loan amount
+ * @param lmiWaiver - If true, LMI is waived (e.g., professional packages, commercial properties)
  */
-const calculateLMI = (loanAmount: number, lvr: number): number => {
+const calculateLMI = (loanAmount: number, lvr: number, lmiWaiver: boolean = false): number => {
+  // No LMI if waived (e.g., professional packages)
+  if (lmiWaiver) return 0;
+  
   // No LMI required for LVR <= 80%
   if (lvr <= 80) return 0;
   
@@ -52,14 +57,14 @@ const calculateLMI = (loanAmount: number, lvr: number): number => {
 export const calculateAcquisitionCosts = (
   params: CostCalculationParams
 ): AcquisitionCosts => {
-  const { propertyPrice, loanAmount, lvr, isFirstHomeBuyer = false } = params;
+  const { propertyPrice, loanAmount, lvr, isFirstHomeBuyer = false, lmiWaiver = false } = params;
   
   // 1. Stamp Duty (simplified as a flat percentage)
   const STAMP_DUTY_AVERAGE_RATE = 0.04; // 4%
   const stampDuty = propertyPrice * STAMP_DUTY_AVERAGE_RATE;
   
-  // 2. LMI (only if LVR > 80%)
-  const lmi = calculateLMI(loanAmount, lvr);
+  // 2. LMI (only if LVR > 80% and not waived)
+  const lmi = calculateLMI(loanAmount, lvr, lmiWaiver);
   
   // 3. Legal Fees (conveyancing, solicitor fees)
   // Typically $1,500 - $2,500 depending on complexity

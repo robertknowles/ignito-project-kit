@@ -33,8 +33,9 @@ export const useChartDataGenerator = () => {
     const data: PortfolioGrowthDataPoint[] = [];
     const startYear = 2025;
     const endYear = startYear + profile.timelineYears;
-    const growthRate = parseFloat(globalFactors.growthRate) / 100;
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
+    // DEPRECATED: No longer using globalFactors - each property uses its own template values
+    const defaultGrowthRate = 0.06; // Default 6% for chart calculations
+    const defaultInterestRate = 0.065; // Default 6.5% for chart calculations
 
     // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
@@ -47,8 +48,8 @@ export const useChartDataGenerator = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
-        interestRate: interestRate
+        defaultGrowthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        defaultInterestRate: defaultInterestRate
       };
     });
 
@@ -69,9 +70,9 @@ export const useChartDataGenerator = () => {
         profile.portfolioValue,
         profile.currentDebt,
         year - startYear,
-        growthRate,
+        defaultGrowthRate,
         profile.growthCurve,
-        interestRate
+        defaultInterestRate
       );
 
       // Calculate metrics for purchases made by this year
@@ -79,9 +80,9 @@ export const useChartDataGenerator = () => {
       const newPurchasesMetrics = calculatePortfolioMetrics(
         relevantPurchases,
         year,
-        growthRate,
+        defaultGrowthRate,
         profile.growthCurve,
-        interestRate,
+        defaultInterestRate,
         DEFAULT_PROPERTY_EXPENSES
       );
 
@@ -111,8 +112,9 @@ export const useChartDataGenerator = () => {
     const data: CashflowDataPoint[] = [];
     const startYear = 2025;
     const endYear = startYear + profile.timelineYears;
-    const growthRate = parseFloat(globalFactors.growthRate) / 100;
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
+    // DEPRECATED: No longer using globalFactors - each property uses its own template values
+    const defaultGrowthRate = 0.06; // Default 6% for chart calculations
+    const defaultInterestRate = 0.065; // Default 6.5% for chart calculations
 
     // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
@@ -125,8 +127,8 @@ export const useChartDataGenerator = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : growthRate,
-        interestRate: interestRate
+        defaultGrowthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        defaultInterestRate: defaultInterestRate
       };
     });
 
@@ -136,9 +138,9 @@ export const useChartDataGenerator = () => {
         profile.portfolioValue,
         profile.currentDebt,
         year - startYear,
-        growthRate,
+        defaultGrowthRate,
         profile.growthCurve,
-        interestRate
+        defaultInterestRate
       );
 
       // Calculate metrics for purchases made by this year
@@ -146,9 +148,9 @@ export const useChartDataGenerator = () => {
       const newPurchasesMetrics = calculatePortfolioMetrics(
         relevantPurchases,
         year,
-        growthRate,
+        defaultGrowthRate,
         profile.growthCurve,
-        interestRate,
+        defaultInterestRate,
         DEFAULT_PROPERTY_EXPENSES
       );
 

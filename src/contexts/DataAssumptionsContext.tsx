@@ -4,8 +4,13 @@ import { useAuth } from './AuthContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import propertyDefaults from '../data/property-defaults.json';
 
+// Property Type Template: Contains all 36 fields from PropertyInstanceDetails
+export interface PropertyTypeTemplate extends PropertyInstanceDetails {
+  propertyType: string; // Display name (e.g., "Units / Apartments")
+}
+
+// DEPRECATED: Old property assumptions interface - kept for migration only
 export interface PropertyAssumption extends PropertyInstanceDetails {
-  // Keep existing fields for backward compatibility
   type: string;
   averageCost: string;
   yield: string;
@@ -17,6 +22,8 @@ export interface PropertyAssumption extends PropertyInstanceDetails {
   loanType?: 'IO' | 'PI';
 }
 
+// DEPRECATED: Global economic factors - kept for backward compatibility only
+// These should NOT be used in affordability calculations anymore
 export interface GlobalEconomicFactors {
   growthRate: string;
   loanToValueRatio: string;
@@ -24,6 +31,12 @@ export interface GlobalEconomicFactors {
 }
 
 interface DataAssumptionsContextType {
+  // NEW: Property type templates (single source of truth)
+  propertyTypeTemplates: PropertyTypeTemplate[];
+  getPropertyTypeTemplate: (propertyType: string) => PropertyTypeTemplate | undefined;
+  updatePropertyTypeTemplate: (propertyType: string, updates: Partial<PropertyInstanceDetails>) => void;
+  
+  // DEPRECATED: Old system (kept for backward compatibility)
   globalFactors: GlobalEconomicFactors;
   propertyAssumptions: PropertyAssumption[];
   updateGlobalFactor: (factor: keyof GlobalEconomicFactors, value: string) => void;
@@ -95,17 +108,62 @@ const initializePropertyAssumptions = (): PropertyAssumption[] => {
   );
 };
 
+/**
+ * Convert property key to display name
+ */
+const keyToPropertyType = (key: string): string => {
+  const mapping: Record<string, string> = {
+    'units-apartments': 'Units / Apartments',
+    'villas-townhouses': 'Villas / Townhouses',
+    'houses-regional': 'Houses (Regional)',
+    'duplexes': 'Duplexes',
+    'small-blocks-3-4-units': 'Small Blocks (3-4 Units)',
+    'metro-houses': 'Metro Houses',
+    'larger-blocks-10-20-units': 'Larger Blocks (10-20 Units)',
+    'commercial-property': 'Commercial Property',
+  };
+  return mapping[key] || key;
+};
+
+/**
+ * Convert property type display name to key
+ */
+const propertyTypeToKey = (propertyType: string): string => {
+  return propertyType
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[()]/g, '');
+};
+
+/**
+ * Initialize property type templates from property-defaults.json
+ */
+const initializePropertyTypeTemplates = (): PropertyTypeTemplate[] => {
+  return Object.keys(propertyDefaults).map(key => ({
+    ...propertyDefaults[key as keyof typeof propertyDefaults] as PropertyInstanceDetails,
+    propertyType: keyToPropertyType(key),
+  }));
+};
+
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevAssumptionsRef = useRef<string>('');
 
+  // NEW: Property type templates (single source of truth)
+  const [propertyTypeTemplates, setPropertyTypeTemplates] = useState<PropertyTypeTemplate[]>(
+    initializePropertyTypeTemplates()
+  );
+
+  // DEPRECATED: Old global factors (kept for backward compatibility)
   const [globalFactors, setGlobalFactors] = useState<GlobalEconomicFactors>({
     growthRate: '7',
     loanToValueRatio: '80',
     interestRate: '6',
   });
 
+  // DEPRECATED: Old property assumptions (kept for backward compatibility)
   const [propertyAssumptions, setPropertyAssumptions] = useState<PropertyAssumption[]>(
     initializePropertyAssumptions()
   );
@@ -118,14 +176,16 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
 
     console.log('DataAssumptionsContext: Saving assumptions to profile for user:', user.id);
     console.log('DataAssumptionsContext: Data to save:', {
+      propertyTypeTemplates: propertyTypeTemplates,
       propertyAssumptions: propertyAssumptions,
       globalFactors: globalFactors,
     });
 
     try {
       const dataToSave = {
-        propertyAssumptions: propertyAssumptions,
-        globalFactors: globalFactors,
+        propertyTypeTemplates: propertyTypeTemplates, // NEW: Save templates
+        propertyAssumptions: propertyAssumptions, // DEPRECATED: For backward compatibility
+        globalFactors: globalFactors, // DEPRECATED: For backward compatibility
       };
 
       // Use upsert to handle both insert and update cases
@@ -146,7 +206,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     } catch (error) {
       console.error('DataAssumptionsContext: Failed to save assumptions to profile:', error);
     }
-  }, [user, propertyAssumptions, globalFactors]);
+  }, [user, propertyTypeTemplates, propertyAssumptions, globalFactors]);
 
   const loadAssumptionsFromProfile = async () => {
     if (!user) {
@@ -176,17 +236,26 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
 
       if (data?.data) {
         const profileData = data.data as {
+          propertyTypeTemplates?: PropertyTypeTemplate[];
           propertyAssumptions?: PropertyAssumption[];
           globalFactors?: GlobalEconomicFactors;
         };
 
         console.log('DataAssumptionsContext: Parsing profile data:', profileData);
 
+        // NEW: Load property type templates if available
+        if (profileData.propertyTypeTemplates) {
+          console.log('DataAssumptionsContext: Loading property type templates:', profileData.propertyTypeTemplates);
+          setPropertyTypeTemplates(profileData.propertyTypeTemplates);
+        }
+
+        // DEPRECATED: Load old property assumptions for backward compatibility
         if (profileData.propertyAssumptions) {
           console.log('DataAssumptionsContext: Loading property assumptions:', profileData.propertyAssumptions);
           setPropertyAssumptions(profileData.propertyAssumptions);
         }
 
+        // DEPRECATED: Load old global factors for backward compatibility
         if (profileData.globalFactors) {
           console.log('DataAssumptionsContext: Loading global factors:', profileData.globalFactors);
           setGlobalFactors(profileData.globalFactors);
@@ -209,6 +278,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     if (!user) return;
     
     const currentAssumptions = JSON.stringify({
+      propertyTypeTemplates,
       propertyAssumptions,
       globalFactors
     });
@@ -244,8 +314,24 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [propertyAssumptions, globalFactors, user]);
+  }, [propertyTypeTemplates, propertyAssumptions, globalFactors, user]);
 
+  // NEW: Property type template methods
+  const getPropertyTypeTemplate = (propertyType: string): PropertyTypeTemplate | undefined => {
+    return propertyTypeTemplates.find(template => template.propertyType === propertyType);
+  };
+
+  const updatePropertyTypeTemplate = (propertyType: string, updates: Partial<PropertyInstanceDetails>) => {
+    setPropertyTypeTemplates(prev => 
+      prev.map(template => 
+        template.propertyType === propertyType
+          ? { ...template, ...updates }
+          : template
+      )
+    );
+  };
+
+  // DEPRECATED: Old methods (kept for backward compatibility)
   const updateGlobalFactor = (factor: keyof GlobalEconomicFactors, value: string) => {
     setGlobalFactors(prev => ({
       ...prev,
@@ -269,6 +355,12 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
   };
 
   const value = {
+    // NEW: Property type templates
+    propertyTypeTemplates,
+    getPropertyTypeTemplate,
+    updatePropertyTypeTemplate,
+    
+    // DEPRECATED: Old system (kept for backward compatibility)
     globalFactors,
     propertyAssumptions,
     updateGlobalFactor,

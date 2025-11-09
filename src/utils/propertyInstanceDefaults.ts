@@ -17,12 +17,10 @@ const propertyTypeToKey = (propertyType: string): string => {
 
 /**
  * Gets default values for a property instance based on property type
- * Merges property type defaults with global assumptions
+ * NO LONGER uses global assumptions - each property type has its own template with all fields
  */
 export const getPropertyInstanceDefaults = (
-  propertyType: string,
-  globalLVR?: number,
-  globalInterestRate?: number
+  propertyType: string
 ): PropertyInstanceDetails => {
   const key = propertyTypeToKey(propertyType);
   const defaults = propertyDefaults[key as keyof typeof propertyDefaults];
@@ -33,11 +31,9 @@ export const getPropertyInstanceDefaults = (
     return createMinimalDefaults();
   }
   
-  // Merge with global overrides if provided
+  // Return the template as-is (no global overrides)
   return {
     ...defaults,
-    lvr: globalLVR !== undefined ? globalLVR : defaults.lvr,
-    interestRate: globalInterestRate !== undefined ? globalInterestRate : defaults.interestRate,
   };
 };
 

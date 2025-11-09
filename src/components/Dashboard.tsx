@@ -147,6 +147,7 @@ export const Dashboard = () => {
               startYear={timelineData.startYear}
               endYear={timelineData.endYear}
               latestPurchaseYear={timelineData.latestPurchaseYear}
+              purchaseYears={timelineData.purchaseYears}
               onYearClick={handleYearClick}
             />
           )}

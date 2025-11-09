@@ -645,12 +645,13 @@ const generatePage4 = (
   currentY += 6;
   
   const assumptionsData = [
-    ['Interest Rate', `${globalFactors.interestRate}%`, 'Current lending conditions'],
-    ['LVR (Loan to Value)', `${globalFactors.loanToValueRatio}%`, 'Standard lending ratio'],
-    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year growth'],
-    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth'],
-    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth'],
-    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth'],
+    ['Note', 'Property-specific', 'Each property has its own interest rate, LVR, and growth settings'],
+    ['Default Interest Rate', '6.5%', 'Default for calculations (varies by property)'],
+    ['Growth System', 'High/Medium/Low', 'Tiered growth rates per property type'],
+    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year growth (High tier)'],
+    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth (High tier)'],
+    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth (High tier)'],
+    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth (High tier)'],
     ['Expense Ratio', '30%', 'Maintenance, insurance, rates'],
     ['Inflation', '3%', 'Annual cost inflation']
   ];

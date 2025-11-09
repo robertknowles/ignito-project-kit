@@ -52,6 +52,7 @@ interface PropertyDetailModalProps {
   onClose: () => void;
   instanceId: string;
   propertyType: string;
+  isTemplate?: boolean; // NEW: Indicates this is editing a template, not an instance
 }
 
 export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -59,33 +60,48 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   onClose,
   instanceId,
   propertyType,
+  isTemplate = false,
 }) => {
   const { getInstance, updateInstance, createInstance } = usePropertyInstance();
-  const { getPropertyData } = useDataAssumptions();
+  const { getPropertyData, getPropertyTypeTemplate, updatePropertyTypeTemplate } = useDataAssumptions();
   
-  // Get existing instance
-  const existingInstance = getInstance(instanceId);
+  // Get data based on whether this is a template or instance
+  const existingInstance = !isTemplate ? getInstance(instanceId) : null;
+  const existingTemplate = isTemplate ? getPropertyTypeTemplate(propertyType) : null;
   
   // Local state for form fields
-  const [formData, setFormData] = useState<PropertyInstanceDetails | null>(existingInstance);
+  const [formData, setFormData] = useState<PropertyInstanceDetails | null>(
+    isTemplate ? existingTemplate : existingInstance
+  );
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   
-  // Get tracking data for projections tab
-  const { trackingData } = usePerPropertyTracking(instanceId);
+  // Get tracking data for projections tab (only for instances, not templates)
+  const { trackingData } = usePerPropertyTracking(isTemplate ? '' : instanceId);
   
-  // Create instance if it doesn't exist (in useEffect, not during render)
+  // Initialize form data
   useEffect(() => {
-    if (!existingInstance) {
-      createInstance(instanceId, propertyType, 1);
-      const newInstance = getInstance(instanceId);
-      if (newInstance) {
-        setFormData(newInstance);
+    if (isTemplate) {
+      // Load template data
+      const template = getPropertyTypeTemplate(propertyType);
+      if (template) {
+        setFormData(template);
       }
     } else {
-      setFormData(existingInstance);
+      // Load or create instance data
+      const instance = getInstance(instanceId);
+      if (!instance) {
+        createInstance(instanceId, propertyType, 1);
+        // Get the newly created instance
+        const newInstance = getInstance(instanceId);
+        if (newInstance) {
+          setFormData(newInstance);
+        }
+      } else {
+        setFormData(instance);
+      }
     }
-  }, [instanceId, existingInstance, createInstance, getInstance, propertyType]);
+  }, [instanceId, createInstance, getInstance, propertyType, isTemplate, getPropertyTypeTemplate]);
   
   // Update local state when field changes
   const handleFieldChange = (field: keyof PropertyInstanceDetails, value: any) => {
@@ -113,7 +129,13 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
     
     if (formData) {
-      updateInstance(instanceId, formData);
+      if (isTemplate) {
+        // Save to property type template
+        updatePropertyTypeTemplate(propertyType, formData);
+      } else {
+        // Save to property instance
+        updateInstance(instanceId, formData);
+      }
     }
     setIsSaving(false);
     onClose();
@@ -128,18 +150,29 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Property Details - {propertyType}</DialogTitle>
+          <DialogTitle>
+            {isTemplate 
+              ? `Edit Template: ${propertyType}` 
+              : `Property Details - ${propertyType}`
+            }
+          </DialogTitle>
+          {isTemplate && (
+            <p className="text-sm text-[#6b7280] mt-1">
+              These defaults will apply to all new properties of this type.
+              Existing properties in the timeline will not be affected.
+            </p>
+          )}
         </DialogHeader>
         
         {!formData ? (
           <div className="p-6 text-center text-gray-500">Loading...</div>
         ) : (
         <Tabs defaultValue="property-loan" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${isTemplate ? 'grid-cols-3' : 'grid-cols-4'}`}>
             <TabsTrigger value="property-loan">Property & Loan</TabsTrigger>
             <TabsTrigger value="purchase-costs">Purchase Costs</TabsTrigger>
             <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
-            <TabsTrigger value="projections">Projections</TabsTrigger>
+            {!isTemplate && <TabsTrigger value="projections">Projections</TabsTrigger>}
           </TabsList>
           
           {/* TAB 1: Property & Loan Details */}

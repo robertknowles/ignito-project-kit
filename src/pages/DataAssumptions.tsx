@@ -1,17 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Navbar } from '../components/Navbar'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
-import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { PropertyDetailModal } from '../components/PropertyDetailModal'
+import { Button } from '../components/ui/button'
 
 export const DataAssumptions = () => {
-  const { globalFactors, propertyAssumptions, updateGlobalFactor, updatePropertyAssumption } = useDataAssumptions()
+  const { propertyTypeTemplates } = useDataAssumptions()
   const { customBlocks, removeCustomBlock } = usePropertySelection()
-  const { profile, updateProfile } = useInvestmentProfile()
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
   
-  const handlePropertyChange = (index: number, field: string, value: string) => {
-    updatePropertyAssumption(index, field as any, value)
-  }
   return (
     <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
       <Navbar />
@@ -20,207 +18,79 @@ export const DataAssumptions = () => {
           <div className="p-8">
             <div className="mb-8">
               <h1 className="text-[#111827] text-xl font-medium">
-                Investment Assumptions
+                Property Type Templates
               </h1>
+              <p className="text-sm text-[#6b7280] mt-2">
+                Set default values for each property type. When you add a property to the timeline, 
+                it will inherit these defaults. You can still customize individual properties.
+              </p>
             </div>
-            {/* Global Economic Factors */}
-            <div className="border border-[#f3f4f6] rounded-lg p-6 mb-6">
-              <h2 className="text-[#111827] font-medium text-base mb-6">
-                Global Economic Factors
-              </h2>
-              <div className="grid grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-xs text-[#374151] mb-2">
-                    Growth Rate
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={globalFactors.growthRate}
-                    onChange={(e) => updateGlobalFactor('growthRate', e.target.value)}
-                  />
+
+            {/* Property Type Templates */}
+            <div className="space-y-3">
+              {propertyTypeTemplates.map((template) => {
+                const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100
+                const loanAmount = (template.purchasePrice * template.lvr) / 100
+                
+                return (
+                  <div 
+                    key={template.propertyType}
+                    className="border border-[#e5e7eb] rounded-lg p-4 hover:border-[#d1d5db] transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-base font-semibold text-[#111827]">
+                          {template.propertyType}
+                        </h3>
+                        <div className="text-sm text-[#6b7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>${(template.purchasePrice / 1000).toFixed(0)}k</span>
+                          <span>•</span>
+                          <span>{template.state}</span>
+                          <span>•</span>
+                          <span>{yieldPercent.toFixed(1)}% yield</span>
+                          <span>•</span>
+                          <span>${template.rentPerWeek}/wk</span>
+                          <span>•</span>
+                          <span>{template.growthAssumption} growth</span>
                 </div>
-                <div>
-                  <label className="block text-xs text-[#374151] mb-2">
-                    Loan-to-Value Ratio (LVR)
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={globalFactors.loanToValueRatio}
-                    onChange={(e) => updateGlobalFactor('loanToValueRatio', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-[#374151] mb-2">
-                    Loan Repayments (Interest Rate)
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                    value={globalFactors.interestRate}
-                    onChange={(e) => updateGlobalFactor('interestRate', e.target.value)}
-                  />
-                </div>
+                        <div className="text-sm text-[#6b7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>LVR: {template.lvr}%</span>
+                          <span>•</span>
+                          <span>{template.loanProduct} @ {template.interestRate}%</span>
+                          <span>•</span>
+                          <span>Loan: ${(loanAmount / 1000).toFixed(0)}k</span>
+                          <span>•</span>
+                          <span>Term: {template.loanTerm}yr</span>
               </div>
             </div>
 
-            {/* Property-Specific Assumptions */}
-            <div className="border border-[#f3f4f6] rounded-lg p-6">
-              <h2 className="text-[#111827] font-medium text-base mb-6">
-                Property-Specific Assumptions
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#f3f4f6]">
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Property Type
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Average Cost
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Yield %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Growth Y1 %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Growth Y2-3 %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Growth Y4 %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Growth Y5+ %
-                      </th>
-                      <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                        Deposit %
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {propertyAssumptions.map((property, index) => (
-                      <tr key={index} className="border-b border-[#f3f4f6]">
-                        <td className="p-3 text-sm text-[#374151]">
-                          {property.type}
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.averageCost}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'averageCost',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.yield}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'yield',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.growthYear1}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'growthYear1',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.growthYears2to3}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'growthYears2to3',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.growthYear4}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'growthYear4',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.growthYear5plus}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'growthYear5plus',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            className="w-full p-2 border border-[#f3f4f6] rounded-md text-[#374151]"
-                            value={property.deposit}
-                            onChange={(e) =>
-                              handlePropertyChange(
-                                index,
-                                'deposit',
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingTemplate(template.propertyType)}
+                        className="ml-4"
+                      >
+                        Edit Template
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
             {/* Custom Property Blocks Section */}
             {customBlocks.length > 0 && (
-              <div className="border border-[#f3f4f6] rounded-lg p-6 mt-6">
-                <h2 className="text-[#111827] font-medium text-base mb-6">
+              <div className="border-t border-[#e5e7eb] mt-8 pt-8">
+                <h2 className="text-[#111827] font-medium text-base mb-4">
                   Custom Property Blocks
                 </h2>
+                <p className="text-sm text-[#6b7280] mb-4">
+                  These are custom property types you've created. They use simplified settings.
+                </p>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#f3f4f6]">
+                      <tr className="border-b border-[#e5e7eb]">
                         <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
                           Property Name
                         </th>
@@ -277,6 +147,17 @@ export const DataAssumptions = () => {
           </div>
         </div>
       </div>
+
+      {/* Reuse PropertyDetailModal for editing templates */}
+      {editingTemplate && (
+        <PropertyDetailModal
+          isOpen={!!editingTemplate}
+          onClose={() => setEditingTemplate(null)}
+          instanceId={`template_${editingTemplate}`}
+          propertyType={editingTemplate}
+          isTemplate={true}
+        />
+      )}
     </div>
   )
 }

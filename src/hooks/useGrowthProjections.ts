@@ -20,6 +20,9 @@ export const useGrowthProjections = () => {
 
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
       const propertyData = getPropertyData(property.title);
+      // DEPRECATED: No longer using globalFactors - each property uses its own template values
+      const defaultGrowthRate = 0.06; // Default 6% for projections
+      const defaultInterestRate = 0.065; // Default 6.5% for projections
       return {
         year: property.affordableYear,
         cost: property.cost,
@@ -27,8 +30,8 @@ export const useGrowthProjections = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : parseFloat(globalFactors.growthRate) / 100,
-        interestRate: parseFloat(globalFactors.interestRate) / 100
+        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        interestRate: defaultInterestRate // NOTE: In reality, each property has its own interest rate from its instance
       };
     });
 

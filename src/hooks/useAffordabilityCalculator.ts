@@ -52,9 +52,9 @@ export interface AffordabilityResult {
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
   const { selections, propertyTypes, pauseBlocks } = usePropertySelection();
-  const { globalFactors, getPropertyData, propertyAssumptions } = useDataAssumptions();
+  const { globalFactors, getPropertyData, propertyAssumptions, getPropertyTypeTemplate } = useDataAssumptions();
   const { activeClient } = useClient();
-  const { getInstance, instances } = usePropertyInstance();
+  const { getInstance, createInstance, instances } = usePropertyInstance();
   
   // Per-instance loan type state (keyed by instanceId)
   const [timelineLoanTypes, setTimelineLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
@@ -224,8 +224,10 @@ export const useAffordabilityCalculator = () => {
                 const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
                 netCashflow += propertyCashflow;
               } else {
-                // Fallback to old calculation if instance not found
-                const interestRate = parseFloat(globalFactors.interestRate) / 100;
+                // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
+                console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
+                const template = getPropertyTypeTemplate(purchase.title);
+                const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
                 const loanType = purchase.loanType || 'IO';
                 const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
                 const periodLoanPayment = annualLoanPayment / PERIODS_PER_YEAR;
@@ -325,10 +327,12 @@ export const useAffordabilityCalculator = () => {
       const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
       netCashflow = adjustedAnnualCashflow * inflationFactor;
     } else {
-      // Fallback to old calculation if instance not found
+      // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
+      console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
+      const template = getPropertyTypeTemplate(purchase.title);
       const yieldRate = parseFloat(propertyData.yield) / 100;
       const rentalIncome = currentValue * yieldRate;
-      const interestRate = parseFloat(globalFactors.interestRate) / 100;
+      const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
       const loanType = purchase.loanType || 'IO';
       const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
       const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
@@ -407,12 +411,14 @@ export const useAffordabilityCalculator = () => {
             expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductibleExpenses);
             netCashflow += propertyCashflow;
           } else {
-            // Fallback to old calculation if instance not found
+            // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
+            console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
+            const template = getPropertyTypeTemplate(purchase.title);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
             const rentalIncome = currentValue * yieldRate * recognitionRate;
-            const interestRate = parseFloat(globalFactors.interestRate) / 100;
+            const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
             const loanType = purchase.loanType || 'IO';
             const propertyLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
             const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
@@ -479,24 +485,31 @@ export const useAffordabilityCalculator = () => {
       // NEW SERVICEABILITY-BASED DEBT TEST
       // Calculate annual loan payments for all properties (IO or P&I)
       let totalAnnualLoanPayment = 0;
-      const interestRate = parseFloat(globalFactors.interestRate) / 100;
       
-      // Existing debt payment (assume IO for existing portfolio)
+      // Existing debt payment (use template default interest rate of 6.5%)
       if (profile.currentDebt > 0) {
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, interestRate, 'IO');
+        const existingInterestRate = 0.065; // Assume 6.5% for existing debt
+        totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, existingInterestRate, 'IO');
       }
       
-      // Previous purchases loan payments
+      // Previous purchases loan payments (use their instance interest rates)
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
+          const purchaseInstance = getInstance(purchase.instanceId);
+          const purchaseInterestRate = purchaseInstance ? (purchaseInstance.interestRate / 100) : 0.065;
           const purchaseLoanType = purchase.loanType || 'IO';
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, interestRate, purchaseLoanType);
+          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseInterestRate, purchaseLoanType);
         }
       });
       
-      // Add new property loan payment
+      // Get property instance for interest rate and LMI waiver
+      const propertyInstance = getInstance(property.instanceId);
+      const propertyInterestRate = propertyInstance ? (propertyInstance.interestRate / 100) : 0.065;
+      const lmiWaiver = propertyInstance?.lmiWaiver ?? false;
+      
+      // Add new property loan payment (use property instance interest rate)
       const newPropertyLoanType = property.loanType || 'IO';
-      const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, interestRate, newPropertyLoanType);
+      const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
       totalAnnualLoanPayment += newPropertyLoanPayment;
       
       // Calculate rental income from new property for DSR calculation
@@ -514,11 +527,13 @@ export const useAffordabilityCalculator = () => {
       
       // Calculate acquisition costs (stamp duty, LMI, legal fees, etc.)
       const lvr = (newLoanAmount / property.cost) * 100;
+      
       const acquisitionCosts = calculateAcquisitionCosts({
         propertyPrice: property.cost,
         loanAmount: newLoanAmount,
         lvr: lvr,
         isFirstHomeBuyer: false, // Could add this to profile in future
+        lmiWaiver: lmiWaiver,
       });
       
       const totalCashRequired = property.depositRequired + acquisitionCosts.total;
@@ -830,6 +845,15 @@ export const useAffordabilityCalculator = () => {
           continue; // Skip to the next period
         }
         
+        // AUTO-CREATE PROPERTY INSTANCE: Ensure property instance exists (create if missing)
+        // This prevents fallback to the 30% rule by ensuring detailed cashflow calculations are always available
+        let propertyInstance = getInstance(property.instanceId);
+        if (!propertyInstance) {
+          // Create instance from property type defaults
+          createInstance(property.instanceId, property.title, period);
+          propertyInstance = getInstance(property.instanceId);
+        }
+        
         const availableFunds = calculateAvailableFunds(period, currentPurchases);
         const affordabilityResult = checkAffordability(property, availableFunds.total, currentPurchases, period);
         
@@ -863,7 +887,9 @@ export const useAffordabilityCalculator = () => {
     
     // Process properties sequentially, determining purchase period for each
     allPropertiesToPurchase.forEach(({ property, index, instanceId }, globalIndex) => {
-      const result = determineNextPurchasePeriod(property, purchaseHistory, globalIndex);
+      // Attach instanceId to property for use in determineNextPurchasePeriod
+      const propertyWithInstance = { ...property, instanceId };
+      const result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
       const loanAmount = property.cost - property.depositRequired;
       
       // Calculate portfolio metrics at time of purchase
@@ -976,11 +1002,17 @@ export const useAffordabilityCalculator = () => {
       
       // Calculate acquisition costs for this property
       const lvr = (loanAmount / property.cost) * 100;
+      
+      // Get lmiWaiver from property instance (if available)
+      const timelinePropertyInstance = getInstance(instanceId);
+      const timelineLmiWaiver = timelinePropertyInstance?.lmiWaiver ?? false;
+      
       const acquisitionCosts = calculateAcquisitionCosts({
         propertyPrice: property.cost,
         loanAmount: loanAmount,
         lvr: lvr,
         isFirstHomeBuyer: false,
+        lmiWaiver: timelineLmiWaiver,
       });
       
       const totalCashRequired = property.depositRequired + acquisitionCosts.total;
@@ -1130,7 +1162,9 @@ export const useAffordabilityCalculator = () => {
     getPropertyData,
     propertyAssumptions,
     pauseBlocks,
-    timelineLoanTypes
+    timelineLoanTypes,
+    createInstance,
+    getInstance
   ]);
 
   // Function to calculate affordability for any period and property
@@ -1145,11 +1179,17 @@ export const useAffordabilityCalculator = () => {
     // Calculate acquisition costs
     const newLoanAmount = property.cost - property.depositRequired;
     const lvr = (newLoanAmount / property.cost) * 100;
+    
+    // Get lmiWaiver from property instance (if available)
+    const affordabilityPropertyInstance = getInstance(property.instanceId);
+    const affordabilityLmiWaiver = affordabilityPropertyInstance?.lmiWaiver ?? false;
+    
     const acquisitionCosts = calculateAcquisitionCosts({
       propertyPrice: property.cost,
       loanAmount: newLoanAmount,
       lvr: lvr,
       isFirstHomeBuyer: false,
+      lmiWaiver: affordabilityLmiWaiver,
     });
     
     const totalCashRequired = property.depositRequired + acquisitionCosts.total;
@@ -1185,24 +1225,28 @@ export const useAffordabilityCalculator = () => {
     
     // Calculate total loan payment for serviceability test
     let totalAnnualLoanPayment = 0;
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
     
-    // Existing debt payment
+    // Existing debt payment (use template default interest rate of 6.5%)
     if (profile.currentDebt > 0) {
-      totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, interestRate, 'IO');
+      const existingInterestRate = 0.065; // Assume 6.5% for existing debt
+      totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, existingInterestRate, 'IO');
     }
     
-    // Previous purchases loan payments
+    // Previous purchases loan payments (use their instance interest rates)
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
+        const purchaseInstance = getInstance(purchase.instanceId);
+        const purchaseInterestRate = purchaseInstance ? (purchaseInstance.interestRate / 100) : 0.065;
         const purchaseLoanType = purchase.loanType || 'IO';
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, interestRate, purchaseLoanType);
+        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseInterestRate, purchaseLoanType);
       }
     });
     
-    // Add new property loan payment (newLoanAmount already declared above)
+    // Add new property loan payment (use property instance interest rate, newLoanAmount already declared above)
+    const propertyInstance = getInstance(property.instanceId);
+    const propertyInterestRate = propertyInstance ? (propertyInstance.interestRate / 100) : 0.065;
     const newPropertyLoanType = property.loanType || 'IO';
-    const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, interestRate, newPropertyLoanType);
+    const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
     totalAnnualLoanPayment += newPropertyLoanPayment;
     
     // Enhanced serviceability test with rental income contribution

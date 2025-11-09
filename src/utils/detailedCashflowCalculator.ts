@@ -44,7 +44,9 @@ export function calculateDetailedCashflow(
   const adjustedIncome = grossAnnualIncome - vacancyAmount;
   
   // Expenses
-  const loanInterest = loanAmount * (property.interestRate / 100);
+  // Apply loan offset account to reduce effective loan amount for interest calculation
+  const effectiveLoanAmount = Math.max(0, loanAmount - property.loanOffsetAccount);
+  const loanInterest = effectiveLoanAmount * (property.interestRate / 100);
   const propertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
   const buildingInsurance = property.buildingInsuranceAnnual;
   const councilRatesWater = property.councilRatesWater;

@@ -22,6 +22,7 @@ export interface TimelineProgressBarProps {
   startYear: number;
   endYear: number;
   latestPurchaseYear: number;
+  purchaseYears: number[];
   onYearClick: (year: number) => void;
 }
 
@@ -29,6 +30,7 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
   startYear,
   endYear,
   latestPurchaseYear,
+  purchaseYears,
   onYearClick,
 }) => {
   const years = [];
@@ -36,39 +38,63 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
     years.push(year);
   }
   
+  const currentYear = new Date().getFullYear();
+  
   return (
     <div className="border-b border-[#f3f4f6] py-3 px-6">
-      <div className="flex items-center justify-start gap-1 overflow-x-auto">
+      <div className="flex items-center justify-start overflow-x-auto">
         {years.map((year, index) => {
-          const isCompleted = year <= latestPurchaseYear;
           const isLast = index === years.length - 1;
+          const isPast = year < currentYear;
+          const isPurchaseYear = purchaseYears.includes(year);
+          const isFuture = !isPast && !isPurchaseYear;
+          
+          // Find if this year is between purchase years
+          const minPurchaseYear = purchaseYears.length > 0 ? Math.min(...purchaseYears) : Infinity;
+          const maxPurchaseYear = purchaseYears.length > 0 ? Math.max(...purchaseYears) : -Infinity;
+          const isBetweenPurchases = year > minPurchaseYear && year < maxPurchaseYear && !isPurchaseYear;
+          
+          // Determine colors based on the state
+          let bgColor = '#ffffff'; // White for future years
+          let textColor = '#6b7280'; // Gray text for future
+          
+          if (isPast) {
+            bgColor = '#9ca3af'; // Grey for past years
+            textColor = '#ffffff'; // White text
+          } else if (isPurchaseYear) {
+            bgColor = '#87B5FA'; // Blue for purchase years
+            textColor = '#ffffff'; // White text
+          } else if (isBetweenPurchases) {
+            bgColor = '#d1d5db'; // Darker grey for years between purchases
+            textColor = '#4b5563'; // Darker text color
+          }
           
           return (
-            <React.Fragment key={year}>
-              {/* Year Segment */}
+            <div key={year} className="relative" style={{ marginRight: isLast ? '0' : '-8px' }}>
               <button
                 onClick={() => onYearClick(year)}
-                className={`
-                  px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap
-                  transition-all hover:opacity-80
-                  ${isCompleted 
-                    ? 'text-white' 
-                    : 'bg-gray-300 text-gray-600'
-                  }
-                `}
-                style={isCompleted ? { backgroundColor: '#87B5FA' } : {}}
+                className="relative transition-all hover:opacity-80 flex items-center justify-center font-medium whitespace-nowrap"
+                style={{
+                  backgroundColor: bgColor,
+                  color: textColor,
+                  height: '32px',
+                  paddingLeft: index === 0 ? '12px' : '20px',
+                  paddingRight: isLast ? '12px' : '20px',
+                  clipPath: isLast 
+                    ? (index === 0 ? 'none' : 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)')
+                    : (index === 0 
+                      ? 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)'
+                      : 'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)'),
+                  fontSize: '14px',
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  zIndex: years.length - index,
+                }}
               >
                 {year}
               </button>
-              
-              {/* Connecting Line */}
-              {!isLast && (
-                <div 
-                  className={`h-0.5 w-4 ${isCompleted ? '' : 'bg-gray-300'}`}
-                  style={isCompleted ? { backgroundColor: '#87B5FA' } : {}}
-                />
-              )}
-            </React.Fragment>
+            </div>
           );
         })}
       </div>
@@ -133,10 +159,16 @@ export const useTimelineData = () => {
     ? Math.max(...timelineProperties.map(p => Math.round(p.affordableYear)))
     : startYear;
   
+  // Get all unique purchase years
+  const purchaseYears = timelineProperties.length > 0
+    ? [...new Set(timelineProperties.map(p => Math.round(p.affordableYear)))]
+    : [];
+  
   return {
     startYear,
     endYear,
     latestPurchaseYear,
+    purchaseYears,
   };
 };
 
@@ -166,8 +198,9 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
   const fullYearlyBreakdown = useMemo((): YearBreakdownData[] => {
     const baseYear = 2025;
     const endYear = baseYear + profile.timelineYears - 1; // e.g., 2025 + 15 - 1 = 2039
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
-    const growthRate = parseFloat(globalFactors.growthRate) / 100;
+    // DEPRECATED: No longer using globalFactors - each property uses its own template values
+    const defaultInterestRate = 0.065; // Default 6.5% for timeline calculations
+    const defaultGrowthRate = 0.06; // Default 6% for timeline calculations
     
     // Create a map of years to properties for quick lookup
     // Round affordableYear to nearest integer (2030.5 -> 2031, 2030.3 -> 2030)
@@ -204,8 +237,8 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
         const existingDebt = property.totalDebtAfter - property.loanAmount;
         const newDebt = property.loanAmount;
-        const existingLoanInterest = existingDebt * interestRate;
-        const newLoanInterest = newDebt * interestRate;
+        const existingLoanInterest = existingDebt * defaultInterestRate;
+        const newLoanInterest = newDebt * defaultInterestRate;
         const annualSavingsRate = profile.annualSavings;
         const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
         
@@ -293,7 +326,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           rentalServiceabilityContribution,
           
           // Assumptions (from calculator)
-          interestRate: interestRate * 100,
+          interestRate: defaultInterestRate * 100,
           rentalRecognition: property.rentalRecognitionRate * 100,
           
           // Tests (from calculator)
@@ -358,7 +391,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         years.push(yearData);
       } else {
         // This is a non-purchase year - interpolate portfolio state with real affordability tests
-        const yearData = interpolateYearData(year, yearIndex, timelineProperties, profile, globalFactors, interestRate, growthRate, selections, propertyTypes, calculateAffordabilityForProperty);
+        const yearData = interpolateYearData(year, yearIndex, timelineProperties, profile, globalFactors, defaultInterestRate, defaultGrowthRate, selections, propertyTypes, calculateAffordabilityForProperty);
         years.push(yearData);
       }
     }
@@ -953,7 +986,7 @@ function findNextPropertyToPurchase(
 }
 
 // Helper function to create initial year data
-function createInitialYearData(year: number, yearIndex: number, profile: any, interestRate: number): YearBreakdownData {
+function createInitialYearData(year: number, yearIndex: number, profile: any, defaultInterestRate: number): YearBreakdownData {
   const portfolioValue = profile.portfolioValue;
   const totalDebt = profile.currentDebt;
   const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
@@ -1016,7 +1049,7 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     // Debt breakdown
     existingDebt: totalDebt,
     newDebt: 0,
-    existingLoanInterest: totalDebt * interestRate,
+    existingLoanInterest: totalDebt * defaultInterestRate,
     newLoanInterest: 0,
     
     // Enhanced serviceability breakdown
@@ -1024,7 +1057,7 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, in
     rentalServiceabilityContribution: 0,
     
     // Assumptions
-    interestRate: interestRate * 100,
+    interestRate: defaultInterestRate * 100,
     rentalRecognition: 75,
     
     // Tests (not applicable)
