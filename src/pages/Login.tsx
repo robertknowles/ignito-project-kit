@@ -53,8 +53,8 @@ export function Login() {
           </div>
           <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-[#f3f4f6]">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="mb-4 p-3 bg-red-300/70 border border-red-300 rounded-md">
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
             <form className="space-y-6" onSubmit={handleSubmit}>

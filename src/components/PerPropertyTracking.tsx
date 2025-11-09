@@ -197,7 +197,7 @@ export const PerPropertyTracking = () => {
             <Line 
               type="monotone" 
               dataKey="propertyValue" 
-              stroke="#3b82f6" 
+              stroke="#87B5FA" 
               strokeWidth={2}
               name="Property Value"
               dot={false}
@@ -205,7 +205,7 @@ export const PerPropertyTracking = () => {
             <Line 
               type="monotone" 
               dataKey="equity" 
-              stroke="#10b981" 
+              stroke="rgba(134, 239, 172, 0.7)" 
               strokeWidth={2}
               name="Equity"
               dot={false}
@@ -213,7 +213,7 @@ export const PerPropertyTracking = () => {
             <Line 
               type="monotone" 
               dataKey="loanBalance" 
-              stroke="#ef4444" 
+              stroke="rgba(252, 165, 165, 0.7)" 
               strokeWidth={2}
               name="Loan Balance"
               dot={false}
@@ -249,9 +249,9 @@ export const PerPropertyTracking = () => {
               formatter={(value: number) => formatCurrency(value)}
             />
             <Legend />
-            <Bar dataKey="rentalIncome" fill="#10b981" name="Rental Income" />
-            <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-            <Bar dataKey="netCashflow" fill="#3b82f6" name="Net Cashflow" />
+            <Bar dataKey="rentalIncome" fill="rgba(134, 239, 172, 0.7)" name="Rental Income" />
+            <Bar dataKey="expenses" fill="rgba(252, 165, 165, 0.7)" name="Expenses" />
+            <Bar dataKey="netCashflow" fill="#87B5FA" name="Net Cashflow" />
           </BarChart>
         </ResponsiveContainer>
       </div>

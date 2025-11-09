@@ -39,8 +39,8 @@ export const PortfolioGrowthChart = () => {
       return (
         <div className="bg-white p-3 border border-[#f3f4f6] shadow-sm rounded-md">
           <p className="text-xs font-medium">{`Year: ${label}`}</p>
-          <p className="text-xs text-[#93c5fd]">{`Portfolio Value: $${(payload[0].value / 1000000).toFixed(1)}M`}</p>
-          <p className="text-xs text-[#86efac]">{`Equity: $${(payload[1].value / 1000000).toFixed(1)}M`}</p>
+          <p className="text-xs" style={{ color: '#87B5FA' }}>{`Portfolio Value: $${(payload[0].value / 1000000).toFixed(1)}M`}</p>
+          <p className="text-xs" style={{ color: 'rgba(134, 239, 172, 0.9)' }}>{`Equity: $${(payload[1].value / 1000000).toFixed(1)}M`}</p>
           {properties.length > 0 && (
             <div className="mt-2 pt-2 border-t border-[#f3f4f6]">
               <p className="text-xs font-medium mb-1">Properties Purchased:</p>
@@ -225,7 +225,7 @@ export const PortfolioGrowthChart = () => {
             {profile.equityGoal > 0 && (
               <ReferenceLine
                 y={profile.equityGoal}
-                stroke="#F59E0B"
+                stroke="rgba(253, 186, 116, 0.7)"
                 strokeDasharray="5 5"
                 strokeWidth={2}
               >
@@ -236,13 +236,13 @@ export const PortfolioGrowthChart = () => {
             <Line
               type="monotone"
               dataKey="portfolioValue"
-              stroke="#93c5fd"
+              stroke="#87B5FA"
               strokeWidth={2}
               name="Portfolio Value"
               dot={<CustomizedDot />}
               activeDot={{
                 r: 6,
-                stroke: '#93c5fd',
+                stroke: '#87B5FA',
                 strokeWidth: 1,
                 fill: 'white',
               }}
@@ -250,13 +250,13 @@ export const PortfolioGrowthChart = () => {
             <Line
               type="monotone"
               dataKey="equity"
-              stroke="#86efac"
+              stroke="rgba(134, 239, 172, 0.7)"
               strokeWidth={2}
               name="Equity"
               dot={false}
               activeDot={{
                 r: 6,
-                stroke: '#86efac',
+                stroke: 'rgba(134, 239, 172, 0.7)',
                 strokeWidth: 1,
                 fill: 'white',
               }}
@@ -268,7 +268,7 @@ export const PortfolioGrowthChart = () => {
                 x={equityGoalReached.year}
                 y={equityGoalReached?.equity ?? 0}
                 r={8}
-                fill="#F59E0B"
+                fill="rgba(253, 186, 116, 0.7)"
                 stroke="white"
                 strokeWidth={2}
               >

@@ -169,7 +169,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   </td>
                   
                   <td className="p-3">
-                    <div className={`text-sm ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-sm ${netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                       {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
                     </div>
                   </td>
@@ -189,10 +189,10 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       {depositTest.pass ? 
-                        <CheckCircle className="w-4 h-4 text-green-500" /> : 
-                        <XCircle className="w-4 h-4 text-red-500" />
+                        <CheckCircle className="w-4 h-4 text-green-700" /> : 
+                        <XCircle className="w-4 h-4 text-red-700" />
                       }
-                      <span className={`text-sm ${depositTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`text-sm ${depositTest.pass ? 'text-green-700' : 'text-red-700'}`}>
                         {depositTest.pass ? '+' : ''}{formatCurrency(depositTest.surplus, true)}
                       </span>
                     </div>
@@ -201,10 +201,10 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       {serviceabilityTest.pass ? 
-                        <CheckCircle className="w-4 h-4 text-green-500" /> : 
-                        <XCircle className="w-4 h-4 text-red-500" />
+                        <CheckCircle className="w-4 h-4 text-green-700" /> : 
+                        <XCircle className="w-4 h-4 text-red-700" />
                       }
-                      <span className={`text-sm ${serviceabilityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`text-sm ${serviceabilityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
                         {serviceabilityTest.pass ? '+' : ''}{formatCurrency(serviceabilityTest.surplus, true)}
                       </span>
                     </div>
@@ -216,7 +216,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                         year.status === 'purchased' ? 'default' : 'outline'
                       }
                       className={
-                        year.status === 'purchased' ? 'bg-green-500' : ''
+                        year.status === 'purchased' ? 'bg-green-300/70' : ''
                       }
                     >
                       {getDecisionStatus(year)}
@@ -321,7 +321,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                   <div className="flex justify-between px-3 py-1 bg-green-50">
                                     <span className="font-medium text-[#374151] flex items-center gap-1">
                                       Total Sourced
-                                      <CheckCircle className="w-3 h-3 text-green-500" />
+                                      <CheckCircle className="w-3 h-3 text-green-700" />
                                     </span>
                                     <span className="font-bold text-right text-[#111827]">{formatCurrency(totalFundsUsed, true)}</span>
                                   </div>
@@ -342,7 +342,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
                                 <span className="text-[#374151]">Cashflow Impact</span>
-                                <span className={`font-medium text-right ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <span className={`font-medium text-right ${netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                                   {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
                                 </span>
                               </div>
@@ -365,13 +365,13 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
                                 <span className="text-[#374151]">Loan Interest</span>
-                                <span className="font-medium text-right text-red-600">-{formatCurrency(year.loanRepayments || 0, true)}</span>
+                                <span className="font-medium text-right text-red-700">-{formatCurrency(year.loanRepayments || 0, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
                                 <span className="text-[#374151]">Expenses (30% + 3%)</span>
-                                <span className="font-medium text-right text-red-600">-{formatCurrency(year.expenses || 0, true)}</span>
+                                <span className="font-medium text-right text-red-700">-{formatCurrency(year.expenses || 0, true)}</span>
                               </div>
-                              <div className={`flex justify-between px-3 py-1.5 bg-[#f9fafb] ${netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <div className={`flex justify-between px-3 py-1.5 bg-[#f9fafb] ${netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                                 <span className="font-medium">Net Cashflow</span>
                                 <span className="font-bold text-right">{netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}</span>
                               </div>
@@ -407,7 +407,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                 <span className="font-medium text-[#374151]">Total Remaining</span>
                                 <span className="font-bold text-right text-[#111827]">{formatCurrency((depositTest.available || 0) - totalCashUsed, true)}</span>
                               </div>
-                              <div className={`px-3 py-1.5 ${depositTest.surplus >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                              <div className={`px-3 py-1.5 ${depositTest.surplus >= 0 ? 'bg-green-300/70' : 'bg-red-300/70'}`}>
                                 <div className="flex justify-between">
                                   <span className={`font-medium ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>Purchase Result</span>
                                   <span className={`font-bold text-right ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -518,11 +518,11 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               <h4 className="font-semibold text-[11px] text-[#374151]">🔍 Borrowing Capacity Test</h4>
                             </div>
                             <div className="divide-y divide-gray-100">
-                              <div className={`flex justify-between px-3 py-1 ${year.borrowingCapacityTest?.pass ? 'bg-green-50' : 'bg-red-50'}`}>
+                              <div className={`flex justify-between px-3 py-1 ${year.borrowingCapacityTest?.pass ? 'bg-green-300/70' : 'bg-red-300/70'}`}>
                                 <span className="flex items-center gap-1">
                                   {year.borrowingCapacityTest?.pass ? 
-                                    <CheckCircle className="w-3 h-3 text-green-500" /> : 
-                                    <XCircle className="w-3 h-3 text-red-500" />
+                                    <CheckCircle className="w-3 h-3 text-green-700" /> : 
+                                    <XCircle className="w-3 h-3 text-red-700" />
                                   }
                                   <span className={`font-medium ${year.borrowingCapacityTest?.pass ? 'text-green-700' : 'text-red-700'}`}>
                                     {year.borrowingCapacityTest?.pass ? 'PASS' : 'FAIL'}
@@ -552,11 +552,11 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               <h4 className="font-semibold text-[11px] text-[#374151]">⚖️ Serviceability Test</h4>
                             </div>
                             <div className="divide-y divide-gray-100">
-                              <div className={`flex justify-between px-3 py-1 ${serviceabilityTest.pass ? 'bg-green-50' : 'bg-red-50'}`}>
+                              <div className={`flex justify-between px-3 py-1 ${serviceabilityTest.pass ? 'bg-green-300/70' : 'bg-red-300/70'}`}>
                                 <span className="flex items-center gap-1">
                                   {serviceabilityTest.pass ? 
-                                    <CheckCircle className="w-3 h-3 text-green-500" /> : 
-                                    <XCircle className="w-3 h-3 text-red-500" />
+                                    <CheckCircle className="w-3 h-3 text-green-700" /> : 
+                                    <XCircle className="w-3 h-3 text-red-700" />
                                   }
                                   <span className={`font-medium ${serviceabilityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
                                     {serviceabilityTest.pass ? 'PASS' : 'FAIL'}

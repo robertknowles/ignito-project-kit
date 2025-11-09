@@ -33,18 +33,18 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
   return (
     <div className="border rounded-lg shadow-sm p-4 space-y-4 bg-white">
       {/* PASS/FAIL Badge */}
-      <div className={`text-center p-3 rounded ${borrowingCapacityTest.pass ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+      <div className={`text-center p-3 rounded ${borrowingCapacityTest.pass ? 'bg-green-300/70 border border-green-300' : 'bg-red-300/70 border border-red-300'}`}>
         <div className="flex items-center justify-center gap-2">
           {borrowingCapacityTest.pass ? (
-            <CheckCircle className="w-5 h-5 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-green-700" />
           ) : (
-            <XCircle className="w-5 h-5 text-red-600" />
+            <XCircle className="w-5 h-5 text-red-700" />
           )}
           <span className={`text-lg font-semibold ${borrowingCapacityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
             {borrowingCapacityTest.pass ? 'PASS' : 'FAIL'}
           </span>
         </div>
-        <div className={`text-sm mt-1 ${borrowingCapacityTest.pass ? 'text-green-600' : 'text-red-600'}`}>
+        <div className={`text-sm mt-1 ${borrowingCapacityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
           {borrowingCapacityTest.pass ? 'Surplus' : 'Shortfall'}: {formatCurrency(Math.abs(borrowingCapacityTest.surplus))}
         </div>
       </div>
@@ -101,7 +101,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Current Portfolio LVR</span>
-            <span className={`text-base font-semibold ${lvr > 80 ? 'text-red-600' : 'text-gray-800'}`}>
+            <span className={`text-base font-semibold ${lvr > 80 ? 'text-red-700' : 'text-gray-800'}`}>
               {lvr.toFixed(1)}%
             </span>
           </div>
@@ -116,7 +116,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-700">Total Debt After</span>
-              <span className="text-base font-bold text-orange-600">{formatCurrency(totalDebtAfter)}</span>
+              <span className="text-base font-bold text-orange-700">{formatCurrency(totalDebtAfter)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
               {formatCurrency(totalDebt)} + {formatCurrency(newDebt)}
@@ -160,9 +160,9 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
           <div className="flex items-center justify-center gap-2 text-sm">
             <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
             <span className="text-gray-600">−</span>
-            <span className="font-semibold text-orange-600">{formatCurrency(totalDebtAfter)}</span>
+            <span className="font-semibold text-orange-700">{formatCurrency(totalDebtAfter)}</span>
             <ArrowRight className="w-4 h-4 text-gray-400" />
-            <span className={`font-bold ${borrowingCapacityTest.surplus >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`font-bold ${borrowingCapacityTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
               {formatCurrency(borrowingCapacityTest.surplus)}
             </span>
           </div>
@@ -174,7 +174,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         <h4 className="text-sm font-medium uppercase text-gray-700">
           The Result
         </h4>
-        <div className={`rounded p-3 ${borrowingCapacityTest.pass ? 'bg-green-50' : 'bg-red-50'}`}>
+        <div className={`rounded p-3 ${borrowingCapacityTest.pass ? 'bg-green-300/70' : 'bg-red-300/70'}`}>
           <div className="text-center">
             <div className={`text-base font-semibold ${borrowingCapacityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
               {borrowingCapacityTest.pass 

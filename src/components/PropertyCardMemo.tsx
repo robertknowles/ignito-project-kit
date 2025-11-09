@@ -45,7 +45,7 @@ const PropertyCardComponent: React.FC<PropertyCardProps> = ({
   const getRiskDot = (level: string) => {
     switch (level) {
       case 'Low':
-        return 'bg-[#10b981] bg-opacity-50';
+        return 'bg-green-300/70';
       case 'Medium-Low':
         return 'bg-[#3b82f6] bg-opacity-60';
       case 'Medium':

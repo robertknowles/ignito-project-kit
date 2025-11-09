@@ -1,22 +1,80 @@
-import React, { useState } from 'react'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import {
   CalendarIcon,
-  Pencil,
   Loader2,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
-import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { AIStrategySummary } from './AIStrategySummary'
-import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
-import { LoanTypeToggle } from './LoanTypeToggle'
-import { PropertyDetailModal } from './PropertyDetailModal'
-import type { PropertyInstanceDetails } from '../types/propertyInstance'
+import { PurchaseEventCard } from './PurchaseEventCard'
+import { GapView } from './GapView'
+import { YearCircle } from './YearCircle'
+import type { YearBreakdownData } from '@/types/property'
+
 // Period conversion helpers
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
+
+// Timeline Progress Bar Component - Now exported for use in Dashboard
+export interface TimelineProgressBarProps {
+  startYear: number;
+  endYear: number;
+  latestPurchaseYear: number;
+  onYearClick: (year: number) => void;
+}
+
+export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
+  startYear,
+  endYear,
+  latestPurchaseYear,
+  onYearClick,
+}) => {
+  const years = [];
+  for (let year = startYear; year <= endYear; year++) {
+    years.push(year);
+  }
+  
+  return (
+    <div className="border-b border-[#f3f4f6] py-3 px-6">
+      <div className="flex items-center justify-start gap-1 overflow-x-auto">
+        {years.map((year, index) => {
+          const isCompleted = year <= latestPurchaseYear;
+          const isLast = index === years.length - 1;
+          
+          return (
+            <React.Fragment key={year}>
+              {/* Year Segment */}
+              <button
+                onClick={() => onYearClick(year)}
+                className={`
+                  px-3 py-1.5 rounded text-sm font-medium whitespace-nowrap
+                  transition-all hover:opacity-80
+                  ${isCompleted 
+                    ? 'text-white' 
+                    : 'bg-gray-300 text-gray-600'
+                  }
+                `}
+                style={isCompleted ? { backgroundColor: '#87B5FA' } : {}}
+              >
+                {year}
+              </button>
+              
+              {/* Connecting Line */}
+              {!isLast && (
+                <div 
+                  className={`h-0.5 w-4 ${isCompleted ? '' : 'bg-gray-300'}`}
+                  style={isCompleted ? { backgroundColor: '#87B5FA' } : {}}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const periodToDisplay = (period: number): string => {
   const year = BASE_YEAR + Math.floor((period - 1) / PERIODS_PER_YEAR);
@@ -24,11 +82,289 @@ const periodToDisplay = (period: number): string => {
   return `${year} H${half}`;
 };
 
-export const InvestmentTimeline = () => {
+// Convert annual rate to per-period rate using compound interest formula
+const annualRateToPeriodRate = (annualRate: number): number => {
+  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
+};
+
+// Tiered growth function: Uses customizable growth curve from profile
+// Default: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
+const calculatePropertyGrowth = (initialValue: number, periods: number, growthCurve: any): number => {
+  let currentValue = initialValue;
+  
+  // Convert annual rates to per-period rates
+  const year1Rate = annualRateToPeriodRate(growthCurve.year1 / 100);
+  const years2to3Rate = annualRateToPeriodRate(growthCurve.years2to3 / 100);
+  const year4Rate = annualRateToPeriodRate(growthCurve.year4 / 100);
+  const year5plusRate = annualRateToPeriodRate(growthCurve.year5plus / 100);
+  
+  for (let period = 1; period <= periods; period++) {
+    let periodRate;
+    
+    if (period <= 2) {
+      // Year 1 (periods 1-2)
+      periodRate = year1Rate;
+    } else if (period <= 6) {
+      // Years 2-3 (periods 3-6)
+      periodRate = years2to3Rate;
+    } else if (period <= 8) {
+      // Year 4 (periods 7-8)
+      periodRate = year4Rate;
+    } else {
+      // Year 5+ (period 9+)
+      periodRate = year5plusRate;
+    }
+    
+    currentValue *= (1 + periodRate);
+  }
+  
+  return currentValue;
+};
+
+// Export timeline data for use in parent components
+export const useTimelineData = () => {
+  const { profile } = useInvestmentProfile()
+  const { timelineProperties } = useAffordabilityCalculator()
+  
+  const BASE_YEAR = 2025;
+  const startYear = BASE_YEAR;
+  const endYear = startYear + (profile.timelineYears || 15) - 1;
+  const latestPurchaseYear = timelineProperties.length > 0
+    ? Math.max(...timelineProperties.map(p => Math.round(p.affordableYear)))
+    : startYear;
+  
+  return {
+    startYear,
+    endYear,
+    latestPurchaseYear,
+  };
+};
+
+export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number) => void }>((props, ref) => {
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections } = usePropertySelection()
-  const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating } = useAffordabilityCalculator()
+  const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating, calculateAffordabilityForProperty } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
+  
+  // Expose scrollToYear function to parent via ref
+  React.useImperativeHandle(ref, () => ({
+    scrollToYear: (year: number) => {
+      const element = document.getElementById(`year-${year}`);
+      if (element) {
+        const container = element.closest('.scrollable-content');
+        if (container) {
+          const containerTop = container.getBoundingClientRect().top;
+          const elementTop = element.getBoundingClientRect().top;
+          const offset = elementTop - containerTop - 20; // 20px padding
+          container.scrollBy({ top: offset, behavior: 'smooth' });
+        }
+      }
+    }
+  }));
+  
+  // Generate ALL years (2025-2050) by interpolating between purchase events
+  const fullYearlyBreakdown = useMemo((): YearBreakdownData[] => {
+    const baseYear = 2025;
+    const endYear = baseYear + profile.timelineYears - 1; // e.g., 2025 + 15 - 1 = 2039
+    const interestRate = parseFloat(globalFactors.interestRate) / 100;
+    const growthRate = parseFloat(globalFactors.growthRate) / 100;
+    
+    // Create a map of years to properties for quick lookup
+    // Round affordableYear to nearest integer (2030.5 -> 2031, 2030.3 -> 2030)
+    const propertyByYear = new Map<number, typeof timelineProperties[0][]>();
+    timelineProperties.forEach(prop => {
+      const roundedYear = Math.round(prop.affordableYear);
+      if (!propertyByYear.has(roundedYear)) {
+        propertyByYear.set(roundedYear, []);
+      }
+      propertyByYear.get(roundedYear)!.push(prop);
+    });
+
+    // Generate ALL years from 2025 to endYear
+    const years: YearBreakdownData[] = [];
+    
+    for (let year = baseYear; year <= endYear; year++) {
+      const yearIndex = year - baseYear;
+      const properties = propertyByYear.get(year);
+      
+      if (properties && properties.length > 0) {
+        // This is a purchase year - use the first property's data for the year row
+        // (Multiple purchases in same year will be shown in the purchases array)
+        const property = properties[0];
+        const propertyIndex = property.propertyIndex + 1;
+        
+        const lvr = property.portfolioValueAfter > 0 
+          ? (property.totalDebtAfter / property.portfolioValueAfter) * 100 
+          : 0;
+        const dsr = property.grossRentalIncome > 0 
+          ? (property.loanInterest / property.grossRentalIncome) * 100 
+          : 0;
+
+        // Calculate new fields for pure presentation
+        const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
+        const existingDebt = property.totalDebtAfter - property.loanAmount;
+        const newDebt = property.loanAmount;
+        const existingLoanInterest = existingDebt * interestRate;
+        const newLoanInterest = newDebt * interestRate;
+        const annualSavingsRate = profile.annualSavings;
+        const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
+        
+        // Calculate enhanced serviceability values
+        const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
+        const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
+        
+        // Build all portfolio properties array
+        const allPortfolioProperties = timelineProperties
+          .filter(p => p.affordableYear <= year)
+          .map(p => {
+            const yearsOwned = year - p.affordableYear;
+            const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+            // Use tiered growth with period-based calculations
+            const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
+            const equity = currentValue - p.loanAmount;
+            const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+            
+            return {
+              propertyId: p.id,
+              propertyType: p.title,
+              purchaseYear: p.affordableYear,
+              displayPeriod: p.displayPeriod,
+              originalCost: p.cost,
+              currentValue,
+              loanAmount: p.loanAmount,
+              equity,
+              extractableEquity: extractable,
+            };
+          });
+
+        // Calculate period from year
+        const periodNumber = Math.round((year - baseYear) * PERIODS_PER_YEAR) + 1;
+        const displayPeriod = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
+        
+        const yearData: YearBreakdownData = {
+          period: periodNumber,
+          year,
+          displayYear: yearIndex,
+          displayPeriod,
+          status: 'purchased',
+          propertyNumber: propertyIndex,
+          propertyType: property.title,
+          
+          // Portfolio metrics (from calculator)
+          portfolioValue: property.portfolioValueAfter,
+          totalEquity: property.totalEquityAfter,
+          totalDebt: property.totalDebtAfter,
+          extractableEquity,
+          
+          // Cash engine (from calculator)
+          availableDeposit: property.availableFundsUsed,
+          annualCashFlow: property.netCashflow,
+          
+          // Available funds breakdown (from calculator)
+          baseDeposit: property.baseDeposit,
+          cumulativeSavings: property.cumulativeSavings,
+          cashflowReinvestment: property.cashflowReinvestment,
+          equityRelease: property.equityRelease,
+          annualSavingsRate,
+          totalAnnualCapacity,
+          
+          // Cashflow components (from calculator)
+          grossRental: property.grossRentalIncome,
+          loanRepayments: property.loanInterest,
+          expenses: property.expenses,
+          
+          // Requirements
+          requiredDeposit: property.depositRequired,
+          requiredLoan: property.loanAmount,
+          propertyCost: property.cost,
+          
+          // Capacity (from calculator)
+          availableBorrowingCapacity: property.borrowingCapacityRemaining,
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          // Debt breakdown
+          existingDebt,
+          newDebt,
+          existingLoanInterest,
+          newLoanInterest,
+          
+          // Enhanced serviceability breakdown
+          baseServiceabilityCapacity,
+          rentalServiceabilityContribution,
+          
+          // Assumptions (from calculator)
+          interestRate: interestRate * 100,
+          rentalRecognition: property.rentalRecognitionRate * 100,
+          
+          // Tests (from calculator)
+          depositTest: {
+            pass: property.depositTestPass,
+            surplus: property.depositTestSurplus,
+            available: property.availableFundsUsed,
+            required: property.depositRequired,
+          },
+          
+          borrowingCapacityTest: {
+            pass: property.borrowingCapacityRemaining >= 0,
+            surplus: property.borrowingCapacityRemaining,
+            available: profile.borrowingCapacity,
+            required: property.totalDebtAfter,
+          },
+          
+          serviceabilityTest: {
+            pass: property.serviceabilityTestPass,
+            surplus: property.serviceabilityTestSurplus,
+            available: baseServiceabilityCapacity + rentalServiceabilityContribution,
+            required: property.loanAmount,
+          },
+          
+          // Flags (from calculator)
+          gapRule: property.isGapRuleBlocked,
+          equityReleaseYear: property.equityRelease > 0,
+          
+          // Strategy metrics
+          portfolioScaling: propertyIndex,
+          selfFundingEfficiency: property.cost > 0 ? (property.netCashflow / property.cost) * 100 : 0,
+          equityRecyclingImpact: property.portfolioValueAfter > 0 ? (property.totalEquityAfter / property.portfolioValueAfter) * 100 : 0,
+          dsr,
+          lvr,
+          
+          // Breakdown details - Include all properties purchased this year
+          purchases: properties.map(prop => ({
+            propertyId: prop.id,
+            propertyType: prop.title,
+            cost: prop.cost,
+            deposit: prop.depositRequired,
+            loanAmount: prop.loanAmount,
+            loanType: prop.loanType,
+            year,
+            displayPeriod: prop.displayPeriod,
+            currentValue: prop.cost,
+            equity: prop.cost - prop.loanAmount,
+            extractableEquity: Math.max(0, (prop.cost * 0.80) - prop.loanAmount),
+            // Acquisition costs
+            stampDuty: prop.acquisitionCosts?.stampDuty || 0,
+            lmi: prop.acquisitionCosts?.lmi || 0,
+            legalFees: prop.acquisitionCosts?.legalFees || 2000,
+            inspectionFees: prop.acquisitionCosts?.inspectionFees || 650,
+            otherFees: prop.acquisitionCosts?.otherFees || 1500,
+            totalAcquisitionCosts: prop.acquisitionCosts?.total || 0,
+          })),
+          
+          // All portfolio properties
+          allPortfolioProperties,
+        };
+
+        years.push(yearData);
+      } else {
+        // This is a non-purchase year - interpolate portfolio state with real affordability tests
+        const yearData = interpolateYearData(year, yearIndex, timelineProperties, profile, globalFactors, interestRate, growthRate, selections, propertyTypes, calculateAffordabilityForProperty);
+        years.push(yearData);
+      }
+    }
+
+    return years;
+  }, [timelineProperties, profile, globalFactors, selections, propertyTypes, calculateAffordabilityForProperty]);
   
   // Determine status based on timeline results
   const getTimelineStatus = (): 'feasible' | 'delayed' | 'challenging' => {
@@ -44,125 +380,139 @@ export const InvestmentTimeline = () => {
 
   const timelineStatus = getTimelineStatus()
 
-  // Generate timeline items
-  const generateTimelineItems = () => {
-    if (calculations.totalProperties === 0) {
-      return [
-        {
-          year: "2025",
-          quarter: "Yr 0",
-          type: "No properties selected",
-          deposit: "$0",
-          price: "$0",
-          loanAmount: "$0",
-          portfolioValue: "$0",
-          equity: "$0",
-          status: 'feasible' as const,
-          eventType: 'purchase' as const
-        }
-      ]
+  // Generate unified timeline with individual property cards and gaps
+  const unifiedTimeline = useMemo(() => {
+    if (!timelineProperties || timelineProperties.length === 0) {
+      return [];
     }
 
-    const allTimelineEvents: Array<{
-      year: string;
-      quarter: string;
-      type: string;
-      deposit?: string;
-      price?: string;
-      loanAmount?: string;
-      portfolioValue: string;
-      equity: string;
-      status: 'feasible' | 'delayed' | 'challenging';
-      number?: string;
-      affordableYear: number;
-      period: number;
-      eventType: 'purchase' | 'pause';
-      duration?: number;
-      instanceId?: string;
-      loanType?: 'IO' | 'PI';
+    const timelineElements: Array<{
+      type: 'purchase' | 'gap';
+      property?: typeof timelineProperties[0];
+      yearData?: YearBreakdownData;
+      isLastPropertyInYear?: boolean;
+      startYear?: number;
+      endYear?: number;
     }> = [];
 
-    // Add purchase events
-    timelineProperties.forEach((property, index) => {
-      const isAffordable = property.status === 'feasible';
-      const timelineEndYear = 2025 + profile.timelineYears;
-      
-      let yearDisplay: string;
-      let periodDisplay: string;
-      
-      if (property.affordableYear === Infinity || property.period === Infinity) {
-        yearDisplay = "Beyond Timeline";
-        periodDisplay = "N/A";
-      } else if (isAffordable && property.affordableYear <= timelineEndYear) {
-        yearDisplay = Math.floor(property.affordableYear).toString();
-        periodDisplay = property.displayPeriod || periodToDisplay(property.period);
-      } else if (property.affordableYear > timelineEndYear) {
-        yearDisplay = Math.floor(property.affordableYear).toString();
-        periodDisplay = property.displayPeriod || periodToDisplay(property.period);
-      } else {
-        yearDisplay = "Beyond Timeline";
-        periodDisplay = "N/A";
-      }
+    // Sort properties by affordable year
+    const sortedProperties = [...timelineProperties].sort((a, b) => a.affordableYear - b.affordableYear);
 
-      // Add purchase event
-      allTimelineEvents.push({
-        year: yearDisplay,
-        quarter: periodDisplay,
-        type: property.title,
-        deposit: `$${Math.round(property.depositRequired / 1000)}k`,
-        price: `$${Math.round(property.cost / 1000)}k`,
-        loanAmount: `$${Math.round(property.loanAmount / 1000)}k`,
-        portfolioValue: `$${Math.round(property.portfolioValueAfter / 1000)}k`,
-        equity: `$${Math.round(property.totalEquityAfter / 1000)}k`,
-        status: property.status,
-        number: property.propertyIndex > 0 ? `#${property.propertyIndex + 1}` : undefined,
-        affordableYear: property.affordableYear,
-        period: property.period,
-        eventType: 'purchase',
-        instanceId: property.instanceId,
-        loanType: property.loanType
+    // Build timeline with individual property cards and gaps
+    sortedProperties.forEach((property, index) => {
+      const currentYear = Math.round(property.affordableYear);
+      const nextProperty = sortedProperties[index + 1];
+      const nextYear = nextProperty ? Math.round(nextProperty.affordableYear) : null;
+      
+      // Check if this is the last property in this year
+      const isLastPropertyInYear = !nextProperty || nextYear !== currentYear;
+      
+      // Find year data for this year
+      const yearData = fullYearlyBreakdown.find(y => Math.floor(y.year) === currentYear);
+      
+      // Add the property card
+      timelineElements.push({
+        type: 'purchase',
+        property,
+        yearData,
+        isLastPropertyInYear,
       });
-    });
 
-    // Add pause events - insert pauses between properties based on order
-    pauseBlocks.forEach((pause) => {
-      // Find the property purchase that comes just before this pause
-      const propertiesBeforePause = timelineProperties
-        .filter((_, idx) => idx < pause.order)
-        .sort((a, b) => a.period - b.period);
-      
-      if (propertiesBeforePause.length > 0) {
-        const lastPropertyBeforePause = propertiesBeforePause[propertiesBeforePause.length - 1];
-        const pauseStartPeriod = lastPropertyBeforePause.period + 1;
-        const pauseDurationPeriods = Math.ceil(pause.duration * PERIODS_PER_YEAR);
-        const pauseEndPeriod = pauseStartPeriod + pauseDurationPeriods - 1;
+      // Add gap only after the last property of a year, if there's a gap to the next year
+      if (isLastPropertyInYear && nextYear && nextYear > currentYear + 1) {
+        const gapStart = currentYear + 1;
+        const gapEnd = nextYear - 1;
         
-        // Use the portfolio metrics from the last property
-        const portfolioValue = lastPropertyBeforePause.portfolioValueAfter;
-        const equity = lastPropertyBeforePause.totalEquityAfter;
-        
-        allTimelineEvents.push({
-          year: periodToDisplay(pauseStartPeriod).split(' ')[0],
-          quarter: `${periodToDisplay(pauseStartPeriod)} - ${periodToDisplay(pauseEndPeriod)}`,
-          type: '⏸️ Pause Period',
-          portfolioValue: `$${Math.round(portfolioValue / 1000)}k`,
-          equity: `$${Math.round(equity / 1000)}k`,
-          status: 'feasible',
-          affordableYear: 2025 + (pauseStartPeriod - 1) / PERIODS_PER_YEAR,
-          period: pauseStartPeriod,
-          eventType: 'pause',
-          duration: pause.duration
+        timelineElements.push({
+          type: 'gap',
+          startYear: gapStart,
+          endYear: gapEnd,
         });
       }
     });
 
-    // Sort all events by period chronologically
-    return allTimelineEvents
-      .sort((a, b) => a.period - b.period)
-      .slice(0, 12); // Show timeline events
-  }
+    return timelineElements;
+  }, [timelineProperties, fullYearlyBreakdown]);
 
-  const timelineItems = generateTimelineItems()
+  // Group timeline elements by year for the year circles
+  const timelineByYear = useMemo(() => {
+    const yearGroups: Array<{
+      year: number;
+      elements: typeof unifiedTimeline;
+      height: number;
+    }> = [];
+
+    let currentYear: number | null = null;
+    let currentElements: typeof unifiedTimeline = [];
+
+    unifiedTimeline.forEach((element, index) => {
+      if (element.type === 'purchase' && element.property) {
+        const year = Math.round(element.property.affordableYear);
+        
+        if (currentYear !== year) {
+          // New year - save previous group if exists
+          if (currentYear !== null && currentElements.length > 0) {
+            yearGroups.push({
+              year: currentYear,
+              elements: currentElements,
+              height: 0 // Will be calculated after render
+            });
+          }
+          
+          // Start new group
+          currentYear = year;
+          currentElements = [element];
+        } else {
+          // Same year - add to current group
+          currentElements.push(element);
+        }
+      } else if (element.type === 'gap') {
+        // Save current year group before gap
+        if (currentYear !== null && currentElements.length > 0) {
+          yearGroups.push({
+            year: currentYear,
+            elements: currentElements,
+            height: 0
+          });
+          currentYear = null;
+          currentElements = [];
+        }
+        
+        // Add gap as its own group
+        yearGroups.push({
+          year: element.startYear || 0,
+          elements: [element],
+          height: 0
+        });
+      }
+    });
+
+    // Don't forget the last group
+    if (currentYear !== null && currentElements.length > 0) {
+      yearGroups.push({
+        year: currentYear,
+        elements: currentElements,
+        height: 0
+      });
+    }
+
+    return yearGroups;
+  }, [unifiedTimeline]);
+
+  // Track heights of each year section for the vertical lines
+  const [sectionHeights, setSectionHeights] = useState<Record<number, number>>({});
+  const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    // Measure heights after render
+    const heights: Record<number, number> = {};
+    Object.entries(sectionRefs.current).forEach(([year, ref]) => {
+      if (ref) {
+        heights[parseInt(year)] = ref.offsetHeight;
+      }
+    });
+    setSectionHeights(heights);
+  }, [timelineByYear, unifiedTimeline]);
 
   return (
     <div className="relative">
@@ -178,379 +528,545 @@ export const InvestmentTimeline = () => {
       <div className="flex items-center gap-3 mb-8">
         <CalendarIcon size={16} className="text-[#6b7280]" />
         <h3 className="text-[#111827] font-medium text-sm">
-          Investment Timeline
+          Investment Timeline with Decision Engine
         </h3>
       </div>
-      <div className="flex gap-4 mb-8">
-        <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
-          <span className="w-1.5 h-1.5 bg-[#10b981] bg-opacity-50 rounded-full"></span>{' '}
-          Feasible
-        </span>
-        <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
-          <span className="w-1.5 h-1.5 bg-[#3b82f6] bg-opacity-60 rounded-full"></span>{' '}
-          Delayed
-        </span>
-        <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#f9fafb] text-[#374151] rounded-full text-xs font-normal">
-          <span className="w-1.5 h-1.5 bg-[#3b82f6] bg-opacity-60 rounded-full"></span>{' '}
-          Challenging
-        </span>
-      </div>
-      <div className="flex flex-col gap-6">
-        {timelineItems.map((item, index) => (
-          item.eventType === 'pause' ? (
-            <PauseItem
-              key={`${item.year}-pause-${index}`}
-              quarter={item.quarter}
-              duration={item.duration!}
-              equity={item.equity}
-              portfolioValue={item.portfolioValue}
-            />
-          ) : (
-            <TimelineItem
-              key={`${item.year}-${item.type}-${index}`}
-              year={item.year}
-              quarter={item.quarter}
-              type={item.type}
-              number={item.number}
-              deposit={item.deposit!}
-              loanAmount={item.loanAmount!}
-              source="Savings & Equity"
-              equity={item.equity}
-              portfolioValue={item.portfolioValue}
-              price={item.price!}
-              status={item.status as 'feasible' | 'delayed' | 'challenging'}
-              isLast={index === timelineItems.length - 1}
-              instanceId={item.instanceId}
-              loanType={item.loanType}
-              onLoanTypeChange={updateTimelinePropertyLoanType}
-            />
-          )
-        ))}
-      </div>
-      <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
-        <AIStrategySummary 
-          timelineProperties={timelineProperties}
-          profile={profile}
-        />
-      </div>
-    </div>
-  )
-}
-interface TimelineItemProps {
-  year: string
-  quarter: string
-  type: string
-  number?: string
-  deposit: string
-  loanAmount: string
-  source: string
-  equity: string
-  portfolioValue: string
-  price: string
-  status: 'feasible' | 'delayed' | 'challenging'
-  isLast?: boolean
-  instanceId?: string
-  loanType?: 'IO' | 'PI'
-  onLoanTypeChange?: (instanceId: string, loanType: 'IO' | 'PI') => void
-}
 
-const TimelineItem: React.FC<TimelineItemProps> = ({
-  year,
-  quarter,
-  type,
-  number,
-  deposit,
-  loanAmount,
-  source,
-  equity,
-  portfolioValue,
-  price,
-  status,
-  isLast = false,
-  instanceId,
-  loanType = 'IO',
-  onLoanTypeChange,
-}) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { getInstance, updateInstance, createInstance } = usePropertyInstance();
-  const { getPropertyData } = useDataAssumptions();
-  
-  // Get property instance data
-  const propertyInstance = instanceId ? getInstance(instanceId) : null;
-  const propertyDefaults = getPropertyData(type);
-  
-  // Fallback to safe defaults if both are undefined
-  const propertyData = propertyInstance || propertyDefaults || {
-    state: 'VIC',
-    purchasePrice: 350000,
-    valuationAtPurchase: 378000,
-    rentPerWeek: 471,
-    growthAssumption: 'High',
-    lvr: 85,
-    lmiWaiver: false,
-    loanProduct: 'IO',
-    interestRate: 6.5,
-    loanTerm: 30,
-    loanOffsetAccount: 0,
-  };
-  
-  // Calculate derived values
-  const calculateLMI = (purchasePrice: number, lvr: number, lmiWaiver: boolean) => {
-    if (lmiWaiver || lvr <= 80) return 0;
-    const loanAmount = purchasePrice * (lvr / 100);
-    if (lvr <= 85) return loanAmount * 0.015;
-    if (lvr <= 90) return loanAmount * 0.020;
-    if (lvr <= 95) return loanAmount * 0.035;
-    return loanAmount * 0.045;
-  };
-  
-  const lmi = calculateLMI(propertyData.purchasePrice, propertyData.lvr, propertyData.lmiWaiver);
-  const loanAmountCalc = (propertyData.purchasePrice * (propertyData.lvr / 100)) + lmi;
-  const yieldCalc = (propertyData.rentPerWeek * 52 / propertyData.purchasePrice * 100).toFixed(1);
-  const mvDiff = ((propertyData.purchasePrice / propertyData.valuationAtPurchase - 1) * 100).toFixed(1);
-  
-  // Inline edit handlers
-  const handleFieldUpdate = (field: keyof PropertyInstanceDetails, value: any) => {
-    if (!instanceId) return;
-    
-    // Create instance if it doesn't exist
-    if (!propertyInstance) {
-      createInstance(instanceId, type, 1);
-    }
-    
-    updateInstance(instanceId, { [field]: value });
-  };
-  
-  // Editable field component
-  const EditableField = ({ 
-    label, 
-    value, 
-    field, 
-    prefix = '', 
-    suffix = '',
-    type = 'number'
-  }: { 
-    label: string; 
-    value: any; 
-    field: keyof PropertyInstanceDetails; 
-    prefix?: string; 
-    suffix?: string;
-    type?: 'number' | 'text';
-  }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editValue, setEditValue] = useState(value);
-    const [error, setError] = useState<string | null>(null);
-    
-    const handleSave = () => {
-      // Validate before saving
-      let validationError = null;
-      
-      if (field === 'lvr' && (editValue < 0 || editValue > 100)) {
-        validationError = 'LVR must be 0-100%';
-      } else if (field === 'interestRate' && (editValue < 0 || editValue > 20)) {
-        validationError = 'Interest must be 0-20%';
-      } else if (field === 'loanTerm' && (editValue < 1 || editValue > 40)) {
-        validationError = 'Term must be 1-40 years';
-      }
-      
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-      
-      const parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
-      handleFieldUpdate(field, parsedValue);
-      setIsEditing(false);
-      setError(null);
-    };
-    
-    if (isEditing) {
-      return (
-        <div className="inline-flex flex-col">
-          <input
-            type={type}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-              if (e.key === 'Escape') {
-                setEditValue(value);
-                setIsEditing(false);
-                setError(null);
-              }
-            }}
-            autoFocus
-            className="inline-block w-20 px-1 py-0 text-sm border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
+      {unifiedTimeline.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <p>No properties selected. Add properties to see your investment timeline.</p>
         </div>
-      );
-    }
-    
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="cursor-pointer hover:bg-blue-50 hover:text-blue-700 px-1 rounded transition-colors"
-        title="Click to edit"
-      >
-        {prefix}{value}{suffix}
-      </span>
-    );
-  };
-  
-  return (
-    <div className="relative bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-        <div className="flex items-center gap-1">
-          {getPropertyTypeIcon(type, 16, 'text-gray-600')}
-        </div>
-        <span className="font-medium text-gray-800">{type}</span>
-        <span>({propertyData.state})</span>
-        <span>|</span>
-        <span>Year: {year}</span>
-        <span>|</span>
-        <span>Growth: {propertyData.growthAssumption}</span>
-      </div>
-      
-      {/* Property Details Section */}
-      <div className="mb-3">
-        <div className="text-xs font-semibold text-green-700 mb-1">PROPERTY DETAILS</div>
-        <div className="text-sm text-gray-700">
-          <span>State: </span>
-          <EditableField label="State" value={propertyData.state} field="state" type="text" />
-          <span className="mx-2">|</span>
-          <span>Yield: </span>
-          <span>{yieldCalc}%</span>
-          <span className="mx-2">|</span>
-          <span>Rent: </span>
-          <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
-        </div>
-      </div>
-      
-      {/* Purchase Section */}
-      <div className="mb-3">
-        <div className="text-xs font-semibold text-green-700 mb-1">PURCHASE</div>
-        <div className="text-sm text-gray-700">
-          <span>Price: </span>
-          <EditableField 
-            label="Price" 
-            value={(propertyData.purchasePrice / 1000).toFixed(0)} 
-            field="purchasePrice" 
-            prefix="$" 
-            suffix="k" 
-          />
-          <span className="mx-2">|</span>
-          <span>Valuation: </span>
-          <EditableField 
-            label="Valuation" 
-            value={(propertyData.valuationAtPurchase / 1000).toFixed(0)} 
-            field="valuationAtPurchase" 
-            prefix="$" 
-            suffix="k" 
-          />
-          <span className="mx-2">|</span>
-          <span>%MV: {mvDiff}%</span>
-        </div>
-      </div>
-      
-      {/* Finance Section */}
-      <div className="mb-4">
-        <div className="text-xs font-semibold text-green-700 mb-1">FINANCE</div>
-        <div className="text-sm text-gray-700">
-          <span>LVR: </span>
-          <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
-          <span className="mx-2">|</span>
-          <span>{propertyData.loanProduct} @ </span>
-          <EditableField label="Interest Rate" value={propertyData.interestRate} field="interestRate" suffix="%" />
-          <span> </span>
-          <EditableField label="Loan Term" value={propertyData.loanTerm} field="loanTerm" suffix=" yrs" />
-          <span className="mx-2">|</span>
-          <span>Loan: ${(loanAmountCalc / 1000).toFixed(0)}k</span>
-          <span className="mx-2">|</span>
-          <span>LMI: ${(lmi || 0).toLocaleString()}</span>
-          <span className="mx-2">|</span>
-          <span>Offset: ${(propertyData.loanOffsetAccount || 0).toLocaleString()}</span>
-        </div>
-      </div>
-      
-      {/* Buttons */}
-      <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
-        <button
-          onClick={() => {/* Save is auto on blur */}}
-          className="text-sm text-green-700 font-medium hover:text-green-800"
-        >
-          [ Save Changes ]
-        </button>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="text-sm text-green-700 font-medium hover:text-green-800"
-        >
-          [ Expand Full Details → ]
-        </button>
-      </div>
-      
-      {/* Property Detail Modal */}
-      {instanceId && (
-        <PropertyDetailModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          instanceId={instanceId}
-          propertyType={type}
-        />
+      ) : (
+        <>
+
+          {/* Pipedrive-style Timeline Layout */}
+          <div className="flex gap-6">
+            {/* Left: Year Timeline Circles */}
+            <div className="hidden md:flex flex-col flex-shrink-0 w-20 pt-2">
+              {timelineByYear.map((group, groupIndex) => {
+                const isFirstYear = groupIndex === 0;
+                const isLastYear = groupIndex === timelineByYear.length - 1;
+                const hasMultipleProperties = group.elements.filter(e => e.type === 'purchase').length > 1;
+                const height = sectionHeights[group.year] || 200; // Default fallback
+                
+                // Only show year circle for purchase years, not gaps
+                if (group.elements[0]?.type === 'gap') {
+                  return (
+                    <div 
+                      key={`gap-${group.year}`} 
+                      style={{ height: `${height}px` }}
+                      className="relative"
+                    >
+                      {/* Continue vertical line through gap */}
+                      {!isLastYear && (
+                        <div 
+                          className="absolute left-6 top-0 w-0.5 bg-gray-300" 
+                          style={{ height: '100%' }}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                
+                return (
+                  <YearCircle
+                    key={group.year}
+                    year={group.year}
+                    isFirst={isFirstYear}
+                    isLast={isLastYear}
+                    hasMultipleProperties={hasMultipleProperties}
+                    height={height}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Right: Property Cards and Gaps */}
+            <div className="flex-1 space-y-6">
+              {timelineByYear.map((group, groupIndex) => (
+                <div
+                  key={`section-${group.year}-${groupIndex}`}
+                  id={`year-${group.year}`}
+                  ref={(el) => {
+                    sectionRefs.current[group.year] = el;
+                  }}
+                >
+                  {/* Mobile: Show year header */}
+                  {group.elements[0]?.type !== 'gap' && (
+                    <div className="md:hidden mb-4 font-bold text-lg text-gray-700">
+                      {group.year}
+                    </div>
+                  )}
+                  
+                  {/* Render elements for this year/section */}
+                  <div className="space-y-4">
+                    {group.elements.map((element, index) => {
+                      if (element.type === 'purchase' && element.property && element.yearData) {
+                        return (
+                          <div key={`purchase-${element.property.id}-${index}`} className="relative">
+                            {/* Branch line from timeline (desktop only) */}
+                            {index > 0 && (
+                              <div className="hidden md:block absolute -left-10 top-6 w-10 h-0.5 bg-gray-300" />
+                            )}
+                            <PurchaseEventCard
+                              yearData={element.yearData}
+                              property={element.property}
+                              showDecisionEngine={element.isLastPropertyInYear || false}
+                            />
+                          </div>
+                        );
+                      } else if (element.type === 'gap' && element.startYear && element.endYear) {
+                        return (
+                          <GapView
+                            key={`gap-${element.startYear}-${element.endYear}`}
+                            startYear={element.startYear}
+                            endYear={element.endYear}
+                            allYearData={fullYearlyBreakdown}
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
+            <AIStrategySummary 
+              timelineProperties={timelineProperties}
+              profile={profile}
+            />
+          </div>
+        </>
       )}
     </div>
-  )
+  );
+});
+
+// Helper function to interpolate portfolio state for non-purchase years
+function interpolateYearData(
+  year: number,
+  yearIndex: number,
+  timelineProperties: any[],
+  profile: any,
+  globalFactors: any,
+  interestRate: number,
+  growthRate: number,
+  selections: any,
+  propertyTypes: any[],
+  calculateAffordabilityForProperty: any
+): YearBreakdownData {
+  // Find the most recent purchase before this year
+  const previousPurchases = timelineProperties
+    .filter(prop => prop.affordableYear < year)
+    .sort((a, b) => b.affordableYear - a.affordableYear);
+  
+  const lastPurchase = previousPurchases[0];
+  
+  if (!lastPurchase) {
+    // No previous purchases - return initial state
+    return createInitialYearData(year, yearIndex, profile, interestRate);
+  }
+  
+  // Calculate years since last purchase
+  const yearsSinceLastPurchase = year - lastPurchase.affordableYear;
+  const periodsSinceLastPurchase = yearsSinceLastPurchase * PERIODS_PER_YEAR;
+  
+  // Interpolate portfolio growth with tiered rates using period-based calculations
+  const portfolioValue = calculatePropertyGrowth(lastPurchase.portfolioValueAfter, periodsSinceLastPurchase, profile.growthCurve);
+  const totalDebt = lastPurchase.totalDebtAfter; // Debt stays constant (interest-only loans)
+  const totalEquity = portfolioValue - totalDebt;
+  
+  // Calculate cumulative savings growth
+  const cumulativeSavings = profile.annualSavings * (year - BASE_YEAR);
+  
+  // Calculate cashflow from existing properties
+  let grossRental = 0;
+  let loanInterest = 0;
+  let expenses = 0;
+  
+  previousPurchases.forEach(purchase => {
+    const yearsOwned = year - purchase.affordableYear;
+    const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+    if (yearsOwned > 0) {
+      // Use tiered growth with period-based calculations
+      const propertyValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
+      const yieldRate = 0.05; // Assume 5% yield
+      const rentalIncome = propertyValue * yieldRate;
+      const propertyLoanInterest = purchase.loanAmount * interestRate;
+      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+      const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
+      
+      grossRental += rentalIncome;
+      loanInterest += propertyLoanInterest;
+      expenses += propertyExpenses;
+    }
+  });
+  
+  const netCashflow = grossRental - loanInterest - expenses;
+  const availableDeposit = profile.depositPool + cumulativeSavings + Math.max(0, netCashflow);
+  
+  // Calculate LVR and DSR
+  const lvr = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
+  const dsr = grossRental > 0 ? (loanInterest / grossRental) * 100 : 0;
+  
+  // Run affordability tests for the next property that should be purchased
+  let depositTestSurplus = 0;
+  let depositTestPass = true;
+  let serviceabilityTestSurplus = 0;
+  let serviceabilityTestPass = true;
+  let requiredDeposit = 0;
+  let requiredLoan = 0;
+  let propertyCost = 0;
+  let status: 'initial' | 'purchased' | 'blocked' | 'waiting' = 'waiting';
+  
+  if (year === 2025) {
+    status = 'initial';
+  } else {
+    // Find the next property that should be purchased
+    const nextProperty = findNextPropertyToPurchase(selections, propertyTypes, timelineProperties, year);
+    
+    if (nextProperty) {
+      // Convert timelineProperties to purchase history format
+      const purchaseHistory = timelineProperties
+        .filter(prop => prop.affordableYear < year)
+        .map(prop => ({
+          year: prop.affordableYear - 2025 + 1, // Convert to relative year
+          cost: prop.cost,
+          depositRequired: prop.depositRequired,
+          loanAmount: prop.loanAmount,
+          title: prop.title
+        }));
+      
+      // Run affordability tests
+      const affordabilityResult = calculateAffordabilityForProperty(year - 2025 + 1, nextProperty, purchaseHistory);
+      
+      depositTestSurplus = affordabilityResult.depositTestSurplus;
+      depositTestPass = affordabilityResult.depositTestPass;
+      serviceabilityTestSurplus = affordabilityResult.serviceabilityTestSurplus;
+      serviceabilityTestPass = affordabilityResult.serviceabilityTestPass;
+      requiredDeposit = nextProperty.depositRequired;
+      requiredLoan = nextProperty.cost - nextProperty.depositRequired;
+      propertyCost = nextProperty.cost;
+      
+      // Determine status based on test results
+      if (!depositTestPass || !serviceabilityTestPass) {
+        status = 'blocked';
+      } else {
+        status = 'waiting';
+      }
+    }
+  }
+  
+  // Calculate new fields for pure presentation
+  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const existingDebt = totalDebt;
+  const newDebt = requiredLoan;
+  const existingLoanInterest = existingDebt * interestRate;
+  const newLoanInterest = newDebt * interestRate;
+  const annualSavingsRate = profile.annualSavings;
+  const totalAnnualCapacity = annualSavingsRate + Math.max(0, netCashflow);
+  
+  // Calculate base deposit remaining (after previous purchases)
+  const totalDepositsUsed = timelineProperties
+    .filter(p => p.affordableYear < year)
+    .reduce((sum, p) => sum + p.depositRequired, 0);
+  const baseDepositRemaining = Math.max(0, profile.depositPool - totalDepositsUsed);
+  
+  // Build all portfolio properties array
+  const allPortfolioProperties = timelineProperties
+    .filter(p => p.affordableYear < year)
+    .map(p => {
+      const yearsOwned = year - p.affordableYear;
+      const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+      // Use tiered growth with period-based calculations
+      const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
+      const equity = currentValue - p.loanAmount;
+      const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+      
+      return {
+        propertyId: p.id,
+        propertyType: p.title,
+        purchaseYear: p.affordableYear,
+        displayPeriod: p.displayPeriod,
+        originalCost: p.cost,
+        currentValue,
+        loanAmount: p.loanAmount,
+        equity,
+        extractableEquity: extractable,
+      };
+    });
+
+  // Calculate effective borrowing capacity with equity boost
+  let totalUsableEquity = 0;
+  if (profile.portfolioValue > 0) {
+    const periodsElapsed = (year - BASE_YEAR) * PERIODS_PER_YEAR;
+    const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve);
+    totalUsableEquity += Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
+  }
+  previousPurchases.forEach(purchase => {
+    const yearsOwned = year - purchase.affordableYear;
+    const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
+    const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
+    totalUsableEquity += usableEquity;
+  });
+  
+  const equityBoost = totalUsableEquity * profile.equityFactor;
+  const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+  const availableBorrowingCapacityValue = Math.max(0, effectiveBorrowingCapacity - totalDebt);
+
+  // Calculate period from year
+  const periodNumber = Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
+  const displayPeriod = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
+  
+  return {
+    period: periodNumber,
+    year,
+    displayYear: yearIndex,
+    displayPeriod,
+    status,
+    propertyNumber: null,
+    propertyType: null,
+    
+    // Portfolio metrics (interpolated)
+    portfolioValue,
+    totalEquity,
+    totalDebt,
+    extractableEquity,
+    
+    // Cash engine (interpolated)
+    availableDeposit,
+    annualCashFlow: netCashflow,
+    
+    // Available funds breakdown (interpolated)
+    baseDeposit: baseDepositRemaining, // Rolling amount based on deposits used
+    cumulativeSavings,
+    cashflowReinvestment: Math.max(0, netCashflow),
+    equityRelease: 0, // No equity release in non-purchase years
+    annualSavingsRate,
+    totalAnnualCapacity,
+    
+    // Cashflow components (interpolated)
+    grossRental,
+    loanRepayments: loanInterest,
+    expenses,
+    
+    // Requirements (from affordability tests)
+    requiredDeposit,
+    requiredLoan,
+    propertyCost,
+    
+    // Capacity
+    availableBorrowingCapacity: availableBorrowingCapacityValue,
+    borrowingCapacity: profile.borrowingCapacity,
+    
+    // Debt breakdown
+    existingDebt,
+    newDebt,
+    existingLoanInterest,
+    newLoanInterest,
+    
+    // Enhanced serviceability breakdown
+    baseServiceabilityCapacity: profile.borrowingCapacity * 0.10,
+    rentalServiceabilityContribution: grossRental * 0.70,
+    
+    // Assumptions
+    interestRate: interestRate * 100,
+    rentalRecognition: 75, // Default recognition rate
+    
+    // Tests (from real affordability calculations)
+    depositTest: {
+      pass: depositTestPass,
+      surplus: depositTestSurplus,
+      available: availableDeposit,
+      required: requiredDeposit,
+    },
+    
+    borrowingCapacityTest: {
+      pass: availableBorrowingCapacityValue >= newDebt,
+      surplus: availableBorrowingCapacityValue - newDebt,
+      available: profile.borrowingCapacity,
+      required: totalDebt + newDebt,
+    },
+    
+    serviceabilityTest: {
+      pass: serviceabilityTestPass,
+      surplus: serviceabilityTestSurplus,
+      available: profile.borrowingCapacity * 0.10 + grossRental * 0.70,
+      required: requiredLoan,
+    },
+    
+    // Flags
+    gapRule: false,
+    equityReleaseYear: false,
+    
+    // Strategy metrics
+    portfolioScaling: previousPurchases.length,
+    selfFundingEfficiency: 0,
+    equityRecyclingImpact: 0,
+    dsr,
+    lvr,
+    
+    // Breakdown details
+    purchases: [],
+    
+    // All portfolio properties
+    allPortfolioProperties,
+  };
 }
 
-interface PauseItemProps {
-  quarter: string
-  duration: number
-  equity: string
-  portfolioValue: string
+// Helper function to find the next property that should be purchased
+function findNextPropertyToPurchase(
+  selections: any,
+  propertyTypes: any[],
+  timelineProperties: any[],
+  currentYear: number
+): any | null {
+  // Get all properties that should be purchased
+  const allPropertiesToPurchase: Array<{ property: any; index: number }> = [];
+  
+  Object.entries(selections).forEach(([propertyId, quantity]) => {
+    if (quantity > 0) {
+      const property = propertyTypes.find(p => p.id === propertyId);
+      if (property) {
+        for (let i = 0; i < quantity; i++) {
+          allPropertiesToPurchase.push({ property, index: i });
+        }
+      }
+    }
+  });
+
+  // Find the first property that hasn't been purchased yet
+  for (const { property, index } of allPropertiesToPurchase) {
+    const propertyId = `${property.id}_${index}`;
+    const existingProperty = timelineProperties.find(prop => prop.id === propertyId);
+    
+    if (!existingProperty || existingProperty.affordableYear > currentYear) {
+      return property;
+    }
+  }
+  
+  return null;
 }
 
-const PauseItem: React.FC<PauseItemProps> = ({
-  quarter,
-  duration,
-  equity,
+// Helper function to create initial year data
+function createInitialYearData(year: number, yearIndex: number, profile: any, interestRate: number): YearBreakdownData {
+  const portfolioValue = profile.portfolioValue;
+  const totalDebt = profile.currentDebt;
+  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const annualSavingsRate = profile.annualSavings;
+  
+  // Calculate effective borrowing capacity with equity boost (for initial portfolio)
+  let totalUsableEquity = 0;
+  if (portfolioValue > 0) {
+    totalUsableEquity = Math.max(0, portfolioValue * 0.88 - totalDebt);
+  }
+  const equityBoost = totalUsableEquity * profile.equityFactor;
+  const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+  const availableBorrowingCapacityValue = Math.max(0, effectiveBorrowingCapacity - totalDebt);
+  
+  // Calculate period from year
+  const periodNumber = Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
+  const displayPeriod = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
+  
+  return {
+    period: periodNumber,
+    year,
+    displayYear: yearIndex,
+    displayPeriod,
+    status: 'initial',
+    propertyNumber: null,
+    propertyType: null,
+    
+    // Portfolio metrics (initial state)
   portfolioValue,
-}) => {
-  return (
-    <div className="relative bg-gray-50 rounded-lg border-2 border-gray-300 shadow-sm">
-      <div className="flex items-center p-6">
-        {/* Pause icon circle */}
-        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mr-6 border-2 border-gray-300">
-          <div className="text-center">
-            <div className="text-2xl">⏸️</div>
-          </div>
-        </div>
-        {/* Content */}
-        <div className="flex-1">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-3">
-              <h4 className="text-gray-700 font-medium">Pause Period</h4>
-            </div>
-            <div className="text-sm text-gray-600 mt-3 leading-relaxed font-normal">
-              Duration: {duration} year{duration !== 1 ? 's' : ''} • Period: {quarter}
-              <br />
-              <span className="text-gray-500">
-                No purchases during this period. Existing properties continue to grow and generate cashflow.
-              </span>
-              <br />
-              <span className="text-gray-400">Portfolio Value: {portfolioValue} • Total Equity: {equity}</span>
-            </div>
-          </div>
-        </div>
-        {/* Status indicator */}
-        <div className="ml-4 flex items-center">
-          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-          <span className="ml-2 text-xs text-gray-600 font-normal">
-            Paused
-          </span>
-        </div>
-      </div>
-    </div>
-  )
+    totalEquity: portfolioValue - totalDebt,
+    totalDebt,
+    extractableEquity,
+    
+    // Cash engine (initial state)
+    availableDeposit: profile.depositPool,
+    annualCashFlow: 0,
+    
+    // Available funds breakdown (initial state)
+    baseDeposit: profile.depositPool,
+    cumulativeSavings: 0,
+    cashflowReinvestment: 0,
+    equityRelease: 0,
+    annualSavingsRate,
+    totalAnnualCapacity: annualSavingsRate,
+    
+    // Cashflow components (initial state)
+    grossRental: 0,
+    loanRepayments: 0,
+    expenses: 0,
+    
+    // Requirements (not applicable)
+    requiredDeposit: 0,
+    requiredLoan: 0,
+    propertyCost: 0,
+    
+    // Capacity
+    availableBorrowingCapacity: availableBorrowingCapacityValue,
+    borrowingCapacity: profile.borrowingCapacity,
+    
+    // Debt breakdown
+    existingDebt: totalDebt,
+    newDebt: 0,
+    existingLoanInterest: totalDebt * interestRate,
+    newLoanInterest: 0,
+    
+    // Enhanced serviceability breakdown
+    baseServiceabilityCapacity: profile.borrowingCapacity * 0.10,
+    rentalServiceabilityContribution: 0,
+    
+    // Assumptions
+    interestRate: interestRate * 100,
+    rentalRecognition: 75,
+    
+    // Tests (not applicable)
+    depositTest: {
+      pass: true,
+      surplus: 0,
+      available: profile.depositPool,
+      required: 0,
+    },
+    
+    borrowingCapacityTest: {
+      pass: availableBorrowingCapacityValue >= 0,
+      surplus: availableBorrowingCapacityValue,
+      available: profile.borrowingCapacity,
+      required: totalDebt,
+    },
+    
+    serviceabilityTest: {
+      pass: true,
+      surplus: 0,
+      available: profile.borrowingCapacity,
+      required: 0,
+    },
+    
+    // Flags
+    gapRule: false,
+    equityReleaseYear: false,
+    
+    // Strategy metrics
+    portfolioScaling: 0,
+    selfFundingEfficiency: 0,
+    equityRecyclingImpact: 0,
+    dsr: 0,
+    lvr: portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0,
+    
+    // Breakdown details
+    purchases: [],
+    
+    // All portfolio properties (empty initially)
+    allPortfolioProperties: [],
+  };
 }
+
+// Add display name for forwardRef component
+InvestmentTimeline.displayName = 'InvestmentTimeline';

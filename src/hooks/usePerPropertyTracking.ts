@@ -1,19 +1,17 @@
 import { useMemo } from 'react';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
+import { useInvestmentProfile } from './useInvestmentProfile';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
+import { calculatePropertyGrowth } from '../utils/metricsCalculator';
+import type { GrowthCurve } from '../types/property';
 
 // Period conversion constants (aligned with calculator)
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
-
-// Convert annual rate to per-period rate using compound interest formula
-const annualRateToPeriodRate = (annualRate: number): number => {
-  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
-};
 
 interface EquityDataPoint {
   year: number;
@@ -51,6 +49,7 @@ export interface PerPropertyTrackingData {
 export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
   const { getInstance } = usePropertyInstance();
   const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
   const { getPropertyData, propertyAssumptions } = useDataAssumptions();
   
   const trackingData = useMemo((): PerPropertyTrackingData | null => {
@@ -90,21 +89,12 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     const totalCashInvested = timelineProperty.upfrontCosts?.total ?? 
       (timelineProperty.depositRequired + (timelineProperty.acquisitionCosts?.total || 0));
     
-    // Get tiered growth rates from property assumptions
-    const assumption = propertyAssumptions.find(a => 
-      a.id === propertyDetails.growthAssumption
-    ) || propertyAssumptions[0]; // Default to first assumption if not found
-    
-    const year1Rate = parseFloat(assumption.growthYear1) / 100;
-    const years2to3Rate = parseFloat(assumption.growthYears2to3) / 100;
-    const year4Rate = parseFloat(assumption.growthYear4) / 100;
-    const year5plusRate = parseFloat(assumption.growthYear5plus) / 100;
+    // Use the profile's growth curve (same as portfolio growth chart)
+    const growthCurve = profile.growthCurve;
     
     // Calculate 10-year projections
     const equityOverTime: EquityDataPoint[] = [];
     const cashflowOverTime: CashflowDataPoint[] = [];
-    
-    let currentPropertyValue = purchasePrice;
     
     // For P&I loans, we need to calculate principal reduction
     const calculateAnnualPrincipalPayment = (loanAmount: number, interestRate: number, termYears: number): number => {
@@ -123,20 +113,11 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     };
     
     for (let year = 1; year <= 10; year++) {
-      // Apply tiered growth rates
-      let growthRate: number;
-      if (year === 1) {
-        growthRate = year1Rate;
-      } else if (year <= 3) {
-        growthRate = years2to3Rate;
-      } else if (year === 4) {
-        growthRate = year4Rate;
-      } else {
-        growthRate = year5plusRate;
-      }
+      // Calculate periods held (using same period-based calculation as portfolio chart)
+      const periodsHeld = year * PERIODS_PER_YEAR;
       
-      // Grow property value
-      currentPropertyValue *= (1 + growthRate);
+      // Use the same growth calculation as portfolio growth chart
+      const currentPropertyValue = calculatePropertyGrowth(purchasePrice, periodsHeld, growthCurve);
       
       // Reduce loan balance if P&I
       if (loanType === 'PI') {
@@ -227,7 +208,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
       purchasePeriod: timelineProperty.displayPeriod,
       purchaseYear: Math.floor(timelineProperty.affordableYear),
     };
-  }, [propertyInstanceId, timelineProperties, getInstance, getPropertyData, propertyAssumptions]);
+  }, [propertyInstanceId, timelineProperties, getInstance, getPropertyData, propertyAssumptions, profile.growthCurve]);
   
   return { trackingData };
 };

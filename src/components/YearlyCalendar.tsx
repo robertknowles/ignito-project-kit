@@ -19,7 +19,7 @@ export const YearlyCalendar = () => {
     '2026 H1': [
       {
         id: 'RK',
-        color: 'bg-[#10b981] bg-opacity-50',
+        color: 'bg-green-300/70',
       },
     ],
     '2027 H2': [
@@ -31,7 +31,7 @@ export const YearlyCalendar = () => {
     '2029 H1': [
       {
         id: 'RK',
-        color: 'bg-[#10b981] bg-opacity-50',
+        color: 'bg-green-300/70',
       },
     ],
   } as any

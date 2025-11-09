@@ -65,13 +65,13 @@ export function SignUp() {
           </div>
           <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-[#f3f4f6]">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="mb-4 p-3 bg-red-300/70 border border-red-300 rounded-md">
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
             {success && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-600">
+              <div className="mb-4 p-3 bg-green-300/70 border border-green-300 rounded-md">
+                <p className="text-sm text-green-700">
                   Account created successfully! Please check your email to verify your account.
                 </p>
               </div>

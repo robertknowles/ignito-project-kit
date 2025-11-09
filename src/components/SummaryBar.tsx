@@ -79,6 +79,26 @@ export const SummaryBar = () => {
 
   const kpis = calculateSummaryKPIs()
 
+  // Calculate current year progress
+  const calculateYearProgress = () => {
+    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible')
+    if (feasibleProperties.length === 0) {
+      return { currentYear: 1, totalYears: profile.timelineYears || 15 }
+    }
+    
+    // Find the latest purchase year
+    const latestPurchaseYear = Math.max(...feasibleProperties.map(p => Math.round(p.affordableYear)))
+    const startYear = 2025
+    const currentYear = latestPurchaseYear - startYear + 1
+    
+    return {
+      currentYear: Math.max(1, currentYear),
+      totalYears: profile.timelineYears || 15
+    }
+  }
+
+  const yearProgress = calculateYearProgress()
+
   // Format currency values
   const formatCurrency = (value: number) => {
     if (value === 0) return '$0'
@@ -89,7 +109,7 @@ export const SummaryBar = () => {
 
   return (
     <div className="p-6">
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-6 gap-6">
         <div className="text-center">
           <h4 className="text-xs text-[#6b7280] mb-2">Final Portfolio Value</h4>
           <p className="text-[#111827] font-medium">{formatCurrency(kpis.finalPortfolioValue)}</p>
@@ -113,6 +133,12 @@ export const SummaryBar = () => {
         <div className="text-center">
           <h4 className="text-xs text-[#6b7280] mb-2">Total Debt</h4>
           <p className="text-[#111827] font-medium">{formatCurrency(kpis.totalDebt)}</p>
+        </div>
+        <div className="text-center">
+          <h4 className="text-xs text-[#6b7280] mb-2">Timeline Progress</h4>
+          <p className="text-[#111827] font-medium">
+            Year {yearProgress.currentYear} / {yearProgress.totalYears}
+          </p>
         </div>
       </div>
     </div>

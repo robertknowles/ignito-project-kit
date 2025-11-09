@@ -244,7 +244,7 @@ export const ClientScenarios = () => {
                             {client.notes ? (
                               <div>
                                 <div className="flex items-center gap-2 text-sm text-[#374151]">
-                                  <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
+                                  <span className="w-2 h-2 rounded-full bg-green-300/70"></span>
                                   Active scenario
                                 </div>
                                 <div className="text-xs text-[#6b7280] truncate max-w-[200px]">
@@ -290,7 +290,7 @@ export const ClientScenarios = () => {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => handleDeleteClick(client)}
-                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                    className="cursor-pointer text-red-700 focus:text-red-700"
                                   >
                                     <Trash2Icon size={14} className="mr-2" />
                                     Delete Client
@@ -395,7 +395,7 @@ export const ClientScenarios = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-300/70 hover:bg-red-300 text-red-700"
             >
               Delete
             </AlertDialogAction>

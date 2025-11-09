@@ -177,10 +177,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.purchasePrice}
                   onChange={(e) => handleFieldChange('purchasePrice', parseFloat(e.target.value))}
-                  className={validationErrors.purchasePrice ? 'border-red-500' : ''}
+                  className={validationErrors.purchasePrice ? 'border-red-300' : ''}
                 />
                 {validationErrors.purchasePrice && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.purchasePrice}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.purchasePrice}</p>
                 )}
               </div>
               
@@ -192,10 +192,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.valuationAtPurchase}
                   onChange={(e) => handleFieldChange('valuationAtPurchase', parseFloat(e.target.value))}
-                  className={validationErrors.valuationAtPurchase ? 'border-red-500' : ''}
+                  className={validationErrors.valuationAtPurchase ? 'border-red-300' : ''}
                 />
                 {validationErrors.valuationAtPurchase && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.valuationAtPurchase}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.valuationAtPurchase}</p>
                 )}
               </div>
               
@@ -207,10 +207,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.rentPerWeek}
                   onChange={(e) => handleFieldChange('rentPerWeek', parseFloat(e.target.value))}
-                  className={validationErrors.rentPerWeek ? 'border-red-500' : ''}
+                  className={validationErrors.rentPerWeek ? 'border-red-300' : ''}
                 />
                 {validationErrors.rentPerWeek && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.rentPerWeek}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.rentPerWeek}</p>
                 )}
               </div>
               
@@ -275,10 +275,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   step="0.1"
                   value={formData.lvr}
                   onChange={(e) => handleFieldChange('lvr', parseFloat(e.target.value))}
-                  className={validationErrors.lvr ? 'border-red-500' : ''}
+                  className={validationErrors.lvr ? 'border-red-300' : ''}
                 />
                 {validationErrors.lvr && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.lvr}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.lvr}</p>
                 )}
               </div>
               
@@ -325,10 +325,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   step="0.01"
                   value={formData.interestRate}
                   onChange={(e) => handleFieldChange('interestRate', parseFloat(e.target.value))}
-                  className={validationErrors.interestRate ? 'border-red-500' : ''}
+                  className={validationErrors.interestRate ? 'border-red-300' : ''}
                 />
                 {validationErrors.interestRate && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.interestRate}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.interestRate}</p>
                 )}
               </div>
               
@@ -340,10 +340,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.loanTerm}
                   onChange={(e) => handleFieldChange('loanTerm', parseInt(e.target.value))}
-                  className={validationErrors.loanTerm ? 'border-red-500' : ''}
+                  className={validationErrors.loanTerm ? 'border-red-300' : ''}
                 />
                 {validationErrors.loanTerm && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.loanTerm}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.loanTerm}</p>
                 )}
               </div>
               
@@ -501,10 +501,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   step="0.1"
                   value={formData.vacancyRate}
                   onChange={(e) => handleFieldChange('vacancyRate', parseFloat(e.target.value))}
-                  className={validationErrors.vacancyRate ? 'border-red-500' : ''}
+                  className={validationErrors.vacancyRate ? 'border-red-300' : ''}
                 />
                 {validationErrors.vacancyRate && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.vacancyRate}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.vacancyRate}</p>
                 )}
               </div>
               
@@ -516,10 +516,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   step="0.1"
                   value={formData.propertyManagementPercent}
                   onChange={(e) => handleFieldChange('propertyManagementPercent', parseFloat(e.target.value))}
-                  className={validationErrors.propertyManagementPercent ? 'border-red-500' : ''}
+                  className={validationErrors.propertyManagementPercent ? 'border-red-300' : ''}
                 />
                 {validationErrors.propertyManagementPercent && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors.propertyManagementPercent}</p>
+                  <p className="text-xs text-red-700 mt-1">{validationErrors.propertyManagementPercent}</p>
                 )}
               </div>
               
@@ -664,19 +664,19 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           Net Annual Cashflow
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <span className={trackingData.cashflowOverTime[0]?.netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          <span className={trackingData.cashflowOverTime[0]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
                             {trackingData.cashflowOverTime[0]?.netCashflow >= 0 ? '+' : ''}
                             ${trackingData.cashflowOverTime[0]?.netCashflow.toLocaleString()}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <span className={trackingData.cashflowOverTime[4]?.netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          <span className={trackingData.cashflowOverTime[4]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
                             {trackingData.cashflowOverTime[4]?.netCashflow >= 0 ? '+' : ''}
                             ${trackingData.cashflowOverTime[4]?.netCashflow.toLocaleString()}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <span className={trackingData.cashflowOverTime[9]?.netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          <span className={trackingData.cashflowOverTime[9]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
                             {trackingData.cashflowOverTime[9]?.netCashflow >= 0 ? '+' : ''}
                             ${trackingData.cashflowOverTime[9]?.netCashflow.toLocaleString()}
                           </span>
@@ -689,7 +689,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           COC Return %
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <span className={trackingData.cashOnCashReturn >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          <span className={trackingData.cashOnCashReturn >= 0 ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
                             {trackingData.cashOnCashReturn.toFixed(2)}%
                           </span>
                         </td>
@@ -713,7 +713,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           —
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <span className={trackingData.roic >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          <span className={trackingData.roic >= 0 ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
                             {trackingData.roic.toFixed(2)}%
                           </span>
                         </td>

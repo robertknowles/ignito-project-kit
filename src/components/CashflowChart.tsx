@@ -177,8 +177,8 @@ export const CashflowChart = () => {
           <BarChart
             data={data}
             margin={{
-              top: 40,
-              right: 100,
+              top: 30,
+              right: 120,
               left: 10,
               bottom: 5,
             }}
@@ -187,36 +187,29 @@ export const CashflowChart = () => {
             <XAxis
               dataKey="year"
               tick={{
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
-              axisLine={{
-                stroke: '#e5e7eb',
-              }}
-              tickLine={{
-                stroke: '#e5e7eb',
-              }}
             />
             <YAxis
               tickFormatter={formatYAxis}
               tick={{
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
-              axisLine={{
-                stroke: '#e5e7eb',
-              }}
-              tickLine={{
-                stroke: '#e5e7eb',
-              }}
               domain={[-30000, 40000]}
             />
             <Tooltip content={<CustomTooltip />} />
             
             {/* Break-even Line (y=0) */}
-            <ReferenceLine y={0} stroke="#9CA3AF" strokeWidth={2} strokeDasharray="5 5">
+            <ReferenceLine 
+              y={0} 
+              stroke="#9ca3af" 
+              strokeWidth={1} 
+              strokeDasharray="3 3"
+            >
               <Label content={<BreakEvenLabel />} />
             </ReferenceLine>
 
@@ -224,7 +217,7 @@ export const CashflowChart = () => {
             {profile.cashflowGoal > 0 && (
               <ReferenceLine
                 y={profile.cashflowGoal}
-                stroke="#F59E0B"
+                stroke="rgba(253, 186, 116, 0.7)"
                 strokeDasharray="5 5"
                 strokeWidth={2}
               >
@@ -232,11 +225,11 @@ export const CashflowChart = () => {
               </ReferenceLine>
             )}
 
-            <Bar dataKey="cashflow" fill="#84E1BC" radius={[2, 2, 0, 0]}>
+            <Bar dataKey="cashflow" fill="rgba(134, 239, 172, 0.7)" radius={[2, 2, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.cashflow >= 0 ? "#10B981" : "#EF4444"}
+                  fill={entry.cashflow >= 0 ? "rgba(134, 239, 172, 0.7)" : "rgba(252, 165, 165, 0.7)"}
                   fillOpacity={entry.highlight ? 0.7 : 1}
                 />
               ))}

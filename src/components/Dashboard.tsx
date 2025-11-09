@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { SummaryBar } from './SummaryBar';
 import { StrategyBuilder } from './StrategyBuilder';
-import { InvestmentTimeline } from './InvestmentTimeline';
+import { InvestmentTimeline, TimelineProgressBar, useTimelineData } from './InvestmentTimeline';
 import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
 import { CashFlowAnalysis } from './CashFlowAnalysis';
 import { GrowthProjections } from './GrowthProjections';
-import { DecisionEngineView } from './DecisionEngineView';
 import { PropertyCard } from './PropertyCard';
 import { PerPropertyTracking } from './PerPropertyTracking';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
@@ -37,6 +36,18 @@ export const Dashboard = () => {
   };
   
   const { calculations } = usePropertySelection();
+  
+  // Ref for InvestmentTimeline to call scrollToYear
+  const timelineRef = useRef<{ scrollToYear: (year: number) => void }>(null);
+  
+  // Get timeline data for progress bar
+  const timelineData = useTimelineData();
+  
+  const handleYearClick = (year: number) => {
+    if (timelineRef.current) {
+      timelineRef.current.scrollToYear(year);
+    }
+  };
 
   function expandTab(acc:number){
     if (acc === accordian){
@@ -46,115 +57,109 @@ export const Dashboard = () => {
     }
   }
 
-  return <div className="flex-1 overflow-auto p-8 bg-white">
-      <div className="flex gap-8">
-        {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
-        <div className="w-2/5">
-          <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
-            {/* Client Investment Profile Pane */}
-            <div className="border-b border-[#f3f4f6]">
-              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(profile)}>
-                <div className="flex items-center gap-3">
-                  <SlidersIcon size={16} className="text-[#6b7280]" />
-                  <h2 className="text-[#111827] font-medium text-sm">
-                    Client Investment Profile
-                  </h2>
-                </div>
-                <div className="flex items-center gap-2 text-[#6b7280]">
-                  <span className="text-xs">
-                    {calculations.totalProperties} {calculations.totalProperties === 1 ? 'property' : 'properties'} selected
-                  </span>
-                  {accordian == profile ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
-                </div>
+  return <div className="flex h-screen overflow-hidden bg-white">
+      {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
+      <div className="w-2/5 h-screen overflow-y-auto p-8 scrollable-content">
+        <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
+          {/* Client Investment Profile Pane */}
+          <div className="border-b border-[#f3f4f6]">
+            <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(profile)}>
+              <div className="flex items-center gap-3">
+                <SlidersIcon size={16} className="text-[#6b7280]" />
+                <h2 className="text-[#111827] font-medium text-sm">
+                  Client Investment Profile
+                </h2>
               </div>
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === profile ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-6 pt-0 bg-[#f9fafb]">
-                  <StrategyBuilder profileOnly={true} />
-                </div>
+              <div className="flex items-center gap-2 text-[#6b7280]">
+                <span className="text-xs">
+                  {calculations.totalProperties} {calculations.totalProperties === 1 ? 'property' : 'properties'} selected
+                </span>
+                {accordian == profile ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
               </div>
             </div>
-            {/* Property Building Blocks Pane */}
-            <div>
-              <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(property)}>
-                <div className="flex items-center gap-3">
-                  <ClipboardIcon size={16} className="text-[#6b7280]" />
-                  <h2 className="text-[#111827] font-medium text-sm">
-                    Property Building Blocks
-                  </h2>
-                </div>
-                <div className="flex items-center gap-2 text-[#6b7280]">
-                  <span className="text-xs">
-                    {calculations.totalProperties} selected
-                  </span>
-                  {accordian === property ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
-                </div>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === profile ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="p-6 pt-0 bg-[#f9fafb]">
+                <StrategyBuilder profileOnly={true} />
               </div>
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === property ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-6 pt-0">
-                  <StrategyBuilder propertyOnly={true} />
-                </div>
+            </div>
+          </div>
+          {/* Property Building Blocks Pane */}
+          <div>
+            <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => expandTab(property)}>
+              <div className="flex items-center gap-3">
+                <ClipboardIcon size={16} className="text-[#6b7280]" />
+                <h2 className="text-[#111827] font-medium text-sm">
+                  Property Building Blocks
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 text-[#6b7280]">
+                <span className="text-xs">
+                  {calculations.totalProperties} selected
+                </span>
+                {accordian === property ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+              </div>
+            </div>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${accordian === property ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="p-6 pt-0">
+                <StrategyBuilder propertyOnly={true} />
               </div>
             </div>
           </div>
         </div>
-        {/* Right Side - Results Analysis with Tabs */}
-        <div className="w-3/5">
-          <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden">
-            {/* Summary Bar */}
-            <div className="border-b border-[#f3f4f6]">
-              <SummaryBar />
-            </div>
-            {/* Tabs */}
-            <div className="flex border-b border-[#f3f4f6]">
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('timeline')}>
-                Timeline
-              </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'portfolio' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('portfolio')}>
-                Portfolio Growth
-              </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('cashflow')}>
-                Cashflow Chart
-              </button>
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'per-property' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('per-property')}>
-                Per-Property
-              </button>
-              {SHOW_ADVANCED_TABS && (
-                <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('analysis')}>
-                  Cash Flow Analysis
-                </button>
-              )}
-              {SHOW_ADVANCED_TABS && (
-                <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('projections')}>
-                  Growth Projections
-                </button>
-              )}
-              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'breakdown' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('breakdown')}>
-                Decision Engine
-              </button>
-            </div>
-            {/* Tab Content */}
-            <div className="p-6">
-              {(() => {
-                console.log('Dashboard: Rendering tab content for activeTab:', activeTab);
-                return null;
-              })()}
-              {activeTab === 'timeline' && <InvestmentTimeline />}
-              {activeTab === 'portfolio' && <PortfolioGrowthChart />}
-              {activeTab === 'cashflow' && <CashflowChart />}
-              {activeTab === 'per-property' && <PerPropertyTracking />}
-              {SHOW_ADVANCED_TABS && activeTab === 'analysis' && <CashFlowAnalysis />}
-              {SHOW_ADVANCED_TABS && activeTab === 'projections' && <GrowthProjections />}
-              {activeTab === 'breakdown' && (
-                <div>
-                  {(() => {
-                    console.log('Dashboard: About to render DecisionEngineView');
-                    return null;
-                  })()}
-                  <DecisionEngineView />
-                </div>
-              )}
-            </div>
+      </div>
+      
+      {/* Right Side - Results Analysis with Fixed Header */}
+      <div className="w-3/5 flex flex-col h-screen overflow-hidden bg-white border-l border-[#f3f4f6]">
+        {/* Fixed Header Section */}
+        <div className="flex-shrink-0 bg-white">
+          {/* Summary Bar */}
+          <div className="border-b border-[#f3f4f6]">
+            <SummaryBar />
           </div>
+          {/* Tabs */}
+          <div className="flex border-b border-[#f3f4f6]">
+            <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'timeline' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('timeline')}>
+              Timeline
+            </button>
+            <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'portfolio' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'portfolio' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('portfolio')}>
+              Portfolio Growth
+            </button>
+            <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'cashflow' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('cashflow')}>
+              Cashflow Chart
+            </button>
+            <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'per-property' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'per-property' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('per-property')}>
+              Per-Property
+            </button>
+            {SHOW_ADVANCED_TABS && (
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('analysis')}>
+                Cash Flow Analysis
+              </button>
+            )}
+            {SHOW_ADVANCED_TABS && (
+              <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'projections' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('projections')}>
+                Growth Projections
+              </button>
+            )}
+          </div>
+          {/* Year Navigation - Only show for Timeline tab */}
+          {activeTab === 'timeline' && (
+            <TimelineProgressBar
+              startYear={timelineData.startYear}
+              endYear={timelineData.endYear}
+              latestPurchaseYear={timelineData.latestPurchaseYear}
+              onYearClick={handleYearClick}
+            />
+          )}
+        </div>
+        
+        {/* Scrollable Content Section */}
+        <div className="flex-1 overflow-y-auto p-6 scrollable-content">
+          {activeTab === 'timeline' && <InvestmentTimeline ref={timelineRef} />}
+          {activeTab === 'portfolio' && <PortfolioGrowthChart />}
+          {activeTab === 'cashflow' && <CashflowChart />}
+          {activeTab === 'per-property' && <PerPropertyTracking />}
+          {SHOW_ADVANCED_TABS && activeTab === 'analysis' && <CashFlowAnalysis />}
+          {SHOW_ADVANCED_TABS && activeTab === 'projections' && <GrowthProjections />}
         </div>
       </div>
     </div>;
