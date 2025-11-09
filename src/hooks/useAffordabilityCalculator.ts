@@ -205,19 +205,35 @@ export const useAffordabilityCalculator = () => {
               const annualRentalIncome = currentValue * yieldRate * recognitionRate;
               const periodRentalIncome = annualRentalIncome / PERIODS_PER_YEAR;
               
-              // Calculate loan payment based on loan type (IO or P&I)
-              const interestRate = parseFloat(globalFactors.interestRate) / 100;
-              const loanType = purchase.loanType || 'IO';
-              const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
-              const periodLoanPayment = annualLoanPayment / PERIODS_PER_YEAR;
+              // Get property instance for detailed cashflow calculation
+              const propertyInstance = getInstance(purchase.instanceId);
               
-              // Calculate expenses (30% of rental income + 3% annual inflation)
-              const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-              const periodExpenses = periodRentalIncome * 0.30 * inflationFactor;
-              
-              // Net cashflow for this property (per period)
-              const propertyCashflow = periodRentalIncome - periodLoanPayment - periodExpenses;
-              netCashflow += propertyCashflow;
+              if (propertyInstance) {
+                // Calculate detailed cashflow using all 39 inputs
+                const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
+                
+                // Adjust rent for property growth (rent increases with property value)
+                const growthFactor = currentValue / purchase.cost;
+                const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
+                
+                // Apply inflation to expenses (3% annual)
+                const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
+                
+                // Convert to period cashflow
+                const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
+                netCashflow += propertyCashflow;
+              } else {
+                // Fallback to old calculation if instance not found
+                const interestRate = parseFloat(globalFactors.interestRate) / 100;
+                const loanType = purchase.loanType || 'IO';
+                const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
+                const periodLoanPayment = annualLoanPayment / PERIODS_PER_YEAR;
+                const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+                const periodExpenses = periodRentalIncome * 0.30 * inflationFactor;
+                const propertyCashflow = periodRentalIncome - periodLoanPayment - periodExpenses;
+                netCashflow += propertyCashflow;
+              }
             }
           }
         });
@@ -293,17 +309,32 @@ export const useAffordabilityCalculator = () => {
     // Calculate current property value with tiered growth
     const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
     
-    // Cashflow Score (rental income - loan payments - expenses)
-    const yieldRate = parseFloat(propertyData.yield) / 100;
-    const rentalIncome = currentValue * yieldRate;
-    // Calculate loan payment based on loan type (IO or P&I)
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
-    const loanType = purchase.loanType || 'IO';
-    const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
-    // Calculate expenses (30% of rental income + 3% annual inflation)
-    const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-    const expenses = rentalIncome * 0.30 * inflationFactor;
-    const netCashflow = rentalIncome - annualLoanPayment - expenses;
+    // Cashflow Score using detailed cashflow calculation
+    const propertyInstance = getInstance(purchase.instanceId);
+    let netCashflow = 0;
+    
+    if (propertyInstance) {
+      // Calculate detailed cashflow using all 39 inputs
+      const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
+      
+      // Adjust for property growth (rent increases with property value)
+      const growthFactor = currentValue / purchase.cost;
+      const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
+      
+      // Apply inflation to expenses (3% annual)
+      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+      netCashflow = adjustedAnnualCashflow * inflationFactor;
+    } else {
+      // Fallback to old calculation if instance not found
+      const yieldRate = parseFloat(propertyData.yield) / 100;
+      const rentalIncome = currentValue * yieldRate;
+      const interestRate = parseFloat(globalFactors.interestRate) / 100;
+      const loanType = purchase.loanType || 'IO';
+      const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
+      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+      const expenses = rentalIncome * 0.30 * inflationFactor;
+      netCashflow = rentalIncome - annualLoanPayment - expenses;
+    }
     
     // Equity Score (current equity in property)
     const currentEquity = currentValue - purchase.loanAmount;
@@ -343,16 +374,47 @@ export const useAffordabilityCalculator = () => {
         if (propertyData) {
           // Calculate current property value with tiered growth
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+          
+          // Get property instance for detailed cashflow calculation
+          const propertyInstance = getInstance(purchase.instanceId);
+          
+          if (propertyInstance) {
+            // Calculate detailed cashflow using all 39 inputs
+            const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
+            
+            // Adjust for property growth (rent increases with property value)
+            const growthFactor = currentValue / purchase.cost;
+            const adjustedIncome = cashflowBreakdown.adjustedIncome * growthFactor;
+            const adjustedOperatingExpenses = cashflowBreakdown.totalOperatingExpenses * growthFactor;
+            const adjustedNonDeductibleExpenses = cashflowBreakdown.totalNonDeductibleExpenses * growthFactor;
+            
+            // Apply inflation (3% annual)
+            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+            const inflationAdjustedIncome = adjustedIncome * inflationFactor;
+            const inflationAdjustedOperatingExpenses = adjustedOperatingExpenses * inflationFactor;
+            const inflationAdjustedNonDeductibleExpenses = adjustedNonDeductibleExpenses * inflationFactor;
+            
+            // Apply progressive rental recognition based on portfolio size
+            const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
+            const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+            const recognizedIncome = inflationAdjustedIncome * recognitionRate;
+            
+            // Calculate net cashflow
+            const propertyCashflow = recognizedIncome - inflationAdjustedOperatingExpenses - inflationAdjustedNonDeductibleExpenses;
+            
+            grossRentalIncome += recognizedIncome;
+            loanInterest += cashflowBreakdown.loanInterest;
+            expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductibleExpenses);
+            netCashflow += propertyCashflow;
+          } else {
+            // Fallback to old calculation if instance not found
             const yieldRate = parseFloat(propertyData.yield) / 100;
-            // Apply progressive rental recognition based on portfolio size at time of evaluation
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
             const rentalIncome = currentValue * yieldRate * recognitionRate;
-            // Calculate loan payment based on loan type (IO or P&I)
             const interestRate = parseFloat(globalFactors.interestRate) / 100;
             const loanType = purchase.loanType || 'IO';
             const propertyLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
-            // Calculate expenses (30% of rental income + 3% annual inflation)
             const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
             const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
             
@@ -360,6 +422,7 @@ export const useAffordabilityCalculator = () => {
             loanInterest += propertyLoanPayment;
             expenses += propertyExpenses;
             netCashflow += (rentalIncome - propertyLoanPayment - propertyExpenses);
+          }
           }
         }
       });
