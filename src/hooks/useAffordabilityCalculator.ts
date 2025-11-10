@@ -845,13 +845,12 @@ export const useAffordabilityCalculator = () => {
           continue; // Skip to the next period
         }
         
-        // AUTO-CREATE PROPERTY INSTANCE: Ensure property instance exists (create if missing)
-        // This prevents fallback to the 30% rule by ensuring detailed cashflow calculations are always available
-        let propertyInstance = getInstance(property.instanceId);
+        // Check if property instance exists
+        // If not, use template defaults for this calculation
+        // Instance will be auto-created by useEffect after render
+        const propertyInstance = getInstance(property.instanceId);
         if (!propertyInstance) {
-          // Create instance from property type defaults
-          createInstance(property.instanceId, property.title, period);
-          propertyInstance = getInstance(property.instanceId);
+          console.log(`Property instance not found for ${property.instanceId}, will be created after render`);
         }
         
         const availableFunds = calculateAvailableFunds(period, currentPurchases);
@@ -1266,6 +1265,39 @@ export const useAffordabilityCalculator = () => {
       availableFunds: availableFunds.total
     };
   }, [profile, globalFactors, calculatedValues, getPropertyData]);
+
+  // AUTO-CREATE MISSING PROPERTY INSTANCES
+  // This useEffect runs after render to create any property instances that don't exist yet
+  // This prevents the "setState during render" error
+  useEffect(() => {
+    const timeline = calculateTimelineProperties;
+    if (!timeline || timeline.length === 0) return;
+    
+    const instancesToCreate: Array<{ instanceId: string; propertyType: string; period: number }> = [];
+    
+    // Check all timeline properties for missing instances
+    timeline.forEach(timelineProp => {
+      if (timelineProp.instanceId) {
+        const instance = getInstance(timelineProp.instanceId);
+        if (!instance) {
+          instancesToCreate.push({
+            instanceId: timelineProp.instanceId,
+            propertyType: timelineProp.title,
+            period: 1 // Default period
+          });
+        }
+      }
+    });
+    
+    // Create all missing instances
+    if (instancesToCreate.length > 0) {
+      console.log(`Auto-creating ${instancesToCreate.length} missing property instances`);
+      instancesToCreate.forEach(({ instanceId, propertyType, period }) => {
+        console.log(`Creating instance: ${instanceId} for ${propertyType}`);
+        createInstance(instanceId, propertyType, period);
+      });
+    }
+  }, [calculateTimelineProperties, getInstance, createInstance]);
 
   // Trigger recalculation when property instances change
   const [isRecalculating, setIsRecalculating] = useState(false);

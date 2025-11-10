@@ -27,9 +27,18 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
   const createInstance = useCallback((instanceId: string, propertyType: string, period: number) => {
     console.log('Creating instance:', instanceId, propertyType, period);
     const defaults = getPropertyInstanceDefaults(propertyType);
+    
+    // Ensure state is always set (fallback to VIC if missing)
+    const instanceWithState: PropertyInstanceDetails = {
+      ...defaults,
+      state: defaults.state || 'VIC',
+    };
+    
+    console.log(`Created instance ${instanceId} with state: ${instanceWithState.state}`);
+    
     setInstances(prev => ({
       ...prev,
-      [instanceId]: defaults,
+      [instanceId]: instanceWithState,
     }));
   }, []);
 
