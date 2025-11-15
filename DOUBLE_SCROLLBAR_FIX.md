@@ -178,3 +178,4 @@ The double scrollbar issue has been resolved by:
 
 **Result**: Clean, single scrollbar UX with fixed header and smooth scrolling.
 
+

@@ -178,3 +178,4 @@ Potential improvements for future iterations:
 The Per-Property Tracking feature now provides accurate, detailed insights into individual property performance over a 10-year period. All calculations align with the main affordability calculator, ensuring consistency across the application. The implementation is type-safe, well-tested, and ready for production use.
 
 
+

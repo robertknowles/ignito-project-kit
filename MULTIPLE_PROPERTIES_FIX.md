@@ -324,3 +324,4 @@ if (isLastPropertyInYear && nextYear && nextYear > currentYear + 1) {
 - This approach maintains backward compatibility while fixing the rendering issue
 - No breaking changes to existing components (GapView, decision engine funnels)
 
+

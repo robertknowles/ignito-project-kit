@@ -90,3 +90,4 @@ To verify the fix:
 4. Switch to Portfolio Growth view
 5. Verify that the same property's equity values match between both charts
 
+

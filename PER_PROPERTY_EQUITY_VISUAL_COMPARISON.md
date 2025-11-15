@@ -171,3 +171,4 @@ for (let year = 1; year <= 10; year++) {
 
 All should now show **consistent, matching values** across both chart views!
 
+

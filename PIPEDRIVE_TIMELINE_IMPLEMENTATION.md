@@ -232,3 +232,4 @@ Property Card 3
 
 The implementation successfully replicates the Pipedrive timeline aesthetic with clean year circles, connecting lines, and a professional visual hierarchy. The layout is responsive, maintainable, and enhances the user experience by making the investment timeline more scannable and visually appealing.
 
+

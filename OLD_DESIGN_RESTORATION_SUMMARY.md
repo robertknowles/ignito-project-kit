@@ -273,3 +273,4 @@ The property card now has a clean, minimal design with:
 
 The design is now identical to the original clean layout shown in the reference images.
 
+

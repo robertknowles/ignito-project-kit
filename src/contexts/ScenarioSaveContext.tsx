@@ -52,6 +52,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
   const loadedClientRef = useRef<number | null>(null);
+  const saveInProgressRef = useRef<boolean>(false);
+  const loadInProgressRef = useRef<boolean>(false);
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
@@ -65,22 +67,41 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Save scenario
   const saveScenario = useCallback(async () => {
-    if (!activeClient) return;
+    if (!activeClient) {
+      console.warn('ScenarioSaveContext: Cannot save - no active client');
+      return;
+    }
 
+    // Prevent concurrent save operations
+    if (saveInProgressRef.current) {
+      console.warn('ScenarioSaveContext: Save already in progress, skipping');
+      toast({
+        title: "Save in Progress",
+        description: "Please wait for the current save to complete",
+      });
+      return;
+    }
+
+    saveInProgressRef.current = true;
     setIsLoading(true);
     
     try {
       const scenarioData = getCurrentScenarioData();
+      console.log('ScenarioSaveContext: Saving scenario with', Object.keys(scenarioData.propertyInstances || {}).length, 'property instances');
+      console.log('ScenarioSaveContext: Property instances:', Object.keys(scenarioData.propertyInstances || {}));
       
       // Check if a scenario already exists for this client
-      const { data: existingScenarios } = await supabase
+      const { data: existingScenarios, error: fetchError } = await supabase
         .from('scenarios')
         .select('id')
         .eq('client_id', activeClient.id)
         .limit(1);
       
+      if (fetchError) throw fetchError;
+      
       if (existingScenarios && existingScenarios.length > 0) {
         // Update existing scenario
+        console.log('ScenarioSaveContext: Updating existing scenario', existingScenarios[0].id);
         const { error } = await supabase
           .from('scenarios')
           .update({
@@ -91,8 +112,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           .eq('id', existingScenarios[0].id);
         
         if (error) throw error;
+        console.log('ScenarioSaveContext: ✓ Scenario updated successfully');
       } else {
         // Insert new scenario
+        console.log('ScenarioSaveContext: Creating new scenario');
         const { error } = await supabase
           .from('scenarios')
           .insert({
@@ -103,6 +126,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           });
         
         if (error) throw error;
+        console.log('ScenarioSaveContext: ✓ New scenario created successfully');
       }
       
       setLastSavedData(scenarioData);
@@ -114,7 +138,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: `${activeClient.name}'s scenario saved successfully`,
       });
     } catch (error) {
-      console.error('Error saving scenario:', error);
+      console.error('ScenarioSaveContext: ✗ Error saving scenario:', error);
       toast({
         title: "Save Error",
         description: "Failed to save scenario. Please try again.",
@@ -122,12 +146,21 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     } finally {
       setIsLoading(false);
+      saveInProgressRef.current = false;
     }
   }, [activeClient, getCurrentScenarioData]);
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {
     console.log('ScenarioSaveContext: Loading scenario for client:', clientId);
+    
+    // Prevent concurrent load operations
+    if (loadInProgressRef.current) {
+      console.warn('ScenarioSaveContext: Load already in progress, skipping');
+      return null;
+    }
+
+    loadInProgressRef.current = true;
     
     try {
       const { data, error } = await supabase
@@ -141,12 +174,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) {
         // PGRST116 means no rows found
         if (error.code === 'PGRST116') {
-          console.log('ScenarioSaveContext: No saved scenario found');
+          console.log('ScenarioSaveContext: No saved scenario found for client', clientId);
           setLastSavedData(null);
           setLastSaved(null);
           setHasUnsavedChanges(false);
           // Reset contexts to default
           resetSelections();
+          propertyInstanceContext.setInstances({});
           return null;
         }
         throw error;
@@ -154,7 +188,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
-        console.log('ScenarioSaveContext: Loaded scenario data:', scenarioData);
+        console.log('ScenarioSaveContext: ✓ Loaded scenario data');
+        console.log('ScenarioSaveContext: - Property selections:', Object.keys(scenarioData.propertySelections).length);
+        console.log('ScenarioSaveContext: - Property instances:', Object.keys(scenarioData.propertyInstances || {}).length);
         
         // Apply property selections
         resetSelections();
@@ -165,31 +201,47 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
         
         // Apply investment profile
-        updateProfile(scenarioData.investmentProfile);
+        if (scenarioData.investmentProfile) {
+          updateProfile(scenarioData.investmentProfile);
+        }
         
         // Load property instances
-        if (scenarioData.propertyInstances) {
+        if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
+          console.log('ScenarioSaveContext: Restoring', Object.keys(scenarioData.propertyInstances).length, 'property instances');
+          console.log('ScenarioSaveContext: Instance IDs:', Object.keys(scenarioData.propertyInstances).join(', '));
           propertyInstanceContext.setInstances(scenarioData.propertyInstances);
         } else {
+          console.log('ScenarioSaveContext: No property instances to restore');
           propertyInstanceContext.setInstances({});
         }
         
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
+        
+        console.log('ScenarioSaveContext: ✓ Scenario loaded successfully');
         return scenarioData;
       } else {
+        console.log('ScenarioSaveContext: No data in scenario');
         setLastSavedData(null);
         setLastSaved(null);
         setHasUnsavedChanges(false);
         resetSelections();
+        propertyInstanceContext.setInstances({});
         return null;
       }
     } catch (error) {
-      console.error('ScenarioSaveContext: Error loading scenario:', error);
+      console.error('ScenarioSaveContext: ✗ Error loading scenario:', error);
+      toast({
+        title: "Load Error",
+        description: "Failed to load scenario. Please refresh the page.",
+        variant: "destructive",
+      });
       return null;
+    } finally {
+      loadInProgressRef.current = false;
     }
-  }, [resetSelections, updateProfile, updatePropertyQuantity]);
+  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext]);
 
   // Load scenario when activeClient changes
   useEffect(() => {

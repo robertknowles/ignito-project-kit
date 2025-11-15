@@ -287,3 +287,4 @@ Refer to:
 - **Testing**: `AUTO_CREATE_INSTANCES_TEST_GUIDE.md`
 - **Code**: `src/hooks/useAffordabilityCalculator.ts` (Lines 833-840)
 
+

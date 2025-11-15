@@ -6,6 +6,68 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// Type definition for property instance data stored in scenarios
+export interface PropertyInstanceDetails {
+  // Section A: Property Overview (6 fields)
+  state: string;
+  purchasePrice: number;
+  valuationAtPurchase: number;
+  rentPerWeek: number;
+  growthAssumption: 'High' | 'Medium' | 'Low';
+  minimumYield: number;
+  
+  // Section B: Contract & Loan Details (8 fields)
+  daysToUnconditional: number;
+  daysForSettlement: number;
+  lvr: number;
+  lmiWaiver: boolean;
+  loanProduct: 'IO' | 'PI';
+  interestRate: number;
+  loanTerm: number;
+  loanOffsetAccount: number;
+  
+  // Section D: One-Off Purchase Costs (12 fields)
+  engagementFee: number;
+  conditionalHoldingDeposit: number;
+  buildingInsuranceUpfront: number;
+  buildingPestInspection: number;
+  plumbingElectricalInspections: number;
+  independentValuation: number;
+  unconditionalHoldingDeposit: number;
+  mortgageFees: number;
+  conveyancing: number;
+  ratesAdjustment: number;
+  maintenanceAllowancePostSettlement: number;
+  stampDutyOverride: number | null;
+  
+  // Section E: Cashflow (8 fields)
+  vacancyRate: number;
+  propertyManagementPercent: number;
+  buildingInsuranceAnnual: number;
+  councilRatesWater: number;
+  strata: number;
+  maintenanceAllowanceAnnual: number;
+  landTaxOverride: number | null;
+  potentialDeductionsRebates: number;
+}
+
+// Type definition for scenario data stored in scenarios.data column
+export interface ScenarioData {
+  propertySelections: { [propertyId: string]: number };
+  investmentProfile: {
+    depositPool: number;
+    borrowingCapacity: number;
+    portfolioValue: number;
+    currentDebt: number;
+    annualSavings: number;
+    timelineYears: number;
+    equityGrowth: number;
+    cashflow: number;
+  };
+  propertyInstances?: Record<string, PropertyInstanceDetails>;
+  lastSaved: string;
+}
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
