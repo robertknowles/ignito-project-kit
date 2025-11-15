@@ -11,6 +11,7 @@ import { AIStrategySummary } from './AIStrategySummary'
 import { PurchaseEventCard } from './PurchaseEventCard'
 import { GapView } from './GapView'
 import { YearCircle } from './YearCircle'
+import { PauseBlockCard } from './PauseBlockCard'
 import type { YearBreakdownData } from '@/types/property'
 
 // Period conversion helpers
@@ -155,13 +156,17 @@ export const useTimelineData = () => {
   const BASE_YEAR = 2025;
   const startYear = BASE_YEAR;
   const endYear = startYear + (profile.timelineYears || 15) - 1;
-  const latestPurchaseYear = timelineProperties.length > 0
-    ? Math.max(...timelineProperties.map(p => Math.round(p.affordableYear)))
+  
+  // Filter out properties with Infinity affordableYear
+  const affordableProperties = timelineProperties.filter(p => p.affordableYear !== Infinity);
+  
+  const latestPurchaseYear = affordableProperties.length > 0
+    ? Math.max(...affordableProperties.map(p => Math.round(p.affordableYear)))
     : startYear;
   
-  // Get all unique purchase years
-  const purchaseYears = timelineProperties.length > 0
-    ? [...new Set(timelineProperties.map(p => Math.round(p.affordableYear)))]
+  // Get all unique purchase years (excluding Infinity)
+  const purchaseYears = affordableProperties.length > 0
+    ? [...new Set(affordableProperties.map(p => Math.round(p.affordableYear)))]
     : [];
   
   return {
@@ -174,7 +179,7 @@ export const useTimelineData = () => {
 
 export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number) => void }>((props, ref) => {
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections } = usePropertySelection()
+  const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections, removePause, updatePauseDuration } = usePropertySelection()
   const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating, calculateAffordabilityForProperty } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   
@@ -204,14 +209,17 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     
     // Create a map of years to properties for quick lookup
     // Round affordableYear to nearest integer (2030.5 -> 2031, 2030.3 -> 2030)
+    // Filter out properties with Infinity affordableYear
     const propertyByYear = new Map<number, typeof timelineProperties[0][]>();
-    timelineProperties.forEach(prop => {
-      const roundedYear = Math.round(prop.affordableYear);
-      if (!propertyByYear.has(roundedYear)) {
-        propertyByYear.set(roundedYear, []);
-      }
-      propertyByYear.get(roundedYear)!.push(prop);
-    });
+    timelineProperties
+      .filter(prop => prop.affordableYear !== Infinity)
+      .forEach(prop => {
+        const roundedYear = Math.round(prop.affordableYear);
+        if (!propertyByYear.has(roundedYear)) {
+          propertyByYear.set(roundedYear, []);
+        }
+        propertyByYear.get(roundedYear)!.push(prop);
+      });
 
     // Generate ALL years from 2025 to endYear
     const years: YearBreakdownData[] = [];
@@ -413,59 +421,113 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
 
   const timelineStatus = getTimelineStatus()
 
-  // Generate unified timeline with individual property cards and gaps
+  // Generate unified timeline with individual property cards, pause blocks, and gaps
   const unifiedTimeline = useMemo(() => {
     if (!timelineProperties || timelineProperties.length === 0) {
       return [];
     }
 
     const timelineElements: Array<{
-      type: 'purchase' | 'gap';
+      type: 'purchase' | 'gap' | 'pause';
       property?: typeof timelineProperties[0];
       yearData?: YearBreakdownData;
       isLastPropertyInYear?: boolean;
       startYear?: number;
       endYear?: number;
+      pauseId?: string;
+      duration?: number;
     }> = [];
 
-    // Sort properties by affordable year
-    const sortedProperties = [...timelineProperties].sort((a, b) => a.affordableYear - b.affordableYear);
+    // Filter out properties with Infinity affordableYear and sort by affordable year
+    const sortedProperties = [...timelineProperties]
+      .filter((p) => p.affordableYear !== Infinity)
+      .sort((a, b) => a.affordableYear - b.affordableYear);
 
-    // Build timeline with individual property cards and gaps
-    sortedProperties.forEach((property, index) => {
-      const currentYear = Math.round(property.affordableYear);
-      const nextProperty = sortedProperties[index + 1];
-      const nextYear = nextProperty ? Math.round(nextProperty.affordableYear) : null;
-      
-      // Check if this is the last property in this year
-      const isLastPropertyInYear = !nextProperty || nextYear !== currentYear;
-      
-      // Find year data for this year
-      const yearData = fullYearlyBreakdown.find(y => Math.floor(y.year) === currentYear);
-      
-      // Add the property card
-      timelineElements.push({
-        type: 'purchase',
-        property,
-        yearData,
-        isLastPropertyInYear,
-      });
+    // Build timeline with individual property cards, pause blocks, and gaps
+    // We need to insert pause blocks based on their 'order' field
+    let propertyIndex = 0;
+    let pauseIndex = 0;
+    let currentOrder = 0;
 
-      // Add gap only after the last property of a year, if there's a gap to the next year
-      if (isLastPropertyInYear && nextYear && nextYear > currentYear + 1) {
-        const gapStart = currentYear + 1;
-        const gapEnd = nextYear - 1;
+    // Sort pause blocks by order
+    const sortedPauses = [...pauseBlocks].sort((a, b) => a.order - b.order);
+
+    // Interleave properties and pauses based on order
+    while (propertyIndex < sortedProperties.length || pauseIndex < sortedPauses.length) {
+      // Check if there's a pause at this position
+      if (pauseIndex < sortedPauses.length && sortedPauses[pauseIndex].order === currentOrder) {
+        const pause = sortedPauses[pauseIndex];
+        
+        // Calculate pause year range
+        let pauseStartYear = BASE_YEAR;
+        let pauseEndYear = BASE_YEAR;
+        
+        if (propertyIndex > 0) {
+          // Pause starts after the last property
+          const lastProperty = sortedProperties[propertyIndex - 1];
+          pauseStartYear = Math.ceil(lastProperty.affordableYear);
+          pauseEndYear = pauseStartYear + Math.ceil(pause.duration) - 1;
+        } else if (sortedProperties.length > 0) {
+          // Pause at the very beginning (before any properties)
+          pauseStartYear = BASE_YEAR;
+          pauseEndYear = BASE_YEAR + Math.ceil(pause.duration) - 1;
+        }
         
         timelineElements.push({
-          type: 'gap',
-          startYear: gapStart,
-          endYear: gapEnd,
+          type: 'pause',
+          pauseId: pause.id,
+          duration: pause.duration,
+          startYear: pauseStartYear,
+          endYear: pauseEndYear,
         });
+        
+        pauseIndex++;
+        currentOrder++;
+      } 
+      // Add property if available
+      else if (propertyIndex < sortedProperties.length) {
+        const property = sortedProperties[propertyIndex];
+        const currentYear = Math.round(property.affordableYear);
+        const nextProperty = sortedProperties[propertyIndex + 1];
+        const nextYear = nextProperty ? Math.round(nextProperty.affordableYear) : null;
+        
+        // Check if this is the last property in this year
+        const isLastPropertyInYear = !nextProperty || nextYear !== currentYear;
+        
+        // Find year data for this year
+        const yearData = fullYearlyBreakdown.find(y => Math.floor(y.year) === currentYear);
+        
+        // Add the property card
+        timelineElements.push({
+          type: 'purchase',
+          property,
+          yearData,
+          isLastPropertyInYear,
+        });
+
+        // Add gap only after the last property of a year, if there's a gap to the next year
+        if (isLastPropertyInYear && nextYear && nextYear > currentYear + 1) {
+          const gapStart = currentYear + 1;
+          const gapEnd = nextYear - 1;
+          
+          timelineElements.push({
+            type: 'gap',
+            startYear: gapStart,
+            endYear: gapEnd,
+          });
+        }
+        
+        propertyIndex++;
+        currentOrder++;
+      } else {
+        // No more properties, but there might be more pauses after the last property
+        // Continue the loop to process remaining pauses
+        currentOrder++;
       }
-    });
+    }
 
     return timelineElements;
-  }, [timelineProperties, fullYearlyBreakdown]);
+  }, [timelineProperties, fullYearlyBreakdown, pauseBlocks]);
 
   // Group timeline elements by year for the year circles
   const timelineByYear = useMemo(() => {
@@ -499,8 +561,8 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           // Same year - add to current group
           currentElements.push(element);
         }
-      } else if (element.type === 'gap') {
-        // Save current year group before gap
+      } else if (element.type === 'gap' || element.type === 'pause') {
+        // Save current year group before gap/pause
         if (currentYear !== null && currentElements.length > 0) {
           yearGroups.push({
             year: currentYear,
@@ -511,7 +573,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           currentElements = [];
         }
         
-        // Add gap as its own group
+        // Add gap/pause as its own group
         yearGroups.push({
           year: element.startYear || 0,
           elements: [element],
@@ -565,7 +627,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         </h3>
       </div>
 
-      {unifiedTimeline.length === 0 ? (
+      {unifiedTimeline.length === 0 && timelineProperties.filter(p => p.affordableYear === Infinity).length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No properties selected. Add properties to see your investment timeline.</p>
         </div>
@@ -582,15 +644,15 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                 const hasMultipleProperties = group.elements.filter(e => e.type === 'purchase').length > 1;
                 const height = sectionHeights[group.year] || 200; // Default fallback
                 
-                // Only show year circle for purchase years, not gaps
-                if (group.elements[0]?.type === 'gap') {
+                // Only show year circle for purchase years, not gaps or pauses
+                if (group.elements[0]?.type === 'gap' || group.elements[0]?.type === 'pause') {
                   return (
                     <div 
-                      key={`gap-${group.year}`} 
+                      key={`${group.elements[0].type}-${group.year}`} 
                       style={{ height: `${height}px` }}
                       className="relative"
                     >
-                      {/* Continue vertical line through gap */}
+                      {/* Continue vertical line through gap/pause */}
                       {!isLastYear && (
                         <div 
                           className="absolute left-6 top-0 w-0.5 bg-gray-300" 
@@ -625,7 +687,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                   }}
                 >
                   {/* Mobile: Show year header */}
-                  {group.elements[0]?.type !== 'gap' && (
+                  {group.elements[0]?.type !== 'gap' && group.elements[0]?.type !== 'pause' && (
                     <div className="md:hidden mb-4 font-bold text-lg text-gray-700">
                       {group.year}
                     </div>
@@ -648,6 +710,18 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                             />
                           </div>
                         );
+                      } else if (element.type === 'pause' && element.pauseId && element.startYear && element.endYear && element.duration) {
+                        return (
+                          <PauseBlockCard
+                            key={`pause-${element.pauseId}-${index}`}
+                            pauseId={element.pauseId}
+                            startYear={element.startYear}
+                            endYear={element.endYear}
+                            duration={element.duration}
+                            onRemove={() => removePause(element.pauseId!)}
+                            onUpdateDuration={(newDuration) => updatePauseDuration(element.pauseId!, newDuration)}
+                          />
+                        );
                       } else if (element.type === 'gap' && element.startYear && element.endYear) {
                         return (
                           <GapView
@@ -665,6 +739,105 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
               ))}
             </div>
           </div>
+
+          {/* Unaffordable Properties Section */}
+          {timelineProperties.filter(p => p.affordableYear === Infinity).length > 0 && (
+            <div className="mt-8 border-t-2 border-red-200 pt-6">
+              <h4 className="text-sm font-medium text-red-600 mb-4">
+                Properties That Cannot Be Afforded Within Timeline
+              </h4>
+              <div className="space-y-4">
+                {timelineProperties
+                  .filter(p => p.affordableYear === Infinity)
+                  .map((property, index) => {
+                    // Create a dummy yearData for these properties
+                    const dummyYearData: YearBreakdownData = {
+                      period: 0,
+                      year: Infinity,
+                      displayYear: 0,
+                      displayPeriod: 'N/A',
+                      status: 'blocked',
+                      propertyNumber: null,
+                      propertyType: property.title,
+                      portfolioValue: 0,
+                      totalEquity: 0,
+                      totalDebt: 0,
+                      extractableEquity: 0,
+                      availableDeposit: 0,
+                      annualCashFlow: 0,
+                      baseDeposit: 0,
+                      cumulativeSavings: 0,
+                      cashflowReinvestment: 0,
+                      equityRelease: 0,
+                      annualSavingsRate: 0,
+                      totalAnnualCapacity: 0,
+                      grossRental: 0,
+                      loanRepayments: 0,
+                      expenses: 0,
+                      requiredDeposit: property.depositRequired,
+                      requiredLoan: property.loanAmount,
+                      propertyCost: property.cost,
+                      availableBorrowingCapacity: 0,
+                      borrowingCapacity: profile.borrowingCapacity,
+                      existingDebt: 0,
+                      newDebt: 0,
+                      existingLoanInterest: 0,
+                      newLoanInterest: 0,
+                      baseServiceabilityCapacity: 0,
+                      rentalServiceabilityContribution: 0,
+                      interestRate: 0,
+                      rentalRecognition: 0,
+                      depositTest: {
+                        pass: property.depositTestPass,
+                        surplus: property.depositTestSurplus,
+                        available: property.availableFundsUsed,
+                        required: property.depositRequired,
+                      },
+                      borrowingCapacityTest: {
+                        pass: false,
+                        surplus: 0,
+                        available: profile.borrowingCapacity,
+                        required: 0,
+                      },
+                      serviceabilityTest: {
+                        pass: property.serviceabilityTestPass,
+                        surplus: property.serviceabilityTestSurplus,
+                        available: 0,
+                        required: 0,
+                      },
+                      gapRule: false,
+                      equityReleaseYear: false,
+                      portfolioScaling: 0,
+                      selfFundingEfficiency: 0,
+                      equityRecyclingImpact: 0,
+                      dsr: 0,
+                      lvr: 0,
+                      purchases: [],
+                      allPortfolioProperties: [],
+                    };
+                    
+                    return (
+                      <PurchaseEventCard
+                        key={`unaffordable-${property.id}-${index}`}
+                        yearData={dummyYearData}
+                        property={property}
+                        showDecisionEngine={false}
+                      />
+                    );
+                  })}
+              </div>
+              <div className="mt-4 text-sm text-gray-600 bg-red-50 p-4 rounded-md">
+                <p className="font-medium mb-2">Why can't these properties be afforded?</p>
+                <p>These properties exceed your borrowing capacity, deposit availability, or serviceability requirements within the {profile.timelineYears}-year timeline. Consider:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Extending your timeline period</li>
+                  <li>Increasing your deposit pool or annual savings</li>
+                  <li>Selecting lower-priced properties</li>
+                  <li>Improving your borrowing capacity</li>
+                </ul>
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
             <AIStrategySummary 

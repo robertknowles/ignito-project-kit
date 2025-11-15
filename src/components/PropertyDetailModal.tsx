@@ -108,12 +108,13 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       // Load or create instance data
       const instance = getInstance(instanceId);
       if (!instance) {
+        // Create instance with template defaults
         createInstance(instanceId, propertyType, 1);
-        // Get the newly created instance
-        const newInstance = getInstance(instanceId);
-        if (newInstance) {
-          setFormData(newInstance);
-          setInitialFormData(newInstance);
+        // Use template defaults immediately while instance is being created
+        const template = getPropertyTypeTemplate(propertyType);
+        if (template) {
+          setFormData(template);
+          setInitialFormData(template);
         }
       } else {
         setFormData(instance);

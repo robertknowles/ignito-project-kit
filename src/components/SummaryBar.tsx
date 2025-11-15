@@ -82,7 +82,7 @@ export const SummaryBar = () => {
 
   // Calculate current year progress
   const calculateYearProgress = () => {
-    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible')
+    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible' && p.affordableYear !== Infinity)
     if (feasibleProperties.length === 0) {
       return { currentYear: 1, totalYears: profile.timelineYears || 15 }
     }

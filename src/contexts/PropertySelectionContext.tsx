@@ -260,9 +260,15 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     setPauseBlocks(prev => [...prev, newPause]);
   }, [selections, pauseBlocks.length]);
 
-  const removePause = useCallback(() => {
-    if (pauseBlocks.length > 0) {
-      setPauseBlocks(prev => prev.slice(0, -1));
+  const removePause = useCallback((pauseId?: string) => {
+    if (pauseId) {
+      // Remove specific pause by ID
+      setPauseBlocks(prev => prev.filter(p => p.id !== pauseId));
+    } else {
+      // Remove last pause (for backward compatibility with strategy builder)
+      if (pauseBlocks.length > 0) {
+        setPauseBlocks(prev => prev.slice(0, -1));
+      }
     }
   }, [pauseBlocks.length]);
 

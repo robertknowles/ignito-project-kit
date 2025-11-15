@@ -26,9 +26,10 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   const { getPropertyData } = useDataAssumptions();
   
   // Use individual property data if provided, otherwise fall back to yearData
-  const instanceId = property?.id || (yearData.purchases?.[0]?.propertyId) || `property_${yearData.year}`;
+  const instanceId = property?.instanceId || (yearData.purchases?.[0]?.propertyId) || `property_${yearData.year}`;
   const propertyType = property?.title || yearData.propertyType || 'House';
-  const year = Math.floor(property?.affordableYear || yearData.year);
+  const affordableYear = property?.affordableYear || yearData.year;
+  const year = affordableYear === Infinity ? Infinity : Math.floor(affordableYear);
   
   // Get property instance data
   const propertyInstance = getInstance(instanceId);
@@ -68,9 +69,14 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   const handleFieldUpdate = (field: keyof PropertyInstanceDetails, value: any) => {
     if (!instanceId) return;
     
-    // Create instance if it doesn't exist
+    // Create instance if it doesn't exist (this happens in event handler, not during render)
     if (!propertyInstance) {
       createInstance(instanceId, propertyType, 1);
+      // Wait a tick for the instance to be created, then update
+      setTimeout(() => {
+        updateInstance(instanceId, { [field]: value });
+      }, 0);
+      return;
     }
     
     updateInstance(instanceId, { [field]: value });
@@ -113,7 +119,13 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
         return;
       }
       
-      const parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
+      let parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
+      
+      // Convert 'k' format back to full numbers for price fields
+      if (suffix === 'k' && (field === 'purchasePrice' || field === 'valuationAtPurchase')) {
+        parsedValue = parsedValue * 1000;
+      }
+      
       handleFieldUpdate(field, parsedValue);
       setIsEditing(false);
       setError(null);
@@ -176,7 +188,11 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
           <span className="text-sm">
             <span className="font-medium text-gray-900">{propertyType} ({propertyData.state})</span>
             <span className="text-gray-400 mx-1">|</span>
-            <span className="text-gray-600">Year: {year}</span>
+            {year === Infinity ? (
+              <span className="text-red-600 font-medium">Cannot afford within timeline</span>
+            ) : (
+              <span className="text-gray-600">Year: {year}</span>
+            )}
             <span className="text-gray-400 mx-1">|</span>
             <span className="text-gray-600">Growth: {propertyData.growthAssumption}</span>
           </span>

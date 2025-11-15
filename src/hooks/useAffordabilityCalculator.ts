@@ -169,7 +169,7 @@ export const useAffordabilityCalculator = () => {
 
   const calculateAvailableFunds = (
       currentPeriod: number, 
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
     ): {
       total: number;
       baseDeposit: number;
@@ -272,12 +272,15 @@ export const useAffordabilityCalculator = () => {
       }
 
       // Calculate usable equity from previous purchases - with 88% LVR cap
+      // CRITICAL: Account for cumulative equity already released
       totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.period <= currentPeriod) {
           const propertyData = getPropertyData(purchase.title);
           if (propertyData) {
             const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period, propertyData);
-            const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - purchase.loanAmount);
+            // Current loan = original loan + any equity released so far
+            const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+            const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - currentLoanAmount);
             return acc + usableEquity;
           }
         }
@@ -298,7 +301,7 @@ export const useAffordabilityCalculator = () => {
     };
 
   const calculatePropertyScore = (
-    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' },
+    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number },
     currentPeriod: number
   ): { cashflowScore: number; equityScore: number; totalScore: number } => {
     const periodsOwned = currentPeriod - purchase.period;
@@ -341,7 +344,9 @@ export const useAffordabilityCalculator = () => {
     }
     
     // Equity Score (current equity in property)
-    const currentEquity = currentValue - purchase.loanAmount;
+    // Current loan = original loan + any equity released so far
+    const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+    const currentEquity = currentValue - currentLoanAmount;
     
     // Weighted scoring: 60% cashflow + 40% equity
     const weightedScore = 0.6 * netCashflow + 0.4 * currentEquity;
@@ -356,7 +361,7 @@ export const useAffordabilityCalculator = () => {
   const checkAffordability = (
     property: any,
     availableFunds: number,
-    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>,
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>,
     currentPeriod: number
   ): { canAfford: boolean } => {
       
@@ -434,10 +439,13 @@ export const useAffordabilityCalculator = () => {
       });
       
       // Calculate total existing debt
+      // CRITICAL: Include cumulative equity released (which increases loan amounts)
       let totalExistingDebt = profile.currentDebt;
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
-          totalExistingDebt += purchase.loanAmount;
+          // Current loan = original loan + any equity released from this property
+          const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+          totalExistingDebt += currentLoanAmount;
         }
       });
       
@@ -467,7 +475,9 @@ export const useAffordabilityCalculator = () => {
               propertyValues.push(currentValue);
               
               // Continuous equity release - 88% LVR cap, no time constraint
-              const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
+              // Current loan = original loan + any equity released so far
+              const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+              const usableEquity = Math.max(0, currentValue * 0.88 - currentLoanAmount);
               usableEquityPerProperty.push(usableEquity);
             }
           }
@@ -774,7 +784,7 @@ export const useAffordabilityCalculator = () => {
 
     const determineNextPurchasePeriod = (
       property: any,
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>,
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>,
       propertyIndex: number
     ): { period: number } => {
       let currentPurchases = [...previousPurchases];
@@ -846,11 +856,14 @@ export const useAffordabilityCalculator = () => {
         }
         
         // Check if property instance exists
-        // If not, use template defaults for this calculation
-        // Instance will be auto-created by useEffect after render
+        // If not, we'll just use template defaults for this calculation
+        // DON'T call createInstance here - it will be created in useEffect
         const propertyInstance = getInstance(property.instanceId);
         if (!propertyInstance) {
-          console.log(`Property instance not found for ${property.instanceId}, will be created after render`);
+          // Just log - instance will be created in useEffect
+          if (DEBUG_MODE) {
+            console.log(`Property instance not found for ${property.instanceId}, using template defaults`);
+          }
         }
         
         const availableFunds = calculateAvailableFunds(period, currentPurchases);
@@ -882,7 +895,7 @@ export const useAffordabilityCalculator = () => {
     });
 
     const timelineProperties: TimelineProperty[] = [];
-    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }> = [];
+    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }> = [];
     
     // Process properties sequentially, determining purchase period for each
     allPropertiesToPurchase.forEach(({ property, index, instanceId }, globalIndex) => {
@@ -926,7 +939,9 @@ export const useAffordabilityCalculator = () => {
             const propertyData = getPropertyData(purchase.title);
             if (propertyData) {
               portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              totalDebtAfter += purchase.loanAmount;
+              // Current loan = original loan + any equity released so far
+              const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+              totalDebtAfter += currentLoanAmount;
             }
           }
         });
@@ -1042,14 +1057,22 @@ export const useAffordabilityCalculator = () => {
         baseDeposit = fundsBreakdownFinal.baseDeposit; // Rolling amount based on deposits used
         
         // Calculate equity release (continuous, 88% LVR cap)
+        // CRITICAL: Track total equity released per property (replaces previous value, not additive)
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
             const propertyData = getPropertyData(purchase.title);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              const usableEquity = Math.max(0, currentValue * 0.88 - purchase.loanAmount);
-              equityRelease += usableEquity;
+              // Calculate maximum refinance amount (88% LVR)
+              const maxLoan = currentValue * 0.88;
+              // Equity released = maximum loan minus original loan amount
+              const equityReleasedFromProperty = Math.max(0, maxLoan - purchase.loanAmount);
+              equityRelease += equityReleasedFromProperty;
+              
+              // Set cumulative equity released to the total amount refinanced from this property
+              // (This is not additive - it's the current refinanced amount)
+              purchase.cumulativeEquityReleased = equityReleasedFromProperty;
             }
           }
         });
@@ -1138,7 +1161,8 @@ export const useAffordabilityCalculator = () => {
           loanAmount: loanAmount,
           title: property.title,
           instanceId: instanceId,
-          loanType: instanceLoanType
+          loanType: instanceLoanType,
+          cumulativeEquityReleased: 0 // Initialize equity tracking
         });
         
         // Sort purchase history by period to maintain chronological order
@@ -1162,15 +1186,15 @@ export const useAffordabilityCalculator = () => {
     propertyAssumptions,
     pauseBlocks,
     timelineLoanTypes,
-    createInstance,
-    getInstance
+    getInstance, // Keep getInstance as it depends on instances state
+    // Removed createInstance - it's stable and shouldn't trigger recalcs
   ]);
 
   // Function to calculate affordability for any period and property
   const calculateAffordabilityForPeriod = useCallback((
     period: number,
     property: any,
-    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI' }>
+    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
   ) => {
     const availableFunds = calculateAvailableFunds(period, previousPurchases);
     const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, period);
@@ -1283,21 +1307,24 @@ export const useAffordabilityCalculator = () => {
           instancesToCreate.push({
             instanceId: timelineProp.instanceId,
             propertyType: timelineProp.title,
-            period: 1 // Default period
+            period: timelineProp.period !== Infinity ? timelineProp.period : 1
           });
         }
       }
     });
     
-    // Create all missing instances
+    // Create all missing instances in a batch
     if (instancesToCreate.length > 0) {
       console.log(`Auto-creating ${instancesToCreate.length} missing property instances`);
       instancesToCreate.forEach(({ instanceId, propertyType, period }) => {
-        console.log(`Creating instance: ${instanceId} for ${propertyType}`);
+        console.log(`Creating instance: ${instanceId} for ${propertyType} at period ${period}`);
         createInstance(instanceId, propertyType, period);
       });
     }
-  }, [calculateTimelineProperties, getInstance, createInstance]);
+    // Note: createInstance is stable (useCallback), so we don't need it in deps
+    // getInstance depends on instances state, which is already tracked via calculateTimelineProperties
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculateTimelineProperties]);
 
   // Trigger recalculation when property instances change
   const [isRecalculating, setIsRecalculating] = useState(false);
