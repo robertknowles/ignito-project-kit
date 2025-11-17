@@ -4,6 +4,7 @@ import { ServiceabilityTestFunnel } from './ServiceabilityTestFunnel';
 import { BorrowingCapacityTestFunnel } from './BorrowingCapacityTestFunnel';
 import { getPropertyTypeIcon } from '@/utils/propertyTypeIcon';
 import { PropertyDetailModal } from './PropertyDetailModal';
+import { DecisionEngineModal } from './DecisionEngineModal';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import type { YearBreakdownData } from '@/types/property';
@@ -21,7 +22,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   showDecisionEngine = false 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [decisionEngineExpanded, setDecisionEngineExpanded] = useState(false);
+  const [isDecisionEngineOpen, setIsDecisionEngineOpen] = useState(false);
   const { getInstance, updateInstance, createInstance } = usePropertyInstance();
   const { getPropertyData } = useDataAssumptions();
   
@@ -180,119 +181,112 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   };
   
   return (
-    <div className="relative bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-      {/* Row 1: Property Title with Expand Button */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {getPropertyTypeIcon(propertyType, 16, 'text-gray-400')}
-          <span className="text-sm">
-            <span className="font-medium text-gray-900">{propertyType} ({propertyData.state})</span>
-            <span className="text-gray-400 mx-1">|</span>
-            {year === Infinity ? (
-              <span className="text-red-600 font-medium">Cannot afford within timeline</span>
-            ) : (
-              <span className="text-gray-600">Year: {year}</span>
-            )}
-            <span className="text-gray-400 mx-1">|</span>
-            <span className="text-gray-600">Growth: {propertyData.growthAssumption}</span>
-          </span>
-        </div>
-        
-        {/* Expand Full Details Button - Top Right */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="text-sm hover:underline"
-          style={{ color: '#87B5FA' }}
-        >
-          [ Expand Full Details → ]
-        </button>
-      </div>
-      
-      {/* Row 2: Three Sections Side-by-Side */}
-      <div className="grid grid-cols-3 gap-6 mb-3">
-        {/* Section 1: Property Details */}
-        <div>
-          <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
-            PROPERTY DETAILS
-          </div>
-          <div className="text-gray-700 text-sm">
-            <span>State: </span>
-            <EditableField label="State" value={propertyData.state} field="state" type="text" />
-            <span className="mx-2 text-gray-400">|</span>
-            <span>Yield: {yieldCalc}%</span>
-            <span className="mx-2 text-gray-400">|</span>
-            <span>Rent: </span>
-            <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
-          </div>
-        </div>
-        
-        {/* Section 2: Purchase */}
-        <div>
-          <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
-            PURCHASE
-          </div>
-          <div className="text-gray-700 text-sm">
-            <span>Price: </span>
-            <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
-            <span className="mx-2 text-gray-400">|</span>
-            <span>Valuation: </span>
-            <EditableField label="Valuation" value={(propertyData.valuationAtPurchase / 1000).toFixed(0)} field="valuationAtPurchase" prefix="$" suffix="k" />
-            <span className="mx-2 text-gray-400">|</span>
-            <span>%MV: {mvDiff}%</span>
-          </div>
-        </div>
-        
-        {/* Section 3: Finance */}
-        <div>
-          <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
-            FINANCE
-          </div>
-          <div className="text-gray-700 text-sm">
-            <span>LVR: </span>
-            <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
-            <span className="mx-2 text-gray-400">|</span>
-            <span>{propertyData.loanProduct} @ </span>
-            <EditableField label="Rate" value={propertyData.interestRate} field="interestRate" suffix="%" />
-            <span className="mx-2 text-gray-400">|</span>
-            <span>Loan: ${(loanAmountCalc / 1000).toFixed(0)}k</span>
-          </div>
-        </div>
+    <div className="relative flex gap-4 items-center">
+      {/* Year Circle - Outside and to the left */}
+      <div 
+        className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl"
+        style={{ 
+          width: '64px', 
+          height: '64px',
+          backgroundColor: '#87B5FA'
+        }}
+      >
+        {year === Infinity ? '∞' : year}
       </div>
 
-      {/* Decision Engine (only on last card of year) */}
-      {showDecisionEngine && (
-        <>
-          <div className="mt-3 pt-3 text-center border-t border-gray-100">
-            <button 
-              onClick={() => setDecisionEngineExpanded(!decisionEngineExpanded)}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              {decisionEngineExpanded ? '▼' : '▶'} Expand Decision Engine Analysis for {year}
-            </button>
-          </div>
-
-          {/* Decision Engine Funnels (when expanded) */}
-          {decisionEngineExpanded && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <DepositTestFunnel yearData={yearData} />
-                <ServiceabilityTestFunnel yearData={yearData} />
-                <BorrowingCapacityTestFunnel yearData={yearData} />
-              </div>
+      {/* Main Card Content */}
+      <div className="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+        <div className="flex flex-col">
+        {/* Row 1: Property Title with Expand Button */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-gray-100 rounded p-1.5 flex items-center justify-center">
+              {getPropertyTypeIcon(propertyType, 24, 'text-gray-400')}
             </div>
-          )}
-        </>
-      )}
-      
-      {/* Property Detail Modal */}
-      {instanceId && (
-        <PropertyDetailModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          instanceId={instanceId}
-          propertyType={propertyType}
-        />
-      )}
+            <span className="text-sm">
+              <span className="font-medium text-gray-900">{propertyType}</span>
+              <span className="text-gray-400 mx-1">|</span>
+              <span className="text-gray-600">Growth: {propertyData.growthAssumption}</span>
+            </span>
+          </div>
+          
+          {/* Expand Property Details Button - Top Right */}
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-sm hover:underline"
+              style={{ color: '#87B5FA' }}
+            >
+              [ Expand Full Details → ]
+            </button>
+            {showDecisionEngine && (
+              <button
+                onClick={() => setIsDecisionEngineOpen(true)}
+                className="text-xs hover:underline text-gray-500"
+              >
+                [ Expand Decision Analysis → ]
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Row 2: Two Sections Side-by-Side */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Section 1: PURCHASE (moved before Property Details) */}
+          <div>
+            <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
+              PURCHASE
+            </div>
+            <div className="text-gray-700 text-sm">
+              <span>Price: </span>
+              <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
+              <span className="mx-2 text-gray-400">|</span>
+              <span>Valuation: </span>
+              <EditableField label="Valuation" value={(propertyData.valuationAtPurchase / 1000).toFixed(0)} field="valuationAtPurchase" prefix="$" suffix="k" />
+              <span className="mx-2 text-gray-400">|</span>
+              <span>LVR: </span>
+              <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
+            </div>
+          </div>
+          
+          {/* Section 2: PROPERTY DETAILS */}
+          <div>
+            <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
+              PROPERTY DETAILS
+            </div>
+            <div className="text-gray-700 text-sm">
+              <span>State: </span>
+              <EditableField label="State" value={propertyData.state} field="state" type="text" />
+              <span className="mx-2 text-gray-400">|</span>
+              <span>Yield: {yieldCalc}%</span>
+              <span className="mx-2 text-gray-400">|</span>
+              <span>Rent: </span>
+              <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
+            </div>
+          </div>
+        </div>
+        </div>
+
+        {/* Property Detail Modal */}
+        {instanceId && (
+          <PropertyDetailModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            instanceId={instanceId}
+            propertyType={propertyType}
+          />
+        )}
+        
+        {/* Decision Engine Modal */}
+        {showDecisionEngine && (
+          <DecisionEngineModal
+            isOpen={isDecisionEngineOpen}
+            onClose={() => setIsDecisionEngineOpen(false)}
+            yearData={yearData}
+            year={year}
+          />
+        )}
+      </div>
     </div>
   );
 };

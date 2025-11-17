@@ -318,7 +318,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 {!isCustomProperty && (
                   <button
                     onClick={() => handleEditTemplate(property.title)}
-                    className="absolute top-2 right-2 p-1.5 bg-white rounded shadow-sm text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors z-10 border border-gray-200"
+                    className="absolute top-2 right-2 p-1.5 bg-white rounded shadow-sm text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20 border border-gray-200"
                     title="Edit template"
                   >
                     <Pencil size={12} />

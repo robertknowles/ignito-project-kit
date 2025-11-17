@@ -7,10 +7,8 @@ import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
-import { AIStrategySummary } from './AIStrategySummary'
 import { PurchaseEventCard } from './PurchaseEventCard'
 import { GapView } from './GapView'
-import { YearCircle } from './YearCircle'
 import { PauseBlockCard } from './PauseBlockCard'
 import type { YearBreakdownData } from '@/types/property'
 
@@ -107,6 +105,16 @@ const periodToDisplay = (period: number): string => {
   const year = BASE_YEAR + Math.floor((period - 1) / PERIODS_PER_YEAR);
   const half = ((period - 1) % PERIODS_PER_YEAR) + 1;
   return `${year} H${half}`;
+};
+
+// Currency formatter helper
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 };
 
 // Convert annual rate to per-period rate using compound interest formula
@@ -634,49 +642,9 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       ) : (
         <>
 
-          {/* Pipedrive-style Timeline Layout */}
+          {/* Timeline Layout */}
           <div className="flex gap-6">
-            {/* Left: Year Timeline Circles */}
-            <div className="hidden md:flex flex-col flex-shrink-0 w-20 pt-2">
-              {timelineByYear.map((group, groupIndex) => {
-                const isFirstYear = groupIndex === 0;
-                const isLastYear = groupIndex === timelineByYear.length - 1;
-                const hasMultipleProperties = group.elements.filter(e => e.type === 'purchase').length > 1;
-                const height = sectionHeights[group.year] || 200; // Default fallback
-                
-                // Only show year circle for purchase years, not gaps or pauses
-                if (group.elements[0]?.type === 'gap' || group.elements[0]?.type === 'pause') {
-                  return (
-                    <div 
-                      key={`${group.elements[0].type}-${group.year}`} 
-                      style={{ height: `${height}px` }}
-                      className="relative"
-                    >
-                      {/* Continue vertical line through gap/pause */}
-                      {!isLastYear && (
-                        <div 
-                          className="absolute left-6 top-0 w-0.5 bg-gray-300" 
-                          style={{ height: '100%' }}
-                        />
-                      )}
-                    </div>
-                  );
-                }
-                
-                return (
-                  <YearCircle
-                    key={group.year}
-                    year={group.year}
-                    isFirst={isFirstYear}
-                    isLast={isLastYear}
-                    hasMultipleProperties={hasMultipleProperties}
-                    height={height}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Right: Property Cards and Gaps */}
+            {/* Property Cards and Gaps */}
             <div className="flex-1 space-y-6">
               {timelineByYear.map((group, groupIndex) => (
                 <div
@@ -686,23 +654,13 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                     sectionRefs.current[group.year] = el;
                   }}
                 >
-                  {/* Mobile: Show year header */}
-                  {group.elements[0]?.type !== 'gap' && group.elements[0]?.type !== 'pause' && (
-                    <div className="md:hidden mb-4 font-bold text-lg text-gray-700">
-                      {group.year}
-                    </div>
-                  )}
                   
                   {/* Render elements for this year/section */}
                   <div className="space-y-4">
                     {group.elements.map((element, index) => {
                       if (element.type === 'purchase' && element.property && element.yearData) {
                         return (
-                          <div key={`purchase-${element.property.id}-${index}`} className="relative">
-                            {/* Branch line from timeline (desktop only) */}
-                            {index > 0 && (
-                              <div className="hidden md:block absolute -left-10 top-6 w-10 h-0.5 bg-gray-300" />
-                            )}
+                          <div key={`purchase-${element.property.id}-${index}`}>
                             <PurchaseEventCard
                               yearData={element.yearData}
                               property={element.property}
@@ -828,23 +786,46 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
               </div>
               <div className="mt-4 text-sm text-gray-600 bg-red-50 p-4 rounded-md">
                 <p className="font-medium mb-2">Why can't these properties be afforded?</p>
-                <p>These properties exceed your borrowing capacity, deposit availability, or serviceability requirements within the {profile.timelineYears}-year timeline. Consider:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Extending your timeline period</li>
-                  <li>Increasing your deposit pool or annual savings</li>
-                  <li>Selecting lower-priced properties</li>
-                  <li>Improving your borrowing capacity</li>
-                </ul>
+                <p className="mb-3">These properties cannot be purchased within your {profile.timelineYears}-year timeline due to the following constraints:</p>
+                
+                <div className="space-y-3">
+                  {timelineProperties
+                    .filter(p => p.affordableYear === Infinity)
+                    .map((property, index) => {
+                      const failures: string[] = [];
+                      
+                      // Check deposit test
+                      if (!property.depositTestPass) {
+                        const shortfall = Math.abs(property.depositTestSurplus);
+                        failures.push(`Deposit shortfall: ${formatCurrency(shortfall)}`);
+                      }
+                      
+                      // Check serviceability test
+                      if (!property.serviceabilityTestPass) {
+                        const shortfall = Math.abs(property.serviceabilityTestSurplus);
+                        failures.push(`Serviceability shortfall: ${formatCurrency(shortfall)}`);
+                      }
+                      
+                      // If both pass but still infinity, it's likely a borrowing capacity issue
+                      if (property.depositTestPass && property.serviceabilityTestPass) {
+                        failures.push(`Borrowing capacity exceeded (requires ${formatCurrency(property.loanAmount)} loan)`);
+                      }
+                      
+                      return (
+                        <div key={`failure-${property.id}-${index}`} className="border-l-4 border-red-400 pl-3">
+                          <p className="font-medium text-gray-800">{property.title}</p>
+                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-gray-700">
+                            {failures.map((failure, fIndex) => (
+                              <li key={fIndex}>{failure}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             </div>
           )}
-
-          <div className="mt-8 text-xs text-[#374151] bg-[#f9fafb] p-6 rounded-md leading-relaxed">
-            <AIStrategySummary 
-              timelineProperties={timelineProperties}
-              profile={profile}
-            />
-          </div>
         </>
       )}
     </div>

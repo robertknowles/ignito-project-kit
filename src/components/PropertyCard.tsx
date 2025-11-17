@@ -62,12 +62,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <PropertyTypeIcon propertyTitle={title} size={16} className="text-[#6b7280]" />
           <h4 className="text-sm font-medium text-[#111827]">{title}</h4>
         </div>
-        <div className="flex items-center">
-          <span className={`w-2 h-2 rounded-full ${getRiskDot(riskLevel)}`}></span>
-          <span className={`ml-2 text-xs ${getRiskColor(riskLevel)} font-normal`}>
-            {riskLevel}
-          </span>
-        </div>
       </div>
       <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
       <div className="text-xs text-[#6b7280] mt-1">

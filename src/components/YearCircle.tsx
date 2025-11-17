@@ -25,12 +25,12 @@ export const YearCircle: React.FC<YearCircleProps> = ({
         />
       )}
       
-      {/* Circle */}
+      {/* Circle - aligned to top of container */}
       <div className="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-gray-200 text-gray-700 font-bold text-sm shadow-sm flex-shrink-0">
         {year}
       </div>
       
-      {/* Horizontal line extending right */}
+      {/* Horizontal line extending right - aligned with top of circle */}
       <div className="absolute left-12 top-6 w-8 h-0.5 bg-gray-300" />
       
       {/* Vertical line connecting to content below (if has multiple properties or not last) */}

@@ -555,6 +555,46 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               </div>
               
             </div>
+            
+            {/* Property Loan Section - Read-only calculated values */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Property Loan Summary</h3>
+              <div className="grid grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                <div>
+                  <Label className="text-gray-600">%MV (Market Value Difference)</Label>
+                  <div className="text-lg font-semibold text-gray-900 mt-1">
+                    {((formData.purchasePrice / formData.valuationAtPurchase - 1) * 100).toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Price vs Valuation
+                  </p>
+                </div>
+                
+                <div>
+                  <Label className="text-gray-600">Loan Type</Label>
+                  <div className="text-lg font-semibold text-gray-900 mt-1">
+                    {formData.loanProduct === 'IO' ? 'Interest Only (IO)' : 'Principal & Interest (P&I)'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    @ {formData.interestRate}%
+                  </p>
+                </div>
+                
+                <div>
+                  <Label className="text-gray-600">Total Loan Amount</Label>
+                  <div className="text-lg font-semibold text-gray-900 mt-1">
+                    ${(((formData.purchasePrice * (formData.lvr / 100)) + 
+                       (formData.lmiWaiver || formData.lvr <= 80 ? 0 : 
+                        (formData.purchasePrice * (formData.lvr / 100)) * 
+                        (formData.lvr <= 85 ? 0.015 : formData.lvr <= 90 ? 0.020 : formData.lvr <= 95 ? 0.035 : 0.045)
+                       )) / 1000).toFixed(0)}k
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Loan + LMI
+                  </p>
+                </div>
+              </div>
+            </div>
           </TabsContent>
           
           {/* TAB 2: Purchase Costs */}
