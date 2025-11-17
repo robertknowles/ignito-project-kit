@@ -3,7 +3,6 @@ import { useInvestmentProfile } from './useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions, type PropertyAssumption } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
-import { calculateAcquisitionCosts } from '../utils/costsCalculator';
 import { useClient } from '../contexts/ClientContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
@@ -12,6 +11,7 @@ import { calculateLMI, calculateLoanAmount } from '../utils/lmiCalculator';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
+import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
 import { calculateCascadeEffect, initializeCascadeState } from '../utils/cascadeCalculator';
 
 // Period conversion constants
@@ -535,18 +535,44 @@ export const useAffordabilityCalculator = () => {
       // Total rental income including new property
       const totalRentalIncome = grossRentalIncome + newPropertyRentalIncome;
       
-      // Calculate acquisition costs (stamp duty, LMI, legal fees, etc.)
-      const lvr = (newLoanAmount / property.cost) * 100;
+      // Calculate all purchase costs using property instance (includes all 39 fields)
+      const affordPropertyInstance = getInstance(property.instanceId);
+      const affordPropertyInstanceForCosts = affordPropertyInstance ?? getPropertyInstanceDefaults(property.title || 'Default');
       
-      const acquisitionCosts = calculateAcquisitionCosts({
-        propertyPrice: property.cost,
-        loanAmount: newLoanAmount,
-        lvr: lvr,
-        isFirstHomeBuyer: false, // Could add this to profile in future
-        lmiWaiver: lmiWaiver,
-      });
+      // Use LVR from instance
+      const affordInstanceLvr = affordPropertyInstance?.lvr ?? ((newLoanAmount / property.cost) * 100);
       
-      const totalCashRequired = property.depositRequired + acquisitionCosts.total;
+      // Calculate stamp duty (with override support)
+      const affordStampDuty = affordPropertyInstanceForCosts.stampDutyOverride ?? calculateStampDuty(
+        affordPropertyInstanceForCosts.state,
+        property.cost,
+        false
+      );
+      
+      // Calculate LMI
+      const affordLmi = calculateLMI(
+        newLoanAmount,
+        affordInstanceLvr,
+        lmiWaiver
+      );
+      
+      // Calculate deposit balance
+      const affordDepositBalance = calculateDepositBalance(
+        property.cost,
+        affordInstanceLvr,
+        affordPropertyInstanceForCosts.conditionalHoldingDeposit,
+        affordPropertyInstanceForCosts.unconditionalHoldingDeposit
+      );
+      
+      // Calculate all one-off costs using property instance
+      const affordOneOffCosts = calculateOneOffCosts(
+        affordPropertyInstanceForCosts,
+        affordStampDuty,
+        affordDepositBalance
+      );
+      
+      // Add LMI to total cash required
+      const totalCashRequired = affordOneOffCosts.totalCashRequired + affordLmi;
       
       // Enhanced serviceability test with rental income contribution
       const baseCapacity = profile.borrowingCapacity * 0.10;
@@ -899,10 +925,19 @@ export const useAffordabilityCalculator = () => {
     
     // Process properties sequentially, determining purchase period for each
     allPropertiesToPurchase.forEach(({ property, index, instanceId }, globalIndex) => {
+      // Get the correct purchase price from the instance (if it has been updated)
+      const propertyInstance = getInstance(instanceId);
+      const correctPurchasePrice = propertyInstance?.purchasePrice ?? property.cost;
+      
+      // Recalculate deposit and loan amount based on correct purchase price
+      const depositPercentage = property.depositRequired / property.cost;
+      const correctDepositRequired = correctPurchasePrice * depositPercentage;
+      const correctLoanAmount = correctPurchasePrice - correctDepositRequired;
+      
       // Attach instanceId to property for use in determineNextPurchasePeriod
-      const propertyWithInstance = { ...property, instanceId };
+      const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired };
       const result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
-      const loanAmount = property.cost - property.depositRequired;
+      const loanAmount = correctLoanAmount;
       
       // Calculate portfolio metrics at time of purchase
       let portfolioValueAfter = 0;
@@ -946,8 +981,8 @@ export const useAffordabilityCalculator = () => {
           }
         });
         
-        // Add the current property being purchased
-        portfolioValueAfter += property.cost;
+        // Add the current property being purchased (use correct purchase price)
+        portfolioValueAfter += correctPurchasePrice;
         totalDebtAfter += loanAmount;
         
         // Calculate equity
@@ -965,8 +1000,8 @@ export const useAffordabilityCalculator = () => {
         // Get the loan type for this instance (default to 'IO' if not set)
         const currentInstanceLoanType = timelineLoanTypes[instanceId] || 'IO';
         
-        // Calculate cashflow from all properties including this one
-        [...purchaseHistory, { period: purchasePeriod, cost: property.cost, depositRequired: property.depositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
+        // Calculate cashflow from all properties including this one (use correct purchase price from top of loop)
+        [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
           const propertyData = getPropertyData(purchase.title);
           
@@ -1014,22 +1049,44 @@ export const useAffordabilityCalculator = () => {
         netCashflow = grossRentalIncome - loanInterest - expenses;
       }
       
-      // Calculate acquisition costs for this property
-      const lvr = (loanAmount / property.cost) * 100;
-      
-      // Get lmiWaiver from property instance (if available)
+      // Calculate all purchase costs for this property (using instance fields for all 39 inputs)
       const timelinePropertyInstance = getInstance(instanceId);
-      const timelineLmiWaiver = timelinePropertyInstance?.lmiWaiver ?? false;
+      const propertyInstanceForCosts = timelinePropertyInstance ?? getPropertyInstanceDefaults(property.title);
       
-      const acquisitionCosts = calculateAcquisitionCosts({
-        propertyPrice: property.cost,
-        loanAmount: loanAmount,
-        lvr: lvr,
-        isFirstHomeBuyer: false,
-        lmiWaiver: timelineLmiWaiver,
-      });
+      // Use LVR from instance (not recalculated from deposit)
+      const instanceLvr = timelinePropertyInstance?.lvr ?? ((loanAmount / correctPurchasePrice) * 100);
       
-      const totalCashRequired = property.depositRequired + acquisitionCosts.total;
+      // Calculate stamp duty (with override support)
+      const stampDuty = propertyInstanceForCosts.stampDutyOverride ?? calculateStampDuty(
+        propertyInstanceForCosts.state,
+        correctPurchasePrice,
+        false
+      );
+      
+      // Calculate LMI
+      const lmi = calculateLMI(
+        loanAmount,
+        instanceLvr,
+        propertyInstanceForCosts.lmiWaiver ?? false
+      );
+      
+      // Calculate deposit balance
+      const depositBalance = calculateDepositBalance(
+        correctPurchasePrice,
+        instanceLvr,
+        propertyInstanceForCosts.conditionalHoldingDeposit,
+        propertyInstanceForCosts.unconditionalHoldingDeposit
+      );
+      
+      // Calculate all one-off costs using property instance (includes all 12 purchase cost fields)
+      const oneOffCosts = calculateOneOffCosts(
+        propertyInstanceForCosts,
+        stampDuty,
+        depositBalance
+      );
+      
+      // Add LMI to total cash required (it's a one-off cost at purchase)
+      const totalCashRequired = oneOffCosts.totalCashRequired + lmi;
       
       // Calculate test results
       const depositTestSurplus = availableFundsUsed - totalCashRequired;
@@ -1092,8 +1149,8 @@ export const useAffordabilityCalculator = () => {
         id: `${property.id}_${index}`,
         instanceId: instanceId,
         title: property.title,
-        cost: property.cost,
-        depositRequired: property.depositRequired,
+        cost: correctPurchasePrice,
+        depositRequired: correctDepositRequired,
         loanAmount: loanAmount,
         period: result.period !== Infinity ? result.period : Infinity,
         affordableYear: result.period !== Infinity ? periodToYear(result.period) : Infinity,
@@ -1126,9 +1183,9 @@ export const useAffordabilityCalculator = () => {
         isGapRuleBlocked: false, // Set based on gap rule logic
         rentalRecognitionRate,
         
-        // Portfolio state before purchase
-        portfolioValueBefore: portfolioValueAfter - property.cost,
-        totalEquityBefore: totalEquityAfter - (property.cost - loanAmount),
+        // Portfolio state before purchase (use correct purchase price)
+        portfolioValueBefore: portfolioValueAfter - correctPurchasePrice,
+        totalEquityBefore: totalEquityAfter - (correctPurchasePrice - loanAmount),
         totalDebtBefore: totalDebtAfter - loanAmount,
         
         // Available funds breakdown
@@ -1137,27 +1194,27 @@ export const useAffordabilityCalculator = () => {
         cashflowReinvestment,
         equityRelease,
         
-        // Acquisition costs (NEW)
-        state: property.state,
+        // Acquisition costs (using all 12 purchase cost fields from instance)
+        state: propertyInstanceForCosts.state,
         acquisitionCosts: {
-          stampDuty: acquisitionCosts.stampDuty,
-          lmi: acquisitionCosts.lmi,
-          legalFees: acquisitionCosts.legalFees,
-          inspectionFees: acquisitionCosts.inspectionFees,
-          otherFees: acquisitionCosts.otherFees,
-          total: acquisitionCosts.total,
+          stampDuty: stampDuty,
+          lmi: lmi,
+          legalFees: oneOffCosts.conveyancing,
+          inspectionFees: oneOffCosts.buildingPestInspection + oneOffCosts.plumbingElectricalInspections + oneOffCosts.independentValuation,
+          otherFees: oneOffCosts.mortgageFees + oneOffCosts.ratesAdjustment + oneOffCosts.engagementFee,
+          total: oneOffCosts.totalCashRequired + lmi,
         },
         totalCashRequired: totalCashRequired,
       };
       
       timelineProperties.push(timelineProperty);
       
-      // Add to purchase history if affordable
+      // Add to purchase history if affordable (use correct purchase price)
       if (result.period !== Infinity) {
         purchaseHistory.push({
           period: result.period,
-          cost: property.cost,
-          depositRequired: property.depositRequired,
+          cost: correctPurchasePrice,
+          depositRequired: correctDepositRequired,
           loanAmount: loanAmount,
           title: property.title,
           instanceId: instanceId,
@@ -1199,23 +1256,45 @@ export const useAffordabilityCalculator = () => {
     const availableFunds = calculateAvailableFunds(period, previousPurchases);
     const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, period);
     
-    // Calculate acquisition costs
+    // Calculate all purchase costs using property instance (includes all 39 fields)
     const newLoanAmount = property.cost - property.depositRequired;
-    const lvr = (newLoanAmount / property.cost) * 100;
-    
-    // Get lmiWaiver from property instance (if available)
     const affordabilityPropertyInstance = getInstance(property.instanceId);
-    const affordabilityLmiWaiver = affordabilityPropertyInstance?.lmiWaiver ?? false;
+    const affordabilityPropertyInstanceForCosts = affordabilityPropertyInstance ?? getPropertyInstanceDefaults(property.title || 'Default');
     
-    const acquisitionCosts = calculateAcquisitionCosts({
-      propertyPrice: property.cost,
-      loanAmount: newLoanAmount,
-      lvr: lvr,
-      isFirstHomeBuyer: false,
-      lmiWaiver: affordabilityLmiWaiver,
-    });
+    // Use LVR from instance
+    const affordabilityInstanceLvr = affordabilityPropertyInstance?.lvr ?? ((newLoanAmount / property.cost) * 100);
     
-    const totalCashRequired = property.depositRequired + acquisitionCosts.total;
+    // Calculate stamp duty (with override support)
+    const affordabilityStampDuty = affordabilityPropertyInstanceForCosts.stampDutyOverride ?? calculateStampDuty(
+      affordabilityPropertyInstanceForCosts.state,
+      property.cost,
+      false
+    );
+    
+    // Calculate LMI
+    const affordabilityLmi = calculateLMI(
+      newLoanAmount,
+      affordabilityInstanceLvr,
+      affordabilityPropertyInstanceForCosts.lmiWaiver ?? false
+    );
+    
+    // Calculate deposit balance
+    const affordabilityDepositBalance = calculateDepositBalance(
+      property.cost,
+      affordabilityInstanceLvr,
+      affordabilityPropertyInstanceForCosts.conditionalHoldingDeposit,
+      affordabilityPropertyInstanceForCosts.unconditionalHoldingDeposit
+    );
+    
+    // Calculate all one-off costs using property instance
+    const affordabilityOneOffCosts = calculateOneOffCosts(
+      affordabilityPropertyInstanceForCosts,
+      affordabilityStampDuty,
+      affordabilityDepositBalance
+    );
+    
+    // Add LMI to total cash required
+    const totalCashRequired = affordabilityOneOffCosts.totalCashRequired + affordabilityLmi;
     
     // Calculate test results even if affordability fails
     const depositTestSurplus = availableFunds.total - totalCashRequired;

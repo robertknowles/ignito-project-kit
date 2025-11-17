@@ -1,0 +1,17 @@
+.client-view-root {
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 2rem;
+}
+
+.client-view-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  padding: 3rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Prefix all future styles with .client-view- to avoid conflicts */
+
