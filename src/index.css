@@ -166,7 +166,11 @@
   font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
-/* Minimal floating scrollbar */
+/* Minimal floating scrollbar with bottom padding to prevent content cut-off */
+.scrollable-content {
+  padding-bottom: 4rem; /* 64px - ensures content doesn't get cut off at bottom */
+}
+
 .scrollable-content::-webkit-scrollbar {
   width: 6px;
 }

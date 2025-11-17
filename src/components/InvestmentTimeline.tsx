@@ -76,9 +76,9 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
                 style={{
                   backgroundColor: bgColor,
                   color: textColor,
-                  height: '32px',
-                  paddingLeft: index === 0 ? '12px' : '20px',
-                  paddingRight: isLast ? '12px' : '20px',
+                  height: '36px',
+                  paddingLeft: index === 0 ? '16px' : '24px',
+                  paddingRight: isLast ? '16px' : '24px',
                   clipPath: isLast 
                     ? (index === 0 ? 'none' : 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)')
                     : (index === 0 

@@ -186,8 +186,8 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
       <div 
         className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl"
         style={{ 
-          width: '64px', 
-          height: '64px',
+          width: '80px', 
+          height: '80px',
           backgroundColor: '#87B5FA'
         }}
       >
