@@ -6,6 +6,7 @@ import {
   UserIcon,
   LogOutIcon,
   SettingsIcon,
+  ExternalLink,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -108,6 +109,19 @@ export const Navbar = () => {
             </TooltipTrigger>
             <TooltipContent>
               <p>Save Scenario</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
+                onClick={() => window.open('/client-view', '_blank')}
+              >
+                <ExternalLink size={15} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View Client Report</p>
             </TooltipContent>
           </Tooltip>
           <div className="relative" ref={dropdownRef}>

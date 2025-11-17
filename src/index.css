@@ -57,19 +57,24 @@
     @apply border-border;
   }
 
-  /* Prevent body/html from scrolling - only panel content should scroll */
+  /* Allow scrolling by default */
   html, body {
-    overflow: hidden;
     height: 100%;
-  }
-
-  #root {
-    height: 100%;
-    overflow: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Prevent scrolling only for the main app - not the landing page */
+  .main-app {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .main-app #root {
+    height: 100%;
+    overflow: hidden;
   }
 
   /* Landing page scoped fonts */

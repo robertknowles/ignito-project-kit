@@ -16,6 +16,7 @@ import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
+import { ClientView } from './client-view/ClientView'
 
 export function AppRouter() {
   return (
@@ -55,6 +56,9 @@ export function AppRouter() {
                         </PublicRoute>
                       } 
                     />
+                    
+                    {/* Public client view - no authentication required */}
+                    <Route path="/client-view" element={<ClientView />} />
                     
                     {/* Protected app routes - require authentication */}
                     <Route 
