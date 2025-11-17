@@ -1,25 +1,78 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { CoverPage } from './pages/CoverPage';
 import { AtAGlancePage } from './pages/AtAGlancePage';
 import { PropertyTimelinePage } from './pages/PropertyTimelinePage';
 import { StrategyPathwayPage } from './pages/StrategyPathwayPage';
+import { useSharedScenario } from '../hooks/useSharedScenario';
 import './client-view.css';
 
 export const ClientView = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const componentRef = useRef(null);
-
-  const pages = [
-    <CoverPage key="cover" />,
-    <AtAGlancePage key="glance" />,
-    <PropertyTimelinePage key="timeline" />,
-    <StrategyPathwayPage key="strategy" />,
-  ];
+  
+  // Fetch scenario data using the share_id from URL
+  const { scenario, loading, error } = useSharedScenario();
 
   const handlePrint = () => {
     window.print();
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <p className="text-gray-600 text-lg">Loading your investment report...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !scenario) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="max-w-md p-8 bg-white rounded-lg shadow-lg border border-red-200">
+          <h2 className="text-2xl font-semibold text-red-600 mb-4">
+            Report Not Found
+          </h2>
+          <p className="text-gray-700 mb-2">
+            {error?.message || 'Unable to load the investment report.'}
+          </p>
+          <p className="text-sm text-gray-500">
+            Please check your link and try again, or contact your advisor for assistance.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Create pages with data props
+  const pages = [
+    <CoverPage 
+      key="cover"
+      clientDisplayName={scenario.client_display_name}
+      agentDisplayName={scenario.agent_display_name}
+      companyDisplayName={scenario.company_display_name}
+    />,
+    <AtAGlancePage 
+      key="glance"
+      investmentProfile={scenario.investmentProfile}
+      propertySelections={scenario.propertySelections}
+    />,
+    <PropertyTimelinePage 
+      key="timeline"
+      investmentProfile={scenario.investmentProfile}
+      propertySelections={scenario.propertySelections}
+    />,
+    <StrategyPathwayPage 
+      key="strategy"
+      investmentProfile={scenario.investmentProfile}
+      propertySelections={scenario.propertySelections}
+    />,
+  ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

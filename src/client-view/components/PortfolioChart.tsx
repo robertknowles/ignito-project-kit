@@ -3,8 +3,18 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Home } from 'lucide-react';
 
-export function PortfolioChart() {
-  const data = [{
+interface PortfolioChartProps {
+  data?: Array<{
+    year: number | string;
+    portfolio?: number;
+    portfolioValue?: number;
+    equity: number;
+  }>;
+}
+
+export function PortfolioChart({ data: propData }: PortfolioChartProps = {}) {
+  // Use provided data or fallback to placeholder data
+  const data = propData || [{
     year: 2025,
     portfolio: 1050000,
     equity: 158000
@@ -70,6 +80,18 @@ export function PortfolioChart() {
     equity: 3250000
   }];
 
+  // Normalize data to handle both 'portfolio' and 'portfolioValue' keys
+  const normalizedData = data.map(d => ({
+    year: d.year,
+    portfolio: d.portfolio || d.portfolioValue || 0,
+    equity: d.equity || 0,
+  }));
+
+  // Get final values for display
+  const finalData = normalizedData[normalizedData.length - 1];
+  const finalPortfolio = finalData?.portfolio || 0;
+  const finalEquity = finalData?.equity || 0;
+
   return <div>
       <div className="flex items-center gap-2 mb-4">
         <Home className="w-5 h-5 text-gray-600" />
@@ -80,7 +102,7 @@ export function PortfolioChart() {
         </h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
+        <LineChart data={normalizedData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="year" stroke="#6b7280" style={{
           fontSize: '12px',
@@ -107,11 +129,15 @@ export function PortfolioChart() {
       <div className="mt-4 flex justify-end gap-8 text-sm">
         <div>
           <span className="text-gray-500">Portfolio: </span>
-          <span className="font-semibold text-gray-900">$6.2M</span>
+          <span className="font-semibold text-gray-900">
+            ${(finalPortfolio / 1000000).toFixed(1)}M
+          </span>
         </div>
         <div>
           <span className="text-gray-500">Equity: </span>
-          <span className="font-semibold text-gray-900">$3.3M</span>
+          <span className="font-semibold text-gray-900">
+            ${(finalEquity / 1000000).toFixed(1)}M
+          </span>
         </div>
       </div>
     </div>;

@@ -4,7 +4,33 @@ import { PortfolioChart } from '../components/PortfolioChart'
 import { CashflowChart } from '../components/CashflowChart'
 import { Target, TrendingUp } from 'lucide-react'
 
-export function AtAGlancePage() {
+interface AtAGlancePageProps {
+  investmentProfile: any;
+  propertySelections: any[];
+}
+
+export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlancePageProps) {
+  // Format currency helper
+  const formatCurrency = (value: number): string => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(2)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}k`;
+    }
+    return `$${value.toLocaleString()}`;
+  };
+
+  // Extract investment goals with defaults
+  const equityGoal = investmentProfile?.equityGoal || 1000000;
+  const incomeGoal = investmentProfile?.cashflowGoal || 50000;
+  const targetYear = investmentProfile?.targetYear || 2040;
+
+  // TODO: In next prompts, we'll calculate these from actual data
+  // For now, using placeholder logic
+  const equityGoalYear = 2031;
+  const incomeGoalYear = 2036;
+  const equityYearsAhead = targetYear - equityGoalYear;
+  const incomeYearsAhead = targetYear - incomeGoalYear;
   return (
     <div className="w-full min-h-[297mm] bg-[#f9fafb] p-16">
       {/* Header */}
@@ -39,19 +65,19 @@ export function AtAGlancePage() {
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Equity Goal
               </p>
-              <p className="text-xl font-semibold text-gray-900">$1.00M</p>
+              <p className="text-xl font-semibold text-gray-900">{formatCurrency(equityGoal)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Passive Income Goal
               </p>
-              <p className="text-xl font-semibold text-gray-900">$50k/year</p>
+              <p className="text-xl font-semibold text-gray-900">{formatCurrency(incomeGoal)}/year</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Target Year
               </p>
-              <p className="text-xl font-semibold text-blue-600">2040</p>
+              <p className="text-xl font-semibold text-blue-600">{targetYear}</p>
             </div>
           </div>
         </div>
@@ -73,18 +99,26 @@ export function AtAGlancePage() {
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Equity Goal
               </p>
-              <p className="text-xl font-semibold text-green-600">2031</p>
+              <p className="text-xl font-semibold text-green-600">{equityGoalYear}</p>
               <p className="text-xs text-gray-600 mt-1">
-                9 years ahead of target
+                {equityYearsAhead > 0 
+                  ? `${equityYearsAhead} years ahead of target`
+                  : equityYearsAhead < 0
+                  ? `${Math.abs(equityYearsAhead)} years behind target`
+                  : 'On target'}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Cashflow Goal
               </p>
-              <p className="text-xl font-semibold text-green-600">2036</p>
+              <p className="text-xl font-semibold text-green-600">{incomeGoalYear}</p>
               <p className="text-xs text-gray-600 mt-1">
-                4 years ahead of target
+                {incomeYearsAhead > 0
+                  ? `${incomeYearsAhead} years ahead of target`
+                  : incomeYearsAhead < 0
+                  ? `${Math.abs(incomeYearsAhead)} years behind target`
+                  : 'On target'}
               </p>
             </div>
           </div>

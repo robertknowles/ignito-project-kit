@@ -3,8 +3,16 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
-export function CashflowChart() {
-  const data = [{
+interface CashflowChartProps {
+  data?: Array<{
+    year: number | string;
+    cashflow: number;
+  }>;
+}
+
+export function CashflowChart({ data: propData }: CashflowChartProps = {}) {
+  // Use provided data or fallback to placeholder data
+  const data = propData || [{
     year: 2025,
     cashflow: -32497
   }, {
@@ -54,6 +62,9 @@ export function CashflowChart() {
     cashflow: 80000
   }];
 
+  // Get final cashflow value for display
+  const finalCashflow = data[data.length - 1]?.cashflow || 0;
+
   return <div>
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-5 h-5 text-gray-600" />
@@ -87,7 +98,9 @@ export function CashflowChart() {
       <div className="mt-4 flex justify-end text-sm">
         <div>
           <span className="text-gray-500">Income: </span>
-          <span className="font-semibold text-gray-900">$80k/year</span>
+          <span className="font-semibold text-gray-900">
+            ${Math.abs(finalCashflow / 1000).toFixed(0)}k/year
+          </span>
         </div>
       </div>
     </div>;
