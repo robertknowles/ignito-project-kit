@@ -14,6 +14,9 @@ import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
 import { ExportPDFButton } from './ExportPDFButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
+import { supabase } from '@/integrations/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 import {
   Tooltip,
   TooltipContent,
@@ -26,9 +29,65 @@ export const Navbar = () => {
   const { signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const { scenarioId } = useScenarioSave()
+  const { toast } = useToast()
   
   // Initialize client switching logic
   useClientSwitching()
+  
+  // Generate share link and open in new tab
+  const handleViewClientReport = async () => {
+    if (!scenarioId) {
+      toast({
+        title: 'Save Required',
+        description: 'Please save the scenario first before viewing the client report.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      // Check if scenario already has a share_id
+      const { data: scenario, error: fetchError } = await supabase
+        .from('scenarios')
+        .select('share_id')
+        .eq('id', scenarioId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      let shareId = scenario?.share_id
+
+      // If no share_id exists, generate one
+      if (!shareId) {
+        shareId = Math.random().toString(36).substring(2, 15) + 
+                  Math.random().toString(36).substring(2, 15)
+
+        const { error: updateError } = await supabase
+          .from('scenarios')
+          .update({ share_id: shareId })
+          .eq('id', scenarioId)
+
+        if (updateError) throw updateError
+      }
+
+      // Open the client report in a new tab with the share_id
+      const reportUrl = `${window.location.origin}/client-view?share_id=${shareId}`
+      window.open(reportUrl, '_blank')
+      
+      toast({
+        title: 'Opening Report',
+        description: 'Client report opened in new tab',
+      })
+    } catch (error) {
+      console.error('Error generating client report link:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to generate client report link',
+        variant: 'destructive',
+      })
+    }
+  }
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -115,7 +174,7 @@ export const Navbar = () => {
             <TooltipTrigger asChild>
               <button
                 className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
-                onClick={() => window.open('/client-view', '_blank')}
+                onClick={handleViewClientReport}
               >
                 <ExternalLink size={15} />
               </button>

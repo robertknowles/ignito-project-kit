@@ -27,6 +27,7 @@ interface ScenarioSaveContextType {
   hasUnsavedChanges: boolean;
   isLoading: boolean;
   lastSaved: string | null;
+  scenarioId: number | null;
   saveScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
 }
@@ -50,6 +51,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [scenarioId, setScenarioId] = useState<number | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
   const loadedClientRef = useRef<number | null>(null);
   const saveInProgressRef = useRef<boolean>(false);
@@ -112,20 +114,26 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           .eq('id', existingScenarios[0].id);
         
         if (error) throw error;
+        setScenarioId(existingScenarios[0].id);
         console.log('ScenarioSaveContext: ✓ Scenario updated successfully');
       } else {
         // Insert new scenario
         console.log('ScenarioSaveContext: Creating new scenario');
-        const { error } = await supabase
+        const { data: newScenario, error } = await supabase
           .from('scenarios')
           .insert({
             name: `${activeClient.name}'s Scenario`,
             client_id: activeClient.id,
             updated_at: new Date().toISOString(),
             data: scenarioData
-          });
+          })
+          .select('id')
+          .single();
         
         if (error) throw error;
+        if (newScenario) {
+          setScenarioId(newScenario.id);
+        }
         console.log('ScenarioSaveContext: ✓ New scenario created successfully');
       }
       
@@ -177,6 +185,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           console.log('ScenarioSaveContext: No saved scenario found for client', clientId);
           setLastSavedData(null);
           setLastSaved(null);
+          setScenarioId(null);
           setHasUnsavedChanges(false);
           // Reset contexts to default
           resetSelections();
@@ -191,6 +200,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.log('ScenarioSaveContext: ✓ Loaded scenario data');
         console.log('ScenarioSaveContext: - Property selections:', Object.keys(scenarioData.propertySelections).length);
         console.log('ScenarioSaveContext: - Property instances:', Object.keys(scenarioData.propertyInstances || {}).length);
+        
+        // Set the scenario ID
+        setScenarioId(data.id);
         
         // Apply property selections
         resetSelections();
@@ -288,6 +300,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     hasUnsavedChanges,
     isLoading,
     lastSaved,
+    scenarioId,
     saveScenario,
     loadClientScenario,
   };
