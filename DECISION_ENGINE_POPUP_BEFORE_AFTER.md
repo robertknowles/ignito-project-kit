@@ -302,3 +302,4 @@ Modal: ████████████████████████�
 
 The new implementation provides a better user experience while maintaining all the same functionality. The decision engine analysis is still easily accessible but doesn't interfere with the main timeline view.
 
+

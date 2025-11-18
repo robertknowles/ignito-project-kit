@@ -182,3 +182,4 @@ To test the changes:
 - All comparison operations (`affordableYear < year`, `affordableYear <= year`) naturally handle Infinity correctly
 - The changes are purely display-focused and don't affect the underlying calculation logic
 
+

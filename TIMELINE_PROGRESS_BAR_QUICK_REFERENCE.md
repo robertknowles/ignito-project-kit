@@ -258,3 +258,4 @@ npm run lint src/components/InvestmentTimeline.tsx
 The Timeline Progress Bar provides intuitive navigation through the investment timeline with a clean, Pipedrive-inspired design. Users can quickly jump to any year while maintaining visual context of their portfolio progress through color-coded segments.
 
 
+

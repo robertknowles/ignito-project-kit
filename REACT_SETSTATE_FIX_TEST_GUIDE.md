@@ -150,3 +150,4 @@ git checkout HEAD -- src/components/PropertyDetailModal.tsx
 
 However, this will bring back the React setState errors.
 
+

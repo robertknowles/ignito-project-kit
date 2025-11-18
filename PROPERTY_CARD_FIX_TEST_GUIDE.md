@@ -138,3 +138,4 @@ if (suffix === 'k' && field === 'purchasePrice') {
 
 **Impact**: High - Core functionality fix
 
+

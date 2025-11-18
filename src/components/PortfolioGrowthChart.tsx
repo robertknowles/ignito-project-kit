@@ -128,6 +128,11 @@ export const PortfolioGrowthChart = () => {
   // Custom label for goal achievement
   const GoalAchievedLabel = (props: any) => {
     if (!equityGoalYear) return null
+    // Check if we have valid coordinates
+    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || 
+        isNaN(props.cx) || isNaN(props.cy)) {
+      return null
+    }
     return (
       <text
         x={props.cx}
@@ -263,10 +268,10 @@ export const PortfolioGrowthChart = () => {
             />
 
             {/* Goal Achievement Marker */}
-            {equityGoalReached && (
+            {equityGoalReached && equityGoalReached.equity > 0 && (
               <ReferenceDot
                 x={equityGoalReached.year}
-                y={equityGoalReached?.equity ?? 0}
+                y={equityGoalReached.equity}
                 r={8}
                 fill="rgba(253, 186, 116, 0.7)"
                 stroke="white"

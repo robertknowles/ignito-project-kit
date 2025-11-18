@@ -262,3 +262,4 @@ InvestmentTimeline (Container)
 The investment timeline now perfectly balances detailed property information with optional decision engine analysis. The original detailed property cards take center stage, while decision engine features are available through subtle, low-hierarchy controls that don't compete for attention. Users get all the information they need upfront, with the ability to dig deeper when desired.
 
 
+

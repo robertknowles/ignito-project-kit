@@ -319,3 +319,4 @@ After these changes:
 2. `src/contexts/PropertyInstanceContext.tsx` - createInstance implementation is correct
 3. `src/contexts/DataAssumptionsContext.tsx` - Property type templates are correct
 
+

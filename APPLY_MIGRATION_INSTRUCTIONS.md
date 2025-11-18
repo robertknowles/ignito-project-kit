@@ -199,3 +199,4 @@ That's it! Apply the migration and you're ready to share beautiful reports with 
 
 *Need help? Check the troubleshooting section above or review the detailed documentation files.*
 
+

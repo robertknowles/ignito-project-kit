@@ -16,3 +16,4 @@ FOR SELECT
 TO anon
 USING (share_id IS NOT NULL);
 
+

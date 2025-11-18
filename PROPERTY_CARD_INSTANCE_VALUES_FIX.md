@@ -255,3 +255,4 @@ const propertyData = propertyInstance || propertyDefaults || {
 
 **Impact**: High - Fixes core functionality of property instance system
 
+

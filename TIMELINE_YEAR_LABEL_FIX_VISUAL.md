@@ -265,3 +265,4 @@ To validate the fix is working:
    - 3+ properties per year: centered
    - Mixed counts: each centered independently
 
+

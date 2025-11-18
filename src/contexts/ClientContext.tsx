@@ -186,11 +186,6 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchClients,
   };
 
-  // Don't render children until auth is ready
-  if (authLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <ClientContext.Provider value={value}>
       {children}

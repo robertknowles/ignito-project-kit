@@ -443,3 +443,4 @@ The equity release fix ensures that when properties are refinanced to pull out e
 
 This creates a financially accurate model that properly tracks the cascading effects of equity recycling through a growing property portfolio.
 
+

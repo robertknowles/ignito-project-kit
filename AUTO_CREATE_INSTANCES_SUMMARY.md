@@ -288,3 +288,4 @@ Refer to:
 - **Code**: `src/hooks/useAffordabilityCalculator.ts` (Lines 833-840)
 
 
+

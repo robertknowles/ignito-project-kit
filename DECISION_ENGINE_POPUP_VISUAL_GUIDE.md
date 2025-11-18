@@ -183,3 +183,4 @@ Works on all modern browsers:
 - ⚡ State management lightweight (single boolean)
 - ⚡ No impact on timeline scroll performance
 
+

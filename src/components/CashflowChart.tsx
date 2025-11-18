@@ -110,6 +110,11 @@ export const CashflowChart = () => {
   // Custom label for cashflow positive marker
   const CashflowPositiveLabel = (props: any) => {
     if (!cashflowPositiveYear) return null
+    // Check if we have valid coordinates
+    if (typeof props.x !== 'number' || typeof props.y !== 'number' || 
+        isNaN(props.x) || isNaN(props.y)) {
+      return null
+    }
     return (
       <text
         x={props.x}
@@ -128,6 +133,11 @@ export const CashflowChart = () => {
   // Custom label for income goal achievement
   const GoalAchievedLabel = (props: any) => {
     if (!incomeGoalYear) return null
+    // Check if we have valid coordinates
+    if (typeof props.x !== 'number' || typeof props.y !== 'number' || 
+        isNaN(props.x) || isNaN(props.y)) {
+      return null
+    }
     return (
       <text
         x={props.x}

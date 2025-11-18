@@ -358,3 +358,4 @@ instances: Record<string, PropertyInstanceDetails>
 
 *Visual diagram created: November 15, 2025*
 
+

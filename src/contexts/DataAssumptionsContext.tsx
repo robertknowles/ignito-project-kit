@@ -354,7 +354,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     return propertyAssumptions.find(prop => prop.type === propertyType);
   };
 
-  const value = {
+  const value: DataAssumptionsContextType = {
     // NEW: Property type templates
     propertyTypeTemplates,
     getPropertyTypeTemplate,

@@ -116,7 +116,7 @@ export function PropertyTimeline({
                   />
                 ))}
                 {/* Purchase dots */}
-                {client.purchases.map((purchase) => {
+                {client.purchases.map((purchase, purchaseIndex) => {
                   const yearIndex = years.indexOf(purchase.year);
                   if (yearIndex === -1) return null;
 
@@ -126,7 +126,7 @@ export function PropertyTimeline({
 
                   return (
                     <div
-                      key={`${client.id}-${purchase.year}`}
+                      key={`${client.id}-${purchase.year}-${purchase.propertyNumber || purchaseIndex}`}
                       className="absolute flex items-center justify-center cursor-pointer"
                       style={{
                         left: `${yearIndex * 80 + 40}px`,

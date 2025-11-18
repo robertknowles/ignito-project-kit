@@ -85,3 +85,4 @@ Successfully converted the "Expand for decision analysis" dropdown into a popup 
 - All existing funnel components remain unchanged
 - Modal follows the same design pattern as `PropertyDetailModal`
 
+

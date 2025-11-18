@@ -361,3 +361,4 @@ The new three-column layout provides:
 The design achieves the goal of showing all property details in a structured, horizontal format while keeping the card compact and scannable! 🎨✨
 
 
+
