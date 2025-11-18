@@ -12,7 +12,8 @@ export interface PropertyPurchase {
   depositRequired: number;
   title: string;
   rentalYield: number;
-  growthRate: number;
+  growthRate: number; // DEPRECATED: Use growthCurve instead
+  growthCurve?: GrowthCurve; // Property-specific tiered growth rates
   interestRate?: number;
   state?: string; // 'NSW', 'VIC', 'QLD', etc.
 }

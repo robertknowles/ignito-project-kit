@@ -23,6 +23,15 @@ export const useGrowthProjections = () => {
       // DEPRECATED: No longer using globalFactors - each property uses its own template values
       const defaultGrowthRate = 0.06; // Default 6% for projections
       const defaultInterestRate = 0.065; // Default 6.5% for projections
+      
+      // Extract property-specific growth curve
+      const propertyGrowthCurve = propertyData ? {
+        year1: parseFloat(propertyData.growthYear1),
+        years2to3: parseFloat(propertyData.growthYears2to3),
+        year4: parseFloat(propertyData.growthYear4),
+        year5plus: parseFloat(propertyData.growthYear5plus)
+      } : profile.growthCurve; // Fallback to profile growth curve if no data
+      
       return {
         year: property.affordableYear,
         cost: property.cost,
@@ -30,7 +39,8 @@ export const useGrowthProjections = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04,
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        growthRate: defaultGrowthRate, // DEPRECATED: kept for backward compatibility
+        growthCurve: propertyGrowthCurve, // Use property-specific tiered growth rates
         interestRate: defaultInterestRate // NOTE: In reality, each property has its own interest rate from its instance
       };
     });

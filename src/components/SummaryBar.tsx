@@ -34,6 +34,15 @@ export const SummaryBar = () => {
     // Convert feasible properties to PropertyPurchase format
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
       const propertyData = getPropertyData(property.title)
+      
+      // Extract property-specific growth curve
+      const propertyGrowthCurve = propertyData ? {
+        year1: parseFloat(propertyData.growthYear1),
+        years2to3: parseFloat(propertyData.growthYears2to3),
+        year4: parseFloat(propertyData.growthYear4),
+        year5plus: parseFloat(propertyData.growthYear5plus)
+      } : profile.growthCurve; // Fallback to profile growth curve if no data
+      
       return {
         year: property.affordableYear,
         cost: property.cost,
@@ -41,7 +50,8 @@ export const SummaryBar = () => {
         depositRequired: property.depositRequired,
         title: property.title,
         rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : 0.04, // Default 4% if no data
-        growthRate: propertyData ? parseFloat(propertyData.growth) / 100 : defaultGrowthRate,
+        growthRate: defaultGrowthRate, // DEPRECATED: kept for backward compatibility
+        growthCurve: propertyGrowthCurve, // Use property-specific tiered growth rates
         interestRate: defaultInterestRate // NOTE: In reality, each property has its own interest rate from its instance
       }
     })

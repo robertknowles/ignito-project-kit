@@ -259,19 +259,19 @@ export const useAffordabilityCalculator = () => {
       // Calculate net cashflow reinvestment
       const netCashflow = totalEnhancedSavings - baseSavings;
       
-      // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (88% LVR cap)
+      // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (80% LVR cap)
       let existingPortfolioEquity = 0;
       let totalUsableEquity = 0;
       
-      // Calculate existing portfolio equity with 88% LVR cap
+      // Calculate existing portfolio equity with 80% LVR cap
       if (profile.portfolioValue > 0) {
         // Use first property type's growth rates for existing portfolio
         const defaultAssumption = propertyAssumptions[0];
         const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
-        existingPortfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
+        existingPortfolioEquity = Math.max(0, grownPortfolioValue * 0.80 - profile.currentDebt);
       }
 
-      // Calculate usable equity from previous purchases - with 88% LVR cap
+      // Calculate usable equity from previous purchases - with 80% LVR cap
       // CRITICAL: Account for cumulative equity already released
       totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
         if (purchase.period <= currentPeriod) {
@@ -280,7 +280,7 @@ export const useAffordabilityCalculator = () => {
             const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period, propertyData);
             // Current loan = original loan + any equity released so far
             const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-            const usableEquity = Math.max(0, propertyCurrentValue * 0.88 - currentLoanAmount);
+            const usableEquity = Math.max(0, propertyCurrentValue * 0.80 - currentLoanAmount);
             return acc + usableEquity;
           }
         }
@@ -460,8 +460,8 @@ export const useAffordabilityCalculator = () => {
           const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
           propertyValues.push(grownPortfolioValue);
           
-          // Continuous equity release - 88% LVR cap, no time constraint
-          const portfolioEquity = Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
+          // Continuous equity release - 80% LVR cap, no time constraint
+          const portfolioEquity = Math.max(0, grownPortfolioValue * 0.80 - profile.currentDebt);
           usableEquityPerProperty.push(portfolioEquity);
         }
         
@@ -474,10 +474,10 @@ export const useAffordabilityCalculator = () => {
               totalPortfolioValue += currentValue;
               propertyValues.push(currentValue);
               
-              // Continuous equity release - 88% LVR cap, no time constraint
+              // Continuous equity release - 80% LVR cap, no time constraint
               // Current loan = original loan + any equity released so far
               const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-              const usableEquity = Math.max(0, currentValue * 0.88 - currentLoanAmount);
+              const usableEquity = Math.max(0, currentValue * 0.80 - currentLoanAmount);
               usableEquityPerProperty.push(usableEquity);
             }
           }
@@ -582,9 +582,9 @@ export const useAffordabilityCalculator = () => {
       const serviceabilityTestSurplus = maxAnnualPayment - totalAnnualLoanPayment;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
-      // BORROWING CAPACITY TEST: Total debt cannot exceed EFFECTIVE (dynamic) borrowing capacity
-      const borrowingCapacityTestPass = totalDebtAfterPurchase <= effectiveBorrowingCapacity;
-      const borrowingCapacityTestSurplus = effectiveBorrowingCapacity - totalDebtAfterPurchase;
+      // BORROWING CAPACITY TEST: New loan amount cannot exceed EFFECTIVE (dynamic) borrowing capacity
+      const borrowingCapacityTestPass = newLoanAmount <= effectiveBorrowingCapacity;
+      const borrowingCapacityTestSurplus = effectiveBorrowingCapacity - newLoanAmount;
       
       // DEPOSIT TEST: Available funds must cover deposit + all acquisition costs
       const canAffordDeposit = availableFunds >= totalCashRequired;
@@ -1121,8 +1121,8 @@ export const useAffordabilityCalculator = () => {
             const propertyData = getPropertyData(purchase.title);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              // Calculate maximum refinance amount (88% LVR)
-              const maxLoan = currentValue * 0.88;
+              // Calculate maximum refinance amount (80% LVR)
+              const maxLoan = currentValue * 0.80;
               // Equity released = maximum loan minus original loan amount
               const equityReleasedFromProperty = Math.max(0, maxLoan - purchase.loanAmount);
               equityRelease += equityReleasedFromProperty;
@@ -1244,6 +1244,7 @@ export const useAffordabilityCalculator = () => {
     pauseBlocks,
     timelineLoanTypes,
     getInstance, // Keep getInstance as it depends on instances state
+    instances, // CRITICAL: Trigger recalculation when property instances change (e.g., purchasePrice updates)
     // Removed createInstance - it's stable and shouldn't trigger recalcs
   ]);
 

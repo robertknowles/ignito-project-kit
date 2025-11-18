@@ -179,11 +179,14 @@ export const calculatePortfolioMetrics = (
     const yearsHeld = Math.max(0, currentYear - purchase.year);
     const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
     
-    // Use tiered growth with period-based calculations
-    const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld, growthCurve);
+    // Use property-specific growth curve if available, otherwise fallback to global curve
+    const effectiveGrowthCurve = purchase.growthCurve || growthCurve;
     
-    // Use detailed cash flow analysis
-    const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, growthCurve, expenses);
+    // Use tiered growth with period-based calculations using property-specific curve
+    const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld, effectiveGrowthCurve);
+    
+    // Use detailed cash flow analysis with property-specific growth
+    const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, effectiveGrowthCurve, expenses);
     
     // Simplified debt model - no principal reduction
     const remainingDebt = purchase.loanAmount;
@@ -211,7 +214,9 @@ export const calculateExistingPortfolioMetrics = (
   yearsGrown: number,
   growthRate: number,
   growthCurve: GrowthCurve,
-  interestRate: number = 0.05
+  interestRate: number = 0.05,
+  rentalYield: number = 0.04, // Default 4% rental yield for existing portfolio
+  expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES
 ): PropertyMetrics => {
   if (portfolioValue === 0) {
     return {
@@ -228,12 +233,19 @@ export const calculateExistingPortfolioMetrics = (
   const currentValue = calculatePropertyGrowth(portfolioValue, periodsGrown, growthCurve);
   const equity = Math.max(0, currentValue - currentDebt);
   const annualRepayments = currentDebt * interestRate;
+  
+  // Calculate rental income and expenses for existing portfolio
+  const annualRent = currentValue * rentalYield;
+  const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses, periodsGrown);
+  
+  // Net cashflow = rental income - loan repayments - expenses
+  const netCashflow = annualRent - annualRepayments - expensesAnalysis.total;
 
   return {
     portfolioValue: currentValue,
     totalEquity: equity,
     totalDebt: currentDebt,
-    annualCashflow: -annualRepayments, // Existing portfolio typically has no rental income in this model
+    annualCashflow: netCashflow, // Now includes rental income minus expenses and loan repayments
     annualLoanRepayments: annualRepayments
   };
 };
