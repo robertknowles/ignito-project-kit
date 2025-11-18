@@ -74,6 +74,9 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         const rawPropertySelections = parsedData.propertySelections || {};
         const propertyInstances = parsedData.propertyInstances || {};
 
+        console.log('useSharedScenario: rawPropertySelections type:', Array.isArray(rawPropertySelections) ? 'array' : 'object');
+        console.log('useSharedScenario: propertyInstances count:', Object.keys(propertyInstances).length);
+
         // Convert propertySelections from object format to array format
         // The saved format is { "property_0": 2, "property_1": 1 } (propertyId => quantity)
         // We need to convert it to an array of property objects for the client view
@@ -84,41 +87,65 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           propertySelections.push(...rawPropertySelections);
         } else {
           // Convert object format to array
+          // First, collect all property instances with their IDs
+          const allInstances: Array<{instanceKey: string, instanceData: any, propertyId: string, instanceIndex: number}> = [];
+          
           Object.entries(rawPropertySelections).forEach(([propertyId, quantity]) => {
             if (typeof quantity === 'number' && quantity > 0) {
-              // For each quantity, we need to find the corresponding property instances
               for (let i = 0; i < quantity; i++) {
                 const instanceKey = `${propertyId}_instance_${i}`;
                 const instanceData = propertyInstances[instanceKey];
-                
-                if (instanceData) {
-                  // Use instance data if available
-                  propertySelections.push({
-                    id: instanceKey,
-                    title: instanceData.propertyType || propertyId,
-                    cost: instanceData.purchasePrice || 0,
-                    purchaseYear: instanceData.purchaseYear,
-                    affordableYear: instanceData.affordableYear,
-                    status: 'feasible',
-                    rentalYield: instanceData.rentPerWeek ? (instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100) : 0,
-                    yield: instanceData.rentPerWeek ? `${(instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100).toFixed(1)}%` : '4.0%',
-                    growth: instanceData.growthAssumption === 'High' ? '7' : instanceData.growthAssumption === 'Low' ? '4' : '6',
-                  });
-                } else {
-                  // Fallback to basic data if no instance data available
-                  propertySelections.push({
-                    id: instanceKey,
-                    title: propertyId.replace('_', ' '),
-                    cost: 500000, // Default value
-                    status: 'feasible',
-                    yield: '4.0%',
-                    growth: '6',
-                  });
-                }
+                allInstances.push({ instanceKey, instanceData, propertyId, instanceIndex: i });
               }
             }
           });
+          
+          // Sort instances by purchase year if available (instances are expected to be numbered sequentially)
+          // For now, we'll use a simple assignment of years: first property in 2026, then space them out
+          const currentYear = new Date().getFullYear();
+          const startYear = currentYear + 1; // Start from next year
+          
+          allInstances.forEach((item, index) => {
+            const { instanceKey, instanceData, propertyId, instanceIndex } = item;
+            
+            if (instanceData) {
+              // Use instance data if available
+              // Calculate a reasonable purchase year: space properties 1-2 years apart
+              const estimatedYear = startYear + Math.floor(index * 1.5);
+              
+              propertySelections.push({
+                id: instanceKey,
+                title: propertyId.replace(/_/g, ' ').replace(/property (\d+)/, 'Property Type $1'),
+                cost: instanceData.purchasePrice || 500000,
+                purchaseYear: estimatedYear,
+                affordableYear: estimatedYear,
+                status: 'feasible',
+                rentalYield: instanceData.rentPerWeek && instanceData.purchasePrice 
+                  ? (instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100) 
+                  : 4.0,
+                yield: instanceData.rentPerWeek && instanceData.purchasePrice
+                  ? `${(instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100).toFixed(1)}%`
+                  : '4.0%',
+                growth: instanceData.growthAssumption === 'High' ? '7' : instanceData.growthAssumption === 'Low' ? '4' : '6',
+              });
+            } else {
+              // Fallback to basic data if no instance data available
+              const estimatedYear = startYear + Math.floor(index * 1.5);
+              propertySelections.push({
+                id: instanceKey,
+                title: propertyId.replace(/_/g, ' ').replace(/property (\d+)/, 'Property Type $1'),
+                cost: 500000, // Default value
+                purchaseYear: estimatedYear,
+                affordableYear: estimatedYear,
+                status: 'feasible',
+                yield: '4.0%',
+                growth: '6',
+              });
+            }
+          });
         }
+
+        console.log('useSharedScenario: converted propertySelections to array with', propertySelections.length, 'properties');
 
         // Construct the scenario object
         const scenarioData: ScenarioData = {
