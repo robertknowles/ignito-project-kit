@@ -26,7 +26,13 @@ export const SummaryBar = () => {
       }
     }
 
-    const timelineEnd = 2025 + profile.timelineYears
+    // Calculate as of the LATEST PURCHASE YEAR instead of timeline end
+    // This shows "where you are now" not "where you'll be in 30 years"
+    const latestPurchaseYear = feasibleProperties.length > 0
+      ? Math.max(...feasibleProperties.map(p => Math.round(p.affordableYear)))
+      : 2025;
+    const currentYear = latestPurchaseYear;
+    
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for summary calculations only
     const defaultInterestRate = 0.065; // Default 6.5% for summary calculations only
@@ -56,20 +62,20 @@ export const SummaryBar = () => {
       }
     })
 
-    // Calculate metrics for existing portfolio
+    // Calculate metrics for existing portfolio (growth up to current year)
     const existingMetrics = calculateExistingPortfolioMetrics(
       profile.portfolioValue,
       profile.currentDebt,
-      timelineEnd - 2025,
+      currentYear - 2025,
       defaultGrowthRate,
       profile.growthCurve,
       defaultInterestRate
     )
 
-    // Calculate metrics for new purchases with detailed expense analysis
+    // Calculate metrics for new purchases with detailed expense analysis (as of current year)
     const newPurchasesMetrics = calculatePortfolioMetrics(
       purchases,
-      timelineEnd,
+      currentYear,
       defaultGrowthRate,
       profile.growthCurve,
       defaultInterestRate,
@@ -122,7 +128,7 @@ export const SummaryBar = () => {
     <div className="p-6">
       <div className="grid grid-cols-6 gap-6">
         <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Final Portfolio Value</h4>
+          <h4 className="text-xs text-[#6b7280] mb-2">Portfolio Value</h4>
           <p className="text-[#111827] font-medium">{formatCurrency(kpis.finalPortfolioValue)}</p>
         </div>
         <div className="text-center">

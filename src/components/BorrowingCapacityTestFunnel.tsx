@@ -20,9 +20,8 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
   } = yearData;
   
   const propertyCount = allPortfolioProperties?.length || 0;
-  const equityBoost = extractableEquity * 0.88; // Simplified equity factor
+  const equityBoost = extractableEquity * 0.75; // 75% equity factor (matching calculator logic)
   const effectiveCapacity = borrowingCapacity + equityBoost;
-  const totalDebtAfter = totalDebt + newDebt;
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -109,17 +108,13 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
             <span className="text-sm text-gray-600">Existing Debt</span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(totalDebt)}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">New Loan Required</span>
-            <span className="text-base font-semibold text-gray-800">{formatCurrency(newDebt)}</span>
-          </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Total Debt After</span>
-              <span className="text-base font-bold text-orange-700">{formatCurrency(totalDebtAfter)}</span>
+              <span className="text-sm font-medium text-gray-700">New Loan Required</span>
+              <span className="text-base font-bold text-orange-700">{formatCurrency(newDebt)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
-              {formatCurrency(totalDebt)} + {formatCurrency(newDebt)}
+              This is the amount we need to borrow for this purchase
             </div>
           </div>
         </div>
@@ -136,7 +131,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
             <span className="text-base font-semibold text-gray-800">{formatCurrency(borrowingCapacity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Equity Boost (88% usable)</span>
+            <span className="text-sm text-gray-600">Equity Boost (75% usable)</span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(equityBoost)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -145,7 +140,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
               <span className="text-base font-bold text-blue-600">{formatCurrency(effectiveCapacity)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
-              {formatCurrency(borrowingCapacity)} + ({formatCurrency(extractableEquity)} × 88%)
+              {formatCurrency(borrowingCapacity)} + ({formatCurrency(extractableEquity)} × 75%)
             </div>
           </div>
         </div>
@@ -160,11 +155,14 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
           <div className="flex items-center justify-center gap-2 text-sm">
             <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
             <span className="text-gray-600">−</span>
-            <span className="font-semibold text-orange-700">{formatCurrency(totalDebtAfter)}</span>
+            <span className="font-semibold text-orange-700">{formatCurrency(newDebt)}</span>
             <ArrowRight className="w-4 h-4 text-gray-400" />
             <span className={`font-bold ${borrowingCapacityTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
               {formatCurrency(borrowingCapacityTest.surplus)}
             </span>
+          </div>
+          <div className="text-xs text-center text-gray-600 mt-2">
+            Can we borrow {formatCurrency(newDebt)} for this purchase?
           </div>
         </div>
       </div>
@@ -185,7 +183,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
             <div className="text-xs text-gray-600 mt-2">
               {borrowingCapacityTest.pass 
                 ? 'You have sufficient borrowing capacity for this purchase'
-                : 'Your total debt would exceed your borrowing capacity'
+                : 'The new loan amount exceeds your available borrowing capacity'
               }
             </div>
           </div>

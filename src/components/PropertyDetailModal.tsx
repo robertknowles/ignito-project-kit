@@ -176,9 +176,9 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       
       console.log('PropertyDetailModal: FormData contains', Object.keys(formData).length, 'fields');
       
-      // Log all 39 fields being saved
+      // Log all fields being saved
       const fieldsList = [
-        'state', 'purchasePrice', 'valuationAtPurchase', 'rentPerWeek', 'growthAssumption', 'minimumYield',
+        'state', 'purchasePrice', 'valuationAtPurchase', 'rentPerWeek', 'growthAssumption',
         'daysToUnconditional', 'daysForSettlement', 'lvr', 'lmiWaiver', 'loanProduct', 'interestRate', 
         'loanTerm', 'loanOffsetAccount', 'engagementFee', 'conditionalHoldingDeposit', 
         'buildingInsuranceUpfront', 'buildingPestInspection', 'plumbingElectricalInspections',
@@ -233,7 +233,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 variant: "destructive",
               });
             } else {
-              console.log('PropertyDetailModal: ✓ All 39 fields present in saved instance');
+              console.log('PropertyDetailModal: ✓ All fields present in saved instance');
               toast({
                 title: "Property Saved",
                 description: "All changes saved successfully to context. Click 'Save' in the main app to persist to database.",
@@ -417,19 +417,6 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <SelectItem value="Low">Low</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              
-              {/* Minimum Yield */}
-              <div>
-                <Label htmlFor="minimumYield">Minimum Yield (%)</Label>
-                <Input
-                  id="minimumYield"
-                  type="number"
-                  step="0.1"
-                  value={formData.minimumYield}
-                  onChange={(e) => handleFieldChange('minimumYield', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
-                />
               </div>
               
               {/* Days to Unconditional */}
