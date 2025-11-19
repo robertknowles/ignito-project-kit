@@ -70,6 +70,13 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
     });
   };
   
+  // Helper to get the rounded value that will be displayed (for compact format)
+  const getRoundedValue = (value: number): number => {
+    if (value >= 1000000) return Math.round(value / 1000000 * 10) / 10 * 1000000; // Round to 0.1M
+    if (value >= 1000) return Math.round(value / 1000) * 1000; // Round to nearest k
+    return Math.round(value);
+  };
+  
   const formatCurrency = (value: number, compact = false) => {
     if (compact) {
       if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -245,7 +252,12 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               // Get acquisition costs from purchases
                               const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
                               const totalAcquisitionCosts = purchase?.totalAcquisitionCosts || 0;
-                              const totalFundsUsed = (year.requiredDeposit || 0) + totalAcquisitionCosts;
+                              
+                              // Calculate total funds used by summing rounded display values
+                              // This ensures visual consistency: if we show "$53k + $32k", the total will show "$85k"
+                              const roundedDeposit = getRoundedValue(year.requiredDeposit || 0);
+                              const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
+                              const totalFundsUsed = roundedDeposit + roundedAcquisitionCosts;
                               
                               const loanType = purchase?.loanType || 'IO';
                               const loanTypeLabel = loanType === 'IO' ? 'Interest Only' : 'Principal & Interest';
@@ -387,7 +399,11 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               // Get acquisition costs from purchases
                               const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
                               const totalAcquisitionCosts = purchase?.totalAcquisitionCosts || 0;
-                              const totalCashUsed = (year.requiredDeposit || 0) + totalAcquisitionCosts;
+                              
+                              // Calculate total cash used by summing rounded display values
+                              const roundedDeposit = getRoundedValue(year.requiredDeposit || 0);
+                              const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
+                              const totalCashUsed = roundedDeposit + roundedAcquisitionCosts;
                               
                               return (
                             <div className="divide-y divide-gray-100">

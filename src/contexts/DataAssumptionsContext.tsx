@@ -59,6 +59,32 @@ interface DataAssumptionsProviderProps {
 }
 
 /**
+ * Growth rate tiers for property appreciation
+ */
+const GROWTH_RATES = {
+  High: {
+    year1: 12.5,
+    years2to3: 10,
+    year4: 7.5,
+    year5plus: 6,
+  },
+  Medium: {
+    year1: 8,
+    years2to3: 6,
+    year4: 5,
+    year5plus: 4,
+  },
+  Low: {
+    year1: 5,
+    years2to3: 4,
+    year4: 3.5,
+    year5plus: 3,
+  },
+} as const;
+
+type GrowthAssumption = keyof typeof GROWTH_RATES;
+
+/**
  * Converts property defaults key to display name
  */
 const keyToDisplayName = (key: string): string => {
@@ -79,15 +105,21 @@ const keyToDisplayName = (key: string): string => {
  * Converts property defaults JSON to PropertyAssumption format
  */
 const convertToPropertyAssumption = (key: string, defaults: PropertyInstanceDetails): PropertyAssumption => {
+  // Get growth assumption from defaults, fallback to "Medium" for safety
+  const growthAssumption = (defaults.growthAssumption || 'Medium') as GrowthAssumption;
+  
+  // Validate and get growth rates, fallback to Medium if invalid
+  const rates = GROWTH_RATES[growthAssumption] || GROWTH_RATES.Medium;
+  
   return {
     // Existing fields (for backward compatibility)
     type: keyToDisplayName(key),
     averageCost: defaults.purchasePrice.toString(),
     yield: ((defaults.rentPerWeek * 52 / defaults.purchasePrice) * 100).toFixed(1),
-    growthYear1: '12.5',
-    growthYears2to3: '10',
-    growthYear4: '7.5',
-    growthYear5plus: '6',
+    growthYear1: rates.year1.toString(),
+    growthYears2to3: rates.years2to3.toString(),
+    growthYear4: rates.year4.toString(),
+    growthYear5plus: rates.year5plus.toString(),
     deposit: (100 - defaults.lvr).toString(),
     loanType: defaults.loanProduct,
     

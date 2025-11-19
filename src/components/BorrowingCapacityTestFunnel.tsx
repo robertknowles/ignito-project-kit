@@ -151,17 +151,35 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         <h4 className="text-sm font-medium uppercase text-gray-700">
           The Calculation
         </h4>
-        <div className="bg-blue-50 rounded p-3">
-          <div className="flex items-center justify-center gap-2 text-sm">
-            <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
-            <span className="text-gray-600">−</span>
-            <span className="font-semibold text-orange-700">{formatCurrency(newDebt)}</span>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-            <span className={`font-bold ${borrowingCapacityTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-              {formatCurrency(borrowingCapacityTest.surplus)}
-            </span>
+        <div className="bg-blue-50 rounded p-4">
+          <div className="space-y-1 text-sm">
+            {/* Line 1: Total Capacity */}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Total Capacity</span>
+              <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
+            </div>
+            
+            {/* Line 2: Existing Debt */}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">− Existing Debt</span>
+              <span className="font-semibold text-gray-700">−{formatCurrency(totalDebt)}</span>
+            </div>
+            
+            {/* Line 3: New Loan Required */}
+            <div className="flex items-center justify-between pb-2 border-b-2 border-gray-300">
+              <span className="text-gray-600">− New Loan Required</span>
+              <span className="font-semibold text-orange-700">−{formatCurrency(newDebt)}</span>
+            </div>
+            
+            {/* Result: Remaining Capacity */}
+            <div className="flex items-center justify-between pt-2">
+              <span className="font-medium text-gray-700">= Remaining Capacity</span>
+              <span className={`font-bold text-lg ${borrowingCapacityTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {formatCurrency(borrowingCapacityTest.surplus)}
+              </span>
+            </div>
           </div>
-          <div className="text-xs text-center text-gray-600 mt-2">
+          <div className="text-xs text-center text-gray-600 mt-3 pt-2 border-t border-gray-200">
             Can we borrow {formatCurrency(newDebt)} for this purchase?
           </div>
         </div>

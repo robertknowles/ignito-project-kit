@@ -17,7 +17,19 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
     purchases 
   } = yearData;
   
-  const totalAvailable = baseDeposit + cumulativeSavings + cashflowReinvestment + equityRelease;
+  // Helper to get the rounded value that will be displayed
+  const getRoundedValue = (value: number): number => {
+    if (value >= 1000000) return Math.round(value / 1000000 * 10) / 10 * 1000000; // Round to 0.1M
+    if (value >= 1000) return Math.round(value / 1000) * 1000; // Round to nearest k
+    return Math.round(value);
+  };
+  
+  // Calculate total available by summing the rounded display values
+  const roundedBaseDeposit = getRoundedValue(baseDeposit);
+  const roundedCumulativeSavings = getRoundedValue(cumulativeSavings);
+  const roundedCashflowReinvestment = getRoundedValue(cashflowReinvestment);
+  const roundedEquityRelease = getRoundedValue(equityRelease);
+  const totalAvailable = roundedBaseDeposit + roundedCumulativeSavings + roundedCashflowReinvestment + roundedEquityRelease;
   
   // Get acquisition costs from first purchase
   const purchase = purchases && purchases.length > 0 ? purchases[0] : null;
@@ -27,7 +39,12 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
   const inspectionFees = purchase?.inspectionFees || 650;
   const otherFees = purchase?.otherFees || 1500;
   const totalAcquisitionCosts = stampDuty + lmi + legalFees + inspectionFees + otherFees;
-  const totalRequired = requiredDeposit + totalAcquisitionCosts;
+  
+  // Calculate total required by summing the rounded display values
+  // This ensures visual consistency: if we show "$53k + $32k", the total will show "$85k"
+  const roundedDeposit = getRoundedValue(requiredDeposit);
+  const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
+  const totalRequired = roundedDeposit + roundedAcquisitionCosts;
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;

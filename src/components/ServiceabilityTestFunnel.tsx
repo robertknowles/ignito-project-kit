@@ -11,7 +11,6 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
     serviceabilityTest,
     grossRental,
     expenses,
-    loanRepayments,
     existingLoanInterest,
     newLoanInterest,
     baseServiceabilityCapacity,
@@ -21,7 +20,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
   } = yearData;
   
   const totalIncome = grossRental;
-  const totalPayments = loanRepayments + existingLoanInterest + newLoanInterest;
+  const totalInterestDue = existingLoanInterest + newLoanInterest;
   const netIncome = totalIncome - expenses;
   const totalCapacity = baseServiceabilityCapacity + rentalServiceabilityContribution;
   
@@ -101,7 +100,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-700">Total Interest Due</span>
-              <span className="text-base font-bold text-orange-700">{formatCurrency(totalPayments)}</span>
+              <span className="text-base font-bold text-orange-700">{formatCurrency(totalInterestDue)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
               {formatCurrency(existingLoanInterest)} + {formatCurrency(newLoanInterest)}
@@ -121,7 +120,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
             <span className="text-base font-semibold text-gray-800">{formatCurrency(baseServiceabilityCapacity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Rental Contribution ({rentalRecognition.toFixed(0)}%)</span>
+            <span className="text-sm text-gray-600">Rental Contribution (70%)</span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(rentalServiceabilityContribution)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -130,7 +129,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
               <span className="text-base font-bold text-blue-600">{formatCurrency(totalCapacity)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
-              {formatCurrency(borrowingCapacity)} × 10% + {formatCurrency(grossRental)} × {rentalRecognition.toFixed(0)}%
+              {formatCurrency(borrowingCapacity)} × 10% + {formatCurrency(grossRental)} × 70%
             </div>
           </div>
         </div>
@@ -145,7 +144,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
           <div className="flex items-center justify-center gap-2 text-sm">
             <span className="font-semibold text-blue-700">{formatCurrency(totalCapacity)}</span>
             <span className="text-gray-600">−</span>
-            <span className="font-semibold text-orange-700">{formatCurrency(totalPayments)}</span>
+            <span className="font-semibold text-orange-700">{formatCurrency(totalInterestDue)}</span>
             <ArrowRight className="w-4 h-4 text-gray-400" />
             <span className={`font-bold ${serviceabilityTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
               {formatCurrency(serviceabilityTest.surplus)}
