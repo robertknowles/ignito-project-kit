@@ -89,6 +89,17 @@ export interface TimelineProperty {
   expenses: number;
   netCashflow: number;
   
+  // Expense breakdown (NEW)
+  expenseBreakdown?: {
+    councilRatesWater: number;
+    strataFees: number;
+    insurance: number;
+    managementFees: number;
+    repairsMaintenance: number;
+    landTax: number;
+    other: number;
+  };
+  
   // Test details
   depositTestSurplus: number;
   depositTestPass: boolean;
@@ -156,6 +167,17 @@ export interface YearBreakdownData {
   grossRental: number;
   loanRepayments: number;
   expenses: number;
+  
+  // Expense breakdown (NEW)
+  expenseBreakdown: {
+    councilRatesWater: number; // Combined council rates and water
+    strataFees: number;
+    insurance: number;
+    managementFees: number;
+    repairsMaintenance: number;
+    landTax: number;
+    other: number;
+  };
   
   // Requirements
   requiredDeposit: number;

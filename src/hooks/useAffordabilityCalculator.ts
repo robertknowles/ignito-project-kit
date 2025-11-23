@@ -375,6 +375,15 @@ export const useAffordabilityCalculator = () => {
       let loanInterest = 0;
       let expenses = 0;
       
+      // Expense breakdown accumulators
+      let accCouncilRatesWater = 0;
+      let accStrataFees = 0;
+      let accInsurance = 0;
+      let accManagementFees = 0;
+      let accRepairsMaintenance = 0;
+      let accLandTax = 0;
+      let accOther = 0;
+      
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           const periodsOwned = currentPeriod - purchase.period;
@@ -417,6 +426,15 @@ export const useAffordabilityCalculator = () => {
             loanInterest += cashflowBreakdown.loanInterest;
             expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductible); // Operating + Land Tax ONLY (no principal)
             netCashflow += propertyCashflow;
+            
+            // Accumulate expense breakdown components (applying both growth and inflation)
+            const combinedFactor = growthFactor * inflationFactor;
+            accCouncilRatesWater += cashflowBreakdown.councilRatesWater * combinedFactor;
+            accStrataFees += cashflowBreakdown.strata * combinedFactor;
+            accInsurance += cashflowBreakdown.buildingInsurance * combinedFactor;
+            accManagementFees += cashflowBreakdown.propertyManagementFee * combinedFactor;
+            accRepairsMaintenance += cashflowBreakdown.maintenance * combinedFactor;
+            accLandTax += cashflowBreakdown.landTax * combinedFactor;
           } else {
             // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
             console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
@@ -955,6 +973,15 @@ export const useAffordabilityCalculator = () => {
       let portfolioSize = 0;
       let rentalRecognitionRate = 0.75;
       
+      // Expense breakdown accumulators for timeline
+      let timelineAccCouncilRatesWater = 0;
+      let timelineAccStrataFees = 0;
+      let timelineAccInsurance = 0;
+      let timelineAccManagementFees = 0;
+      let timelineAccRepairsMaintenance = 0;
+      let timelineAccLandTax = 0;
+      let timelineAccOther = 0;
+      
       if (result.period !== Infinity) {
         const purchasePeriod = result.period;
         
@@ -1062,6 +1089,15 @@ export const useAffordabilityCalculator = () => {
             grossRentalIncome += adjustedRentalIncome;
             loanInterest += cashflowBreakdown.loanInterest; // Interest ONLY
             expenses += totalExpenses; // Operating + Land Tax ONLY (Principal excluded)
+            
+            // Accumulate expense breakdown components (applying both growth and inflation)
+            const combinedFactor = growthFactor * inflationFactor;
+            timelineAccCouncilRatesWater += cashflowBreakdown.councilRatesWater * combinedFactor;
+            timelineAccStrataFees += cashflowBreakdown.strata * combinedFactor;
+            timelineAccInsurance += cashflowBreakdown.buildingInsurance * combinedFactor;
+            timelineAccManagementFees += cashflowBreakdown.propertyManagementFee * combinedFactor;
+            timelineAccRepairsMaintenance += cashflowBreakdown.maintenance * combinedFactor;
+            timelineAccLandTax += cashflowBreakdown.landTax * combinedFactor;
           }
         });
         
@@ -1221,6 +1257,17 @@ export const useAffordabilityCalculator = () => {
         loanInterest,
         expenses,
         netCashflow,
+        
+        // Expense breakdown
+        expenseBreakdown: {
+          councilRatesWater: timelineAccCouncilRatesWater,
+          strataFees: timelineAccStrataFees,
+          insurance: timelineAccInsurance,
+          managementFees: timelineAccManagementFees,
+          repairsMaintenance: timelineAccRepairsMaintenance,
+          landTax: timelineAccLandTax,
+          other: timelineAccOther,
+        },
         
         // Test details
         depositTestSurplus,

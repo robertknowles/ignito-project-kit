@@ -1,6 +1,7 @@
 import React from 'react';
 import { DollarSign, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
+import { BreakdownInfo } from './BreakdownInfo';
 
 interface DepositTestFunnelProps {
   yearData: YearBreakdownData;
@@ -46,6 +47,16 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
   const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
   const totalRequired = roundedDeposit + roundedAcquisitionCosts;
   
+  // Calculate pre-purchase metrics for Equity Release breakdown
+  const prePurchaseValue = Math.max(0, yearData.portfolioValue - yearData.propertyCost);
+  const maxLendable = prePurchaseValue * 0.80;
+  const existingDebt = yearData.existingDebt;
+  const calculatedEquity = Math.max(0, maxLendable - existingDebt);
+  
+  // Calculate years accumulated for Cumulative Savings breakdown
+  const baseYear = 2025;
+  const yearsAccumulated = Math.max(0, yearData.year - baseYear);
+  
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
@@ -77,24 +88,6 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         <h3 className="text-lg font-semibold text-gray-800">Deposit Test</h3>
       </div>
 
-      {/* Task 1: Funding Story - Dynamic text block */}
-      {(() => {
-        const depositFromBase = Math.min(requiredDeposit || 0, baseDeposit || 0);
-        const depositFromSavings = Math.max(0, Math.min((requiredDeposit || 0) - depositFromBase, cumulativeSavings || 0));
-        const depositFromEquity = Math.max(0, (requiredDeposit || 0) - depositFromBase - depositFromSavings);
-        const isEquityFunded = (depositFromEquity || 0) > (depositFromSavings || 0);
-        
-        return (
-          <div className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded">
-            <p className="text-xs text-gray-600 italic leading-relaxed">
-              {isEquityFunded 
-                ? "🚀 Funded primarily by equity release from previous properties." 
-                : "✅ Funded primarily by your accumulated cash savings."}
-            </p>
-          </div>
-        );
-      })()}
-
       {/* Section 1: What We Have */}
       <div className="space-y-2">
         <h4 className="text-sm font-medium uppercase text-gray-700">
@@ -102,31 +95,80 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Base Deposit</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Base Deposit
+              <BreakdownInfo
+                title="Initial Cash Pool"
+                items={[
+                  { label: 'Remaining from User Input', value: baseDeposit }
+                ]}
+                total={baseDeposit}
+                totalLabel="Available Base Deposit"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(baseDeposit)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600" title="Includes your Annual Savings multiplied by years, PLUS any reinvested positive cashflow from your existing properties.">Cumulative Savings</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Cumulative Savings
+              <BreakdownInfo
+                title="Savings Accumulation"
+                items={[
+                  { label: 'Annual Savings Rate', value: yearData.annualSavingsRate },
+                  { label: 'Years Accumulated', value: yearsAccumulated, isNumeric: true },
+                ]}
+                total={cumulativeSavings}
+                totalLabel="Total Accumulated"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(cumulativeSavings)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Cashflow Reinvestment</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Cashflow Reinvestment
+              <BreakdownInfo
+                title="Portfolio Reinvestment"
+                items={[
+                  { label: 'Surplus Rental Income', value: cashflowReinvestment },
+                ]}
+                total={cashflowReinvestment}
+                totalLabel="Total Available for Reinvestment"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(cashflowReinvestment)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 flex items-center gap-1">
+            <span className="text-sm text-gray-600 flex items-center">
               Equity Release
-              <span className="text-[10px] text-gray-500" title="Total Value × 80% - Current Debt">(Value×80% - Debt)</span>
+              <BreakdownInfo
+                title="Equity Release Breakdown (Pre-Purchase)"
+                items={[
+                  { label: 'Existing Portfolio Value', value: prePurchaseValue },
+                  { label: 'Max Lendable Amount (80%)', value: maxLendable },
+                  { label: 'Less: Existing Debt', value: -existingDebt }
+                ]}
+                total={calculatedEquity}
+                totalLabel="Net Extractable Equity"
+              />
             </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(equityRelease)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Total Available</span>
+              <span className="text-sm font-medium text-gray-700 flex items-center">
+                Total Available
+                <BreakdownInfo
+                  title="Total Available Funds Breakdown"
+                  items={[
+                    { label: 'Initial Cash Pool', value: baseDeposit },
+                    { label: `Accumulated Savings (Year 1-${yearData.displayYear || 1})`, value: cumulativeSavings },
+                    { label: 'Reinvested Rental Profits', value: cashflowReinvestment },
+                    { label: 'Equity Released', value: equityRelease }
+                  ]}
+                  total={totalAvailable}
+                />
+              </span>
               <span className="text-base font-bold text-blue-600">{formatCurrency(totalAvailable)}</span>
-            </div>
-            <div className="text-xs italic text-gray-500 mt-1">
-              {formatCurrency(baseDeposit)} + {formatCurrency(cumulativeSavings)} + {formatCurrency(cashflowReinvestment)} + {formatCurrency(equityRelease)}
             </div>
           </div>
         </div>
@@ -139,7 +181,17 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Deposit Required</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Deposit Required
+              <BreakdownInfo
+                title="Deposit Required Breakdown"
+                items={[
+                  { label: 'Purchase Price', value: yearData.propertyCost || 0 },
+                  { label: 'Deposit %', value: yearData.propertyCost ? (requiredDeposit / yearData.propertyCost) * 100 : 0, isPercentage: true }
+                ]}
+                total={requiredDeposit}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(requiredDeposit)}</span>
           </div>
           <div className="flex justify-between items-center">
@@ -153,7 +205,18 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
             </div>
           )}
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Legal & Fees</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Legal & Fees
+              <BreakdownInfo
+                title="Legal & Fees Breakdown"
+                items={[
+                  { label: 'Conveyancing / Legal', value: legalFees },
+                  { label: 'Building & Pest', value: inspectionFees },
+                  { label: 'Bank & Mortgage Fees', value: otherFees }
+                ]}
+                total={legalFees + inspectionFees + otherFees}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(legalFees + inspectionFees + otherFees)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">

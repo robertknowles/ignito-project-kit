@@ -322,6 +322,17 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           loanRepayments: property.loanInterest,
           expenses: property.expenses,
           
+          // Expense breakdown (from calculator)
+          expenseBreakdown: property.expenseBreakdown || {
+            councilRatesWater: 0,
+            strataFees: 0,
+            insurance: 0,
+            managementFees: 0,
+            repairsMaintenance: 0,
+            landTax: 0,
+            other: 0,
+          },
+          
           // Requirements
           requiredDeposit: property.depositRequired,
           requiredLoan: property.loanAmount,
@@ -1041,6 +1052,17 @@ function interpolateYearData(
     loanRepayments: loanInterest,
     expenses,
     
+    // Expense breakdown (interpolated - for now, use simple estimation)
+    expenseBreakdown: {
+      councilRatesWater: 0,
+      strataFees: 0,
+      insurance: 0,
+      managementFees: 0,
+      repairsMaintenance: 0,
+      landTax: 0,
+      other: 0,
+    },
+    
     // Requirements (from affordability tests)
     requiredDeposit,
     requiredLoan,
@@ -1190,6 +1212,17 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, de
     grossRental: 0,
     loanRepayments: 0,
     expenses: 0,
+    
+    // Expense breakdown (initial state)
+    expenseBreakdown: {
+      councilRatesWater: 0,
+      strataFees: 0,
+      insurance: 0,
+      managementFees: 0,
+      repairsMaintenance: 0,
+      landTax: 0,
+      other: 0,
+    },
     
     // Requirements (not applicable)
     requiredDeposit: 0,

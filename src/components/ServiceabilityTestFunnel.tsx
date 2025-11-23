@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart3, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
+import { BreakdownInfo } from './BreakdownInfo';
 
 interface ServiceabilityTestFunnelProps {
   yearData: YearBreakdownData;
@@ -66,7 +67,21 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
             <span className="text-base font-semibold text-gray-800">{formatCurrency(grossRental)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Property Expenses</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Property Expenses
+              <BreakdownInfo
+                title="Property Expenses Breakdown"
+                items={[
+                  { label: 'Council Rates & Water', value: yearData.expenseBreakdown?.councilRatesWater || 0 },
+                  { label: 'Strata Fees', value: yearData.expenseBreakdown?.strataFees || 0 },
+                  { label: 'Insurance', value: yearData.expenseBreakdown?.insurance || 0 },
+                  { label: 'Management Fees', value: yearData.expenseBreakdown?.managementFees || 0 },
+                  { label: 'Repairs & Maintenance', value: yearData.expenseBreakdown?.repairsMaintenance || 0 },
+                  { label: 'Land Tax', value: yearData.expenseBreakdown?.landTax || 0 },
+                ]}
+                total={expenses}
+              />
+            </span>
             <span className="text-base font-semibold text-red-700">−{formatCurrency(expenses)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -99,7 +114,17 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
           </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Total Interest Due</span>
+              <span className="text-sm font-medium text-gray-700 flex items-center">
+                Total Interest Due
+                <BreakdownInfo
+                  title="Total Interest Due Breakdown"
+                  items={[
+                    { label: 'Existing Portfolio Interest', value: existingLoanInterest },
+                    { label: 'New Property Interest', value: newLoanInterest }
+                  ]}
+                  total={totalInterestDue}
+                />
+              </span>
               <span className="text-base font-bold text-orange-700">{formatCurrency(totalInterestDue)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
@@ -125,7 +150,17 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
           </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Total Capacity</span>
+              <span className="text-sm font-medium text-gray-700 flex items-center">
+                Total Capacity
+                <BreakdownInfo
+                  title="Total Capacity Breakdown"
+                  items={[
+                    { label: 'Base (Salary/Income)', value: baseServiceabilityCapacity },
+                    { label: 'Rental Income (Shaded 70%)', value: rentalServiceabilityContribution }
+                  ]}
+                  total={totalCapacity}
+                />
+              </span>
               <span className="text-base font-bold text-blue-600">{formatCurrency(totalCapacity)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
