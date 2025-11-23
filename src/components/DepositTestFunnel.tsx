@@ -77,6 +77,24 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         <h3 className="text-lg font-semibold text-gray-800">Deposit Test</h3>
       </div>
 
+      {/* Task 1: Funding Story - Dynamic text block */}
+      {(() => {
+        const depositFromBase = Math.min(requiredDeposit || 0, baseDeposit || 0);
+        const depositFromSavings = Math.max(0, Math.min((requiredDeposit || 0) - depositFromBase, cumulativeSavings || 0));
+        const depositFromEquity = Math.max(0, (requiredDeposit || 0) - depositFromBase - depositFromSavings);
+        const isEquityFunded = (depositFromEquity || 0) > (depositFromSavings || 0);
+        
+        return (
+          <div className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded">
+            <p className="text-xs text-gray-600 italic leading-relaxed">
+              {isEquityFunded 
+                ? "🚀 Funded primarily by equity release from previous properties." 
+                : "✅ Funded primarily by your accumulated cash savings."}
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Section 1: What We Have */}
       <div className="space-y-2">
         <h4 className="text-sm font-medium uppercase text-gray-700">
@@ -88,7 +106,7 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
             <span className="text-base font-semibold text-gray-800">{formatCurrency(baseDeposit)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Cumulative Savings</span>
+            <span className="text-sm text-gray-600" title="Includes your Annual Savings multiplied by years, PLUS any reinvested positive cashflow from your existing properties.">Cumulative Savings</span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(cumulativeSavings)}</span>
           </div>
           <div className="flex justify-between items-center">
@@ -96,7 +114,10 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
             <span className="text-base font-semibold text-gray-800">{formatCurrency(cashflowReinvestment)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Equity Release</span>
+            <span className="text-sm text-gray-600 flex items-center gap-1">
+              Equity Release
+              <span className="text-[10px] text-gray-500" title="Total Value × 80% - Current Debt">(Value×80% - Debt)</span>
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(equityRelease)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">

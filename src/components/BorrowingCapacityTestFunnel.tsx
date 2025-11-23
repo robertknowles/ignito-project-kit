@@ -16,7 +16,8 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
     totalDebt,
     borrowingCapacity,
     lvr,
-    newDebt
+    newDebt,
+    existingDebt
   } = yearData;
   
   const propertyCount = allPortfolioProperties?.length || 0;
@@ -73,7 +74,10 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
             <span className="text-base font-semibold text-gray-800">{formatCurrency(totalEquity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Extractable Equity (80% LVR)</span>
+            <span className="text-sm text-gray-600 flex items-center gap-1">
+              Extractable Equity (80% LVR)
+              <span className="text-[10px] text-gray-500" title="Total Value × 80% - Current Debt">(Value×80% - Debt)</span>
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(extractableEquity)}</span>
           </div>
           {allPortfolioProperties && allPortfolioProperties.length > 0 && (
@@ -99,18 +103,18 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Current Portfolio LVR</span>
+            <span className="text-sm text-gray-600">Total Portfolio LVR</span>
             <span className={`text-base font-semibold ${lvr > 80 ? 'text-red-700' : 'text-gray-800'}`}>
               {lvr.toFixed(1)}%
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Existing Debt</span>
-            <span className="text-base font-semibold text-gray-800">{formatCurrency(totalDebt)}</span>
+            <span className="text-sm text-gray-600">Debt Before Purchase</span>
+            <span className="text-base font-semibold text-gray-800">{formatCurrency(existingDebt || (totalDebt - newDebt))}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">New Loan Required</span>
+              <span className="text-sm font-medium text-gray-700">New Property Loan</span>
               <span className="text-base font-bold text-orange-700">{formatCurrency(newDebt)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">
@@ -155,19 +159,19 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
           <div className="space-y-1 text-sm">
             {/* Line 1: Total Capacity */}
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Total Capacity</span>
+              <span className="text-gray-600">Total Borrowing Capacity</span>
               <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
             </div>
             
-            {/* Line 2: Existing Debt */}
+            {/* Line 2: Debt Before Purchase */}
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">− Existing Debt</span>
-              <span className="font-semibold text-gray-700">−{formatCurrency(totalDebt)}</span>
+              <span className="text-gray-600">− Debt Before Purchase</span>
+              <span className="font-semibold text-gray-700">−{formatCurrency(existingDebt || (totalDebt - newDebt))}</span>
             </div>
             
             {/* Line 3: New Loan Required */}
             <div className="flex items-center justify-between pb-2 border-b-2 border-gray-300">
-              <span className="text-gray-600">− New Loan Required</span>
+              <span className="text-gray-600">− New Property Loan</span>
               <span className="font-semibold text-orange-700">−{formatCurrency(newDebt)}</span>
             </div>
             

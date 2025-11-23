@@ -111,7 +111,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
               Net Cashflow
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
-              LVR
+              Total Portfolio LVR
             </th>
             <th className="text-left p-3 font-semibold text-sm text-gray-700">
               Rental Recognition
@@ -249,6 +249,9 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               const depositFromSavings = Math.max(0, Math.min((year.requiredDeposit || 0) - depositFromBase, year.cumulativeSavings || 0));
                               const depositFromEquity = Math.max(0, (year.requiredDeposit || 0) - depositFromBase - depositFromSavings);
                               
+                              // Task 1: Calculate funding story
+                              const isEquityFunded = (depositFromEquity || 0) > (depositFromSavings || 0);
+                              
                               // Get acquisition costs from purchases
                               const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
                               const totalAcquisitionCosts = purchase?.totalAcquisitionCosts || 0;
@@ -264,6 +267,14 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               
                               return (
                                 <div className="divide-y divide-gray-100">
+                                  {/* Task 1: Funding Story - Dynamic text block */}
+                                  <div className="px-3 py-1.5 bg-blue-50/50 border-b border-blue-100">
+                                    <p className="text-[10px] text-gray-600 italic leading-relaxed">
+                                      {isEquityFunded 
+                                        ? "🚀 Funded primarily by equity release from previous properties." 
+                                        : "✅ Funded primarily by your accumulated cash savings."}
+                                    </p>
+                                  </div>
                                   <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
                                     <span className="font-medium text-[#374151]">Total Funds Used</span>
                                     <span className="font-bold text-right text-[#111827]">{formatCurrency(totalFundsUsed, true)}</span>
@@ -293,13 +304,18 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                   <div className="px-3 py-1 bg-white">
                                     <div className="font-medium text-[#374151] mb-0.5 text-[10px]">Acquisition Costs:</div>
                                     {(() => {
-                                      // Get the first purchase from this year (if any)
+                                      // Get the first purchase from this year
                                       const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
-                                      const stampDuty = purchase?.stampDuty || 0;
-                                      const lmi = purchase?.lmi || 0;
-                                      const legalFees = purchase?.legalFees || 2000;
-                                      const inspectionFees = purchase?.inspectionFees || 650;
-                                      const otherFees = purchase?.otherFees || 1500;
+                                      const costs = purchase?.acquisitionCosts || {};
+                                      
+                                      // Map directly from the engine's output (no hardcoded fallbacks)
+                                      const stampDuty = costs.stampDuty || 0;
+                                      const lmi = costs.lmi || 0;
+                                      const legalFees = costs.legalFees || 0;
+                                      const inspectionFees = costs.inspectionFees || 0;
+                                      const otherFees = costs.otherFees || 0;
+                                      
+                                      // Calculate total (should match the totalCashRequired calculated in the engine)
                                       const totalCosts = stampDuty + lmi + legalFees + inspectionFees + otherFees;
                                       
                                       return (
@@ -380,7 +396,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                 <span className="font-medium text-right text-red-700">-{formatCurrency(year.loanRepayments || 0, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Expenses (30% + 3%)</span>
+                                <span className="text-[#374151]" title="Includes Council Rates, Water, Strata, Insurance, Maintenance & Management Fees">Property Expenses</span>
                                 <span className="font-medium text-right text-red-700">-{formatCurrency(year.expenses || 0, true)}</span>
                               </div>
                               <div className={`flex justify-between px-3 py-1.5 bg-[#f9fafb] ${netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -412,7 +428,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                 <span className="font-medium text-right text-[#111827]">{formatCurrency(Math.max(0, (year.baseDeposit || 0) - totalCashUsed), true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Accumulated Savings</span>
+                                <span className="text-[#374151]" title="Includes your Annual Savings multiplied by years, PLUS any reinvested positive cashflow from your existing properties.">Accumulated Savings</span>
                                 <span className="font-medium text-right text-[#111827]">{formatCurrency(year.cumulativeSavings || 0, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
@@ -454,7 +470,10 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                                 <span className="font-medium text-right text-[#111827]">{formatCurrency(equity, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Extractable (88% LVR)</span>
+                                <span className="text-[#374151] flex items-center gap-1">
+                                  Extractable (88% LVR)
+                                  <span className="text-[9px] text-gray-500" title="Total Value × 80% - Current Debt">(Value×80% - Debt)</span>
+                                </span>
                                 <span className="font-medium text-right text-[#111827]">{formatCurrency(year.extractableEquity || 0, true)}</span>
                               </div>
                               {year.allPortfolioProperties && year.allPortfolioProperties.length > 0 && (
@@ -489,7 +508,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                             </div>
                             <div className="divide-y divide-gray-100">
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Current LVR</span>
+                                <span className="text-[#374151]">Total Portfolio LVR</span>
                                 <span className="font-medium text-right text-[#111827]">{formatPercentage(lvr)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
@@ -510,15 +529,15 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                             </div>
                             <div className="divide-y divide-gray-100">
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Existing Debt</span>
-                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.existingDebt || 0, true)}</span>
+                                <span className="text-[#374151]">Debt Before Purchase</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency((year.totalDebt || 0) - (year.loanAmount || 0), true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">New Loan Required</span>
-                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.newDebt || 0, true)}</span>
+                                <span className="text-[#374151]">+ New Property Loan</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.loanAmount || 0, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Total Debt After</span>
+                                <span className="text-[#374151]">= New Total Debt</span>
                                 <span className="font-medium text-right text-[#111827]">{formatCurrency(year.totalDebt || 0, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
@@ -594,7 +613,7 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               <div className="px-3 py-1 bg-white">
                                 <div className="text-[10px] font-medium text-[#374151] mb-0.5">Max Allowable:</div>
                                 <div className="flex justify-between pl-2 py-0.5">
-                                  <span className="text-[#6b7280] text-[10px]">Base (10%)</span>
+                                  <span className="text-[#6b7280] text-[10px]" title="Static value derived from your salary/income">Gross Borrowing Power (Income)</span>
                                   <span className="text-[10px] text-right text-[#374151]">{formatCurrency(year.baseServiceabilityCapacity || 0, true)}</span>
                                 </div>
                                 <div className="flex justify-between pl-2 py-0.5">

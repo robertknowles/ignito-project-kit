@@ -395,25 +395,27 @@ export const useAffordabilityCalculator = () => {
             const growthFactor = currentValue / purchase.cost;
             const adjustedIncome = cashflowBreakdown.adjustedIncome * growthFactor;
             const adjustedOperatingExpenses = cashflowBreakdown.totalOperatingExpenses * growthFactor;
-            const adjustedNonDeductibleExpenses = cashflowBreakdown.totalNonDeductibleExpenses * growthFactor;
+            
+            // CRITICAL FIX: Exclude principal payments from non-deductible expenses
+            const adjustedNonDeductibleWithoutPrincipal = (cashflowBreakdown.totalNonDeductibleExpenses - cashflowBreakdown.principalPayments) * growthFactor;
             
             // Apply inflation (3% annual)
             const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
             const inflationAdjustedIncome = adjustedIncome * inflationFactor;
             const inflationAdjustedOperatingExpenses = adjustedOperatingExpenses * inflationFactor;
-            const inflationAdjustedNonDeductibleExpenses = adjustedNonDeductibleExpenses * inflationFactor;
+            const inflationAdjustedNonDeductible = adjustedNonDeductibleWithoutPrincipal * inflationFactor;
             
             // Apply progressive rental recognition based on portfolio size
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
             const recognizedIncome = inflationAdjustedIncome * recognitionRate;
             
-            // Calculate net cashflow
-            const propertyCashflow = recognizedIncome - inflationAdjustedOperatingExpenses - inflationAdjustedNonDeductibleExpenses;
+            // Calculate net cashflow (income - expenses - interest - principal)
+            const propertyCashflow = recognizedIncome - inflationAdjustedOperatingExpenses - inflationAdjustedNonDeductible - cashflowBreakdown.loanInterest - cashflowBreakdown.principalPayments;
             
             grossRentalIncome += recognizedIncome;
             loanInterest += cashflowBreakdown.loanInterest;
-            expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductibleExpenses);
+            expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductible); // Operating + Land Tax ONLY (no principal)
             netCashflow += propertyCashflow;
           } else {
             // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
@@ -1029,24 +1031,75 @@ export const useAffordabilityCalculator = () => {
               landTaxOverride: propertyDetails.landTaxOverride ?? landTax
             };
             
-            // Calculate detailed cashflow
+            // 1. Calculate Growth & Inflation Factors
+            const growthFactor = currentValue / purchase.cost;
+            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+            
+            // 2. Calculate Detailed Cashflow (Base)
+            // This gets us the base rent and expenses for the property instance
             const cashflowBreakdown = calculateDetailedCashflow(
               propertyWithLandTax,
               purchase.loanAmount
             );
             
-            // Use net annual cashflow instead of old 30% rule
-            const rentalIncome = cashflowBreakdown.adjustedIncome;
-            const propertyLoanPayment = cashflowBreakdown.loanInterest + cashflowBreakdown.principalPayments;
-            const propertyExpenses = cashflowBreakdown.totalOperatingExpenses + cashflowBreakdown.totalNonDeductibleExpenses - cashflowBreakdown.potentialDeductions;
+            // 3. Apply Growth to Rent (Fixing the "Static Rent" bug)
+            // Rent should grow in proportion to property value
+            const adjustedRentalIncome = cashflowBreakdown.adjustedIncome * growthFactor;
             
-            grossRentalIncome += rentalIncome;
-            loanInterest += propertyLoanPayment;
-            expenses += propertyExpenses;
+            // 4. Apply Inflation to Expenses
+            // CRITICAL FIX: Separate Principal from Expenses to avoid double-counting
+            const inflationAdjustedOperating = cashflowBreakdown.totalOperatingExpenses * inflationFactor;
+            
+            // IMPORTANT: totalNonDeductibleExpenses includes principalPayments + landTax
+            // We must exclude principalPayments to avoid double-counting in the netCashflow formula
+            const nonDeductibleWithoutPrincipal = cashflowBreakdown.totalNonDeductibleExpenses - cashflowBreakdown.principalPayments;
+            const inflationAdjustedNonDeductible = nonDeductibleWithoutPrincipal * inflationFactor;
+            
+            // 5. Calculate Final Component Values (Operating + Non-Deductible WITHOUT Principal)
+            const totalExpenses = inflationAdjustedOperating + inflationAdjustedNonDeductible;
+            
+            // 6. Update Accumulators for the UI
+            grossRentalIncome += adjustedRentalIncome;
+            loanInterest += cashflowBreakdown.loanInterest; // Interest ONLY
+            expenses += totalExpenses; // Operating + Land Tax ONLY (Principal excluded)
           }
         });
         
-        netCashflow = grossRentalIncome - loanInterest - expenses;
+        // 7. Correct Net Cashflow Formula
+        // Net = Income - Expenses - Interest - Principal Repayments
+        // Note: We need to calculate total principal payments separately
+        let totalPrincipalPayments = 0;
+        [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
+          const periodsOwned = purchasePeriod - purchase.period;
+          const propertyData = getPropertyData(purchase.title);
+          
+          if (propertyData && purchase.period <= purchasePeriod) {
+            const propertyInstance = getInstance(purchase.instanceId);
+            const propertyDetails = propertyInstance 
+              ? applyPropertyOverrides(propertyData, propertyInstance)
+              : propertyData;
+            
+            const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+            const landTax = propertyDetails.landTaxOverride ?? calculateLandTax(
+              propertyDetails.state,
+              currentValue
+            );
+            
+            const propertyWithLandTax = {
+              ...propertyDetails,
+              landTaxOverride: propertyDetails.landTaxOverride ?? landTax
+            };
+            
+            const cashflowBreakdown = calculateDetailedCashflow(
+              propertyWithLandTax,
+              purchase.loanAmount
+            );
+            
+            totalPrincipalPayments += cashflowBreakdown.principalPayments;
+          }
+        });
+        
+        netCashflow = grossRentalIncome - expenses - loanInterest - totalPrincipalPayments;
       }
       
       // Calculate all purchase costs for this property (using instance fields for all 39 inputs)

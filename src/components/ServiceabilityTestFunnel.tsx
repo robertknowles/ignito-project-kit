@@ -116,7 +116,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Base Capacity (10%)</span>
+            <span className="text-sm text-gray-600" title="Static value derived from your salary/income">Gross Borrowing Power (Income)</span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(baseServiceabilityCapacity)}</span>
           </div>
           <div className="flex justify-between items-center">
