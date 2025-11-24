@@ -29,9 +29,9 @@ export function StrategyPathwayPage({ investmentProfile, propertySelections }: S
 
   const commercialDesc = useMemo(() => {
     return analysis.commercial 
-      ? generateCommercialDescription(analysis.commercial)
+      ? generateCommercialDescription(analysis.commercial, analysis.residential)
       : null;
-  }, [analysis.commercial]);
+  }, [analysis.commercial, analysis.residential]);
 
   const savingsDesc = useMemo(() => {
     return generateSavingsDescription(investmentProfile, analysis.savingsProjection);

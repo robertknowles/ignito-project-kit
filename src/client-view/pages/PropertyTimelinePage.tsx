@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
 
 import { TimelineCard } from '../components/TimelineCard'
+import { MilestoneCard } from '../components/MilestoneCard'
 import { GoalAchievedCard } from '../components/GoalAchievedCard'
-import { generateTimelineData, generateSummaryData } from '../utils/timelineGenerator'
+import { generateTimelineData, generateSummaryData, TimelineItem } from '../utils/timelineGenerator'
 
 interface PropertyTimelinePageProps {
   investmentProfile: any;
@@ -74,20 +75,34 @@ export function PropertyTimelinePage({ investmentProfile, propertySelections }: 
         {/* Vertical line */}
         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-blue-200"></div>
         {/* Timeline items */}
-        {timelineData.map((property, index) => (
-          <TimelineCard
-            key={index}
-            propertyNumber={property.propertyNumber}
-            year={property.year}
-            purchasePrice={property.purchasePrice}
-            equity={property.equity}
-            yield={property.yield}
-            cashflow={property.cashflow}
-            milestone={property.milestone}
-            nextMove={property.nextMove}
-            isLast={property.isLast}
-          />
-        ))}
+        {timelineData.map((item, index) => {
+          if (item.type === 'milestone') {
+            return (
+              <MilestoneCard
+                key={`milestone-${index}`}
+                year={item.year}
+                title={item.title}
+                description={item.description}
+                isLast={item.isLast}
+              />
+            );
+          } else {
+            return (
+              <TimelineCard
+                key={`property-${index}`}
+                propertyNumber={item.propertyNumber}
+                year={item.year}
+                purchasePrice={item.purchasePrice}
+                equity={item.equity}
+                yield={item.yield}
+                cashflow={item.cashflow}
+                milestone={item.milestone}
+                nextMove={item.nextMove}
+                isLast={item.isLast}
+              />
+            );
+          }
+        })}
         {/* Goal Achieved Card */}
         <GoalAchievedCard />
       </div>
