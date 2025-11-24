@@ -453,6 +453,201 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
 
   const timelineStatus = getTimelineStatus()
 
+  // Helper function to create a hybrid snapshot for a specific purchase
+  // Combines specific transaction costs with accumulated portfolio metrics
+  const createPurchaseSnapshot = (property: any, profile: any): YearBreakdownData => {
+    const defaultInterestRate = 0.065; // Default 6.5% for timeline calculations
+    const year = Math.round(property.affordableYear);
+    const yearIndex = year - BASE_YEAR;
+    const propertyIndex = property.propertyIndex + 1;
+    
+    // Calculate LVR and DSR using accumulated portfolio
+    const lvr = property.portfolioValueAfter > 0 
+      ? (property.totalDebtAfter / property.portfolioValueAfter) * 100 
+      : 0;
+    const dsr = property.grossRentalIncome > 0 
+      ? (property.loanInterest / property.grossRentalIncome) * 100 
+      : 0;
+
+    // Calculate new fields for presentation
+    const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
+    const existingDebt = property.totalDebtAfter - property.loanAmount;
+    const newDebt = property.loanAmount;
+    const existingLoanInterest = existingDebt * defaultInterestRate;
+    const newLoanInterest = newDebt * defaultInterestRate;
+    const annualSavingsRate = profile.annualSavings;
+    const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
+    
+    // Calculate enhanced serviceability values
+    const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
+    const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
+    
+    // Calculate borrowing capacity breakdown using portfolio BEFORE current purchase
+    const portfolioValueBeforePurchase = property.portfolioValueBefore;
+    const totalDebtBeforePurchase = property.totalDebtBefore;
+    const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * 0.88 - totalDebtBeforePurchase);
+    const equityBoost = totalUsableEquityForBoost * profile.equityFactor;
+    const effectiveCapacity = profile.borrowingCapacity + equityBoost;
+    
+    // Build all portfolio properties array (accumulated)
+    const allPortfolioProperties = timelineProperties
+      .filter(p => p.affordableYear <= property.affordableYear)
+      .map(p => {
+        const yearsOwned = property.affordableYear - p.affordableYear;
+        const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+        const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
+        const equity = currentValue - p.loanAmount;
+        const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+        
+        return {
+          propertyId: p.id,
+          propertyType: p.title,
+          purchaseYear: p.affordableYear,
+          displayPeriod: p.displayPeriod,
+          originalCost: p.cost,
+          currentValue,
+          loanAmount: p.loanAmount,
+          equity,
+          extractableEquity: extractable,
+        };
+      });
+
+    // Calculate period from year
+    const periodNumber = Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
+    const displayPeriod = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
+    
+    // Build the hybrid snapshot
+    return {
+      period: periodNumber,
+      year,
+      displayYear: yearIndex,
+      displayPeriod,
+      status: 'purchased',
+      propertyNumber: propertyIndex,
+      propertyType: property.title,
+      
+      // Accumulated Portfolio metrics
+      portfolioValue: property.portfolioValueAfter,
+      totalEquity: property.totalEquityAfter,
+      totalDebt: property.totalDebtAfter,
+      extractableEquity,
+      
+      // Accumulated Cash engine
+      availableDeposit: property.availableFundsUsed,
+      annualCashFlow: property.netCashflow,
+      
+      // Available funds breakdown (accumulated)
+      baseDeposit: property.baseDeposit,
+      cumulativeSavings: property.cumulativeSavings,
+      cashflowReinvestment: property.cashflowReinvestment,
+      equityRelease: property.equityRelease,
+      annualSavingsRate,
+      totalAnnualCapacity,
+      
+      // Accumulated Cashflow components
+      grossRental: property.grossRentalIncome,
+      loanRepayments: property.loanInterest,
+      expenses: property.expenses,
+      
+      // Specific Expense breakdown
+      expenseBreakdown: property.expenseBreakdown || {
+        councilRatesWater: 0,
+        strataFees: 0,
+        insurance: 0,
+        managementFees: 0,
+        repairsMaintenance: 0,
+        landTax: 0,
+        other: 0,
+      },
+      
+      // Specific Requirements (THIS property only)
+      requiredDeposit: property.depositRequired,
+      requiredLoan: property.loanAmount,
+      propertyCost: property.cost,
+      
+      // Capacity (accumulated)
+      availableBorrowingCapacity: property.borrowingCapacityRemaining,
+      borrowingCapacity: profile.borrowingCapacity,
+      
+      // Point-in-Time Borrowing Capacity Breakdown (using BEFORE state)
+      equityBoost,
+      effectiveCapacity,
+      equityFactor: profile.equityFactor,
+      
+      // Debt breakdown
+      existingDebt,
+      newDebt,
+      existingLoanInterest,
+      newLoanInterest,
+      
+      // Enhanced serviceability breakdown
+      baseServiceabilityCapacity,
+      rentalServiceabilityContribution,
+      
+      // Assumptions
+      interestRate: defaultInterestRate * 100,
+      rentalRecognition: property.rentalRecognitionRate * 100,
+      
+      // Tests - Recalculated for specific property
+      depositTest: {
+        pass: property.depositTestPass,
+        surplus: property.availableFundsUsed - property.totalCashRequired,
+        available: property.availableFundsUsed,
+        required: property.totalCashRequired,
+      },
+      
+      borrowingCapacityTest: {
+        pass: property.borrowingCapacityRemaining >= 0,
+        surplus: property.borrowingCapacityRemaining,
+        available: profile.borrowingCapacity,
+        required: property.totalDebtAfter,
+      },
+      
+      serviceabilityTest: {
+        pass: property.serviceabilityTestPass,
+        surplus: property.serviceabilityTestSurplus,
+        available: baseServiceabilityCapacity + rentalServiceabilityContribution,
+        required: property.loanAmount,
+      },
+      
+      // Flags
+      gapRule: property.isGapRuleBlocked,
+      equityReleaseYear: property.equityRelease > 0,
+      
+      // Strategy metrics
+      portfolioScaling: propertyIndex,
+      selfFundingEfficiency: property.cost > 0 ? (property.netCashflow / property.cost) * 100 : 0,
+      equityRecyclingImpact: property.portfolioValueAfter > 0 ? (property.totalEquityAfter / property.portfolioValueAfter) * 100 : 0,
+      dsr,
+      lvr,
+      
+      // Specific Breakdown details - ONLY this property
+      purchases: [{
+        propertyId: property.id,
+        propertyType: property.title,
+        cost: property.cost,
+        deposit: property.depositRequired,
+        loanAmount: property.loanAmount,
+        loanType: property.loanType,
+        year,
+        displayPeriod: property.displayPeriod,
+        currentValue: property.cost,
+        equity: property.cost - property.loanAmount,
+        extractableEquity: Math.max(0, (property.cost * 0.80) - property.loanAmount),
+        // Acquisition costs
+        stampDuty: property.acquisitionCosts?.stampDuty || 0,
+        lmi: property.acquisitionCosts?.lmi || 0,
+        legalFees: property.acquisitionCosts?.legalFees || 2000,
+        inspectionFees: property.acquisitionCosts?.inspectionFees || 650,
+        otherFees: property.acquisitionCosts?.otherFees || 1500,
+        totalAcquisitionCosts: property.acquisitionCosts?.total || 0,
+      }],
+      
+      // All portfolio properties (accumulated)
+      allPortfolioProperties,
+    };
+  };
+
   // Generate unified timeline with individual property cards, pause blocks, and gaps
   const unifiedTimeline = useMemo(() => {
     if (!timelineProperties || timelineProperties.length === 0) {
@@ -686,9 +881,9 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                         return (
                           <div key={`purchase-${element.property.id}-${index}`}>
                             <PurchaseEventCard
-                              yearData={element.yearData}
+                              yearData={createPurchaseSnapshot(element.property, profile)}
                               property={element.property}
-                              showDecisionEngine={element.isLastPropertyInYear || false}
+                              showDecisionEngine={true}
                             />
                           </div>
                         );
