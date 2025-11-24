@@ -17,7 +17,11 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
     baseServiceabilityCapacity,
     rentalServiceabilityContribution,
     borrowingCapacity,
-    rentalRecognition
+    rentalRecognition,
+    newDebt,
+    interestRate,
+    existingDebt,
+    totalDebt
   } = yearData;
   
   const totalIncome = grossRental;
@@ -63,7 +67,16 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Gross Rental Income</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Gross Rental Income
+              <BreakdownInfo
+                title="Rental Income Source"
+                items={[
+                  { label: 'Total Annual Rent', value: grossRental }
+                ]}
+                total={grossRental}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(grossRental)}</span>
           </div>
           <div className="flex justify-between items-center">
@@ -105,11 +118,29 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Existing Loan Interest</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Existing Loan Interest
+              <BreakdownInfo
+                title="Existing Debt Service"
+                items={[
+                  { label: 'Debt Before Purchase', value: existingDebt },
+                  { label: `Interest Rate (${interestRate.toFixed(1)}%)`, value: existingLoanInterest }
+                ]}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(existingLoanInterest)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">New Loan Interest</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              New Loan Interest
+              <BreakdownInfo
+                title="New Loan Calculation"
+                items={[
+                  { label: 'Loan Principal', value: newDebt },
+                  { label: `Interest Rate (${interestRate.toFixed(1)}%)`, value: newLoanInterest }
+                ]}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(newLoanInterest)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -141,11 +172,31 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600" title="Static value derived from your salary/income">Gross Borrowing Power (Income)</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Gross Borrowing Power (Income)
+              <BreakdownInfo
+                title="Salary Based Capacity"
+                items={[
+                  { label: 'User Borrowing Input', value: borrowingCapacity },
+                  { label: 'Serviceability Factor (10%)', value: baseServiceabilityCapacity }
+                ]}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(baseServiceabilityCapacity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Rental Contribution (70%)</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Rental Contribution (70%)
+              <BreakdownInfo
+                title="Shading Calculation"
+                items={[
+                  { label: 'Gross Market Rent', value: grossRental },
+                  { label: 'Bank Shading (30%)', value: -(grossRental * 0.30) },
+                ]}
+                total={rentalServiceabilityContribution}
+                totalLabel="Recognized Income"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(rentalServiceabilityContribution)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -155,8 +206,8 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
                 <BreakdownInfo
                   title="Total Capacity Breakdown"
                   items={[
-                    { label: 'Base (Salary/Income)', value: baseServiceabilityCapacity },
-                    { label: 'Rental Income (Shaded 70%)', value: rentalServiceabilityContribution }
+                    { label: `Income (${formatCurrency(borrowingCapacity)} × 10%)`, value: baseServiceabilityCapacity },
+                    { label: `Rental (${formatCurrency(grossRental)} × 70%)`, value: rentalServiceabilityContribution }
                   ]}
                   total={totalCapacity}
                 />

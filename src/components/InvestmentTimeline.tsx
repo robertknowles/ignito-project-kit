@@ -262,6 +262,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
         const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
         
+        // Calculate borrowing capacity breakdown
+        // Note: Use portfolio BEFORE current purchase to calculate equity boost
+        const portfolioValueBeforePurchase = property.portfolioValueBefore;
+        const totalDebtBeforePurchase = property.totalDebtBefore;
+        const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * 0.88 - totalDebtBeforePurchase);
+        const equityBoost = totalUsableEquityForBoost * profile.equityFactor;
+        const effectiveCapacity = profile.borrowingCapacity + equityBoost;
+        
         // Build all portfolio properties array
         const allPortfolioProperties = timelineProperties
           .filter(p => p.affordableYear <= year)
@@ -341,6 +349,11 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           // Capacity (from calculator)
           availableBorrowingCapacity: property.borrowingCapacityRemaining,
           borrowingCapacity: profile.borrowingCapacity,
+          
+          // Borrowing Capacity Breakdown
+          equityBoost,
+          effectiveCapacity,
+          equityFactor: profile.equityFactor,
           
           // Debt breakdown
           existingDebt,
@@ -1072,6 +1085,11 @@ function interpolateYearData(
     availableBorrowingCapacity: availableBorrowingCapacityValue,
     borrowingCapacity: profile.borrowingCapacity,
     
+    // Borrowing Capacity Breakdown
+    equityBoost,
+    effectiveCapacity: effectiveBorrowingCapacity,
+    equityFactor: profile.equityFactor,
+    
     // Debt breakdown
     existingDebt,
     newDebt,
@@ -1232,6 +1250,11 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, de
     // Capacity
     availableBorrowingCapacity: availableBorrowingCapacityValue,
     borrowingCapacity: profile.borrowingCapacity,
+    
+    // Borrowing Capacity Breakdown
+    equityBoost,
+    effectiveCapacity: effectiveBorrowingCapacity,
+    equityFactor: profile.equityFactor,
     
     // Debt breakdown
     existingDebt: totalDebt,

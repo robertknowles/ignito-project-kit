@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building2, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
+import { BreakdownInfo } from './BreakdownInfo';
 
 interface BorrowingCapacityTestFunnelProps {
   yearData: YearBreakdownData;
@@ -17,12 +18,13 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
     borrowingCapacity,
     lvr,
     newDebt,
-    existingDebt
+    existingDebt,
+    equityBoost,
+    effectiveCapacity,
+    equityFactor
   } = yearData;
   
   const propertyCount = allPortfolioProperties?.length || 0;
-  const equityBoost = extractableEquity * 0.75; // 75% equity factor (matching calculator logic)
-  const effectiveCapacity = borrowingCapacity + equityBoost;
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -66,17 +68,51 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
             <span className="text-base font-semibold text-gray-800">{propertyCount}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Total Portfolio Value</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Total Portfolio Value
+              <BreakdownInfo
+                title="Portfolio Composition"
+                items={
+                  allPortfolioProperties && allPortfolioProperties.length > 0
+                    ? allPortfolioProperties.map(property => ({
+                        label: property.propertyType,
+                        value: property.currentValue
+                      }))
+                    : [{ label: 'No properties', value: 0 }]
+                }
+                total={portfolioValue}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(portfolioValue)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Total Equity</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Total Equity
+              <BreakdownInfo
+                title="Equity Position"
+                items={[
+                  { label: 'Portfolio Value', value: portfolioValue },
+                  { label: 'Less: Total Debt', value: -totalDebt }
+                ]}
+                total={portfolioValue - totalDebt}
+                totalLabel="Net Equity"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(totalEquity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 flex items-center gap-1">
+            <span className="text-sm text-gray-600 flex items-center">
               Extractable Equity (80% LVR)
-              <span className="text-[10px] text-gray-500" title="Total Value × 80% - Current Debt">(Value×80% - Debt)</span>
+              <BreakdownInfo
+                title="Usable Equity Calculation"
+                items={[
+                  { label: 'Portfolio Value', value: portfolioValue },
+                  { label: 'Lending Limit (80%)', value: portfolioValue * 0.80 },
+                  { label: 'Less: Current Debt', value: -totalDebt }
+                ]}
+                total={extractableEquity}
+                totalLabel="Available to Extract"
+              />
             </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(extractableEquity)}</span>
           </div>
@@ -103,13 +139,34 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Total Portfolio LVR</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Total Portfolio LVR
+              <BreakdownInfo
+                title="LVR Calculation"
+                items={[
+                  { label: 'Total Portfolio Debt', value: totalDebt },
+                  { label: 'Total Portfolio Value', value: portfolioValue },
+                  { label: 'LVR (Debt ÷ Value)', value: lvr, isPercentage: true }
+                ]}
+              />
+            </span>
             <span className={`text-base font-semibold ${lvr > 80 ? 'text-red-700' : 'text-gray-800'}`}>
               {lvr.toFixed(1)}%
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Debt Before Purchase</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Debt Before Purchase
+              <BreakdownInfo
+                title="Pre-Purchase Debt"
+                items={[
+                  { label: 'Total Debt After Purchase', value: totalDebt },
+                  { label: 'Less: New Property Loan', value: -newDebt }
+                ]}
+                total={existingDebt}
+                totalLabel="Existing Debt"
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(existingDebt || (totalDebt - newDebt))}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
@@ -131,16 +188,45 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         </h4>
         <div className="bg-gray-50 rounded p-3 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Base Capacity</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Base Capacity
+              <BreakdownInfo
+                title="User Profile Setting"
+                items={[
+                  { label: 'Max Borrowing Power', value: borrowingCapacity }
+                ]}
+                total={borrowingCapacity}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(borrowingCapacity)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Equity Boost (75% usable)</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              Equity Boost
+              <BreakdownInfo
+                title="Borrowing Power Boost"
+                items={[
+                  { label: 'Extractable Equity', value: extractableEquity },
+                  { label: `Lender Factor (${(equityFactor * 100).toFixed(0)}%)`, value: equityBoost }
+                ]}
+              />
+            </span>
             <span className="text-base font-semibold text-gray-800">{formatCurrency(equityBoost)}</span>
           </div>
           <div className="pt-2 border-t border-gray-300">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Total Capacity</span>
+              <span className="text-sm font-medium text-gray-700 flex items-center">
+                Total Capacity
+                <BreakdownInfo
+                  title="Effective Capacity"
+                  items={[
+                    { label: 'Base Capacity (Income)', value: borrowingCapacity },
+                    { label: 'Equity Boost', value: equityBoost }
+                  ]}
+                  total={effectiveCapacity}
+                  totalLabel="Total Lending Limit"
+                />
+              </span>
               <span className="text-base font-bold text-blue-600">{formatCurrency(effectiveCapacity)}</span>
             </div>
             <div className="text-xs italic text-gray-500 mt-1">

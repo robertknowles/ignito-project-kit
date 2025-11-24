@@ -188,6 +188,11 @@ export interface YearBreakdownData {
   availableBorrowingCapacity: number;
   borrowingCapacity: number;
   
+  // Borrowing Capacity Breakdown (NEW)
+  equityBoost: number; // The calculated $ boost amount
+  effectiveCapacity: number; // The final dynamic capacity limit (base + boost)
+  equityFactor: number; // The multiplier used (e.g., 0.75)
+  
   // Debt breakdown (NEW)
   existingDebt: number; // Debt before current purchase
   newDebt: number; // Just the new loan for this purchase
