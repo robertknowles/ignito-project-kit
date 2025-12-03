@@ -3,6 +3,7 @@ import { TrendingUp } from 'lucide-react'
 
 interface TimelineCardProps {
   propertyNumber: number
+  title?: string // Specific property title (e.g., "Metro House", "Commercial Warehouse")
   year: number
   purchasePrice: string
   equity: string
@@ -15,6 +16,7 @@ interface TimelineCardProps {
 
 export function TimelineCard({
   propertyNumber,
+  title,
   year,
   purchasePrice,
   equity,
@@ -24,6 +26,8 @@ export function TimelineCard({
   nextMove,
   isLast = false,
 }: TimelineCardProps) {
+  // Use specific title if provided, otherwise fallback to generic "Property X"
+  const displayTitle = title || `Property ${propertyNumber}`;
   return (
     <div className="relative pl-14 mb-6">
       {/* Timeline dot */}
@@ -41,8 +45,9 @@ export function TimelineCard({
               fontFamily: 'Figtree, sans-serif',
             }}
           >
-            Property {propertyNumber}
+            {displayTitle}
           </h3>
+          <span className="text-xs text-gray-400 font-normal">#{propertyNumber}</span>
         </div>
         {/* Snapshot Row */}
         <div className="flex items-center gap-4 mb-3 text-xs text-gray-600 pb-3 border-b border-gray-200">

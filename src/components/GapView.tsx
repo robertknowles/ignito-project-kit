@@ -19,6 +19,12 @@ export const GapView: React.FC<GapViewProps> = ({ startYear, endYear, allYearDat
   
   const yearCount = endYear - startYear + 1;
   
+  // Format the year label: single year shows just the year, multi-year shows range
+  const yearLabel = startYear === endYear ? `${startYear}` : `${startYear}–${endYear}`;
+  
+  // Format the duration text: "1 Year Gap" vs "X Years Gap"
+  const durationText = yearCount === 1 ? '1 Year Gap' : `${yearCount} Years Gap`;
+  
   return (
     <div className="my-4 text-center">
       {/* Subtle Button - No box, no border, centered */}
@@ -26,7 +32,7 @@ export const GapView: React.FC<GapViewProps> = ({ startYear, endYear, allYearDat
         onClick={() => setIsExpanded(!isExpanded)}
         className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
       >
-        {isExpanded ? '▼' : '▶'} Show {startYear}–{endYear} progression ({yearCount} year{yearCount !== 1 ? 's' : ''})
+        {isExpanded ? '▼' : '▶'} Show {yearLabel} progression ({durationText})
       </button>
       
       {/* Expanded View */}

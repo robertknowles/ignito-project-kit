@@ -96,69 +96,129 @@ export const useAllClientScenarios = () => {
 
             console.log(`  Scenario "${scenario.name}":`, selections);
 
-            // Extract purchases from this scenario's selections
+            // Extract purchases from this scenario
             const scenarioPurchases: TimelinePurchase[] = [];
-            let propertyNumber = 1;
-
-            Object.entries(selections).forEach(([propertyId, quantity]) => {
-              const qty = quantity as number;
+            
+            // Check if we have a saved timeline snapshot (the "truth" from the dashboard)
+            const timelineSnapshot = scenarioData?.timelineSnapshot;
+            
+            if (timelineSnapshot && Array.isArray(timelineSnapshot) && timelineSnapshot.length > 0) {
+              // USE SAVED SNAPSHOT - This is the accurate timeline from the dashboard
+              console.log(`    Using saved timeline snapshot with ${timelineSnapshot.length} properties`);
               
-              // propertyId is like "property_0", "property_7", etc.
-              // Extract the index number
-              const match = propertyId.match(/property_(\d+)/);
-              if (!match || qty === 0) {
-                console.log(`    Skipping ${propertyId} (qty: ${qty})`);
-                return;
-              }
-              
-              const propertyIndex = parseInt(match[1], 10);
-              
-              // Find the matching assumption by index from global propertyAssumptions
-              const assumption = propertyAssumptions[propertyIndex];
-              
-              if (!assumption) {
-                console.warn(`    WARNING: No property assumption found at index ${propertyIndex} (${propertyId})`);
-                console.warn(`    Available assumptions:`, propertyAssumptions.map((a, i) => `${i}: ${a.type}`));
-                return;
-              }
-              
-              if (assumption && qty > 0) {
-                // Extract property type from the assumption type
-                let propertyType: TimelinePurchase['propertyType'] = 'Other';
-                const typeStr = assumption.type.toLowerCase();
-                
-                if (typeStr.includes('unit') || typeStr.includes('apartment')) {
-                  propertyType = 'Unit';
-                } else if (typeStr.includes('house') || typeStr.includes('villa') || typeStr.includes('townhouse')) {
-                  propertyType = 'House';
-                } else if (typeStr.includes('duplex') || typeStr.includes('block')) {
-                  propertyType = 'Apartment';
-                }
-                
-                const cost = parseFloat(assumption.averageCost) || 0;
-                const deposit = parseFloat(assumption.deposit) || 20;
-                const depositAmount = cost * (deposit / 100);
-                
-                // Simple year calculation: based on deposit pool and annual savings
-                const baseYear = 2025;
-                const annualSavings = profile.annualSavings || 50000;
-                const yearsNeeded = Math.ceil((depositAmount * propertyNumber) / annualSavings);
-                const estimatedYear = baseYear + yearsNeeded;
-                
-                console.log(`    Creating ${qty} purchases of "${assumption.type}", starting year ${estimatedYear}`);
-                
-                // Add one purchase for each quantity
-                for (let i = 0; i < qty; i++) {
+              let propertyNumber = 1;
+              timelineSnapshot
+                .filter((item: any) => item.status === 'feasible' && item.affordableYear !== Infinity)
+                .forEach((item: any) => {
+                  // Extract property type from title
+                  let propertyType: TimelinePurchase['propertyType'] = 'Other';
+                  const title = (item.title || '').toLowerCase();
+                  
+                  if (title.includes('unit') || title.includes('apartment')) {
+                    propertyType = 'Unit';
+                  } else if (title.includes('house') || title.includes('villa') || title.includes('townhouse')) {
+                    propertyType = 'House';
+                  } else if (title.includes('duplex') || title.includes('block')) {
+                    propertyType = 'Apartment';
+                  }
+                  
+                  // Use affordableYear from the snapshot (this is the accurate year)
+                  const year = Math.round(item.affordableYear);
+                  const cost = item.cost || 0;
+                  
+                  console.log(`    Snapshot property: "${item.title}" in year ${year}, cost: $${cost}`);
+                  
                   scenarioPurchases.push({
-                    year: estimatedYear + (i * 2), // Space them 2 years apart
-                    propertyType: propertyType,
-                    cost: cost,
+                    year,
+                    propertyType,
+                    cost,
                     propertyNumber: propertyNumber++,
                     scenarioName: scenario.name || 'Scenario',
                   });
+                });
+            } else {
+              // FALLBACK CALCULATION - For legacy data without snapshot
+              console.log(`    No timeline snapshot found, using fallback calculation`);
+              let propertyNumber = 1;
+
+              Object.entries(selections).forEach(([propertyId, quantity]) => {
+                const qty = quantity as number;
+                
+                // propertyId is like "property_0", "property_7", etc.
+                // Extract the index number
+                const match = propertyId.match(/property_(\d+)/);
+                if (!match || qty === 0) {
+                  console.log(`    Skipping ${propertyId} (qty: ${qty})`);
+                  return;
                 }
-              }
-            });
+                
+                const propertyIndex = parseInt(match[1], 10);
+                
+                // Find the matching assumption by index from global propertyAssumptions
+                const assumption = propertyAssumptions[propertyIndex];
+                
+                if (!assumption) {
+                  console.warn(`    WARNING: No property assumption found at index ${propertyIndex} (${propertyId})`);
+                  console.warn(`    Available assumptions:`, propertyAssumptions.map((a, i) => `${i}: ${a.type}`));
+                  return;
+                }
+                
+                if (assumption && qty > 0) {
+                  // Extract property type from the assumption type
+                  let propertyType: TimelinePurchase['propertyType'] = 'Other';
+                  const typeStr = assumption.type.toLowerCase();
+                  
+                  if (typeStr.includes('unit') || typeStr.includes('apartment')) {
+                    propertyType = 'Unit';
+                  } else if (typeStr.includes('house') || typeStr.includes('villa') || typeStr.includes('townhouse')) {
+                    propertyType = 'House';
+                  } else if (typeStr.includes('duplex') || typeStr.includes('block')) {
+                    propertyType = 'Apartment';
+                  }
+                  
+                  const cost = parseFloat(assumption.averageCost) || 0;
+                  const deposit = parseFloat(assumption.deposit) || 20;
+                  const depositAmount = cost * (deposit / 100);
+                  
+                  // Year calculation: account for starting cash (depositPool) and annual savings
+                  const baseYear = 2025;
+                  const annualSavings = profile.annualSavings || 50000;
+                  const depositPool = profile.depositPool || 0;
+                  
+                  // Calculate total deposit needed for this property number
+                  const totalDepositNeeded = depositAmount * propertyNumber;
+                  
+                  // Calculate shortfall after using available deposit pool
+                  const shortfall = totalDepositNeeded - depositPool;
+                  
+                  // Calculate years needed based on shortfall
+                  let yearsNeeded: number;
+                  if (shortfall <= 0) {
+                    // Can buy immediately - but set to 1 year for realism (takes time to buy)
+                    yearsNeeded = 1;
+                  } else {
+                    yearsNeeded = Math.ceil(shortfall / annualSavings);
+                    // Minimum of 1 year for realism
+                    yearsNeeded = Math.max(1, yearsNeeded);
+                  }
+                  
+                  const estimatedYear = baseYear + yearsNeeded;
+                  
+                  console.log(`    Fallback: Creating ${qty} purchases of "${assumption.type}", starting year ${estimatedYear} (depositPool: $${depositPool}, totalDepositNeeded: $${totalDepositNeeded}, shortfall: $${shortfall}, yearsNeeded: ${yearsNeeded})`);
+                  
+                  // Add one purchase for each quantity
+                  for (let i = 0; i < qty; i++) {
+                    scenarioPurchases.push({
+                      year: estimatedYear + (i * 2), // Space them 2 years apart
+                      propertyType: propertyType,
+                      cost: cost,
+                      propertyNumber: propertyNumber++,
+                      scenarioName: scenario.name || 'Scenario',
+                    });
+                  }
+                }
+              });
+            }
 
             console.log(`Total purchases for ${client.name} - ${scenario.name}: ${scenarioPurchases.length}`);
             

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   SearchIcon,
   PlusIcon,
@@ -45,6 +46,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 
 export const ClientScenarios = () => {
+  const navigate = useNavigate();
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPDFRenderer, setShowPDFRenderer] = useState(false);
@@ -55,10 +57,49 @@ export const ClientScenarios = () => {
   const { clients, setActiveClient, updateClient, deleteClient } = useClient();
   const { timelineData, loading: timelineLoading } = useAllClientScenarios();
 
+  // Calculate dynamic stats from timelineData
+  const currentYear = new Date().getFullYear();
+  
+  const stats = useMemo(() => {
+    const totalClients = clients.length;
+    
+    // Count clients with at least one active scenario (excluding "No Scenario")
+    const activeScenarios = timelineData.filter(
+      (entry) => entry.scenarioName !== 'No Scenario' && entry.purchases.length > 0
+    ).length;
+    
+    // Count clients purchasing within next 2 years
+    const purchasingSoon = new Set(
+      timelineData
+        .filter((entry) =>
+          entry.purchases.some((p) => p.year >= currentYear && p.year <= currentYear + 2)
+        )
+        .map((entry) => entry.clientId)
+    ).size;
+    
+    return {
+      totalClients,
+      activeScenarios,
+      purchasingSoon,
+    };
+  }, [clients.length, timelineData, currentYear]);
+
+  // Helper function to get the next purchase year for a specific client
+  const getNextPurchaseYear = (clientId: number): number | null => {
+    const clientEntries = timelineData.filter((entry) => entry.clientId === clientId);
+    const allPurchases = clientEntries.flatMap((entry) => entry.purchases);
+    const futurePurchases = allPurchases.filter((p) => p.year >= currentYear);
+    
+    if (futurePurchases.length === 0) return null;
+    
+    return Math.min(...futurePurchases.map((p) => p.year));
+  };
+
   const handleViewClient = (clientId: number) => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
       setActiveClient(client);
+      navigate('/dashboard');
     }
   };
 
@@ -165,28 +206,22 @@ export const ClientScenarios = () => {
               </div>
             </div>
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-3 gap-6 mb-8">
               <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">
                 <div className="text-3xl font-medium text-[#111827] mb-2">
-                  {clients.length}
+                  {stats.totalClients}
                 </div>
                 <div className="text-sm text-[#6b7280]">Total Clients</div>
               </div>
               <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">
                 <div className="text-3xl font-medium text-[#111827] mb-2">
-                  1
+                  {stats.activeScenarios}
                 </div>
                 <div className="text-sm text-[#6b7280]">Active Scenarios</div>
               </div>
               <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">
                 <div className="text-3xl font-medium text-[#111827] mb-2">
-                  0
-                </div>
-                <div className="text-sm text-[#6b7280]">Pending Reviews</div>
-              </div>
-              <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">
-                <div className="text-3xl font-medium text-[#111827] mb-2">
-                  1
+                  {stats.purchasingSoon}
                 </div>
                 <div className="text-sm text-[#6b7280]">Purchasing Soon</div>
               </div>
@@ -230,30 +265,26 @@ export const ClientScenarios = () => {
                               <div className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3">
                                 {initials}
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-[#111827]">
-                                  {client.name}
-                                </div>
-                                <div className="text-xs text-[#6b7280]">
-                                  Client ID: {client.id}
-                                </div>
+                              <div className="text-sm font-medium text-[#111827]">
+                                {client.name}
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-[#374151]">
-                            {client.notes ? (
-                              <div>
-                                <div className="flex items-center gap-2 text-sm text-[#374151]">
-                                  <span className="w-2 h-2 rounded-full bg-green-300/70"></span>
-                                  Active scenario
-                                </div>
-                                <div className="text-xs text-[#6b7280] truncate max-w-[200px]">
-                                  {client.notes}
-                                </div>
-                              </div>
-                            ) : (
-                              'No scenario set'
-                            )}
+                            {(() => {
+                              const nextYear = getNextPurchaseYear(client.id);
+                              if (nextYear) {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-green-300/70"></span>
+                                    <span>Property in {nextYear}</span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <span className="text-[#6b7280]">No active plan</span>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4 text-sm text-[#374151]">
                             {new Date(client.created_at).toLocaleDateString()}

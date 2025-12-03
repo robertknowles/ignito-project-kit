@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { ClipboardIcon, SlidersIcon, Plus, X, Pause, Pencil } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { ClipboardIcon, SlidersIcon, Plus, X, Pause, Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { PropertyCard } from './PropertyCardMemo'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -8,6 +8,97 @@ import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { CustomBlockModal } from './CustomBlockModal'
 import type { CustomPropertyBlock } from './CustomBlockModal'
 import { PropertyDetailModal } from './PropertyDetailModal'
+
+// Buffered input component to prevent "bouncing" while typing
+interface BufferedStrategyInputProps {
+  value: number
+  onChange: (val: number) => void
+  min: number
+  max: number
+  formatAsCurrency?: boolean
+  suffix?: string
+  className?: string
+}
+
+const BufferedStrategyInput: React.FC<BufferedStrategyInputProps> = ({
+  value,
+  onChange,
+  min,
+  max,
+  formatAsCurrency = true,
+  suffix,
+  className = "w-24 text-center bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 focus:outline-none text-xs text-[#6b7280] font-medium"
+}) => {
+  const [localValue, setLocalValue] = useState(value.toString())
+  const [isFocused, setIsFocused] = useState(false)
+
+  // Sync local value when external value changes (e.g., from slider)
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value.toString())
+    }
+  }, [value, isFocused])
+
+  const formatDisplayValue = (val: string) => {
+    if (isFocused) return val
+    const num = parseFloat(val) || 0
+    if (formatAsCurrency) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0,
+      }).format(num)
+    }
+    return val
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow any input while typing (including empty string)
+    setLocalValue(e.target.value)
+  }
+
+  const commitValue = () => {
+    // Parse the value, removing any non-numeric characters
+    const cleaned = localValue.replace(/[^0-9.-]/g, '')
+    const parsed = parseFloat(cleaned) || 0
+    const clamped = Math.min(max, Math.max(min, parsed))
+    onChange(clamped)
+    setLocalValue(clamped.toString())
+  }
+
+  const handleBlur = () => {
+    setIsFocused(false)
+    commitValue()
+  }
+
+  const handleFocus = () => {
+    setIsFocused(true)
+    // Show raw number when focused for easier editing
+    setLocalValue(value.toString())
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitValue()
+      ;(e.target as HTMLInputElement).blur()
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="text"
+        value={formatDisplayValue(localValue)}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+        className={className}
+      />
+      {suffix && <span className="text-xs text-[#6b7280]">{suffix}</span>}
+    </div>
+  )
+}
 
 interface StrategyBuilderProps {
   profileOnly?: boolean
@@ -45,8 +136,39 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
 
   const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
+  const [sortConfig, setSortConfig] = useState<{ key: 'default' | 'cost'; direction: 'asc' | 'desc' }>({ key: 'default', direction: 'asc' })
   const navigate = useNavigate()
   const { getPropertyTypeTemplate } = useDataAssumptions()
+
+  // Parse currency input (handles "$125,000" format)
+  const parseCurrencyInput = (value: string): number => {
+    const cleaned = value.replace(/[^0-9.-]/g, '')
+    const parsed = parseFloat(cleaned)
+    return isNaN(parsed) ? 0 : parsed
+  }
+
+  // Extract cost from priceRange string (e.g., "$250k-$450k" -> 250000)
+  const extractMinCost = (priceRange: string): number => {
+    const match = priceRange.match(/\$?([\d.]+)([kKmM])?/)
+    if (!match) return 0
+    let value = parseFloat(match[1])
+    const suffix = match[2]?.toLowerCase()
+    if (suffix === 'k') value *= 1000
+    if (suffix === 'm') value *= 1000000
+    return value
+  }
+
+  // Sort properties based on sortConfig
+  const sortedProperties = useMemo(() => {
+    if (sortConfig.key === 'default') {
+      return propertyTypes
+    }
+    return [...propertyTypes].sort((a, b) => {
+      const costA = extractMinCost(a.priceRange)
+      const costB = extractMinCost(b.priceRange)
+      return sortConfig.direction === 'asc' ? costA - costB : costB - costA
+    })
+  }, [propertyTypes, sortConfig])
 
   const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
     addCustomBlock(block)
@@ -89,10 +211,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ depositPool: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">$10k</span>
-            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.depositPool)}</span>
-            <span className="text-xs text-[#6b7280]">$500k</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">$10k</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.depositPool}
+                onChange={(val) => updateProfile({ depositPool: val })}
+                min={10000}
+                max={500000}
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">$500k</span>
           </div>
         </div>
         <div className="mb-5">
@@ -115,10 +244,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ borrowingCapacity: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">$100k</span>
-            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.borrowingCapacity)}</span>
-            <span className="text-xs text-[#6b7280]">$2M</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">$100k</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.borrowingCapacity}
+                onChange={(val) => updateProfile({ borrowingCapacity: val })}
+                min={100000}
+                max={2000000}
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">$2M</span>
           </div>
         </div>
         <div className="mb-5">
@@ -141,10 +277,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ portfolioValue: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.portfolioValue)}</span>
-            <span className="text-xs text-[#6b7280]">$5M</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">$0</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.portfolioValue}
+                onChange={(val) => updateProfile({ portfolioValue: val })}
+                min={0}
+                max={5000000}
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">$5M</span>
           </div>
         </div>
         <div className="mb-5">
@@ -167,10 +310,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ currentDebt: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.currentDebt)}</span>
-            <span className="text-xs text-[#6b7280]">$4M</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">$0</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.currentDebt}
+                onChange={(val) => updateProfile({ currentDebt: val })}
+                min={0}
+                max={4000000}
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">$4M</span>
           </div>
         </div>
         <div className="mb-5">
@@ -193,19 +343,24 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ annualSavings: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">$0</span>
-            <span className="text-xs text-[#6b7280]">{formatCurrency(profile.annualSavings)}</span>
-            <span className="text-xs text-[#6b7280]">$100k</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">$0</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.annualSavings}
+                onChange={(val) => updateProfile({ annualSavings: val })}
+                min={0}
+                max={100000}
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">$100k</span>
           </div>
         </div>
         {/* Investment Goals Section */}
         <div className="mb-5">
           {/* Equity Goal Slider */}
           <div className="mb-3">
-            <div className="mb-1">
-              <span className="text-xs text-[#374151]">Equity Goal</span>
-            </div>
+            <span className="text-xs text-[#374151] block mb-1">Equity Goal</span>
             <div className="relative mb-2">
               <input
                 type="range"
@@ -222,15 +377,22 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 onChange={(e) => handleEquityGoalChange(parseInt(e.target.value))}
               />
             </div>
-            <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{formatCurrency(profile.equityGoal)}</span>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-[#6b7280] w-16 text-left">$0</span>
+              <div className="flex-1 flex justify-center">
+                <BufferedStrategyInput
+                  value={profile.equityGoal}
+                  onChange={(val) => handleEquityGoalChange(val)}
+                  min={0}
+                  max={5000000}
+                />
+              </div>
+              <span className="text-xs text-[#6b7280] w-16 text-right">$5M</span>
             </div>
           </div>
           {/* Cashflow Goal Slider */}
           <div>
-            <div className="mb-1">
-              <span className="text-xs text-[#374151]">Cashflow Goal (Annual)</span>
-            </div>
+            <span className="text-xs text-[#374151] block mb-1">Cashflow Goal (Annual)</span>
             <div className="relative mb-2">
               <input
                 type="range"
@@ -247,8 +409,17 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 onChange={(e) => handleCashflowGoalChange(parseInt(e.target.value))}
               />
             </div>
-            <div className="flex justify-end mt-1">
-              <span className="text-xs text-[#374151]">{formatCurrency(profile.cashflowGoal)}</span>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-[#6b7280] w-16 text-left">$0</span>
+              <div className="flex-1 flex justify-center">
+                <BufferedStrategyInput
+                  value={profile.cashflowGoal}
+                  onChange={(val) => handleCashflowGoalChange(val)}
+                  min={0}
+                  max={200000}
+                />
+              </div>
+              <span className="text-xs text-[#6b7280] w-16 text-right">$200k</span>
             </div>
           </div>
         </div>
@@ -272,10 +443,20 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
               onChange={(e) => updateProfile({ timelineYears: parseInt(e.target.value) })}
             />
           </div>
-          <div className="flex justify-between mt-2">
-            <span className="text-xs text-[#6b7280]">5 years</span>
-            <span className="text-xs text-[#6b7280]">{profile.timelineYears} years</span>
-            <span className="text-xs text-[#6b7280]">30 years</span>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs text-[#6b7280] w-16 text-left">5 yrs</span>
+            <div className="flex-1 flex justify-center">
+              <BufferedStrategyInput
+                value={profile.timelineYears}
+                onChange={(val) => updateProfile({ timelineYears: val })}
+                min={5}
+                max={30}
+                formatAsCurrency={false}
+                suffix="years"
+                className="w-12 text-center bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 focus:outline-none text-xs text-[#6b7280] font-medium"
+              />
+            </div>
+            <span className="text-xs text-[#6b7280] w-16 text-right">30 yrs</span>
           </div>
         </div>
       </div>
@@ -289,16 +470,36 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     return (
       <div>
         <div className="flex gap-4 mb-6">
-          <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
+          <button 
+            onClick={() => setSortConfig({ key: 'default', direction: 'asc' })}
+            className={`flex items-center gap-2 text-xs px-4 py-2 rounded transition-colors border ${
+              sortConfig.key === 'default' 
+                ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                : 'bg-white text-[#374151] hover:bg-[#f9fafb] border-[#f3f4f6]'
+            }`}
+          >
             <span>All...</span>
           </button>
-          <button className="flex items-center gap-2 text-xs bg-white px-4 py-2 rounded text-[#374151] hover:bg-[#f9fafb] transition-colors border border-[#f3f4f6]">
+          <button 
+            onClick={() => setSortConfig(prev => ({
+              key: 'cost',
+              direction: prev.key === 'cost' && prev.direction === 'asc' ? 'desc' : 'asc'
+            }))}
+            className={`flex items-center gap-2 text-xs px-4 py-2 rounded transition-colors border ${
+              sortConfig.key === 'cost' 
+                ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                : 'bg-white text-[#374151] hover:bg-[#f9fafb] border-[#f3f4f6]'
+            }`}
+          >
             <SlidersIcon size={12} />
             <span>By Cost</span>
+            {sortConfig.key === 'cost' && (
+              sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+            )}
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {propertyTypes.map((property) => {
+          {sortedProperties.map((property) => {
             const isCustomProperty = property.isCustom;
             
             return (

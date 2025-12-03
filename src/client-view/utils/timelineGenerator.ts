@@ -13,6 +13,7 @@ interface BaseTimelineItem {
 interface PropertyTimelineEntry extends BaseTimelineItem {
   type: 'property';
   propertyNumber: number;
+  title: string; // Specific property title (e.g., "Metro House", "Commercial Warehouse")
   purchasePrice: string;
   equity: string;
   yield: string;
@@ -279,6 +280,9 @@ export const generateTimelineData = (
       const nextYear = Math.round(nextProperty.affordableYear || nextProperty.purchaseYear || year + 2);
       const gap = nextYear - year;
       
+      // Get the specific property title, fallback to "Property X" if not available
+      const propertyTitle = property.title || `Property ${propertyNumber}`;
+
       // If gap > 3 years, insert milestone marker at midpoint
       if (gap > 3) {
         const midpointYear = Math.round(year + gap / 2);
@@ -287,6 +291,7 @@ export const generateTimelineData = (
         timelineItems.push({
           type: 'property',
           propertyNumber,
+          title: propertyTitle,
           year,
           purchasePrice,
           equity,
@@ -310,6 +315,7 @@ export const generateTimelineData = (
         timelineItems.push({
           type: 'property',
           propertyNumber,
+          title: propertyTitle,
           year,
           purchasePrice,
           equity,
@@ -321,10 +327,14 @@ export const generateTimelineData = (
         });
       }
     } else {
+      // Get the specific property title for the last property
+      const propertyTitle = property.title || `Property ${propertyNumber}`;
+      
       // Last property
       timelineItems.push({
         type: 'property',
         propertyNumber,
+        title: propertyTitle,
         year,
         purchasePrice,
         equity,

@@ -20,6 +20,7 @@ export interface ScenarioData {
     cashflow: number;
   };
   propertyInstances?: Record<string, PropertyInstanceDetails>;
+  timelineSnapshot?: any[];
   lastSaved: string;
 }
 
@@ -30,6 +31,7 @@ interface ScenarioSaveContextType {
   scenarioId: number | null;
   saveScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
+  setTimelineSnapshot: (snapshot: any[]) => void;
 }
 
 const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
@@ -53,6 +55,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [scenarioId, setScenarioId] = useState<number | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
+  const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
   const loadedClientRef = useRef<number | null>(null);
   const saveInProgressRef = useRef<boolean>(false);
   const loadInProgressRef = useRef<boolean>(false);
@@ -63,9 +66,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       propertySelections: selections,
       investmentProfile: profile,
       propertyInstances: propertyInstanceContext.instances,
+      timelineSnapshot: timelineSnapshot,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, profile, propertyInstanceContext.instances]);
+  }, [selections, profile, propertyInstanceContext.instances, timelineSnapshot]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {
@@ -303,6 +307,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     scenarioId,
     saveScenario,
     loadClientScenario,
+    setTimelineSnapshot,
   };
 
   return (

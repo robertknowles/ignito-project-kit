@@ -7,6 +7,7 @@ import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
+import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { PurchaseEventCard } from './PurchaseEventCard'
 import { GapView } from './GapView'
 import { PauseBlockCard } from './PauseBlockCard'
@@ -168,13 +169,14 @@ export const useTimelineData = () => {
   // Filter out properties with Infinity affordableYear
   const affordableProperties = timelineProperties.filter(p => p.affordableYear !== Infinity);
   
+  // Use Math.floor for consistent calendar year display (2026.5 belongs to 2026)
   const latestPurchaseYear = affordableProperties.length > 0
-    ? Math.max(...affordableProperties.map(p => Math.round(p.affordableYear)))
+    ? Math.max(...affordableProperties.map(p => Math.floor(p.affordableYear)))
     : startYear;
   
   // Get all unique purchase years (excluding Infinity)
   const purchaseYears = affordableProperties.length > 0
-    ? [...new Set(affordableProperties.map(p => Math.round(p.affordableYear)))]
+    ? [...new Set(affordableProperties.map(p => Math.floor(p.affordableYear)))]
     : [];
   
   return {
@@ -190,6 +192,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
   const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections, removePause, updatePauseDuration } = usePropertySelection()
   const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating, calculateAffordabilityForProperty } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
+  const { setTimelineSnapshot } = useScenarioSave()
+  
+  // Sync timeline properties to context for saving
+  useEffect(() => {
+    if (timelineProperties && timelineProperties.length > 0) {
+      setTimelineSnapshot(timelineProperties);
+    }
+  }, [timelineProperties, setTimelineSnapshot]);
   
   // Expose scrollToYear function to parent via ref
   React.useImperativeHandle(ref, () => ({
@@ -216,17 +226,17 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     const defaultGrowthRate = 0.06; // Default 6% for timeline calculations
     
     // Create a map of years to properties for quick lookup
-    // Round affordableYear to nearest integer (2030.5 -> 2031, 2030.3 -> 2030)
+    // Use floor to determine calendar year (2026.5 belongs to 2026, not 2027)
     // Filter out properties with Infinity affordableYear
     const propertyByYear = new Map<number, typeof timelineProperties[0][]>();
     timelineProperties
       .filter(prop => prop.affordableYear !== Infinity)
       .forEach(prop => {
-        const roundedYear = Math.round(prop.affordableYear);
-        if (!propertyByYear.has(roundedYear)) {
-          propertyByYear.set(roundedYear, []);
+        const calendarYear = Math.floor(prop.affordableYear);
+        if (!propertyByYear.has(calendarYear)) {
+          propertyByYear.set(calendarYear, []);
         }
-        propertyByYear.get(roundedYear)!.push(prop);
+        propertyByYear.get(calendarYear)!.push(prop);
       });
 
     // Generate ALL years from 2025 to endYear
@@ -457,7 +467,8 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
   // Combines specific transaction costs with accumulated portfolio metrics
   const createPurchaseSnapshot = (property: any, profile: any): YearBreakdownData => {
     const defaultInterestRate = 0.065; // Default 6.5% for timeline calculations
-    const year = Math.round(property.affordableYear);
+    // Use Math.floor for consistent calendar year display (2026.5 belongs to 2026)
+    const year = Math.floor(property.affordableYear);
     const yearIndex = year - BASE_YEAR;
     const propertyIndex = property.propertyIndex + 1;
     
@@ -714,11 +725,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       // Add property if available
       else if (propertyIndex < sortedProperties.length) {
         const property = sortedProperties[propertyIndex];
-        const currentYear = Math.round(property.affordableYear);
         const nextProperty = sortedProperties[propertyIndex + 1];
-        const nextYear = nextProperty ? Math.round(nextProperty.affordableYear) : null;
         
-        // Check if this is the last property in this year
+        // Use Math.floor to determine calendar year (2026.5 belongs to 2026, not 2027)
+        // This properly handles 6-month increment calculations
+        const currentYear = Math.floor(property.affordableYear);
+        const nextYear = nextProperty ? Math.floor(nextProperty.affordableYear) : null;
+        
+        // Check if this is the last property in this calendar year
         const isLastPropertyInYear = !nextProperty || nextYear !== currentYear;
         
         // Find year data for this year
@@ -732,16 +746,21 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           isLastPropertyInYear,
         });
 
-        // Add gap only after the last property of a year, if there's a gap to the next year
+        // Add gap only after the last property of a year, if there's a genuine multi-year gap to the next purchase
+        // A gap exists only when there's at least one full calendar year between purchases
+        // e.g., 2026 -> 2028 has a gap (2027), but 2026 -> 2027 has no gap
         if (isLastPropertyInYear && nextYear && nextYear > currentYear + 1) {
           const gapStart = currentYear + 1;
           const gapEnd = nextYear - 1;
           
-          timelineElements.push({
-            type: 'gap',
-            startYear: gapStart,
-            endYear: gapEnd,
-          });
+          // Only add gap if there's actually a year gap (gapEnd >= gapStart)
+          if (gapEnd >= gapStart) {
+            timelineElements.push({
+              type: 'gap',
+              startYear: gapStart,
+              endYear: gapEnd,
+            });
+          }
         }
         
         propertyIndex++;
@@ -769,7 +788,8 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
 
     unifiedTimeline.forEach((element, index) => {
       if (element.type === 'purchase' && element.property) {
-        const year = Math.round(element.property.affordableYear);
+        // Use Math.floor for consistent calendar year grouping (2026.5 belongs to 2026)
+        const year = Math.floor(element.property.affordableYear);
         
         if (currentYear !== year) {
           // New year - save previous group if exists

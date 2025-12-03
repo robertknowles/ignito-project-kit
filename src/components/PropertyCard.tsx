@@ -1,5 +1,5 @@
 import React from 'react';
-import { InfoIcon, PlusIcon, MinusIcon } from 'lucide-react';
+import { PlusIcon, MinusIcon } from 'lucide-react';
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
 
 interface PropertyCardProps {
@@ -56,6 +56,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         return 'bg-[#6b7280]';
     }
   };
+
   return <div className={`bg-white rounded-lg p-3 border border-[#f3f4f6] ${selected ? 'bg-[#f9fafb]' : ''} hover:shadow-sm transition-shadow cursor-pointer h-full relative`}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
@@ -64,8 +65,8 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         </div>
       </div>
       <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
-      <div className="text-xs text-[#6b7280] mt-1">
-        Yield: {yieldValue} • Cash Flow: {cashFlow}
+      <div className="text-xs text-gray-500 mt-2">
+        Yield: <span className="font-medium text-gray-900">{yieldValue}</span>
       </div>
       <div className="absolute bottom-3 right-3 flex items-center space-x-2">
         {count > 0 && (
@@ -92,7 +93,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         >
           <MinusIcon size={16} className={`text-[#6b7280] ${count === 0 ? 'opacity-30' : 'opacity-60 hover:opacity-80'}`} />
         </button>
-        <InfoIcon size={16} className="text-[#6b7280] opacity-60" />
       </div>
     </div>;
 };

@@ -46,27 +46,38 @@ export function PropertyTimelinePage({ investmentProfile, propertySelections }: 
         >
           Property Investment Timeline
         </h1>
-        {/* Summary Snapshot Card */}
+        {/* Starting Position Card - Point A */}
         <div className="bg-white rounded-lg border border-gray-200 p-5 mb-8 shadow-sm">
-          <div className="grid grid-cols-4 gap-6 text-sm">
+          {/* Starting Position Header */}
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">A</div>
             <div>
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Starting Position</h3>
+              <p className="text-xs text-gray-500">Your initial capital, borrowing power, and savings capacity</p>
+            </div>
+          </div>
+          {/* Starting Position Metrics */}
+          <div className="grid grid-cols-3 gap-6 text-sm">
+            <div className="bg-gray-50 rounded-md p-3">
               <p className="text-xs text-gray-500 mb-1">Starting Cash</p>
-              <p className="font-semibold text-gray-900">{summaryData.startingCash}</p>
+              <p className="text-lg font-semibold text-gray-900">{summaryData.startingCash}</p>
             </div>
-            <div>
+            <div className="bg-gray-50 rounded-md p-3">
               <p className="text-xs text-gray-500 mb-1">Borrowing Capacity</p>
-              <p className="font-semibold text-gray-900">{summaryData.borrowingCapacity}</p>
+              <p className="text-lg font-semibold text-gray-900">{summaryData.borrowingCapacity}</p>
             </div>
-            <div>
+            <div className="bg-gray-50 rounded-md p-3">
               <p className="text-xs text-gray-500 mb-1">Annual Savings</p>
-              <p className="font-semibold text-gray-900">{summaryData.annualSavings}</p>
+              <p className="text-lg font-semibold text-gray-900">{summaryData.annualSavings}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Goal</p>
-              <p className="font-semibold text-blue-600">
-                {summaryData.goal}
-              </p>
-            </div>
+          </div>
+        </div>
+        {/* Goal Card - Point B (Destination) */}
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-4 mb-8 flex items-center gap-3">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">B</div>
+          <div>
+            <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Your Goal</p>
+            <p className="text-sm font-semibold text-blue-800">{summaryData.goal}</p>
           </div>
         </div>
       </div>
@@ -91,6 +102,7 @@ export function PropertyTimelinePage({ investmentProfile, propertySelections }: 
               <TimelineCard
                 key={`property-${index}`}
                 propertyNumber={item.propertyNumber}
+                title={item.title}
                 year={item.year}
                 purchasePrice={item.purchasePrice}
                 equity={item.equity}

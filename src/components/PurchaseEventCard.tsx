@@ -7,6 +7,13 @@ import { PropertyDetailModal } from './PropertyDetailModal';
 import { DecisionEngineModal } from './DecisionEngineModal';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { YearBreakdownData } from '@/types/property';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 
@@ -37,10 +44,11 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   const propertyDefaults = getPropertyData(propertyType);
   
   // Fallback to safe defaults if both are undefined
+  // Set valuationAtPurchase to purchasePrice by default
   const propertyData = propertyInstance || propertyDefaults || {
     state: 'VIC',
     purchasePrice: yearData.propertyCost || 350000,
-    valuationAtPurchase: (yearData.propertyCost || 350000) * 1.08,
+    valuationAtPurchase: yearData.propertyCost || 350000, // Default to same as purchase price
     rentPerWeek: 471,
     growthAssumption: 'High',
     lvr: 85,
@@ -203,10 +211,25 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
             <div className="bg-gray-100 rounded p-1.5 flex items-center justify-center">
               {getPropertyTypeIcon(propertyType, 24, 'text-gray-400')}
             </div>
-            <span className="text-sm">
+            <span className="text-sm flex items-center">
               <span className="font-medium text-gray-900">{propertyType}</span>
               <span className="text-gray-400 mx-1">|</span>
-              <span className="text-gray-600">Growth: {propertyData.growthAssumption}</span>
+              <span className="text-gray-600 flex items-center gap-1">
+                Growth:
+                <Select
+                  value={propertyData.growthAssumption}
+                  onValueChange={(val) => handleFieldUpdate('growthAssumption', val)}
+                >
+                  <SelectTrigger className="h-6 w-auto px-2 text-xs border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </span>
             </span>
           </div>
           

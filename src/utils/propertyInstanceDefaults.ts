@@ -18,6 +18,7 @@ const propertyTypeToKey = (propertyType: string): string => {
 /**
  * Gets default values for a property instance based on property type
  * NO LONGER uses global assumptions - each property type has its own template with all fields
+ * Note: valuationAtPurchase is set to purchasePrice by default
  */
 export const getPropertyInstanceDefaults = (
   propertyType: string
@@ -31,20 +32,22 @@ export const getPropertyInstanceDefaults = (
     return createMinimalDefaults();
   }
   
-  // Return the template as-is (no global overrides)
+  // Return the template with valuationAtPurchase defaulting to purchasePrice
   return {
     ...defaults,
+    valuationAtPurchase: defaults.purchasePrice, // Default valuation to purchase price
   };
 };
 
 /**
  * Creates minimal defaults when property type not found
+ * Note: valuationAtPurchase defaults to purchasePrice
  */
 const createMinimalDefaults = (): PropertyInstanceDetails => {
   return {
     state: 'VIC',
     purchasePrice: 350000,
-    valuationAtPurchase: 380000,
+    valuationAtPurchase: 350000, // Default to same as purchase price
     rentPerWeek: 480,
     growthAssumption: 'High',
     minimumYield: 6.5,

@@ -29,9 +29,11 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
     const defaults = getPropertyInstanceDefaults(propertyType);
     
     // Ensure state is always set (fallback to VIC if missing)
+    // Set valuationAtPurchase to purchasePrice by default so users don't have to manually enter it
     const instanceWithState: PropertyInstanceDetails = {
       ...defaults,
       state: defaults.state || 'VIC',
+      valuationAtPurchase: defaults.purchasePrice,
     };
     
     console.log(`Created instance ${instanceId} with state: ${instanceWithState.state}`);

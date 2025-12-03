@@ -111,10 +111,15 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         // Create instance with template defaults
         createInstance(instanceId, propertyType, 1);
         // Use template defaults immediately while instance is being created
+        // Set valuationAtPurchase to purchasePrice for new instances
         const template = getPropertyTypeTemplate(propertyType);
         if (template) {
-          setFormData(template);
-          setInitialFormData(template);
+          const templateWithDefaultValuation = {
+            ...template,
+            valuationAtPurchase: template.purchasePrice, // Default valuation to purchase price
+          };
+          setFormData(templateWithDefaultValuation);
+          setInitialFormData(templateWithDefaultValuation);
         }
       } else {
         setFormData(instance);
