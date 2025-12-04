@@ -44,9 +44,9 @@ export const Dashboard = () => {
     }
   };
 
-  return <div className="flex h-screen overflow-hidden bg-white">
+  return <div className="flex h-full overflow-hidden bg-white">
       {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
-      <div className="w-2/5 h-screen p-4">
+      <div className="w-2/5 h-full p-4">
         <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden h-full flex flex-col">
           <div className="flex-1 overflow-y-auto scrollable-content">
             {/* Client Investment Profile Pane */}
@@ -98,7 +98,7 @@ export const Dashboard = () => {
       </div>
       
       {/* Right Side - Results Analysis with Fixed Header */}
-      <div className="w-3/5 h-screen overflow-y-auto p-4 scrollable-content">
+      <div className="w-3/5 h-full overflow-hidden p-4">
         <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden flex flex-col h-full">
           {/* Fixed Header Section */}
           <div className="flex-shrink-0 bg-white">
@@ -109,16 +109,16 @@ export const Dashboard = () => {
             {/* Tabs */}
             <div className="flex border-b border-[#f3f4f6]">
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'timeline' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('timeline')}>
-                Timeline
+                Purchase Timeline
               </button>
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'portfolio' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'portfolio' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('portfolio')}>
                 Portfolio Growth
               </button>
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'cashflow' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'cashflow' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('cashflow')}>
-                Cashflow Chart
+                Portfolio Cashflow
               </button>
               <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'per-property' ? 'border-b-2' : 'text-[#6b7280] hover:text-[#374151]'}`} style={activeTab === 'per-property' ? { color: '#87B5FA', borderColor: '#87B5FA' } : {}} onClick={() => handleTabChange('per-property')}>
-                Per-Property
+                Per Property Stats
               </button>
               {SHOW_ADVANCED_TABS && (
                 <button className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#6b7280] hover:text-[#374151]'}`} onClick={() => handleTabChange('analysis')}>

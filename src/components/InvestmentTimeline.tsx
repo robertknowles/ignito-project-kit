@@ -870,7 +870,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       <div className="flex items-center gap-3 mb-8">
         <CalendarIcon size={16} className="text-[#6b7280]" />
         <h3 className="text-[#111827] font-medium text-sm">
-          Investment Timeline with Decision Engine
+          Investment Timeline
         </h3>
       </div>
 
@@ -884,7 +884,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           {/* Timeline Layout */}
           <div className="flex gap-6">
             {/* Property Cards and Gaps */}
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 space-y-6 min-w-0">
               {timelineByYear.map((group, groupIndex) => (
                 <div
                   key={`section-${group.year}-${groupIndex}`}

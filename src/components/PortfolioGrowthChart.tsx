@@ -58,6 +58,10 @@ export const PortfolioGrowthChart = () => {
   // Custom dot component that shows property icons with offset for multiple properties in same year
   const CustomizedDot = (props: any) => {
     const { cx, cy, payload } = props
+    
+    // Protect against invalid coordinates during initial render/resize
+    if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null
+    
     if (!payload.properties || payload.properties.length === 0) {
       return null
     }
@@ -251,6 +255,7 @@ export const PortfolioGrowthChart = () => {
                 strokeWidth: 1,
                 fill: 'white',
               }}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"

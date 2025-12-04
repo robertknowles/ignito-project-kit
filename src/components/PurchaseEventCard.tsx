@@ -240,7 +240,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
               className="text-sm hover:underline"
               style={{ color: '#87B5FA' }}
             >
-              [ Expand Full Details → ]
+              [ Expand for Full Property Details → ]
             </button>
             {showDecisionEngine && (
               <button

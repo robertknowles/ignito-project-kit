@@ -12,7 +12,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
-import { ExportPDFButton } from './ExportPDFButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -148,41 +147,14 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {(location.pathname === '/dashboard' || location.pathname === '/') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <ExportPDFButton iconOnly />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export PDF</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <SaveButton iconOnly />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Save Scenario</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
-                onClick={handleViewClientReport}
-              >
-                <ExternalLink size={15} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>View Client Report</p>
-            </TooltipContent>
-          </Tooltip>
+          <SaveButton />
+          <button
+            onClick={handleViewClientReport}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+          >
+            <ExternalLink size={16} />
+            <span>Client Report</span>
+          </button>
           <div className="relative" ref={dropdownRef}>
             <Tooltip>
               <TooltipTrigger asChild>
