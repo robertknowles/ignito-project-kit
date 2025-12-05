@@ -18,9 +18,35 @@ export interface ScenarioData {
     timelineYears: number;
     equityGrowth: number;
     cashflow: number;
+    equityGoal?: number;
+    cashflowGoal?: number;
+    targetYear?: number;
+    growthCurve?: {
+      year1: number;
+      years2to3: number;
+      year4: number;
+      year5plus: number;
+    };
   };
   propertyInstances?: Record<string, PropertyInstanceDetails>;
   timelineSnapshot?: any[];
+  // Pre-calculated chart data for Client Report consistency
+  chartData?: {
+    portfolioGrowthData: Array<{
+      year: string;
+      portfolioValue: number;
+      equity: number;
+      properties?: string[];
+    }>;
+    cashflowData: Array<{
+      year: string;
+      cashflow: number;
+      rentalIncome: number;
+      loanRepayments: number;
+    }>;
+    equityGoalYear: number | null;
+    incomeGoalYear: number | null;
+  };
   lastSaved: string;
 }
 
@@ -32,6 +58,7 @@ interface ScenarioSaveContextType {
   saveScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
   setTimelineSnapshot: (snapshot: any[]) => void;
+  setChartData: (chartData: ScenarioData['chartData']) => void;
 }
 
 const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
@@ -56,6 +83,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [scenarioId, setScenarioId] = useState<number | null>(null);
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
   const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<ScenarioData['chartData'] | undefined>(undefined);
   const loadedClientRef = useRef<number | null>(null);
   const saveInProgressRef = useRef<boolean>(false);
   const loadInProgressRef = useRef<boolean>(false);
@@ -67,9 +95,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       investmentProfile: profile,
       propertyInstances: propertyInstanceContext.instances,
       timelineSnapshot: timelineSnapshot,
+      chartData: chartData,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, profile, propertyInstanceContext.instances, timelineSnapshot]);
+  }, [selections, profile, propertyInstanceContext.instances, timelineSnapshot, chartData]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {
@@ -308,6 +337,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     saveScenario,
     loadClientScenario,
     setTimelineSnapshot,
+    setChartData,
   };
 
   return (

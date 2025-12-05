@@ -9,11 +9,30 @@ interface PropertySelection {
   [key: string]: any;
 }
 
+interface ChartData {
+  portfolioGrowthData: Array<{
+    year: string;
+    portfolioValue: number;
+    equity: number;
+    properties?: string[];
+  }>;
+  cashflowData: Array<{
+    year: string;
+    cashflow: number;
+    rentalIncome: number;
+    loanRepayments: number;
+  }>;
+  equityGoalYear: number | null;
+  incomeGoalYear: number | null;
+}
+
 interface ScenarioData {
   id: string;
   client_id: string;
   investmentProfile: InvestmentProfile;
   propertySelections: PropertySelection[];
+  timelineSnapshot?: any[];
+  chartData?: ChartData;
   created_at: string;
   updated_at: string;
   client_display_name: string;
@@ -69,23 +88,67 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           throw new Error('Failed to parse scenario data');
         }
 
-        // Extract investmentProfile and propertySelections
+        // Extract investmentProfile, propertySelections, timelineSnapshot, and chartData
         const investmentProfile = parsedData.investmentProfile || {};
         const rawPropertySelections = parsedData.propertySelections || {};
         const propertyInstances = parsedData.propertyInstances || {};
+        const timelineSnapshot = parsedData.timelineSnapshot || [];
+        const chartData = parsedData.chartData as ChartData | undefined;
 
         console.log('useSharedScenario: rawPropertySelections type:', Array.isArray(rawPropertySelections) ? 'array' : 'object');
         console.log('useSharedScenario: propertyInstances count:', Object.keys(propertyInstances).length);
+        console.log('useSharedScenario: timelineSnapshot count:', timelineSnapshot.length);
+        console.log('useSharedScenario: chartData present:', !!chartData);
 
-        // Convert propertySelections from object format to array format
-        // The saved format is { "property_0": 2, "property_1": 1 } (propertyId => quantity)
-        // We need to convert it to an array of property objects for the client view
+        // Convert propertySelections from various formats to array format
+        // Priority order:
+        // 1. timelineSnapshot (contains real property titles from dashboard)
+        // 2. rawPropertySelections as array (backward compatibility)
+        // 3. rawPropertySelections as object (convert using propertyInstances)
         const propertySelections: PropertySelection[] = [];
         
-        // Check if propertySelections is already an array (for backward compatibility)
-        if (Array.isArray(rawPropertySelections)) {
+        // PRIORITY 1: Use timelineSnapshot if available - it has real property titles!
+        if (timelineSnapshot && timelineSnapshot.length > 0) {
+          console.log('useSharedScenario: Using timelineSnapshot for property data (has real titles)');
+          
+          // Filter for feasible properties and convert to PropertySelection format
+          timelineSnapshot
+            .filter((tp: any) => tp.status === 'feasible')
+            .forEach((tp: any) => {
+              // Calculate rental yield from cashflow data if available
+              let yieldValue = '4.0%';
+              if (tp.grossRentalIncome && tp.cost) {
+                const calculatedYield = (tp.grossRentalIncome / tp.cost) * 100;
+                yieldValue = `${calculatedYield.toFixed(1)}%`;
+              }
+              
+              propertySelections.push({
+                id: tp.instanceId || tp.id,
+                title: tp.title, // Real property title from dashboard!
+                cost: tp.cost,
+                purchaseYear: Math.floor(tp.affordableYear),
+                affordableYear: tp.affordableYear,
+                status: tp.status,
+                loanAmount: tp.loanAmount,
+                depositRequired: tp.depositRequired,
+                netCashflow: tp.netCashflow,
+                grossRentalIncome: tp.grossRentalIncome,
+                yield: yieldValue,
+                rentalYield: tp.grossRentalIncome && tp.cost ? (tp.grossRentalIncome / tp.cost) * 100 : 4.0,
+                growth: '6', // Default growth rate
+                portfolioValueAfter: tp.portfolioValueAfter,
+                totalEquityAfter: tp.totalEquityAfter,
+              });
+            });
+        }
+        // PRIORITY 2: Check if propertySelections is already an array (backward compatibility)
+        else if (Array.isArray(rawPropertySelections)) {
+          console.log('useSharedScenario: Using rawPropertySelections array');
           propertySelections.push(...rawPropertySelections);
-        } else {
+        } 
+        // PRIORITY 3: Convert object format to array (legacy format)
+        else {
+          console.log('useSharedScenario: Converting rawPropertySelections object to array');
           // Convert object format to array
           // First, collect all property instances with their IDs
           const allInstances: Array<{instanceKey: string, instanceData: any, propertyId: string, instanceIndex: number}> = [];
@@ -145,7 +208,10 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           });
         }
 
-        console.log('useSharedScenario: converted propertySelections to array with', propertySelections.length, 'properties');
+        console.log('useSharedScenario: Final propertySelections array with', propertySelections.length, 'properties');
+        if (propertySelections.length > 0) {
+          console.log('useSharedScenario: First property title:', propertySelections[0].title);
+        }
 
         // Construct the scenario object
         const scenarioData: ScenarioData = {
@@ -153,6 +219,8 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           client_id: data.client_id,
           investmentProfile,
           propertySelections,
+          timelineSnapshot,
+          chartData,
           created_at: data.created_at,
           updated_at: data.updated_at,
           client_display_name: data.client_display_name || 'Client',

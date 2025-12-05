@@ -10,6 +10,7 @@ import { PropertyCard } from './PropertyCard';
 import { PerPropertyTracking } from './PerPropertyTracking';
 import { ChevronDownIcon, ChevronUpIcon, ClipboardIcon, SlidersIcon } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { useChartDataSync } from '../hooks/useChartDataSync';
 
 // Feature flag to show/hide advanced analysis tabs
 const SHOW_ADVANCED_TABS = false;
@@ -32,6 +33,9 @@ export const Dashboard = () => {
   
   const { calculations } = usePropertySelection();
   
+  // Sync chart data to scenario save context for Client Report consistency
+  useChartDataSync();
+  
   // Ref for InvestmentTimeline to call scrollToYear
   const timelineRef = useRef<{ scrollToYear: (year: number) => void }>(null);
   
@@ -44,9 +48,12 @@ export const Dashboard = () => {
     }
   };
 
-  return <div className="flex h-full overflow-hidden bg-white">
-      {/* Left Side - Strategy Builder with Vertical Expandable Panes */}
-      <div className="w-2/5 h-full p-4">
+  // Root: Fills the App.tsx container exactly.
+  // Using 'h-full' instead of 'h-screen' to respect parent container.
+  // Background matches navbar color (#f9fafb) so gap between panels blends with navbar
+  return <div className="flex h-full w-full gap-4 bg-[#f9fafb]">
+      {/* LEFT COLUMN: Input Panel */}
+      <div className="w-2/5 h-full flex flex-col">
         <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden h-full flex flex-col">
           <div className="flex-1 overflow-y-auto scrollable-content">
             {/* Client Investment Profile Pane */}
@@ -66,7 +73,7 @@ export const Dashboard = () => {
                 </div>
               </div>
               <div className={`transition-all duration-300 ease-in-out overflow-hidden ${profileExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-6 pt-0 bg-[#f9fafb]">
+                <div className="p-6 pt-0 bg-white">
                   <StrategyBuilder profileOnly={true} />
                 </div>
               </div>
@@ -97,11 +104,11 @@ export const Dashboard = () => {
         </div>
       </div>
       
-      {/* Right Side - Results Analysis with Fixed Header */}
-      <div className="w-3/5 h-full overflow-hidden p-4">
-        <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden flex flex-col h-full">
-          {/* Fixed Header Section */}
-          <div className="flex-shrink-0 bg-white">
+      {/* RIGHT COLUMN: Output Panel */}
+      <div className="w-3/5 h-full flex flex-col">
+        <div className="bg-white rounded-lg border border-[#f3f4f6] overflow-hidden h-full flex flex-col">
+          {/* 1. Fixed Header (Summary + Tabs) */}
+          <div className="flex-shrink-0 bg-white border-b border-[#f3f4f6]">
             {/* Summary Bar */}
             <div className="border-b border-[#f3f4f6]">
               <SummaryBar />
@@ -143,8 +150,9 @@ export const Dashboard = () => {
             )}
           </div>
           
-          {/* Scrollable Content Section */}
-          <div className="flex-1 overflow-y-auto scrollable-content">
+          {/* 2. Scrollable Timeline Area */}
+          {/* 'flex-1' makes it fill remaining height. 'min-h-0' prevents flex overflow bugs. */}
+          <div className="flex-1 overflow-y-auto min-h-0 scrollable-content">
             <div className="w-full max-w-7xl mx-auto px-6 py-6">
               {activeTab === 'timeline' && <InvestmentTimeline ref={timelineRef} />}
               {activeTab === 'portfolio' && <PortfolioGrowthChart />}

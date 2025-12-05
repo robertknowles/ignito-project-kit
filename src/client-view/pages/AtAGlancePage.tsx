@@ -11,12 +11,30 @@ import {
 } from '../../utils/metricsCalculator';
 import type { PropertyPurchase, GrowthCurve } from '../../types/property';
 
+interface ChartData {
+  portfolioGrowthData: Array<{
+    year: string;
+    portfolioValue: number;
+    equity: number;
+    properties?: string[];
+  }>;
+  cashflowData: Array<{
+    year: string;
+    cashflow: number;
+    rentalIncome: number;
+    loanRepayments: number;
+  }>;
+  equityGoalYear: number | null;
+  incomeGoalYear: number | null;
+}
+
 interface AtAGlancePageProps {
   investmentProfile: any;
   propertySelections: any[];
+  chartData?: ChartData;
 }
 
-export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlancePageProps) {
+export function AtAGlancePage({ investmentProfile, propertySelections, chartData }: AtAGlancePageProps) {
   // Format currency helper
   const formatCurrency = (value: number): string => {
     if (value >= 1000000) {
@@ -52,8 +70,35 @@ export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlan
   const existingDebt = investmentProfile?.existingDebt || 0;
   const existingRentalYield = investmentProfile?.existingRentalYield || 0.04; // 4% default
 
-  // Calculate chart data using useMemo
+  // Use pre-calculated chart data from dashboard if available (ensures exact match)
+  // Otherwise fall back to calculating from propertySelections
   const { portfolioData, cashflowData, equityGoalYear, incomeGoalYear } = useMemo(() => {
+    // If we have pre-calculated chart data from the dashboard, use it directly
+    if (chartData && chartData.portfolioGrowthData && chartData.portfolioGrowthData.length > 0) {
+      console.log('AtAGlancePage: Using pre-calculated chart data from dashboard');
+      
+      // Convert dashboard format (year as string) to component format (year as number)
+      const portfolioDataArr = chartData.portfolioGrowthData.map(d => ({
+        year: parseInt(d.year, 10),
+        portfolioValue: d.portfolioValue,
+        equity: d.equity,
+      }));
+      
+      const cashflowDataArr = chartData.cashflowData.map(d => ({
+        year: parseInt(d.year, 10),
+        cashflow: d.cashflow,
+      }));
+      
+      return {
+        portfolioData: portfolioDataArr,
+        cashflowData: cashflowDataArr,
+        equityGoalYear: chartData.equityGoalYear,
+        incomeGoalYear: chartData.incomeGoalYear,
+      };
+    }
+
+    // Fallback: Calculate from propertySelections (legacy behavior for older saved scenarios)
+    console.log('AtAGlancePage: Falling back to calculating chart data from propertySelections');
     const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: number }> = [];
     const cashflowDataArr: Array<{ year: number; cashflow: number }> = [];
     
@@ -64,13 +109,30 @@ export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlan
       let rentalYield = 0.04; // Default 4%
       if (typeof p.rentalYield === 'number') {
         rentalYield = p.rentalYield > 1 ? p.rentalYield / 100 : p.rentalYield;
+      } else if (typeof p.rentalYield === 'string') {
+        rentalYield = parseFloat(p.rentalYield) / 100 || 0.04;
       } else if (typeof p.yield === 'string') {
         rentalYield = parseFloat(p.yield) / 100 || 0.04;
+      } else if (typeof p.yield === 'number') {
+        rentalYield = p.yield > 1 ? p.yield / 100 : p.yield;
       }
       
       // Estimate loan amount as 90% LVR if not provided
       const loanAmount = p.loanAmount || cost * 0.90;
       
+      // Parse growth rate - handle both number and string formats
+      let growthRate = defaultGrowthRate;
+      if (typeof p.growth === 'number') {
+        growthRate = p.growth > 1 ? p.growth / 100 : p.growth;
+      } else if (typeof p.growth === 'string') {
+        const parsed = parseFloat(p.growth);
+        if (!isNaN(parsed)) {
+          growthRate = parsed > 1 ? parsed / 100 : parsed;
+        }
+      } else if (typeof p.growthRate === 'number') {
+        growthRate = p.growthRate > 1 ? p.growthRate / 100 : p.growthRate;
+      }
+
       return {
         year: p.purchaseYear || p.affordableYear || startYear + 1,
         cost,
@@ -78,7 +140,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlan
         depositRequired: cost - loanAmount,
         title: p.title || p.id || 'Property',
         rentalYield,
-        growthRate: parseFloat(p.growth) / 100 || defaultGrowthRate,
+        growthRate,
         interestRate: p.interestRate || defaultInterestRate,
       };
     });
@@ -148,6 +210,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections }: AtAGlan
       incomeGoalYear: foundIncomeGoalYear,
     };
   }, [
+    chartData,
     investmentProfile, 
     propertySelections, 
     equityGoal, 

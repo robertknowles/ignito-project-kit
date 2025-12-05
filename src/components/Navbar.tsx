@@ -150,7 +150,7 @@ export const Navbar = () => {
           <SaveButton />
           <button
             onClick={handleViewClientReport}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+            className="flex items-center gap-2 px-4 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
           >
             <ExternalLink size={16} />
             <span>Client Report</span>

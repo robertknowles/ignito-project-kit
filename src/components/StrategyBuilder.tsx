@@ -547,9 +547,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                   <Pause size={16} className="text-gray-400" />
                   Pause Period
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Strategic pause in acquisitions
-                </p>
               </div>
             </div>
             
@@ -595,10 +592,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                   +
                 </button>
               </div>
-            </div>
-            
-            <div className="text-xs text-gray-400 mt-3">
-              {pauseCount} pause{pauseCount !== 1 ? 's' : ''} added to timeline
             </div>
           </div>
         </div>

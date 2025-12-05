@@ -61,6 +61,7 @@ export const ClientView = () => {
       key="glance"
       investmentProfile={scenario.investmentProfile}
       propertySelections={scenario.propertySelections}
+      chartData={scenario.chartData}
     />,
     <PropertyTimelinePage 
       key="timeline"

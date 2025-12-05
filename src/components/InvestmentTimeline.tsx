@@ -41,13 +41,12 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
   const currentYear = new Date().getFullYear();
   
   return (
-    <div className="border-b border-[#f3f4f6] py-3 px-6">
-      <div className="flex items-center justify-start overflow-x-auto">
+    <div className="py-3 px-6">
+      {/* Responsive flex container: wraps to multiple lines, no horizontal scrollbar */}
+      <div className="flex flex-wrap gap-1.5">
         {years.map((year, index) => {
-          const isLast = index === years.length - 1;
           const isPast = year < currentYear;
           const isPurchaseYear = purchaseYears.includes(year);
-          const isFuture = !isPast && !isPurchaseYear;
           
           // Find if this year is between purchase years
           const minPurchaseYear = purchaseYears.length > 0 ? Math.min(...purchaseYears) : Infinity;
@@ -55,46 +54,42 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
           const isBetweenPurchases = year > minPurchaseYear && year < maxPurchaseYear && !isPurchaseYear;
           
           // Determine colors based on the state
-          let bgColor = '#ffffff'; // White for future years
+          let bgColor = '#f3f4f6'; // Light gray for future years
           let textColor = '#6b7280'; // Gray text for future
+          let borderColor = '#e5e7eb'; // Border for future years
           
           if (isPast) {
             bgColor = '#9ca3af'; // Grey for past years
             textColor = '#ffffff'; // White text
+            borderColor = '#9ca3af';
           } else if (isPurchaseYear) {
             bgColor = '#87B5FA'; // Blue for purchase years
             textColor = '#ffffff'; // White text
+            borderColor = '#87B5FA';
           } else if (isBetweenPurchases) {
             bgColor = '#d1d5db'; // Darker grey for years between purchases
             textColor = '#4b5563'; // Darker text color
+            borderColor = '#d1d5db';
           }
           
           return (
-            <div key={year} className="relative" style={{ marginRight: isLast ? '0' : '-8px' }}>
-              <button
-                onClick={() => onYearClick(year)}
-                className="relative transition-all hover:opacity-80 flex items-center justify-center font-medium whitespace-nowrap"
-                style={{
-                  backgroundColor: bgColor,
-                  color: textColor,
-                  height: '36px',
-                  paddingLeft: index === 0 ? '16px' : '24px',
-                  paddingRight: isLast ? '16px' : '24px',
-                  clipPath: isLast 
-                    ? (index === 0 ? 'none' : 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)')
-                    : (index === 0 
-                      ? 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)'
-                      : 'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)'),
-                  fontSize: '14px',
-                  border: 'none',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  zIndex: years.length - index,
-                }}
-              >
-                {year}
-              </button>
-            </div>
+            <button
+              key={year}
+              onClick={() => onYearClick(year)}
+              className="transition-all hover:opacity-80 hover:scale-105 flex items-center justify-center font-medium rounded-full"
+              style={{
+                backgroundColor: bgColor,
+                color: textColor,
+                border: `1px solid ${borderColor}`,
+                height: '32px',
+                minWidth: '52px',
+                padding: '0 12px',
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              {year}
+            </button>
           );
         })}
       </div>
