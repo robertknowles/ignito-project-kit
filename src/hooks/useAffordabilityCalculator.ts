@@ -51,7 +51,7 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, propertyTypes, pauseBlocks } = usePropertySelection();
+  const { selections, propertyTypes, pauseBlocks, propertyOrder } = usePropertySelection();
   const { globalFactors, getPropertyData, propertyAssumptions, getPropertyTypeTemplate } = useDataAssumptions();
   const { activeClient } = useClient();
   const { getInstance, createInstance, instances } = usePropertyInstance();
@@ -850,7 +850,13 @@ export const useAffordabilityCalculator = () => {
         }
       }
       
-      for (let period = 1; period <= maxPeriods + pausePeriodsToAdd; period++) {
+      // FIFO ORDERING: Each property must be purchased at or after the previous property's period
+      // This ensures properties are added in the order the user specified
+      const minPeriod = previousPurchases.length > 0 
+        ? previousPurchases[previousPurchases.length - 1].period 
+        : 1;
+      
+      for (let period = minPeriod; period <= maxPeriods + pausePeriodsToAdd; period++) {
         iterationCount++;
         if (iterationCount > maxIterations) {
           console.error('[SAFETY] Max iterations exceeded in determineNextPurchasePeriod');
@@ -924,21 +930,39 @@ export const useAffordabilityCalculator = () => {
     };
 
     // Main calculation logic - Create a list of all properties to purchase
+    // Use propertyOrder to maintain user-defined insertion order (FIFO)
     const allPropertiesToPurchase: Array<{ property: any; index: number; instanceId: string }> = [];
     
-    Object.entries(selections).forEach(([propertyId, quantity]) => {
-      if (quantity > 0) {
-        const property = propertyTypes.find(p => p.id === propertyId);
-        if (property) {
-          for (let i = 0; i < quantity; i++) {
-            // Generate a stable instanceId for this property (based on propertyId and index)
-            // This ensures the same property in the same position keeps its loan type setting
-            const instanceId = `${propertyId}_instance_${i}`;
-            allPropertiesToPurchase.push({ property, index: i, instanceId });
+    // If propertyOrder is available and non-empty, use it to determine order
+    if (propertyOrder && propertyOrder.length > 0) {
+      propertyOrder.forEach((instanceId) => {
+        // Parse instanceId format: "propertyId_instance_index"
+        const parts = instanceId.split('_instance_');
+        if (parts.length === 2) {
+          const propertyId = parts[0];
+          const index = parseInt(parts[1], 10);
+          const property = propertyTypes.find(p => p.id === propertyId);
+          if (property) {
+            allPropertiesToPurchase.push({ property, index, instanceId });
           }
         }
-      }
-    });
+      });
+    } else {
+      // Fallback to old behavior if propertyOrder is not available (backwards compatibility)
+      Object.entries(selections).forEach(([propertyId, quantity]) => {
+        if (quantity > 0) {
+          const property = propertyTypes.find(p => p.id === propertyId);
+          if (property) {
+            for (let i = 0; i < quantity; i++) {
+              // Generate a stable instanceId for this property (based on propertyId and index)
+              // This ensures the same property in the same position keeps its loan type setting
+              const instanceId = `${propertyId}_instance_${i}`;
+              allPropertiesToPurchase.push({ property, index: i, instanceId });
+            }
+          }
+        }
+      });
+    }
 
     const timelineProperties: TimelineProperty[] = [];
     let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }> = [];
@@ -1322,13 +1346,14 @@ export const useAffordabilityCalculator = () => {
           cumulativeEquityReleased: 0 // Initialize equity tracking
         });
         
-        // Sort purchase history by period to maintain chronological order
-        purchaseHistory.sort((a, b) => a.period - b.period);
+        // No longer sorting purchaseHistory - FIFO ordering is enforced by minPeriod constraint
+        // Each property is scheduled at or after the previous one, so history is naturally chronological
       }
     });
     
-    // Sort by period for display
-    return timelineProperties.sort((a, b) => a.period - b.period);
+    // Return properties in user-defined order (FIFO - as they were added)
+    // No longer sorting by period - properties stay in the order they were added
+    return timelineProperties;
   }, [
     // Only re-calculate when these specific values change
     selectionsHash,
@@ -1345,6 +1370,7 @@ export const useAffordabilityCalculator = () => {
     timelineLoanTypes,
     getInstance, // Keep getInstance as it depends on instances state
     instances, // CRITICAL: Trigger recalculation when property instances change (e.g., purchasePrice updates)
+    propertyOrder, // CRITICAL: Trigger recalculation when property order changes
     // Removed createInstance - it's stable and shouldn't trigger recalcs
   ]);
 

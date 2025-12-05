@@ -671,10 +671,10 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       duration?: number;
     }> = [];
 
-    // Filter out properties with Infinity affordableYear and sort by affordable year
+    // Keep properties in user-defined order (FIFO) - only filter out unaffordable ones
+    // Do NOT sort by affordableYear - preserve the order properties were added by the user
     const sortedProperties = [...timelineProperties]
-      .filter((p) => p.affordableYear !== Infinity)
-      .sort((a, b) => a.affordableYear - b.affordableYear);
+      .filter((p) => p.affordableYear !== Infinity);
 
     // Build timeline with individual property cards, pause blocks, and gaps
     // We need to insert pause blocks based on their 'order' field

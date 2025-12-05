@@ -66,6 +66,9 @@ interface PropertySelectionContextType {
   propertyTypes: PropertyType[];
   isLoading: boolean;
   
+  // Property order tracking - tracks the order in which properties were added
+  propertyOrder: string[];
+  
   // Pause block management
   pauseBlocks: PauseBlock[];
   addPause: (duration?: number) => void;
@@ -103,6 +106,10 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
   const [customBlocks, setCustomBlocks] = useState<CustomPropertyBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Property order tracking - stores instance IDs in the order they were added
+  const [propertyOrder, setPropertyOrder] = useState<string[]>([]);
+  // Ref to track pending quantity changes to avoid stale closure issues with rapid clicks
+  const pendingQuantityRef = useRef<Record<string, number>>({});
   const { propertyAssumptions } = useDataAssumptions(); // Get profile-level assumptions from DataAssumptionsContext
 
   // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
@@ -136,6 +143,20 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       localStorage.setItem(customBlocksStorageKey, JSON.stringify(customBlocks));
     }
   }, [customBlocks, activeClient?.id]);
+
+  // Save property order to localStorage whenever it changes
+  useEffect(() => {
+    if (activeClient?.id) {
+      const propertyOrderStorageKey = `property_order_${activeClient.id}`;
+      localStorage.setItem(propertyOrderStorageKey, JSON.stringify(propertyOrder));
+    }
+  }, [propertyOrder, activeClient?.id]);
+
+  // Sync the pendingQuantityRef with actual selections state after each render
+  // This ensures the ref stays in sync and handles cases like loading from localStorage
+  useEffect(() => {
+    pendingQuantityRef.current = { ...selections };
+  }, [selections]);
 
   // Convert data assumptions to property types for calculations
   const propertyTypes = useMemo(() => {
@@ -227,18 +248,46 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   }, []);
 
   const incrementProperty = useCallback((propertyId: string) => {
+    // Get the pending quantity (includes uncommitted updates from rapid clicks)
+    // This avoids stale closure issues where selections hasn't updated yet
+    const pendingQty = pendingQuantityRef.current[propertyId] ?? (selections[propertyId] || 0);
+    const instanceId = `${propertyId}_instance_${pendingQty}`;
+    
+    // Update pending immediately (synchronous) to handle rapid clicks
+    pendingQuantityRef.current[propertyId] = pendingQty + 1;
+    
+    // Update both states separately (React will batch these)
     setSelections(prev => ({
       ...prev,
       [propertyId]: (prev[propertyId] || 0) + 1,
     }));
-  }, []);
+    
+    setPropertyOrder(prev => [...prev, instanceId]);
+  }, [selections]);
 
   const decrementProperty = useCallback((propertyId: string) => {
-    setSelections(prev => ({
-      ...prev,
-      [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
-    }));
-  }, []);
+    // Get the pending quantity (includes uncommitted updates from rapid clicks)
+    const pendingQty = pendingQuantityRef.current[propertyId] ?? (selections[propertyId] || 0);
+    if (pendingQty > 0) {
+      const instanceIdToRemove = `${propertyId}_instance_${pendingQty - 1}`;
+      
+      // Update pending immediately (synchronous) to handle rapid clicks
+      pendingQuantityRef.current[propertyId] = pendingQty - 1;
+      
+      setSelections(prev => ({
+        ...prev,
+        [propertyId]: Math.max(0, (prev[propertyId] || 0) - 1),
+      }));
+      
+      setPropertyOrder(prev => {
+        const lastIndex = prev.lastIndexOf(instanceIdToRemove);
+        if (lastIndex !== -1) {
+          return [...prev.slice(0, lastIndex), ...prev.slice(lastIndex + 1)];
+        }
+        return prev;
+      });
+    }
+  }, [selections]);
 
   const getPropertyQuantity = (propertyId: string): number => {
     return selections[propertyId] || 0;
@@ -246,6 +295,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   const resetSelections = () => {
     setSelections({});
+    setPropertyOrder([]);
   };
 
   // Pause block management functions
@@ -354,12 +404,33 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
           setCustomBlocks([]);
         }
         
+        // Load property order
+        const propertyOrderStorageKey = `property_order_${clientId}`;
+        const storedPropertyOrder = localStorage.getItem(propertyOrderStorageKey);
+        if (storedPropertyOrder) {
+          setPropertyOrder(JSON.parse(storedPropertyOrder));
+          console.log('PropertySelectionContext: Loaded property order');
+        } else {
+          // If no property order exists, reconstruct from selections for backwards compatibility
+          // This handles cases where data was saved before propertyOrder was introduced
+          const parsedSelections = stored ? JSON.parse(stored) : {};
+          const reconstructedOrder: string[] = [];
+          Object.entries(parsedSelections).forEach(([propertyId, quantity]) => {
+            for (let i = 0; i < (quantity as number); i++) {
+              reconstructedOrder.push(`${propertyId}_instance_${i}`);
+            }
+          });
+          setPropertyOrder(reconstructedOrder);
+          console.log('PropertySelectionContext: Reconstructed property order from selections');
+        }
+        
         console.log('PropertySelectionContext: Finished loading client data for client', clientId);
       } catch (error) {
         console.error('PropertySelectionContext: Failed to load client data:', error);
         setSelections({});
         setPauseBlocks([]);
         setCustomBlocks([]);
+        setPropertyOrder([]);
       } finally {
         setIsLoading(false);
       }
@@ -377,6 +448,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     resetSelections,
     propertyTypes,
     isLoading,
+    
+    // Property order tracking
+    propertyOrder,
     
     // Pause block management
     pauseBlocks,
