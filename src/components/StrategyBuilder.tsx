@@ -127,7 +127,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
     pauseBlocks,
     addPause,
     removePause,
-    updatePauseDuration,
     getPauseCount,
     customBlocks,
     addCustomBlock,
@@ -137,6 +136,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
   const [sortConfig, setSortConfig] = useState<{ key: 'default' | 'cost'; direction: 'asc' | 'desc' }>({ key: 'default', direction: 'asc' })
+  const [selectedPauseDuration, setSelectedPauseDuration] = useState(1)
   const navigate = useNavigate()
   const { getPropertyTypeTemplate } = useDataAssumptions()
 
@@ -465,7 +465,6 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
   // Render only the property building blocks section
   if (propertyOnly) {
     const pauseCount = getPauseCount();
-    const defaultPauseDuration = pauseBlocks.length > 0 ? pauseBlocks[pauseBlocks.length - 1].duration : 1;
 
     return (
       <div>
@@ -553,13 +552,8 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
             <div className="flex items-center justify-between mt-3">
               <div className="flex-1">
                 <select 
-                  value={defaultPauseDuration}
-                  onChange={(e) => {
-                    const newDuration = parseFloat(e.target.value);
-                    if (pauseBlocks.length > 0) {
-                      updatePauseDuration(pauseBlocks[pauseBlocks.length - 1].id, newDuration);
-                    }
-                  }}
+                  value={selectedPauseDuration}
+                  onChange={(e) => setSelectedPauseDuration(parseFloat(e.target.value))}
                   className="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 w-full"
                 >
                   <option value="0.5">6 months</option>
@@ -586,7 +580,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                   {pauseCount}
                 </span>
                 <button 
-                  onClick={() => addPause(defaultPauseDuration)}
+                  onClick={() => addPause(selectedPauseDuration)}
                   className="w-7 h-7 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
                 >
                   +

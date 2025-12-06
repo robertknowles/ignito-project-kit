@@ -68,6 +68,7 @@ interface PropertySelectionContextType {
   
   // Property order tracking - tracks the order in which properties were added
   propertyOrder: string[];
+  setPropertyOrder: (order: string[]) => void;
   
   // Pause block management
   pauseBlocks: PauseBlock[];
@@ -451,6 +452,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     
     // Property order tracking
     propertyOrder,
+    setPropertyOrder,
     
     // Pause block management
     pauseBlocks,

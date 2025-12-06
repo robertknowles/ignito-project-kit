@@ -9,6 +9,7 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 export interface ScenarioData {
   propertySelections: { [propertyId: string]: number };
+  propertyOrder?: string[]; // Track the chronological order in which properties were added
   investmentProfile: {
     depositPool: number;
     borrowingCapacity: number;
@@ -73,7 +74,7 @@ export const useScenarioSave = () => {
 
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient } = useClient();
-  const { selections, resetSelections, updatePropertyQuantity } = usePropertySelection();
+  const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
 
@@ -92,13 +93,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const getCurrentScenarioData = useCallback((): ScenarioData => {
     return {
       propertySelections: selections,
+      propertyOrder: propertyOrder,
       investmentProfile: profile,
       propertyInstances: propertyInstanceContext.instances,
       timelineSnapshot: timelineSnapshot,
       chartData: chartData,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, profile, propertyInstanceContext.instances, timelineSnapshot, chartData]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {
@@ -260,6 +262,23 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           propertyInstanceContext.setInstances({});
         }
         
+        // Restore property order (chronological order in which properties were added)
+        if (scenarioData.propertyOrder && scenarioData.propertyOrder.length > 0) {
+          console.log('ScenarioSaveContext: Restoring property order with', scenarioData.propertyOrder.length, 'entries');
+          setPropertyOrder(scenarioData.propertyOrder);
+        } else {
+          // Backwards compatibility: reconstruct order from selections if propertyOrder not saved
+          // This groups by property type, so chronological order is lost for legacy data
+          const reconstructedOrder: string[] = [];
+          Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+            for (let i = 0; i < quantity; i++) {
+              reconstructedOrder.push(`${propertyId}_instance_${i}`);
+            }
+          });
+          console.log('ScenarioSaveContext: Reconstructed property order from selections (legacy data)');
+          setPropertyOrder(reconstructedOrder);
+        }
+        
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
@@ -286,7 +305,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       loadInProgressRef.current = false;
     }
-  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext]);
+  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
 
   // Load scenario when activeClient changes
   useEffect(() => {
@@ -319,7 +338,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const savedInstances = JSON.stringify(lastSavedData.propertyInstances || {});
         const hasInstanceChanges = currentInstances !== savedInstances;
         
-        const hasChanges = hasSelectionChanges || hasProfileChanges || hasInstanceChanges;
+        // Check if property order has changed
+        const currentOrder = currentData.propertyOrder || [];
+        const savedOrder = lastSavedData.propertyOrder || [];
+        const hasOrderChanges = currentOrder.length !== savedOrder.length ||
+          currentOrder.some((id, index) => savedOrder[index] !== id);
+        
+        const hasChanges = hasSelectionChanges || hasProfileChanges || hasInstanceChanges || hasOrderChanges;
         setHasUnsavedChanges(hasChanges);
       } else if (activeClient && !lastSavedData) {
         // New client with data = unsaved changes
@@ -327,7 +352,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(hasData);
       }
     }, 150); // 150ms debounce
-  }, [selections, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData]);
 
   const value = {
     hasUnsavedChanges,
