@@ -225,7 +225,7 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           updated_at: data.updated_at,
           client_display_name: data.client_display_name || 'Client',
           agent_display_name: data.agent_display_name || 'Agent',
-          company_display_name: data.company_display_name || 'Ignito',
+          company_display_name: data.company_display_name || 'PropPath',
         };
 
         setScenario(scenarioData);

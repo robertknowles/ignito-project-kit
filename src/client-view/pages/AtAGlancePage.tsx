@@ -32,9 +32,10 @@ interface AtAGlancePageProps {
   investmentProfile: any;
   propertySelections: any[];
   chartData?: ChartData;
+  companyDisplayName?: string;
 }
 
-export function AtAGlancePage({ investmentProfile, propertySelections, chartData }: AtAGlancePageProps) {
+export function AtAGlancePage({ investmentProfile, propertySelections, chartData, companyDisplayName = 'PropPath' }: AtAGlancePageProps) {
   // Format currency helper
   const formatCurrency = (value: number): string => {
     if (value >= 1000000) {
@@ -341,7 +342,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
       </div>
       {/* Footer */}
       <div className="mt-12 flex justify-between items-center">
-        <div className="text-sm font-semibold text-gray-900">IGNITO</div>
+        <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>
         <div className="text-sm text-gray-500">Page 2</div>
       </div>
     </div>

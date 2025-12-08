@@ -12,9 +12,10 @@ import {
 interface StrategyPathwayPageProps {
   investmentProfile: any;
   propertySelections: any[];
+  companyDisplayName?: string;
 }
 
-export function StrategyPathwayPage({ investmentProfile, propertySelections }: StrategyPathwayPageProps) {
+export function StrategyPathwayPage({ investmentProfile, propertySelections, companyDisplayName = 'PropPath' }: StrategyPathwayPageProps) {
   // Analyze portfolio strategy
   const analysis = useMemo(() => {
     return analyzePortfolioStrategy(propertySelections, investmentProfile);
@@ -183,7 +184,7 @@ export function StrategyPathwayPage({ investmentProfile, propertySelections }: S
       </div>
       {/* Footer */}
       <div className="mt-8 flex justify-between items-center">
-        <div className="text-sm font-semibold text-gray-900">IGNITO</div>
+        <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>
         <div className="text-sm text-gray-500">Page 4</div>
       </div>
     </div>

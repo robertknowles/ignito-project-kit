@@ -3,6 +3,7 @@ import { useClient } from './ClientContext';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
+import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -77,6 +78,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
+  const { user } = useAuth();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,6 +129,23 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.log('ScenarioSaveContext: Saving scenario with', Object.keys(scenarioData.propertyInstances || {}).length, 'property instances');
       console.log('ScenarioSaveContext: Property instances:', Object.keys(scenarioData.propertyInstances || {}));
       
+      // Fetch agent profile for display names
+      let agentDisplayName = 'Agent';
+      let companyDisplayName = 'PropPath';
+      
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name, company_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileData) {
+          agentDisplayName = profileData.full_name || user.user_metadata?.name || 'Agent';
+          companyDisplayName = profileData.company_name || 'PropPath';
+        }
+      }
+      
       // Check if a scenario already exists for this client
       const { data: existingScenarios, error: fetchError } = await supabase
         .from('scenarios')
@@ -144,7 +163,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           .update({
             name: `${activeClient.name}'s Scenario`,
             updated_at: new Date().toISOString(),
-            data: scenarioData
+            data: scenarioData,
+            client_display_name: activeClient.name || 'Client',
+            agent_display_name: agentDisplayName,
+            company_display_name: companyDisplayName,
           })
           .eq('id', existingScenarios[0].id);
         
@@ -160,7 +182,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
             name: `${activeClient.name}'s Scenario`,
             client_id: activeClient.id,
             updated_at: new Date().toISOString(),
-            data: scenarioData
+            data: scenarioData,
+            client_display_name: activeClient.name || 'Client',
+            agent_display_name: agentDisplayName,
+            company_display_name: companyDisplayName,
           })
           .select('id')
           .single();
@@ -191,7 +216,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(false);
       saveInProgressRef.current = false;
     }
-  }, [activeClient, getCurrentScenarioData]);
+  }, [activeClient, getCurrentScenarioData, user]);
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {

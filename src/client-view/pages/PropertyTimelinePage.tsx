@@ -8,9 +8,10 @@ import { generateTimelineData, generateSummaryData, TimelineItem } from '../util
 interface PropertyTimelinePageProps {
   investmentProfile: any;
   propertySelections: any[];
+  companyDisplayName?: string;
 }
 
-export function PropertyTimelinePage({ investmentProfile, propertySelections }: PropertyTimelinePageProps) {
+export function PropertyTimelinePage({ investmentProfile, propertySelections, companyDisplayName = 'PropPath' }: PropertyTimelinePageProps) {
   // Generate timeline data from real property selections
   const timelineData = useMemo(() => {
     return generateTimelineData(propertySelections, investmentProfile);
@@ -120,7 +121,7 @@ export function PropertyTimelinePage({ investmentProfile, propertySelections }: 
       </div>
       {/* Footer */}
       <div className="mt-8 flex justify-between items-center">
-        <div className="text-sm font-semibold text-gray-900">IGNITO</div>
+        <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>
         <div className="text-sm text-gray-500">Page 3</div>
       </div>
     </div>

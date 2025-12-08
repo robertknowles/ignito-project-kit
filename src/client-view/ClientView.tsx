@@ -62,16 +62,19 @@ export const ClientView = () => {
       investmentProfile={scenario.investmentProfile}
       propertySelections={scenario.propertySelections}
       chartData={scenario.chartData}
+      companyDisplayName={scenario.company_display_name}
     />,
     <PropertyTimelinePage 
       key="timeline"
       investmentProfile={scenario.investmentProfile}
       propertySelections={scenario.propertySelections}
+      companyDisplayName={scenario.company_display_name}
     />,
     <StrategyPathwayPage 
       key="strategy"
       investmentProfile={scenario.investmentProfile}
       propertySelections={scenario.propertySelections}
+      companyDisplayName={scenario.company_display_name}
     />,
   ];
 

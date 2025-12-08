@@ -42,3 +42,4 @@ export const useChartDataSync = () => {
   }, [portfolioGrowthData, cashflowData, profile.equityGoal, profile.cashflowGoal, setChartData]);
 };
 
+
