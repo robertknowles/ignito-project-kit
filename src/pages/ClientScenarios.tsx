@@ -9,7 +9,7 @@ import {
   Trash2Icon,
 } from 'lucide-react'
 import { PropertyTimeline } from '../components/PropertyTimeline'
-import { Navbar } from '../components/Navbar'
+import { LeftRail } from '../components/LeftRail'
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { useClient, Client } from '@/contexts/ClientContext'
@@ -175,9 +175,9 @@ export const ClientScenarios = () => {
   };
 
   return (
-    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
-      <Navbar />
-      <div className="flex-1 overflow-hidden pb-8 px-8">
+    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <LeftRail />
+      <div className="flex-1 ml-16 overflow-hidden py-4 pr-4">
         <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
           <div className="flex-1 overflow-auto p-8 bg-white">
             <div className="flex justify-between items-center mb-8">

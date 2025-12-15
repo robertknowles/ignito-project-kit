@@ -11,7 +11,6 @@ import {
   Cell,
   Label,
 } from 'recharts'
-import { LineChartIcon } from 'lucide-react'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 
@@ -176,12 +175,6 @@ export const CashflowChart = () => {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <LineChartIcon size={16} className="text-[#6b7280]" />
-        <h3 className="text-[#111827] font-medium text-sm">
-          Cashflow Analysis
-        </h3>
-      </div>
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

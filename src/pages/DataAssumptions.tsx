@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Navbar } from '../components/Navbar'
+import { LeftRail } from '../components/LeftRail'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { PropertyDetailModal } from '../components/PropertyDetailModal'
@@ -11,9 +11,9 @@ export const DataAssumptions = () => {
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
   
   return (
-    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
-      <Navbar />
-      <div className="flex-1 overflow-hidden pb-8 px-8">
+    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <LeftRail />
+      <div className="flex-1 ml-16 overflow-hidden py-4 pr-4">
         <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
           <div className="p-8">
             <div className="mb-8">

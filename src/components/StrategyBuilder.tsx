@@ -27,7 +27,7 @@ const BufferedStrategyInput: React.FC<BufferedStrategyInputProps> = ({
   max,
   formatAsCurrency = true,
   suffix,
-  className = "w-24 text-center bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 focus:outline-none text-xs text-[#6b7280] font-medium"
+  className = "w-24 text-center bg-transparent focus:outline-none text-xs text-[#6b7280] font-medium"
 }) => {
   const [localValue, setLocalValue] = useState(value.toString())
   const [isFocused, setIsFocused] = useState(false)
@@ -453,7 +453,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 max={30}
                 formatAsCurrency={false}
                 suffix="years"
-                className="w-12 text-center bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 focus:outline-none text-xs text-[#6b7280] font-medium"
+                className="w-12 text-center bg-transparent focus:outline-none text-xs text-[#6b7280] font-medium"
               />
             </div>
             <span className="text-xs text-[#6b7280] w-16 text-right">30 yrs</span>

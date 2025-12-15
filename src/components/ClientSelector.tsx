@@ -34,41 +34,41 @@ export const ClientSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="flex items-center px-3 py-1.5 border border-[#f3f4f6] rounded-full bg-white hover:bg-[#f9fafb] transition-colors"
+        className="flex items-center px-4 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
       >
-        <div className="w-1.5 h-1.5 bg-green-300/70 rounded-full mr-2"></div>
-        <span className="text-sm text-[#374151] font-light">
+        <div className="w-2 h-2 bg-green-500 rounded-full mr-2.5"></div>
+        <span className="text-sm text-gray-700 font-medium">
           {activeClient ? `${activeClient.name}'s Scenario` : 'Select Client'}
         </span>
         <ChevronDownIcon 
-          size={14} 
-          className={`ml-2 text-[#6b7280] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} 
+          size={16} 
+          className={`ml-2 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} 
         />
       </button>
 
       {dropdownOpen && (
-        <div className="fixed top-[3.5rem] left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white rounded-lg shadow-lg z-[9999] border border-[#f3f4f6]">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg z-[9999] border border-gray-200">
           <div className="py-2">
             {clients.length > 0 ? (
               clients.map((client) => (
                 <button
                   key={client.id}
                   onClick={() => handleClientSelect(client)}
-                  className={`flex items-center w-full px-4 py-2 text-sm hover:bg-[#f9fafb] ${
-                    activeClient?.id === client.id ? 'bg-[#f0f9ff] text-[#0369a1]' : 'text-[#374151]'
+                  className={`flex items-center w-full px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
+                    activeClient?.id === client.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                   }`}
                 >
-                  <div className="w-1.5 h-1.5 bg-green-300/70 rounded-full mr-3"></div>
+                  <div className={`w-2 h-2 rounded-full mr-3 ${activeClient?.id === client.id ? 'bg-blue-500' : 'bg-green-400'}`}></div>
                   <div className="text-left">
                     <div className="font-medium">{client.name}</div>
                     {client.email && (
-                      <div className="text-xs text-[#6b7280]">{client.email}</div>
+                      <div className="text-xs text-gray-500">{client.email}</div>
                     )}
                   </div>
                 </button>
               ))
             ) : (
-              <div className="px-4 py-2 text-sm text-[#6b7280]">
+              <div className="px-4 py-3 text-sm text-gray-500">
                 No scenarios found. Create a new client to get started.
               </div>
             )}

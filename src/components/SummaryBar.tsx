@@ -125,38 +125,47 @@ export const SummaryBar = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-6 gap-6">
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Portfolio Value</h4>
-          <p className="text-[#111827] font-medium">{formatCurrency(kpis.finalPortfolioValue)}</p>
-        </div>
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Properties</h4>
-          <p className="text-[#111827] font-medium">{kpis.totalProperties}</p>
-        </div>
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Cashflow Goal</h4>
-          <p className="text-[#111827] font-medium">
-            {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
-          </p>
-        </div>
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Equity Goal</h4>
-          <p className="text-[#111827] font-medium">
-            {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
-          </p>
-        </div>
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Total Debt</h4>
-          <p className="text-[#111827] font-medium">{formatCurrency(kpis.totalDebt)}</p>
-        </div>
-        <div className="text-center">
-          <h4 className="text-xs text-[#6b7280] mb-2">Timeline Progress</h4>
-          <p className="text-[#111827] font-medium">
-            Year {yearProgress.currentYear} / {yearProgress.totalYears}
-          </p>
-        </div>
+    <div className="grid grid-cols-6 gap-6">
+      {/* Portfolio Value Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Portfolio Value</span>
+        <span className="text-2xl font-bold text-gray-900">{formatCurrency(kpis.finalPortfolioValue)}</span>
+      </div>
+      
+      {/* Properties Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Properties</span>
+        <span className="text-2xl font-bold text-gray-900">{kpis.totalProperties}</span>
+      </div>
+      
+      {/* Cashflow Goal Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Cashflow Goal</span>
+        <span className="text-2xl font-bold text-gray-900">
+          {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
+        </span>
+      </div>
+      
+      {/* Equity Goal Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Equity Goal</span>
+        <span className="text-2xl font-bold text-gray-900">
+          {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
+        </span>
+      </div>
+      
+      {/* Total Debt Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Total Debt</span>
+        <span className="text-2xl font-bold text-gray-900">{formatCurrency(kpis.totalDebt)}</span>
+      </div>
+      
+      {/* Timeline Progress Card */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Timeline Progress</span>
+        <span className="text-2xl font-bold text-gray-900">
+          Year {yearProgress.currentYear} / {yearProgress.totalYears}
+        </span>
       </div>
     </div>
   )
