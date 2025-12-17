@@ -34,48 +34,48 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
   const isActive = count > 0
   
   return (
-    <div className={`flex items-start gap-4 p-4 bg-white border rounded-xl transition-colors ${
+    <div className={`flex items-center gap-2 p-2.5 bg-white border rounded-xl transition-colors ${
       isActive 
         ? 'border-gray-900 ring-1 ring-gray-900' 
         : 'border-gray-200 hover:border-gray-400'
     }`}>
       {/* Left: Icon in light gray square */}
-      <div className="flex-shrink-0 bg-gray-100 p-2 rounded-lg">
-        <PropertyTypeIcon propertyTitle={title} size={20} className="text-gray-700" />
+      <div className="flex-shrink-0 bg-gray-100 p-1.5 rounded-md">
+        <PropertyTypeIcon propertyTitle={title} size={16} className="text-gray-700" />
       </div>
       
       {/* Center: Text Stack */}
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-gray-900 text-sm truncate">{title}</h4>
-        <p className="text-gray-500 text-xs mt-0.5 truncate">{priceRange} · {yieldValue} yield</p>
+        <h4 className="font-medium text-gray-900 text-xs truncate">{title}</h4>
+        <p className="text-gray-500 text-[10px] leading-tight truncate">{priceRange} · {yieldValue}</p>
       </div>
       
-      {/* Right: Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* Right: Actions - Compact */}
+      <div className="flex items-center gap-0.5 flex-shrink-0">
         {/* Edit button for templates */}
         {!isCustom && onEdit && (
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-1.5 text-gray-400 hover:text-gray-900 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-gray-900 rounded transition-colors"
             title="Edit template"
           >
-            <Pencil size={14} />
+            <Pencil size={12} />
           </button>
         )}
         {/* Delete button for custom blocks */}
         {isCustom && onDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-1.5 text-gray-400 hover:text-red-600 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
             title="Delete custom block"
           >
-            <X size={14} />
+            <X size={12} />
           </button>
         )}
         
         {/* Count badge */}
         {count > 0 && (
-          <span className="text-xs font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded-md min-w-[1.75rem] text-center">
+          <span className="text-[10px] font-semibold text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded min-w-[1.25rem] text-center">
             {count}
           </span>
         )}
@@ -84,21 +84,21 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
         <button
           onClick={(e) => { e.stopPropagation(); onDecrement(); }}
           disabled={count === 0}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-1 rounded transition-colors ${
             count === 0 
               ? 'text-gray-300 cursor-not-allowed' 
               : 'text-gray-400 hover:text-gray-900'
           }`}
         >
-          <Minus size={16} />
+          <Minus size={14} />
         </button>
         
         {/* Add button */}
         <button
           onClick={(e) => { e.stopPropagation(); onIncrement(); }}
-          className="p-1.5 text-gray-400 hover:text-gray-900 rounded transition-colors"
+          className="p-1 text-gray-400 hover:text-gray-900 rounded transition-colors"
         >
-          <Plus size={16} />
+          <Plus size={14} />
         </button>
       </div>
     </div>
@@ -209,24 +209,24 @@ export const PropertyBlocksPanel: React.FC = () => {
         />
       ))}
 
-      {/* Pause Period Card - ElevenLabs Agent Style */}
-      <div className={`flex items-start gap-4 p-4 bg-white border rounded-xl transition-colors ${
+      {/* Pause Period Card - Compact Style */}
+      <div className={`flex items-center gap-2 p-2.5 bg-white border rounded-xl transition-colors ${
         pauseCount > 0 
           ? 'border-gray-900 ring-1 ring-gray-900' 
           : 'border-gray-200 hover:border-gray-400'
       }`}>
         {/* Left: Icon in light amber square */}
-        <div className="flex-shrink-0 bg-amber-50 p-2 rounded-lg">
-          <Pause size={20} className="text-amber-600" />
+        <div className="flex-shrink-0 bg-amber-50 p-1.5 rounded-md">
+          <Pause size={16} className="text-amber-600" />
         </div>
         
         {/* Center: Text Stack + Duration select */}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-900 text-sm">Pause Period</h4>
+          <h4 className="font-medium text-gray-900 text-xs">Pause Period</h4>
           <select 
             value={selectedPauseDuration}
             onChange={(e) => setSelectedPauseDuration(parseFloat(e.target.value))}
-            className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-500 mt-1 cursor-pointer hover:border-gray-400 transition-colors"
+            className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-500 mt-0.5 cursor-pointer hover:border-gray-400 transition-colors"
           >
             <option value="0.5">6 months</option>
             <option value="1">1 year</option>
@@ -236,11 +236,11 @@ export const PropertyBlocksPanel: React.FC = () => {
           </select>
         </div>
         
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Right: Actions - Compact */}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           {/* Count badge */}
           {pauseCount > 0 && (
-            <span className="text-xs font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded-md min-w-[1.75rem] text-center">
+            <span className="text-[10px] font-semibold text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded min-w-[1.25rem] text-center">
               {pauseCount}
             </span>
           )}
@@ -249,21 +249,21 @@ export const PropertyBlocksPanel: React.FC = () => {
           <button
             onClick={() => removePause()}
             disabled={pauseCount === 0}
-            className={`p-1.5 rounded transition-colors ${
+            className={`p-1 rounded transition-colors ${
               pauseCount === 0 
                 ? 'text-gray-300 cursor-not-allowed' 
                 : 'text-gray-400 hover:text-gray-900'
             }`}
           >
-            <Minus size={16} />
+            <Minus size={14} />
           </button>
           
           {/* Add button */}
           <button
             onClick={() => addPause(selectedPauseDuration)}
-            className="p-1.5 text-gray-400 hover:text-gray-900 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-gray-900 rounded transition-colors"
           >
-            <Plus size={16} />
+            <Plus size={14} />
           </button>
         </div>
       </div>

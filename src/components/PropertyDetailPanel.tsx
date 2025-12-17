@@ -112,9 +112,9 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             <div className="space-y-6">
               {/* Key Metrics Cards - 2x3 Grid */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Current Property Value */}
+                {/* Property Value at End of Timeline */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Current Value</div>
+                  <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Value at Year {trackingData.yearsHeld}</div>
                   <div className="text-xl font-semibold text-gray-900">
                     {formatCurrency(trackingData.currentPropertyValue)}
                   </div>
@@ -289,9 +289,9 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
               </div>
 
               {/* Summary Insights */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">10-Year Summary</h3>
-                <div className="space-y-2 text-sm text-blue-800">
+              <div className="bg-gray-100 border border-gray-200 rounded-xl p-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">{trackingData.yearsHeld}-Year Summary</h3>
+                <div className="space-y-2 text-sm text-gray-700">
                   <p>
                     <span className="font-medium">Equity Growth:</span>{' '}
                     {formatCurrency(trackingData.currentEquity - trackingData.totalCashInvested)} 

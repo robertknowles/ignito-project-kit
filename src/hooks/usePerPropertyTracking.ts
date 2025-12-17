@@ -92,7 +92,8 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     // Use the profile's growth curve (same as portfolio growth chart)
     const growthCurve = profile.growthCurve;
     
-    // Calculate 10-year projections
+    // Calculate projections based on timeline years
+    const projectionYears = profile.timelineYears || 10;
     const equityOverTime: EquityDataPoint[] = [];
     const cashflowOverTime: CashflowDataPoint[] = [];
     
@@ -112,7 +113,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
       return annualPrincipal;
     };
     
-    for (let year = 1; year <= 10; year++) {
+    for (let year = 1; year <= projectionYears; year++) {
       // Calculate periods held (using same period-based calculation as portfolio chart)
       const periodsHeld = year * PERIODS_PER_YEAR;
       
@@ -190,7 +191,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     // Total return = (Current Equity - Total Invested + Total Cashflow) / Total Invested / Years Held
     const totalCashflow = cashflowOverTime.reduce((sum, cf) => sum + cf.netCashflow, 0);
     const totalReturn = currentEquityFinal - totalCashInvested + totalCashflow;
-    const yearsHeld = 10; // We're projecting 10 years
+    const yearsHeld = projectionYears; // Use timeline years from profile
     const roic = totalCashInvested > 0 
       ? (totalReturn / totalCashInvested / yearsHeld) * 100 
       : 0;
