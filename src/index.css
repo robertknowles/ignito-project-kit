@@ -2,12 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google Fonts - Landing Page Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+/* Google Fonts - Landing Page Fonts + Inter for Main App */
+@import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 20% 98%; /* #F9FAFB - very light gray */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -93,10 +93,10 @@
     font-weight: 400;
   }
 
-  /* Main app scoped fonts */
+  /* Main app scoped fonts - Inter for ElevenLabs aesthetic */
   .main-app {
-    font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-weight: 500;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
   }
 
   .main-app h1,
@@ -105,8 +105,36 @@
   .main-app h4,
   .main-app h5,
   .main-app h6 {
-    font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-weight: 400;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+  }
+}
+
+/* ============================================
+   BENTO CARD - ElevenLabs Style Utility
+   ============================================
+   Clean, border-heavy, shadow-free cards
+   Usage: Add .bento-card class to containers
+*/
+@layer components {
+  .bento-card {
+    @apply bg-white border border-gray-200 rounded-xl;
+    box-shadow: none;
+  }
+
+  /* Metric Label - Small, uppercase, tracking-wide */
+  .metric-label {
+    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider;
+  }
+
+  /* Metric Value - Large, dark, tight tracking */
+  .metric-value {
+    @apply text-3xl font-bold text-gray-900 tracking-tight;
+  }
+
+  /* Smaller metric value variant for dashboard cards */
+  .metric-value-sm {
+    @apply text-2xl font-bold text-gray-900 tracking-tight;
   }
 }
 

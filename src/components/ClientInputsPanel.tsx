@@ -87,13 +87,12 @@ const BufferedInput: React.FC<BufferedInputProps> = ({
   )
 }
 
-// Slider styles for consistent appearance
-const sliderClassName = "w-full appearance-none cursor-pointer bg-[#f3f4f6] rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:opacity-60 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:opacity-60 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:opacity-70 hover:[&::-moz-range-thumb]:opacity-70 focus:[&::-webkit-slider-thumb]:opacity-70 focus:[&::-moz-range-thumb]:opacity-70"
+// Slider styles for consistent appearance - Monochrome design
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-gray-900 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:bg-gray-700 hover:[&::-moz-range-thumb]:bg-gray-700"
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((value - min) / (max - min)) * 100}%, #f3f4f6 ${((value - min) / (max - min)) * 100}%, #f3f4f6 100%)`,
+  background: `linear-gradient(to right, #111827 0%, #111827 ${((value - min) / (max - min)) * 100}%, #e5e7eb ${((value - min) / (max - min)) * 100}%, #e5e7eb 100%)`,
   height: '4px',
-  opacity: '0.8',
 })
 
 interface SliderFieldProps {
@@ -272,3 +271,4 @@ export const ClientInputsPanel: React.FC = () => {
     </div>
   )
 }
+

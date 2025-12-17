@@ -182,7 +182,12 @@ export const useTimelineData = () => {
   };
 };
 
-export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number) => void }>((props, ref) => {
+interface InvestmentTimelineProps {
+  onInspectProperty?: (propertyInstanceId: string) => void;
+}
+
+export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number) => void }, InvestmentTimelineProps>((props, ref) => {
+  const { onInspectProperty } = props;
   const { calculatedValues, profile } = useInvestmentProfile()
   const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections, removePause, updatePauseDuration } = usePropertySelection()
   const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating, calculateAffordabilityForProperty } = useAffordabilityCalculator()
@@ -899,6 +904,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                               yearData={createPurchaseSnapshot(element.property, profile)}
                               property={element.property}
                               showDecisionEngine={true}
+                              onInspectProperty={onInspectProperty}
                             />
                           </div>
                         );
@@ -1014,6 +1020,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                         yearData={dummyYearData}
                         property={property}
                         showDecisionEngine={false}
+                        onInspectProperty={onInspectProperty}
                       />
                     );
                   })}

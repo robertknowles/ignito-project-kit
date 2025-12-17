@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { SummaryBar } from './SummaryBar';
 import { InvestmentTimeline, TimelineProgressBar, useTimelineData } from './InvestmentTimeline';
 import { PortfolioGrowthChart } from './PortfolioGrowthChart';
 import { CashflowChart } from './CashflowChart';
+import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 
 export const Dashboard = () => {
@@ -15,10 +16,29 @@ export const Dashboard = () => {
   // Get timeline data for progress bar
   const timelineData = useTimelineData();
   
+  // State for Property Detail Panel (Inspector)
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  
   const handleYearClick = (year: number) => {
     if (timelineRef.current) {
       timelineRef.current.scrollToYear(year);
     }
+  };
+  
+  // Handle property inspection from timeline
+  const handleInspectProperty = (propertyInstanceId: string) => {
+    setSelectedPropertyId(propertyInstanceId);
+    setIsDetailPanelOpen(true);
+  };
+  
+  // Handle closing the detail panel
+  const handleCloseDetailPanel = () => {
+    setIsDetailPanelOpen(false);
+    // Clear selection after animation completes
+    setTimeout(() => {
+      setSelectedPropertyId(null);
+    }, 300);
   };
 
   // Root: Fills the App.tsx container exactly.
@@ -32,7 +52,7 @@ export const Dashboard = () => {
         <SummaryBar />
         
         {/* ROW 2: Purchase Timeline (Investment Roadmap) */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bento-card p-6">
           {/* Header */}
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Roadmap</h2>
           
@@ -47,25 +67,32 @@ export const Dashboard = () => {
           
           {/* Timeline Content */}
           <div className="mt-4">
-            <InvestmentTimeline ref={timelineRef} />
+            <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
           </div>
         </div>
         
         {/* ROW 3: Consolidated Charts - Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT COLUMN: Wealth Trajectory (Portfolio Value & Equity Growth) */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="bento-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Wealth Trajectory</h2>
             <PortfolioGrowthChart />
           </div>
           
           {/* RIGHT COLUMN: Cashflow Position (Cashflow Analysis) */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="bento-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Cashflow Position</h2>
             <CashflowChart />
           </div>
         </div>
       </div>
+      
+      {/* Property Detail Panel (Inspector) */}
+      <PropertyDetailPanel
+        isOpen={isDetailPanelOpen}
+        onClose={handleCloseDetailPanel}
+        selectedPropertyId={selectedPropertyId}
+      />
     </div>
   );
 };

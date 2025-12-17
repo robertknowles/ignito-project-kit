@@ -83,7 +83,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Premium Apartment"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#374151]"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900"
             />
           </div>
 
@@ -97,7 +97,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
               value={formData.cost}
               onChange={(e) => setFormData({ ...formData, cost: parseInt(e.target.value) || 0 })}
               step="10000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#374151]"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900"
             />
           </div>
 
@@ -113,7 +113,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
               step="0.1"
               min="0"
               max="20"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#374151]"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900"
             />
           </div>
 
@@ -129,7 +129,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
               step="0.1"
               min="0"
               max="20"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#374151]"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900"
             />
           </div>
 
@@ -145,7 +145,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
               min="0"
               max="95"
               step="5"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#374151]"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900"
             />
             <p className="text-xs text-gray-500 mt-1">
               Loan-to-Value Ratio (typically 70-90%)
@@ -176,13 +176,13 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            className="flex-1 py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
           >
             Add Block
           </button>

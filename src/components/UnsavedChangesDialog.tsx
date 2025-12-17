@@ -43,7 +43,7 @@ export const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
               onSave();
               onConfirm();
             }}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-gray-900 hover:bg-gray-800"
           >
             Save & Continue
           </AlertDialogAction>

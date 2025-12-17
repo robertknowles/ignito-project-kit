@@ -21,12 +21,14 @@ interface PurchaseEventCardProps {
   yearData: YearBreakdownData;
   property?: any; // Individual property from timelineProperties
   showDecisionEngine?: boolean; // Only show on last card of each year
+  onInspectProperty?: (propertyInstanceId: string) => void; // Callback when property is clicked for inspection
 }
 
 export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({ 
   yearData, 
   property,
-  showDecisionEngine = false 
+  showDecisionEngine = false,
+  onInspectProperty,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDecisionEngineOpen, setIsDecisionEngineOpen] = useState(false);
@@ -188,16 +190,29 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
     );
   };
   
+  // Handle click on property block for inspection
+  const handlePropertyClick = () => {
+    if (onInspectProperty && instanceId && property?.status === 'feasible') {
+      onInspectProperty(instanceId);
+    }
+  };
+
   return (
     <div className="relative flex gap-4 items-center">
-      {/* Year Circle - Outside and to the left */}
+      {/* Year Circle - Outside and to the left - Clickable for property inspection */}
       <div 
-        className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl"
+        className={`flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl transition-all duration-200 ${
+          onInspectProperty && property?.status === 'feasible' 
+            ? 'cursor-pointer hover:scale-105 hover:shadow-lg hover:ring-4 hover:ring-blue-200' 
+            : ''
+        }`}
         style={{ 
           width: '80px', 
           height: '80px',
           backgroundColor: '#87B5FA'
         }}
+        onClick={handlePropertyClick}
+        title={onInspectProperty && property?.status === 'feasible' ? 'Click to inspect property' : undefined}
       >
         {year === Infinity ? '∞' : year}
       </div>

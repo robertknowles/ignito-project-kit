@@ -74,7 +74,7 @@ export const LeftRail = () => {
                   <button
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600'
+                        ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
                     onClick={() => navigate(item.path)}
@@ -139,3 +139,4 @@ export const LeftRail = () => {
     </TooltipProvider>
   )
 }
+
