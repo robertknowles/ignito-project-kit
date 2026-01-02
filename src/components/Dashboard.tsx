@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { CalendarIcon, BarChart3 } from 'lucide-react';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
 import { PropertyPerformanceTabs } from './PropertyPerformanceTabs';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { useChartDataSync } from '../hooks/useChartDataSync';
-import { InvestmentTimeline, TimelineProgressBar, useTimelineData } from './InvestmentTimeline';
+import { InvestmentTimeline } from './InvestmentTimeline';
 
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
@@ -12,9 +13,6 @@ export const Dashboard = () => {
   
   // Ref for InvestmentTimeline to call scrollToYear
   const timelineRef = useRef<{ scrollToYear: (year: number) => void }>(null);
-  
-  // Get timeline data for progress bar
-  const timelineData = useTimelineData();
   
   // State for Property Detail Panel (Inspector)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
@@ -52,29 +50,21 @@ export const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT COLUMN: Investment Timeline */}
           <div className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Timeline</h2>
-            {/* Year Navigation */}
-            <TimelineProgressBar
-              startYear={timelineData.startYear}
-              endYear={timelineData.endYear}
-              latestPurchaseYear={timelineData.latestPurchaseYear}
-              purchaseYears={timelineData.purchaseYears}
-              onYearClick={(year) => {
-                if (timelineRef.current) {
-                  timelineRef.current.scrollToYear(year);
-                }
-              }}
-            />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <CalendarIcon size={18} className="text-gray-500" />
+              Individual Property Editor
+            </h2>
             
             {/* Timeline Content */}
-            <div className="mt-4">
-              <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
-            </div>
+            <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
           </div>
           
           {/* RIGHT COLUMN: Property Workbench (Per-Property Deep Dive) */}
           <div className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Property Workbench</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <BarChart3 size={18} className="text-gray-500" />
+              Individual Property Performance
+            </h2>
             <PropertyPerformanceTabs />
           </div>
         </div>

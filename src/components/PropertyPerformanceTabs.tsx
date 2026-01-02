@@ -2,11 +2,15 @@ import React, { useState, useMemo } from 'react';
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
+  ReferenceLine,
 } from 'recharts';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
@@ -22,12 +26,22 @@ const formatCurrency = (value: number): string => {
   return `$${value.toFixed(0)}`;
 };
 
+// Format currency with full precision for summary
+const formatCurrencyFull = (value: number): string => {
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
 // Format percentage for display
 const formatPercentage = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
 
-// KPI Card component
+// KPI Card component - styled like PropertyDetailPanel
 interface KPICardProps {
   label: string;
   value: string;
@@ -35,30 +49,27 @@ interface KPICardProps {
 }
 
 const KPICard: React.FC<KPICardProps> = ({ label, value, subValue }) => (
-  <div className="bg-slate-50 rounded-lg border border-slate-200/40 p-3">
-    <p className="text-[9px] uppercase text-slate-400 tracking-wide mb-1">{label}</p>
-    <p className="text-sm font-semibold text-slate-900">{value}</p>
+  <div className="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+    <p className="text-[8px] uppercase text-gray-500 tracking-wide mb-0.5">{label}</p>
+    <p className="text-sm font-semibold text-gray-900">{value}</p>
     {subValue && (
-      <p className="text-[10px] text-slate-500 mt-0.5">{subValue}</p>
+      <p className="text-[9px] text-gray-400 mt-0.5">{subValue}</p>
     )}
   </div>
 );
 
-// Custom tooltip for sparkline
-const SparklineTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-2 border border-slate-200 shadow-sm rounded-md text-xs">
-        <p className="font-medium text-slate-700">Year {label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.color }}>
-            {entry.name}: {formatCurrency(entry.value)}
-          </p>
-        ))}
-      </div>
-    );
+// Format Y-axis for charts
+const formatYAxis = (value: number) => {
+  if (value === 0) return '$0';
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (absValue >= 1000000) {
+    return `${sign}$${(absValue / 1000000).toFixed(1)}M`;
   }
-  return null;
+  if (absValue >= 1000) {
+    return `${sign}$${Math.round(absValue / 1000)}K`;
+  }
+  return `${sign}$${absValue}`;
 };
 
 // Property content component (renders when a property is selected)
@@ -68,106 +79,251 @@ interface PropertyContentProps {
 
 const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId }) => {
   const { trackingData } = usePerPropertyTracking(propertyInstanceId);
+  const [activeTab, setActiveTab] = useState<'growth' | 'cashflow'>('growth');
 
   if (!trackingData) {
     return (
-      <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
         Loading property data...
       </div>
     );
   }
 
-  // Calculate final projection (last year equity)
-  const finalProjection = trackingData.equityOverTime.length > 0
-    ? trackingData.equityOverTime[trackingData.equityOverTime.length - 1].equity
-    : 0;
+  // Prepare chart data from tracking data
+  const chartData = trackingData.equityOverTime.map((equity, index) => {
+    const cashflow = trackingData.cashflowOverTime[index];
+    return {
+      year: (trackingData.purchaseYear + equity.year - 1).toString(),
+      propertyValue: equity.propertyValue,
+      loanBalance: equity.loanBalance,
+      equity: equity.equity,
+      rentalIncome: cashflow?.grossIncome || 0,
+      expenses: cashflow?.totalExpenses || 0,
+      netCashflow: cashflow?.netCashflow || 0,
+    };
+  });
 
   return (
-    <div className="space-y-4">
-      {/* KPI Metrics Grid - 3x2 layout */}
-      <div className="grid grid-cols-3 gap-3">
-        <KPICard
-          label="Value"
-          value={formatCurrency(trackingData.currentPropertyValue)}
-          subValue={`Year ${trackingData.yearsHeld}`}
-        />
-        <KPICard
-          label="Equity"
-          value={formatCurrency(trackingData.currentEquity)}
-        />
-        <KPICard
-          label="ROI"
-          value={formatPercentage(trackingData.roic)}
-          subValue="Annualized"
-        />
-        <KPICard
-          label="Cash Invested"
-          value={formatCurrency(trackingData.totalCashInvested)}
-        />
-        <KPICard
-          label="Cash-on-Cash"
-          value={formatPercentage(trackingData.cashOnCashReturn)}
-          subValue="Year 1"
-        />
-        <KPICard
-          label="Projection"
-          value={formatCurrency(finalProjection)}
-          subValue={`Yr ${trackingData.yearsHeld} Equity`}
-        />
+    <div className="space-y-3">
+      {/* Sub-tabs: Portfolio Growth / Cashflow */}
+      <div className="flex items-center gap-1 border-b border-gray-200 pb-1">
+        <button
+          onClick={() => setActiveTab('growth')}
+          className={`relative px-3 py-1.5 text-[10px] font-medium transition-colors ${
+            activeTab === 'growth'
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Portfolio Growth
+          {activeTab === 'growth' && (
+            <div
+              className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+              style={{ backgroundColor: '#87B5FA' }}
+            />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('cashflow')}
+          className={`relative px-3 py-1.5 text-[10px] font-medium transition-colors ${
+            activeTab === 'cashflow'
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Cashflow
+          {activeTab === 'cashflow' && (
+            <div
+              className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+              style={{ backgroundColor: '#87B5FA' }}
+            />
+          )}
+        </button>
       </div>
 
-      {/* Equity Sparkline Chart */}
-      <div className="mt-4">
-        <p className="text-[9px] uppercase text-slate-400 tracking-wide mb-2">
-          Growth Trajectory
-        </p>
-        <div className="h-[120px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={trackingData.equityOverTime}
-              margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(148, 163, 184, 0.2)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="year"
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={formatCurrency}
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-                width={45}
-              />
-              <Tooltip content={<SparklineTooltip />} />
-              <Line
-                type="monotone"
-                dataKey="propertyValue"
-                name="Value"
-                stroke="#5eead4"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: '#5eead4', stroke: 'white', strokeWidth: 2 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="equity"
-                name="Equity"
-                stroke="#87B5FA"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: '#87B5FA', stroke: 'white', strokeWidth: 2 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      {/* Tab Content */}
+      {activeTab === 'growth' ? (
+        <div className="space-y-3">
+          {/* Portfolio Growth Metrics - 3 cards side by side */}
+          <div className="grid grid-cols-3 gap-2">
+            <KPICard
+              label={`Value at Year ${trackingData.yearsHeld}`}
+              value={formatCurrency(trackingData.currentPropertyValue)}
+            />
+            <KPICard
+              label="Equity"
+              value={formatCurrency(trackingData.currentEquity)}
+            />
+            <KPICard
+              label="Projection"
+              value={`${trackingData.yearsHeld} Years`}
+            />
+          </div>
+
+          {/* Equity Growth Chart */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <h3 className="text-[10px] font-medium text-gray-900 mb-2">Equity Growth Over Time</h3>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="year" 
+                  stroke="#6b7280"
+                  style={{ fontSize: '9px' }}
+                  tick={{ fill: '#6b7280' }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  style={{ fontSize: '9px' }}
+                  tickFormatter={formatYAxis}
+                  tick={{ fill: '#6b7280' }}
+                  width={45}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
+                  }}
+                  formatter={(value: number) => formatCurrencyFull(value)}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '9px' }}
+                  iconSize={6}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="propertyValue" 
+                  stroke="#87B5FA" 
+                  strokeWidth={1.5}
+                  name="Property Value"
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="equity" 
+                  stroke="#86efac" 
+                  strokeWidth={1.5}
+                  name="Equity"
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="loanBalance" 
+                  stroke="#fca5a5" 
+                  strokeWidth={1.5}
+                  name="Loan Balance"
+                  dot={false}
+                  strokeDasharray="5 5"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Summary Insights */}
+          <div className="bg-gray-100 border border-gray-200 rounded-xl p-3">
+            <h3 className="text-[10px] font-medium text-gray-900 mb-1.5">{trackingData.yearsHeld}-Year Summary</h3>
+            <div className="space-y-1 text-[10px] text-gray-700">
+              <p>
+                <span className="font-medium">Equity Growth:</span>{' '}
+                {formatCurrencyFull(trackingData.currentEquity - trackingData.totalCashInvested)} 
+                {' '}({((trackingData.currentEquity / trackingData.totalCashInvested - 1) * 100).toFixed(0)}% increase)
+              </p>
+              <p>
+                <span className="font-medium">Total Return:</span>{' '}
+                {formatCurrencyFull(trackingData.currentEquity + 
+                  trackingData.cashflowOverTime.reduce((sum, cf) => sum + cf.netCashflow, 0) - 
+                  trackingData.totalCashInvested)}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Cashflow Metrics - 3 cards side by side */}
+          <div className="grid grid-cols-3 gap-2">
+            <KPICard
+              label="Cash Invested"
+              value={formatCurrency(trackingData.totalCashInvested)}
+            />
+            <KPICard
+              label="ROI (Annualized)"
+              value={formatPercentage(trackingData.roic)}
+            />
+            <KPICard
+              label="Cash-on-Cash"
+              value={formatPercentage(trackingData.cashOnCashReturn)}
+            />
+          </div>
+
+          {/* Property Cashflow Analysis Chart */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <h3 className="text-[10px] font-medium text-gray-900 mb-2">Property Cashflow Analysis</h3>
+            {chartData.length > 0 && chartData[0].rentalIncome !== undefined ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="year" 
+                    stroke="#6b7280"
+                    style={{ fontSize: '9px' }}
+                    tick={{ fill: '#6b7280' }}
+                  />
+                  <YAxis 
+                    stroke="#6b7280"
+                    style={{ fontSize: '9px' }}
+                    tickFormatter={formatYAxis}
+                    tick={{ fill: '#6b7280' }}
+                    width={45}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                      boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
+                    }}
+                    formatter={(value: number, name: string) => [
+                      formatCurrencyFull(value),
+                      name
+                    ]}
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '9px' }}
+                    iconSize={6}
+                  />
+                  <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1} />
+                  <Bar 
+                    dataKey="rentalIncome" 
+                    fill="#86efac" 
+                    name="Rental Income"
+                    radius={[2, 2, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="expenses" 
+                    fill="#fca5a5" 
+                    name="Expenses"
+                    radius={[2, 2, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="netCashflow" 
+                    fill="#87B5FA" 
+                    name="Net Cashflow"
+                    radius={[2, 2, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[220px] text-gray-400 text-xs">
+                <p>Cashflow data unavailable</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -193,8 +349,8 @@ export const PropertyPerformanceTabs: React.FC = () => {
   if (feasibleProperties.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-slate-400 text-sm mb-2">No properties in timeline</p>
-        <p className="text-slate-300 text-xs">
+        <p className="text-gray-400 text-sm mb-2">No properties in timeline</p>
+        <p className="text-gray-300 text-xs">
           Add properties to your strategy to see performance metrics
         </p>
       </div>
@@ -202,25 +358,25 @@ export const PropertyPerformanceTabs: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Property Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-200/40 pb-1 overflow-x-auto">
+      <div className="flex items-center gap-1 border-b border-gray-200 pb-1 overflow-x-auto">
         {feasibleProperties.map((property) => {
           const isActive = selectedPropertyId === property.instanceId;
-          // Extract short name (e.g., "Sydney Unit" -> "sydney unit")
-          const shortName = property.title.toLowerCase();
+          // Capitalise property title with purchase year
+          const displayName = `${property.title} (${property.displayPeriod})`;
           
           return (
             <button
               key={property.instanceId}
               onClick={() => setSelectedPropertyId(property.instanceId)}
-              className={`relative px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`relative px-2.5 py-1.5 text-[10px] font-medium transition-colors whitespace-nowrap ${
                 isActive
-                  ? 'text-slate-900'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {shortName}
+              {displayName}
               {/* Active indicator - blue underline */}
               {isActive && (
                 <div

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { DepositTestFunnel } from './DepositTestFunnel';
 import { ServiceabilityTestFunnel } from './ServiceabilityTestFunnel';
 import { BorrowingCapacityTestFunnel } from './BorrowingCapacityTestFunnel';
@@ -170,7 +171,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
     return (
       <span
         onClick={() => setIsEditing(true)}
-        className="cursor-pointer px-1 rounded transition-colors"
+        className="cursor-pointer px-1 rounded transition-colors inline-flex items-center gap-0.5"
         style={{ 
           '--hover-bg': 'rgba(135, 181, 250, 0.1)',
           '--hover-color': '#87B5FA'
@@ -186,6 +187,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
         title="Click to edit"
       >
         {prefix}{value}{suffix}
+        <ChevronDown size={10} className="opacity-50" />
       </span>
     );
   };
@@ -218,76 +220,74 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
       </div>
 
       {/* Main Card Content */}
-      <div className="flex-1 bg-white rounded border border-gray-200 shadow-sm px-2.5 py-2">
-        <div className="flex flex-col gap-1.5">
-        {/* Row 1: Property Title with Expand Button */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <div className="bg-gray-100 rounded p-0.5 flex items-center justify-center">
-              {getPropertyTypeIcon(propertyType, 14, 'text-gray-400')}
-            </div>
-            <span className="text-[10px] flex items-center">
-              <span className="font-medium text-gray-900">{propertyType}</span>
-              <span className="text-gray-400 mx-0.5">|</span>
-              <span className="text-gray-600 flex items-center">
-                Growth:
-                <Select
-                  value={propertyData.growthAssumption}
-                  onValueChange={(val) => handleFieldUpdate('growthAssumption', val)}
-                >
-                  <SelectTrigger className="h-4 w-auto px-1 text-[10px] border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
+      <div className="flex-1 flex flex-col rounded border border-gray-200 shadow-sm overflow-hidden">
+        {/* White content area */}
+        <div className="bg-white px-2.5 py-2">
+          <div className="flex flex-col gap-1.5">
+            {/* Row 1: Property Title */}
+            <div className="flex items-center gap-1">
+              <div className="bg-gray-100 rounded p-0.5 flex items-center justify-center">
+                {getPropertyTypeIcon(propertyType, 14, 'text-gray-400')}
+              </div>
+              <span className="text-[10px] flex items-center">
+                <span className="font-medium text-gray-900">{propertyType}</span>
+                <span className="text-gray-400 mx-0.5">|</span>
+                <span className="text-gray-600 flex items-center">
+                  Growth:
+                  <Select
+                    value={propertyData.growthAssumption}
+                    onValueChange={(val) => handleFieldUpdate('growthAssumption', val)}
+                  >
+                    <SelectTrigger className="h-4 w-auto px-1 text-[10px] border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </span>
               </span>
-            </span>
-          </div>
-          
-          {/* Expand Property Details Button - Top Right */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-[9px] hover:underline"
-              style={{ color: '#87B5FA' }}
-            >
-              [ Details → ]
-            </button>
-            {showDecisionEngine && (
-              <button
-                onClick={() => setIsDecisionEngineOpen(true)}
-                className="text-[9px] hover:underline text-gray-500"
-              >
-                [ Analysis → ]
-              </button>
-            )}
+            </div>
+            
+            {/* Row 2: PURCHASE */}
+            <div className="text-[9px] text-gray-600">
+              <span className="text-gray-400 uppercase tracking-wide mr-1">Purchase:</span>
+              <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
+              <span className="mx-0.5 text-gray-300">|</span>
+              <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
+            </div>
+            
+            {/* Row 3: PROPERTY DETAILS */}
+            <div className="text-[9px] text-gray-600">
+              <span className="text-gray-400 uppercase tracking-wide mr-1">Details:</span>
+              <EditableField label="State" value={propertyData.state} field="state" type="text" />
+              <span className="mx-0.5 text-gray-300">|</span>
+              <span>Rental Yield: {yieldCalc}%</span>
+              <span className="mx-0.5 text-gray-300">|</span>
+              <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
+            </div>
           </div>
         </div>
         
-        {/* Row 2: Two Sections Side-by-Side */}
-        <div className="flex gap-4 text-[9px]">
-          {/* Section 1: PURCHASE */}
-          <div className="text-gray-600">
-            <span className="text-gray-400 uppercase tracking-wide mr-1">Purchase:</span>
-            <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
-            <span className="mx-0.5 text-gray-300">|</span>
-            <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
-          </div>
-          
-          {/* Section 2: PROPERTY DETAILS */}
-          <div className="text-gray-600">
-            <span className="text-gray-400 uppercase tracking-wide mr-1">Details:</span>
-            <EditableField label="State" value={propertyData.state} field="state" type="text" />
-            <span className="mx-0.5 text-gray-300">|</span>
-            <span>Yield: {yieldCalc}%</span>
-            <span className="mx-0.5 text-gray-300">|</span>
-            <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
-          </div>
-        </div>
+        {/* Grey footer with action buttons */}
+        <div className="bg-gray-50 border-t border-gray-200 px-2.5 py-1.5 flex items-center gap-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-[9px] hover:underline"
+            style={{ color: '#87B5FA' }}
+          >
+            Details →
+          </button>
+          {showDecisionEngine && (
+            <button
+              onClick={() => setIsDecisionEngineOpen(true)}
+              className="text-[9px] hover:underline text-gray-500"
+            >
+              Analysis →
+            </button>
+          )}
         </div>
 
         {/* Property Detail Modal */}

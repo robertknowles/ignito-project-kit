@@ -69,7 +69,7 @@ const PropertyCardComponent: React.FC<PropertyCardProps> = ({
       </div>
       <div className="text-xs text-[#374151] font-normal">{priceRange}</div>
       <div className="text-xs text-gray-500 mt-2">
-        Yield: <span className="font-medium text-gray-900">{yieldValue}</span>
+        Rental Yield: <span className="font-medium text-gray-900">{yieldValue}</span>
       </div>
       <div className="absolute bottom-3 right-3 flex items-center space-x-2">
         {count > 0 && (

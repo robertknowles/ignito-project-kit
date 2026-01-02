@@ -17,7 +17,7 @@ import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
 
 // Column dimension constants
-const LABEL_COLUMN_WIDTH = 70; // Reduced from 100px
+const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
 const Y_AXIS_WIDTH = 50; // Width for the chart Y-axis
@@ -289,23 +289,46 @@ export const ChartWithRoadmap: React.FC = () => {
   const xAxisPadding = yearColumnWidth / 2;
 
   return (
-    <div ref={containerRef} className="w-full">
-      <div ref={scrollContainerRef} className="overflow-x-auto">
+    <div ref={containerRef} className="w-full h-full">
+      <div ref={scrollContainerRef} className="overflow-x-auto h-full">
         {/* Scrollable container with dynamic total width */}
         <div style={{ minWidth: totalWidth }}>
-          {/* Chart Section */}
-          <div className="flex">
+          {/* Chart Section with grid overlay */}
+          <div className="flex relative">
             {/* Label column - spacer for alignment with rows below */}
             <div 
               className="flex-shrink-0"
               style={{ width: LABEL_COLUMN_WIDTH - Y_AXIS_WIDTH }}
             />
             
+            {/* Vertical grid lines overlay - positioned to align with table columns */}
+            <div 
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{ left: 0 }}
+            >
+              {/* Grid extends from left border through Y-axis and all year columns */}
+              <div className="h-full flex">
+                <div 
+                  className="h-full border-r border-slate-300/40"
+                  style={{ width: LABEL_COLUMN_WIDTH }}
+                />
+                <div className="h-full flex" style={{ width: chartWidth }}>
+                  {years.map((_, index) => (
+                    <div 
+                      key={`grid-line-${index}`}
+                      className="h-full border-r border-slate-300/40"
+                      style={{ width: yearColumnWidth }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            
             {/* Chart container - YAxis + plotting area with data points centered in year columns */}
-            <div style={{ width: chartWidth + Y_AXIS_WIDTH }}>
+            <div style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
               <AreaChart
                 width={chartWidth + Y_AXIS_WIDTH}
-                height={280}
+                height={220}
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
@@ -322,9 +345,10 @@ export const ChartWithRoadmap: React.FC = () => {
               </defs>
               
               <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="rgba(148, 163, 184, 0.2)" 
+                strokeDasharray="0" 
+                stroke="rgba(148, 163, 184, 0.25)" 
                 vertical={false}
+                horizontal={true}
               />
               
               <XAxis 
@@ -406,177 +430,144 @@ export const ChartWithRoadmap: React.FC = () => {
           </div>
         </div>
 
-        {/* YEAR Header Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-2 border-r border-slate-200/40" />
-          {years.map((yearData) => (
-            <div 
-              key={yearData.year}
-              className="px-1 py-2 flex items-center justify-center"
-            >
-              <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
-                {yearData.year}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* PURCHASE Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Purchase
-            </span>
-          </div>
-          {years.map((yearData) => (
-            <div 
-              key={`purchase-${yearData.year}`}
-              className="px-0.5 py-0.5 flex items-center justify-center"
-            >
-              {yearData.purchaseInYear && yearData.purchaseDetails ? (
-                <MiniPurchaseCard
-                  propertyTitle={yearData.purchaseDetails.propertyTitle}
-                  cost={yearData.purchaseDetails.cost}
-                  loanAmount={yearData.purchaseDetails.loanAmount}
-                  depositRequired={yearData.purchaseDetails.depositRequired}
-                  compact={yearColumnWidth < 80}
-                />
-              ) : null}
-            </div>
-          ))}
-        </div>
-
-        {/* DEPOSIT Status Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Deposit
-            </span>
-          </div>
-          {years.map((yearData) => (
-            <div 
-              key={`deposit-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <StatusPill status={yearData.depositStatus} />
-            </div>
-          ))}
-        </div>
-
-        {/* BORROWING Status Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Borrow
-            </span>
-          </div>
-          {years.map((yearData) => (
-            <div 
-              key={`borrowing-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <StatusPill status={yearData.borrowingStatus} />
-            </div>
-          ))}
-        </div>
-
-        {/* SERVICEABILITY Status Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Service
-            </span>
-          </div>
-          {years.map((yearData) => (
-            <div 
-              key={`service-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <StatusPill status={yearData.serviceabilityStatus} />
-            </div>
-          ))}
-        </div>
-
-        {/* AVAILABLE Funds Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Avail
-            </span>
-          </div>
-          {years.map((yearData) => (
-            <div 
-              key={`available-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <span className="text-[8px] font-light text-slate-600">
-                {formatCompactCurrency(yearData.availableFundsRaw)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* LVR Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              LVR
-            </span>
-          </div>
-          {years.map((yearData) => {
-            const lvr = yearData.portfolioValueRaw > 0 
-              ? (yearData.totalDebt / yearData.portfolioValueRaw) * 100 
-              : 0;
-            return (
+        {/* Table Section with light grey background */}
+        <div className="bg-slate-50/70 -mt-5">
+          {/* YEAR Header Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40" />
+            {years.map((yearData, index) => (
               <div 
-                key={`lvr-${yearData.year}`}
-                className="px-0.5 py-1 flex items-center justify-center"
+                key={yearData.year}
+                className={`px-1 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
               >
-                <span className="text-[8px] font-light text-slate-600">
-                  {lvr > 0 ? `${lvr.toFixed(0)}%` : '–'}
+                <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                  {yearData.year}
                 </span>
               </div>
-            );
-          })}
-        </div>
-
-        {/* EQUITY Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Equity
-            </span>
+            ))}
           </div>
-          {years.map((yearData) => (
-            <div 
-              key={`equity-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <span className="text-[8px] font-light text-slate-600">
-                {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
+
+          {/* PURCHASE Row - Taller than other rows */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Buy
               </span>
             </div>
-          ))}
-        </div>
-
-        {/* PORTFOLIO Row */}
-        <div style={gridStyle} className="border-b border-slate-200/40">
-          <div className="sticky left-0 bg-white z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
-            <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-              Value
-            </span>
+            {years.map((yearData, index) => (
+              <div 
+                key={`purchase-${yearData.year}`}
+                className={`px-0.5 py-1 flex items-stretch justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                {yearData.purchaseInYear && yearData.purchaseDetails ? (
+                  <MiniPurchaseCard
+                    propertyTitle={yearData.purchaseDetails.propertyTitle}
+                    cost={yearData.purchaseDetails.cost}
+                    loanAmount={yearData.purchaseDetails.loanAmount}
+                    depositRequired={yearData.purchaseDetails.depositRequired}
+                  />
+                ) : (
+                  <span className="text-[8px] text-slate-400 self-center">–</span>
+                )}
+              </div>
+            ))}
           </div>
-          {years.map((yearData) => (
-            <div 
-              key={`portfolio-${yearData.year}`}
-              className="px-0.5 py-1 flex items-center justify-center"
-            >
-              <span className="text-[8px] font-light text-slate-600">
-                {yearData.portfolioValueRaw > 0 ? formatCompactCurrency(yearData.portfolioValueRaw) : '–'}
+
+          {/* DEPOSIT Status Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Deposit
               </span>
             </div>
-          ))}
+            {years.map((yearData, index) => (
+              <div 
+                key={`deposit-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <StatusPill status={yearData.depositStatus} />
+              </div>
+            ))}
+          </div>
+
+          {/* BORROWING Status Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Borrow
+              </span>
+            </div>
+            {years.map((yearData, index) => (
+              <div 
+                key={`borrowing-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <StatusPill status={yearData.borrowingStatus} />
+              </div>
+            ))}
+          </div>
+
+          {/* SERVICEABILITY Status Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Service
+              </span>
+            </div>
+            {years.map((yearData, index) => (
+              <div 
+                key={`service-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <StatusPill status={yearData.serviceabilityStatus} />
+              </div>
+            ))}
+          </div>
+
+          {/* AVAILABLE Funds Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Avail
+              </span>
+            </div>
+            {years.map((yearData, index) => (
+              <div 
+                key={`available-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <span className="text-[8px] font-light text-slate-600">
+                  {formatCompactCurrency(yearData.availableFundsRaw)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* LVR Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                LVR
+              </span>
+            </div>
+            {years.map((yearData, index) => {
+              const lvr = yearData.portfolioValueRaw > 0 
+                ? (yearData.totalDebt / yearData.portfolioValueRaw) * 100 
+                : 0;
+              return (
+                <div 
+                  key={`lvr-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  <span className="text-[8px] font-light text-slate-600">
+                    {lvr > 0 ? `${lvr.toFixed(0)}%` : '–'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
 
         {/* AI Strategy Analysis Footer */}
         <div className="bg-gradient-to-r from-teal-50 via-sky-50 to-violet-50 border-t border-slate-200/40 p-4">

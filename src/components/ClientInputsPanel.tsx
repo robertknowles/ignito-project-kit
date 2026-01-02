@@ -104,10 +104,10 @@ export const ClientInputsPanel: React.FC = () => {
   } = useInvestmentProfile()
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-5">
       {/* Investment Goals Section */}
       <div>
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
           Investment Goals
         </h3>
         <div className="flex flex-col gap-1.5">
@@ -152,8 +152,8 @@ export const ClientInputsPanel: React.FC = () => {
       </div>
 
       {/* Personal Details Section */}
-      <div className="pt-2">
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+      <div>
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
           Personal Details
         </h3>
         <div className="flex flex-col gap-1.5">
@@ -196,8 +196,8 @@ export const ClientInputsPanel: React.FC = () => {
       </div>
 
       {/* Current Portfolio Section */}
-      <div className="pt-2">
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+      <div>
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
           Current Portfolio
         </h3>
         <div className="flex flex-col gap-1.5">

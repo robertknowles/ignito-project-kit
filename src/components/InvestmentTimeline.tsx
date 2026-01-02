@@ -9,7 +9,6 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { PurchaseEventCard } from './PurchaseEventCard'
-import { GapView } from './GapView'
 import { PauseBlockCard } from './PauseBlockCard'
 import type { YearBreakdownData } from '@/types/property'
 
@@ -866,13 +865,6 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           </div>
         </div>
       )}
-      
-      <div className="flex items-center gap-3 mb-8">
-        <CalendarIcon size={16} className="text-[#6b7280]" />
-        <h3 className="text-[#111827] font-medium text-sm">
-          Investment Timeline
-        </h3>
-      </div>
 
       {unifiedTimeline.length === 0 && timelineProperties.filter(p => p.affordableYear === Infinity).length === 0 ? (
         <div className="text-center py-12 text-gray-500">
@@ -918,15 +910,6 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                             duration={element.duration}
                             onRemove={() => removePause(element.pauseId!)}
                             onUpdateDuration={(newDuration) => updatePauseDuration(element.pauseId!, newDuration)}
-                          />
-                        );
-                      } else if (element.type === 'gap' && element.startYear && element.endYear) {
-                        return (
-                          <GapView
-                            key={`gap-${element.startYear}-${element.endYear}`}
-                            startYear={element.startYear}
-                            endYear={element.endYear}
-                            allYearData={fullYearlyBreakdown}
                           />
                         );
                       }
