@@ -437,7 +437,7 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 opacity: '0.8',
               }}
               min="5"
-              max="30"
+              max="20"
               step="1"
               value={profile.timelineYears}
               onChange={(e) => updateProfile({ timelineYears: parseInt(e.target.value) })}
@@ -450,13 +450,13 @@ export const StrategyBuilder: React.FC<StrategyBuilderProps> = ({
                 value={profile.timelineYears}
                 onChange={(val) => updateProfile({ timelineYears: val })}
                 min={5}
-                max={30}
+                max={20}
                 formatAsCurrency={false}
                 suffix="years"
                 className="w-12 text-center bg-transparent focus:outline-none text-xs text-[#6b7280] font-medium"
               />
             </div>
-            <span className="text-xs text-[#6b7280] w-16 text-right">30 yrs</span>
+            <span className="text-xs text-[#6b7280] w-16 text-right">20 yrs</span>
           </div>
         </div>
       </div>

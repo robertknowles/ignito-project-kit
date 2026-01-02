@@ -1,99 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 
-// Buffered input component to prevent "bouncing" while typing
-interface BufferedInputProps {
-  value: number
-  onChange: (val: number) => void
-  min: number
-  max: number
-  formatAsCurrency?: boolean
-  suffix?: string
-}
-
-const BufferedInput: React.FC<BufferedInputProps> = ({
-  value,
-  onChange,
-  min,
-  max,
-  formatAsCurrency = true,
-  suffix,
-}) => {
-  const [localValue, setLocalValue] = useState(value.toString())
-  const [isFocused, setIsFocused] = useState(false)
-
-  // Sync local value when external value changes (e.g., from slider)
-  useEffect(() => {
-    if (!isFocused) {
-      setLocalValue(value.toString())
-    }
-  }, [value, isFocused])
-
-  const formatDisplayValue = (val: string) => {
-    if (isFocused) return val
-    const num = parseFloat(val) || 0
-    if (formatAsCurrency) {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 0,
-      }).format(num)
-    }
-    return val
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalValue(e.target.value)
-  }
-
-  const commitValue = () => {
-    const cleaned = localValue.replace(/[^0-9.-]/g, '')
-    const parsed = parseFloat(cleaned) || 0
-    const clamped = Math.min(max, Math.max(min, parsed))
-    onChange(clamped)
-    setLocalValue(clamped.toString())
-  }
-
-  const handleBlur = () => {
-    setIsFocused(false)
-    commitValue()
-  }
-
-  const handleFocus = () => {
-    setIsFocused(true)
-    setLocalValue(value.toString())
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      commitValue()
-      ;(e.target as HTMLInputElement).blur()
-    }
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-1">
-      <input
-        type="text"
-        value={formatDisplayValue(localValue)}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onFocus={handleFocus}
-        onKeyDown={handleKeyDown}
-        className="w-20 text-center bg-transparent focus:outline-none text-xs text-[#6b7280] font-medium"
-      />
-      {suffix && <span className="text-xs text-[#6b7280]">{suffix}</span>}
-    </div>
-  )
-}
-
-// Slider styles for consistent appearance - Monochrome design
-const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-lg [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-gray-900 [&::-moz-range-thumb]:cursor-pointer hover:[&::-webkit-slider-thumb]:bg-gray-700 hover:[&::-moz-range-thumb]:bg-gray-700"
+// Slider styles for consistent appearance - Clean black track and handle
+const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #111827 0%, #111827 ${((value - min) / (max - min)) * 100}%, #e5e7eb ${((value - min) / (max - min)) * 100}%, #e5e7eb 100%)`,
-  height: '4px',
+  background: `linear-gradient(to right, #0f172a 0%, #0f172a ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
 })
+
+// Format value for display
+const formatValue = (value: number, formatAsCurrency: boolean, suffix?: string) => {
+  if (formatAsCurrency) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+  return suffix ? `${value} ${suffix}` : value.toString()
+}
 
 interface SliderFieldProps {
   label: string
@@ -119,37 +44,56 @@ const SliderField: React.FC<SliderFieldProps> = ({
   maxLabel,
   formatAsCurrency = true,
   suffix,
-}) => (
-  <div>
-    <label className="block text-xs font-medium text-[#374151] mb-2">
-      {label}
-    </label>
-    <div className="mb-1">
-      <input
-        type="range"
-        className={sliderClassName}
-        style={getSliderStyle(value, min, max)}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-      />
+}) => {
+  const [isActive, setIsActive] = useState(false)
+
+  return (
+    <div 
+      className={`bg-white rounded-lg border px-2.5 py-1.5 transition-all duration-150 ${
+        isActive 
+          ? 'border-slate-900 shadow-sm' 
+          : 'border-slate-200 hover:border-slate-300'
+      }`}
+    >
+      {/* Header: Label left, Value right */}
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wide">
+          {label}
+        </span>
+        <span className="text-xs font-bold text-slate-900">
+          {formatValue(value, formatAsCurrency, suffix)}
+        </span>
+      </div>
+      
+      {/* Slider Track */}
+      <div>
+        <input
+          type="range"
+          className={sliderClassName}
+          style={getSliderStyle(value, min, max)}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value))}
+          onMouseDown={() => setIsActive(true)}
+          onMouseUp={() => setIsActive(false)}
+          onMouseLeave={() => setIsActive(false)}
+          onTouchStart={() => setIsActive(true)}
+          onTouchEnd={() => setIsActive(false)}
+        />
+      </div>
+      
+      {/* Min/Max Labels - Only visible when active */}
+      <div className={`flex justify-between items-center mt-0.5 transition-opacity duration-150 ${
+        isActive ? 'opacity-100' : 'opacity-0'
+      }`}>
+        <span className="text-[8px] text-slate-400">{minLabel}</span>
+        <span className="text-[8px] text-slate-400">{maxLabel}</span>
+      </div>
     </div>
-    <div className="flex justify-between items-center">
-      <span className="text-xs text-[#9ca3af]">{minLabel}</span>
-      <BufferedInput
-        value={value}
-        onChange={onChange}
-        min={min}
-        max={max}
-        formatAsCurrency={formatAsCurrency}
-        suffix={suffix}
-      />
-      <span className="text-xs text-[#9ca3af]">{maxLabel}</span>
-    </div>
-  </div>
-)
+  )
+}
 
 export const ClientInputsPanel: React.FC = () => {
   const { 
@@ -160,73 +104,27 @@ export const ClientInputsPanel: React.FC = () => {
   } = useInvestmentProfile()
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Deposit Pool */}
-      <SliderField
-        label="Deposit Pool"
-        value={profile.depositPool}
-        onChange={(val) => updateProfile({ depositPool: val })}
-        min={10000}
-        max={500000}
-        step={5000}
-        minLabel="$10k"
-        maxLabel="$500k"
-      />
-
-      {/* Borrowing Capacity */}
-      <SliderField
-        label="Borrowing Capacity"
-        value={profile.borrowingCapacity}
-        onChange={(val) => updateProfile({ borrowingCapacity: val })}
-        min={100000}
-        max={2000000}
-        step={50000}
-        minLabel="$100k"
-        maxLabel="$2M"
-      />
-
-      {/* Current Portfolio Value */}
-      <SliderField
-        label="Current Portfolio Value"
-        value={profile.portfolioValue}
-        onChange={(val) => updateProfile({ portfolioValue: val })}
-        min={0}
-        max={5000000}
-        step={50000}
-        minLabel="$0"
-        maxLabel="$5M"
-      />
-
-      {/* Current Debt */}
-      <SliderField
-        label="Current Debt"
-        value={profile.currentDebt}
-        onChange={(val) => updateProfile({ currentDebt: val })}
-        min={0}
-        max={4000000}
-        step={50000}
-        minLabel="$0"
-        maxLabel="$4M"
-      />
-
-      {/* Annual Savings */}
-      <SliderField
-        label="Annual Savings"
-        value={profile.annualSavings}
-        onChange={(val) => updateProfile({ annualSavings: val })}
-        min={0}
-        max={100000}
-        step={1000}
-        minLabel="$0"
-        maxLabel="$100k"
-      />
-
+    <div className="flex flex-col gap-2">
       {/* Investment Goals Section */}
-      <div className="pt-2 border-t border-gray-100">
-        <h3 className="text-xs font-semibold text-[#374151] mb-4 uppercase tracking-wide">
+      <div>
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
           Investment Goals
         </h3>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          {/* Timeline */}
+          <SliderField
+            label="Investment Horizon"
+            value={profile.timelineYears}
+            onChange={(val) => updateProfile({ timelineYears: val })}
+            min={5}
+            max={20}
+            step={1}
+            minLabel="5 yrs"
+            maxLabel="20 yrs"
+            formatAsCurrency={false}
+            suffix="years"
+          />
+
           {/* Equity Goal */}
           <SliderField
             label="Equity Goal"
@@ -253,20 +151,80 @@ export const ClientInputsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="pt-2 border-t border-gray-100">
-        <SliderField
-          label="Timeline (Years)"
-          value={profile.timelineYears}
-          onChange={(val) => updateProfile({ timelineYears: val })}
-          min={5}
-          max={30}
-          step={1}
-          minLabel="5 yrs"
-          maxLabel="30 yrs"
-          formatAsCurrency={false}
-          suffix="years"
-        />
+      {/* Personal Details Section */}
+      <div className="pt-2">
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+          Personal Details
+        </h3>
+        <div className="flex flex-col gap-1.5">
+          {/* Deposit Pool */}
+          <SliderField
+            label="Deposit Pool"
+            value={profile.depositPool}
+            onChange={(val) => updateProfile({ depositPool: val })}
+            min={10000}
+            max={500000}
+            step={5000}
+            minLabel="$10k"
+            maxLabel="$500k"
+          />
+
+          {/* Borrowing Capacity */}
+          <SliderField
+            label="Borrowing Capacity"
+            value={profile.borrowingCapacity}
+            onChange={(val) => updateProfile({ borrowingCapacity: val })}
+            min={100000}
+            max={2000000}
+            step={50000}
+            minLabel="$100k"
+            maxLabel="$2M"
+          />
+
+          {/* Annual Savings */}
+          <SliderField
+            label="Annual Savings"
+            value={profile.annualSavings}
+            onChange={(val) => updateProfile({ annualSavings: val })}
+            min={0}
+            max={100000}
+            step={1000}
+            minLabel="$0"
+            maxLabel="$100k"
+          />
+        </div>
+      </div>
+
+      {/* Current Portfolio Section */}
+      <div className="pt-2">
+        <h3 className="text-[9px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+          Current Portfolio
+        </h3>
+        <div className="flex flex-col gap-1.5">
+          {/* Current Portfolio Value */}
+          <SliderField
+            label="Current Value"
+            value={profile.portfolioValue}
+            onChange={(val) => updateProfile({ portfolioValue: val })}
+            min={0}
+            max={5000000}
+            step={50000}
+            minLabel="$0"
+            maxLabel="$5M"
+          />
+
+          {/* Current Debt */}
+          <SliderField
+            label="Current Debt"
+            value={profile.currentDebt}
+            onChange={(val) => updateProfile({ currentDebt: val })}
+            min={0}
+            max={4000000}
+            step={50000}
+            minLabel="$0"
+            maxLabel="$4M"
+          />
+        </div>
       </div>
     </div>
   )

@@ -198,17 +198,17 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   };
 
   return (
-    <div className="relative flex gap-4 items-center">
+    <div className="relative flex gap-2 items-center">
       {/* Year Circle - Outside and to the left - Clickable for property inspection */}
       <div 
-        className={`flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl transition-all duration-200 ${
+        className={`flex-shrink-0 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-200 ${
           onInspectProperty && property?.status === 'feasible' 
-            ? 'cursor-pointer hover:scale-105 hover:shadow-lg hover:ring-4 hover:ring-blue-200' 
+            ? 'cursor-pointer hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-blue-200' 
             : ''
         }`}
         style={{ 
-          width: '80px', 
-          height: '80px',
+          width: '40px', 
+          height: '40px',
           backgroundColor: '#87B5FA'
         }}
         onClick={handlePropertyClick}
@@ -218,24 +218,24 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
       </div>
 
       {/* Main Card Content */}
-      <div className="flex-1 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-        <div className="flex flex-col">
+      <div className="flex-1 bg-white rounded border border-gray-200 shadow-sm px-2.5 py-2">
+        <div className="flex flex-col gap-1.5">
         {/* Row 1: Property Title with Expand Button */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="bg-gray-100 rounded p-1.5 flex items-center justify-center">
-              {getPropertyTypeIcon(propertyType, 24, 'text-gray-400')}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <div className="bg-gray-100 rounded p-0.5 flex items-center justify-center">
+              {getPropertyTypeIcon(propertyType, 14, 'text-gray-400')}
             </div>
-            <span className="text-sm flex items-center">
+            <span className="text-[10px] flex items-center">
               <span className="font-medium text-gray-900">{propertyType}</span>
-              <span className="text-gray-400 mx-1">|</span>
-              <span className="text-gray-600 flex items-center gap-1">
+              <span className="text-gray-400 mx-0.5">|</span>
+              <span className="text-gray-600 flex items-center">
                 Growth:
                 <Select
                   value={propertyData.growthAssumption}
                   onValueChange={(val) => handleFieldUpdate('growthAssumption', val)}
                 >
-                  <SelectTrigger className="h-6 w-auto px-2 text-xs border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
+                  <SelectTrigger className="h-4 w-auto px-1 text-[10px] border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,58 +249,43 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
           </div>
           
           {/* Expand Property Details Button - Top Right */}
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-sm hover:underline"
+              className="text-[9px] hover:underline"
               style={{ color: '#87B5FA' }}
             >
-              [ Expand for Full Property Details → ]
+              [ Details → ]
             </button>
             {showDecisionEngine && (
               <button
                 onClick={() => setIsDecisionEngineOpen(true)}
-                className="text-xs hover:underline text-gray-500"
+                className="text-[9px] hover:underline text-gray-500"
               >
-                [ Expand Decision Analysis → ]
+                [ Analysis → ]
               </button>
             )}
           </div>
         </div>
         
         {/* Row 2: Two Sections Side-by-Side */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Section 1: PURCHASE (moved before Property Details) */}
-          <div>
-            <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
-              PURCHASE
-            </div>
-            <div className="text-gray-700 text-sm">
-              <span>Price: </span>
-              <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
-              <span className="mx-2 text-gray-400">|</span>
-              <span>Valuation: </span>
-              <EditableField label="Valuation" value={(propertyData.valuationAtPurchase / 1000).toFixed(0)} field="valuationAtPurchase" prefix="$" suffix="k" />
-              <span className="mx-2 text-gray-400">|</span>
-              <span>LVR: </span>
-              <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
-            </div>
+        <div className="flex gap-4 text-[9px]">
+          {/* Section 1: PURCHASE */}
+          <div className="text-gray-600">
+            <span className="text-gray-400 uppercase tracking-wide mr-1">Purchase:</span>
+            <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
+            <span className="mx-0.5 text-gray-300">|</span>
+            <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
           </div>
           
           {/* Section 2: PROPERTY DETAILS */}
-          <div>
-            <div className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1.5">
-              PROPERTY DETAILS
-            </div>
-            <div className="text-gray-700 text-sm">
-              <span>State: </span>
-              <EditableField label="State" value={propertyData.state} field="state" type="text" />
-              <span className="mx-2 text-gray-400">|</span>
-              <span>Yield: {yieldCalc}%</span>
-              <span className="mx-2 text-gray-400">|</span>
-              <span>Rent: </span>
-              <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
-            </div>
+          <div className="text-gray-600">
+            <span className="text-gray-400 uppercase tracking-wide mr-1">Details:</span>
+            <EditableField label="State" value={propertyData.state} field="state" type="text" />
+            <span className="mx-0.5 text-gray-300">|</span>
+            <span>Yield: {yieldCalc}%</span>
+            <span className="mx-0.5 text-gray-300">|</span>
+            <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
           </div>
         </div>
         </div>

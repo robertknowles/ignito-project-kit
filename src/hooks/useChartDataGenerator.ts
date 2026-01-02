@@ -32,7 +32,7 @@ export const useChartDataGenerator = () => {
   const portfolioGrowthData = useMemo((): PortfolioGrowthDataPoint[] => {
     const data: PortfolioGrowthDataPoint[] = [];
     const startYear = 2025;
-    const endYear = startYear + profile.timelineYears;
+    const endYear = startYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
     const defaultInterestRate = 0.065; // Default 6.5% for chart calculations
@@ -121,7 +121,7 @@ export const useChartDataGenerator = () => {
   const cashflowData = useMemo((): CashflowDataPoint[] => {
     const data: CashflowDataPoint[] = [];
     const startYear = 2025;
-    const endYear = startYear + profile.timelineYears;
+    const endYear = startYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
     const defaultInterestRate = 0.065; // Default 6.5% for chart calculations

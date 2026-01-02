@@ -29,15 +29,15 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
         {/* Content wrapper - only visible when open */}
         <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           {/* Tab Switcher Header */}
-          <div className="flex items-center border-b border-gray-200">
-            {tabs.map((tab) => {
+          <div className="relative flex items-center border-b border-gray-200">
+            {tabs.map((tab, index) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-colors relative ${
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-[13px] font-medium transition-colors ${
                     isActive
                       ? 'text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
@@ -45,13 +45,17 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
                 >
                   <Icon size={16} />
                   <span>{tab.label}</span>
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900" />
-                  )}
                 </button>
               )
             })}
+            {/* Active indicator - positioned at bottom of container */}
+            <div 
+              className="absolute bottom-0 h-0.5 bg-gray-900 transition-all duration-200"
+              style={{
+                left: activeTab === 'inputs' ? '0%' : '50%',
+                width: '50%'
+              }}
+            />
           </div>
 
           {/* Tab Content Area */}

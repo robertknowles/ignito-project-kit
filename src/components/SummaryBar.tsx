@@ -125,47 +125,49 @@ export const SummaryBar = () => {
   }
 
   return (
-    <div className="grid grid-cols-6 gap-6">
-      {/* Portfolio Value Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Portfolio Value</span>
-        <span className="metric-value-sm">{formatCurrency(kpis.finalPortfolioValue)}</span>
-      </div>
-      
-      {/* Properties Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Properties</span>
-        <span className="metric-value-sm">{kpis.totalProperties}</span>
-      </div>
-      
-      {/* Cashflow Goal Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Cashflow Goal</span>
-        <span className="metric-value-sm">
-          {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
-        </span>
-      </div>
-      
-      {/* Equity Goal Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Equity Goal</span>
-        <span className="metric-value-sm">
-          {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
-        </span>
-      </div>
-      
-      {/* Total Debt Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Total Debt</span>
-        <span className="metric-value-sm">{formatCurrency(kpis.totalDebt)}</span>
-      </div>
-      
-      {/* Timeline Progress Card */}
-      <div className="bento-card p-5 flex flex-col">
-        <span className="metric-label mb-1">Timeline Progress</span>
-        <span className="metric-value-sm">
-          Year {yearProgress.currentYear} / {yearProgress.totalYears}
-        </span>
+    <div className="bg-white rounded-t-xl border border-gray-200 overflow-hidden">
+      <div className="grid grid-cols-6">
+        {/* Portfolio Value Card */}
+        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+          <span className="metric-label mb-0.5">Portfolio Value</span>
+          <span className="metric-value-sm whitespace-nowrap">{formatCurrency(kpis.finalPortfolioValue)}</span>
+        </div>
+        
+        {/* Properties Card */}
+        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+          <span className="metric-label mb-0.5">Properties</span>
+          <span className="metric-value-sm whitespace-nowrap">{kpis.totalProperties}</span>
+        </div>
+        
+        {/* Cashflow Goal Card */}
+        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+          <span className="metric-label mb-0.5">Cashflow Goal</span>
+          <span className="metric-value-sm whitespace-nowrap">
+            {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
+          </span>
+        </div>
+        
+        {/* Equity Goal Card */}
+        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+          <span className="metric-label mb-0.5">Equity Goal</span>
+          <span className="metric-value-sm whitespace-nowrap">
+            {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
+          </span>
+        </div>
+        
+        {/* Total Debt Card */}
+        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+          <span className="metric-label mb-0.5">Total Debt</span>
+          <span className="metric-value-sm whitespace-nowrap">{formatCurrency(kpis.totalDebt)}</span>
+        </div>
+        
+        {/* Timeline Progress Card */}
+        <div className="flex flex-col justify-center p-3">
+          <span className="metric-label mb-0.5">Timeline Progress</span>
+          <span className="metric-value-sm whitespace-nowrap">
+            Year {yearProgress.currentYear} / {yearProgress.totalYears}
+          </span>
+        </div>
       </div>
     </div>
   )

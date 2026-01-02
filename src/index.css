@@ -134,7 +134,7 @@
 
   /* Smaller metric value variant for dashboard cards */
   .metric-value-sm {
-    @apply text-2xl font-bold text-gray-900 tracking-tight;
+    @apply text-lg font-bold text-gray-900 tracking-tight leading-tight;
   }
 }
 

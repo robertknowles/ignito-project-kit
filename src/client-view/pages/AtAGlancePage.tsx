@@ -54,7 +54,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   // Default assumptions
   const startYear = 2025;
   const timelineYears = investmentProfile?.timelineYears || 15;
-  const endYear = startYear + timelineYears;
+  const endYear = startYear + timelineYears - 1;
   const defaultGrowthRate = 0.06; // 6% annual growth
   const defaultInterestRate = investmentProfile?.interestRate || 0.065; // 6.5% interest
   

@@ -7,11 +7,20 @@ import { CustomBlockModal } from './CustomBlockModal'
 import type { CustomPropertyBlock } from './CustomBlockModal'
 import { PropertyDetailModal } from './PropertyDetailModal'
 
+// Growth rates structure for cascading display
+interface CascadingGrowthRates {
+  year1: string
+  years2to3: string
+  year4: string
+  year5plus: string
+}
+
 // Compact property card for sidebar - ElevenLabs style
 interface PropertyBlockCardProps {
   title: string
   priceRange: string
   yieldValue: string
+  growthRates?: CascadingGrowthRates
   count: number
   isCustom?: boolean
   onIncrement: () => void
@@ -24,6 +33,7 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
   title,
   priceRange,
   yieldValue,
+  growthRates,
   count,
   isCustom,
   onIncrement,
@@ -32,6 +42,11 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
   onDelete,
 }) => {
   const isActive = count > 0
+  
+  // Format cascading growth rate string
+  const growthRateDisplay = growthRates 
+    ? `${growthRates.year1}% → ${growthRates.years2to3}% → ${growthRates.year4}% → ${growthRates.year5plus}%`
+    : null
   
   return (
     <div className={`flex items-center gap-2 p-2.5 bg-white border rounded-xl transition-colors ${
@@ -47,7 +62,12 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
       {/* Center: Text Stack */}
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-900 text-xs truncate">{title}</h4>
-        <p className="text-gray-500 text-[10px] leading-tight truncate">{priceRange} · {yieldValue}</p>
+        <p className="text-gray-500 text-[10px] leading-tight truncate">{priceRange} · Rental Yield: {yieldValue}</p>
+        {growthRateDisplay && (
+          <p className="text-gray-400 text-[9px] leading-tight truncate" title="Growth rate: Y1 → Y2-3 → Y4 → Y5+">
+            Growth: {growthRateDisplay}
+          </p>
+        )}
       </div>
       
       {/* Right: Actions - Compact */}

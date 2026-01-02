@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { SummaryBar } from './SummaryBar';
-import { InvestmentTimeline, TimelineProgressBar, useTimelineData } from './InvestmentTimeline';
-import { PortfolioGrowthChart } from './PortfolioGrowthChart';
-import { CashflowChart } from './CashflowChart';
+import { TimelineColumn } from './TimelineColumn';
+import { PropertyPerformanceTabs } from './PropertyPerformanceTabs';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { useChartDataSync } from '../hooks/useChartDataSync';
+import { InvestmentTimeline, TimelineProgressBar, useTimelineData } from './InvestmentTimeline';
 
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
@@ -19,12 +19,6 @@ export const Dashboard = () => {
   // State for Property Detail Panel (Inspector)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
-  
-  const handleYearClick = (year: number) => {
-    if (timelineRef.current) {
-      timelineRef.current.scrollToYear(year);
-    }
-  };
   
   // Handle property inspection from timeline
   const handleInspectProperty = (propertyInstanceId: string) => {
@@ -47,42 +41,41 @@ export const Dashboard = () => {
   return (
     <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
       {/* Bento Grid Container */}
-      <div className="p-8 flex flex-col gap-8">
-        {/* ROW 1: Scoreboard - Key Metrics */}
-        <SummaryBar />
-        
-        {/* ROW 2: Purchase Timeline (Investment Roadmap) */}
-        <div className="bento-card p-6">
-          {/* Header */}
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Roadmap</h2>
-          
-          {/* Year Navigation */}
-          <TimelineProgressBar
-            startYear={timelineData.startYear}
-            endYear={timelineData.endYear}
-            latestPurchaseYear={timelineData.latestPurchaseYear}
-            purchaseYears={timelineData.purchaseYears}
-            onYearClick={handleYearClick}
-          />
-          
-          {/* Timeline Content */}
-          <div className="mt-4">
-            <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
-          </div>
+      <div className="flex flex-col gap-4">
+        {/* ROW 1: Scoreboard + Chart Toggle (Wealth/Cashflow) - Attached as single unit */}
+        <div className="flex flex-col">
+          <SummaryBar />
+          <TimelineColumn />
         </div>
         
-        {/* ROW 3: Consolidated Charts - Two Column Grid */}
+        {/* ROW 2: Two Column Grid - Timeline (LHS) + Property Workbench (RHS) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* LEFT COLUMN: Wealth Trajectory (Portfolio Value & Equity Growth) */}
+          {/* LEFT COLUMN: Investment Timeline */}
           <div className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Wealth Trajectory</h2>
-            <PortfolioGrowthChart />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Investment Timeline</h2>
+            {/* Year Navigation */}
+            <TimelineProgressBar
+              startYear={timelineData.startYear}
+              endYear={timelineData.endYear}
+              latestPurchaseYear={timelineData.latestPurchaseYear}
+              purchaseYears={timelineData.purchaseYears}
+              onYearClick={(year) => {
+                if (timelineRef.current) {
+                  timelineRef.current.scrollToYear(year);
+                }
+              }}
+            />
+            
+            {/* Timeline Content */}
+            <div className="mt-4">
+              <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
+            </div>
           </div>
           
-          {/* RIGHT COLUMN: Cashflow Position (Cashflow Analysis) */}
+          {/* RIGHT COLUMN: Property Workbench (Per-Property Deep Dive) */}
           <div className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Cashflow Position</h2>
-            <CashflowChart />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Property Workbench</h2>
+            <PropertyPerformanceTabs />
           </div>
         </div>
       </div>

@@ -22,10 +22,8 @@ export function App() {
       >
         <TopBar />
         <div className="flex-1 overflow-hidden p-4">
-          <div className="bento-card h-full overflow-hidden">
-            {/* Force Dashboard to remount when client changes by using key prop */}
-            <Dashboard key={activeClient?.id || 'no-client'} />
-          </div>
+          {/* Force Dashboard to remount when client changes by using key prop */}
+          <Dashboard key={activeClient?.id || 'no-client'} />
         </div>
       </div>
     </div>

@@ -69,7 +69,7 @@ export const TopBar = () => {
   }
 
   return (
-    <div className="sticky top-0 z-40 flex items-center justify-between w-full h-16 px-6 bg-white border-b border-gray-200">
+    <div className="sticky top-0 z-40 flex items-center justify-between w-full h-[45px] px-6 bg-white border-b border-gray-200">
       {/* Left side: Scenario Selector */}
       <div className="flex items-center">
         <ClientSelector />
@@ -80,7 +80,7 @@ export const TopBar = () => {
         <SaveButton />
         <button
           onClick={handleViewClientReport}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+          className="flex items-center gap-2 px-4 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
         >
           <ExternalLink size={16} />
           <span>Client Report</span>
