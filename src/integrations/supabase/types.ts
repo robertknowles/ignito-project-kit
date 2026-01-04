@@ -68,6 +68,9 @@ export interface ScenarioData {
   lastSaved: string;
 }
 
+// User role enum type
+export type UserRole = 'owner' | 'agent' | 'client';
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -76,6 +79,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          id: string
+          name: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          owner_id: string | null
+          seat_limit: number
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          owner_id?: string | null
+          seat_limit?: number
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          owner_id?: string | null
+          seat_limit?: number
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       clients: {
         Row: {
           created_at: string
@@ -86,6 +133,7 @@ export type Database = {
           phone: string | null
           updated_at: string | null
           user_id: string | null
+          company_id: string | null
         }
         Insert: {
           created_at?: string
@@ -96,6 +144,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string | null
           user_id?: string | null
+          company_id?: string | null
         }
         Update: {
           created_at?: string
@@ -106,8 +155,17 @@ export type Database = {
           phone?: string | null
           updated_at?: string | null
           user_id?: string | null
+          company_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
@@ -117,6 +175,8 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          company_id: string | null
+          role: UserRole | null
         }
         Insert: {
           company_name?: string | null
@@ -125,6 +185,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          company_id?: string | null
+          role?: UserRole | null
         }
         Update: {
           company_name?: string | null
@@ -133,8 +195,18 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          company_id?: string | null
+          role?: UserRole | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       scenarios: {
         Row: {
@@ -144,6 +216,12 @@ export type Database = {
           id: number
           name: string | null
           updated_at: string | null
+          client_display_name: string | null
+          agent_display_name: string | null
+          company_display_name: string | null
+          share_id: string | null
+          company_id: string | null
+          client_user_id: string | null
         }
         Insert: {
           client_id: number
@@ -152,7 +230,13 @@ export type Database = {
           id?: number
           name?: string | null
           updated_at?: string | null
- lawful       }
+          client_display_name?: string | null
+          agent_display_name?: string | null
+          company_display_name?: string | null
+          share_id?: string | null
+          company_id?: string | null
+          client_user_id?: string | null
+        }
         Update: {
           client_id?: number
           created_at?: string
@@ -160,6 +244,12 @@ export type Database = {
           id?: number
           name?: string | null
           updated_at?: string | null
+          client_display_name?: string | null
+          agent_display_name?: string | null
+          company_display_name?: string | null
+          share_id?: string | null
+          company_id?: string | null
+          client_user_id?: string | null
         }
         Relationships: [
           {
@@ -169,6 +259,20 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "scenarios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenarios_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
     }
@@ -179,7 +283,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: UserRole
     }
     CompositeTypes: {
       [_ in never]: never
@@ -208,7 +312,7 @@ export type Tables<
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? Rابع
+    ? R
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
@@ -217,7 +321,8 @@ export type Tables<
         Row: infer R
       }
       ? R
- clarification    : never
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -290,7 +395,7 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeName{itemize extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
@@ -305,6 +410,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ['owner', 'agent', 'client'] as const,
+    },
   },
 } as const

@@ -179,7 +179,7 @@ const initializePropertyTypeTemplates = (): PropertyTypeTemplate[] => {
 };
 
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevAssumptionsRef = useRef<string>('');
 
@@ -306,8 +306,15 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
   }, [user]);
 
   // Save assumptions with debounce when they change
+  // NOTE: Blocked for client role (sandbox mode - no saving)
   useEffect(() => {
     if (!user) return;
+    
+    // Block auto-save for client role - sandbox mode
+    if (role === 'client') {
+      console.log('DataAssumptionsContext: Auto-save blocked for client role (sandbox mode)');
+      return;
+    }
     
     const currentAssumptions = JSON.stringify({
       propertyTypeTemplates,
@@ -346,7 +353,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [propertyTypeTemplates, propertyAssumptions, globalFactors, user]);
+  }, [propertyTypeTemplates, propertyAssumptions, globalFactors, user, role]);
 
   // NEW: Property type template methods
   const getPropertyTypeTemplate = (propertyType: string): PropertyTypeTemplate | undefined => {

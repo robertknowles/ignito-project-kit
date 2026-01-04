@@ -6,6 +6,7 @@ import {
   UserIcon,
   LogOutIcon,
   SettingsIcon,
+  Building2Icon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -19,7 +20,7 @@ import {
 export const LeftRail = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { signOut, role } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -54,18 +55,33 @@ export const LeftRail = () => {
     setDropdownOpen(false)
   }
 
-  const navItems = [
-    { path: '/clients', icon: HomeIcon, label: 'Home' },
-    { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard' },
-    { path: '/data', icon: DatabaseIcon, label: 'Settings' },
+  // Top navigation items
+  const topNavItems = [
+    { path: '/clients', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
+    { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard', roles: ['owner', 'agent', 'client'] },
+    { path: '/data', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
   ]
+
+  // Bottom navigation items (above user menu)
+  const bottomNavItems = [
+    { path: '/company', icon: Building2Icon, label: 'Company', roles: ['owner'] },
+  ]
+
+  // Filter nav items based on role
+  const filteredTopNavItems = topNavItems.filter(item => 
+    role ? item.roles.includes(role) : false
+  )
+  
+  const filteredBottomNavItems = bottomNavItems.filter(item => 
+    role ? item.roles.includes(role) : false
+  )
 
   return (
     <TooltipProvider>
       <div className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
         {/* Top Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {navItems.map((item) => {
+          {filteredTopNavItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.path
             return (
@@ -90,8 +106,35 @@ export const LeftRail = () => {
           })}
         </div>
 
-        {/* Spacer to push user menu to bottom */}
+        {/* Spacer to push bottom items down */}
         <div className="flex-1" />
+
+        {/* Bottom Navigation Items (above user menu) */}
+        <div className="flex flex-col items-center gap-2 mb-2">
+          {filteredBottomNavItems.map((item) => {
+            const Icon = item.icon
+            const isActive = location.pathname === item.path
+            return (
+              <Tooltip key={item.path}>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                      isActive
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    }`}
+                    onClick={() => navigate(item.path)}
+                  >
+                    <Icon size={20} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{item.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            )
+          })}
+        </div>
 
         {/* User Profile Menu at Bottom */}
         <div className="relative" ref={dropdownRef}>

@@ -11,6 +11,7 @@ export interface Client {
   created_at: string;
   updated_at?: string;
   user_id: string;
+  company_id?: string;
 }
 
 interface ClientContextType {
@@ -38,7 +39,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [clients, setClients] = useState<Client[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, role, companyId } = useAuth();
 
   const fetchClients = async () => {
     if (!user || authLoading) {
@@ -46,14 +47,28 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
-    console.log('ClientContext - Fetching clients for user:', user.id);
+    console.log('ClientContext - Fetching clients for user:', user.id, 'role:', role);
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('clients')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      // Role-based filtering:
+      // - Owner: sees all clients in their company
+      // - Agent: sees only clients they created
+      // - Client: handled by RLS (they see their own scenarios, not other clients)
+      if (role === 'owner' && companyId) {
+        // Owner sees all clients in their company
+        query = query.eq('company_id', companyId);
+      } else if (role === 'agent') {
+        // Agent sees only clients they created
+        query = query.eq('user_id', user.id);
+      }
+      // For 'client' role, RLS handles access - they shouldn't see client list anyway
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -82,6 +97,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           {
             ...clientData,
             user_id: user.id,
+            company_id: companyId, // Associate client with the agent's company
           }
         ])
         .select()
@@ -104,11 +120,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user) return false;
 
     try {
+      // RLS policies handle access control - no need to filter by user_id
       const { error } = await supabase
         .from('clients')
         .update(updates)
-        .eq('id', clientId)
-        .eq('user_id', user.id);
+        .eq('id', clientId);
 
       if (error) throw error;
 
@@ -144,12 +160,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw scenariosError;
       }
 
-      // Then delete the client
+      // Then delete the client - RLS policies handle access control
       const { error } = await supabase
         .from('clients')
         .delete()
-        .eq('id', clientId)
-        .eq('user_id', user.id);
+        .eq('id', clientId);
 
       if (error) throw error;
 
@@ -170,10 +185,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && role) {
       fetchClients();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, role, companyId]);
 
   const value = {
     clients,

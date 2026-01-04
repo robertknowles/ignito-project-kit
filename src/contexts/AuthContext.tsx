@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/integrations/supabase/types';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  role: UserRole | null;
+  companyId: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -25,13 +28,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
+  // Fetch user profile data (role and company_id)
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, company_id')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+
+      if (data) {
+        setRole(data.role as UserRole | null);
+        setCompanyId(data.company_id);
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching user profile:', error);
+    }
+  };
+
+  // Clear profile data on sign out
+  const clearProfileData = () => {
+    setRole(null);
+    setCompanyId(null);
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Defer profile fetch to avoid Supabase client deadlock
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          clearProfileData();
+        }
+        
         setLoading(false);
       }
     );
@@ -40,6 +84,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -75,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error signing out:', error);
         throw error;
       }
+      clearProfileData();
     } catch (error) {
       console.error('Unexpected error during sign out:', error);
       throw error;
@@ -85,6 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    role,
+    companyId,
     signIn,
     signUp,
     signOut,

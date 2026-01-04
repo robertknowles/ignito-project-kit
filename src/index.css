@@ -27,6 +27,10 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Company branding colors - dynamically injected by BrandingContext */
+    --brand-primary: #3b82f6;
+    --brand-secondary: #6366f1;
   }
 
   .dark {

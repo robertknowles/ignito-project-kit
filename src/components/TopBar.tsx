@@ -6,10 +6,13 @@ import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const TopBar = () => {
   const { scenarioId } = useScenarioSave()
   const { toast } = useToast()
+  const { role } = useAuth()
+  const isClient = role === 'client'
 
   // Initialize client switching logic
   useClientSwitching()
@@ -70,22 +73,24 @@ export const TopBar = () => {
 
   return (
     <div className="sticky top-0 z-40 flex items-center justify-between w-full h-[45px] px-6 bg-white border-b border-gray-200">
-      {/* Left side: Scenario Selector */}
+      {/* Left side: Scenario Selector (hidden for clients) */}
       <div className="flex items-center">
-        <ClientSelector />
+        {!isClient && <ClientSelector />}
       </div>
       
-      {/* Right side: Primary Actions */}
-      <div className="flex items-center gap-3">
-        <SaveButton />
-        <button
-          onClick={handleViewClientReport}
-          className="flex items-center gap-2 px-4 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
-        >
-          <ExternalLink size={16} />
-          <span>Client Report</span>
-        </button>
-      </div>
+      {/* Right side: Primary Actions (hidden for clients) */}
+      {!isClient && (
+        <div className="flex items-center gap-3">
+          <SaveButton />
+          <button
+            onClick={handleViewClientReport}
+            className="flex items-center gap-2 px-4 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
+          >
+            <ExternalLink size={16} />
+            <span>Client Report</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

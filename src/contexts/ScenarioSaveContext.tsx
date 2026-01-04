@@ -61,6 +61,9 @@ interface ScenarioSaveContextType {
   loadClientScenario: (clientId: number) => ScenarioData | null;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
+  // Client sandbox mode
+  clientScenarioLoading: boolean;
+  noScenarioForClient: boolean;
 }
 
 const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
@@ -78,9 +81,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // Client sandbox mode state
+  const [clientScenarioLoading, setClientScenarioLoading] = useState(false);
+  const [noScenarioForClient, setNoScenarioForClient] = useState(false);
+  const clientUserLoadedRef = useRef<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [scenarioId, setScenarioId] = useState<number | null>(null);
@@ -106,6 +113,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Save scenario
   const saveScenario = useCallback(async () => {
+    // Block saves for client role - sandbox mode
+    if (role === 'client') {
+      console.log('ScenarioSaveContext: Save blocked for client role (sandbox mode)');
+      return;
+    }
+
     if (!activeClient) {
       console.warn('ScenarioSaveContext: Cannot save - no active client');
       return;
@@ -216,7 +229,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(false);
       saveInProgressRef.current = false;
     }
-  }, [activeClient, getCurrentScenarioData, user]);
+  }, [role, activeClient, getCurrentScenarioData, user]);
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {
@@ -332,6 +345,119 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
 
+  // Load scenario for client user by client_user_id (for sandbox mode)
+  const loadScenarioForClientUser = useCallback(async (userId: string) => {
+    console.log('ScenarioSaveContext: Loading scenario for client user:', userId);
+    
+    setClientScenarioLoading(true);
+    setNoScenarioForClient(false);
+    
+    try {
+      // Query scenarios by client_user_id
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('*')
+        .eq('client_user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error) {
+        // PGRST116 means no rows found
+        if (error.code === 'PGRST116') {
+          console.log('ScenarioSaveContext: No scenario found for client user', userId);
+          setNoScenarioForClient(true);
+          setLastSavedData(null);
+          setLastSaved(null);
+          setScenarioId(null);
+          resetSelections();
+          propertyInstanceContext.setInstances({});
+          return null;
+        }
+        throw error;
+      }
+      
+      if (data?.data) {
+        const scenarioData = data.data as ScenarioData;
+        console.log('ScenarioSaveContext: ✓ Loaded scenario for client user');
+        console.log('ScenarioSaveContext: - Property selections:', Object.keys(scenarioData.propertySelections).length);
+        
+        // Set the scenario ID
+        setScenarioId(data.id);
+        
+        // Apply property selections
+        resetSelections();
+        Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+          if (quantity > 0) {
+            updatePropertyQuantity(propertyId, quantity);
+          }
+        });
+        
+        // Apply investment profile
+        if (scenarioData.investmentProfile) {
+          updateProfile(scenarioData.investmentProfile);
+        }
+        
+        // Load property instances
+        if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
+          console.log('ScenarioSaveContext: Restoring', Object.keys(scenarioData.propertyInstances).length, 'property instances');
+          propertyInstanceContext.setInstances(scenarioData.propertyInstances);
+        } else {
+          propertyInstanceContext.setInstances({});
+        }
+        
+        // Restore property order
+        if (scenarioData.propertyOrder && scenarioData.propertyOrder.length > 0) {
+          setPropertyOrder(scenarioData.propertyOrder);
+        } else {
+          const reconstructedOrder: string[] = [];
+          Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+            for (let i = 0; i < quantity; i++) {
+              reconstructedOrder.push(`${propertyId}_instance_${i}`);
+            }
+          });
+          setPropertyOrder(reconstructedOrder);
+        }
+        
+        setLastSavedData(scenarioData);
+        setLastSaved(scenarioData.lastSaved);
+        setHasUnsavedChanges(false);
+        setNoScenarioForClient(false);
+        
+        console.log('ScenarioSaveContext: ✓ Client user scenario loaded successfully');
+        return scenarioData;
+      } else {
+        console.log('ScenarioSaveContext: No data in scenario for client user');
+        setNoScenarioForClient(true);
+        setLastSavedData(null);
+        setLastSaved(null);
+        resetSelections();
+        propertyInstanceContext.setInstances({});
+        return null;
+      }
+    } catch (error) {
+      console.error('ScenarioSaveContext: ✗ Error loading scenario for client user:', error);
+      setNoScenarioForClient(true);
+      toast({
+        title: "Load Error",
+        description: "Failed to load your scenario. Please refresh the page.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setClientScenarioLoading(false);
+    }
+  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
+
+  // Auto-load scenario for client users (sandbox mode)
+  useEffect(() => {
+    if (role === 'client' && user?.id && !clientUserLoadedRef.current) {
+      console.log('ScenarioSaveContext: Client user detected, auto-loading scenario');
+      clientUserLoadedRef.current = true;
+      loadScenarioForClientUser(user.id);
+    }
+  }, [role, user?.id, loadScenarioForClientUser]);
+
   // Load scenario when activeClient changes
   useEffect(() => {
     if (activeClient && loadedClientRef.current !== activeClient.id) {
@@ -388,6 +514,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     loadClientScenario,
     setTimelineSnapshot,
     setChartData,
+    // Client sandbox mode
+    clientScenarioLoading,
+    noScenarioForClient,
   };
 
   return (

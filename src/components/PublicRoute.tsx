@@ -7,7 +7,7 @@ interface PublicRouteProps {
 }
 
 export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
 
   if (loading) {
     return (
@@ -17,9 +17,11 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
-  // If user is authenticated, redirect to clients page
+  // If user is authenticated, redirect based on role
+  // Clients go to dashboard, agents/owners go to clients page
   if (user) {
-    return <Navigate to="/clients" replace />;
+    const redirectPath = role === 'client' ? '/dashboard' : '/clients';
+    return <Navigate to={redirectPath} replace />;
   }
 
   // If not authenticated, show the public page (landing page)
