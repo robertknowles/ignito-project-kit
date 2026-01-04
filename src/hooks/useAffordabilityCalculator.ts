@@ -224,16 +224,19 @@ export const useAffordabilityCalculator = () => {
                 const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
                 netCashflow += propertyCashflow;
               } else {
-                // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
-                console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
-                const template = getPropertyTypeTemplate(purchase.title);
-                const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
-                const loanType = purchase.loanType || 'IO';
-                const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
-                const periodLoanPayment = annualLoanPayment / PERIODS_PER_YEAR;
+                // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
+                console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
+                const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
+                // Override with actual purchase values
+                fallbackInstance.purchasePrice = purchase.cost;
+                fallbackInstance.rentPerWeek = (currentValue * (parseFloat(propertyData.yield) / 100)) / 52;
+                
+                const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
+                const growthFactor = currentValue / purchase.cost;
+                const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
                 const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-                const periodExpenses = periodRentalIncome * 0.30 * inflationFactor;
-                const propertyCashflow = periodRentalIncome - periodLoanPayment - periodExpenses;
+                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
+                const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
                 netCashflow += propertyCashflow;
               }
             }
@@ -330,17 +333,19 @@ export const useAffordabilityCalculator = () => {
       const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
       netCashflow = adjustedAnnualCashflow * inflationFactor;
     } else {
-      // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
-      console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
-      const template = getPropertyTypeTemplate(purchase.title);
+      // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
+      console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
+      const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       const yieldRate = parseFloat(propertyData.yield) / 100;
-      const rentalIncome = currentValue * yieldRate;
-      const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
-      const loanType = purchase.loanType || 'IO';
-      const annualLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
+      // Override with actual purchase values
+      fallbackInstance.purchasePrice = purchase.cost;
+      fallbackInstance.rentPerWeek = (currentValue * yieldRate) / 52;
+      
+      const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
+      const growthFactor = currentValue / purchase.cost;
+      const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
       const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-      const expenses = rentalIncome * 0.30 * inflationFactor;
-      netCashflow = rentalIncome - annualLoanPayment - expenses;
+      netCashflow = adjustedAnnualCashflow * inflationFactor;
     }
     
     // Equity Score (current equity in property)
@@ -436,23 +441,38 @@ export const useAffordabilityCalculator = () => {
             accRepairsMaintenance += cashflowBreakdown.maintenance * combinedFactor;
             accLandTax += cashflowBreakdown.landTax * combinedFactor;
           } else {
-            // Fallback: Use property type template if instance doesn't exist (shouldn't happen)
-            console.warn(`Property instance not found for ${purchase.instanceId}, using template defaults`);
-            const template = getPropertyTypeTemplate(purchase.title);
+            // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
+            console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
+            const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
-            const rentalIncome = currentValue * yieldRate * recognitionRate;
-            const interestRate = template ? (template.interestRate / 100) : 0.065; // Default 6.5%
-            const loanType = purchase.loanType || 'IO';
-            const propertyLoanPayment = calculateAnnualLoanPayment(purchase.loanAmount, interestRate, loanType);
-            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-            const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
             
-            grossRentalIncome += rentalIncome;
-            loanInterest += propertyLoanPayment;
-            expenses += propertyExpenses;
-            netCashflow += (rentalIncome - propertyLoanPayment - propertyExpenses);
+            // Override with actual purchase values
+            fallbackInstance.purchasePrice = purchase.cost;
+            fallbackInstance.rentPerWeek = (currentValue * yieldRate) / 52;
+            
+            const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
+            const growthFactor = currentValue / purchase.cost;
+            const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+            const combinedFactor = growthFactor * inflationFactor;
+            
+            // Apply recognition rate and adjustments
+            const adjustedIncome = fallbackCashflow.adjustedIncome * combinedFactor * recognitionRate;
+            const adjustedExpenses = (fallbackCashflow.totalOperatingExpenses + fallbackCashflow.totalNonDeductibleExpenses - fallbackCashflow.principalPayments) * combinedFactor;
+            
+            grossRentalIncome += adjustedIncome;
+            loanInterest += fallbackCashflow.loanInterest;
+            expenses += adjustedExpenses;
+            netCashflow += (adjustedIncome - fallbackCashflow.loanInterest - adjustedExpenses - fallbackCashflow.principalPayments);
+            
+            // Accumulate expense breakdown from fallback
+            accCouncilRatesWater += fallbackCashflow.councilRatesWater * combinedFactor;
+            accStrataFees += fallbackCashflow.strata * combinedFactor;
+            accInsurance += fallbackCashflow.buildingInsurance * combinedFactor;
+            accManagementFees += fallbackCashflow.propertyManagementFee * combinedFactor;
+            accRepairsMaintenance += fallbackCashflow.maintenance * combinedFactor;
+            accLandTax += fallbackCashflow.landTax * combinedFactor;
           }
           }
         }
@@ -679,7 +699,7 @@ export const useAffordabilityCalculator = () => {
           `   ├─ Loan Interest: -$${loanInterest.toLocaleString()}`
         );
         console.log(
-          `   └─ Expenses: -$${expenses.toLocaleString()} (30% + 3% annual inflation)`
+          `   └─ Expenses: -$${expenses.toLocaleString()} (detailed cashflow + 3% annual inflation)`
         );
 
         // === SERVICEABILITY TEST ===

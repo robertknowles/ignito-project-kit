@@ -49,11 +49,15 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
     : null
   
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col rounded-xl transition-colors ${
+      isActive 
+        ? 'ring-1 ring-gray-900' 
+        : ''
+    }`}>
       {/* Main Card */}
       <div className={`flex items-start gap-2 p-2.5 bg-white border transition-colors ${
         isActive 
-          ? 'border-gray-900 ring-1 ring-gray-900' 
+          ? 'border-gray-900' 
           : 'border-gray-200 hover:border-gray-400'
       } ${!isCustom && onEdit ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}>
         {/* Left: Icon in light gray square */}
@@ -252,6 +256,15 @@ export const PropertyBlocksPanel: React.FC = () => {
         </button>
       </div>
 
+      {/* Add Custom Block Button - Always at top, below filters */}
+      <button
+        onClick={() => setShowCustomBlockModal(true)}
+        className="w-full py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center gap-2"
+      >
+        <Plus size={16} />
+        Add Custom Property Block
+      </button>
+
       {/* Property Cards - Vertical Stack */}
       {sortedProperties.map((property) => (
         <PropertyBlockCard
@@ -327,15 +340,6 @@ export const PropertyBlocksPanel: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Add Custom Block Button - ElevenLabs Style */}
-      <button
-        onClick={() => setShowCustomBlockModal(true)}
-        className="w-full py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center gap-2"
-      >
-        <Plus size={16} />
-        Add Custom Property Block
-      </button>
 
       {/* Custom Block Modal */}
       <CustomBlockModal

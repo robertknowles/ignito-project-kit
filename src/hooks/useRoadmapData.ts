@@ -79,6 +79,10 @@ export interface YearData {
   totalDebt: number;
   propertyCount: number;
   annualCashflow: number;
+  // Cashflow breakdown metrics
+  grossRentalIncome: number;
+  totalExpenses: number;
+  totalLoanInterest: number;
   // Purchase info for this year
   purchaseInYear: boolean;
   purchaseDetails?: {
@@ -86,6 +90,8 @@ export interface YearData {
     cost: number;
     depositRequired: number;
     loanAmount: number;
+    instanceId: string;
+    propertyType: string;
   };
 }
 
@@ -142,7 +148,8 @@ export const useRoadmapData = (): RoadmapData => {
       let totalLoanInterest = 0;
       let totalExpenses = 0;
       
-      // Add each property's contribution
+      // Add each property's contribution using pre-calculated values from timeline properties
+      // These values already use the detailed cashflow calculator with all 39 property inputs
       propertiesPurchasedByYear.forEach(prop => {
         const purchaseYear = Math.floor(prop.affordableYear);
         const yearsOwned = year - purchaseYear;
@@ -153,20 +160,17 @@ export const useRoadmapData = (): RoadmapData => {
         portfolioValue += currentValue;
         totalDebt += prop.loanAmount;
         
-        // Calculate rental income with progressive recognition
-        const yieldRate = 0.05; // Assume 5% yield
-        const recognitionRate = calculateRentalRecognitionRate(propertyCount);
-        const rentalIncome = currentValue * yieldRate * recognitionRate;
-        grossRentalIncome += rentalIncome;
-        
-        // Calculate loan interest
-        const loanInterest = prop.loanAmount * defaultInterestRate;
-        totalLoanInterest += loanInterest;
-        
-        // Calculate expenses (30% of rental + 3% annual inflation)
+        // Use pre-calculated values from the timeline property (already computed via detailed cashflow)
+        // These include all 39 property inputs like management fees, strata, insurance, etc.
+        // Apply growth factor for properties owned longer than at purchase
+        const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
         const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-        const expenses = rentalIncome * 0.30 * inflationFactor;
-        totalExpenses += expenses;
+        const combinedFactor = growthFactor * inflationFactor;
+        
+        // Scale the pre-calculated values for time elapsed since purchase
+        grossRentalIncome += prop.grossRentalIncome * combinedFactor;
+        totalLoanInterest += prop.loanInterest; // Interest doesn't scale with growth
+        totalExpenses += prop.expenses * combinedFactor;
       });
       
       const totalEquity = portfolioValue - totalDebt;
@@ -221,6 +225,8 @@ export const useRoadmapData = (): RoadmapData => {
           cost: firstPurchase.cost,
           depositRequired: firstPurchase.depositRequired,
           loanAmount: firstPurchase.loanAmount,
+          instanceId: firstPurchase.instanceId,
+          propertyType: firstPurchase.title,
         };
       } else if (year > BASE_YEAR) {
         // For non-purchase years, calculate hypothetical capacity
@@ -265,6 +271,9 @@ export const useRoadmapData = (): RoadmapData => {
         totalDebt,
         propertyCount,
         annualCashflow: netCashflow,
+        grossRentalIncome,
+        totalExpenses,
+        totalLoanInterest,
         purchaseInYear,
         purchaseDetails,
       });

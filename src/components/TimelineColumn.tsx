@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChartWithRoadmap } from './ChartWithRoadmap';
-import { CashflowChart } from './CashflowChart';
+import { CashflowRoadmap } from './CashflowRoadmap';
 
 type ViewMode = 'wealth' | 'cashflow';
 
@@ -46,8 +46,8 @@ export const TimelineColumn: React.FC = () => {
         /* Wealth View - Synced Strategy Roadmap */
         <ChartWithRoadmap />
       ) : (
-        /* Cashflow View - Cashflow Chart */
-        <CashflowChart />
+        /* Cashflow View - Cashflow Roadmap */
+        <CashflowRoadmap />
       )}
     </div>
   );

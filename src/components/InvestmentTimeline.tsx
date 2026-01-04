@@ -1098,21 +1098,24 @@ function interpolateYearData(
   let loanInterest = 0;
   let expenses = 0;
   
+  // Use pre-calculated values from timeline properties (already computed via detailed cashflow)
+  // These include all property inputs like management fees, strata, insurance, etc.
   previousPurchases.forEach(purchase => {
     const yearsOwned = year - purchase.affordableYear;
     const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
     if (yearsOwned > 0) {
       // Use tiered growth with period-based calculations
       const propertyValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
-      const yieldRate = 0.05; // Assume 5% yield
-      const rentalIncome = propertyValue * yieldRate;
-      const propertyLoanInterest = purchase.loanAmount * interestRate;
-      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-      const propertyExpenses = rentalIncome * 0.30 * inflationFactor;
       
-      grossRental += rentalIncome;
-      loanInterest += propertyLoanInterest;
-      expenses += propertyExpenses;
+      // Scale the pre-calculated values for time elapsed since purchase
+      const growthFactor = propertyValue / purchase.cost;
+      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+      const combinedFactor = growthFactor * inflationFactor;
+      
+      // Use pre-calculated detailed cashflow values from the timeline property
+      grossRental += purchase.grossRentalIncome * combinedFactor;
+      loanInterest += purchase.loanInterest; // Interest doesn't scale with property growth
+      expenses += purchase.expenses * combinedFactor;
     }
   });
   

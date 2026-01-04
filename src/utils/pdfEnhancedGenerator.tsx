@@ -652,7 +652,7 @@ const generatePage4 = (
     ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth (High tier)'],
     ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth (High tier)'],
     ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth (High tier)'],
-    ['Expense Ratio', '30%', 'Maintenance, insurance, rates'],
+    ['Expense Calculation', 'Detailed', 'Per-property: management, insurance, rates, strata, maintenance, land tax'],
     ['Inflation', '3%', 'Annual cost inflation']
   ];
   

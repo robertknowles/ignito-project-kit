@@ -15,6 +15,7 @@ import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
+import { PropertyDetailModal } from './PropertyDetailModal';
 
 // Column dimension constants
 const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
@@ -213,6 +214,12 @@ export const ChartWithRoadmap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  
+  // Modal state for property details
+  const [selectedProperty, setSelectedProperty] = useState<{
+    instanceId: string;
+    propertyType: string;
+  } | null>(null);
 
   // Measure container width and update on resize
   useEffect(() => {
@@ -465,6 +472,10 @@ export const ChartWithRoadmap: React.FC = () => {
                     cost={yearData.purchaseDetails.cost}
                     loanAmount={yearData.purchaseDetails.loanAmount}
                     depositRequired={yearData.purchaseDetails.depositRequired}
+                    onDetailsClick={() => setSelectedProperty({
+                      instanceId: yearData.purchaseDetails!.instanceId,
+                      propertyType: yearData.purchaseDetails!.propertyType,
+                    })}
                   />
                 ) : (
                   <span className="text-[8px] text-slate-400 self-center">–</span>
@@ -580,6 +591,16 @@ export const ChartWithRoadmap: React.FC = () => {
         </div>
         </div>
       </div>
+      
+      {/* Property Detail Modal */}
+      {selectedProperty && (
+        <PropertyDetailModal
+          isOpen={!!selectedProperty}
+          onClose={() => setSelectedProperty(null)}
+          instanceId={selectedProperty.instanceId}
+          propertyType={selectedProperty.propertyType}
+        />
+      )}
     </div>
   );
 };

@@ -116,12 +116,15 @@ export const SummaryBar = () => {
 
   const yearProgress = calculateYearProgress()
 
-  // Format currency values
+  // Format currency values (always abbreviated with 1 decimal for k values)
   const formatCurrency = (value: number) => {
-    if (value === 0) return '$0'
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `$${Math.round(value / 1000)}k`
-    return `$${Math.round(value).toLocaleString()}`
+    const absValue = Math.abs(value)
+    const sign = value < 0 ? '-' : ''
+    
+    if (absValue === 0) return '$0'
+    if (absValue >= 1000000) return `${sign}$${(absValue / 1000000).toFixed(1)}M`
+    if (absValue >= 1000) return `${sign}$${(absValue / 1000).toFixed(1)}k`
+    return `${sign}$${Math.round(absValue)}`
   }
 
   return (
