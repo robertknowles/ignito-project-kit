@@ -58,6 +58,7 @@ interface ScenarioSaveContextType {
   lastSaved: string | null;
   scenarioId: number | null;
   saveScenario: () => void;
+  resetScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
@@ -345,6 +346,57 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
 
+  // Reset scenario - clear all data and delete from database
+  const resetScenario = useCallback(async () => {
+    if (!activeClient) {
+      console.warn('ScenarioSaveContext: Cannot reset - no active client');
+      return;
+    }
+
+    console.log('ScenarioSaveContext: Resetting scenario to empty state for client:', activeClient.id);
+    setIsLoading(true);
+
+    try {
+      // Delete the scenario from the database if it exists
+      if (scenarioId) {
+        const { error } = await supabase
+          .from('scenarios')
+          .delete()
+          .eq('id', scenarioId);
+        
+        if (error) throw error;
+        console.log('ScenarioSaveContext: ✓ Deleted scenario from database');
+      }
+
+      // Reset all local state to empty/defaults
+      resetSelections();
+      propertyInstanceContext.setInstances({});
+      setPropertyOrder([]);
+      
+      // Reset scenario tracking state
+      setLastSavedData(null);
+      setLastSaved(null);
+      setScenarioId(null);
+      setHasUnsavedChanges(false);
+      setTimelineSnapshot([]);
+      setChartData(undefined);
+
+      toast({
+        title: "Scenario Reset",
+        description: `${activeClient.name}'s scenario has been cleared.`,
+      });
+    } catch (error) {
+      console.error('ScenarioSaveContext: ✗ Error resetting scenario:', error);
+      toast({
+        title: "Reset Error",
+        description: "Failed to reset scenario. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeClient, scenarioId, resetSelections, propertyInstanceContext, setPropertyOrder]);
+
   // Load scenario for client user by client_user_id (for sandbox mode)
   const loadScenarioForClientUser = useCallback(async (userId: string) => {
     console.log('ScenarioSaveContext: Loading scenario for client user:', userId);
@@ -511,6 +563,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     lastSaved,
     scenarioId,
     saveScenario,
+    resetScenario,
     loadClientScenario,
     setTimelineSnapshot,
     setChartData,

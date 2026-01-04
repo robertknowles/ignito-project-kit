@@ -20,6 +20,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
 import { ClientView } from './client-view/ClientView'
+import { ClientOnboarding } from './pages/ClientOnboarding'
 
 export function AppRouter() {
   return (
@@ -64,6 +65,9 @@ export function AppRouter() {
                           
                           {/* Public client view - no authentication required */}
                           <Route path="/client-view" element={<ClientView />} />
+                          
+                          {/* Public client onboarding form - no authentication required */}
+                          <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
                           
                           {/* Protected app routes - require authentication */}
                           <Route 

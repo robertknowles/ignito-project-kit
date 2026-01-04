@@ -2,6 +2,7 @@ import React from 'react'
 import { ExternalLink } from 'lucide-react'
 import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
+import { ResetButton } from './ResetButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -81,6 +82,7 @@ export const TopBar = () => {
       {/* Right side: Primary Actions (hidden for clients) */}
       {!isClient && (
         <div className="flex items-center gap-3">
+          <ResetButton />
           <SaveButton />
           <button
             onClick={handleViewClientReport}

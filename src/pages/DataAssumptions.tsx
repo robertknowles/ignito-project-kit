@@ -3,7 +3,7 @@ import { LeftRail } from '../components/LeftRail'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { PropertyDetailModal } from '../components/PropertyDetailModal'
-import { Button } from '../components/ui/button'
+import { TitleDeedCard } from '../components/TitleDeedCard'
 
 export const DataAssumptions = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
@@ -26,56 +26,15 @@ export const DataAssumptions = () => {
               </p>
             </div>
 
-            {/* Property Type Templates */}
-            <div className="space-y-3">
-              {propertyTypeTemplates.map((template) => {
-                const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100
-                const loanAmount = (template.purchasePrice * template.lvr) / 100
-                
-                return (
-                  <div 
-                    key={template.propertyType}
-                    className="border border-[#e5e7eb] rounded-lg p-4 hover:border-[#d1d5db] transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-base font-semibold text-[#111827]">
-                          {template.propertyType}
-                        </h3>
-                        <div className="text-sm text-[#6b7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                          <span>${(template.purchasePrice / 1000).toFixed(0)}k</span>
-                          <span>•</span>
-                          <span>{template.state}</span>
-                          <span>•</span>
-                          <span>{yieldPercent.toFixed(1)}% yield</span>
-                          <span>•</span>
-                          <span>${template.rentPerWeek}/wk</span>
-                          <span>•</span>
-                          <span>{template.growthAssumption} growth</span>
-                </div>
-                        <div className="text-sm text-[#6b7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                          <span>LVR: {template.lvr}%</span>
-                          <span>•</span>
-                          <span>{template.loanProduct} @ {template.interestRate}%</span>
-                          <span>•</span>
-                          <span>Loan: ${(loanAmount / 1000).toFixed(0)}k</span>
-                          <span>•</span>
-                          <span>Term: {template.loanTerm}yr</span>
-              </div>
-            </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingTemplate(template.propertyType)}
-                        className="ml-4"
-                      >
-                        Edit Template
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* Property Type Templates - Title Deed Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {propertyTypeTemplates.map((template) => (
+                <TitleDeedCard
+                  key={template.propertyType}
+                  template={template}
+                  onEdit={() => setEditingTemplate(template.propertyType)}
+                />
+              ))}
             </div>
 
             {/* Custom Property Blocks Section */}

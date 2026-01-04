@@ -219,3 +219,22 @@
 .scrollable-content::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
+/* ============================================
+   TITLE DEED CARD - Soft Monopoly Style
+   ============================================
+   Clean, modern take on the classic board game aesthetic
+   that matches the app's existing design system
+*/
+@layer components {
+  .title-deed-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .title-deed-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 4px 12px -2px rgba(0, 0, 0, 0.08),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+}
