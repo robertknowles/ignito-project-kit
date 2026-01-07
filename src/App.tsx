@@ -24,7 +24,7 @@ export function App() {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 flex flex-col overflow-hidden ml-16">
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
           <div className="flex-1 flex items-center justify-center p-4">
             <div className="text-center max-w-md">
@@ -52,7 +52,7 @@ export function App() {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 flex flex-col overflow-hidden ml-16">
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
           <div className="flex-1 flex items-center justify-center p-4">
             <div className="text-center">
@@ -72,7 +72,7 @@ export function App() {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 flex flex-col overflow-hidden ml-16">
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
           <div className="flex-1 overflow-hidden p-4">
             <Dashboard key="client-scenario" />
@@ -89,6 +89,7 @@ export function App() {
       
       {/* Main Content Area - margin adjusts based on drawer state */}
       <div 
+        id="main-content"
         className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
           drawerOpen ? 'ml-96' : 'ml-16'
         }`}

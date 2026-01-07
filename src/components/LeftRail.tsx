@@ -7,6 +7,7 @@ import {
   LogOutIcon,
   SettingsIcon,
   Building2Icon,
+  HelpCircleIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -16,11 +17,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTourManager } from '@/components/TourManager'
 
 export const LeftRail = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut, role } = useAuth()
+  const { startManualTour } = useTourManager()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -78,7 +81,7 @@ export const LeftRail = () => {
 
   return (
     <TooltipProvider>
-      <div className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
+      <div id="left-rail" className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
         {/* Top Navigation Items */}
         <div className="flex flex-col items-center gap-2">
           {filteredTopNavItems.map((item) => {
@@ -134,6 +137,23 @@ export const LeftRail = () => {
               </Tooltip>
             )
           })}
+        </div>
+
+        {/* Help / Restart Tour Button */}
+        <div className="mb-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                onClick={startManualTour}
+              >
+                <HelpCircleIcon size={20} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Help / Restart Tour</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* User Profile Menu at Bottom */}

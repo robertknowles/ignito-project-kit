@@ -68,6 +68,15 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backdropBlur: {
+        tour: '4px',
+      },
+      zIndex: {
+        '10000': '10000',
+        '10001': '10001',
+        '10002': '10002',
+        '10003': '10003',
+      },
       keyframes: {
         "accordion-down": {
           from: {

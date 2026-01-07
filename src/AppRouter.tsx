@@ -21,6 +21,7 @@ import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
 import { ClientView } from './client-view/ClientView'
 import { ClientOnboarding } from './pages/ClientOnboarding'
+import { TourManagerProvider } from './components/TourManager'
 
 export function AppRouter() {
   return (
@@ -34,76 +35,78 @@ export function AppRouter() {
                   <PropertyInstanceProvider>
                     <ScenarioSaveProvider>
                       <BrowserRouter>
-                        <Routes>
-                          {/* Public landing page - redirects to /clients if authenticated */}
-                          <Route 
-                            path="/" 
-                            element={
-                              <PublicRoute>
-                                <Landing />
-                              </PublicRoute>
-                            } 
-                          />
-                          
-                          {/* Public auth pages - redirect to /clients if authenticated */}
-                          <Route 
-                            path="/login" 
-                            element={
-                              <PublicRoute>
-                                <Login />
-                              </PublicRoute>
-                            } 
-                          />
-                          <Route 
-                            path="/signup" 
-                            element={
-                              <PublicRoute>
-                                <SignUp />
-                              </PublicRoute>
-                            } 
-                          />
-                          
-                          {/* Public client view - no authentication required */}
-                          <Route path="/client-view" element={<ClientView />} />
-                          
-                          {/* Public client onboarding form - no authentication required */}
-                          <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
-                          
-                          {/* Protected app routes - require authentication */}
-                          <Route 
-                            path="/dashboard" 
-                            element={
-                              <ProtectedRoute>
-                                <App />
-                              </ProtectedRoute>
-                            } 
-                          />
-                          <Route 
-                            path="/clients" 
-                            element={
-                              <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                <ClientScenarios />
-                              </ProtectedRoute>
-                            } 
-                          />
-                          <Route 
-                            path="/data" 
-                            element={
-                              <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                <DataAssumptions />
-                              </ProtectedRoute>
-                            } 
-                          />
-                          <Route 
-                            path="/company" 
-                            element={
-                              <ProtectedRoute allowedRoles={['owner']}>
-                                <CompanyManagement />
-                              </ProtectedRoute>
-                            } 
-                          />
-                        </Routes>
-                        <Toaster />
+                        <TourManagerProvider>
+                          <Routes>
+                            {/* Public landing page - redirects to /clients if authenticated */}
+                            <Route 
+                              path="/" 
+                              element={
+                                <PublicRoute>
+                                  <Landing />
+                                </PublicRoute>
+                              } 
+                            />
+                            
+                            {/* Public auth pages - redirect to /clients if authenticated */}
+                            <Route 
+                              path="/login" 
+                              element={
+                                <PublicRoute>
+                                  <Login />
+                                </PublicRoute>
+                              } 
+                            />
+                            <Route 
+                              path="/signup" 
+                              element={
+                                <PublicRoute>
+                                  <SignUp />
+                                </PublicRoute>
+                              } 
+                            />
+                            
+                            {/* Public client view - no authentication required */}
+                            <Route path="/client-view" element={<ClientView />} />
+                            
+                            {/* Public client onboarding form - no authentication required */}
+                            <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
+                            
+                            {/* Protected app routes - require authentication */}
+                            <Route 
+                              path="/dashboard" 
+                              element={
+                                <ProtectedRoute>
+                                  <App />
+                                </ProtectedRoute>
+                              } 
+                            />
+                            <Route 
+                              path="/clients" 
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <ClientScenarios />
+                                </ProtectedRoute>
+                              } 
+                            />
+                            <Route 
+                              path="/data" 
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <DataAssumptions />
+                                </ProtectedRoute>
+                              } 
+                            />
+                            <Route 
+                              path="/company" 
+                              element={
+                                <ProtectedRoute allowedRoles={['owner']}>
+                                  <CompanyManagement />
+                                </ProtectedRoute>
+                              } 
+                            />
+                          </Routes>
+                          <Toaster />
+                        </TourManagerProvider>
                       </BrowserRouter>
                     </ScenarioSaveProvider>
                   </PropertyInstanceProvider>
