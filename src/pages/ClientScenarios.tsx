@@ -19,7 +19,8 @@ import {
   Download,
   Share2,
   Send,
-  ClipboardList,
+  UserPlus,
+  Target,
 } from 'lucide-react'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { LeftRail } from '../components/LeftRail'
@@ -899,7 +900,7 @@ export const ClientScenarios = () => {
                                 isComplete={isOnboarded}
                                 completeLabel="Completed"
                                 incompleteLabel="Not started"
-                                actionIcon={<ClipboardList size={16} />}
+                                actionIcon={<UserPlus size={16} />}
                                 actionLabel={isOnboarded ? "Copy questionnaire link" : "Send questionnaire"}
                                 onAction={() => handleCopyOnboardingLink(client)}
                               />
@@ -911,7 +912,7 @@ export const ClientScenarios = () => {
                                 isComplete={hasPlan}
                                 completeLabel="Created"
                                 incompleteLabel="Not created"
-                                actionIcon={<FileText size={16} />}
+                                actionIcon={<Target size={16} />}
                                 actionLabel={hasPlan ? "View plan" : "Create plan"}
                                 onAction={() => handleViewClient(client.id)}
                               />
