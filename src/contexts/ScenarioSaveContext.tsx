@@ -8,6 +8,14 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
+// Communication log entry for CRM features
+export interface CommunicationLogEntry {
+  id: string;
+  date: string;
+  note: string;
+  author: string;
+}
+
 export interface ScenarioData {
   propertySelections: { [propertyId: string]: number };
   propertyOrder?: string[]; // Track the chronological order in which properties were added
@@ -49,6 +57,11 @@ export interface ScenarioData {
     equityGoalYear: number | null;
     incomeGoalYear: number | null;
   };
+  // CRM Features
+  clientViewedAt?: string; // ISO timestamp when client first viewed report
+  communicationLog?: CommunicationLogEntry[];
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string;
   lastSaved: string;
 }
 

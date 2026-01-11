@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
+import type { YearBreakdownData } from '@/types/property';
 
 // Period conversion constants
 const PERIODS_PER_YEAR = 2;
 const BASE_YEAR = 2025;
+// Force HMR update
 
 // Currency formatter helper
 const formatCurrency = (value: number): string => {
@@ -93,6 +95,8 @@ export interface YearData {
     instanceId: string;
     propertyType: string;
   };
+  // Full breakdown data for funnel components (only for years with purchases)
+  yearBreakdownData?: YearBreakdownData;
 }
 
 export interface RoadmapData {
@@ -211,6 +215,9 @@ export const useRoadmapData = (): RoadmapData => {
       let purchaseInYear = false;
       let purchaseDetails: YearData['purchaseDetails'] = undefined;
       
+      // Compute yearBreakdownData for years with purchases
+      let yearBreakdownData: YearBreakdownData | undefined = undefined;
+      
       if (purchasesThisYear && purchasesThisYear.length > 0) {
         purchaseInYear = true;
         const firstPurchase = purchasesThisYear[0];
@@ -227,6 +234,165 @@ export const useRoadmapData = (): RoadmapData => {
           loanAmount: firstPurchase.loanAmount,
           instanceId: firstPurchase.instanceId,
           propertyType: firstPurchase.title,
+        };
+        
+        // Calculate values needed for YearBreakdownData
+        const existingDebt = totalDebt - firstPurchase.loanAmount;
+        const newDebt = firstPurchase.loanAmount;
+        const existingLoanInterest = existingDebt * defaultInterestRate;
+        const newLoanInterest = newDebt * defaultInterestRate;
+        const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
+        const rentalServiceabilityContribution = grossRentalIncome * 0.70;
+        const equityBoost = extractableEquity * profile.equityFactor;
+        const effectiveCapacity = profile.borrowingCapacity + equityBoost;
+        const lvr = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
+        const dsr = (baseServiceabilityCapacity + rentalServiceabilityContribution) > 0 
+          ? ((existingLoanInterest + newLoanInterest) / (baseServiceabilityCapacity + rentalServiceabilityContribution)) * 100 
+          : 0;
+        
+        // Build all portfolio properties array
+        const allPortfolioProperties = propertiesPurchasedByYear.map((prop, idx) => {
+          const propPurchaseYear = Math.floor(prop.affordableYear);
+          const propYearsOwned = year - propPurchaseYear;
+          const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
+          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, profile.growthCurve);
+          const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
+          
+          return {
+            propertyId: prop.instanceId,
+            propertyType: prop.title,
+            purchaseYear: propPurchaseYear,
+            displayPeriod: `${propPurchaseYear} ${halfYear}`,
+            originalCost: prop.cost,
+            currentValue: propCurrentValue,
+            loanAmount: prop.loanAmount,
+            equity: propCurrentValue - prop.loanAmount,
+            extractableEquity: Math.max(0, (propCurrentValue * 0.80) - prop.loanAmount),
+          };
+        });
+        
+        // Build YearBreakdownData
+        yearBreakdownData = {
+          period: yearIndex * PERIODS_PER_YEAR + 1,
+          year,
+          displayYear: yearIndex,
+          displayPeriod: `${year} H1`,
+          status: 'purchased',
+          propertyNumber: propertyCount,
+          propertyType: firstPurchase.title,
+          
+          // Portfolio metrics
+          portfolioValue,
+          totalEquity,
+          totalDebt,
+          extractableEquity,
+          
+          // Cash engine
+          availableDeposit: availableFunds,
+          annualCashFlow: netCashflow,
+          
+          // Available funds breakdown
+          baseDeposit: profile.depositPool,
+          cumulativeSavings,
+          cashflowReinvestment,
+          equityRelease: extractableEquity,
+          annualSavingsRate: profile.annualSavings,
+          totalAnnualCapacity: profile.annualSavings + Math.max(0, netCashflow),
+          
+          // Cashflow components
+          grossRental: grossRentalIncome,
+          loanRepayments: totalLoanInterest,
+          expenses: totalExpenses,
+          
+          // Expense breakdown
+          expenseBreakdown: {
+            councilRatesWater: totalExpenses * 0.15,
+            strataFees: totalExpenses * 0.20,
+            insurance: totalExpenses * 0.10,
+            managementFees: totalExpenses * 0.35,
+            repairsMaintenance: totalExpenses * 0.15,
+            landTax: totalExpenses * 0.05,
+            other: 0,
+          },
+          
+          // Requirements
+          requiredDeposit: firstPurchase.depositRequired,
+          requiredLoan: firstPurchase.loanAmount,
+          propertyCost: firstPurchase.cost,
+          
+          // Capacity
+          availableBorrowingCapacity: Math.max(0, effectiveCapacity - totalDebt),
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          // Borrowing Capacity Breakdown
+          equityBoost,
+          effectiveCapacity,
+          equityFactor: profile.equityFactor,
+          
+          // Debt breakdown
+          existingDebt,
+          newDebt,
+          existingLoanInterest,
+          newLoanInterest,
+          
+          // Enhanced serviceability breakdown
+          baseServiceabilityCapacity,
+          rentalServiceabilityContribution,
+          
+          // Assumptions
+          interestRate: defaultInterestRate * 100,
+          rentalRecognition: 75,
+          
+          // Tests
+          depositTest: {
+            pass: firstPurchase.depositTestPass,
+            surplus: firstPurchase.depositTestSurplus,
+            available: firstPurchase.availableFundsUsed,
+            required: firstPurchase.depositRequired,
+          },
+          
+          borrowingCapacityTest: {
+            pass: firstPurchase.borrowingCapacityRemaining >= 0,
+            surplus: firstPurchase.borrowingCapacityRemaining,
+            available: effectiveCapacity,
+            required: totalDebt,
+          },
+          
+          serviceabilityTest: {
+            pass: firstPurchase.serviceabilityTestPass,
+            surplus: firstPurchase.serviceabilityTestSurplus,
+            available: baseServiceabilityCapacity + rentalServiceabilityContribution,
+            required: existingLoanInterest + newLoanInterest,
+          },
+          
+          // Flags
+          gapRule: firstPurchase.isGapRuleBlocked || false,
+          equityReleaseYear: extractableEquity > 0,
+          
+          // Strategy metrics
+          portfolioScaling: propertyCount,
+          selfFundingEfficiency: firstPurchase.cost > 0 ? (netCashflow / firstPurchase.cost) * 100 : 0,
+          equityRecyclingImpact: portfolioValue > 0 ? (totalEquity / portfolioValue) * 100 : 0,
+          dsr,
+          lvr,
+          
+          // Breakdown details
+          purchases: [{
+            propertyId: firstPurchase.instanceId,
+            propertyType: firstPurchase.title,
+            cost: firstPurchase.cost,
+            deposit: firstPurchase.depositRequired,
+            loanAmount: firstPurchase.loanAmount,
+            loanType: 'IO',
+            year,
+            displayPeriod: `${year} H1`,
+            currentValue: firstPurchase.cost,
+            equity: firstPurchase.cost - firstPurchase.loanAmount,
+            extractableEquity: Math.max(0, (firstPurchase.cost * 0.80) - firstPurchase.loanAmount),
+          }],
+          
+          // All portfolio properties
+          allPortfolioProperties,
         };
       } else if (year > BASE_YEAR) {
         // For non-purchase years, calculate hypothetical capacity
@@ -247,14 +413,160 @@ export const useRoadmapData = (): RoadmapData => {
         const hypotheticalLoanPayment = hypotheticalLoan * defaultInterestRate;
         
         // Check deposit capacity
-        depositStatus = availableFunds >= hypotheticalDeposit ? 'pass' : 'fail';
+        const depositTestPass = availableFunds >= hypotheticalDeposit;
+        const depositTestSurplus = availableFunds - hypotheticalDeposit;
+        depositStatus = depositTestPass ? 'pass' : 'fail';
         
         // Check borrowing capacity
-        borrowingStatus = remainingBorrowingCapacity >= hypotheticalLoan ? 'pass' : 'fail';
+        const borrowingTestPass = remainingBorrowingCapacity >= hypotheticalLoan;
+        const borrowingTestSurplus = remainingBorrowingCapacity - hypotheticalLoan;
+        borrowingStatus = borrowingTestPass ? 'pass' : 'fail';
         
         // Check serviceability
         const totalPaymentsWithNew = totalLoanInterest + hypotheticalLoanPayment;
-        serviceabilityStatus = enhancedServiceabilityCapacity >= totalPaymentsWithNew ? 'pass' : 'fail';
+        const serviceabilityTestPass = enhancedServiceabilityCapacity >= totalPaymentsWithNew;
+        const serviceabilityTestSurplus = enhancedServiceabilityCapacity - totalPaymentsWithNew;
+        serviceabilityStatus = serviceabilityTestPass ? 'pass' : 'fail';
+        
+        // Calculate additional values for YearBreakdownData
+        const existingLoanInterest = totalDebt * defaultInterestRate;
+        const lvr = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
+        const dsr = enhancedServiceabilityCapacity > 0 
+          ? (totalLoanInterest / enhancedServiceabilityCapacity) * 100 
+          : 0;
+        
+        // Build all portfolio properties array for non-purchase years
+        const allPortfolioProperties = propertiesPurchasedByYear.map((prop) => {
+          const propPurchaseYear = Math.floor(prop.affordableYear);
+          const propYearsOwned = year - propPurchaseYear;
+          const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
+          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, profile.growthCurve);
+          const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
+          
+          return {
+            propertyId: prop.instanceId,
+            propertyType: prop.title,
+            purchaseYear: propPurchaseYear,
+            displayPeriod: `${propPurchaseYear} ${halfYear}`,
+            originalCost: prop.cost,
+            currentValue: propCurrentValue,
+            loanAmount: prop.loanAmount,
+            equity: propCurrentValue - prop.loanAmount,
+            extractableEquity: Math.max(0, (propCurrentValue * 0.80) - prop.loanAmount),
+          };
+        });
+        
+        // Build YearBreakdownData for non-purchase years (hypothetical analysis)
+        yearBreakdownData = {
+          period: yearIndex * PERIODS_PER_YEAR + 1,
+          year,
+          displayYear: yearIndex,
+          displayPeriod: `${year} H1`,
+          status: 'waiting',
+          propertyNumber: null,
+          propertyType: 'Hypothetical Property',
+          
+          // Portfolio metrics
+          portfolioValue,
+          totalEquity,
+          totalDebt,
+          extractableEquity,
+          
+          // Cash engine
+          availableDeposit: availableFunds,
+          annualCashFlow: netCashflow,
+          
+          // Available funds breakdown
+          baseDeposit: profile.depositPool,
+          cumulativeSavings,
+          cashflowReinvestment,
+          equityRelease: extractableEquity,
+          annualSavingsRate: profile.annualSavings,
+          totalAnnualCapacity: profile.annualSavings + Math.max(0, netCashflow),
+          
+          // Cashflow components
+          grossRental: grossRentalIncome,
+          loanRepayments: totalLoanInterest,
+          expenses: totalExpenses,
+          
+          // Expense breakdown
+          expenseBreakdown: {
+            councilRatesWater: totalExpenses * 0.15,
+            strataFees: totalExpenses * 0.20,
+            insurance: totalExpenses * 0.10,
+            managementFees: totalExpenses * 0.35,
+            repairsMaintenance: totalExpenses * 0.15,
+            landTax: totalExpenses * 0.05,
+            other: 0,
+          },
+          
+          // Requirements (hypothetical $500k property)
+          requiredDeposit: hypotheticalDeposit,
+          requiredLoan: hypotheticalLoan,
+          propertyCost: hypotheticalPropertyCost,
+          
+          // Capacity
+          availableBorrowingCapacity: remainingBorrowingCapacity,
+          borrowingCapacity: profile.borrowingCapacity,
+          
+          // Borrowing Capacity Breakdown
+          equityBoost,
+          effectiveCapacity: effectiveBorrowingCapacity,
+          equityFactor: profile.equityFactor,
+          
+          // Debt breakdown
+          existingDebt: totalDebt,
+          newDebt: hypotheticalLoan,
+          existingLoanInterest,
+          newLoanInterest: hypotheticalLoanPayment,
+          
+          // Enhanced serviceability breakdown
+          baseServiceabilityCapacity: baseCapacity,
+          rentalServiceabilityContribution: rentalContribution,
+          
+          // Assumptions
+          interestRate: defaultInterestRate * 100,
+          rentalRecognition: 75,
+          
+          // Tests (hypothetical)
+          depositTest: {
+            pass: depositTestPass,
+            surplus: depositTestSurplus,
+            available: availableFunds,
+            required: hypotheticalDeposit,
+          },
+          
+          borrowingCapacityTest: {
+            pass: borrowingTestPass,
+            surplus: borrowingTestSurplus,
+            available: effectiveBorrowingCapacity,
+            required: totalDebt + hypotheticalLoan,
+          },
+          
+          serviceabilityTest: {
+            pass: serviceabilityTestPass,
+            surplus: serviceabilityTestSurplus,
+            available: enhancedServiceabilityCapacity,
+            required: totalPaymentsWithNew,
+          },
+          
+          // Flags
+          gapRule: false,
+          equityReleaseYear: extractableEquity > 0,
+          
+          // Strategy metrics
+          portfolioScaling: propertyCount,
+          selfFundingEfficiency: 0,
+          equityRecyclingImpact: portfolioValue > 0 ? (totalEquity / portfolioValue) * 100 : 0,
+          dsr,
+          lvr,
+          
+          // Breakdown details (empty for non-purchase years)
+          purchases: [],
+          
+          // All portfolio properties
+          allPortfolioProperties,
+        };
       }
       
       years.push({
@@ -276,6 +588,7 @@ export const useRoadmapData = (): RoadmapData => {
         totalLoanInterest,
         purchaseInYear,
         purchaseDetails,
+        yearBreakdownData,
       });
     }
     

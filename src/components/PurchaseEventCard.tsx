@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import { DepositTestFunnel } from './DepositTestFunnel';
-import { ServiceabilityTestFunnel } from './ServiceabilityTestFunnel';
-import { BorrowingCapacityTestFunnel } from './BorrowingCapacityTestFunnel';
 import { getPropertyTypeIcon } from '@/utils/propertyTypeIcon';
 import { PropertyDetailModal } from './PropertyDetailModal';
-import { DecisionEngineModal } from './DecisionEngineModal';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import type { YearBreakdownData } from '@/types/property';
@@ -23,7 +19,6 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   onInspectProperty,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDecisionEngineOpen, setIsDecisionEngineOpen] = useState(false);
   const { getInstance } = usePropertyInstance();
   const { getPropertyData } = useDataAssumptions();
   
@@ -160,14 +155,6 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
           >
             Details →
           </button>
-          {showDecisionEngine && (
-            <button
-              onClick={() => setIsDecisionEngineOpen(true)}
-              className="text-[9px] hover:underline text-gray-500"
-            >
-              Analysis →
-            </button>
-          )}
         </div>
 
         {/* Property Detail Modal - Read Only from Dashboard */}
@@ -178,16 +165,6 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
             instanceId={instanceId}
             propertyType={propertyType}
             readOnly={true}
-          />
-        )}
-        
-        {/* Decision Engine Modal */}
-        {showDecisionEngine && (
-          <DecisionEngineModal
-            isOpen={isDecisionEngineOpen}
-            onClose={() => setIsDecisionEngineOpen(false)}
-            yearData={yearData}
-            year={year}
           />
         )}
       </div>

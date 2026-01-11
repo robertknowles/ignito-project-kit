@@ -45,6 +45,30 @@ export const PublicReport = () => {
         }
 
         setScenario(data as ScenarioData);
+        
+        // Track client view - only set if not already viewed
+        const scenarioData = data.data as any;
+        if (!scenarioData?.clientViewedAt) {
+          // Update the scenario to mark it as viewed
+          const updatedData = {
+            ...scenarioData,
+            clientViewedAt: new Date().toISOString(),
+          };
+          
+          // Fire and forget - don't block the UI
+          supabase
+            .from('scenarios')
+            .update({ data: updatedData })
+            .eq('id', data.id)
+            .then(({ error: updateError }) => {
+              if (updateError) {
+                console.error('Error tracking view:', updateError);
+              } else {
+                console.log('Client view tracked successfully');
+              }
+            });
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('Error fetching scenario:', err);

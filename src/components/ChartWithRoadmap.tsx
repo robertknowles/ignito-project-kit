@@ -15,6 +15,7 @@ import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
+import { SingleTestModal, TestType } from './SingleTestModal';
 
 // Column dimension constants
 const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
@@ -53,24 +54,47 @@ const isHouseType = (propertyTitle: string): boolean => {
          normalized.includes('duplex');
 };
 
-// Inline StatusPill component
-const StatusPill: React.FC<{ status: 'pass' | 'fail' | 'na' }> = ({ status }) => {
+// Inline StatusPill component - now clickable when onClick is provided
+interface StatusPillProps {
+  status: 'pass' | 'fail' | 'na';
+  onClick?: () => void;
+  isClickable?: boolean;
+}
+
+const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = false }) => {
+  const baseClasses = "inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium";
+  const clickableClasses = isClickable 
+    ? "cursor-pointer border border-slate-300 shadow hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 active:scale-95 active:shadow-sm active:translate-y-0 transition-all duration-150 ease-in-out" 
+    : "";
+  
   if (status === 'pass') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium bg-green-100 text-green-700">
+      <span 
+        className={`${baseClasses} ${isClickable ? 'bg-green-50 border-green-300' : 'bg-green-100'} text-green-700 ${clickableClasses}`}
+        onClick={onClick}
+        role={isClickable ? "button" : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        title={isClickable ? "Click for details" : undefined}
+      >
         ✓
       </span>
     );
   }
   if (status === 'fail') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium bg-red-100 text-red-700">
+      <span 
+        className={`${baseClasses} ${isClickable ? 'bg-red-50 border-red-300' : 'bg-red-100'} text-red-700 ${clickableClasses}`}
+        onClick={onClick}
+        role={isClickable ? "button" : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        title={isClickable ? "Click for details" : undefined}
+      >
         ✗
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium bg-slate-100 text-slate-400">
+    <span className={`${baseClasses} bg-slate-100 text-slate-400`}>
       –
     </span>
   );
@@ -239,6 +263,24 @@ export const ChartWithRoadmap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  
+  // Modal state for single test funnel
+  const [selectedTest, setSelectedTest] = useState<{
+    year: number;
+    type: TestType;
+    yearData: YearData;
+  } | null>(null);
+  
+  // Handler to open a specific test modal
+  const handleTestClick = useCallback((yearData: YearData, testType: TestType) => {
+    if (yearData.yearBreakdownData) {
+      setSelectedTest({
+        year: yearData.year,
+        type: testType,
+        yearData,
+      });
+    }
+  }, []);
 
   // Measure container width and update on resize
   useEffect(() => {
@@ -524,14 +566,21 @@ export const ChartWithRoadmap: React.FC = () => {
                 Deposit
               </span>
             </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`deposit-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <StatusPill status={yearData.depositStatus} />
-              </div>
-            ))}
+            {years.map((yearData, index) => {
+              const isClickable = !!yearData.yearBreakdownData;
+              return (
+                <div 
+                  key={`deposit-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  <StatusPill 
+                    status={yearData.depositStatus} 
+                    isClickable={isClickable}
+                    onClick={isClickable ? () => handleTestClick(yearData, 'deposit') : undefined}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* BORROWING Status Row */}
@@ -541,14 +590,21 @@ export const ChartWithRoadmap: React.FC = () => {
                 Borrow
               </span>
             </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`borrowing-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <StatusPill status={yearData.borrowingStatus} />
-              </div>
-            ))}
+            {years.map((yearData, index) => {
+              const isClickable = !!yearData.yearBreakdownData;
+              return (
+                <div 
+                  key={`borrowing-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  <StatusPill 
+                    status={yearData.borrowingStatus}
+                    isClickable={isClickable}
+                    onClick={isClickable ? () => handleTestClick(yearData, 'borrowing') : undefined}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* SERVICEABILITY Status Row */}
@@ -558,14 +614,21 @@ export const ChartWithRoadmap: React.FC = () => {
                 Service
               </span>
             </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`service-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <StatusPill status={yearData.serviceabilityStatus} />
-              </div>
-            ))}
+            {years.map((yearData, index) => {
+              const isClickable = !!yearData.yearBreakdownData;
+              return (
+                <div 
+                  key={`service-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  <StatusPill 
+                    status={yearData.serviceabilityStatus}
+                    isClickable={isClickable}
+                    onClick={isClickable ? () => handleTestClick(yearData, 'serviceability') : undefined}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* AVAILABLE Funds Row */}
@@ -644,6 +707,16 @@ export const ChartWithRoadmap: React.FC = () => {
         </div>
       </div>
       
+      {/* Single Test Modal */}
+      {selectedTest && selectedTest.yearData.yearBreakdownData && (
+        <SingleTestModal
+          isOpen={!!selectedTest}
+          onClose={() => setSelectedTest(null)}
+          testType={selectedTest.type}
+          yearData={selectedTest.yearData.yearBreakdownData}
+          year={selectedTest.year}
+        />
+      )}
     </div>
   );
 };
