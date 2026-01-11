@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useTourManager } from '@/components/TourManager'
+import { useTourManager, TourStep } from '@/components/TourManager'
 
 // PropPath default logo SVG component
 const PropPathLogo = ({ color }: { color: string }) => (
@@ -93,6 +93,13 @@ export const LeftRail = () => {
 
   return (
     <TooltipProvider>
+      <TourStep
+        id="nav-sidebar"
+        title="Navigation Sidebar"
+        content="Welcome to your investment dashboard! This sidebar is your home base. Navigate between Home (client list), Dashboard (strategy builder), and Settings (data assumptions). Click the Help icon anytime to restart this tour."
+        order={1}
+        position="right"
+      >
       <div id="left-rail" className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
         {/* Logo at top */}
         <div className="mb-2">
@@ -174,6 +181,13 @@ export const LeftRail = () => {
           })}
 
           {/* Help / Restart Tour Button */}
+          <TourStep
+            id="tour-complete"
+            title="You're All Set! 🎉"
+            content="That's the tour! Remember: click the Help icon (?) in the sidebar anytime to restart this tour. Now go build some amazing investment strategies for your clients!"
+            order={12}
+            position="right"
+          >
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -188,6 +202,7 @@ export const LeftRail = () => {
               <p>Help / Restart Tour</p>
             </TooltipContent>
           </Tooltip>
+          </TourStep>
 
           {/* User Profile Menu */}
           <div className="relative" ref={dropdownRef}>
@@ -232,6 +247,7 @@ export const LeftRail = () => {
           </div>
         </div>
       </div>
+      </TourStep>
     </TooltipProvider>
   )
 }

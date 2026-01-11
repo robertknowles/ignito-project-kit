@@ -64,7 +64,7 @@ export const useTour = () => {
 
 const TourOverlay: React.FC = () => {
   const { isActive, currentStepId, highlightPadding, overlayClassName } = useTour()
-  const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties>({})
+  const [highlightRect, setHighlightRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
   const rafRef = useRef<number | undefined>(undefined)
 
   useDisableMouseScroll(isActive)
@@ -78,8 +78,9 @@ const TourOverlay: React.FC = () => {
     const rect = stepElement.getBoundingClientRect()
     const padding = highlightPadding
 
-    setHighlightStyle({
-      transform: `translate(${rect.left - padding}px, ${rect.top - padding}px)`,
+    setHighlightRect({
+      left: rect.left - padding,
+      top: rect.top - padding,
       width: rect.width + padding * 2,
       height: rect.height + padding * 2,
     })
@@ -87,7 +88,7 @@ const TourOverlay: React.FC = () => {
 
   useEffect(() => {
     if (!isActive || !currentStepId) {
-      setHighlightStyle({})
+      setHighlightRect(null)
       return
     }
 
@@ -108,16 +109,56 @@ const TourOverlay: React.FC = () => {
     }
   }, [isActive, currentStepId, updateHighlight])
 
-  if (!isActive || !highlightStyle.width) return null
+  if (!isActive || !highlightRect) return null
+
+  // Use box-shadow to create the spotlight effect - a massive shadow that covers the viewport
+  // with a transparent "hole" in the center where the highlighted element is
+  const spotlightStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: highlightRect.left,
+    top: highlightRect.top,
+    width: highlightRect.width,
+    height: highlightRect.height,
+    borderRadius: '12px',
+    // Create a massive box-shadow that covers the entire viewport
+    // The shadow is semi-transparent black, creating the "fuzzy" overlay effect
+    // The element itself remains transparent, creating the "cutout"
+    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+    pointerEvents: 'none',
+    transition: 'all 300ms ease-out',
+    zIndex: 10001,
+  }
+
+  // Create a clip-path polygon that covers the entire screen EXCEPT the spotlight area
+  // This creates a "frame" shape with a rectangular hole in the middle
+  // The polygon traces: top-left → bottom-left → up to hole → around hole → back down → bottom-right → top-right
+  const blurClipPath = `polygon(
+    0% 0%, 
+    0% 100%, 
+    ${highlightRect.left}px 100%, 
+    ${highlightRect.left}px ${highlightRect.top}px, 
+    ${highlightRect.left + highlightRect.width}px ${highlightRect.top}px, 
+    ${highlightRect.left + highlightRect.width}px ${highlightRect.top + highlightRect.height}px, 
+    ${highlightRect.left}px ${highlightRect.top + highlightRect.height}px, 
+    ${highlightRect.left}px 100%, 
+    100% 100%, 
+    100% 0%
+  )`
 
   return (
-    <div className="fixed inset-0 z-10000 pointer-events-auto">
-      <div className={`fixed inset-0 z-10001 pointer-events-auto ${overlayClassName}`} />
-      <div
-        className="absolute rounded-xl pointer-events-none transition-all duration-300 ease-out"
-        style={highlightStyle}
+    <>
+      {/* Backdrop blur layer - covers entire screen EXCEPT the spotlight area */}
+      <div 
+        className="fixed inset-0 z-10000 pointer-events-none"
+        style={{ 
+          backdropFilter: 'blur(4px)',
+          clipPath: blurClipPath,
+          transition: 'clip-path 300ms ease-out',
+        }}
       />
-    </div>
+      {/* Spotlight cutout - box-shadow creates the dark overlay with transparent center */}
+      <div style={spotlightStyle} />
+    </>
   )
 }
 

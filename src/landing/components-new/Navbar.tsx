@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar: React.FC = () => {
   const [hidden, setHidden] = useState(false);
   const { scrollY } = useScroll();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() || 0;
@@ -45,8 +47,16 @@ const Navbar: React.FC = () => {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-6">
-          <button className="text-sm font-medium hover:text-gray-600 transition-colors">Login</button>
-          <button className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-800 transition-all flex items-center gap-2">
+          <button 
+            onClick={() => navigate('/login')}
+            className="text-sm font-medium hover:text-gray-600 transition-colors"
+          >
+            Login
+          </button>
+          <button 
+            onClick={() => navigate('/signup')}
+            className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-800 transition-all flex items-center gap-2"
+          >
             Get Early Access
           </button>
         </div>
@@ -68,8 +78,16 @@ const Navbar: React.FC = () => {
            <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">Testimonials</a>
            <a href="#founders" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">Founding Agency</a>
            <div className="h-px bg-gray-100 my-2"></div>
-           <button className="text-left font-medium">Login</button>
-           <button className="bg-black text-white px-5 py-3 rounded-full text-sm font-medium w-full text-center">
+           <button 
+             onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
+             className="text-left font-medium"
+           >
+             Login
+           </button>
+           <button 
+             onClick={() => { setMobileMenuOpen(false); navigate('/signup'); }}
+             className="bg-black text-white px-5 py-3 rounded-full text-sm font-medium w-full text-center"
+           >
             Get Early Access
           </button>
         </div>

@@ -7,6 +7,7 @@ import { PropertyTypeIcon } from '../utils/propertyTypeIcon'
 import { CustomBlockModal } from './CustomBlockModal'
 import type { CustomPropertyBlock } from './CustomBlockModal'
 import { PropertyDetailModal } from './PropertyDetailModal'
+import { TourStep } from '@/components/TourManager'
 
 // Growth rates structure for cascading display
 interface CascadingGrowthRates {
@@ -265,7 +266,14 @@ export const PropertyBlocksPanel: React.FC = () => {
   const pauseCount = getPauseCount()
 
   return (
-    <div className="flex flex-col gap-3">
+    <TourStep
+      id="property-blocks"
+      title="Property Building Blocks"
+      content="These are your property templates - pre-configured investment types with different price points, yields, and growth profiles. Think of them as 'Lego blocks' for building a strategy. Click + to add properties to your timeline."
+      order={7}
+      position="right"
+    >
+    <div id="property-blocks-panel" className="flex flex-col gap-3">
       {/* Sort Controls */}
       <div className="flex gap-2 mb-1">
         <button 
@@ -299,6 +307,7 @@ export const PropertyBlocksPanel: React.FC = () => {
 
       {/* Add Custom Block Button - Always at top, below filters */}
       <button
+        id="add-custom-block"
         onClick={() => setShowCustomBlockModal(true)}
         className="w-full py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center gap-2"
       >
@@ -401,6 +410,7 @@ export const PropertyBlocksPanel: React.FC = () => {
         />
       )}
     </div>
+    </TourStep>
   )
 }
 

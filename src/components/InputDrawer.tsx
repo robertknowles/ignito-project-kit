@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, SlidersHorizontal, LayoutGrid } from 'lucide-react'
 import { ClientInputsPanel } from './ClientInputsPanel'
 import { PropertyBlocksPanel } from './PropertyBlocksPanel'
+import { TourStep } from '@/components/TourManager'
 
 interface InputDrawerProps {
   isOpen: boolean
@@ -22,6 +23,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
     <>
       {/* Drawer Container */}
       <div
+        id="input-drawer"
         className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
           isOpen ? 'w-80' : 'w-0'
         }`}
@@ -29,7 +31,14 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
         {/* Content wrapper - only visible when open */}
         <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           {/* Tab Switcher Header */}
-          <div className="relative flex items-center border-b border-gray-200">
+          <TourStep
+            id="drawer-tabs"
+            title="Drawer Tabs"
+            content="The drawer has two tabs: Client Inputs for financial details and goals, and Property Blocks for selecting which properties to include in the strategy."
+            order={5}
+            position="bottom"
+          >
+          <div id="drawer-tabs-container" className="relative flex items-center border-b border-gray-200">
             {tabs.map((tab, index) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -57,6 +66,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
               }}
             />
           </div>
+          </TourStep>
 
           {/* Tab Content Area */}
           <div className="flex-1 overflow-y-auto p-4">
@@ -71,7 +81,15 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       </div>
 
       {/* Toggle Button - always visible */}
+      <TourStep
+        id="drawer-toggle"
+        title="Input Drawer Toggle"
+        content="Click this arrow to expand or collapse the Input Drawer - your control panel for building investment strategies. The drawer contains all the inputs needed to model a client's portfolio."
+        order={4}
+        position="right"
+      >
       <button
+        id="drawer-toggle-btn"
         onClick={onToggle}
         className={`fixed top-1/2 -translate-y-1/2 z-40 w-5 h-10 bg-white border border-gray-200 rounded-r-md flex items-center justify-center hover:bg-gray-50 transition-all duration-300 ease-in-out shadow-sm ${
           isOpen ? 'left-[calc(4rem+20rem)]' : 'left-16'
@@ -84,6 +102,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
           <ChevronRightIcon size={14} className="text-gray-500" />
         )}
       </button>
+      </TourStep>
     </>
   )
 }

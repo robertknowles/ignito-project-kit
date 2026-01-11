@@ -358,9 +358,9 @@ export const PropertyPerformanceTabs: React.FC = () => {
   }
 
   return (
-    <div className="space-y-3">
+    <div id="property-performance" className="space-y-3">
       {/* Property Tabs */}
-      <div className="flex items-center gap-1 border-b border-gray-200 pb-1 overflow-x-auto">
+      <div id="property-tabs" className="flex items-center gap-1 border-b border-gray-200 pb-1 overflow-x-auto">
         {feasibleProperties.map((property) => {
           const isActive = selectedPropertyId === property.instanceId;
           // Capitalise property title with purchase year

@@ -8,6 +8,7 @@ import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { TourStep } from '@/components/TourManager'
 
 export const TopBar = () => {
   const { scenarioId } = useScenarioSave()
@@ -73,18 +74,40 @@ export const TopBar = () => {
   }
 
   return (
-    <div className="sticky top-0 z-40 flex items-center justify-between w-full h-[45px] px-6 bg-white border-b border-gray-200">
+    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-between w-full h-[45px] px-6 bg-white border-b border-gray-200">
       {/* Left side: Scenario Selector (hidden for clients) */}
       <div className="flex items-center">
-        {!isClient && <ClientSelector />}
+        {!isClient && (
+          <TourStep
+            id="client-selector"
+            title="Client Selector"
+            content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
+            order={2}
+            position="bottom"
+          >
+            <ClientSelector />
+          </TourStep>
+        )}
       </div>
       
       {/* Right side: Primary Actions (hidden for clients) */}
       {!isClient && (
+        <TourStep
+          id="topbar-actions"
+          title="Top Bar Actions"
+          content="Your main action buttons live here: Save your work, Reset to start fresh, or generate a Client Report PDF to share with your clients."
+          order={3}
+          position="bottom"
+        >
         <div className="flex items-center gap-3">
-          <ResetButton />
-          <SaveButton />
+          <div id="reset-button-wrapper">
+            <ResetButton />
+          </div>
+          <div id="save-button-wrapper">
+            <SaveButton />
+          </div>
           <button
+            id="client-report-button"
             onClick={handleViewClientReport}
             className="flex items-center gap-2 px-4 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
           >
@@ -92,6 +115,7 @@ export const TopBar = () => {
             <span>Client Report</span>
           </button>
         </div>
+        </TourStep>
       )}
     </div>
   )

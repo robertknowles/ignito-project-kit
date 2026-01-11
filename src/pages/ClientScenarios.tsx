@@ -17,6 +17,9 @@ import {
   FileText,
   Eye,
   Download,
+  Share2,
+  Send,
+  ClipboardList,
 } from 'lucide-react'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { LeftRail } from '../components/LeftRail'
@@ -76,6 +79,10 @@ interface ClientStatus {
   shareId: string | null;
   investmentProfile: any | null;
   communicationLog: any[] | null;
+  // Client dashboard invite status
+  clientUserId: string | null;
+  clientHasLoggedIn: boolean;
+  clientEmail: string | null;
 }
 
 export const ClientScenarios = () => {
@@ -103,6 +110,20 @@ export const ClientScenarios = () => {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileClient, setProfileClient] = useState<Client | null>(null);
 
+  // State for client invite modal
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteCredentials, setInviteCredentials] = useState<{
+    email: string;
+    password: string;
+    loginUrl: string;
+    clientName: string;
+  } | null>(null);
+
+  // State for email prompt dialog
+  const [emailPromptOpen, setEmailPromptOpen] = useState(false);
+  const [emailPromptClient, setEmailPromptClient] = useState<Client | null>(null);
+  const [pendingEmail, setPendingEmail] = useState('');
+
   // Fetch comprehensive client status for all clients
   useEffect(() => {
     const fetchClientStatuses = async () => {
@@ -112,10 +133,30 @@ export const ClientScenarios = () => {
         const clientIds = clients.map(c => c.id);
         const { data: scenarios, error } = await supabase
           .from('scenarios')
-          .select('id, client_id, onboarding_id, share_id, data')
+          .select('id, client_id, onboarding_id, share_id, client_user_id, data')
           .in('client_id', clientIds);
 
         if (error) throw error;
+
+        // Get client user IDs to check login status
+        const clientUserIds = scenarios
+          ?.filter(s => s.client_user_id)
+          .map(s => s.client_user_id) || [];
+
+        // Fetch profiles to check if client users have logged in (have updated_at after created_at)
+        let clientUserProfiles: Record<string, { hasLoggedIn: boolean }> = {};
+        if (clientUserIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, created_at, updated_at')
+            .in('id', clientUserIds);
+          
+          profiles?.forEach(profile => {
+            // Consider logged in if updated_at is different from created_at (they've accessed the app)
+            const hasLoggedIn = profile.updated_at && profile.updated_at !== profile.created_at;
+            clientUserProfiles[profile.id] = { hasLoggedIn: !!hasLoggedIn };
+          });
+        }
 
         const statusMap: Record<number, ClientStatus> = {};
         
@@ -132,6 +173,9 @@ export const ClientScenarios = () => {
             shareId: null,
             investmentProfile: null,
             communicationLog: null,
+            clientUserId: null,
+            clientHasLoggedIn: false,
+            clientEmail: client.email || null,
           };
         });
 
@@ -139,6 +183,11 @@ export const ClientScenarios = () => {
         scenarios?.forEach(scenario => {
           const data = scenario.data as any;
           const hasProperties = data?.propertySelections && Object.keys(data.propertySelections).length > 0;
+          const clientUserId = scenario.client_user_id;
+          const hasLoggedIn = clientUserId ? clientUserProfiles[clientUserId]?.hasLoggedIn || false : false;
+          
+          // Find the client to get their email
+          const client = clients.find(c => c.id === scenario.client_id);
           
           statusMap[scenario.client_id] = {
             hasOnboardingId: !!scenario.onboarding_id,
@@ -151,6 +200,9 @@ export const ClientScenarios = () => {
             shareId: scenario.share_id,
             investmentProfile: data?.investmentProfile || null,
             communicationLog: data?.communicationLog || null,
+            clientUserId: clientUserId || null,
+            clientHasLoggedIn: hasLoggedIn,
+            clientEmail: client?.email || null,
           };
         });
 
@@ -375,15 +427,28 @@ export const ClientScenarios = () => {
 
   // Copy onboarding link to clipboard
   const handleCopyOnboardingLink = async (client: Client) => {
-    const status = clientStatuses[client.id];
+    console.log('Onboarding button clicked for:', client.name);
     
-    if (status?.onboardingId) {
-      const onboardingUrl = `${window.location.origin}/onboarding/${status.onboardingId}`;
-      await navigator.clipboard.writeText(onboardingUrl);
-      toast.success('Questionnaire link copied!');
-    } else {
-      // Generate new link if none exists
-      await handleGenerateOnboardingLink(client);
+    try {
+      const status = clientStatuses[client.id];
+      console.log('Client status:', status);
+      
+      if (status?.onboardingId) {
+        const onboardingUrl = `${window.location.origin}/onboarding/${status.onboardingId}`;
+        await navigator.clipboard.writeText(onboardingUrl);
+        toast.success('Questionnaire link copied!', {
+          description: 'Share this link with your client.',
+        });
+      } else {
+        // Generate new link if none exists
+        toast.info('Generating questionnaire link...', {
+          description: `Creating link for ${client.name}`,
+        });
+        await handleGenerateOnboardingLink(client);
+      }
+    } catch (error) {
+      console.error('Error copying onboarding link:', error);
+      toast.error('Failed to copy link. Please try again.');
     }
   };
 
@@ -393,66 +458,262 @@ export const ClientScenarios = () => {
     setProfileModalOpen(true);
   };
 
-  // Status badge component
-  const StatusBadge = ({ 
-    isComplete, 
-    label, 
-    tooltip 
-  }: { 
-    isComplete: boolean; 
-    label: string; 
-    tooltip: string;
-  }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-          isComplete 
-            ? 'bg-green-50 text-green-700' 
-            : 'bg-gray-50 text-gray-500'
-        }`}>
-          {isComplete ? (
-            <CheckCircle2 size={12} className="text-green-600" />
-          ) : (
-            <XCircle size={12} className="text-gray-400" />
-          )}
-          <span>{label}</span>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
-  );
+  // Generate a secure temporary password
+  const generateTempPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const special = '!@#$%';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    password += Math.floor(Math.random() * 10);
+    return password;
+  };
 
-  // Get status badges for a client
-  const getStatusBadges = (client: Client) => {
+  // Handle inviting a client to view their dashboard
+  const handleInviteClient = async (client: Client) => {
     const status = clientStatuses[client.id];
     
+    // If client already has a user account, show existing credentials modal
+    if (status?.clientUserId) {
+      // Show modal with existing info (password can't be retrieved, but show email and login URL)
+      setInviteCredentials({
+        email: status.clientEmail || client.email || 'Unknown',
+        password: '(Password was sent previously)',
+        loginUrl: `${window.location.origin}/login`,
+        clientName: client.name || 'Client',
+      });
+      setInviteModalOpen(true);
+      return;
+    }
+
+    // Check if client has email
+    const clientEmail = status?.clientEmail || client.email;
+    if (!clientEmail) {
+      // Show email prompt dialog
+      setEmailPromptClient(client);
+      setPendingEmail('');
+      setEmailPromptOpen(true);
+      return;
+    }
+
+    // Proceed with creating the client user
+    await createClientUser(client, clientEmail);
+  };
+
+  // Create client user account and link to scenario
+  const createClientUser = async (client: Client, email: string) => {
+    try {
+      const tempPassword = generateTempPassword();
+      
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: tempPassword,
+        options: {
+          data: { name: client.name },
+        },
+      });
+
+      if (authError) {
+        console.error('Error creating client user:', authError);
+        toast.error(`Failed to create client account: ${authError.message}`);
+        return;
+      }
+
+      if (!authData.user) {
+        toast.error('Failed to create client account');
+        return;
+      }
+
+      const newUserId = authData.user.id;
+
+      // Update the profile with role='client' and company_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'client',
+          company_id: companyId,
+          full_name: client.name,
+        })
+        .eq('id', newUserId);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        toast.error('Failed to set up client profile');
+        return;
+      }
+
+      // Get the scenario for this client and update client_user_id
+      const status = clientStatuses[client.id];
+      if (status?.scenarioId) {
+        const { error: scenarioError } = await supabase
+          .from('scenarios')
+          .update({ client_user_id: newUserId })
+          .eq('id', status.scenarioId);
+
+        if (scenarioError) {
+          console.error('Error updating scenario:', scenarioError);
+          toast.error('Failed to link client to scenario');
+          return;
+        }
+      } else {
+        // No scenario exists yet - create one with the client_user_id
+        const { error: insertError } = await supabase
+          .from('scenarios')
+          .insert({
+            name: `${client.name}'s Scenario`,
+            client_id: client.id,
+            company_id: companyId,
+            client_user_id: newUserId,
+            client_display_name: client.name,
+            data: {
+              propertySelections: {},
+              investmentProfile: {
+                depositPool: 50000,
+                borrowingCapacity: 500000,
+                portfolioValue: 0,
+                currentDebt: 0,
+                annualSavings: 24000,
+                timelineYears: 15,
+                equityGoal: 1000000,
+                cashflowGoal: 50000,
+              },
+            },
+          });
+
+        if (insertError) {
+          console.error('Error creating scenario:', insertError);
+          toast.error('Failed to create client scenario');
+          return;
+        }
+      }
+
+      // Update local state
+      setClientStatuses(prev => ({
+        ...prev,
+        [client.id]: {
+          ...prev[client.id],
+          clientUserId: newUserId,
+          clientHasLoggedIn: false,
+          clientEmail: email,
+        },
+      }));
+
+      // Show credentials modal
+      setInviteCredentials({
+        email,
+        password: tempPassword,
+        loginUrl: `${window.location.origin}/login`,
+        clientName: client.name || 'Client',
+      });
+      setInviteModalOpen(true);
+
+      toast.success('Client dashboard invite created!');
+    } catch (error) {
+      console.error('Error inviting client:', error);
+      toast.error('Failed to create client invite');
+    }
+  };
+
+  // Handle email prompt submission
+  const handleEmailPromptSubmit = async () => {
+    if (!emailPromptClient || !pendingEmail.trim()) return;
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(pendingEmail.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    // Save email to client record
+    const success = await updateClient(emailPromptClient.id, { email: pendingEmail.trim() });
+    
+    if (success) {
+      // Update local status
+      setClientStatuses(prev => ({
+        ...prev,
+        [emailPromptClient.id]: {
+          ...prev[emailPromptClient.id],
+          clientEmail: pendingEmail.trim(),
+        },
+      }));
+
+      // Close dialog and proceed with invite
+      setEmailPromptOpen(false);
+      await createClientUser(emailPromptClient, pendingEmail.trim());
+      setEmailPromptClient(null);
+      setPendingEmail('');
+    } else {
+      toast.error('Failed to save client email');
+    }
+  };
+
+  // Workflow cell component - shows status + action button together
+  const WorkflowCell = ({ 
+    isComplete, 
+    isWaiting,
+    completeLabel,
+    incompleteLabel,
+    waitingLabel,
+    actionIcon,
+    actionLabel,
+    onAction,
+    disabled
+  }: { 
+    isComplete: boolean;
+    isWaiting?: boolean;
+    completeLabel: string;
+    incompleteLabel: string;
+    waitingLabel?: string;
+    actionIcon: React.ReactNode;
+    actionLabel: string;
+    onAction: () => void;
+    disabled?: boolean;
+  }) => {
+    // Determine status state
+    const statusLabel = isComplete ? completeLabel : isWaiting ? (waitingLabel || incompleteLabel) : incompleteLabel;
+    const statusColor = isComplete 
+      ? 'text-green-600' 
+      : isWaiting 
+        ? 'text-amber-600' 
+        : 'text-gray-400';
+    const statusIcon = isComplete 
+      ? <CheckCircle2 size={12} className="text-green-600" /> 
+      : isWaiting 
+        ? <Clock size={12} className="text-amber-500" />
+        : <XCircle size={12} className="text-gray-400" />;
+
     return (
-      <div className="flex items-center gap-2">
-        <StatusBadge 
-          isComplete={status?.isQuestionnaireCompleted || false}
-          label="Quest"
-          tooltip={status?.isQuestionnaireCompleted 
-            ? "Questionnaire completed" 
-            : "Questionnaire not completed"}
-        />
-        <StatusBadge 
-          isComplete={status?.hasScenario || false}
-          label="Scenario"
-          tooltip={status?.hasScenario 
-            ? "Investment scenario created" 
-            : "No scenario created yet"}
-        />
-        <StatusBadge 
-          isComplete={status?.hasBeenViewed || false}
-          label="Viewed"
-          tooltip={status?.hasBeenViewed 
-            ? `Report viewed on ${new Date(status.clientViewedAt!).toLocaleDateString()}` 
-            : status?.shareId 
-              ? "Report shared but not yet viewed" 
-              : "Report not shared yet"}
-        />
+      <div className="flex flex-col items-center gap-1.5">
+        {/* Action button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={onAction}
+              disabled={disabled}
+              className={`p-2 rounded-lg border transition-all ${
+                isComplete 
+                  ? 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100' 
+                  : isWaiting
+                    ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
+                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {actionIcon}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{actionLabel}</p>
+          </TooltipContent>
+        </Tooltip>
+        {/* Status label */}
+        <div className={`flex items-center gap-1 text-[10px] ${statusColor}`}>
+          {statusIcon}
+          <span className="whitespace-nowrap">{statusLabel}</span>
+        </div>
       </div>
     );
   };
@@ -583,17 +844,20 @@ export const ClientScenarios = () => {
                         <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
                           Client
                         </th>
-                        <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
-                          Status
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
+                          Onboarding
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
+                          Plan
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
+                          Dashboard
                         </th>
                         <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
                           Next Purchase
                         </th>
-                        <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
-                          Created
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
-                          Actions
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+                          
                         </th>
                       </tr>
                     </thead>
@@ -605,22 +869,68 @@ export const ClientScenarios = () => {
                           .join('')
                           .toUpperCase()
                           .slice(0, 2);
+                        
+                        const status = clientStatuses[client.id];
+                        const isOnboarded = status?.isQuestionnaireCompleted || false;
+                        const hasPlan = status?.hasScenario || false;
+                        // Dashboard invite status
+                        const hasClientUser = !!status?.clientUserId;
+                        const hasLoggedIn = status?.clientHasLoggedIn || false;
 
                         return (
                           <tr key={client.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3">
+                                <button 
+                                  onClick={() => handleOpenProfile(client)}
+                                  className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors"
+                                >
                                   {initials}
-                                </div>
+                                </button>
                                 <div className="text-sm font-medium text-[#111827]">
                                   {client.name}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              {getStatusBadges(client)}
+                            
+                            {/* Onboarding Column */}
+                            <td className="px-4 py-4">
+                              <WorkflowCell
+                                isComplete={isOnboarded}
+                                completeLabel="Completed"
+                                incompleteLabel="Not started"
+                                actionIcon={<ClipboardList size={16} />}
+                                actionLabel={isOnboarded ? "Copy questionnaire link" : "Send questionnaire"}
+                                onAction={() => handleCopyOnboardingLink(client)}
+                              />
                             </td>
+                            
+                            {/* Plan Column */}
+                            <td className="px-4 py-4">
+                              <WorkflowCell
+                                isComplete={hasPlan}
+                                completeLabel="Created"
+                                incompleteLabel="Not created"
+                                actionIcon={<FileText size={16} />}
+                                actionLabel={hasPlan ? "View plan" : "Create plan"}
+                                onAction={() => handleViewClient(client.id)}
+                              />
+                            </td>
+                            
+                            {/* Dashboard Column */}
+                            <td className="px-4 py-4">
+                              <WorkflowCell
+                                isComplete={hasLoggedIn}
+                                isWaiting={hasClientUser && !hasLoggedIn}
+                                completeLabel="Logged in"
+                                incompleteLabel="Not invited"
+                                waitingLabel="Invited"
+                                actionIcon={<Send size={16} />}
+                                actionLabel={hasLoggedIn ? "View credentials" : hasClientUser ? "Resend invite" : "Invite to dashboard"}
+                                onAction={() => handleInviteClient(client)}
+                              />
+                            </td>
+                            
                             <td className="px-6 py-4 text-sm text-[#374151]">
                               {(() => {
                                 const nextYear = getNextPurchaseYear(client.id);
@@ -637,10 +947,8 @@ export const ClientScenarios = () => {
                                 );
                               })()}
                             </td>
-                            <td className="px-6 py-4 text-sm text-[#374151]">
-                              {new Date(client.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4">
+                            
+                            <td className="px-4 py-4">
                               <div className="flex items-center gap-1">
                                 {/* Profile Button */}
                                 <Tooltip>
@@ -654,36 +962,6 @@ export const ClientScenarios = () => {
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>View Profile</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                {/* Copy Questionnaire Link */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button 
-                                      onClick={() => handleCopyOnboardingLink(client)}
-                                      className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
-                                    >
-                                      <Copy size={16} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Copy questionnaire link</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                {/* View Scenario */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button 
-                                      onClick={() => handleViewClient(client.id)}
-                                      className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
-                                    >
-                                      <FileText size={16} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Scenario</p>
                                   </TooltipContent>
                                 </Tooltip>
 
@@ -711,6 +989,13 @@ export const ClientScenarios = () => {
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem 
+                                      onClick={() => handleOpenProfile(client)}
+                                      className="cursor-pointer"
+                                    >
+                                      <User size={14} className="mr-2" />
+                                      View Profile
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem 
                                       onClick={() => handleRenameClick(client)}
                                       className="cursor-pointer"
@@ -851,7 +1136,7 @@ export const ClientScenarios = () => {
                 const clientIds = clients.map(c => c.id);
                 const { data: scenarios, error } = await supabase
                   .from('scenarios')
-                  .select('id, client_id, onboarding_id, share_id, data')
+                  .select('id, client_id, onboarding_id, share_id, client_user_id, data')
                   .in('client_id', clientIds);
 
                 if (error) throw error;
@@ -869,12 +1154,16 @@ export const ClientScenarios = () => {
                     shareId: null,
                     investmentProfile: null,
                     communicationLog: null,
+                    clientUserId: null,
+                    clientHasLoggedIn: false,
+                    clientEmail: client.email || null,
                   };
                 });
 
                 scenarios?.forEach(scenario => {
                   const data = scenario.data as any;
                   const hasProperties = data?.propertySelections && Object.keys(data.propertySelections).length > 0;
+                  const client = clients.find(c => c.id === scenario.client_id);
                   
                   statusMap[scenario.client_id] = {
                     hasOnboardingId: !!scenario.onboarding_id,
@@ -887,6 +1176,9 @@ export const ClientScenarios = () => {
                     shareId: scenario.share_id,
                     investmentProfile: data?.investmentProfile || null,
                     communicationLog: data?.communicationLog || null,
+                    clientUserId: scenario.client_user_id || null,
+                    clientHasLoggedIn: false, // Would need to check profile
+                    clientEmail: client?.email || null,
                   };
                 });
 
@@ -898,6 +1190,144 @@ export const ClientScenarios = () => {
             fetchClientStatuses();
           }}
         />
+
+        {/* Client Invite Credentials Modal */}
+        <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dashboard Login Credentials</DialogTitle>
+              <DialogDescription>
+                Share these credentials with {inviteCredentials?.clientName} so they can access their investment dashboard.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Email</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={inviteCredentials?.email || ''}
+                    readOnly
+                    className="bg-gray-50"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteCredentials?.email || '');
+                      toast.success('Email copied!');
+                    }}
+                  >
+                    <Copy size={14} />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Temporary Password</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={inviteCredentials?.password || ''}
+                    readOnly
+                    className="bg-gray-50 font-mono"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteCredentials?.password || '');
+                      toast.success('Password copied!');
+                    }}
+                  >
+                    <Copy size={14} />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Login URL</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={inviteCredentials?.loginUrl || ''}
+                    readOnly
+                    className="bg-gray-50 text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteCredentials?.loginUrl || '');
+                      toast.success('Login URL copied!');
+                    }}
+                  >
+                    <Copy size={14} />
+                  </Button>
+                </div>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                <p className="font-medium mb-1">Instructions for your client:</p>
+                <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                  <li>Go to the login URL above</li>
+                  <li>Enter email and temporary password</li>
+                  <li>View their personalized investment dashboard</li>
+                </ol>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  // Copy all credentials to clipboard
+                  const text = `Dashboard Login for ${inviteCredentials?.clientName}\n\nEmail: ${inviteCredentials?.email}\nPassword: ${inviteCredentials?.password}\nLogin URL: ${inviteCredentials?.loginUrl}`;
+                  navigator.clipboard.writeText(text);
+                  toast.success('All credentials copied to clipboard!');
+                }}
+              >
+                Copy All
+              </Button>
+              <Button variant="outline" onClick={() => setInviteModalOpen(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Email Prompt Dialog */}
+        <Dialog open={emailPromptOpen} onOpenChange={setEmailPromptOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Client Email Required</DialogTitle>
+              <DialogDescription>
+                Enter the email address for {emailPromptClient?.name} to send them dashboard access.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="client-email">Email Address</Label>
+                <Input
+                  id="client-email"
+                  type="email"
+                  value={pendingEmail}
+                  onChange={(e) => setPendingEmail(e.target.value)}
+                  placeholder="client@example.com"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleEmailPromptSubmit();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setEmailPromptOpen(false);
+                setEmailPromptClient(null);
+                setPendingEmail('');
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleEmailPromptSubmit} disabled={!pendingEmail.trim()}>
+                Send Invite
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   )

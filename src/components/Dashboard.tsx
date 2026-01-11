@@ -6,6 +6,7 @@ import { PropertyPerformanceTabs } from './PropertyPerformanceTabs';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { InvestmentTimeline } from './InvestmentTimeline';
+import { TourStep } from '@/components/TourManager';
 
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
@@ -49,7 +50,14 @@ export const Dashboard = () => {
         {/* ROW 2: Two Column Grid - Timeline (LHS) + Property Workbench (RHS) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT COLUMN: Investment Timeline */}
-          <div className="bento-card p-6">
+          <TourStep
+            id="timeline-section"
+            title="Investment Timeline"
+            content="This is the heart of the system - the Decision Engine. It shows WHEN each property can be purchased based on your client's affordability. Each card shows a purchase with timing and key metrics. Click 'Inspect' to see detailed breakdowns."
+            order={10}
+            position="right"
+          >
+          <div id="timeline-section-container" className="bento-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <CalendarIcon size={18} className="text-gray-500" />
               Investment Timeline
@@ -58,15 +66,24 @@ export const Dashboard = () => {
             {/* Timeline Content */}
             <InvestmentTimeline ref={timelineRef} onInspectProperty={handleInspectProperty} />
           </div>
+          </TourStep>
           
           {/* RIGHT COLUMN: Property Workbench (Per-Property Deep Dive) */}
-          <div className="bento-card p-6">
+          <TourStep
+            id="property-performance-section"
+            title="Per-Property Performance"
+            content="Dive deep into individual property performance. Switch between properties using the tabs. Each property shows Growth (equity over time) and Cashflow (rental income vs expenses) analysis."
+            order={11}
+            position="left"
+          >
+          <div id="property-performance-container" className="bento-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <BarChart3 size={18} className="text-gray-500" />
               Individual Property Performance
             </h2>
             <PropertyPerformanceTabs />
           </div>
+          </TourStep>
         </div>
       </div>
       

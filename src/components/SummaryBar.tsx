@@ -5,6 +5,7 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES } from '../utils/metricsCalculator'
 import type { PropertyPurchase } from '../types/property'
+import { TourStep } from '@/components/TourManager'
 
 export const SummaryBar = () => {
   const { calculations } = usePropertySelection()
@@ -128,7 +129,14 @@ export const SummaryBar = () => {
   }
 
   return (
-    <div className="bg-white rounded-t-xl border border-gray-200 overflow-hidden">
+    <TourStep
+      id="summary-bar"
+      title="Portfolio Scoreboard"
+      content="Your at-a-glance KPIs: Portfolio Value, number of Properties, Cashflow vs Goal, Equity vs Goal, Total Debt, and Timeline Progress. These update in real-time as you modify the strategy."
+      order={8}
+      position="bottom"
+    >
+    <div id="summary-bar-container" className="bg-white rounded-t-xl border border-gray-200 overflow-hidden">
       <div className="grid grid-cols-6">
         {/* Portfolio Value Card */}
         <div className="flex flex-col justify-center border-r border-gray-200 p-3">
@@ -173,5 +181,6 @@ export const SummaryBar = () => {
         </div>
       </div>
     </div>
+    </TourStep>
   )
 }

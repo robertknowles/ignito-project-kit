@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChartWithRoadmap } from './ChartWithRoadmap';
 import { CashflowRoadmap } from './CashflowRoadmap';
+import { TourStep } from '@/components/TourManager';
 
 type ViewMode = 'wealth' | 'cashflow';
 
@@ -13,9 +14,16 @@ export const TimelineColumn: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white border border-gray-200 border-t-0 rounded-b-xl overflow-hidden relative">
+    <TourStep
+      id="wealth-cashflow-chart"
+      title="Portfolio Growth Chart"
+      content="This chart visualizes your portfolio journey. The colored area shows equity building over time, with property icons marking each purchase. Toggle between Wealth and Cashflow views using the buttons in the top-right."
+      order={9}
+      position="top"
+    >
+    <div id="wealth-cashflow-chart-container" className="bg-white border border-gray-200 border-t-0 rounded-b-xl overflow-hidden relative">
       {/* View Toggle - floating over the chart */}
-      <div className="absolute top-2 right-4 z-20 flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-md px-1 py-0.5">
+      <div id="chart-toggle" className="absolute top-2 right-4 z-20 flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-md px-1 py-0.5">
         {tabs.map((tab) => {
           const isActive = viewMode === tab.id;
           return (
@@ -50,6 +58,7 @@ export const TimelineColumn: React.FC = () => {
         <CashflowRoadmap />
       )}
     </div>
+    </TourStep>
   );
 };
 

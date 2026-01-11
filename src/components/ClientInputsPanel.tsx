@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { TourStep } from '@/components/TourManager'
 
 // Slider styles for consistent appearance - Clean black track and handle
 const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
@@ -115,9 +116,16 @@ export const ClientInputsPanel: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col gap-5">
+      <div id="client-inputs-panel" className="flex flex-col gap-5">
         {/* Investment Goals Section */}
-        <div>
+        <TourStep
+          id="investment-goals"
+          title="Investment Goals"
+          content="Set your client's targets here: Investment Horizon (how many years to model), Equity Goal (wealth target), and Cashflow Goal (passive income target). These goals drive the entire strategy."
+          order={6}
+          position="right"
+        >
+        <div id="investment-goals-section">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
               Investment Goals
@@ -176,9 +184,10 @@ export const ClientInputsPanel: React.FC = () => {
           />
         </div>
       </div>
+      </TourStep>
 
       {/* Personal Details Section */}
-      <div>
+      <div id="personal-details">
         <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
           Personal Details
         </h3>

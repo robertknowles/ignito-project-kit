@@ -19,6 +19,7 @@ import { CompanyManagement } from './pages/CompanyManagement'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
+import { Toaster as SonnerToaster } from 'sonner'
 import { ClientView } from './client-view/ClientView'
 import { ClientOnboarding } from './pages/ClientOnboarding'
 import { TourManagerProvider } from './components/TourManager'
@@ -106,6 +107,7 @@ export function AppRouter() {
                             />
                           </Routes>
                           <Toaster />
+                          <SonnerToaster position="bottom-right" richColors />
                         </TourManagerProvider>
                       </BrowserRouter>
                     </ScenarioSaveProvider>

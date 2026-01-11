@@ -31,7 +31,7 @@ export const ClientSelector: React.FC = () => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div id="client-selector" className="relative" ref={dropdownRef}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
         className="flex items-center px-4 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"

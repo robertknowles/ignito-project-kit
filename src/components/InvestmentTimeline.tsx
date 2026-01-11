@@ -40,7 +40,7 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
   const currentYear = new Date().getFullYear();
   
   return (
-    <div className="py-3 px-6">
+    <div id="timeline-progress-bar" className="py-3 px-6">
       {/* Responsive flex container: wraps to multiple lines, no horizontal scrollbar */}
       <div className="flex flex-wrap gap-1.5">
         {years.map((year, index) => {
@@ -856,7 +856,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
   }, [timelineByYear, unifiedTimeline]);
 
   return (
-    <div className="relative">
+    <div id="investment-timeline" className="relative">
       {isRecalculating && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
           <div className="flex items-center gap-2 text-blue-600">
