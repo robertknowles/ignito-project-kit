@@ -66,6 +66,7 @@ interface PropertyDetailModalProps {
   instanceId: string;
   propertyType: string;
   isTemplate?: boolean; // NEW: Indicates this is editing a template, not an instance
+  readOnly?: boolean; // NEW: When true, all inputs are disabled and save button is hidden
 }
 
 export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -74,6 +75,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   instanceId,
   propertyType,
   isTemplate = false,
+  readOnly = false,
 }) => {
   const { getInstance, updateInstance, createInstance } = usePropertyInstance();
   const { getPropertyData, getPropertyTypeTemplate, updatePropertyTypeTemplate } = useDataAssumptions();
@@ -288,7 +290,9 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             <DialogTitle className="flex items-center gap-2">
               {isTemplate 
                 ? `Edit Template: ${propertyType}` 
-                : `Property Details - ${propertyType}`
+                : readOnly 
+                  ? `View Details - ${propertyType}`
+                  : `Property Details - ${propertyType}`
               }
               {hasUnsavedChanges && !isSaving && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
@@ -339,7 +343,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 <Select
                   value={formData.state}
                   onValueChange={(value) => handleFieldChange('state', value)}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 >
                   <SelectTrigger id="state">
                     <SelectValue />
@@ -366,7 +370,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.purchasePrice}
                   onChange={(e) => handleFieldChange('purchasePrice', parseNumericInput(e.target.value))}
                   className={validationErrors.purchasePrice ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.purchasePrice && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.purchasePrice}</p>
@@ -382,7 +386,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.valuationAtPurchase}
                   onChange={(e) => handleFieldChange('valuationAtPurchase', parseNumericInput(e.target.value))}
                   className={validationErrors.valuationAtPurchase ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.valuationAtPurchase && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.valuationAtPurchase}</p>
@@ -398,7 +402,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.rentPerWeek}
                   onChange={(e) => handleFieldChange('rentPerWeek', parseNumericInput(e.target.value))}
                   className={validationErrors.rentPerWeek ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.rentPerWeek && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.rentPerWeek}</p>
@@ -411,7 +415,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 <Select
                   value={formData.growthAssumption}
                   onValueChange={(value) => handleFieldChange('growthAssumption', value)}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 >
                   <SelectTrigger id="growthAssumption">
                     <SelectValue />
@@ -432,7 +436,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.daysToUnconditional}
                   onChange={(e) => handleFieldChange('daysToUnconditional', parseInt(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -444,7 +448,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.daysForSettlement}
                   onChange={(e) => handleFieldChange('daysForSettlement', parseInt(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -458,7 +462,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.lvr}
                   onChange={(e) => handleFieldChange('lvr', parseNumericInput(e.target.value))}
                   className={validationErrors.lvr ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.lvr && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.lvr}</p>
@@ -471,7 +475,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 <Select
                   value={formData.lmiWaiver ? 'true' : 'false'}
                   onValueChange={(value) => handleFieldChange('lmiWaiver', value === 'true')}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 >
                   <SelectTrigger id="lmiWaiver">
                     <SelectValue />
@@ -489,7 +493,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 <Select
                   value={formData.loanProduct}
                   onValueChange={(value) => handleFieldChange('loanProduct', value)}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 >
                   <SelectTrigger id="loanProduct">
                     <SelectValue />
@@ -511,7 +515,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.interestRate}
                   onChange={(e) => handleFieldChange('interestRate', parseNumericInput(e.target.value))}
                   className={validationErrors.interestRate ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.interestRate && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.interestRate}</p>
@@ -527,7 +531,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.loanTerm}
                   onChange={(e) => handleFieldChange('loanTerm', parseInt(e.target.value))}
                   className={validationErrors.loanTerm ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.loanTerm && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.loanTerm}</p>
@@ -542,7 +546,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.loanOffsetAccount}
                   onChange={(e) => handleFieldChange('loanOffsetAccount', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -600,7 +604,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.engagementFee}
                   onChange={(e) => handleFieldChange('engagementFee', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -611,7 +615,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.conditionalHoldingDeposit}
                   onChange={(e) => handleFieldChange('conditionalHoldingDeposit', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -622,7 +626,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.buildingInsuranceUpfront}
                   onChange={(e) => handleFieldChange('buildingInsuranceUpfront', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -633,7 +637,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.buildingPestInspection}
                   onChange={(e) => handleFieldChange('buildingPestInspection', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -644,7 +648,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.plumbingElectricalInspections}
                   onChange={(e) => handleFieldChange('plumbingElectricalInspections', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -655,7 +659,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.independentValuation}
                   onChange={(e) => handleFieldChange('independentValuation', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -666,7 +670,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.unconditionalHoldingDeposit}
                   onChange={(e) => handleFieldChange('unconditionalHoldingDeposit', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -677,7 +681,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.mortgageFees}
                   onChange={(e) => handleFieldChange('mortgageFees', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -688,7 +692,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.conveyancing}
                   onChange={(e) => handleFieldChange('conveyancing', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -699,7 +703,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.ratesAdjustment}
                   onChange={(e) => handleFieldChange('ratesAdjustment', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -710,7 +714,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.maintenanceAllowancePostSettlement}
                   onChange={(e) => handleFieldChange('maintenanceAllowancePostSettlement', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -722,7 +726,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.stampDutyOverride ?? ''}
                   onChange={(e) => handleFieldChange('stampDutyOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
                   placeholder="Leave empty to auto-calculate"
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -742,7 +746,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.vacancyRate}
                   onChange={(e) => handleFieldChange('vacancyRate', parseNumericInput(e.target.value))}
                   className={validationErrors.vacancyRate ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.vacancyRate && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.vacancyRate}</p>
@@ -758,7 +762,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.propertyManagementPercent}
                   onChange={(e) => handleFieldChange('propertyManagementPercent', parseNumericInput(e.target.value))}
                   className={validationErrors.propertyManagementPercent ? 'border-red-300' : ''}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
                 {validationErrors.propertyManagementPercent && (
                   <p className="text-xs text-red-700 mt-1">{validationErrors.propertyManagementPercent}</p>
@@ -772,7 +776,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.buildingInsuranceAnnual}
                   onChange={(e) => handleFieldChange('buildingInsuranceAnnual', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -783,7 +787,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.councilRatesWater}
                   onChange={(e) => handleFieldChange('councilRatesWater', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -794,7 +798,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.strata}
                   onChange={(e) => handleFieldChange('strata', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -805,7 +809,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.maintenanceAllowanceAnnual}
                   onChange={(e) => handleFieldChange('maintenanceAllowanceAnnual', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -817,7 +821,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   value={formData.landTaxOverride ?? ''}
                   onChange={(e) => handleFieldChange('landTaxOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
                   placeholder="Leave empty to auto-calculate"
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -828,7 +832,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   type="number"
                   value={formData.potentialDeductionsRebates}
                   onChange={(e) => handleFieldChange('potentialDeductionsRebates', parseNumericInput(e.target.value))}
-                  disabled={isSaving}
+                  disabled={isSaving || readOnly}
                 />
               </div>
               
@@ -994,21 +998,23 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         {formData && (
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              {readOnly ? 'Close' : 'Cancel'}
             </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={Object.values(validationErrors).some(err => err) || isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="animate-spin mr-2" size={16} />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
+            {!readOnly && (
+              <Button 
+                onClick={handleSave}
+                disabled={Object.values(validationErrors).some(err => err) || isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={16} />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            )}
           </div>
         )}
         

@@ -7,7 +7,6 @@ interface MiniPurchaseCardProps {
   loanAmount: number;
   depositRequired: number;
   compact?: boolean; // For narrower column widths
-  onDetailsClick?: () => void;
 }
 
 // Determine if property is a house type (for color coding)
@@ -47,36 +46,19 @@ export const MiniPurchaseCard: React.FC<MiniPurchaseCardProps> = ({
   propertyTitle,
   cost,
   loanAmount,
-  onDetailsClick,
 }) => {
   const isHouse = isHouseType(propertyTitle);
   
-  // Calculate LVR
-  const lvr = cost > 0 ? (loanAmount / cost) * 100 : 0;
-  
   return (
-    <div className="w-full bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header with grey background */}
-      <div className="bg-slate-50 px-1.5 h-6 flex items-center gap-1.5 border-b border-slate-100">
-        {isHouse ? (
-          <Home size={12} className="text-slate-400" />
-        ) : (
-          <Building2 size={12} className="text-slate-400" />
-        )}
-        <span className="text-[10px] font-semibold text-slate-800">
-          {getShortName(propertyTitle)}
-        </span>
-      </div>
-      
-      {/* Details link with white background */}
-      <div className="bg-white px-1.5 h-6 flex items-center justify-center border-t border-slate-100">
-        <button 
-          onClick={onDetailsClick}
-          className="text-[9px] text-blue-500 hover:text-blue-600 font-medium text-center"
-        >
-          Details
-        </button>
-      </div>
+    <div className="bg-slate-100 rounded border border-slate-200 px-2.5 py-0.5 flex items-center justify-center gap-1">
+      {isHouse ? (
+        <Home size={9} className="text-slate-500" />
+      ) : (
+        <Building2 size={9} className="text-slate-500" />
+      )}
+      <span className="text-[8px] font-medium text-slate-700">
+        {getShortName(propertyTitle)}
+      </span>
     </div>
   );
 };

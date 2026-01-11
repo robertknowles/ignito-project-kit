@@ -8,7 +8,6 @@ interface BrandingData {
   companyName: string;
   logoUrl: string | null;
   primaryColor: string;
-  secondaryColor: string;
 }
 
 interface InvestmentProfileFormData {
@@ -36,8 +35,7 @@ const defaultFormData: InvestmentProfileFormData = {
 const defaultBranding: BrandingData = {
   companyName: 'PropPath',
   logoUrl: null,
-  primaryColor: '#3b82f6',
-  secondaryColor: '#6366f1',
+  primaryColor: '#6b7280',
 };
 
 // Format currency for display
@@ -211,7 +209,7 @@ export const ClientOnboarding = () => {
         if (scenarioData.company_id) {
           const { data: companyData, error: companyError } = await supabase
             .from('companies')
-            .select('name, logo_url, primary_color, secondary_color')
+            .select('name, logo_url, primary_color')
             .eq('id', scenarioData.company_id)
             .single();
 
@@ -220,7 +218,6 @@ export const ClientOnboarding = () => {
               companyName: companyData.name || defaultBranding.companyName,
               logoUrl: companyData.logo_url,
               primaryColor: companyData.primary_color || defaultBranding.primaryColor,
-              secondaryColor: companyData.secondary_color || defaultBranding.secondaryColor,
             });
           }
         }

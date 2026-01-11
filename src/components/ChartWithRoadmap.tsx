@@ -15,7 +15,6 @@ import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
-import { PropertyDetailModal } from './PropertyDetailModal';
 
 // Column dimension constants
 const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
@@ -139,9 +138,9 @@ const EquityGoalLabel = (props: any) => {
     <text
       x={viewBox.x + viewBox.width - 10}
       y={viewBox.y - 5}
-      fill="rgba(253, 186, 116, 1)"
-      fontSize={10}
-      fontWeight={500}
+      fill="#d97706"
+      fontSize={11}
+      fontWeight={600}
       textAnchor="end"
       fontFamily="Inter, system-ui, sans-serif"
     >
@@ -168,6 +167,32 @@ const GoalAchievedLabel = (props: any) => {
     >
       Goal: {year}
     </text>
+  );
+};
+
+// Progress Label component - marks most recent purchase
+const ProgressLabel = (props: any) => {
+  const { viewBox } = props;
+  if (!viewBox) return null;
+  return (
+    <g>
+      <text
+        x={viewBox.x}
+        y={12}
+        fill="#7c3aed"
+        fontSize={9}
+        fontWeight={600}
+        textAnchor="middle"
+        fontFamily="Inter, system-ui, sans-serif"
+      >
+        Progress
+      </text>
+      {/* Small triangle pointer */}
+      <polygon
+        points={`${viewBox.x - 4},18 ${viewBox.x + 4},18 ${viewBox.x},24`}
+        fill="#7c3aed"
+      />
+    </g>
   );
 };
 
@@ -214,12 +239,6 @@ export const ChartWithRoadmap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  
-  // Modal state for property details
-  const [selectedProperty, setSelectedProperty] = useState<{
-    instanceId: string;
-    propertyType: string;
-  } | null>(null);
 
   // Measure container width and update on resize
   useEffect(() => {
@@ -282,6 +301,12 @@ export const ChartWithRoadmap: React.FC = () => {
   const equityGoalReached = useMemo(() => {
     return chartData.find(d => d.totalEquity >= profile.equityGoal);
   }, [chartData, profile.equityGoal]);
+
+  // Find the most recent purchase year (last property purchased)
+  const mostRecentPurchase = useMemo(() => {
+    const purchaseYears = chartData.filter(d => d.purchaseInYear);
+    return purchaseYears.length > 0 ? purchaseYears[purchaseYears.length - 1] : null;
+  }, [chartData]);
 
   // Generate AI summary
   const aiSummary = useMemo(() => {
@@ -380,15 +405,15 @@ export const ChartWithRoadmap: React.FC = () => {
               
               <Tooltip content={<CustomTooltip />} />
               
-              {/* Equity Goal Reference Line */}
-              {profile.equityGoal > 0 && (
+              {/* "You Are Here" - marks most recent purchase */}
+              {mostRecentPurchase && (
                 <ReferenceLine
-                  y={profile.equityGoal}
-                  stroke="rgba(253, 186, 116, 0.7)"
-                  strokeDasharray="5 5"
+                  x={mostRecentPurchase.year}
+                  stroke="#7c3aed"
                   strokeWidth={2}
+                  strokeDasharray="4 4"
                 >
-                  <Label content={<EquityGoalLabel equityGoal={profile.equityGoal} />} />
+                  <Label content={<ProgressLabel />} position="top" />
                 </ReferenceLine>
               )}
               
@@ -419,6 +444,18 @@ export const ChartWithRoadmap: React.FC = () => {
                 fill="url(#greyGradient)"
                 dot={false}
               />
+              
+              {/* Equity Goal Reference Line - Rendered after Areas to appear on top */}
+              {profile.equityGoal > 0 && (
+                <ReferenceLine
+                  y={profile.equityGoal}
+                  stroke="rgba(253, 186, 116, 0.7)"
+                  strokeDasharray="5 5"
+                  strokeWidth={2}
+                >
+                  <Label content={<EquityGoalLabel equityGoal={profile.equityGoal} />} />
+                </ReferenceLine>
+              )}
               
               {/* Goal Achievement Marker */}
               {equityGoalReached && (
@@ -454,9 +491,9 @@ export const ChartWithRoadmap: React.FC = () => {
             ))}
           </div>
 
-          {/* PURCHASE Row - Taller than other rows */}
+          {/* PURCHASE Row - Same height as other rows */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1 flex items-center justify-end border-r border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                 Buy
               </span>
@@ -464,7 +501,7 @@ export const ChartWithRoadmap: React.FC = () => {
             {years.map((yearData, index) => (
               <div 
                 key={`purchase-${yearData.year}`}
-                className={`px-0.5 py-1 flex items-stretch justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
               >
                 {yearData.purchaseInYear && yearData.purchaseDetails ? (
                   <MiniPurchaseCard
@@ -472,10 +509,6 @@ export const ChartWithRoadmap: React.FC = () => {
                     cost={yearData.purchaseDetails.cost}
                     loanAmount={yearData.purchaseDetails.loanAmount}
                     depositRequired={yearData.purchaseDetails.depositRequired}
-                    onDetailsClick={() => setSelectedProperty({
-                      instanceId: yearData.purchaseDetails!.instanceId,
-                      propertyType: yearData.purchaseDetails!.propertyType,
-                    })}
                   />
                 ) : (
                   <span className="text-[8px] text-slate-400 self-center">–</span>
@@ -577,6 +610,25 @@ export const ChartWithRoadmap: React.FC = () => {
               );
             })}
           </div>
+
+          {/* EQUITY Row */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Equity
+              </span>
+            </div>
+            {years.map((yearData, index) => (
+              <div 
+                key={`equity-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <span className="text-[8px] font-light text-slate-600">
+                  {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
 
@@ -592,15 +644,6 @@ export const ChartWithRoadmap: React.FC = () => {
         </div>
       </div>
       
-      {/* Property Detail Modal */}
-      {selectedProperty && (
-        <PropertyDetailModal
-          isOpen={!!selectedProperty}
-          onClose={() => setSelectedProperty(null)}
-          instanceId={selectedProperty.instanceId}
-          propertyType={selectedProperty.propertyType}
-        />
-      )}
     </div>
   );
 };

@@ -29,8 +29,7 @@
     --radius: 0.5rem;
     
     /* Company branding colors - dynamically injected by BrandingContext */
-    --brand-primary: #3b82f6;
-    --brand-secondary: #6366f1;
+    --brand-primary: #6b7280;
   }
 
   .dark {

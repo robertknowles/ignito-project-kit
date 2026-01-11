@@ -10,6 +10,7 @@ import {
   LinkIcon,
   CheckCircle2,
   Clock,
+  AlertTriangleIcon,
 } from 'lucide-react'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { LeftRail } from '../components/LeftRail'
@@ -72,8 +73,13 @@ export const ClientScenarios = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [newClientName, setNewClientName] = useState('');
-  const { clients, setActiveClient, updateClient, deleteClient } = useClient();
+  const { clients, setActiveClient, updateClient, deleteClient, activeSeats, seatLimit, canAddClient } = useClient();
   const { companyId } = useAuth();
+  
+  // Seat usage calculations
+  const seatUsagePercent = seatLimit > 0 ? (activeSeats / seatLimit) * 100 : 0;
+  const isNearLimit = seatUsagePercent >= 80;
+  const isAtLimit = activeSeats >= seatLimit;
   const { timelineData, loading: timelineLoading } = useAllClientScenarios();
   
   // Track onboarding status for each client
@@ -398,8 +404,8 @@ export const ClientScenarios = () => {
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 ml-16 overflow-hidden py-4 pr-4">
-          <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
+        <div className="flex-1 ml-16 overflow-hidden">
+          <div className="bg-white h-full overflow-auto">
             <div className="flex-1 overflow-auto p-8 bg-white">
               <div className="flex justify-between items-center mb-8">
                 <h1 className="text-xl font-medium text-[#111827]">
@@ -426,6 +432,58 @@ export const ClientScenarios = () => {
                   </button>
                 </div>
               </div>
+              {/* Seat Usage Card */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="col-span-2 bg-white rounded-lg p-5 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-[#111827]">Seat Usage</h3>
+                      <p className="text-xs text-[#6b7280]">Client seats used</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-semibold text-[#111827]">
+                        {activeSeats} <span className="text-base font-normal text-[#6b7280]">of {seatLimit}</span>
+                      </div>
+                      <p className="text-xs text-[#6b7280]">seats used</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        isAtLimit
+                          ? 'bg-red-500'
+                          : isNearLimit
+                          ? 'bg-amber-500'
+                          : 'bg-[#3b82f6]'
+                      }`}
+                      style={{ width: `${Math.min(seatUsagePercent, 100)}%` }}
+                    />
+                  </div>
+
+                  {isAtLimit && (
+                    <div className="flex items-center gap-2 text-red-600 text-xs">
+                      <AlertTriangleIcon size={14} />
+                      <span>Seat limit reached. Upgrade your plan to add more clients.</span>
+                    </div>
+                  )}
+                  {isNearLimit && !isAtLimit && (
+                    <div className="flex items-center gap-2 text-amber-600 text-xs">
+                      <AlertTriangleIcon size={14} />
+                      <span>Approaching seat limit. Consider upgrading soon.</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-lg p-5 border border-gray-200">
+                  <div className="text-2xl font-semibold text-[#111827] mb-1">
+                    {seatLimit - activeSeats}
+                  </div>
+                  <div className="text-xs text-[#6b7280]">Available Seats</div>
+                </div>
+              </div>
+
               {/* Stats Cards */}
               <div className="grid grid-cols-3 gap-6 mb-8">
                 <div className="bg-white rounded-lg p-6 border border-[#f3f4f6] hover:shadow-sm transition-shadow">

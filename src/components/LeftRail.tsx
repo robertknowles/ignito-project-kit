@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBranding } from '@/contexts/BrandingContext'
 import {
   Tooltip,
   TooltipContent,
@@ -19,13 +20,24 @@ import {
 } from '@/components/ui/tooltip'
 import { useTourManager } from '@/components/TourManager'
 
+// PropPath default logo SVG component
+const PropPathLogo = ({ color }: { color: string }) => (
+  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 28L4 14L16 2L28 14L14 14L10 18L22 18L26 22L20 28H4Z" fill={color} />
+  </svg>
+)
+
 export const LeftRail = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut, role } = useAuth()
+  const { branding } = useBranding()
   const { startManualTour } = useTourManager()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Get primary color from branding (defaults handled in BrandingContext)
+  const primaryColor = branding.primaryColor
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -82,6 +94,31 @@ export const LeftRail = () => {
   return (
     <TooltipProvider>
       <div id="left-rail" className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
+        {/* Logo at top */}
+        <div className="mb-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
+                onClick={() => navigate('/clients')}
+              >
+                {branding.logoUrl ? (
+                  <img
+                    src={branding.logoUrl}
+                    alt="Company logo"
+                    className="w-6 h-6 object-contain"
+                  />
+                ) : (
+                  <PropPathLogo color={primaryColor} />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{branding.companyName || 'Home'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {/* Top Navigation Items */}
         <div className="flex flex-col items-center gap-2">
           {filteredTopNavItems.map((item) => {
@@ -92,10 +129,9 @@ export const LeftRail = () => {
                 <TooltipTrigger asChild>
                   <button
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                      isActive
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                      isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
                     }`}
+                    style={{ color: primaryColor }}
                     onClick={() => navigate(item.path)}
                   >
                     <Icon size={20} />
@@ -112,8 +148,8 @@ export const LeftRail = () => {
         {/* Spacer to push bottom items down */}
         <div className="flex-1" />
 
-        {/* Bottom Navigation Items (above user menu) */}
-        <div className="flex flex-col items-center gap-2 mb-2">
+        {/* Bottom Navigation Items (Company, Help, User) */}
+        <div className="flex flex-col items-center gap-2">
           {filteredBottomNavItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.path
@@ -122,10 +158,9 @@ export const LeftRail = () => {
                 <TooltipTrigger asChild>
                   <button
                     className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                      isActive
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                      isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
                     }`}
+                    style={{ color: primaryColor }}
                     onClick={() => navigate(item.path)}
                   >
                     <Icon size={20} />
@@ -137,14 +172,13 @@ export const LeftRail = () => {
               </Tooltip>
             )
           })}
-        </div>
 
-        {/* Help / Restart Tour Button */}
-        <div className="mb-2">
+          {/* Help / Restart Tour Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
+                style={{ color: primaryColor }}
                 onClick={startManualTour}
               >
                 <HelpCircleIcon size={20} />
@@ -154,18 +188,16 @@ export const LeftRail = () => {
               <p>Help / Restart Tour</p>
             </TooltipContent>
           </Tooltip>
-        </div>
 
-        {/* User Profile Menu at Bottom */}
-        <div className="relative" ref={dropdownRef}>
+          {/* User Profile Menu */}
+          <div className="relative" ref={dropdownRef}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                  dropdownOpen
-                    ? 'bg-gray-100 text-gray-700'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                  dropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-100'
                 }`}
+                style={{ color: primaryColor }}
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 <UserIcon size={20} />
@@ -197,6 +229,7 @@ export const LeftRail = () => {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </TooltipProvider>

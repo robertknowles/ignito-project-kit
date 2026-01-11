@@ -52,7 +52,7 @@ export const Dashboard = () => {
           <div className="bento-card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <CalendarIcon size={18} className="text-gray-500" />
-              Individual Property Editor
+              Investment Timeline
             </h2>
             
             {/* Timeline Content */}

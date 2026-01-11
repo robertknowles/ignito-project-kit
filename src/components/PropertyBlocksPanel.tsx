@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
-import { Plus, Minus, Pause, X, Pencil, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Plus, Minus, Pause, X, Pencil, ChevronUp, ChevronDown, SlidersHorizontal, Copy } from 'lucide-react'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon'
 import { CustomBlockModal } from './CustomBlockModal'
@@ -27,6 +28,7 @@ interface PropertyBlockCardProps {
   onDecrement: () => void
   onEdit?: () => void
   onDelete?: () => void
+  onDuplicate?: () => void
 }
 
 const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
@@ -40,6 +42,7 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
   onDecrement,
   onEdit,
   onDelete,
+  onDuplicate,
 }) => {
   const isActive = count > 0
   
@@ -127,17 +130,31 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
         </div>
       </div>
       
-      {/* Edit Template Extension - Grey box below the block */}
-      {!isCustom && onEdit && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className={`flex items-center justify-center gap-1.5 py-1.5 px-3 bg-gray-100 hover:bg-gray-200 rounded-b-xl transition-colors border border-t-0 ${
-            isActive ? 'border-gray-900' : 'border-gray-200'
-          }`}
-        >
-          <Pencil size={10} className="text-gray-500" />
-          <span className="text-[10px] text-gray-500">Edit Template</span>
-        </button>
+      {/* Edit Template & Duplicate Extension - Grey box below the block */}
+      {!isCustom && (onEdit || onDuplicate) && (
+        <div className={`flex items-center justify-center gap-3 py-1.5 px-3 bg-gray-100 rounded-b-xl border border-t-0 ${
+          isActive ? 'border-gray-900' : 'border-gray-200'
+        }`}>
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="flex items-center gap-1.5 hover:bg-gray-200 px-2 py-0.5 rounded transition-colors"
+            >
+              <Pencil size={10} className="text-gray-500" />
+              <span className="text-[10px] text-gray-500">Edit Template</span>
+            </button>
+          )}
+          {onDuplicate && count > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              className="flex items-center gap-1.5 hover:bg-gray-200 px-2 py-0.5 rounded transition-colors"
+              title="Duplicate this property block with a new instance"
+            >
+              <Copy size={10} className="text-gray-500" />
+              <span className="text-[10px] text-gray-500">Duplicate</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -169,6 +186,7 @@ export const PropertyBlocksPanel: React.FC = () => {
     removeCustomBlock,
   } = usePropertySelection()
 
+  const { getInstance, updateInstance } = usePropertyInstance()
   const { getPropertyTypeTemplate, propertyAssumptions } = useDataAssumptions()
 
   const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
@@ -194,6 +212,29 @@ export const PropertyBlocksPanel: React.FC = () => {
 
   const handleEditTemplate = (propertyTitle: string) => {
     setEditingTemplate(propertyTitle)
+  }
+
+  // Handle duplicating a property block
+  // This creates a new instance and copies the data from the last instance of this property type
+  const handleDuplicateProperty = (propertyId: string) => {
+    const currentCount = getPropertyQuantity(propertyId)
+    if (currentCount === 0) return
+
+    // Get the last instance's data to copy
+    const lastInstanceId = `${propertyId}_instance_${currentCount - 1}`
+    const sourceInstance = getInstance(lastInstanceId)
+
+    // Increment the property (creates a new instance)
+    incrementProperty(propertyId)
+
+    // After incrementing, copy the source instance data to the new instance
+    if (sourceInstance) {
+      const newInstanceId = `${propertyId}_instance_${currentCount}`
+      // Use setTimeout to ensure the new instance is created first
+      setTimeout(() => {
+        updateInstance(newInstanceId, { ...sourceInstance })
+      }, 50)
+    }
   }
 
   // Helper to get cascading growth rates for a property
@@ -279,6 +320,7 @@ export const PropertyBlocksPanel: React.FC = () => {
           onDecrement={() => decrementProperty(property.id)}
           onEdit={!property.isCustom ? () => handleEditTemplate(property.title) : undefined}
           onDelete={property.isCustom ? () => removeCustomBlock(property.id) : undefined}
+          onDuplicate={!property.isCustom ? () => handleDuplicateProperty(property.id) : undefined}
         />
       ))}
 

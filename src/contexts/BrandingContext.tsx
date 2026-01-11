@@ -6,7 +6,6 @@ export interface BrandingSettings {
   companyName: string;
   logoUrl: string | null;
   primaryColor: string;
-  secondaryColor: string;
   isClientInteractiveEnabled: boolean;
 }
 
@@ -21,8 +20,7 @@ interface BrandingContextType {
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
   logoUrl: null,
-  primaryColor: '#3b82f6',
-  secondaryColor: '#6366f1',
+  primaryColor: '#6b7280',
   isClientInteractiveEnabled: true,
 };
 
@@ -37,10 +35,9 @@ export const useBranding = () => {
 };
 
 // Helper to inject CSS variables into document root
-const injectCSSVariables = (primaryColor: string, secondaryColor: string) => {
+const injectCSSVariables = (primaryColor: string) => {
   const root = document.documentElement;
   root.style.setProperty('--brand-primary', primaryColor);
-  root.style.setProperty('--brand-secondary', secondaryColor);
 };
 
 export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,7 +58,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { data, error: fetchError } = await supabase
         .from('companies')
-        .select('name, logo_url, primary_color, secondary_color, is_client_interactive_enabled')
+        .select('name, logo_url, primary_color, is_client_interactive_enabled')
         .eq('id', companyId)
         .single();
 
@@ -76,14 +73,13 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         companyName: data.name || defaultBranding.companyName,
         logoUrl: data.logo_url,
         primaryColor: data.primary_color || defaultBranding.primaryColor,
-        secondaryColor: data.secondary_color || defaultBranding.secondaryColor,
         isClientInteractiveEnabled: data.is_client_interactive_enabled ?? true,
       };
 
       setBranding(brandingData);
       
       // Inject CSS variables
-      injectCSSVariables(brandingData.primaryColor, brandingData.secondaryColor);
+      injectCSSVariables(brandingData.primaryColor);
     } catch (err) {
       console.error('Unexpected error fetching branding:', err);
       setError('An unexpected error occurred');
@@ -105,7 +101,6 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (updates.companyName !== undefined) dbUpdates.name = updates.companyName;
       if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
       if (updates.primaryColor !== undefined) dbUpdates.primary_color = updates.primaryColor;
-      if (updates.secondaryColor !== undefined) dbUpdates.secondary_color = updates.secondaryColor;
       if (updates.isClientInteractiveEnabled !== undefined) {
         dbUpdates.is_client_interactive_enabled = updates.isClientInteractiveEnabled;
       }
@@ -126,11 +121,8 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setBranding(newBranding);
 
       // Update CSS variables if colors changed
-      if (updates.primaryColor || updates.secondaryColor) {
-        injectCSSVariables(
-          updates.primaryColor || branding.primaryColor,
-          updates.secondaryColor || branding.secondaryColor
-        );
+      if (updates.primaryColor) {
+        injectCSSVariables(updates.primaryColor || branding.primaryColor);
       }
 
       return { success: true };
@@ -153,7 +145,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Set default CSS variables on initial load
   useEffect(() => {
-    injectCSSVariables(defaultBranding.primaryColor, defaultBranding.secondaryColor);
+    injectCSSVariables(defaultBranding.primaryColor);
   }, []);
 
   const value = {

@@ -18,6 +18,10 @@ interface ClientContextType {
   clients: Client[];
   activeClient: Client | null;
   loading: boolean;
+  // Seat usage - based on client count
+  activeSeats: number;
+  seatLimit: number;
+  canAddClient: boolean;
   setActiveClient: (client: Client | null) => void;
   createClient: (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => Promise<Client | null>;
   updateClient: (clientId: number, updates: Partial<Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>>) => Promise<boolean>;
@@ -39,7 +43,12 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [clients, setClients] = useState<Client[]>([]);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [seatLimit, setSeatLimit] = useState(1);
   const { user, loading: authLoading, role, companyId } = useAuth();
+
+  // Calculate seat usage based on client count
+  const activeSeats = clients.length;
+  const canAddClient = activeSeats < seatLimit;
 
   const fetchClients = async () => {
     if (!user || authLoading) {
@@ -50,6 +59,19 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     console.log('ClientContext - Fetching clients for user:', user.id, 'role:', role);
     setLoading(true);
     try {
+      // Fetch seat limit from company if we have a companyId
+      if (companyId) {
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('seat_limit')
+          .eq('id', companyId)
+          .single();
+
+        if (!companyError && companyData) {
+          setSeatLimit(companyData.seat_limit ?? 1);
+        }
+      }
+
       let query = supabase
         .from('clients')
         .select('*')
@@ -194,6 +216,9 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     clients,
     activeClient,
     loading,
+    activeSeats,
+    seatLimit,
+    canAddClient,
     setActiveClient,
     createClient,
     updateClient,

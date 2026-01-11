@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2Icon,
   UsersIcon,
-  PlusIcon,
-  AlertTriangleIcon,
   PaletteIcon,
   ToggleLeftIcon,
   ImageIcon,
@@ -14,45 +12,37 @@ import { LeftRail } from '../components/LeftRail';
 import { useCompany, TeamMember } from '@/contexts/CompanyContext';
 import { useBranding } from '@/contexts/BrandingContext';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export const CompanyManagement = () => {
   const {
     company,
     teamMembers,
-    seatLimit,
-    activeSeats,
-    canAddStaff,
     loading: companyLoading,
-    inviteAgent,
     updateCompanyBranding,
+    updateMemberRole,
   } = useCompany();
   
   const { branding, updateBranding, loading: brandingLoading } = useBranding();
   const { toast } = useToast();
 
-  // Invite dialog state
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviting, setInviting] = useState(false);
+  // Role update state
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
 
   // Branding form state
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
-  const [secondaryColor, setSecondaryColor] = useState('#6366f1');
+  const [primaryColor, setPrimaryColor] = useState('#6b7280');
   const [savingBranding, setSavingBranding] = useState(false);
   const [brandingChanged, setBrandingChanged] = useState(false);
 
@@ -65,8 +55,7 @@ export const CompanyManagement = () => {
     if (branding) {
       setCompanyName(branding.companyName || '');
       setLogoUrl(branding.logoUrl || '');
-      setPrimaryColor(branding.primaryColor || '#3b82f6');
-      setSecondaryColor(branding.secondaryColor || '#6366f1');
+      setPrimaryColor(branding.primaryColor || '#6b7280');
       setIsClientInteractive(branding.isClientInteractiveEnabled);
     }
   }, [branding]);
@@ -77,58 +66,10 @@ export const CompanyManagement = () => {
       const hasChanged =
         companyName !== branding.companyName ||
         logoUrl !== (branding.logoUrl || '') ||
-        primaryColor !== branding.primaryColor ||
-        secondaryColor !== branding.secondaryColor;
+        primaryColor !== branding.primaryColor;
       setBrandingChanged(hasChanged);
     }
-  }, [companyName, logoUrl, primaryColor, secondaryColor, branding]);
-
-  const seatUsagePercent = seatLimit > 0 ? (activeSeats / seatLimit) * 100 : 0;
-  const isNearLimit = seatUsagePercent >= 80;
-  const isAtLimit = activeSeats >= seatLimit;
-
-  const handleInviteClick = () => {
-    if (!canAddStaff) {
-      toast({
-        title: 'Seat limit reached',
-        description: 'Please upgrade your plan to add more staff.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setInviteDialogOpen(true);
-  };
-
-  const handleInviteSubmit = async () => {
-    if (!inviteEmail.trim() || !inviteName.trim()) {
-      toast({
-        title: 'Missing information',
-        description: 'Please provide both name and email.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setInviting(true);
-    const result = await inviteAgent(inviteEmail.trim(), inviteName.trim());
-    setInviting(false);
-
-    if (result.success) {
-      toast({
-        title: 'Agent invited',
-        description: `${inviteName} has been invited to join your team.`,
-      });
-      setInviteDialogOpen(false);
-      setInviteEmail('');
-      setInviteName('');
-    } else {
-      toast({
-        title: 'Failed to invite agent',
-        description: result.error || 'An error occurred.',
-        variant: 'destructive',
-      });
-    }
-  };
+  }, [companyName, logoUrl, primaryColor, branding]);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
@@ -137,7 +78,6 @@ export const CompanyManagement = () => {
       companyName,
       logoUrl: logoUrl || null,
       primaryColor,
-      secondaryColor,
     });
 
     setSavingBranding(false);
@@ -185,14 +125,37 @@ export const CompanyManagement = () => {
     }
   };
 
-  const getRoleBadgeColor = (role: TeamMember['role']) => {
+  const handleRoleChange = async (memberId: string, newRole: 'owner' | 'agent' | 'other') => {
+    setUpdatingRoleId(memberId);
+    
+    const result = await updateMemberRole(memberId, newRole);
+    
+    setUpdatingRoleId(null);
+
+    if (result.success) {
+      toast({
+        title: 'Role updated',
+        description: 'Team member role has been updated successfully.',
+      });
+    } else {
+      toast({
+        title: 'Failed to update role',
+        description: result.error || 'An error occurred.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getRoleDisplayName = (role: TeamMember['role']) => {
     switch (role) {
       case 'owner':
-        return 'bg-purple-100 text-purple-700';
+        return 'Owner';
       case 'agent':
-        return 'bg-blue-100 text-blue-700';
+        return 'Buyers Agent';
+      case 'other':
+        return 'Other';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return role;
     }
   };
 
@@ -201,8 +164,8 @@ export const CompanyManagement = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
-      <div className="flex-1 ml-16 overflow-hidden py-4 pr-4">
-        <div className="bg-white rounded-lg h-full overflow-auto shadow-sm">
+      <div className="flex-1 ml-16 overflow-hidden">
+        <div className="bg-white h-full overflow-auto">
           <div className="flex-1 overflow-auto p-8 bg-white">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
@@ -229,70 +192,6 @@ export const CompanyManagement = () => {
                     <div className="flex items-center gap-2">
                       <UsersIcon size={18} className="text-gray-500" />
                       <h2 className="text-lg font-medium text-[#111827]">Team Management</h2>
-                    </div>
-                    <button
-                      onClick={handleInviteClick}
-                      disabled={!canAddStaff}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
-                        canAddStaff
-                          ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb]'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <PlusIcon size={16} />
-                      <span>Invite Agent</span>
-                    </button>
-                  </div>
-
-                  {/* Seat Usage Card */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="col-span-2 bg-white rounded-lg p-5 border border-gray-200">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-sm font-medium text-[#111827]">Seat Usage</h3>
-                          <p className="text-xs text-[#6b7280]">{company?.name || 'Your Company'}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-semibold text-[#111827]">
-                            {activeSeats} <span className="text-base font-normal text-[#6b7280]">of {seatLimit}</span>
-                          </div>
-                          <p className="text-xs text-[#6b7280]">seats used</p>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            isAtLimit
-                              ? 'bg-red-500'
-                              : isNearLimit
-                              ? 'bg-amber-500'
-                              : 'bg-[#3b82f6]'
-                          }`}
-                          style={{ width: `${Math.min(seatUsagePercent, 100)}%` }}
-                        />
-                      </div>
-
-                      {isAtLimit && (
-                        <div className="flex items-center gap-2 text-red-600 text-xs">
-                          <AlertTriangleIcon size={14} />
-                          <span>Seat limit reached. Upgrade your plan to add more staff.</span>
-                        </div>
-                      )}
-                      {isNearLimit && !isAtLimit && (
-                        <div className="flex items-center gap-2 text-amber-600 text-xs">
-                          <AlertTriangleIcon size={14} />
-                          <span>Approaching seat limit. Consider upgrading soon.</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bg-white rounded-lg p-5 border border-gray-200">
-                      <div className="text-2xl font-semibold text-[#111827] mb-1">
-                        {seatLimit - activeSeats}
-                      </div>
-                      <div className="text-xs text-[#6b7280]">Available Seats</div>
                     </div>
                   </div>
 
@@ -344,13 +243,31 @@ export const CompanyManagement = () => {
                                   </div>
                                 </td>
                                 <td className="px-5 py-4">
-                                  <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getRoleBadgeColor(
-                                      member.role
-                                    )}`}
+                                  <Select
+                                    value={member.role}
+                                    onValueChange={(value: 'owner' | 'agent' | 'other') => 
+                                      handleRoleChange(member.id, value)
+                                    }
+                                    disabled={updatingRoleId === member.id}
                                   >
-                                    {member.role}
-                                  </span>
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                      {updatingRoleId === member.id ? (
+                                        <div className="flex items-center gap-2">
+                                          <Loader2Icon size={12} className="animate-spin" />
+                                          <span>Updating...</span>
+                                        </div>
+                                      ) : (
+                                        <SelectValue>
+                                          {getRoleDisplayName(member.role)}
+                                        </SelectValue>
+                                      )}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="owner">Owner</SelectItem>
+                                      <SelectItem value="agent">Buyers Agent</SelectItem>
+                                      <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </td>
                                 <td className="px-5 py-4 text-sm text-[#374151]">
                                   {new Date(member.created_at).toLocaleDateString()}
@@ -425,6 +342,9 @@ export const CompanyManagement = () => {
                         <Label htmlFor="primary-color" className="text-sm font-medium text-gray-700">
                           Primary Color
                         </Label>
+                        <p className="text-xs text-gray-500">
+                          This color will be applied to the navigation icons in the left sidebar.
+                        </p>
                         <div className="flex gap-2">
                           <div className="relative">
                             <input
@@ -438,32 +358,7 @@ export const CompanyManagement = () => {
                           <Input
                             value={primaryColor}
                             onChange={(e) => setPrimaryColor(e.target.value)}
-                            placeholder="#3b82f6"
-                            className="h-10 flex-1 font-mono text-sm"
-                            maxLength={7}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Secondary Color */}
-                      <div className="space-y-2">
-                        <Label htmlFor="secondary-color" className="text-sm font-medium text-gray-700">
-                          Secondary Color
-                        </Label>
-                        <div className="flex gap-2">
-                          <div className="relative">
-                            <input
-                              type="color"
-                              id="secondary-color"
-                              value={secondaryColor}
-                              onChange={(e) => setSecondaryColor(e.target.value)}
-                              className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
-                            />
-                          </div>
-                          <Input
-                            value={secondaryColor}
-                            onChange={(e) => setSecondaryColor(e.target.value)}
-                            placeholder="#6366f1"
+                            placeholder="#6b7280"
                             className="h-10 flex-1 font-mono text-sm"
                             maxLength={7}
                           />
@@ -474,19 +369,27 @@ export const CompanyManagement = () => {
                     {/* Color Preview */}
                     <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-500 mb-3">Preview</p>
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 items-center">
                         <div
-                          className="w-20 h-10 rounded-lg flex items-center justify-center text-white text-xs font-medium"
-                          style={{ backgroundColor: primaryColor }}
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: '#f3f4f6' }}
                         >
-                          Primary
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                          </svg>
                         </div>
                         <div
-                          className="w-20 h-10 rounded-lg flex items-center justify-center text-white text-xs font-medium"
-                          style={{ backgroundColor: secondaryColor }}
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: '#f3f4f6' }}
                         >
-                          Secondary
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
+                            <line x1="18" x2="18" y1="20" y2="10"/>
+                            <line x1="12" x2="12" y1="20" y2="4"/>
+                            <line x1="6" x2="6" y1="20" y2="14"/>
+                          </svg>
                         </div>
+                        <span className="text-xs text-gray-500 ml-2">Navigation icons</span>
                       </div>
                     </div>
 
@@ -548,51 +451,6 @@ export const CompanyManagement = () => {
         </div>
       </div>
 
-      {/* Invite Agent Dialog */}
-      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite Agent</DialogTitle>
-            <DialogDescription>
-              Add a new agent to your team. They will receive an email invitation.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="invite-name">Full Name</Label>
-              <Input
-                id="invite-name"
-                value={inviteName}
-                onChange={(e) => setInviteName(e.target.value)}
-                placeholder="Enter agent's full name"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="invite-email">Email Address</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="agent@example.com"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !inviting) {
-                    handleInviteSubmit();
-                  }
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleInviteSubmit} disabled={inviting}>
-              {inviting ? 'Inviting...' : 'Send Invitation'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

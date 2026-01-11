@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { DepositTestFunnel } from './DepositTestFunnel';
 import { ServiceabilityTestFunnel } from './ServiceabilityTestFunnel';
 import { BorrowingCapacityTestFunnel } from './BorrowingCapacityTestFunnel';
@@ -8,15 +7,7 @@ import { PropertyDetailModal } from './PropertyDetailModal';
 import { DecisionEngineModal } from './DecisionEngineModal';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { YearBreakdownData } from '@/types/property';
-import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 
 interface PurchaseEventCardProps {
   yearData: YearBreakdownData;
@@ -33,7 +24,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDecisionEngineOpen, setIsDecisionEngineOpen] = useState(false);
-  const { getInstance, updateInstance, createInstance } = usePropertyInstance();
+  const { getInstance } = usePropertyInstance();
   const { getPropertyData } = useDataAssumptions();
   
   // Use individual property data if provided, otherwise fall back to yearData
@@ -77,117 +68,19 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   const yieldCalc = (propertyData.rentPerWeek * 52 / propertyData.purchasePrice * 100).toFixed(1);
   const mvDiff = ((propertyData.purchasePrice / propertyData.valuationAtPurchase - 1) * 100).toFixed(1);
   
-  // Inline edit handlers
-  const handleFieldUpdate = (field: keyof PropertyInstanceDetails, value: any) => {
-    if (!instanceId) return;
-    
-    // Create instance if it doesn't exist (this happens in event handler, not during render)
-    if (!propertyInstance) {
-      createInstance(instanceId, propertyType, 1);
-      // Wait a tick for the instance to be created, then update
-      setTimeout(() => {
-        updateInstance(instanceId, { [field]: value });
-      }, 0);
-      return;
-    }
-    
-    updateInstance(instanceId, { [field]: value });
-  };
-  
-  // Editable field component
-  const EditableField = ({ 
-    label, 
+  // Static display field component (read-only, no editing)
+  const DisplayField = ({ 
     value, 
-    field, 
     prefix = '', 
     suffix = '',
-    type = 'number'
   }: { 
-    label: string; 
     value: any; 
-    field: keyof PropertyInstanceDetails; 
     prefix?: string; 
     suffix?: string;
-    type?: 'number' | 'text';
   }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editValue, setEditValue] = useState(value);
-    const [error, setError] = useState<string | null>(null);
-    
-    const handleSave = () => {
-      // Validate before saving
-      let validationError = null;
-      
-      if (field === 'lvr' && (editValue < 0 || editValue > 100)) {
-        validationError = 'LVR must be 0-100%';
-      } else if (field === 'interestRate' && (editValue < 0 || editValue > 20)) {
-        validationError = 'Interest must be 0-20%';
-      } else if (field === 'loanTerm' && (editValue < 1 || editValue > 40)) {
-        validationError = 'Term must be 1-40 years';
-      }
-      
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-      
-      let parsedValue = type === 'number' ? parseFloat(editValue) : editValue;
-      
-      // Convert 'k' format back to full numbers for price fields
-      if (suffix === 'k' && (field === 'purchasePrice' || field === 'valuationAtPurchase')) {
-        parsedValue = parsedValue * 1000;
-      }
-      
-      handleFieldUpdate(field, parsedValue);
-      setIsEditing(false);
-      setError(null);
-    };
-    
-    if (isEditing) {
-      return (
-        <div className="inline-flex flex-col">
-          <input
-            type={type}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-              if (e.key === 'Escape') {
-                setEditValue(value);
-                setIsEditing(false);
-                setError(null);
-              }
-            }}
-            autoFocus
-            className="inline-block w-20 px-1 py-0 text-sm border rounded focus:outline-none focus:ring-1"
-            style={{ borderColor: '#87B5FA', outlineColor: '#87B5FA' }}
-          />
-          {error && <span className="text-xs text-red-700 mt-1">{error}</span>}
-        </div>
-      );
-    }
-    
     return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="cursor-pointer px-1 rounded transition-colors inline-flex items-center gap-0.5"
-        style={{ 
-          '--hover-bg': 'rgba(135, 181, 250, 0.1)',
-          '--hover-color': '#87B5FA'
-        } as React.CSSProperties}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(135, 181, 250, 0.1)';
-          e.currentTarget.style.color = '#87B5FA';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '';
-          e.currentTarget.style.color = '';
-        }}
-        title="Click to edit"
-      >
+      <span className="text-gray-700">
         {prefix}{value}{suffix}
-        <ChevronDown size={10} className="opacity-50" />
       </span>
     );
   };
@@ -232,21 +125,8 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
               <span className="text-[10px] flex items-center">
                 <span className="font-medium text-gray-900">{propertyType}</span>
                 <span className="text-gray-400 mx-0.5">|</span>
-                <span className="text-gray-600 flex items-center">
-                  Growth:
-                  <Select
-                    value={propertyData.growthAssumption}
-                    onValueChange={(val) => handleFieldUpdate('growthAssumption', val)}
-                  >
-                    <SelectTrigger className="h-4 w-auto px-1 text-[10px] border-none bg-transparent hover:bg-gray-100 focus:ring-0 focus:ring-offset-0">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <span className="text-gray-600">
+                  Growth: {propertyData.growthAssumption}
                 </span>
               </span>
             </div>
@@ -254,19 +134,19 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
             {/* Row 2: PURCHASE */}
             <div className="text-[9px] text-gray-600">
               <span className="text-gray-400 uppercase tracking-wide mr-1">Purchase:</span>
-              <EditableField label="Price" value={(propertyData.purchasePrice / 1000).toFixed(0)} field="purchasePrice" prefix="$" suffix="k" />
+              <DisplayField value={(propertyData.purchasePrice / 1000).toFixed(0)} prefix="$" suffix="k" />
               <span className="mx-0.5 text-gray-300">|</span>
-              <EditableField label="LVR" value={propertyData.lvr} field="lvr" suffix="%" />
+              <DisplayField value={propertyData.lvr} suffix="%" />
             </div>
             
             {/* Row 3: PROPERTY DETAILS */}
             <div className="text-[9px] text-gray-600">
               <span className="text-gray-400 uppercase tracking-wide mr-1">Details:</span>
-              <EditableField label="State" value={propertyData.state} field="state" type="text" />
+              <DisplayField value={propertyData.state} />
               <span className="mx-0.5 text-gray-300">|</span>
               <span>Rental Yield: {yieldCalc}%</span>
               <span className="mx-0.5 text-gray-300">|</span>
-              <EditableField label="Rent" value={propertyData.rentPerWeek} field="rentPerWeek" prefix="$" suffix="/wk" />
+              <DisplayField value={propertyData.rentPerWeek} prefix="$" suffix="/wk" />
             </div>
           </div>
         </div>
@@ -290,13 +170,14 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
           )}
         </div>
 
-        {/* Property Detail Modal */}
+        {/* Property Detail Modal - Read Only from Dashboard */}
         {instanceId && (
           <PropertyDetailModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             instanceId={instanceId}
             propertyType={propertyType}
+            readOnly={true}
           />
         )}
         

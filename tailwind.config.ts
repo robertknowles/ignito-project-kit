@@ -21,6 +21,7 @@ const config: Config = {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
         inter: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', '"Times New Roman"', 'serif'],
         hedvig: ['"Hedvig Letters Serif"', 'Georgia', '"Times New Roman"', 'serif'],
         figtree: ['Figtree', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
       },
@@ -62,6 +63,8 @@ const config: Config = {
           primary: "var(--brand-primary, #3b82f6)",
           secondary: "var(--brand-secondary, #6366f1)",
         },
+        offwhite: '#fafafa',
+        charcoal: '#1a1a1a',
       },
       borderRadius: {
         lg: "var(--radius)",

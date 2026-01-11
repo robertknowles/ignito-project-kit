@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 export interface TeamMember {
   id: string;
   full_name: string | null;
-  role: 'owner' | 'agent' | 'client';
+  role: 'owner' | 'agent' | 'other';
   created_at: string;
   email?: string;
 }
@@ -42,6 +42,7 @@ interface CompanyContextType {
   fetchCompanyData: () => Promise<void>;
   inviteAgent: (email: string, name: string) => Promise<{ success: boolean; error?: string }>;
   updateCompanyBranding: (updates: CompanyBrandingUpdate) => Promise<{ success: boolean; error?: string }>;
+  updateMemberRole: (memberId: string, newRole: 'owner' | 'agent' | 'other') => Promise<{ success: boolean; error?: string }>;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
@@ -102,7 +103,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           .from('profiles')
           .select('id, full_name, role, created_at')
           .eq('company_id', companyId)
-          .in('role', ['owner', 'agent']);
+          .in('role', ['owner', 'agent', 'other']);
 
         if (profilesError) {
           console.error('Error fetching team members:', profilesError);
@@ -116,7 +117,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const members: TeamMember[] = (profilesData || []).map((profile) => ({
           id: profile.id,
           full_name: profile.full_name,
-          role: profile.role as 'owner' | 'agent',
+          role: profile.role as 'owner' | 'agent' | 'other',
           created_at: profile.created_at,
         }));
 
@@ -237,6 +238,44 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const updateMemberRole = async (
+    memberId: string,
+    newRole: 'owner' | 'agent' | 'other'
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!companyId) {
+      return { success: false, error: 'No company ID available' };
+    }
+
+    if (role !== 'owner') {
+      return { success: false, error: 'Only company owners can update member roles' };
+    }
+
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', memberId)
+        .eq('company_id', companyId);
+
+      if (updateError) {
+        console.error('Error updating member role:', updateError);
+        return { success: false, error: updateError.message };
+      }
+
+      // Update local team members state
+      setTeamMembers((prev) =>
+        prev.map((member) =>
+          member.id === memberId ? { ...member, role: newRole } : member
+        )
+      );
+
+      return { success: true };
+    } catch (err) {
+      console.error('Unexpected error updating member role:', err);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  };
+
   useEffect(() => {
     if (user && companyId && !authLoading) {
       fetchCompanyData();
@@ -254,6 +293,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fetchCompanyData,
     inviteAgent,
     updateCompanyBranding,
+    updateMemberRole,
   };
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;

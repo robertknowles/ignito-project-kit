@@ -1,5 +1,13 @@
 import React, { useState } from 'react'
+import { CalculatorIcon } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { BorrowingCalculatorModal } from './BorrowingCalculatorModal'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 // Slider styles for consistent appearance - Clean black track and handle
 const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
@@ -102,14 +110,32 @@ export const ClientInputsPanel: React.FC = () => {
     handleEquityGoalChange, 
     handleCashflowGoalChange 
   } = useInvestmentProfile()
+  
+  const [isCalcOpen, setIsCalcOpen] = useState(false)
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Investment Goals Section */}
-      <div>
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-          Investment Goals
-        </h3>
+    <TooltipProvider>
+      <div className="flex flex-col gap-5">
+        {/* Investment Goals Section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+              Investment Goals
+            </h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setIsCalcOpen(true)}
+                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <CalculatorIcon size={16} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Quick Borrowing Power</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         <div className="flex flex-col gap-1.5">
           {/* Timeline */}
           <SliderField
@@ -226,7 +252,14 @@ export const ClientInputsPanel: React.FC = () => {
           />
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* Borrowing Calculator Modal */}
+      <BorrowingCalculatorModal
+        isOpen={isCalcOpen}
+        onClose={() => setIsCalcOpen(false)}
+      />
+    </TooltipProvider>
   )
 }
 
