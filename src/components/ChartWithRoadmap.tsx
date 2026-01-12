@@ -194,32 +194,6 @@ const GoalAchievedLabel = (props: any) => {
   );
 };
 
-// Progress Label component - marks most recent purchase
-const ProgressLabel = (props: any) => {
-  const { viewBox } = props;
-  if (!viewBox) return null;
-  return (
-    <g>
-      <text
-        x={viewBox.x}
-        y={12}
-        fill="#7c3aed"
-        fontSize={9}
-        fontWeight={600}
-        textAnchor="middle"
-        fontFamily="Inter, system-ui, sans-serif"
-      >
-        Progress
-      </text>
-      {/* Small triangle pointer */}
-      <polygon
-        points={`${viewBox.x - 4},18 ${viewBox.x + 4},18 ${viewBox.x},24`}
-        fill="#7c3aed"
-      />
-    </g>
-  );
-};
-
 // Generate roadmap-specific AI summary
 const generateRoadmapSummary = (
   years: YearData[], 
@@ -446,18 +420,6 @@ export const ChartWithRoadmap: React.FC = () => {
               />
               
               <Tooltip content={<CustomTooltip />} />
-              
-              {/* "You Are Here" - marks most recent purchase */}
-              {mostRecentPurchase && (
-                <ReferenceLine
-                  x={mostRecentPurchase.year}
-                  stroke="#7c3aed"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                >
-                  <Label content={<ProgressLabel />} position="top" />
-                </ReferenceLine>
-              )}
               
               {/* Portfolio Value Area - Teal */}
               <Area

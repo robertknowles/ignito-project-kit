@@ -99,13 +99,39 @@ const TourOverlay: React.FC = () => {
       rafRef.current = requestAnimationFrame(updateHighlight)
     }
 
+    // Find the scrollable parent container(s) of the current step element
+    const stepElement = document.querySelector(`[data-tour-step="${currentStepId}"]`) as HTMLElement
+    const scrollableParents: HTMLElement[] = []
+    
+    if (stepElement) {
+      let parent = stepElement.parentElement
+      while (parent) {
+        const style = getComputedStyle(parent)
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          scrollableParents.push(parent)
+        }
+        parent = parent.parentElement
+      }
+    }
+
+    // Listen to scroll on window AND any scrollable parent containers
     window.addEventListener('scroll', handleUpdate, { passive: true })
     window.addEventListener('resize', handleUpdate, { passive: true })
+    scrollableParents.forEach(el => {
+      el.addEventListener('scroll', handleUpdate, { passive: true })
+    })
+
+    // Also update after a delay to catch scrollIntoView completion
+    const scrollTimeout = setTimeout(updateHighlight, 400)
 
     return () => {
       window.removeEventListener('scroll', handleUpdate)
       window.removeEventListener('resize', handleUpdate)
+      scrollableParents.forEach(el => {
+        el.removeEventListener('scroll', handleUpdate)
+      })
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      clearTimeout(scrollTimeout)
     }
   }, [isActive, currentStepId, updateHighlight])
 

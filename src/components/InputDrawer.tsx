@@ -81,28 +81,31 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       </div>
 
       {/* Toggle Button - always visible */}
-      <TourStep
-        id="drawer-toggle"
-        title="Input Drawer Toggle"
-        content="Click this arrow to expand or collapse the Input Drawer - your control panel for building investment strategies. The drawer contains all the inputs needed to model a client's portfolio."
-        order={4}
-        position="right"
-      >
-      <button
-        id="drawer-toggle-btn"
-        onClick={onToggle}
-        className={`fixed top-1/2 -translate-y-1/2 z-40 w-5 h-10 bg-white border border-gray-200 rounded-r-md flex items-center justify-center hover:bg-gray-50 transition-all duration-300 ease-in-out shadow-sm ${
-          isOpen ? 'left-[calc(4rem+20rem)]' : 'left-16'
-        }`}
-        aria-label={isOpen ? 'Collapse drawer' : 'Expand drawer'}
-      >
-        {isOpen ? (
-          <ChevronLeftIcon size={14} className="text-gray-500" />
-        ) : (
-          <ChevronRightIcon size={14} className="text-gray-500" />
-        )}
-      </button>
-      </TourStep>
+      {/* TourStep wrapper needs fixed positioning to match the button's fixed position */}
+      <div className={`fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out ${
+        isOpen ? 'left-[calc(4rem+20rem)]' : 'left-16'
+      }`}>
+        <TourStep
+          id="drawer-toggle"
+          title="Input Drawer Toggle"
+          content="Click this arrow to expand or collapse the Input Drawer - your control panel for building investment strategies. The drawer contains all the inputs needed to model a client's portfolio."
+          order={4}
+          position="right"
+        >
+          <button
+            id="drawer-toggle-btn"
+            onClick={onToggle}
+            className="w-5 h-10 bg-white border border-gray-200 rounded-r-md flex items-center justify-center hover:bg-gray-50 shadow-sm"
+            aria-label={isOpen ? 'Collapse drawer' : 'Expand drawer'}
+          >
+            {isOpen ? (
+              <ChevronLeftIcon size={14} className="text-gray-500" />
+            ) : (
+              <ChevronRightIcon size={14} className="text-gray-500" />
+            )}
+          </button>
+        </TourStep>
+      </div>
     </>
   )
 }

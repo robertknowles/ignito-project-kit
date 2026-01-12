@@ -130,19 +130,6 @@ export const ClientInputsPanel: React.FC = () => {
             <h3 className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
               Investment Goals
             </h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setIsCalcOpen(true)}
-                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <CalculatorIcon size={16} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Quick Borrowing Power</p>
-              </TooltipContent>
-            </Tooltip>
           </div>
         <div className="flex flex-col gap-1.5">
           {/* Timeline */}
@@ -261,6 +248,20 @@ export const ClientInputsPanel: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Borrowing Capacity Calculator */}
+      <button
+        onClick={() => setIsCalcOpen(true)}
+        className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 transition-colors group"
+      >
+        <div className="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-slate-600">
+          <CalculatorIcon size={14} />
+        </div>
+        <div className="text-left">
+          <div className="font-medium text-slate-700">Calculate Borrowing Capacity</div>
+          <div className="text-[10px] text-slate-400">Estimate how much your client can borrow</div>
+        </div>
+      </button>
       </div>
 
       {/* Borrowing Calculator Modal */}

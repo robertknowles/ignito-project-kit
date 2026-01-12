@@ -137,21 +137,9 @@ export const SummaryBar = () => {
       position="bottom"
     >
     <div id="summary-bar-container" className="bg-white rounded-t-xl border border-gray-200 overflow-hidden">
-      <div className="grid grid-cols-6">
-        {/* Portfolio Value Card */}
-        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
-          <span className="metric-label mb-0.5">Portfolio Value</span>
-          <span className="metric-value-sm whitespace-nowrap">{formatCurrency(kpis.finalPortfolioValue)}</span>
-        </div>
-        
-        {/* Properties Card */}
-        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
-          <span className="metric-label mb-0.5">Properties</span>
-          <span className="metric-value-sm whitespace-nowrap">{kpis.totalProperties}</span>
-        </div>
-        
+      <div className="grid grid-cols-3">
         {/* Cashflow Goal Card */}
-        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+        <div className="flex flex-col items-center justify-center border-r border-gray-200 p-3">
           <span className="metric-label mb-0.5">Cashflow Goal</span>
           <span className="metric-value-sm whitespace-nowrap">
             {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
@@ -159,21 +147,15 @@ export const SummaryBar = () => {
         </div>
         
         {/* Equity Goal Card */}
-        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
+        <div className="flex flex-col items-center justify-center border-r border-gray-200 p-3">
           <span className="metric-label mb-0.5">Equity Goal</span>
           <span className="metric-value-sm whitespace-nowrap">
             {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
           </span>
         </div>
         
-        {/* Total Debt Card */}
-        <div className="flex flex-col justify-center border-r border-gray-200 p-3">
-          <span className="metric-label mb-0.5">Total Debt</span>
-          <span className="metric-value-sm whitespace-nowrap">{formatCurrency(kpis.totalDebt)}</span>
-        </div>
-        
         {/* Timeline Progress Card */}
-        <div className="flex flex-col justify-center p-3">
+        <div className="flex flex-col items-center justify-center p-3">
           <span className="metric-label mb-0.5">Timeline Progress</span>
           <span className="metric-value-sm whitespace-nowrap">
             Year {yearProgress.currentYear} / {yearProgress.totalYears}

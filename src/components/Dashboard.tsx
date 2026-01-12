@@ -54,7 +54,7 @@ export const Dashboard = () => {
             id="timeline-section"
             title="Investment Timeline"
             content="This is the heart of the system - the Decision Engine. It shows WHEN each property can be purchased based on your client's affordability. Each card shows a purchase with timing and key metrics. Click 'Inspect' to see detailed breakdowns."
-            order={10}
+            order={9}
             position="right"
           >
           <div id="timeline-section-container" className="bento-card p-6">

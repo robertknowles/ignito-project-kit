@@ -18,7 +18,7 @@ export const TimelineColumn: React.FC = () => {
       id="wealth-cashflow-chart"
       title="Portfolio Growth Chart"
       content="This chart visualizes your portfolio journey. The colored area shows equity building over time, with property icons marking each purchase. Toggle between Wealth and Cashflow views using the buttons in the top-right."
-      order={9}
+      order={10}
       position="top"
     >
     <div id="wealth-cashflow-chart-container" className="bg-white border border-gray-200 border-t-0 rounded-b-xl overflow-hidden relative">
