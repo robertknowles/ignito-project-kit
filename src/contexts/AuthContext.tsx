@@ -111,7 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: name ? { name } : undefined,
+        data: { 
+          name: name || undefined,
+          role: 'owner',  // New users from sign-up are always owners
+        },
       }
     });
     return { error };

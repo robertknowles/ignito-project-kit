@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { MailIcon, LockIcon, EyeIcon, EyeOffIcon, HomeIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function Login() {
@@ -29,7 +29,16 @@ export function Login() {
   }
 
   return (
-    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb]">
+    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb] relative">
+      {/* Home Button */}
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 flex items-center gap-2 text-[#6b7280] hover:text-[#374151] transition-colors z-10"
+      >
+        <HomeIcon size={20} />
+        <span className="text-sm font-medium">Home</span>
+      </Link>
+      
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">

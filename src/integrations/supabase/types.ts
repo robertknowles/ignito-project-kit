@@ -177,6 +177,7 @@ export type Database = {
           updated_at: string | null
           company_id: string | null
           role: UserRole | null
+          has_completed_tour: boolean | null
         }
         Insert: {
           company_name?: string | null
@@ -187,6 +188,7 @@ export type Database = {
           updated_at?: string | null
           company_id?: string | null
           role?: UserRole | null
+          has_completed_tour?: boolean | null
         }
         Update: {
           company_name?: string | null
@@ -197,6 +199,7 @@ export type Database = {
           updated_at?: string | null
           company_id?: string | null
           role?: UserRole | null
+          has_completed_tour?: boolean | null
         }
         Relationships: [
           {
