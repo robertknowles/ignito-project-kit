@@ -6,6 +6,7 @@ import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
+import { EmailConfirmed } from './pages/EmailConfirmed'
 import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
@@ -64,6 +65,12 @@ export function AppRouter() {
                                   <SignUp />
                                 </PublicRoute>
                               } 
+                            />
+                            
+                            {/* Email confirmed page - shown after email verification */}
+                            <Route 
+                              path="/email-confirmed" 
+                              element={<EmailConfirmed />} 
                             />
                             
                             {/* Public client view - no authentication required */}
