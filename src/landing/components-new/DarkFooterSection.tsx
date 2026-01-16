@@ -16,8 +16,8 @@ const DarkFooterSection: React.FC = () => {
                viewport={{ once: true }}
                className="border-l border-gray-800 pl-8"
              >
-                <p className="text-2xl font-serif italic text-gray-200 leading-relaxed mb-6">
-                   "We're signing clients faster than ever. The clarity this gives is unreal. It turns a confused 'maybe' into a confident 'yes'."
+                <p className="text-2xl font-figtree italic text-gray-200 leading-relaxed mb-6">
+                   "PropPath completely changed how we explain strategy to clients. Instead of talking through spreadsheets, we show them a visual roadmap. It's transformed our conversion rate."
                 </p>
                 <div className="flex items-center gap-3">
                    <div className="w-10 h-10 rounded-full bg-gray-700"></div>
@@ -35,7 +35,7 @@ const DarkFooterSection: React.FC = () => {
                transition={{ delay: 0.2 }}
                className="border-l border-gray-800 pl-8"
              >
-                <p className="text-2xl font-serif italic text-gray-200 leading-relaxed mb-6">
+                <p className="text-2xl font-figtree italic text-gray-200 leading-relaxed mb-6">
                    "Clients understand the plan instantly. This is how every strategy session should be. No spreadsheets, just visual clarity."
                 </p>
                 <div className="flex items-center gap-3">

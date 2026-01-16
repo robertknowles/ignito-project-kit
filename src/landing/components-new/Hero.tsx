@@ -65,8 +65,7 @@ const Hero: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight text-black"
           >
-            Built for <br/>
-            <span className="italic font-light text-gray-500">Buyer Agent Sales.</span>
+            Build Property Roadmaps in Minutes
           </motion.h1>
 
           <motion.p 

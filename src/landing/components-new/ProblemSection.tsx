@@ -3,20 +3,20 @@ import { motion, useInView } from 'framer-motion';
 
 const problems = [
   {
-    title: "Capture the Essentials (Discovery Call)",
-    desc: "Quickly enter the key details from your discovery call so the platform can map out what's possible.",
+    title: "Capture the Essentials",
+    desc: "Automatically capture key client details during the discovery call, so PropPath can immediately map out what's achievable.",
   },
   {
     title: "Build Scenarios in Minutes",
-    desc: "Create side-by-side strategy options that visually show clients how different choices play out long-term.",
+    desc: "Create side-by-side strategy scenarios that clearly show how different decisions affect a client's portfolio over the long term.",
   },
   {
     title: "Present the Roadmap & Close",
-    desc: "Use polished, branded visuals to demonstrate your value and convert clients confidently in the strategy call.",
+    desc: "Present a clear, visual portfolio roadmap using polished, branded outputs that demonstrate your value and help clients commit with confidence.",
   },
   {
     title: "Save, Share & Integrate",
-    desc: "Export plans, add them to your CRM, share with referral partners and reuse templates to streamline your workflow.",
+    desc: "Export plans, sync them with your CRM, share with referral partners, and reuse templates to streamline your end-to-end workflow.",
   }
 ];
 
@@ -45,7 +45,7 @@ const ProblemSection: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-xl text-gray-500 leading-relaxed max-w-sm"
             >
-              Designed for the buyers agents sales process.
+              Designed for the sales process.
             </motion.p>
             
             <motion.div 
