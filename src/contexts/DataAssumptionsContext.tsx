@@ -88,14 +88,15 @@ type GrowthAssumption = keyof typeof GROWTH_RATES;
  * Converts property defaults key to display name
  */
 const keyToDisplayName = (key: string): string => {
+  // NOTE: These names MUST match keyToPropertyType exactly for template lookups to work
   const map: Record<string, string> = {
     'units-apartments': 'Units / Apartments',
     'villas-townhouses': 'Villas / Townhouses',
-    'houses-regional': 'Houses (Regional focus)',
+    'houses-regional': 'Houses (Regional)',
     'duplexes': 'Duplexes',
-    'small-blocks-3-4-units': 'Small Blocks (3-4 units)',
+    'small-blocks-3-4-units': 'Small Blocks (3-4 Units)',
     'metro-houses': 'Metro Houses',
-    'larger-blocks-10-20-units': 'Larger Blocks (10-20 units)',
+    'larger-blocks-10-20-units': 'Larger Blocks (10-20 Units)',
     'commercial-property': 'Commercial Property',
   };
   return map[key] || key;
@@ -357,7 +358,18 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
 
   // NEW: Property type template methods
   const getPropertyTypeTemplate = (propertyType: string): PropertyTypeTemplate | undefined => {
-    return propertyTypeTemplates.find(template => template.propertyType === propertyType);
+    // First try exact match
+    let result = propertyTypeTemplates.find(template => template.propertyType === propertyType);
+    
+    // If not found, try normalized match (handles legacy name mismatches from database)
+    // Known mismatches: "Houses (Regional focus)" vs "Houses (Regional)", case differences in "units" vs "Units"
+    if (!result) {
+      const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim();
+      const normalizedInput = normalizeForMatch(propertyType);
+      result = propertyTypeTemplates.find(template => normalizeForMatch(template.propertyType) === normalizedInput);
+    }
+    
+    return result;
   };
 
   const updatePropertyTypeTemplate = (propertyType: string, updates: Partial<PropertyInstanceDetails>) => {
