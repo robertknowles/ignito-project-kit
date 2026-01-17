@@ -281,8 +281,9 @@ export const ChartWithRoadmap: React.FC = () => {
   const yearColumnWidth = Math.max(MIN_YEAR_COLUMN_WIDTH, Math.min(MAX_YEAR_COLUMN_WIDTH, calculatedColumnWidth));
   const needsScroll = yearColumnWidth === MIN_YEAR_COLUMN_WIDTH && availableWidth < yearCount * MIN_YEAR_COLUMN_WIDTH;
   
-  // Chart width calculation
-  const chartWidth = yearCount * yearColumnWidth;
+  // Chart width calculation - use full available width to eliminate whitespace
+  const minChartWidth = yearCount * yearColumnWidth;
+  const chartWidth = Math.max(minChartWidth, availableWidth);
   const totalWidth = LABEL_COLUMN_WIDTH + chartWidth;
 
   // Dynamic grid style

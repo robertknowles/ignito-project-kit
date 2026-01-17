@@ -94,18 +94,18 @@ const BreakEvenLabel = (props: any) => {
   );
 };
 
-// Cashflow Goal Label component
+// Cashflow Goal Label component - styled to match EquityGoalLabel
 const CashflowGoalLabel = (props: any) => {
   const { viewBox, cashflowGoal } = props;
   if (!viewBox) return null;
   return (
     <text
-      x={viewBox.x + viewBox.width - 10}
+      x={viewBox.x + 10}
       y={viewBox.y - 5}
-      fill="rgba(253, 186, 116, 1)"
-      fontSize={10}
-      fontWeight={500}
-      textAnchor="end"
+      fill="#d97706"
+      fontSize={11}
+      fontWeight={600}
+      textAnchor="start"
       fontFamily="Inter, system-ui, sans-serif"
     >
       Income Goal: {formatCurrency(cashflowGoal)}/yr
@@ -212,8 +212,9 @@ export const CashflowRoadmap: React.FC = () => {
   const yearColumnWidth = Math.max(MIN_YEAR_COLUMN_WIDTH, Math.min(MAX_YEAR_COLUMN_WIDTH, calculatedColumnWidth));
   const needsScroll = yearColumnWidth === MIN_YEAR_COLUMN_WIDTH && availableWidth < yearCount * MIN_YEAR_COLUMN_WIDTH;
   
-  // Chart width calculation
-  const chartWidth = yearCount * yearColumnWidth;
+  // Chart width calculation - use full available width to eliminate whitespace
+  const minChartWidth = yearCount * yearColumnWidth;
+  const chartWidth = Math.max(minChartWidth, availableWidth);
   const totalWidth = LABEL_COLUMN_WIDTH + chartWidth;
 
   // Dynamic grid style
