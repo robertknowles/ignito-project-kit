@@ -27,6 +27,8 @@ import { LeftRail } from '../components/LeftRail'
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { ClientProfileModal } from '../components/ClientProfileModal'
+import { PropertyBlocksOnboardingModal } from '../components/PropertyBlocksOnboardingModal'
+import { PropertyOnboardingWarningBanner } from '../components/PropertyOnboardingWarningBanner'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { generateClientReport } from '../utils/pdfGenerator'
@@ -86,6 +88,9 @@ interface ClientStatus {
   clientEmail: string | null;
 }
 
+// Storage key for tracking if user dismissed the warning banner this session
+const ONBOARDING_BANNER_DISMISSED_KEY = 'ignito_property_onboarding_banner_dismissed';
+
 export const ClientScenarios = () => {
   const navigate = useNavigate();
   const [createFormOpen, setCreateFormOpen] = useState(false);
@@ -96,7 +101,13 @@ export const ClientScenarios = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [newClientName, setNewClientName] = useState('');
   const { clients, setActiveClient, updateClient, deleteClient, activeSeats, seatLimit, canAddClient } = useClient();
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
+  
+  // Property onboarding state
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [hasCompletedPropertyOnboarding, setHasCompletedPropertyOnboarding] = useState<boolean | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [onboardingLoading, setOnboardingLoading] = useState(true);
   
   // Seat usage calculations
   const seatUsagePercent = seatLimit > 0 ? (activeSeats / seatLimit) * 100 : 0;
@@ -215,6 +226,91 @@ export const ClientScenarios = () => {
 
     fetchClientStatuses();
   }, [clients]);
+
+  // Fetch property onboarding status on mount
+  useEffect(() => {
+    const fetchOnboardingStatus = async () => {
+      if (!user) {
+        setOnboardingLoading(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('has_completed_property_onboarding')
+          .eq('id', user.id)
+          .single();
+        
+        if (!error && data) {
+          const completed = data.has_completed_property_onboarding ?? false;
+          setHasCompletedPropertyOnboarding(completed);
+          
+          // Show modal if not completed (covers new users AND existing users who never completed)
+          // Only show modal on first visit - use sessionStorage to prevent showing every page load
+          const modalShownThisSession = sessionStorage.getItem('ignito_property_onboarding_modal_shown') === 'true';
+          if (!completed && !modalShownThisSession) {
+            setShowOnboardingModal(true);
+            sessionStorage.setItem('ignito_property_onboarding_modal_shown', 'true');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching property onboarding status:', error);
+      }
+      setOnboardingLoading(false);
+    };
+    
+    fetchOnboardingStatus();
+    
+    // Check if banner was dismissed this session
+    const dismissed = sessionStorage.getItem(ONBOARDING_BANNER_DISMISSED_KEY) === 'true';
+    setBannerDismissed(dismissed);
+  }, [user]);
+
+  // Handle completing the property onboarding
+  const handleOnboardingComplete = async () => {
+    setShowOnboardingModal(false);
+    setHasCompletedPropertyOnboarding(true);
+    
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ has_completed_property_onboarding: true })
+          .eq('id', user.id);
+      } catch (error) {
+        console.error('Error saving property onboarding completion:', error);
+      }
+    }
+  };
+  
+  // Handle skipping the property onboarding
+  const handleOnboardingSkip = () => {
+    setShowOnboardingModal(false);
+    // Don't mark as completed - just close the modal
+    // Banner will show since hasCompletedPropertyOnboarding is still false
+  };
+  
+  // Handle dismissing the warning banner
+  const handleBannerDismiss = () => {
+    setBannerDismissed(true);
+    sessionStorage.setItem(ONBOARDING_BANNER_DISMISSED_KEY, 'true');
+  };
+  
+  // Handle clicking "Configure Now" on the banner
+  const handleConfigureNow = () => {
+    setShowOnboardingModal(true);
+  };
+  
+  // Determine if we should show the warning banner
+  // Show banner if onboarding is NOT completed (false or null) - this covers:
+  // 1. New users who skipped the modal
+  // 2. Existing users who created accounts before this feature
+  // 3. Users returning after previously skipping
+  const showWarningBanner = !onboardingLoading && 
+    hasCompletedPropertyOnboarding !== true && 
+    !showOnboardingModal && 
+    !bannerDismissed;
 
   // Calculate dynamic stats from timelineData
   const currentYear = new Date().getFullYear();
@@ -721,10 +817,24 @@ export const ClientScenarios = () => {
 
   return (
     <TooltipProvider>
+      {/* Property Blocks Onboarding Modal */}
+      <PropertyBlocksOnboardingModal
+        isOpen={showOnboardingModal}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
+      
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 ml-16 overflow-hidden">
-          <div className="bg-white h-full overflow-auto">
+        <div className="flex-1 ml-16 overflow-hidden flex flex-col">
+          {/* Warning Banner - shows if user hasn't completed property onboarding */}
+          {showWarningBanner && (
+            <PropertyOnboardingWarningBanner
+              onConfigureNow={handleConfigureNow}
+              onDismiss={handleBannerDismiss}
+            />
+          )}
+          <div className="bg-white flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8 bg-white">
               {/* Client Portfolio with Stats Header */}
               <div className="flex justify-between items-center mb-4">
