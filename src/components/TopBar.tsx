@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Share2, Copy } from 'lucide-react'
+import { Share2, Copy, RotateCcw } from 'lucide-react'
 import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
 import { ResetButton } from './ResetButton'
@@ -436,22 +436,59 @@ export const TopBar = () => {
               </ol>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Reset button - allows restarting the invite process */}
             <Button
-              onClick={() => {
-                const text = `Dashboard Login for ${shareCredentials?.clientName}\n\nEmail: ${shareCredentials?.email}\nPassword: ${shareCredentials?.password}\nLogin URL: ${shareCredentials?.loginUrl}`;
-                navigator.clipboard.writeText(text);
-                toast({
-                  title: 'Copied!',
-                  description: 'All credentials copied to clipboard',
-                });
+              variant="outline"
+              className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              onClick={async () => {
+                if (!scenarioId) return;
+                
+                try {
+                  // Clear the client_user_id from the scenario to allow re-invite
+                  const { error } = await supabase
+                    .from('scenarios')
+                    .update({ client_user_id: null })
+                    .eq('id', scenarioId);
+                  
+                  if (error) throw error;
+                  
+                  setShareModalOpen(false);
+                  setShareCredentials(null);
+                  toast({
+                    title: 'Invite Reset',
+                    description: 'You can now start the invite process again with a new email or password.',
+                  });
+                } catch (error) {
+                  console.error('Error resetting invite:', error);
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to reset invite. Please try again.',
+                    variant: 'destructive',
+                  });
+                }
               }}
             >
-              Copy All
+              <RotateCcw size={14} className="mr-1" />
+              Reset Invite
             </Button>
-            <Button variant="outline" onClick={() => setShareModalOpen(false)}>
-              Done
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  const text = `Dashboard Login for ${shareCredentials?.clientName}\n\nEmail: ${shareCredentials?.email}\nPassword: ${shareCredentials?.password}\nLogin URL: ${shareCredentials?.loginUrl}`;
+                  navigator.clipboard.writeText(text);
+                  toast({
+                    title: 'Copied!',
+                    description: 'All credentials copied to clipboard',
+                  });
+                }}
+              >
+                Copy All
+              </Button>
+              <Button variant="outline" onClick={() => setShareModalOpen(false)}>
+                Done
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
