@@ -30,61 +30,62 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
 
   return (
     <div className="flex flex-col rounded border border-gray-200 shadow-sm overflow-hidden hover:border-gray-300 transition-colors">
-      {/* White content area */}
-      <div className="bg-white px-3 py-2.5">
-        <div className="flex flex-col gap-2">
-          {/* Row 1: Property Title with icon */}
-          <div className="flex items-center gap-1.5">
-            <div className="bg-gray-100 rounded p-1 flex items-center justify-center">
-              <PropertyTypeIcon propertyTitle={template.propertyType} size={14} className="text-gray-500" />
-            </div>
-            <span className="text-[11px] flex items-center">
-              <span className="font-medium text-gray-900">{template.propertyType}</span>
-              <span className="text-gray-300 mx-1">|</span>
-              <span className="text-gray-600">
-                Growth: {template.growthAssumption}
-              </span>
+      {/* Grey header area */}
+      <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="bg-white rounded p-1.5 flex items-center justify-center border border-gray-200">
+            <PropertyTypeIcon propertyTitle={template.propertyType} size={16} className="text-gray-500" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium tracking-wide text-gray-900">{template.propertyType}</span>
+            <span className="text-[10px] font-medium tracking-wide text-gray-500">
+              Growth: {template.growthAssumption}
             </span>
           </div>
-          
+        </div>
+      </div>
+
+      {/* White content area */}
+      <div className="bg-white px-4 py-3">
+        <div className="flex flex-col gap-2">
           {/* PURCHASE PRICE Section */}
           <div className="text-center py-1.5 border-b border-gray-100">
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Purchase Price</div>
+            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Purchase Price</div>
             <div className="text-sm font-semibold text-gray-900">{formatCurrency(template.purchasePrice)}</div>
           </div>
           
           {/* Rent & Yield Rows */}
           <div className="space-y-1 pb-2 border-b border-gray-100">
             <div className="flex justify-between items-center text-[10px]">
-              <span className="text-gray-600">Rent</span>
+              <span className="font-medium text-gray-600">Rent</span>
               <span className="text-gray-700">${template.rentPerWeek}/wk</span>
             </div>
             <div className="flex justify-between items-center text-[10px]">
-              <span className="text-gray-600">Annual Yield</span>
+              <span className="font-medium text-gray-600">Annual Yield</span>
               <span className="text-gray-700">{yieldPercent.toFixed(1)}%</span>
             </div>
           </div>
           
           {/* GROWTH Section */}
           <div className="pb-2 border-b border-gray-100">
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">
+            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
               Growth ({template.growthAssumption})
             </div>
             <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
               <div>
-                <div className="text-gray-400">Y1</div>
+                <div className="font-medium text-gray-400">Y1</div>
                 <div className="text-gray-700">{growthRates.year1}%</div>
               </div>
               <div>
-                <div className="text-gray-400">Y2-3</div>
+                <div className="font-medium text-gray-400">Y2-3</div>
                 <div className="text-gray-700">{growthRates.years2to3}%</div>
               </div>
               <div>
-                <div className="text-gray-400">Y4</div>
+                <div className="font-medium text-gray-400">Y4</div>
                 <div className="text-gray-700">{growthRates.year4}%</div>
               </div>
               <div>
-                <div className="text-gray-400">Y5+</div>
+                <div className="font-medium text-gray-400">Y5+</div>
                 <div className="text-gray-700">{growthRates.year5plus}%</div>
               </div>
             </div>
@@ -93,28 +94,28 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
           {/* MORTGAGE VALUE Section */}
           <div>
             <div className="text-center mb-1.5">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Mortgage Value</div>
+              <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Mortgage Value</div>
               <div className="text-sm font-semibold text-gray-900">{formatCurrency(mortgageValue)}</div>
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] bg-gray-50 rounded p-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">LVR</span>
+                <span className="font-medium text-gray-600">LVR</span>
                 <span className="text-gray-700">{template.lvr}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Rate</span>
+                <span className="font-medium text-gray-600">Rate</span>
                 <span className="text-gray-700">{template.interestRate}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Type</span>
+                <span className="font-medium text-gray-600">Type</span>
                 <span className="text-gray-700">{template.loanProduct === 'IO' ? 'Interest Only' : 'P&I'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Term</span>
+                <span className="font-medium text-gray-600">Term</span>
                 <span className="text-gray-700">{template.loanTerm}yr</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">State</span>
+                <span className="font-medium text-gray-600">State</span>
                 <span className="text-gray-700">{template.state}</span>
               </div>
             </div>
