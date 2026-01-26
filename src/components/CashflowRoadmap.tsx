@@ -11,7 +11,6 @@ import {
   Label,
   Cell,
 } from 'recharts';
-import { Sparkles } from 'lucide-react';
 import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
@@ -148,41 +147,6 @@ interface ChartDataPoint {
   purchaseDetails?: YearData['purchaseDetails'];
 }
 
-// Generate cashflow-specific AI summary
-const generateCashflowSummary = (
-  chartData: ChartDataPoint[], 
-  cashflowGoal: number,
-  cashflowGoalYear: number | null,
-  breakEvenYear: number | null
-): string => {
-  const purchaseYears = chartData.filter(y => y.purchaseInYear);
-  const totalProperties = purchaseYears.length;
-  const finalData = chartData[chartData.length - 1];
-  
-  if (totalProperties === 0) {
-    return "Add properties to your strategy to see a cashflow projection analysis.";
-  }
-  
-  const finalCashflow = finalData.cashflow;
-  const cashflowStatus = finalCashflow >= 0 ? 'positive' : 'negative';
-  
-  let summaryParts: string[] = [];
-  
-  summaryParts.push(`This ${totalProperties}-property strategy projects ${cashflowStatus} cashflow of ${formatCurrency(Math.abs(finalCashflow))}/year by ${finalData.year}.`);
-  
-  if (breakEvenYear) {
-    summaryParts.push(`The portfolio reaches break-even in ${breakEvenYear}.`);
-  }
-  
-  if (cashflowGoalYear) {
-    summaryParts.push(`Your ${formatCurrency(cashflowGoal)}/year income goal is achieved by ${cashflowGoalYear}.`);
-  } else if (cashflowGoal > 0) {
-    summaryParts.push(`Continue building toward your ${formatCurrency(cashflowGoal)}/year income goal.`);
-  }
-  
-  return summaryParts.join(' ');
-};
-
 interface CashflowRoadmapProps {
   scenarioData?: {
     timelineProperties: TimelineProperty[];
@@ -300,16 +264,6 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
   const cashflowGoalReached = useMemo(() => {
     return chartData.find(d => d.cashflow >= profile.cashflowGoal);
   }, [chartData, profile.cashflowGoal]);
-
-  // Generate AI summary
-  const aiSummary = useMemo(() => {
-    return generateCashflowSummary(
-      chartData, 
-      profile.cashflowGoal, 
-      cashflowGoalReached?.year || null,
-      breakEvenYear
-    );
-  }, [chartData, profile.cashflowGoal, cashflowGoalReached, breakEvenYear]);
 
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
@@ -559,15 +513,6 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             </div>
           </div>
 
-          {/* AI Strategy Analysis Footer */}
-          <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-t border-slate-200/40 p-4">
-            <div className="flex items-start gap-3">
-              <Sparkles size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-700 leading-relaxed">
-                {aiSummary}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
       

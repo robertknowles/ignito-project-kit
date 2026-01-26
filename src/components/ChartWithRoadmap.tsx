@@ -10,7 +10,7 @@ import {
   ReferenceDot,
   Label,
 } from 'recharts';
-import { Sparkles, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
@@ -400,43 +400,6 @@ const GoalAchievedLabel = (props: any) => {
   );
 };
 
-// Generate roadmap-specific AI summary
-const generateRoadmapSummary = (
-  years: YearData[], 
-  equityGoal: number,
-  equityGoalYear: number | null
-): string => {
-  const purchaseYears = years.filter(y => y.purchaseInYear);
-  const totalProperties = purchaseYears.length;
-  const finalYear = years[years.length - 1];
-  
-  if (totalProperties === 0) {
-    return "Add properties to your strategy to see a wealth projection analysis.";
-  }
-  
-  // Find key bottlenecks
-  const depositFailures = years.filter(y => y.depositStatus === 'fail').length;
-  const borrowingFailures = years.filter(y => y.borrowingStatus === 'fail').length;
-  const serviceabilityFailures = years.filter(y => y.serviceabilityStatus === 'fail').length;
-  
-  let bottleneckText = '';
-  if (depositFailures > borrowingFailures && depositFailures > serviceabilityFailures) {
-    bottleneckText = 'deposit accumulation is the primary constraint';
-  } else if (borrowingFailures > serviceabilityFailures) {
-    bottleneckText = 'borrowing capacity limits the expansion pace';
-  } else if (serviceabilityFailures > 0) {
-    bottleneckText = 'serviceability requirements shape the acquisition timing';
-  } else {
-    bottleneckText = 'the strategy progresses smoothly across all tests';
-  }
-  
-  const goalText = equityGoalYear 
-    ? `reaching your ${formatCurrency(equityGoal)} equity goal by ${equityGoalYear}`
-    : `building toward your ${formatCurrency(equityGoal)} equity goal`;
-  
-  return `This ${totalProperties}-property strategy projects a portfolio value of ${formatCurrency(finalYear.portfolioValueRaw)} by ${finalYear.year}, ${goalText}. Analysis shows ${bottleneckText}.`;
-};
-
 interface ChartWithRoadmapProps {
   scenarioData?: {
     timelineProperties: TimelineProperty[];
@@ -730,15 +693,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     const purchaseYears = chartData.filter(d => d.purchaseInYear);
     return purchaseYears.length > 0 ? purchaseYears[purchaseYears.length - 1] : null;
   }, [chartData]);
-
-  // Generate AI summary
-  const aiSummary = useMemo(() => {
-    return generateRoadmapSummary(
-      years, 
-      profile.equityGoal, 
-      equityGoalReached?.year || null
-    );
-  }, [years, profile.equityGoal, equityGoalReached]);
 
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
@@ -1189,15 +1143,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
         </div>
 
 
-        {/* AI Strategy Analysis Footer */}
-        <div className="bg-gradient-to-r from-teal-50 via-sky-50 to-violet-50 border-t border-slate-200/40 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles size={16} className="text-violet-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-700 leading-relaxed">
-              {aiSummary}
-            </p>
-          </div>
-        </div>
         </div>
       </div>
       

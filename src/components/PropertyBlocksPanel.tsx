@@ -17,6 +17,149 @@ interface CascadingGrowthRates {
   year5plus: string
 }
 
+// Property images mapping - add more as needed
+const PROPERTY_IMAGES: Record<string, string> = {
+  'Metro Houses': '/images/properties/metro-house.png',
+}
+
+// NEW DESIGN: Large image property card (trial for Metro Houses)
+// Matches the reference design with image on left (~40%), footer only on RHS
+interface PropertyBlockCardV2Props {
+  title: string
+  priceRange: string
+  yieldValue: string
+  growthRates?: CascadingGrowthRates
+  count: number
+  imageUrl: string
+  onIncrement: () => void
+  onDecrement: () => void
+  onEdit?: () => void
+  onDuplicate?: () => void
+}
+
+const PropertyBlockCardV2: React.FC<PropertyBlockCardV2Props> = ({
+  title,
+  priceRange,
+  yieldValue,
+  growthRates,
+  count,
+  imageUrl,
+  onIncrement,
+  onDecrement,
+  onEdit,
+  onDuplicate,
+}) => {
+  const isActive = count > 0
+  
+  // Format compact growth rate string (Y1→Y2-3→Y4→Y5+)
+  const growthRateDisplay = growthRates 
+    ? `${growthRates.year1} → ${growthRates.years2to3} → ${growthRates.year4} → ${growthRates.year5plus}%`
+    : null
+  
+  return (
+    <div className={`group rounded-xl transition-all bg-white border overflow-hidden ${
+      isActive 
+        ? 'ring-1 ring-gray-900 border-gray-900' 
+        : 'border-gray-200 group-hover:border-gray-300'
+    }`}>
+      {/* Main Card - Horizontal layout */}
+      <div className="flex">
+        {/* Left: Large Property Image (~40%) - extends full height */}
+        <div className="w-[40%] relative flex-shrink-0 bg-white flex items-center justify-center">
+          {/* Property image - zoomed in */}
+          <img 
+            src={imageUrl} 
+            alt={title}
+            className="w-full h-full object-cover"
+            style={{ 
+              minHeight: '110px'
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        </div>
+        
+        {/* Right: Content + Footer stacked (~60%) */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Content area */}
+          <div className="p-2 flex-1">
+            {/* Top row: Title + Count badge */}
+            <div className="flex items-start justify-between gap-1">
+              <h4 className="font-semibold text-gray-900 text-xs leading-tight">{title}</h4>
+              {count > 0 && (
+                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded min-w-[1.25rem] text-center">
+                  {count}
+                </span>
+              )}
+            </div>
+            
+            {/* Details */}
+            <div className="mt-1">
+              <p className="text-gray-600 text-[10px] leading-tight">
+                {priceRange} · Yield: {yieldValue}
+              </p>
+              {growthRateDisplay && (
+                <p className="text-gray-400 text-[9px] mt-0.5 leading-tight" title="Growth rate: Y1 → Y2-3 → Y4 → Y5+">
+                  Growth: {growthRateDisplay}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Footer: Edit & Duplicate - Only on RHS */}
+          {(onEdit || onDuplicate) && (
+            <div className="flex items-center justify-between py-1.5 px-2 bg-gray-100 border-t border-gray-200">
+              {/* Left: Edit & Duplicate */}
+              <div className="flex items-center gap-2">
+                {onEdit && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <Pencil size={10} />
+                    <span className="text-[9px]">Edit</span>
+                  </button>
+                )}
+                {onDuplicate && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <Copy size={10} />
+                    <span className="text-[9px]">Duplicate</span>
+                  </button>
+                )}
+              </div>
+              
+              {/* Right: +/- controls */}
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDecrement(); }}
+                  disabled={count === 0}
+                  className={`p-0.5 rounded transition-colors ${
+                    count === 0 
+                      ? 'text-gray-300 cursor-not-allowed' 
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'
+                  }`}
+                >
+                  <Minus size={12} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onIncrement(); }}
+                  className="p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Compact property card for sidebar - ElevenLabs style
 interface PropertyBlockCardProps {
   title: string
@@ -330,22 +473,46 @@ export const PropertyBlocksPanel: React.FC = () => {
       </button>
 
       {/* Property Cards - Vertical Stack */}
-      {sortedProperties.map((property) => (
-        <PropertyBlockCard
-          key={property.id}
-          title={property.title}
-          priceRange={property.priceRange}
-          yieldValue={property.yield}
-          growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
-          count={getPropertyQuantity(property.id)}
-          isCustom={property.isCustom}
-          onIncrement={() => incrementProperty(property.id)}
-          onDecrement={() => decrementProperty(property.id)}
-          onEdit={!property.isCustom ? () => handleEditTemplate(property.title) : undefined}
-          onDelete={property.isCustom ? () => removeCustomBlock(property.id) : undefined}
-          onDuplicate={!property.isCustom ? () => handleDuplicateProperty(property.id, property.title) : undefined}
-        />
-      ))}
+      {sortedProperties.map((property) => {
+        // Use new V2 design for properties with images (currently just Metro Houses)
+        const imageUrl = PROPERTY_IMAGES[property.title]
+        
+        if (imageUrl && !property.isCustom) {
+          return (
+            <PropertyBlockCardV2
+              key={property.id}
+              title={property.title}
+              priceRange={property.priceRange}
+              yieldValue={property.yield}
+              growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
+              count={getPropertyQuantity(property.id)}
+              imageUrl={imageUrl}
+              onIncrement={() => incrementProperty(property.id)}
+              onDecrement={() => decrementProperty(property.id)}
+              onEdit={() => handleEditTemplate(property.title)}
+              onDuplicate={() => handleDuplicateProperty(property.id, property.title)}
+            />
+          )
+        }
+        
+        // Original card design for other properties
+        return (
+          <PropertyBlockCard
+            key={property.id}
+            title={property.title}
+            priceRange={property.priceRange}
+            yieldValue={property.yield}
+            growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
+            count={getPropertyQuantity(property.id)}
+            isCustom={property.isCustom}
+            onIncrement={() => incrementProperty(property.id)}
+            onDecrement={() => decrementProperty(property.id)}
+            onEdit={!property.isCustom ? () => handleEditTemplate(property.title) : undefined}
+            onDelete={property.isCustom ? () => removeCustomBlock(property.id) : undefined}
+            onDuplicate={!property.isCustom ? () => handleDuplicateProperty(property.id, property.title) : undefined}
+          />
+        )
+      })}
 
       {/* Pause Period Card - Compact Style */}
       <div className={`flex items-center gap-2 p-2.5 bg-white border rounded-xl transition-colors ${
