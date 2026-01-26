@@ -7,6 +7,7 @@ import { useClient } from './contexts/ClientContext';
 import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
 import { useBranding } from './contexts/BrandingContext';
+import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
 
 export function App() {
@@ -26,7 +27,7 @@ export function App() {
         <LeftRail />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center max-w-md">
               <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
                 <FileQuestion className="w-8 h-8 text-gray-400" />
@@ -54,7 +55,7 @@ export function App() {
         <LeftRail />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
               <p className="text-gray-600">Loading your investment scenario...</p>
@@ -74,7 +75,7 @@ export function App() {
         <LeftRail />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
           <TopBar />
-          <div className="flex-1 overflow-hidden p-4">
+          <div className="flex-1 overflow-hidden">
             <Dashboard key="client-scenario" />
           </div>
         </div>
@@ -83,23 +84,25 @@ export function App() {
   }
   
   return (
-    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-      <LeftRail />
-      <InputDrawer isOpen={drawerOpen} onToggle={() => setDrawerOpen(!drawerOpen)} />
-      
-      {/* Main Content Area - margin adjusts based on drawer state */}
-      <div 
-        id="main-content"
-        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-          drawerOpen ? 'ml-96' : 'ml-16'
-        }`}
-      >
-        <TopBar />
-        <div className="flex-1 overflow-hidden p-4">
-          {/* Force Dashboard to remount when client changes by using key prop */}
-          <Dashboard key={activeClient?.id || 'no-client'} />
+    <PropertyDragDropProvider>
+      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+        <LeftRail />
+        <InputDrawer isOpen={drawerOpen} onToggle={() => setDrawerOpen(!drawerOpen)} />
+        
+        {/* Main Content Area - margin adjusts based on drawer state */}
+        <div 
+          id="main-content"
+          className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+            drawerOpen ? 'ml-[352px]' : 'ml-16'
+          }`}
+        >
+          <TopBar />
+          <div className="flex-1 overflow-hidden">
+            {/* Force Dashboard to remount when client changes by using key prop */}
+            <Dashboard key={activeClient?.id || 'no-client'} />
+          </div>
         </div>
       </div>
-    </div>
+    </PropertyDragDropProvider>
   );
 }

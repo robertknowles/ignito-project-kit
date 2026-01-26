@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useDataAssumptions } from './DataAssumptionsContext';
 import { useClient } from './ClientContext';
+import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 export interface PropertyType {
   id: string;
@@ -18,7 +19,8 @@ export interface PropertyType {
   isCustom?: boolean; // Flag to identify custom blocks
 }
 
-export interface CustomPropertyBlock {
+// Extended CustomPropertyBlock interface with all PropertyInstanceDetails fields
+export interface CustomPropertyBlock extends Partial<PropertyInstanceDetails> {
   id: string;
   title: string;
   cost: number;

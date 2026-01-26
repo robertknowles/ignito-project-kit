@@ -7,6 +7,7 @@ interface MiniPurchaseCardProps {
   loanAmount: number;
   depositRequired: number;
   compact?: boolean; // For narrower column widths
+  onClick?: () => void; // Optional click handler for property details
 }
 
 // Determine if property is a house type (for color coding)
@@ -46,11 +47,18 @@ export const MiniPurchaseCard: React.FC<MiniPurchaseCardProps> = ({
   propertyTitle,
   cost,
   loanAmount,
+  onClick,
 }) => {
   const isHouse = isHouseType(propertyTitle);
   
   return (
-    <div className="bg-slate-100 rounded border border-slate-200 px-2.5 py-0.5 flex items-center justify-center gap-1">
+    <div 
+      className={`bg-slate-100 rounded border border-slate-200 px-2.5 py-0.5 flex items-center justify-center gap-1 ${onClick ? 'cursor-pointer hover:bg-slate-200 hover:border-slate-300 transition-colors' : ''}`}
+      onClick={onClick}
+      title={onClick ? "Click for property details" : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {isHouse ? (
         <Home size={9} className="text-slate-500" />
       ) : (

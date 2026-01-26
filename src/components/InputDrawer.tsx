@@ -25,7 +25,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       <div
         id="input-drawer"
         className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
-          isOpen ? 'w-80' : 'w-0'
+          isOpen ? 'w-72' : 'w-0'
         }`}
       >
         {/* Content wrapper - only visible when open */}
@@ -38,7 +38,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
             order={5}
             position="bottom"
           >
-          <div id="drawer-tabs-container" className="relative flex items-center border-b border-gray-200">
+          <div id="drawer-tabs-container" className="relative flex items-center border-b border-gray-200 h-[45px]">
             {tabs.map((tab, index) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -46,13 +46,13 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-[13px] font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 h-full text-[12px] font-medium transition-colors ${
                     isActive
                       ? 'text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={14} />
                   <span>{tab.label}</span>
                 </button>
               )
@@ -69,7 +69,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
           </TourStep>
 
           {/* Tab Content Area */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 bg-white">
             {activeTab === 'inputs' && (
               <ClientInputsPanel />
             )}
@@ -83,7 +83,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       {/* Toggle Button - always visible */}
       {/* TourStep wrapper needs fixed positioning to match the button's fixed position */}
       <div className={`fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out ${
-        isOpen ? 'left-[calc(4rem+20rem)]' : 'left-16'
+        isOpen ? 'left-[calc(4rem+18rem)]' : 'left-16'
       }`}>
         <TourStep
           id="drawer-toggle"

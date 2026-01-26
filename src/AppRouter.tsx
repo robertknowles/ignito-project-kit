@@ -16,6 +16,7 @@ import { ClientProvider } from './contexts/ClientContext'
 import { CompanyProvider } from './contexts/CompanyContext'
 import { BrandingProvider } from './contexts/BrandingContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
+import { MultiScenarioProvider } from './contexts/MultiScenarioContext'
 import { CompanyManagement } from './pages/CompanyManagement'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
@@ -36,6 +37,7 @@ export function AppRouter() {
                 <InvestmentProfileProvider>
                   <PropertyInstanceProvider>
                     <ScenarioSaveProvider>
+                      <MultiScenarioProvider>
                       <BrowserRouter>
                         <TourManagerProvider>
                           <Routes>
@@ -117,6 +119,7 @@ export function AppRouter() {
                           <SonnerToaster position="bottom-right" richColors />
                         </TourManagerProvider>
                       </BrowserRouter>
+                      </MultiScenarioProvider>
                     </ScenarioSaveProvider>
                   </PropertyInstanceProvider>
                 </InvestmentProfileProvider>

@@ -34,15 +34,15 @@ export const ClientSelector: React.FC = () => {
     <div id="client-selector" className="relative" ref={dropdownRef}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="flex items-center px-4 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+        className="flex items-center px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
       >
-        <div className="w-2 h-2 bg-green-500 rounded-full mr-2.5"></div>
-        <span className="text-[13px] text-gray-700 font-medium">
+        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+        <span className="text-[12px] text-gray-700 font-medium">
           {activeClient ? `${activeClient.name}'s Scenario` : 'Select Client'}
         </span>
         <ChevronDownIcon 
-          size={16} 
-          className={`ml-2 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} 
+          size={14} 
+          className={`ml-1.5 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} 
         />
       </button>
 

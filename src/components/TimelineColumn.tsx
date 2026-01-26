@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import { ChartWithRoadmap } from './ChartWithRoadmap';
 import { CashflowRoadmap } from './CashflowRoadmap';
 import { TourStep } from '@/components/TourManager';
+import type { TimelineProperty } from '../types/property';
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 type ViewMode = 'wealth' | 'cashflow';
 
-export const TimelineColumn: React.FC = () => {
+interface TimelineColumnProps {
+  scenarioData?: {
+    timelineProperties: TimelineProperty[];
+    profile: InvestmentProfileData;
+  };
+  noBorder?: boolean;
+}
+
+export const TimelineColumn: React.FC<TimelineColumnProps> = ({ scenarioData, noBorder }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('wealth');
 
   const tabs: { id: ViewMode; label: string }[] = [
@@ -21,7 +31,7 @@ export const TimelineColumn: React.FC = () => {
       order={10}
       position="top"
     >
-    <div id="wealth-cashflow-chart-container" className="bg-white border border-gray-200 border-t-0 rounded-b-xl overflow-hidden relative">
+    <div id="wealth-cashflow-chart-container" className="bg-white overflow-hidden relative border-t border-gray-200">
       {/* View Toggle - floating over the chart */}
       <div id="chart-toggle" className="absolute top-2 right-4 z-20 flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-md px-1 py-0.5">
         {tabs.map((tab) => {
@@ -52,10 +62,10 @@ export const TimelineColumn: React.FC = () => {
       {/* Conditional Content Based on View Mode - fills full space */}
       {viewMode === 'wealth' ? (
         /* Wealth View - Synced Strategy Roadmap */
-        <ChartWithRoadmap />
+        <ChartWithRoadmap scenarioData={scenarioData} />
       ) : (
         /* Cashflow View - Cashflow Roadmap */
-        <CashflowRoadmap />
+        <CashflowRoadmap scenarioData={scenarioData} />
       )}
     </div>
     </TourStep>

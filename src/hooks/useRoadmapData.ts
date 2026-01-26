@@ -66,6 +66,16 @@ const calculateRentalRecognitionRate = (portfolioSize: number): number => {
   return 0.65;                              // Properties 5+: 65%
 };
 
+// Single purchase detail structure
+export interface PurchaseDetail {
+  propertyTitle: string;
+  cost: number;
+  depositRequired: number;
+  loanAmount: number;
+  instanceId: string;
+  propertyType: string;
+}
+
 export interface YearData {
   year: number;
   depositStatus: 'pass' | 'fail' | 'na';
@@ -87,14 +97,8 @@ export interface YearData {
   totalLoanInterest: number;
   // Purchase info for this year
   purchaseInYear: boolean;
-  purchaseDetails?: {
-    propertyTitle: string;
-    cost: number;
-    depositRequired: number;
-    loanAmount: number;
-    instanceId: string;
-    propertyType: string;
-  };
+  // Array of all purchases in this year (supports stacking multiple properties)
+  purchaseDetails?: PurchaseDetail[];
   // Full breakdown data for funnel components (only for years with purchases)
   yearBreakdownData?: YearBreakdownData;
 }
@@ -213,7 +217,7 @@ export const useRoadmapData = (): RoadmapData => {
       let borrowingStatus: 'pass' | 'fail' | 'na' = 'na';
       let serviceabilityStatus: 'pass' | 'fail' | 'na' = 'na';
       let purchaseInYear = false;
-      let purchaseDetails: YearData['purchaseDetails'] = undefined;
+      let purchaseDetails: PurchaseDetail[] | undefined = undefined;
       
       // Compute yearBreakdownData for years with purchases
       let yearBreakdownData: YearBreakdownData | undefined = undefined;
@@ -222,19 +226,20 @@ export const useRoadmapData = (): RoadmapData => {
         purchaseInYear = true;
         const firstPurchase = purchasesThisYear[0];
         
-        // Use actual test results from the timeline property
+        // Use actual test results from the timeline property (use first purchase for overall status)
         depositStatus = firstPurchase.depositTestPass ? 'pass' : 'fail';
         serviceabilityStatus = firstPurchase.serviceabilityTestPass ? 'pass' : 'fail';
         borrowingStatus = firstPurchase.borrowingCapacityRemaining >= 0 ? 'pass' : 'fail';
         
-        purchaseDetails = {
-          propertyTitle: firstPurchase.title,
-          cost: firstPurchase.cost,
-          depositRequired: firstPurchase.depositRequired,
-          loanAmount: firstPurchase.loanAmount,
-          instanceId: firstPurchase.instanceId,
-          propertyType: firstPurchase.title,
-        };
+        // Include ALL purchases for this year (supports stacking multiple properties)
+        purchaseDetails = purchasesThisYear.map(purchase => ({
+          propertyTitle: purchase.title,
+          cost: purchase.cost,
+          depositRequired: purchase.depositRequired,
+          loanAmount: purchase.loanAmount,
+          instanceId: purchase.instanceId,
+          propertyType: purchase.title,
+        }));
         
         // Calculate values needed for YearBreakdownData
         const existingDebt = totalDebt - firstPurchase.loanAmount;

@@ -36,12 +36,12 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
     <button
       onClick={saveScenario}
       disabled={isLoading || !hasUnsavedChanges}
-      className="flex items-center gap-2 bg-gray-900 text-white px-4 py-1.5 rounded-lg font-medium text-[13px] hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex items-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isLoading ? (
-        <Clock size={16} className="animate-spin" />
+        <Clock size={14} className="animate-spin" />
       ) : (
-        <Save size={16} />
+        <Save size={14} />
       )}
       {isLoading ? 'Saving...' : 'Save Scenario'}
     </button>

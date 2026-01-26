@@ -20,6 +20,11 @@ interface PropertyTimelineEntry extends BaseTimelineItem {
   cashflow: string;
   milestone: string;
   nextMove: string;
+  // Commitment breakdown fields
+  savedAmount?: string;
+  equityReleased?: string;
+  totalDeposit?: string;
+  monthsToSave?: number;
 }
 
 // Milestone/Gap Year entry
@@ -244,6 +249,117 @@ const generateNextMove = (
 };
 
 /**
+ * Calculate commitment breakdown for a property purchase
+ * Shows how the deposit is funded: savings vs equity release
+ */
+const calculateCommitmentBreakdown = (
+  property: PropertySelection,
+  propertyIndex: number,
+  purchasedProperties: PropertySelection[],
+  investmentProfile: any
+): { savedAmount: string; equityReleased: string; totalDeposit: string; monthsToSave: number } => {
+  const startYear = 2025;
+  const purchaseYear = Math.round(property.affordableYear || property.purchaseYear || startYear);
+  const purchasePrice = property.cost || 0;
+  
+  // Calculate total deposit required (20% + 5% acquisition costs)
+  const depositPercent = 0.20;
+  const acquisitionPercent = 0.05;
+  const depositRequired = purchasePrice * depositPercent;
+  const acquisitionCosts = purchasePrice * acquisitionPercent;
+  const totalDepositRequired = depositRequired + acquisitionCosts;
+  
+  // Get annual savings from profile
+  const annualSavings = investmentProfile?.annualSavings || 24000; // Default $2k/month
+  const monthlySavings = annualSavings / 12;
+  
+  // Calculate equity released from previous properties
+  let equityReleasedAmount = 0;
+  if (propertyIndex > 0) {
+    // Calculate total usable equity from previous properties
+    for (let i = 0; i < propertyIndex; i++) {
+      const prevProperty = purchasedProperties[i];
+      const prevCost = prevProperty.cost || 0;
+      const prevYear = Math.round(prevProperty.affordableYear || prevProperty.purchaseYear || startYear);
+      const yearsOwned = purchaseYear - prevYear;
+      
+      if (yearsOwned > 0) {
+        const growthRate = parseFloat(prevProperty.growth || '6') / 100;
+        const currentValue = prevCost * Math.pow(1 + growthRate, yearsOwned);
+        const originalLoan = prevCost * 0.80; // 80% LVR
+        
+        // Usable equity = 80% of current value minus current loan
+        // This assumes we can refinance to 80% LVR
+        const maxNewLoan = currentValue * 0.80;
+        const equityGain = maxNewLoan - originalLoan;
+        
+        if (equityGain > 0) {
+          equityReleasedAmount += equityGain;
+        }
+      }
+    }
+  }
+  
+  // For first property, use starting deposit from profile
+  let savedAmount = 0;
+  let monthsToSave = 0;
+  
+  if (propertyIndex === 0) {
+    // First property: use initial deposit pool
+    const startingCash = investmentProfile?.depositPool || investmentProfile?.initialDeposit || 0;
+    
+    if (startingCash >= totalDepositRequired) {
+      // Fully funded by initial deposit
+      savedAmount = totalDepositRequired;
+      monthsToSave = 0;
+    } else {
+      // Need to save additional
+      savedAmount = startingCash;
+      const additionalNeeded = totalDepositRequired - startingCash;
+      monthsToSave = Math.ceil(additionalNeeded / monthlySavings);
+      savedAmount += additionalNeeded;
+    }
+  } else {
+    // Subsequent properties: combination of savings and equity release
+    const previousYear = Math.round(
+      purchasedProperties[propertyIndex - 1].affordableYear || 
+      purchasedProperties[propertyIndex - 1].purchaseYear || 
+      startYear
+    );
+    const yearsBetween = purchaseYear - previousYear;
+    
+    // Savings accumulated between purchases
+    savedAmount = annualSavings * yearsBetween;
+    monthsToSave = Math.round(yearsBetween * 12);
+    
+    // If equity release + savings covers the deposit
+    const totalFunds = savedAmount + equityReleasedAmount;
+    
+    if (totalFunds >= totalDepositRequired) {
+      // Fully funded - adjust proportions
+      const excessFunds = totalFunds - totalDepositRequired;
+      
+      // Prioritize using equity, reduce savings requirement
+      if (equityReleasedAmount >= totalDepositRequired) {
+        savedAmount = 0;
+        equityReleasedAmount = totalDepositRequired;
+        monthsToSave = 0;
+      } else {
+        savedAmount = totalDepositRequired - equityReleasedAmount;
+        monthsToSave = Math.ceil(savedAmount / monthlySavings);
+      }
+    }
+  }
+  
+  return {
+    savedAmount: formatCurrency(savedAmount),
+    equityReleased: formatCurrency(equityReleasedAmount),
+    totalDeposit: formatCurrency(totalDepositRequired),
+    monthsToSave: monthsToSave,
+  };
+};
+
+/**
  * Generate timeline data from property selections with intelligent narratives
  */
 export const generateTimelineData = (
@@ -274,6 +390,14 @@ export const generateTimelineData = (
     const yieldValue = property.yield || '4.0%';
     const cashflow = formatCashflow(calculateCashflow(purchasedProperties, index));
     
+    // Calculate commitment breakdown for this property
+    const commitmentBreakdown = calculateCommitmentBreakdown(
+      property,
+      index,
+      purchasedProperties,
+      investmentProfile
+    );
+    
     // Check for gap with next property
     if (index < purchasedProperties.length - 1) {
       const nextProperty = purchasedProperties[index + 1];
@@ -300,6 +424,10 @@ export const generateTimelineData = (
           milestone: generateMilestoneNarrative(property, propertyNumber, purchasedProperties.slice(0, index)),
           nextMove: generateNextMove(property, index, nextProperty, purchasedProperties),
           isLast: false,
+          savedAmount: commitmentBreakdown.savedAmount,
+          equityReleased: commitmentBreakdown.equityReleased,
+          totalDeposit: commitmentBreakdown.totalDeposit,
+          monthsToSave: commitmentBreakdown.monthsToSave,
         });
         
         // Add gap milestone
@@ -324,6 +452,10 @@ export const generateTimelineData = (
           milestone: generateMilestoneNarrative(property, propertyNumber, purchasedProperties.slice(0, index)),
           nextMove: generateNextMove(property, index, nextProperty, purchasedProperties),
           isLast: false,
+          savedAmount: commitmentBreakdown.savedAmount,
+          equityReleased: commitmentBreakdown.equityReleased,
+          totalDeposit: commitmentBreakdown.totalDeposit,
+          monthsToSave: commitmentBreakdown.monthsToSave,
         });
       }
     } else {
@@ -343,6 +475,10 @@ export const generateTimelineData = (
         milestone: generateMilestoneNarrative(property, propertyNumber, purchasedProperties.slice(0, index)),
         nextMove: generateNextMove(property, index, null, purchasedProperties),
         isLast: true,
+        savedAmount: commitmentBreakdown.savedAmount,
+        equityReleased: commitmentBreakdown.equityReleased,
+        totalDeposit: commitmentBreakdown.totalDeposit,
+        monthsToSave: commitmentBreakdown.monthsToSave,
       });
     }
   });

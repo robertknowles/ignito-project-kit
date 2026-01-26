@@ -15,7 +15,11 @@ import { Sparkles } from 'lucide-react';
 import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
+import { PropertyDetailsModal } from './PropertyDetailsModal';
+import type { TimelineProperty } from '../types/property';
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 // Column dimension constants
 const LABEL_COLUMN_WIDTH = 50;
@@ -179,13 +183,43 @@ const generateCashflowSummary = (
   return summaryParts.join(' ');
 };
 
-export const CashflowRoadmap: React.FC = () => {
+interface CashflowRoadmapProps {
+  scenarioData?: {
+    timelineProperties: TimelineProperty[];
+    profile: InvestmentProfileData;
+  };
+}
+
+export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }) => {
   const { years } = useRoadmapData();
   const { cashflowData } = useChartDataGenerator();
-  const { profile } = useInvestmentProfile();
+  const { profile: contextProfile } = useInvestmentProfile();
+  const { timelineProperties } = useAffordabilityCalculator();
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use context
+  const profile = scenarioData?.profile ?? contextProfile;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  
+  // Modal state for property details
+  const [selectedProperty, setSelectedProperty] = useState<TimelineProperty | null>(null);
+  const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
+  
+  // Handler to open property details modal
+  const handlePropertyClick = useCallback((instanceId: string) => {
+    const property = timelineProperties.find(p => p.instanceId === instanceId);
+    if (property) {
+      setSelectedProperty(property);
+      setIsPropertyModalOpen(true);
+    }
+  }, [timelineProperties]);
+  
+  // Handler to close property details modal
+  const handlePropertyModalClose = useCallback(() => {
+    setIsPropertyModalOpen(false);
+    setSelectedProperty(null);
+  }, []);
 
   // Measure container width and update on resize
   useEffect(() => {
@@ -441,15 +475,20 @@ export const CashflowRoadmap: React.FC = () => {
               {years.map((yearData, index) => (
                 <div 
                   key={`purchase-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
                 >
-                  {yearData.purchaseInYear && yearData.purchaseDetails ? (
-                    <MiniPurchaseCard
-                      propertyTitle={yearData.purchaseDetails.propertyTitle}
-                      cost={yearData.purchaseDetails.cost}
-                      loanAmount={yearData.purchaseDetails.loanAmount}
-                      depositRequired={yearData.purchaseDetails.depositRequired}
-                    />
+                  {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
+                    // Render a MiniPurchaseCard for each property in this year
+                    yearData.purchaseDetails.map((purchase, purchaseIndex) => (
+                      <MiniPurchaseCard
+                        key={`${purchase.instanceId}-${purchaseIndex}`}
+                        propertyTitle={purchase.propertyTitle}
+                        cost={purchase.cost}
+                        loanAmount={purchase.loanAmount}
+                        depositRequired={purchase.depositRequired}
+                        onClick={() => handlePropertyClick(purchase.instanceId)}
+                      />
+                    ))
                   ) : (
                     <span className="text-[8px] text-slate-400 self-center">–</span>
                   )}
@@ -532,6 +571,12 @@ export const CashflowRoadmap: React.FC = () => {
         </div>
       </div>
       
+      {/* Property Details Modal */}
+      <PropertyDetailsModal
+        property={selectedProperty}
+        isOpen={isPropertyModalOpen}
+        onClose={handlePropertyModalClose}
+      />
     </div>
   );
 };

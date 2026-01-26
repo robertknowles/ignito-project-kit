@@ -1000,7 +1000,22 @@ export const useAffordabilityCalculator = () => {
       
       // Attach instanceId to property for use in determineNextPurchasePeriod
       const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired };
-      const result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
+      
+      // MANUAL PLACEMENT MODE: Check if property has been manually placed via drag-and-drop
+      // If so, use the manual placement period instead of auto-calculating
+      let result: { period: number };
+      
+      if (propertyInstance?.isManuallyPlaced && propertyInstance?.manualPlacementPeriod !== undefined) {
+        // Use the manually specified period
+        result = { period: propertyInstance.manualPlacementPeriod };
+        if (DEBUG_MODE) {
+          console.log(`[MANUAL] Property ${instanceId} manually placed at period ${result.period} (${periodToDisplay(result.period)})`);
+        }
+      } else {
+        // Auto-calculate the purchase period based on affordability
+        result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
+      }
+      
       const loanAmount = correctLoanAmount;
       
       // Calculate portfolio metrics at time of purchase

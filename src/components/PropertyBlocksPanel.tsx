@@ -53,7 +53,7 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
     : null
   
   return (
-    <div className={`flex flex-col rounded-xl transition-colors ${
+    <div className={`group flex flex-col rounded-xl transition-colors ${
       isActive 
         ? 'ring-1 ring-gray-900' 
         : ''
@@ -62,7 +62,7 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
       <div className={`flex items-start gap-2 p-2.5 bg-white border transition-colors ${
         isActive 
           ? 'border-gray-900' 
-          : 'border-gray-200 hover:border-gray-400'
+          : 'border-gray-200 group-hover:border-gray-400'
       } ${!isCustom && onEdit ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}>
         {/* Left: Icon in light gray square */}
         <div className="flex-shrink-0 bg-gray-100 p-1.5 rounded-md mt-0.5">
@@ -133,8 +133,8 @@ const PropertyBlockCard: React.FC<PropertyBlockCardProps> = ({
       
       {/* Edit Template & Duplicate Extension - Grey box below the block */}
       {!isCustom && (onEdit || onDuplicate) && (
-        <div className={`flex items-center justify-center gap-3 py-1.5 px-3 bg-gray-100 rounded-b-xl border border-t-0 ${
-          isActive ? 'border-gray-900' : 'border-gray-200'
+        <div className={`flex items-center justify-center gap-3 py-1.5 px-3 bg-gray-100 rounded-b-xl border border-t-0 transition-colors ${
+          isActive ? 'border-gray-900' : 'border-gray-200 group-hover:border-gray-400'
         }`}>
           {onEdit && (
             <button
@@ -194,6 +194,13 @@ export const PropertyBlocksPanel: React.FC = () => {
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
   const [sortConfig, setSortConfig] = useState<{ key: 'default' | 'cost'; direction: 'asc' | 'desc' }>({ key: 'default', direction: 'asc' })
   const [selectedPauseDuration, setSelectedPauseDuration] = useState(1)
+  
+  // State for duplicating a property - stores the property type and source instance data
+  const [duplicatingProperty, setDuplicatingProperty] = useState<{
+    propertyId: string;
+    propertyType: string;
+    sourceInstanceId: string;
+  } | null>(null)
 
   // Sort properties based on sortConfig
   const sortedProperties = useMemo(() => {
@@ -216,26 +223,33 @@ export const PropertyBlocksPanel: React.FC = () => {
   }
 
   // Handle duplicating a property block
-  // This creates a new instance and copies the data from the last instance of this property type
-  const handleDuplicateProperty = (propertyId: string) => {
+  // Opens a modal pre-filled with the source property's data so user can edit before adding
+  const handleDuplicateProperty = (propertyId: string, propertyTitle: string) => {
     const currentCount = getPropertyQuantity(propertyId)
     if (currentCount === 0) return
 
-    // Get the last instance's data to copy
+    // Get the last instance's data to use as source for duplication
     const lastInstanceId = `${propertyId}_instance_${currentCount - 1}`
-    const sourceInstance = getInstance(lastInstanceId)
+    
+    // Open the duplicate modal with the source instance info
+    setDuplicatingProperty({
+      propertyId,
+      propertyType: propertyTitle,
+      sourceInstanceId: lastInstanceId,
+    })
+  }
 
-    // Increment the property (creates a new instance)
+  // Handle saving the duplicated property from the modal
+  const handleSaveDuplicate = () => {
+    if (!duplicatingProperty) return
+    
+    const { propertyId } = duplicatingProperty
+    
+    // Increment the property count (the modal will have already updated the instance data)
     incrementProperty(propertyId)
-
-    // After incrementing, copy the source instance data to the new instance
-    if (sourceInstance) {
-      const newInstanceId = `${propertyId}_instance_${currentCount}`
-      // Use setTimeout to ensure the new instance is created first
-      setTimeout(() => {
-        updateInstance(newInstanceId, { ...sourceInstance })
-      }, 50)
-    }
+    
+    // Close the modal
+    setDuplicatingProperty(null)
   }
 
   // Helper to get cascading growth rates for a property
@@ -329,7 +343,7 @@ export const PropertyBlocksPanel: React.FC = () => {
           onDecrement={() => decrementProperty(property.id)}
           onEdit={!property.isCustom ? () => handleEditTemplate(property.title) : undefined}
           onDelete={property.isCustom ? () => removeCustomBlock(property.id) : undefined}
-          onDuplicate={!property.isCustom ? () => handleDuplicateProperty(property.id) : undefined}
+          onDuplicate={!property.isCustom ? () => handleDuplicateProperty(property.id, property.title) : undefined}
         />
       ))}
 
@@ -407,6 +421,19 @@ export const PropertyBlocksPanel: React.FC = () => {
           instanceId={`template_${editingTemplate}`}
           propertyType={editingTemplate}
           isTemplate={true}
+        />
+      )}
+      
+      {/* Property Duplicate Modal */}
+      {duplicatingProperty && (
+        <PropertyDetailModal
+          isOpen={!!duplicatingProperty}
+          onClose={() => setDuplicatingProperty(null)}
+          instanceId={`${duplicatingProperty.propertyId}_instance_${getPropertyQuantity(duplicatingProperty.propertyId)}`}
+          propertyType={duplicatingProperty.propertyType}
+          isDuplicating={true}
+          sourceInstanceId={duplicatingProperty.sourceInstanceId}
+          onDuplicateSave={handleSaveDuplicate}
         />
       )}
     </div>

@@ -112,6 +112,14 @@ export interface PropertyInstanceDetails {
   
   /** Potential tax deductions or rebates */
   potentialDeductionsRebates: number;
+  
+  // Section F: Manual Placement (Drag-and-Drop)
+  
+  /** Whether this property has been manually placed via drag-and-drop */
+  isManuallyPlaced?: boolean;
+  
+  /** The target period when manually placed (1 = 2025 H1, 2 = 2025 H2, etc.) */
+  manualPlacementPeriod?: number;
 }
 
 

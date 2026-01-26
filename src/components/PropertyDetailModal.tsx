@@ -67,6 +67,9 @@ interface PropertyDetailModalProps {
   propertyType: string;
   isTemplate?: boolean; // NEW: Indicates this is editing a template, not an instance
   readOnly?: boolean; // NEW: When true, all inputs are disabled and save button is hidden
+  isDuplicating?: boolean; // NEW: Indicates this is duplicating from a source instance
+  sourceInstanceId?: string; // NEW: The source instance to copy data from when duplicating
+  onDuplicateSave?: () => void; // NEW: Callback when duplication is saved (to increment property count)
 }
 
 export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -76,6 +79,9 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   propertyType,
   isTemplate = false,
   readOnly = false,
+  isDuplicating = false,
+  sourceInstanceId,
+  onDuplicateSave,
 }) => {
   const { getInstance, updateInstance, createInstance } = usePropertyInstance();
   const { getPropertyData, getPropertyTypeTemplate, updatePropertyTypeTemplate } = useDataAssumptions();
@@ -99,7 +105,24 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   
   // Initialize form data
   useEffect(() => {
-    if (isTemplate) {
+    if (isDuplicating && sourceInstanceId) {
+      // Duplicating: Load data from source instance to pre-fill the form
+      const sourceInstance = getInstance(sourceInstanceId);
+      if (sourceInstance) {
+        setFormData({ ...sourceInstance });
+        setInitialFormData({ ...sourceInstance });
+        // Mark as having changes since this is a new property being created
+        setHasUnsavedChanges(true);
+      } else {
+        // Fallback to template if source instance not found
+        const template = getPropertyTypeTemplate(propertyType);
+        if (template) {
+          setFormData({ ...template });
+          setInitialFormData({ ...template });
+          setHasUnsavedChanges(true);
+        }
+      }
+    } else if (isTemplate) {
       // Load template data
       const template = getPropertyTypeTemplate(propertyType);
       if (template) {
@@ -128,8 +151,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         setInitialFormData(instance);
       }
     }
-    setHasUnsavedChanges(false);
-  }, [instanceId, createInstance, getInstance, propertyType, isTemplate, getPropertyTypeTemplate]);
+    if (!isDuplicating) {
+      setHasUnsavedChanges(false);
+    }
+  }, [instanceId, createInstance, getInstance, propertyType, isTemplate, getPropertyTypeTemplate, isDuplicating, sourceInstanceId]);
   
   // Update local state when field changes
   const handleFieldChange = (field: keyof PropertyInstanceDetails, value: any) => {
@@ -210,7 +235,27 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         throw new Error('Cannot save - form has validation errors');
       }
       
-      if (isTemplate) {
+      if (isDuplicating) {
+        // Duplicating: First call the callback to increment property count, then save the new instance
+        console.log('PropertyDetailModal: Duplicating property - calling onDuplicateSave callback');
+        
+        if (onDuplicateSave) {
+          onDuplicateSave();
+        }
+        
+        // Save the form data to the new instance (instanceId is the new instance ID)
+        // Small delay to ensure the instance is created first
+        setTimeout(() => {
+          console.log('PropertyDetailModal: Saving duplicated instance data to:', instanceId);
+          updateInstance(instanceId, formData);
+          
+          toast({
+            title: "Property Duplicated",
+            description: `${propertyType} duplicated successfully. Click 'Save' in the main app to persist to database.`,
+          });
+        }, 100);
+        
+      } else if (isTemplate) {
         // Save to property type template
         console.log('PropertyDetailModal: Saving template for', propertyType);
         updatePropertyTypeTemplate(propertyType, formData);
@@ -288,11 +333,13 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
-              {isTemplate 
-                ? `Edit Template: ${propertyType}` 
-                : readOnly 
-                  ? `View Details - ${propertyType}`
-                  : `Property Details - ${propertyType}`
+              {isDuplicating
+                ? `Duplicate Property: ${propertyType}`
+                : isTemplate 
+                  ? `Edit Template: ${propertyType}` 
+                  : readOnly 
+                    ? `View Details - ${propertyType}`
+                    : `Property Details - ${propertyType}`
               }
               {hasUnsavedChanges && !isSaving && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
@@ -302,7 +349,12 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               )}
             </DialogTitle>
           </div>
-          {isTemplate && (
+          {isDuplicating && (
+            <p className="text-sm text-[#6b7280] mt-1">
+              Edit the property details below and click "Add Duplicate" to create a new property with these settings.
+            </p>
+          )}
+          {isTemplate && !isDuplicating && (
             <p className="text-sm text-[#6b7280] mt-1">
               These defaults will apply to all new properties of this type.
               Existing properties in the timeline will not be affected.
@@ -326,11 +378,11 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           </div>
         ) : (
         <Tabs defaultValue="property-loan" className="w-full">
-          <TabsList className={`grid w-full ${isTemplate ? 'grid-cols-3' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full ${(isTemplate || isDuplicating) ? 'grid-cols-3' : 'grid-cols-4'}`}>
             <TabsTrigger value="property-loan" disabled={isSaving}>Property & Loan</TabsTrigger>
             <TabsTrigger value="purchase-costs" disabled={isSaving}>Purchase Costs</TabsTrigger>
             <TabsTrigger value="cashflow" disabled={isSaving}>Cashflow</TabsTrigger>
-            {!isTemplate && <TabsTrigger value="projections" disabled={isSaving}>Projections</TabsTrigger>}
+            {!isTemplate && !isDuplicating && <TabsTrigger value="projections" disabled={isSaving}>Projections</TabsTrigger>}
           </TabsList>
           
           {/* TAB 1: Property & Loan Details */}
@@ -1008,10 +1060,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 {isSaving ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={16} />
-                    Saving...
+                    {isDuplicating ? 'Adding...' : 'Saving...'}
                   </>
                 ) : (
-                  'Save Changes'
+                  isDuplicating ? 'Add Duplicate' : 'Save Changes'
                 )}
               </Button>
             )}

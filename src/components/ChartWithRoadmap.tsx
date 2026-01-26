@@ -10,18 +10,44 @@ import {
   ReferenceDot,
   Label,
 } from 'recharts';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, AlertTriangle } from 'lucide-react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
+import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { validatePropertyPlacement, isPlacementValid, ValidationResult } from '../utils/guardrailValidator';
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
 import { SingleTestModal, TestType } from './SingleTestModal';
+import { PropertyDetailsModal } from './PropertyDetailsModal';
+import { GuardrailFixModal } from './GuardrailFixModal';
+import type { TimelineProperty } from '../types/property';
+import type { GuardrailViolation } from '../utils/guardrailValidator';
+import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 // Column dimension constants
 const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
 const Y_AXIS_WIDTH = 50; // Width for the chart Y-axis
+const CHART_HEIGHT = 220; // Height of the chart area
+
+// Period conversion constants (matching useAffordabilityCalculator)
+const PERIODS_PER_YEAR = 2;
+const BASE_YEAR = 2025;
+
+// Convert year to period (for drag-and-drop targeting)
+const yearToPeriod = (year: number): number => {
+  return Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
+};
+
+// Convert period to year (for display)
+const periodToYear = (period: number): number => {
+  return BASE_YEAR + (period - 1) / PERIODS_PER_YEAR;
+};
 
 // Format currency for display
 const formatCurrency = (value: number): string => {
@@ -113,11 +139,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="text-xs text-slate-500">
           Equity: {formatCurrency(data?.totalEquity || 0)}
         </p>
-        {data?.purchaseInYear && data?.purchaseDetails && (
+        {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
           <div className="mt-2 pt-2 border-t border-slate-100">
-            <p className="text-xs font-medium text-slate-700">
-              🏠 {data.purchaseDetails.propertyTitle}
-            </p>
+            {data.purchaseDetails.map((purchase: any, idx: number) => (
+              <p key={idx} className="text-xs font-medium text-slate-700">
+                🏠 {purchase.propertyTitle}
+              </p>
+            ))}
           </div>
         )}
       </div>
@@ -127,30 +155,208 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 // Custom dot component for property markers
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props;
+interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: any;
+  onPropertyClick?: (instanceId: string) => void;
+}
+
+const CustomDot = (props: CustomDotProps) => {
+  const { cx, cy, payload, onPropertyClick } = props;
   
   // Protect against invalid coordinates
   if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null;
   
   // Only show marker if there's a purchase this year
-  if (!payload.purchaseInYear || !payload.purchaseDetails) {
+  // Note: We now use draggable overlays for property icons, so this is mostly for fallback
+  if (!payload?.purchaseInYear || !payload?.purchaseDetails || payload.purchaseDetails.length === 0) {
     return null;
   }
   
-  const propertyTitle = payload.purchaseDetails.propertyTitle;
+  // Use first purchase for the dot marker (stacked properties shown via DraggablePropertyIcon)
+  const firstPurchase = payload.purchaseDetails[0];
+  const propertyTitle = firstPurchase.propertyTitle;
+  const instanceId = firstPurchase.instanceId;
   const isHouse = isHouseType(propertyTitle);
   const borderColor = isHouse ? '#22c55e' : '#3b82f6'; // Green for houses, blue for units
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onPropertyClick && instanceId) {
+      onPropertyClick(instanceId);
+    }
+  };
   
   return (
     <foreignObject x={cx - 12} y={cy - 12} width={24} height={24}>
       <div 
-        className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm"
+        className={`w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm ${onPropertyClick ? 'cursor-pointer hover:scale-110 hover:shadow-md transition-all duration-150' : ''}`}
         style={{ border: `2px solid ${borderColor}` }}
+        onClick={handleClick}
+        title={onPropertyClick ? `Click for details: ${propertyTitle}` : undefined}
       >
         {getPropertyTypeIcon(propertyTitle, 14, isHouse ? 'text-green-600' : 'text-blue-600')}
       </div>
     </foreignObject>
+  );
+};
+
+// Draggable Property Icon component for the overlay
+interface DraggablePropertyIconProps {
+  property: TimelineProperty;
+  x: number;
+  y: number;
+  isDragging: boolean;
+  hasViolations: boolean;
+  onPropertyClick: (instanceId: string) => void;
+}
+
+const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
+  property,
+  x,
+  y,
+  isDragging,
+  hasViolations,
+  onPropertyClick,
+}) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `draggable-${property.instanceId}`,
+    data: {
+      instanceId: property.instanceId,
+      propertyId: property.id,
+      title: property.title,
+      currentPeriod: property.period,
+      cost: property.cost,
+      depositRequired: property.depositRequired,
+      loanAmount: property.loanAmount,
+    } as DraggedProperty,
+  });
+
+  const isHouse = isHouseType(property.title);
+  const baseColor = isHouse ? '#22c55e' : '#3b82f6';
+  const borderColor = hasViolations ? '#ef4444' : baseColor;
+  const borderWidth = hasViolations ? 3 : 2;
+
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: x - 12,
+    top: y - 12,
+    width: 24,
+    height: 24,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    zIndex: isDragging ? 1000 : 10,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'grab',
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPropertyClick(property.instanceId);
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="touch-none"
+    >
+      <div
+        className={`w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 hover:shadow-md transition-all duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ border: `${borderWidth}px solid ${borderColor}` }}
+        onClick={handleClick}
+        title={`Drag to move: ${property.title}`}
+      >
+        {getPropertyTypeIcon(property.title, 14, isHouse ? 'text-green-600' : 'text-blue-600')}
+      </div>
+      {/* Warning indicator for violations */}
+      {hasViolations && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+          <AlertTriangle size={10} className="text-white" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Droppable Year Column overlay component
+interface DroppableYearColumnProps {
+  year: number;
+  period: number;
+  x: number;
+  width: number;
+  height: number;
+  isOver: boolean;
+  isValid: boolean | null;
+  isDragActive: boolean;
+}
+
+const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
+  year,
+  period,
+  x,
+  width,
+  height,
+  isOver,
+  isValid,
+  isDragActive,
+}) => {
+  const { setNodeRef } = useDroppable({
+    id: `period-${period}`,
+  });
+
+  // Only show highlight when dragging
+  if (!isDragActive) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          position: 'absolute',
+          left: x,
+          top: 0,
+          width: width,
+          height: height,
+          pointerEvents: 'auto',
+        }}
+      />
+    );
+  }
+
+  // Determine background color based on validation
+  let backgroundColor = 'transparent';
+  let borderColor = 'transparent';
+  
+  if (isOver) {
+    if (isValid === true) {
+      backgroundColor = 'rgba(34, 197, 94, 0.15)'; // Green
+      borderColor = '#22c55e';
+    } else if (isValid === false) {
+      backgroundColor = 'rgba(239, 68, 68, 0.15)'; // Red
+      borderColor = '#ef4444';
+    }
+  } else if (isDragActive) {
+    // Show subtle highlight for all columns during drag
+    backgroundColor = 'rgba(148, 163, 184, 0.05)';
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 0,
+        width: width,
+        height: height,
+        backgroundColor,
+        borderLeft: isOver ? `2px solid ${borderColor}` : 'none',
+        borderRight: isOver ? `2px solid ${borderColor}` : 'none',
+        transition: 'all 150ms ease-in-out',
+        pointerEvents: 'auto',
+      }}
+    />
   );
 };
 
@@ -231,11 +437,31 @@ const generateRoadmapSummary = (
   return `This ${totalProperties}-property strategy projects a portfolio value of ${formatCurrency(finalYear.portfolioValueRaw)} by ${finalYear.year}, ${goalText}. Analysis shows ${bottleneckText}.`;
 };
 
-export const ChartWithRoadmap: React.FC = () => {
+interface ChartWithRoadmapProps {
+  scenarioData?: {
+    timelineProperties: TimelineProperty[];
+    profile: InvestmentProfileData;
+  };
+}
+
+export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData }) => {
   const { years } = useRoadmapData();
-  const { profile } = useInvestmentProfile();
+  const { profile: contextProfile } = useInvestmentProfile();
+  const { timelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
+  const { getInstance, updateInstance } = usePropertyInstance();
+  
+  // Drag-and-drop state management (from shared context)
+  const {
+    draggedProperty,
+    targetPeriod,
+    isDragging,
+  } = usePropertyDragDropContext();
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use context
+  const profile = scenarioData?.profile ?? contextProfile;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   
   // Modal state for single test funnel
@@ -244,6 +470,123 @@ export const ChartWithRoadmap: React.FC = () => {
     type: TestType;
     yearData: YearData;
   } | null>(null);
+  
+  // Modal state for property details
+  const [selectedProperty, setSelectedProperty] = useState<TimelineProperty | null>(null);
+  const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
+  
+  // Modal state for guardrail fix (shown when clicking property with violations)
+  const [isGuardrailFixModalOpen, setIsGuardrailFixModalOpen] = useState(false);
+  const [currentViolations, setCurrentViolations] = useState<GuardrailViolation[]>([]);
+  
+  // Validation state for drag-over feedback
+  const [hoverValidation, setHoverValidation] = useState<{ period: number; isValid: boolean } | null>(null);
+  
+  // Get violations for a property
+  const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
+    const violations: GuardrailViolation[] = [];
+    
+    // Check if property has been manually placed and is violating constraints
+    const instance = getInstance(property.instanceId);
+    if (!instance?.isManuallyPlaced) {
+      // Non-manually placed properties are auto-calculated to be valid
+      return violations;
+    }
+    
+    // Check deposit test
+    if (!property.depositTestPass) {
+      violations.push({
+        type: 'deposit',
+        severity: 'error',
+        message: `Insufficient funds. Shortfall: $${Math.abs(property.depositTestSurplus).toLocaleString()}`,
+        shortfall: Math.abs(property.depositTestSurplus),
+        currentValue: property.availableFundsUsed,
+        requiredValue: property.totalCashRequired,
+      });
+    }
+    
+    // Check borrowing capacity
+    if (property.borrowingCapacityRemaining < 0) {
+      violations.push({
+        type: 'borrowing',
+        severity: 'error',
+        message: `Insufficient borrowing capacity. Exceeded by: $${Math.abs(property.borrowingCapacityRemaining).toLocaleString()}`,
+        shortfall: Math.abs(property.borrowingCapacityRemaining),
+        currentValue: property.borrowingCapacityUsed,
+        requiredValue: property.loanAmount,
+      });
+    }
+    
+    // Check serviceability
+    if (!property.serviceabilityTestPass) {
+      violations.push({
+        type: 'serviceability',
+        severity: property.serviceabilityTestSurplus < -5000 ? 'error' : 'warning',
+        message: `Serviceability test fails. Annual shortfall: $${Math.abs(property.serviceabilityTestSurplus).toLocaleString()}`,
+        shortfall: Math.abs(property.serviceabilityTestSurplus),
+        currentValue: property.serviceabilityTestSurplus,
+        requiredValue: 0,
+      });
+    }
+    
+    return violations;
+  }, [getInstance]);
+  
+  // Handler to open property details or guardrail fix modal
+  const handlePropertyClick = useCallback((instanceId: string) => {
+    const property = timelineProperties.find(p => p.instanceId === instanceId);
+    if (!property) return;
+    
+    setSelectedProperty(property);
+    
+    // Check if property has violations
+    const violations = getPropertyViolations(property);
+    
+    if (violations.length > 0) {
+      // Has violations - show GuardrailFixModal first
+      setCurrentViolations(violations);
+      setIsGuardrailFixModalOpen(true);
+    } else {
+      // No violations - show PropertyDetailsModal directly
+      setIsPropertyModalOpen(true);
+    }
+  }, [timelineProperties, getPropertyViolations]);
+  
+  // Handler to close property details modal
+  const handlePropertyModalClose = useCallback(() => {
+    setIsPropertyModalOpen(false);
+    setSelectedProperty(null);
+  }, []);
+  
+  // Handler to close guardrail fix modal
+  const handleGuardrailFixModalClose = useCallback(() => {
+    setIsGuardrailFixModalOpen(false);
+    setCurrentViolations([]);
+  }, []);
+  
+  // Handler for applying changes from GuardrailFixModal
+  const handleApplyGuardrailChanges = useCallback((updatedFields: Partial<PropertyInstanceDetails>) => {
+    if (!selectedProperty) return;
+    
+    // Update the property instance with new values
+    updateInstance(selectedProperty.instanceId, updatedFields);
+    
+    // Close the guardrail modal
+    setIsGuardrailFixModalOpen(false);
+    setCurrentViolations([]);
+    
+    // Optionally open the property details modal after applying changes
+    // This gives the user a chance to see the updated property details
+    setIsPropertyModalOpen(true);
+  }, [selectedProperty, updateInstance]);
+  
+  // Handler for "View Property Details" button in GuardrailFixModal
+  const handleViewPropertyDetails = useCallback(() => {
+    // Close guardrail modal and open property details modal
+    setIsGuardrailFixModalOpen(false);
+    setCurrentViolations([]);
+    setIsPropertyModalOpen(true);
+  }, []);
   
   // Handler to open a specific test modal
   const handleTestClick = useCallback((yearData: YearData, testType: TestType) => {
@@ -255,6 +598,69 @@ export const ChartWithRoadmap: React.FC = () => {
       });
     }
   }, []);
+
+  // Build purchase history for validation (all properties except the one being dragged)
+  const buildPurchaseHistoryForValidation = useCallback((excludeInstanceId: string, upToPeriod: number) => {
+    return timelineProperties
+      .filter(p => p.instanceId !== excludeInstanceId && p.period !== Infinity && p.period < upToPeriod)
+      .map(p => ({
+        period: p.period,
+        cost: p.cost,
+        depositRequired: p.depositRequired,
+        loanAmount: p.loanAmount,
+        title: p.title,
+        instanceId: p.instanceId,
+        loanType: p.loanType,
+        cumulativeEquityReleased: 0,
+      }));
+  }, [timelineProperties]);
+
+  // Validate property placement at a specific period
+  const validatePlacementAtPeriod = useCallback((
+    property: DraggedProperty,
+    period: number
+  ): boolean => {
+    // Build purchase history excluding the dragged property
+    const previousPurchases = buildPurchaseHistoryForValidation(property.instanceId, period);
+    
+    // Get the full property data from timelineProperties
+    const fullProperty = timelineProperties.find(p => p.instanceId === property.instanceId);
+    if (!fullProperty) return false;
+
+    // Create property object for affordability check
+    const propertyForCheck = {
+      title: property.title,
+      cost: property.cost,
+      depositRequired: property.depositRequired,
+      loanAmount: property.loanAmount,
+      instanceId: property.instanceId,
+      totalCashRequired: fullProperty.totalCashRequired,
+    };
+
+    // Use the calculator to check affordability
+    const result = calculateAffordabilityForProperty(period, propertyForCheck, previousPurchases);
+    
+    return result.canAfford && result.depositTestPass && result.serviceabilityTestPass;
+  }, [buildPurchaseHistoryForValidation, timelineProperties, calculateAffordabilityForProperty]);
+
+  // Update validation state when hovering over a period
+  useEffect(() => {
+    if (isDragging && draggedProperty && targetPeriod) {
+      const isValid = validatePlacementAtPeriod(draggedProperty, targetPeriod);
+      setHoverValidation({ period: targetPeriod, isValid });
+    } else {
+      setHoverValidation(null);
+    }
+  }, [isDragging, draggedProperty, targetPeriod, validatePlacementAtPeriod]);
+
+  // Check if a property has guardrail violations (for displaying warning icon)
+  const hasGuardrailViolations = useCallback((property: TimelineProperty): boolean => {
+    const instance = getInstance(property.instanceId);
+    if (!instance?.isManuallyPlaced) return false;
+    
+    // Check if any test fails for manually placed properties
+    return !property.depositTestPass || !property.serviceabilityTestPass || property.borrowingCapacityRemaining < 0;
+  }, [getInstance]);
 
   // Measure container width and update on resize
   useEffect(() => {
@@ -337,45 +743,165 @@ export const ChartWithRoadmap: React.FC = () => {
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
 
+  // Vertical gap between stacked property icons (in pixels)
+  const STACKED_PROPERTY_GAP = 30;
+
+  // Calculate positions for draggable property icons on the chart overlay
+  const propertyPositions = useMemo(() => {
+    if (!chartData.length) return [];
+    
+    // Match Recharts' Y-axis domain calculation
+    // Recharts auto-calculates domain with "nice" values - we need to approximate this
+    const dataMax = Math.max(...chartData.map(d => d.portfolioValue));
+    const equityGoalValue = profile.equityGoal || 0;
+    const rawMax = Math.max(dataMax, equityGoalValue);
+    
+    // Recharts adds padding and rounds to nice values
+    // Approximate by adding ~10% padding and rounding up to a nice number
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawMax)));
+    const maxValue = Math.ceil(rawMax / magnitude * 1.1) * magnitude;
+    const minValue = 0;
+    
+    // Chart dimensions - FIXED based on actual Recharts SVG path analysis
+    // The AreaChart has margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
+    // BUT Recharts also reserves space for the X-axis at the bottom (~30px)
+    // From debug logs: first point at Y=190 for low value, SVG height=220
+    // This means plotting area is from Y=20 (top margin) to Y=190 (above X-axis)
+    const chartTopMargin = 20;
+    const chartBottomMargin = 30; // Space for X-axis labels
+    const chartTotalHeight = CHART_HEIGHT; // 220px
+    const plottingAreaHeight = chartTotalHeight - chartTopMargin - chartBottomMargin; // 170px
+    
+    // Collect all property positions, handling multiple properties per year (stacking)
+    const positions: Array<{
+      year: number;
+      x: number;
+      y: number;
+      instanceId: string;
+      property: typeof timelineProperties[0] | undefined;
+    }> = [];
+    
+    chartData
+      .filter(d => d.purchaseInYear && d.purchaseDetails && d.purchaseDetails.length > 0)
+      .forEach(d => {
+        const yearIndex = chartData.findIndex(cd => cd.year === d.year);
+        // X position: center of the year column (accounting for Y-axis width)
+        const x = Y_AXIS_WIDTH + (yearIndex * yearColumnWidth) + (yearColumnWidth / 2);
+        
+        // Base Y position: scaled based on portfolio value (snaps to equity line area)
+        // In SVG/screen coordinates, y=0 is at the top, so we invert
+        const valueRatio = (d.portfolioValue - minValue) / (maxValue - minValue);
+        const baseY = chartTopMargin + plottingAreaHeight * (1 - valueRatio);
+        
+        // Add position for each property in this year, stacking vertically
+        d.purchaseDetails!.forEach((purchase, stackIndex) => {
+          // First property at base Y, subsequent properties stacked above with gap
+          const y = baseY - (stackIndex * STACKED_PROPERTY_GAP);
+          
+          positions.push({
+            year: d.year,
+            x,
+            y,
+            instanceId: purchase.instanceId,
+            property: timelineProperties.find(p => p.instanceId === purchase.instanceId),
+          });
+        });
+      });
+    
+    return positions.filter(pos => pos.property !== undefined);
+  }, [chartData, yearColumnWidth, profile.equityGoal, timelineProperties]);
+
+  // Generate periods array for droppable columns (one per year in the chart)
+  const periodsForDroppables = useMemo(() => {
+    return years.map((yearData, index) => ({
+      year: yearData.year,
+      period: yearToPeriod(yearData.year),
+      x: Y_AXIS_WIDTH + (index * yearColumnWidth),
+      width: yearColumnWidth,
+    }));
+  }, [years, yearColumnWidth]);
+
+
   return (
-    <div ref={containerRef} className="w-full h-full">
-      <div ref={scrollContainerRef} className="overflow-x-auto h-full">
-        {/* Scrollable container with dynamic total width */}
-        <div style={{ minWidth: totalWidth }}>
-          {/* Chart Section with grid overlay */}
-          <div className="flex relative">
-            {/* Label column - spacer for alignment with rows below */}
-            <div 
-              className="flex-shrink-0"
-              style={{ width: LABEL_COLUMN_WIDTH - Y_AXIS_WIDTH }}
-            />
-            
-            {/* Vertical grid lines overlay - positioned to align with table columns */}
-            <div 
-              className="absolute inset-0 pointer-events-none z-0"
-              style={{ left: 0 }}
-            >
-              {/* Grid extends from left border through Y-axis and all year columns */}
-              <div className="h-full flex">
+      <div ref={containerRef} className="w-full h-full">
+        <div ref={scrollContainerRef} className="overflow-x-auto h-full">
+          {/* Scrollable container with dynamic total width */}
+          <div style={{ minWidth: totalWidth }}>
+            {/* Chart Section with grid overlay */}
+            <div className="flex relative">
+              {/* Label column - spacer for alignment with rows below */}
+              <div 
+                className="flex-shrink-0"
+                style={{ width: LABEL_COLUMN_WIDTH - Y_AXIS_WIDTH }}
+              />
+              
+              {/* Vertical grid lines overlay - positioned to align with table columns */}
+              <div 
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{ left: 0 }}
+              >
+                {/* Grid extends from left border through Y-axis and all year columns */}
+                <div className="h-full flex">
+                  <div 
+                    className="h-full border-r border-slate-300/40"
+                    style={{ width: LABEL_COLUMN_WIDTH }}
+                  />
+                  <div className="h-full flex" style={{ width: chartWidth }}>
+                    {years.map((_, index) => (
+                      <div 
+                        key={`grid-line-${index}`}
+                        className="h-full border-r border-slate-300/40"
+                        style={{ width: yearColumnWidth }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Chart container - YAxis + plotting area with data points centered in year columns */}
+              <div ref={chartContainerRef} style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
+                {/* Droppable Year Column Overlays - positioned over the chart */}
                 <div 
-                  className="h-full border-r border-slate-300/40"
-                  style={{ width: LABEL_COLUMN_WIDTH }}
-                />
-                <div className="h-full flex" style={{ width: chartWidth }}>
-                  {years.map((_, index) => (
-                    <div 
-                      key={`grid-line-${index}`}
-                      className="h-full border-r border-slate-300/40"
-                      style={{ width: yearColumnWidth }}
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ height: CHART_HEIGHT }}
+                >
+                  {periodsForDroppables.map(({ year, period, x, width }) => (
+                    <DroppableYearColumn
+                      key={`droppable-${period}`}
+                      year={year}
+                      period={period}
+                      x={x}
+                      width={width}
+                      height={CHART_HEIGHT}
+                      isOver={hoverValidation?.period === period}
+                      isValid={hoverValidation?.period === period ? hoverValidation.isValid : null}
+                      isDragActive={isDragging}
                     />
                   ))}
                 </div>
-              </div>
-            </div>
-            
-            {/* Chart container - YAxis + plotting area with data points centered in year columns */}
-            <div style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
-              <AreaChart
+
+                {/* Draggable Property Icons Overlay - positioned over the chart */}
+                <div 
+                  className="absolute inset-0"
+                  style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
+                >
+                  {propertyPositions.map(({ x, y, instanceId, property }) => (
+                    property && (
+                      <div key={`draggable-wrapper-${instanceId}`} style={{ pointerEvents: 'auto' }}>
+                        <DraggablePropertyIcon
+                          property={property}
+                          x={x}
+                          y={y}
+                          isDragging={draggedProperty?.instanceId === instanceId}
+                          hasViolations={hasGuardrailViolations(property)}
+                          onPropertyClick={handlePropertyClick}
+                        />
+                      </div>
+                    )
+                  ))}
+                </div>
+
+                <AreaChart
                 width={chartWidth + Y_AXIS_WIDTH}
                 height={220}
                 data={chartData}
@@ -430,7 +956,7 @@ export const ChartWithRoadmap: React.FC = () => {
                 stroke="#5eead4"
                 strokeWidth={2}
                 fill="url(#tealGradient)"
-                dot={<CustomDot />}
+                dot={false}
                 activeDot={{
                   r: 6,
                   stroke: '#5eead4',
@@ -506,15 +1032,20 @@ export const ChartWithRoadmap: React.FC = () => {
             {years.map((yearData, index) => (
               <div 
                 key={`purchase-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
               >
-                {yearData.purchaseInYear && yearData.purchaseDetails ? (
-                  <MiniPurchaseCard
-                    propertyTitle={yearData.purchaseDetails.propertyTitle}
-                    cost={yearData.purchaseDetails.cost}
-                    loanAmount={yearData.purchaseDetails.loanAmount}
-                    depositRequired={yearData.purchaseDetails.depositRequired}
-                  />
+                {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
+                  // Render a MiniPurchaseCard for each property in this year
+                  yearData.purchaseDetails.map((purchase, purchaseIndex) => (
+                    <MiniPurchaseCard
+                      key={`${purchase.instanceId}-${purchaseIndex}`}
+                      propertyTitle={purchase.propertyTitle}
+                      cost={purchase.cost}
+                      loanAmount={purchase.loanAmount}
+                      depositRequired={purchase.depositRequired}
+                      onClick={() => handlePropertyClick(purchase.instanceId)}
+                    />
+                  ))
                 ) : (
                   <span className="text-[8px] text-slate-400 self-center">–</span>
                 )}
@@ -680,6 +1211,25 @@ export const ChartWithRoadmap: React.FC = () => {
           year={selectedTest.year}
         />
       )}
+      
+      {/* Guardrail Fix Modal - shown when clicking property with violations */}
+      {selectedProperty && (
+        <GuardrailFixModal
+          property={selectedProperty}
+          violations={currentViolations}
+          isOpen={isGuardrailFixModalOpen}
+          onClose={handleGuardrailFixModalClose}
+          onApplyChanges={handleApplyGuardrailChanges}
+          onViewDetails={handleViewPropertyDetails}
+        />
+      )}
+      
+      {/* Property Details Modal */}
+      <PropertyDetailsModal
+        property={selectedProperty}
+        isOpen={isPropertyModalOpen}
+        onClose={handlePropertyModalClose}
+      />
     </div>
   );
 };

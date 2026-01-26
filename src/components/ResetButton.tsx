@@ -85,12 +85,12 @@ export const ResetButton: React.FC<ResetButtonProps> = ({ iconOnly = false }) =>
       <button
         onClick={handleResetClick}
         disabled={isLoading || !hasDataToClear}
-        className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded-lg font-medium text-[13px] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg font-medium text-[12px] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
-          <Clock size={16} className="animate-spin" />
+          <Clock size={14} className="animate-spin" />
         ) : (
-          <RotateCcw size={16} />
+          <RotateCcw size={14} />
         )}
         {isLoading ? 'Resetting...' : 'Reset Scenario'}
       </button>

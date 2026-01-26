@@ -4,14 +4,27 @@ import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES } from '../utils/metricsCalculator'
-import type { PropertyPurchase } from '../types/property'
+import type { PropertyPurchase, TimelineProperty } from '../types/property'
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 import { TourStep } from '@/components/TourManager'
 
-export const SummaryBar = () => {
+interface SummaryBarProps {
+  scenarioData?: {
+    timelineProperties: TimelineProperty[];
+    profile: InvestmentProfileData;
+  };
+  noBorder?: boolean;
+}
+
+export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData, noBorder }) => {
   const { calculations } = usePropertySelection()
-  const { calculatedValues, profile } = useInvestmentProfile()
-  const { timelineProperties } = useAffordabilityCalculator()
+  const { calculatedValues, profile: contextProfile } = useInvestmentProfile()
+  const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use context
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties
+  const profile = scenarioData?.profile ?? contextProfile
 
   // Calculate actual KPIs based on timeline results using new metrics calculator
   const calculateSummaryKPIs = () => {
@@ -136,7 +149,7 @@ export const SummaryBar = () => {
       order={8}
       position="bottom"
     >
-    <div id="summary-bar-container" className="bg-white rounded-t-xl border border-gray-200 overflow-hidden">
+    <div id="summary-bar-container" className="bg-white overflow-hidden">
       <div className="grid grid-cols-3">
         {/* Cashflow Goal Card */}
         <div className="flex flex-col items-center justify-center border-r border-gray-200 p-3">
