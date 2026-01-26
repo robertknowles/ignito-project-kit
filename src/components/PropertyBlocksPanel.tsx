@@ -65,7 +65,7 @@ const PropertyBlockCardV2: React.FC<PropertyBlockCardV2Props> = ({
       {/* Main Card - Horizontal layout */}
       <div className="flex">
         {/* Left: Large Property Image (~40%) - extends full height */}
-        <div className="w-[40%] relative flex-shrink-0 bg-white flex items-center justify-center">
+        <div className="w-[40%] relative flex-shrink-0 bg-white flex items-center justify-center border-r border-gray-200">
           {/* Property image - zoomed in */}
           <img 
             src={imageUrl} 
