@@ -408,10 +408,16 @@ interface ChartWithRoadmapProps {
 }
 
 export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData }) => {
-  const { years } = useRoadmapData();
   const { profile: contextProfile } = useInvestmentProfile();
-  const { timelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
+  const { timelineProperties: contextTimelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
   const { getInstance, updateInstance } = usePropertyInstance();
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use context
+  const profile = scenarioData?.profile ?? contextProfile;
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
+  
+  // Pass scenario data to useRoadmapData so it uses the correct data source
+  const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
   
   // Drag-and-drop state management (from shared context)
   const {
@@ -419,9 +425,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     targetPeriod,
     isDragging,
   } = usePropertyDragDropContext();
-  
-  // Use scenarioData if provided (multi-scenario mode), otherwise use context
-  const profile = scenarioData?.profile ?? contextProfile;
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);

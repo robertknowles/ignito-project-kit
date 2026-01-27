@@ -2,6 +2,7 @@ import React from 'react';
 import { Save, Clock } from 'lucide-react';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useClient } from '@/contexts/ClientContext';
+import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 
 interface SaveButtonProps {
   iconOnly?: boolean;
@@ -10,6 +11,7 @@ interface SaveButtonProps {
 export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
   const { hasUnsavedChanges, isLoading, saveScenario } = useScenarioSave();
   const { activeClient } = useClient();
+  const { isMultiScenarioMode, scenarios } = useMultiScenario();
 
   // Don't show button at all if no client selected
   if (!activeClient) {
@@ -32,6 +34,13 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
     );
   }
 
+  // Determine button text based on mode
+  const buttonText = isLoading 
+    ? 'Saving...' 
+    : isMultiScenarioMode && scenarios.length >= 2
+      ? `Save ${scenarios.length} Scenarios`
+      : 'Save Scenario';
+
   return (
     <button
       onClick={saveScenario}
@@ -43,7 +52,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
       ) : (
         <Save size={14} />
       )}
-      {isLoading ? 'Saving...' : 'Save Scenario'}
+      {buttonText}
     </button>
   );
 };

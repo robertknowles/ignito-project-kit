@@ -36,8 +36,8 @@ export function AppRouter() {
               <PropertySelectionProvider>
                 <InvestmentProfileProvider>
                   <PropertyInstanceProvider>
-                    <ScenarioSaveProvider>
-                      <MultiScenarioProvider>
+                    <MultiScenarioProvider>
+                      <ScenarioSaveProvider>
                       <BrowserRouter>
                         <TourManagerProvider>
                           <Routes>
@@ -119,8 +119,8 @@ export function AppRouter() {
                           <SonnerToaster position="bottom-right" richColors />
                         </TourManagerProvider>
                       </BrowserRouter>
-                      </MultiScenarioProvider>
-                    </ScenarioSaveProvider>
+                      </ScenarioSaveProvider>
+                    </MultiScenarioProvider>
                   </PropertyInstanceProvider>
                 </InvestmentProfileProvider>
               </PropertySelectionProvider>

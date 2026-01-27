@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Plus, Minus, Pause, X, Pencil, ChevronUp, ChevronDown, SlidersHorizontal, Copy } from 'lucide-react'
+import { Plus, Minus, Pause, X, Pencil, ChevronUp, ChevronDown, SlidersHorizontal, Copy, MapPin } from 'lucide-react'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
@@ -20,10 +20,71 @@ interface CascadingGrowthRates {
 // Property images mapping - add more as needed
 const PROPERTY_IMAGES: Record<string, string> = {
   'Metro Houses': '/images/properties/metro-house.png',
+  'Units / Apartments': '/images/properties/units-apartments.png',
+  'Villas / Townhouses': '/images/properties/townhouses.png',
+  'Houses (Regional)': '/images/properties/regional-house.png',
+  'Duplexes': '/images/properties/duplex.png',
+  'Small Blocks (3-4 Units)': '/images/properties/smaller-blocks-3-4.png',
+  'Larger Blocks (10-20 Units)': '/images/properties/larger-blocks-10-20.png',
+  'Commercial Property': '/images/properties/commercial-property.png',
+}
+
+// Get property image with normalization to handle legacy name mismatches
+const getPropertyImage = (propertyTitle: string): string | undefined => {
+  // First try exact match
+  if (PROPERTY_IMAGES[propertyTitle]) {
+    return PROPERTY_IMAGES[propertyTitle]
+  }
+  
+  // Normalize and try again (handles "Houses (Regional focus)" vs "Houses (Regional)", etc.)
+  const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim()
+  const normalizedInput = normalizeForMatch(propertyTitle)
+  
+  const matchingKey = Object.keys(PROPERTY_IMAGES).find(
+    key => normalizeForMatch(key) === normalizedInput
+  )
+  
+  return matchingKey ? PROPERTY_IMAGES[matchingKey] : undefined
+}
+
+// Check if property needs slight zoom out (Units / Apartments only)
+const shouldZoomOut = (propertyTitle: string): boolean => {
+  const normalizedTitle = propertyTitle.toLowerCase()
+  // Must match "units / apartments" specifically, not "small blocks (3-4 units)"
+  return normalizedTitle.includes('units / apartments') || normalizedTitle === 'units / apartments'
+}
+
+// Check if property needs to shift down (blocks images)
+const shouldShiftDown = (propertyTitle: string): boolean => {
+  const normalizedTitle = propertyTitle.toLowerCase()
+  return normalizedTitle.includes('small blocks') || normalizedTitle.includes('larger blocks')
+}
+
+// State name and color mappings
+const STATE_NAMES: Record<string, string> = {
+  'VIC': 'Victoria',
+  'NSW': 'New South Wales',
+  'QLD': 'Queensland',
+  'SA': 'South Australia',
+  'WA': 'Western Australia',
+  'TAS': 'Tasmania',
+  'NT': 'Northern Territory',
+  'ACT': 'Australian Capital Territory',
+}
+
+const STATE_COLORS: Record<string, { bg: string; text: string }> = {
+  'VIC': { bg: 'bg-blue-100', text: 'text-blue-700' },
+  'NSW': { bg: 'bg-sky-100', text: 'text-sky-700' },
+  'QLD': { bg: 'bg-amber-100', text: 'text-amber-700' },
+  'SA': { bg: 'bg-red-100', text: 'text-red-700' },
+  'WA': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  'TAS': { bg: 'bg-green-100', text: 'text-green-700' },
+  'NT': { bg: 'bg-orange-100', text: 'text-orange-700' },
+  'ACT': { bg: 'bg-purple-100', text: 'text-purple-700' },
 }
 
 // NEW DESIGN: Large image property card (trial for Metro Houses)
-// Matches the reference design with image on left (~40%), footer only on RHS
+// Image on top, content below
 interface PropertyBlockCardV2Props {
   title: string
   priceRange: string
@@ -31,6 +92,7 @@ interface PropertyBlockCardV2Props {
   growthRates?: CascadingGrowthRates
   count: number
   imageUrl: string
+  state?: string
   onIncrement: () => void
   onDecrement: () => void
   onEdit?: () => void
@@ -44,6 +106,7 @@ const PropertyBlockCardV2: React.FC<PropertyBlockCardV2Props> = ({
   growthRates,
   count,
   imageUrl,
+  state = 'VIC',
   onIncrement,
   onDecrement,
   onEdit,
@@ -56,106 +119,107 @@ const PropertyBlockCardV2: React.FC<PropertyBlockCardV2Props> = ({
     ? `${growthRates.year1} → ${growthRates.years2to3} → ${growthRates.year4} → ${growthRates.year5plus}%`
     : null
   
+  // Get state display name and colors
+  const stateName = STATE_NAMES[state] || state
+  const stateColors = STATE_COLORS[state] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+  
   return (
     <div className={`group rounded-xl transition-all bg-white border overflow-hidden ${
       isActive 
         ? 'ring-1 ring-gray-900 border-gray-900' 
         : 'border-gray-200 group-hover:border-gray-300'
     }`}>
-      {/* Main Card - Horizontal layout */}
-      <div className="flex">
-        {/* Left: Large Property Image (~40%) - extends full height */}
-        <div className="w-[40%] relative flex-shrink-0 bg-white flex items-center justify-center border-r border-gray-200">
-          {/* Property image - zoomed in */}
-          <img 
-            src={imageUrl} 
-            alt={title}
-            className="w-full h-full object-cover"
-            style={{ 
-              minHeight: '110px'
-            }}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
+      {/* Image at top - full width, fixed height with consistent cover positioning */}
+      <div className="w-full h-40 bg-white border-b border-gray-200 overflow-hidden">
+        <img 
+          src={imageUrl} 
+          alt={title}
+          className={`w-full h-full object-cover ${(shouldZoomOut(title) || shouldShiftDown(title)) ? '' : 'object-center'}`}
+          style={
+            shouldZoomOut(title) 
+              ? { transform: 'scale(0.85)', objectPosition: 'center 75%' } 
+              : shouldShiftDown(title)
+                ? { transform: 'scale(0.85)', objectPosition: 'center 60%' }
+                : undefined
+          }
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      </div>
+      
+      {/* Content below image */}
+      <div className="p-2.5">
+        {/* Title row with count badge and actions */}
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-gray-900 text-sm">{title === 'Metro Houses' ? 'Metro House' : title}</h4>
+            <span className={`flex items-center gap-0.5 text-[9px] font-medium ${stateColors.text} ${stateColors.bg} px-1.5 py-0.5 rounded`}>
+              <MapPin size={9} />
+              {stateName}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {count > 0 && (
+              <span className="text-[10px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded min-w-[1.25rem] text-center">
+                {count}
+              </span>
+            )}
+            {/* +/- controls */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDecrement(); }}
+              disabled={count === 0}
+              className={`p-0.5 rounded transition-colors ${
+                count === 0 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-900'
+              }`}
+            >
+              <Minus size={14} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onIncrement(); }}
+              className="p-0.5 text-gray-400 hover:text-gray-900 rounded transition-colors"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
         
-        {/* Right: Content + Footer stacked (~60%) */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Content area */}
-          <div className="p-2 flex-1">
-            {/* Top row: Title + Count badge */}
-            <div className="flex items-start justify-between gap-1">
-              <h4 className="font-semibold text-gray-900 text-xs leading-tight">{title}</h4>
-              {count > 0 && (
-                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded min-w-[1.25rem] text-center">
-                  {count}
-                </span>
-              )}
-            </div>
-            
-            {/* Details */}
-            <div className="mt-1">
-              <p className="text-gray-600 text-[10px] leading-tight">
-                {priceRange} · Yield: {yieldValue}
-              </p>
-              {growthRateDisplay && (
-                <p className="text-gray-400 text-[9px] mt-0.5 leading-tight" title="Growth rate: Y1 → Y2-3 → Y4 → Y5+">
-                  Growth: {growthRateDisplay}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {/* Footer: Edit & Duplicate - Only on RHS */}
-          {(onEdit || onDuplicate) && (
-            <div className="flex items-center justify-between py-1.5 px-2 bg-gray-100 border-t border-gray-200">
-              {/* Left: Edit & Duplicate */}
-              <div className="flex items-center gap-2">
-                {onEdit && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <Pencil size={10} />
-                    <span className="text-[9px]">Edit</span>
-                  </button>
-                )}
-                {onDuplicate && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <Copy size={10} />
-                    <span className="text-[9px]">Duplicate</span>
-                  </button>
-                )}
-              </div>
-              
-              {/* Right: +/- controls */}
-              <div className="flex items-center gap-0.5">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDecrement(); }}
-                  disabled={count === 0}
-                  className={`p-0.5 rounded transition-colors ${
-                    count === 0 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  <Minus size={12} />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onIncrement(); }}
-                  className="p-0.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
-                >
-                  <Plus size={12} />
-                </button>
-              </div>
-            </div>
+        {/* Details */}
+        <p className="text-gray-500 text-[11px] mt-1">
+          {priceRange} · Yield: {yieldValue}
+        </p>
+        {growthRateDisplay && (
+          <p className="text-gray-400 text-[10px] mt-0.5" title="Growth rate: Y1 → Y2-3 → Y4 → Y5+">
+            Growth: {growthRateDisplay}
+          </p>
+        )}
+      </div>
+      
+      {/* Footer: Edit & Duplicate */}
+      {(onEdit || onDuplicate) && (
+        <div className="flex items-center justify-center gap-3 py-1.5 px-3 bg-gray-100 border-t border-gray-200">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="flex items-center gap-1.5 hover:bg-gray-200 px-2 py-0.5 rounded transition-colors"
+            >
+              <Pencil size={10} className="text-gray-500" />
+              <span className="text-[10px] text-gray-500">Edit Template</span>
+            </button>
+          )}
+          {onDuplicate && count > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              className="flex items-center gap-1.5 hover:bg-gray-200 px-2 py-0.5 rounded transition-colors"
+            >
+              <Copy size={10} className="text-gray-500" />
+              <span className="text-[10px] text-gray-500">Duplicate</span>
+            </button>
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -474,10 +538,12 @@ export const PropertyBlocksPanel: React.FC = () => {
 
       {/* Property Cards - Vertical Stack */}
       {sortedProperties.map((property) => {
-        // Use new V2 design for properties with images (currently just Metro Houses)
-        const imageUrl = PROPERTY_IMAGES[property.title]
+        // Use new V2 design for properties with images
+        const imageUrl = getPropertyImage(property.title)
         
         if (imageUrl && !property.isCustom) {
+          // Get state from template
+          const template = getPropertyTypeTemplate(property.title)
           return (
             <PropertyBlockCardV2
               key={property.id}
@@ -487,6 +553,7 @@ export const PropertyBlocksPanel: React.FC = () => {
               growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
               count={getPropertyQuantity(property.id)}
               imageUrl={imageUrl}
+              state={template?.state}
               onIncrement={() => incrementProperty(property.id)}
               onDecrement={() => decrementProperty(property.id)}
               onEdit={() => handleEditTemplate(property.title)}

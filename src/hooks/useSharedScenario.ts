@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
+import type { Scenario } from '../contexts/MultiScenarioContext';
 
 interface InvestmentProfile {
   [key: string]: any;
@@ -38,6 +39,9 @@ interface ScenarioData {
   client_display_name: string;
   agent_display_name: string;
   company_display_name: string;
+  // Multi-scenario comparison data
+  comparisonMode?: boolean;
+  scenarios?: Scenario[];
 }
 
 interface UseSharedScenarioReturn {
@@ -94,6 +98,13 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         const propertyInstances = parsedData.propertyInstances || {};
         const timelineSnapshot = parsedData.timelineSnapshot || [];
         const chartData = parsedData.chartData as ChartData | undefined;
+        
+        // Check for comparison mode (multi-scenario data)
+        const comparisonMode = parsedData.comparisonMode === true;
+        const scenarios = parsedData.scenarios as Scenario[] | undefined;
+        
+        console.log('useSharedScenario: comparisonMode:', comparisonMode);
+        console.log('useSharedScenario: scenarios count:', scenarios?.length || 0);
 
         console.log('useSharedScenario: rawPropertySelections type:', Array.isArray(rawPropertySelections) ? 'array' : 'object');
         console.log('useSharedScenario: propertyInstances count:', Object.keys(propertyInstances).length);
@@ -226,6 +237,9 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           client_display_name: data.client_display_name || 'Client',
           agent_display_name: data.agent_display_name || 'Agent',
           company_display_name: data.company_display_name || 'PropPath',
+          // Include comparison mode data
+          comparisonMode,
+          scenarios,
         };
 
         setScenario(scenarioData);

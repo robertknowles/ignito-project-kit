@@ -109,9 +109,19 @@ export interface RoadmapData {
   endYear: number;
 }
 
-export const useRoadmapData = (): RoadmapData => {
-  const { profile } = useInvestmentProfile();
-  const { timelineProperties } = useAffordabilityCalculator();
+// Optional scenario data for multi-scenario mode
+interface ScenarioDataInput {
+  timelineProperties: typeof import('./useAffordabilityCalculator').useAffordabilityCalculator extends () => { timelineProperties: infer T } ? T : never;
+  profile: typeof import('./useInvestmentProfile').useInvestmentProfile extends () => { profile: infer T } ? T : never;
+}
+
+export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData => {
+  const { profile: contextProfile } = useInvestmentProfile();
+  const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
+  const profile = scenarioData?.profile ?? contextProfile;
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
   
   const roadmapData = useMemo((): RoadmapData => {
     const years: YearData[] = [];

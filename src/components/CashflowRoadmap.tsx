@@ -155,13 +155,16 @@ interface CashflowRoadmapProps {
 }
 
 export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }) => {
-  const { years } = useRoadmapData();
-  const { cashflowData } = useChartDataGenerator();
   const { profile: contextProfile } = useInvestmentProfile();
-  const { timelineProperties } = useAffordabilityCalculator();
+  const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use context
   const profile = scenarioData?.profile ?? contextProfile;
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
+  
+  // Pass scenario data to hooks so they use the correct data source
+  const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
+  const { cashflowData } = useChartDataGenerator(scenarioData ? { profile, timelineProperties } : undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);

@@ -35,6 +35,8 @@ interface InvestmentProfileContextType {
   updateProfile: (updates: Partial<InvestmentProfileData>) => void;
   handleEquityGoalChange: (newEquityGoal: number) => void;
   handleCashflowGoalChange: (newCashflowGoal: number) => void;
+  // Bulk setter for scenario restoration
+  setProfile: (profile: InvestmentProfileData) => void;
 }
 
 const InvestmentProfileContext = createContext<InvestmentProfileContextType | undefined>(undefined);
@@ -110,12 +112,19 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     });
   };
 
+  // Bulk setter for scenario restoration - replaces entire profile
+  const setProfileFull = (newProfile: InvestmentProfileData) => {
+    console.log('InvestmentProfileContext: setProfile called');
+    setProfile({ ...newProfile });
+  };
+
   const value = {
     profile,
     calculatedValues,
     updateProfile,
     handleEquityGoalChange,
     handleCashflowGoalChange,
+    setProfile: setProfileFull,
   };
 
   return (

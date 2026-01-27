@@ -9,6 +9,64 @@ const GROWTH_RATES = {
   Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
 } as const
 
+// Property images mapping - matches PropertyBlocksPanel.tsx
+const PROPERTY_IMAGES: Record<string, string> = {
+  'Metro Houses': '/images/properties/metro-house.png',
+  'Units / Apartments': '/images/properties/units-apartments.png',
+  'Villas / Townhouses': '/images/properties/townhouses.png',
+  'Houses (Regional)': '/images/properties/regional-house.png',
+  'Duplexes': '/images/properties/duplex.png',
+  'Small Blocks (3-4 Units)': '/images/properties/smaller-blocks-3-4.png',
+  'Larger Blocks (10-20 Units)': '/images/properties/larger-blocks-10-20.png',
+  'Commercial Property': '/images/properties/commercial-property.png',
+}
+
+// Get property image with normalization to handle legacy name mismatches
+const getPropertyImage = (propertyTitle: string): string | undefined => {
+  if (PROPERTY_IMAGES[propertyTitle]) {
+    return PROPERTY_IMAGES[propertyTitle]
+  }
+  const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim()
+  const normalizedInput = normalizeForMatch(propertyTitle)
+  const matchingKey = Object.keys(PROPERTY_IMAGES).find(
+    key => normalizeForMatch(key) === normalizedInput
+  )
+  return matchingKey ? PROPERTY_IMAGES[matchingKey] : undefined
+}
+
+// Get image style for settings page cards
+const getSettingsImageStyle = (propertyTitle: string): React.CSSProperties | undefined => {
+  const normalizedTitle = propertyTitle.toLowerCase()
+  
+  // Units / Apartments
+  if (normalizedTitle.includes('units / apartments')) {
+    return { transform: 'scale(0.85)', objectPosition: 'center 75%' }
+  }
+  
+  // Small Blocks and Larger Blocks
+  if (normalizedTitle.includes('small blocks') || normalizedTitle.includes('larger blocks')) {
+    return { transform: 'scale(0.85)', objectPosition: 'center 60%' }
+  }
+  
+  // Commercial Property
+  if (normalizedTitle.includes('commercial')) {
+    return { transform: 'scale(0.85)', objectPosition: 'center' }
+  }
+  
+  return undefined
+}
+
+// Check if property needs special positioning (no object-center class)
+const needsCustomPosition = (propertyTitle: string): boolean => {
+  const normalizedTitle = propertyTitle.toLowerCase()
+  return (
+    normalizedTitle.includes('units / apartments') || 
+    normalizedTitle.includes('small blocks') || 
+    normalizedTitle.includes('larger blocks') ||
+    normalizedTitle.includes('commercial')
+  )
+}
+
 interface TitleDeedCardProps {
   template: PropertyTypeTemplate
   onEdit: () => void
@@ -28,22 +86,55 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
     return `$${(value / 1000).toFixed(0)}k`
   }
 
+  const imageUrl = getPropertyImage(template.propertyType)
+
   return (
-    <div className="flex flex-col rounded border border-gray-200 shadow-sm overflow-hidden hover:border-gray-300 transition-colors">
-      {/* Grey header area */}
-      <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="bg-white rounded p-1.5 flex items-center justify-center border border-gray-200">
-            <PropertyTypeIcon propertyTitle={template.propertyType} size={16} className="text-gray-500" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium tracking-wide text-gray-900">{template.propertyType}</span>
-            <span className="text-[10px] font-medium tracking-wide text-gray-500">
-              Growth: {template.growthAssumption}
-            </span>
+    <div className="flex flex-col rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:border-gray-300 transition-colors">
+      {/* Image header area - matches PropertyBlocksPanel */}
+      {imageUrl ? (
+        <div className="w-full h-48 bg-white border-b border-gray-200 overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt={template.propertyType}
+            className={`w-full h-full object-cover ${needsCustomPosition(template.propertyType) ? '' : 'object-center'}`}
+            style={getSettingsImageStyle(template.propertyType)}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        </div>
+      ) : (
+        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="bg-white rounded p-1.5 flex items-center justify-center border border-gray-200">
+              <PropertyTypeIcon propertyTitle={template.propertyType} size={16} className="text-gray-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium tracking-wide text-gray-900">{template.propertyType}</span>
+              <span className="text-[10px] font-medium tracking-wide text-gray-500">
+                Growth: {template.growthAssumption}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+      
+      {/* Property name and growth below image */}
+      {imageUrl && (
+        <div className="bg-gray-50 px-4 py-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="bg-white rounded p-1.5 flex items-center justify-center border border-gray-200">
+              <PropertyTypeIcon propertyTitle={template.propertyType} size={16} className="text-gray-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium tracking-wide text-gray-900">{template.propertyType}</span>
+              <span className="text-[10px] font-medium tracking-wide text-gray-500">
+                Growth: {template.growthAssumption}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* White content area */}
       <div className="bg-white px-4 py-3">

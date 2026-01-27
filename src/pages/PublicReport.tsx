@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ClientPortalApp } from '@/client-portal/components/ClientPortalApp';
+import { ClientDashboard } from '@/client-view/ClientDashboard';
+import { compareScenarios } from '@/utils/comparisonCalculator';
+import type { ComparisonMetrics } from '@/utils/comparisonCalculator';
+import type { Scenario } from '@/contexts/MultiScenarioContext';
 
 interface ScenarioData {
   id: number;
@@ -12,6 +15,17 @@ interface ScenarioData {
   updated_at: string;
   share_id: string | null;
 }
+
+// Helper to extract chart data from scenario
+const extractChartData = (scenarioData: any) => {
+  // Check if chart data is directly available
+  if (scenarioData?.chartData) {
+    return scenarioData.chartData;
+  }
+  
+  // Otherwise return undefined and let ClientDashboard calculate it
+  return undefined;
+};
 
 export const PublicReport = () => {
   const { shareId } = useParams<{ shareId: string }>();
@@ -120,10 +134,71 @@ export const PublicReport = () => {
     );
   }
 
-  // Render the Magic Patterns report with the scenario data
-  // For now, ClientPortalApp doesn't use the scenario data yet
-  // TODO: Pass scenario data to ClientPortalApp when it's updated to accept props
-  return <ClientPortalApp />;
+  // Extract scenario data
+  const scenarioData = scenario.data || {};
+  
+  // Check if this is a comparison report (has multiple scenarios)
+  const isComparisonMode = scenarioData.scenarios && scenarioData.scenarios.length >= 2;
+  
+  // Extract data for rendering
+  const investmentProfile = scenarioData.investmentProfile || {};
+  const propertySelections = scenarioData.propertySelections || scenarioData.timeline || [];
+  const chartData = extractChartData(scenarioData);
+  
+  // Extract display names
+  const clientDisplayName = scenarioData.clientName || 'Client';
+  const agentDisplayName = scenarioData.agentName || 'Agent';
+  const companyDisplayName = scenarioData.companyName || 'PropPath';
+
+  // If comparison mode, extract scenario A and B data
+  if (isComparisonMode) {
+    const scenariosArray = scenarioData.scenarios as Scenario[];
+    const scenarioAData = scenariosArray[0];
+    const scenarioBData = scenariosArray[1];
+    
+    // Build comparison metrics
+    const comparisonMetrics: ComparisonMetrics = compareScenarios(
+      scenarioAData,
+      scenarioBData,
+      investmentProfile
+    );
+    
+    return (
+      <ClientDashboard
+        investmentProfile={investmentProfile}
+        propertySelections={propertySelections}
+        clientDisplayName={clientDisplayName}
+        agentDisplayName={agentDisplayName}
+        companyDisplayName={companyDisplayName}
+        comparisonMode={true}
+        scenarioA={{
+          name: scenarioAData.name || 'Scenario A',
+          investmentProfile: scenarioAData.investmentProfile || investmentProfile,
+          propertySelections: scenarioAData.timeline || [],
+          chartData: extractChartData({ chartData: scenarioAData.chartData }),
+        }}
+        scenarioB={{
+          name: scenarioBData.name || 'Scenario B',
+          investmentProfile: scenarioBData.investmentProfile || investmentProfile,
+          propertySelections: scenarioBData.timeline || [],
+          chartData: extractChartData({ chartData: scenarioBData.chartData }),
+        }}
+        comparisonMetrics={comparisonMetrics}
+      />
+    );
+  }
+
+  // Single scenario mode
+  return (
+    <ClientDashboard
+      investmentProfile={investmentProfile}
+      propertySelections={propertySelections}
+      chartData={chartData}
+      clientDisplayName={clientDisplayName}
+      agentDisplayName={agentDisplayName}
+      companyDisplayName={companyDisplayName}
+    />
+  );
 };
 
 

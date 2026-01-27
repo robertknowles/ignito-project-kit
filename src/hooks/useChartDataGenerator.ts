@@ -20,14 +20,55 @@ export interface CashflowDataPoint {
   highlight?: boolean;
 }
 
+// Comparison chart data types for overlay charts
+export interface ComparisonPortfolioDataPoint {
+  year: string;
+  portfolioValueA: number;
+  portfolioValueB: number;
+  equityA: number;
+  equityB: number;
+  propertiesA?: string[];
+  propertiesB?: string[];
+}
+
+export interface ComparisonCashflowDataPoint {
+  year: string;
+  cashflowA: number;
+  cashflowB: number;
+  rentalIncomeA: number;
+  rentalIncomeB: number;
+}
+
+export interface ComparisonChartData {
+  portfolioData: ComparisonPortfolioDataPoint[];
+  cashflowData: ComparisonCashflowDataPoint[];
+  equityGoalYearA: number | null;
+  equityGoalYearB: number | null;
+  incomeGoalYearA: number | null;
+  incomeGoalYearB: number | null;
+}
+
 // Note: Charts display year-level aggregation for clarity
 // Individual purchases happen at 6-month periods (H1/H2)
 // but are aggregated to annual values for chart visualization
 
-export const useChartDataGenerator = () => {
-  const { profile } = useInvestmentProfile();
-  const { timelineProperties } = useAffordabilityCalculator();
+import type { TimelineProperty } from '../types/property';
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+
+// Optional scenario data for multi-scenario mode
+interface ScenarioDataInput {
+  timelineProperties: TimelineProperty[];
+  profile: InvestmentProfileData;
+}
+
+export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
+  const { profile: contextProfile } = useInvestmentProfile();
+  const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
   const { globalFactors, getPropertyData } = useDataAssumptions();
+  
+  // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
+  const profile = scenarioData?.profile ?? contextProfile;
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
 
   const portfolioGrowthData = useMemo((): PortfolioGrowthDataPoint[] => {
     const data: PortfolioGrowthDataPoint[] = [];
@@ -195,5 +236,77 @@ export const useChartDataGenerator = () => {
   return {
     portfolioGrowthData,
     cashflowData
+  };
+};
+
+/**
+ * Generate comparison chart data by merging two scenarios' data
+ * Used for overlay charts in comparison reports
+ */
+export const generateComparisonChartData = (
+  dataA: { portfolioGrowthData: PortfolioGrowthDataPoint[]; cashflowData: CashflowDataPoint[] },
+  dataB: { portfolioGrowthData: PortfolioGrowthDataPoint[]; cashflowData: CashflowDataPoint[] },
+  equityGoal: number,
+  incomeGoal: number
+): ComparisonChartData => {
+  // Get all unique years from both datasets
+  const allYearsSet = new Set<string>();
+  dataA.portfolioGrowthData.forEach(d => allYearsSet.add(d.year));
+  dataB.portfolioGrowthData.forEach(d => allYearsSet.add(d.year));
+  const allYears = Array.from(allYearsSet).sort((a, b) => parseInt(a) - parseInt(b));
+
+  // Merge portfolio data
+  const portfolioData: ComparisonPortfolioDataPoint[] = allYears.map(year => {
+    const pointA = dataA.portfolioGrowthData.find(d => d.year === year);
+    const pointB = dataB.portfolioGrowthData.find(d => d.year === year);
+    
+    return {
+      year,
+      portfolioValueA: pointA?.portfolioValue ?? 0,
+      portfolioValueB: pointB?.portfolioValue ?? 0,
+      equityA: pointA?.equity ?? 0,
+      equityB: pointB?.equity ?? 0,
+      propertiesA: pointA?.properties,
+      propertiesB: pointB?.properties,
+    };
+  });
+
+  // Merge cashflow data
+  const cashflowData: ComparisonCashflowDataPoint[] = allYears.map(year => {
+    const pointA = dataA.cashflowData.find(d => d.year === year);
+    const pointB = dataB.cashflowData.find(d => d.year === year);
+    
+    return {
+      year,
+      cashflowA: pointA?.cashflow ?? 0,
+      cashflowB: pointB?.cashflow ?? 0,
+      rentalIncomeA: pointA?.rentalIncome ?? 0,
+      rentalIncomeB: pointB?.rentalIncome ?? 0,
+    };
+  });
+
+  // Find equity goal achievement years
+  const equityGoalYearA = dataA.portfolioGrowthData.find(d => d.equity >= equityGoal)?.year 
+    ? parseInt(dataA.portfolioGrowthData.find(d => d.equity >= equityGoal)!.year) 
+    : null;
+  const equityGoalYearB = dataB.portfolioGrowthData.find(d => d.equity >= equityGoal)?.year
+    ? parseInt(dataB.portfolioGrowthData.find(d => d.equity >= equityGoal)!.year)
+    : null;
+
+  // Find income goal achievement years
+  const incomeGoalYearA = dataA.cashflowData.find(d => d.cashflow >= incomeGoal)?.year
+    ? parseInt(dataA.cashflowData.find(d => d.cashflow >= incomeGoal)!.year)
+    : null;
+  const incomeGoalYearB = dataB.cashflowData.find(d => d.cashflow >= incomeGoal)?.year
+    ? parseInt(dataB.cashflowData.find(d => d.cashflow >= incomeGoal)!.year)
+    : null;
+
+  return {
+    portfolioData,
+    cashflowData,
+    equityGoalYearA,
+    equityGoalYearB,
+    incomeGoalYearA,
+    incomeGoalYearB,
   };
 };

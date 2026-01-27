@@ -87,6 +87,9 @@ interface PropertySelectionContextType {
   
   // Client switching - load all data for a client
   loadClientData: (clientId: number) => void;
+  
+  // Bulk setters for scenario restoration
+  setAllSelections: (selections: PropertySelection, propertyOrder: string[]) => void;
 }
 
 const PropertySelectionContext = createContext<PropertySelectionContextType | undefined>(undefined);
@@ -363,6 +366,18 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     ));
   }, []);
 
+  // Bulk setter for scenario restoration - sets selections and propertyOrder atomically
+  const setAllSelections = useCallback((newSelections: PropertySelection, newPropertyOrder: string[]) => {
+    console.log('PropertySelectionContext: setAllSelections called', {
+      selectionsCount: Object.keys(newSelections).length,
+      orderLength: newPropertyOrder.length,
+    });
+    setSelections({ ...newSelections });
+    setPropertyOrder([...newPropertyOrder]);
+    // Update pending ref to match new selections
+    pendingQuantityRef.current = { ...newSelections };
+  }, []);
+
   // Load all client data from localStorage
   const loadClientData = useCallback((clientId: number) => {
     console.log('PropertySelectionContext: Loading data for client', clientId);
@@ -471,6 +486,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     
     // Client switching
     loadClientData,
+    
+    // Bulk setters for scenario restoration
+    setAllSelections,
   };
 
   return (

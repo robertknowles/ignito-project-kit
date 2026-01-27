@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Share2, Copy, RotateCcw, ExternalLink } from 'lucide-react'
 import { ClientSelector } from './ClientSelector'
+import { SaveButton } from './SaveButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useClient } from '@/contexts/ClientContext'
@@ -381,6 +382,7 @@ export const TopBar = () => {
           position="bottom"
         >
         <div className="flex items-center gap-3">
+          <SaveButton />
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}

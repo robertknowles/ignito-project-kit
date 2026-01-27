@@ -4,7 +4,6 @@ import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { Button } from '@/components/ui/button';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
-import { SaveButton } from './SaveButton';
 import { ResetButton } from './ResetButton';
 
 interface ScenarioCanvasProps {
@@ -63,10 +62,9 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
           )}
         </div>
         
-        {/* Action buttons - Reset, Save, and Remove (multi-scenario only) */}
+        {/* Action buttons - Reset and Remove (multi-scenario only) */}
         <div className="flex items-center gap-2">
           <ResetButton iconOnly />
-          <SaveButton iconOnly />
           
           {/* Remove button - only show if more than 1 scenario */}
           {isMultiScenarioMode && scenarios.length > 1 && (

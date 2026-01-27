@@ -3,6 +3,7 @@ import { useClient } from './ClientContext';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
+import { useMultiScenario, Scenario } from './MultiScenarioContext';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +64,9 @@ export interface ScenarioData {
   onboardingCompleted?: boolean;
   onboardingCompletedAt?: string;
   lastSaved: string;
+  // Multi-scenario comparison data
+  comparisonMode?: boolean;
+  scenarios?: Scenario[];
 }
 
 interface ScenarioSaveContextType {
@@ -95,6 +99,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
+  const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext } = useMultiScenario();
   const { user, role } = useAuth();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -114,7 +119,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
-    return {
+    // In multi-scenario mode, sync the current active scenario and get updated scenarios
+    let currentScenarios = scenarios;
+    if (isMultiScenarioMode) {
+      currentScenarios = syncCurrentScenarioFromContext();
+    }
+    
+    const baseData: ScenarioData = {
       propertySelections: selections,
       propertyOrder: propertyOrder,
       investmentProfile: profile,
@@ -123,7 +134,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       chartData: chartData,
       lastSaved: new Date().toISOString(),
     };
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData]);
+    
+    // If in multi-scenario mode, include all scenarios for comparison report
+    if (isMultiScenarioMode && currentScenarios.length >= 2) {
+      return {
+        ...baseData,
+        comparisonMode: true,
+        scenarios: currentScenarios, // Include all scenarios for the comparison report
+      };
+    }
+    
+    return baseData;
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {
@@ -228,10 +250,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLastSaved(scenarioData.lastSaved);
       setHasUnsavedChanges(false);
       
-      toast({
-        title: "Scenario Saved",
-        description: `${activeClient.name}'s scenario saved successfully`,
-      });
+      // Different toast message for comparison mode
+      if (scenarioData.comparisonMode && scenarioData.scenarios) {
+        toast({
+          title: "Scenarios Saved",
+          description: `${scenarioData.scenarios.length} scenarios saved for ${activeClient.name} (comparison mode)`,
+        });
+      } else {
+        toast({
+          title: "Scenario Saved",
+          description: `${activeClient.name}'s scenario saved successfully`,
+        });
+      }
     } catch (error) {
       console.error('ScenarioSaveContext: ✗ Error saving scenario:', error);
       toast({

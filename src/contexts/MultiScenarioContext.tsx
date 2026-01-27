@@ -28,7 +28,8 @@ interface MultiScenarioContextType {
   removeScenario: (id: string) => void;
   setActiveScenario: (id: string) => void;
   updateScenario: (id: string, updates: Partial<Scenario>) => void;
-  syncCurrentScenarioFromContext: () => void;
+  syncCurrentScenarioFromContext: () => Scenario[];
+  restoreScenarioToGlobalContexts: (scenarioId: string) => void;
 }
 
 const MultiScenarioContext = createContext<MultiScenarioContextType | undefined>(undefined);
@@ -46,9 +47,9 @@ interface MultiScenarioProviderProps {
 }
 
 export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ children }) => {
-  const { selections, propertyOrder } = usePropertySelection();
-  const { profile } = useInvestmentProfile();
-  const { instances } = usePropertyInstance();
+  const { selections, propertyOrder, setAllSelections } = usePropertySelection();
+  const { profile, setProfile } = useInvestmentProfile();
+  const { instances, setInstances } = usePropertyInstance();
   const { timelineProperties } = useAffordabilityCalculator();
 
   // Initialize with a single scenario
@@ -73,10 +74,11 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
 
   // Sync the current active scenario with the global context state
   // This is called when we need to capture the current state into the active scenario
-  const syncCurrentScenarioFromContext = useCallback(() => {
-    if (!activeScenarioId) return;
+  // Returns the updated scenarios array synchronously for saving
+  const syncCurrentScenarioFromContext = useCallback((): Scenario[] => {
+    if (!activeScenarioId) return scenarios;
 
-    setScenarios(prev => prev.map(s => {
+    const updatedScenarios = scenarios.map(s => {
       if (s.id === activeScenarioId) {
         return {
           ...s,
@@ -88,8 +90,42 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
         };
       }
       return s;
-    }));
-  }, [activeScenarioId, selections, propertyOrder, profile, instances, timelineProperties]);
+    });
+    
+    // Update state for UI
+    setScenarios(updatedScenarios);
+    
+    // Return the updated array synchronously for immediate use
+    return updatedScenarios;
+  }, [activeScenarioId, scenarios, selections, propertyOrder, profile, instances, timelineProperties]);
+
+  // Restore a scenario's state TO the global contexts
+  // This is the key function that enables independent scenarios
+  const restoreScenarioToGlobalContexts = useCallback((scenarioId: string) => {
+    // Find the scenario in the current state
+    const scenario = scenarios.find(s => s.id === scenarioId);
+    if (!scenario) {
+      console.warn('MultiScenarioContext: Cannot restore - scenario not found:', scenarioId);
+      return;
+    }
+
+    console.log('MultiScenarioContext: Restoring scenario to global contexts:', {
+      scenarioId,
+      scenarioName: scenario.name,
+      selectionsCount: Object.keys(scenario.propertySelections).length,
+      propertyOrderLength: scenario.propertyOrder.length,
+      instancesCount: Object.keys(scenario.propertyInstances).length,
+    });
+
+    // Restore property selections and order
+    setAllSelections(scenario.propertySelections, scenario.propertyOrder);
+
+    // Restore investment profile
+    setProfile(scenario.investmentProfile);
+
+    // Restore property instances
+    setInstances(scenario.propertyInstances);
+  }, [scenarios, setAllSelections, setProfile, setInstances]);
 
   // Auto-sync the active scenario when context data changes (only in multi-scenario mode)
   useEffect(() => {
@@ -152,20 +188,32 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
         ...s,
         isActive: s.id === newActiveId,
       })));
+      // Restore the new active scenario's state to global contexts
+      restoreScenarioToGlobalContexts(newActiveId);
     }
-  }, [scenarios, activeScenarioId]);
+  }, [scenarios, activeScenarioId, restoreScenarioToGlobalContexts]);
 
   // Set the active scenario
   const setActiveScenarioHandler = useCallback((id: string) => {
-    // First sync the current scenario before switching
+    // Don't do anything if switching to the already-active scenario
+    if (id === activeScenarioId) return;
+
+    console.log('MultiScenarioContext: Switching active scenario from', activeScenarioId, 'to', id);
+
+    // First sync the current scenario's state FROM global contexts
     syncCurrentScenarioFromContext();
 
+    // Update the active scenario ID and isActive flags
     setActiveScenarioId(id);
     setScenarios(prev => prev.map(s => ({
       ...s,
       isActive: s.id === id,
     })));
-  }, [syncCurrentScenarioFromContext]);
+
+    // Restore the new scenario's state TO global contexts
+    // This is the critical step that makes scenarios truly independent
+    restoreScenarioToGlobalContexts(id);
+  }, [activeScenarioId, syncCurrentScenarioFromContext, restoreScenarioToGlobalContexts]);
 
   // Update a specific scenario
   const updateScenario = useCallback((id: string, updates: Partial<Scenario>) => {
@@ -184,6 +232,7 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
     setActiveScenario: setActiveScenarioHandler,
     updateScenario,
     syncCurrentScenarioFromContext,
+    restoreScenarioToGlobalContexts,
   };
 
   return (
