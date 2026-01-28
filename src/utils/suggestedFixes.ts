@@ -1,12 +1,13 @@
 import type { TimelineProperty } from '@/types/property';
 import type { GuardrailViolation } from '@/utils/guardrailValidator';
+import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 
 /**
  * A suggested fix for a guardrail violation
  */
 export interface SuggestedFix {
   /** The field to adjust */
-  field: 'purchasePrice' | 'lvr' | 'rentPerWeek' | 'interestRate';
+  field: 'purchasePrice' | 'lvr' | 'rentPerWeek' | 'interestRate' | 'oneOffCosts' | 'lmiCapitalization';
   /** Current value of the field */
   currentValue: number;
   /** Suggested new value to resolve the violation */
@@ -15,6 +16,8 @@ export interface SuggestedFix {
   explanation: string;
   /** Which violation type this fix addresses */
   violationType: 'deposit' | 'borrowing' | 'serviceability';
+  /** Action type for special fix types */
+  actionType?: 'editCosts' | 'capitalizeLmi';
 }
 
 /**
@@ -24,6 +27,20 @@ interface CurrentPropertyValues {
   purchasePrice: number;
   lvr: number;
   rentPerWeek: number;
+}
+
+/**
+ * Extended property values including one-off costs for comprehensive fix suggestions
+ */
+export interface ExtendedPropertyValues extends CurrentPropertyValues {
+  /** Total one-off purchase costs */
+  totalOneOffCosts?: number;
+  /** Current LMI amount (if paid upfront) */
+  lmiAmount?: number;
+  /** Whether LMI is currently waived */
+  lmiWaiver?: boolean;
+  /** Property instance for detailed cost access */
+  propertyInstance?: PropertyInstanceDetails | null;
 }
 
 /**
@@ -58,13 +75,15 @@ const roundToNearest = (value: number, increment: number): number => {
  * @param violations - Array of guardrail violations
  * @param currentValues - Current adjusted values (may differ from property defaults)
  * @param availableFunds - Available funds at the target purchase period
+ * @param extendedValues - Optional extended values including one-off costs and LMI details
  * @returns Array of suggested fixes
  */
 export const calculateSuggestedFixes = (
   property: TimelineProperty,
   violations: GuardrailViolation[],
   currentValues: CurrentPropertyValues,
-  availableFunds: number
+  availableFunds: number,
+  extendedValues?: ExtendedPropertyValues
 ): SuggestedFix[] => {
   const fixes: SuggestedFix[] = [];
 
@@ -73,6 +92,11 @@ export const calculateSuggestedFixes = (
       case 'deposit':
         // Calculate fixes for deposit shortfall
         calculateDepositFixes(property, violation, currentValues, availableFunds, fixes);
+        // Calculate one-off cost fixes if extended values provided
+        if (extendedValues) {
+          calculateOneOffCostFixes(violation, extendedValues, fixes);
+          calculateLMICapitalizationFix(violation, extendedValues, fixes);
+        }
         break;
 
       case 'borrowing':
@@ -247,6 +271,68 @@ const calculateServiceabilityFixes = (
       violationType: 'serviceability',
     });
   }
+};
+
+/**
+ * Calculate suggested fixes for one-off purchase costs
+ * Suggests reducing one-off costs by the shortfall amount
+ */
+const calculateOneOffCostFixes = (
+  violation: GuardrailViolation,
+  extendedValues: ExtendedPropertyValues,
+  fixes: SuggestedFix[]
+): void => {
+  const { totalOneOffCosts } = extendedValues;
+  const shortfall = violation.shortfall;
+
+  // Only suggest if we have one-off costs data and shortfall is reasonable to address via costs
+  if (totalOneOffCosts === undefined || totalOneOffCosts <= 0) return;
+  
+  // Calculate suggested reduction - can't go below a minimum threshold
+  const minReasonableCosts = 5000; // Minimum reasonable one-off costs
+  const suggestedReduction = Math.min(shortfall, totalOneOffCosts - minReasonableCosts);
+  
+  // Only suggest if the reduction is meaningful (at least $1000)
+  if (suggestedReduction >= 1000) {
+    const suggestedCosts = totalOneOffCosts - suggestedReduction;
+    
+    fixes.push({
+      field: 'oneOffCosts',
+      currentValue: totalOneOffCosts,
+      suggestedValue: suggestedCosts,
+      explanation: `Reduce one-off costs by ${formatCurrency(suggestedReduction)}`,
+      violationType: 'deposit',
+      actionType: 'editCosts',
+    });
+  }
+};
+
+/**
+ * Calculate LMI capitalization fix
+ * Suggests financing LMI within the loan to free up cash when LMI is paid upfront
+ */
+const calculateLMICapitalizationFix = (
+  violation: GuardrailViolation,
+  extendedValues: ExtendedPropertyValues,
+  fixes: SuggestedFix[]
+): void => {
+  const { lmiAmount, lmiWaiver, lvr } = extendedValues;
+
+  // Only suggest if LMI is being paid and is not waived
+  if (lmiWaiver || !lmiAmount || lmiAmount <= 0) return;
+  
+  // Only relevant for LVR > 80% where LMI applies
+  if (lvr <= 80) return;
+  
+  // Suggest capitalizing LMI to free up cash
+  fixes.push({
+    field: 'lmiCapitalization',
+    currentValue: lmiAmount,
+    suggestedValue: 0, // 0 upfront cost when capitalized
+    explanation: `Finance LMI within the loan to free up ${formatCurrency(lmiAmount)} cash`,
+    violationType: 'deposit',
+    actionType: 'capitalizeLmi',
+  });
 };
 
 /**

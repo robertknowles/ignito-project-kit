@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export const TopBar = () => {
-  const { scenarioId } = useScenarioSave()
+  const { scenarioId, hasUnsavedChanges } = useScenarioSave()
   const { activeClient } = useClient()
   const { toast } = useToast()
   const { role } = useAuth()
@@ -51,6 +51,15 @@ export const TopBar = () => {
       toast({
         title: 'Save Required',
         description: 'Please save the scenario first before viewing the client report.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (hasUnsavedChanges) {
+      toast({
+        title: 'Unsaved Changes',
+        description: 'Please save your changes before viewing the client report.',
         variant: 'destructive',
       })
       return
@@ -377,7 +386,7 @@ export const TopBar = () => {
         <TourStep
           id="topbar-actions"
           title="Top Bar Actions"
-          content="View Client Report or Share Dashboard to invite your clients to view their personalized dashboard. Reset and Save controls are on each scenario chart."
+          content="View Client Report to share with your clients. Reset and Save controls are on each scenario chart."
           order={3}
           position="bottom"
         >
@@ -386,19 +395,10 @@ export const TopBar = () => {
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-[12px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[12px]"
           >
             <ExternalLink size={14} />
             <span>Client Report</span>
-          </button>
-          <button
-            id="client-report-button"
-            onClick={handleShareDashboard}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[12px] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Share2 size={14} />
-            <span>{isLoading ? 'Loading...' : 'Share Dashboard'}</span>
           </button>
         </div>
         </TourStep>

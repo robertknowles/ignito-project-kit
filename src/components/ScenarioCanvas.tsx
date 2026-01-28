@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { Button } from '@/components/ui/button';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
@@ -12,6 +13,7 @@ interface ScenarioCanvasProps {
 
 export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) => {
   const { scenarios, activeScenarioId, setActiveScenario, removeScenario, isMultiScenarioMode } = useMultiScenario();
+  const { saveScenario } = useScenarioSave();
   
   const scenario = scenarios.find(s => s.id === scenarioId);
   const isActive = scenarioId === activeScenarioId;
@@ -32,6 +34,11 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     removeScenario(scenarioId);
+    // Auto-save to ensure client report reflects the change
+    // Small delay to let state update propagate
+    setTimeout(() => {
+      saveScenario();
+    }, 100);
   };
   
   return (

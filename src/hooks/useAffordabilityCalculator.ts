@@ -1521,15 +1521,60 @@ export const useAffordabilityCalculator = () => {
     const serviceabilityTestSurplus = maxAnnualPayment - totalAnnualLoanPayment;
     const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
     
+    // BORROWING CAPACITY TEST
+    // Calculate total existing debt from previous purchases
+    let totalExistingDebt = profile.currentDebt;
+    previousPurchases.forEach(purchase => {
+      if (purchase.period <= period) {
+        const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+        totalExistingDebt += currentLoanAmount;
+      }
+    });
+    
+    // Calculate usable equity from existing portfolio and previous purchases
+    let totalUsableEquity = 0;
+    
+    // Existing portfolio equity
+    if (profile.portfolioValue > 0) {
+      const defaultAssumption = propertyAssumptions[0];
+      const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, period - 1, defaultAssumption);
+      const portfolioEquity = Math.max(0, grownPortfolioValue * 0.80 - profile.currentDebt);
+      totalUsableEquity += portfolioEquity;
+    }
+    
+    // Previous purchases equity
+    previousPurchases.forEach(purchase => {
+      if (purchase.period <= period) {
+        const periodsOwned = period - purchase.period;
+        const purchasePropertyData = getPropertyData(purchase.title);
+        if (purchasePropertyData) {
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, purchasePropertyData);
+          const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+          const usableEquity = Math.max(0, currentValue * 0.80 - currentLoanAmount);
+          totalUsableEquity += usableEquity;
+        }
+      }
+    });
+    
+    // Calculate effective borrowing capacity with equity boost
+    const equityBoost = totalUsableEquity * profile.equityFactor;
+    const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+    
+    // Borrowing capacity test: new loan must not exceed effective capacity
+    const borrowingCapacityTestPass = newLoanAmount <= effectiveBorrowingCapacity;
+    const borrowingCapacityRemaining = effectiveBorrowingCapacity - newLoanAmount;
+    
     return {
       canAfford: affordabilityResult.canAfford,
       depositTestSurplus,
       depositTestPass,
       serviceabilityTestSurplus,
       serviceabilityTestPass,
+      borrowingCapacityPass: borrowingCapacityTestPass,
+      borrowingCapacityRemaining,
       availableFunds: availableFunds.total
     };
-  }, [profile, globalFactors, calculatedValues, getPropertyData]);
+  }, [profile, globalFactors, calculatedValues, getPropertyData, propertyAssumptions]);
 
   // AUTO-CREATE MISSING PROPERTY INSTANCES
   // This useEffect runs after render to create any property instances that don't exist yet

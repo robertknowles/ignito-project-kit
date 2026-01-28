@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Target, TrendingUp, Trophy, CheckCircle, Clock, Building2, Download } from 'lucide-react';
+import { Target, TrendingUp, Trophy, CheckCircle, Clock, Building2, Download, Share2 } from 'lucide-react';
 import { PortfolioChart } from './components/PortfolioChart';
 import { CashflowChart } from './components/CashflowChart';
 import { TimelineCard } from './components/TimelineCard';
@@ -436,16 +436,26 @@ export function ClientDashboard({
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">Prepared by {agentDisplayName} • {companyDisplayName}</p>
           </div>
-          {onPrint && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={onPrint}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              onClick={() => {/* TODO: Implement share functionality */}}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
             >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Download PDF</span>
-              <span className="sm:hidden">PDF</span>
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share Dashboard</span>
+              <span className="sm:hidden">Share</span>
             </button>
-          )}
+            {onPrint && (
+              <button
+                onClick={onPrint}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Download PDF</span>
+                <span className="sm:hidden">PDF</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
