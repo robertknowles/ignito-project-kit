@@ -99,7 +99,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
-  const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext } = useMultiScenario();
+  const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext, isDeletionInProgress } = useMultiScenario();
   const { user, role } = useAuth();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -119,12 +119,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
+    // Check if deletion is in progress - if so, skip multi-scenario handling
+    // to prevent stale closures from restoring deleted scenarios
+    const deletionActive = isDeletionInProgress();
+    
     // In multi-scenario mode, sync the current active scenario and get updated scenarios
+    // But skip if deletion is in progress to avoid stale data
     let currentScenarios = scenarios;
-    if (isMultiScenarioMode) {
+    if (isMultiScenarioMode && !deletionActive) {
       currentScenarios = syncCurrentScenarioFromContext();
     }
     
+    // Always explicitly set comparisonMode and scenarios to ensure old data is cleared
     const baseData: ScenarioData = {
       propertySelections: selections,
       propertyOrder: propertyOrder,
@@ -133,10 +139,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       timelineSnapshot: timelineSnapshot,
       chartData: chartData,
       lastSaved: new Date().toISOString(),
+      comparisonMode: false,  // Explicitly set to false by default
+      scenarios: undefined,    // Explicitly clear old scenarios array
     };
     
     // If in multi-scenario mode, include all scenarios for comparison report
-    if (isMultiScenarioMode && currentScenarios.length >= 2) {
+    // But skip during deletion to avoid saving stale scenario data
+    if (isMultiScenarioMode && currentScenarios.length >= 2 && !deletionActive) {
       return {
         ...baseData,
         comparisonMode: true,
@@ -145,7 +154,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     return baseData;
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
 
   // Save scenario
   const saveScenario = useCallback(async () => {

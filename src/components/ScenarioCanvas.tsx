@@ -35,10 +35,11 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
     e.stopPropagation();
     removeScenario(scenarioId);
     // Auto-save to ensure client report reflects the change
-    // Small delay to let state update propagate
+    // Longer delay to ensure React state updates propagate fully
+    // (especially isMultiScenarioMode which changes when going from 2->1 scenarios)
     setTimeout(() => {
       saveScenario();
-    }, 100);
+    }, 300);
   };
   
   return (

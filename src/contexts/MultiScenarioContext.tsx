@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
@@ -24,6 +24,7 @@ interface MultiScenarioContextType {
   activeScenarioId: string | null;
   activeScenario: Scenario | null;
   isMultiScenarioMode: boolean;
+  isDeletionInProgress: () => boolean;
   addScenario: () => void;
   removeScenario: (id: string) => void;
   setActiveScenario: (id: string) => void;
@@ -65,6 +66,9 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
   }]);
 
   const [activeScenarioId, setActiveScenarioId] = useState<string>('scenario-1');
+  
+  // Ref to track when deletion is in progress to prevent auto-sync from restoring deleted scenarios
+  const deletionInProgressRef = useRef(false);
 
   // Get the active scenario
   const activeScenario = scenarios.find(s => s.id === activeScenarioId) || null;
@@ -76,6 +80,12 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
   // This is called when we need to capture the current state into the active scenario
   // Returns the updated scenarios array synchronously for saving
   const syncCurrentScenarioFromContext = useCallback((): Scenario[] => {
+    // Skip sync during deletion to prevent restoring deleted scenarios with stale data
+    if (deletionInProgressRef.current) {
+      console.log('MultiScenarioContext: Skipping sync during deletion');
+      return scenarios;
+    }
+    
     if (!activeScenarioId) return scenarios;
 
     const updatedScenarios = scenarios.map(s => {
@@ -129,7 +139,8 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
 
   // Auto-sync the active scenario when context data changes (only in multi-scenario mode)
   useEffect(() => {
-    if (isMultiScenarioMode) {
+    // Skip auto-sync during deletion to prevent restoring deleted scenarios
+    if (isMultiScenarioMode && !deletionInProgressRef.current) {
       syncCurrentScenarioFromContext();
     }
   }, [isMultiScenarioMode, selections, propertyOrder, profile, instances, timelineProperties]);
@@ -177,6 +188,9 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
       return;
     }
 
+    // Mark deletion in progress to prevent auto-sync from restoring the deleted scenario
+    deletionInProgressRef.current = true;
+
     const remainingScenarios = scenarios.filter(s => s.id !== id);
     setScenarios(remainingScenarios);
 
@@ -191,6 +205,12 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
       // Restore the new active scenario's state to global contexts
       restoreScenarioToGlobalContexts(newActiveId);
     }
+
+    // Clear the deletion flag after a longer delay to ensure save operations
+    // that might be triggered don't restore deleted scenarios with stale closures
+    setTimeout(() => {
+      deletionInProgressRef.current = false;
+    }, 500);
   }, [scenarios, activeScenarioId, restoreScenarioToGlobalContexts]);
 
   // Set the active scenario
@@ -222,11 +242,15 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
     ));
   }, []);
 
+  // Getter for deletion in progress state (for other contexts to check)
+  const isDeletionInProgress = useCallback(() => deletionInProgressRef.current, []);
+
   const value: MultiScenarioContextType = {
     scenarios,
     activeScenarioId,
     activeScenario,
     isMultiScenarioMode,
+    isDeletionInProgress,
     addScenario,
     removeScenario,
     setActiveScenario: setActiveScenarioHandler,

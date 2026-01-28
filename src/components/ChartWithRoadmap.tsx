@@ -606,7 +606,11 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     // Use the calculator to check affordability
     const result = calculateAffordabilityForProperty(period, propertyForCheck, previousPurchases);
     
-    return result.canAfford && result.depositTestPass && result.serviceabilityTestPass;
+    // Check all three tests: deposit, serviceability, AND borrowing capacity
+    const borrowingCapacityPass = result.borrowingCapacityPass ?? 
+      (result.borrowingCapacityRemaining === undefined || result.borrowingCapacityRemaining >= 0);
+    
+    return result.canAfford && result.depositTestPass && result.serviceabilityTestPass && borrowingCapacityPass;
   }, [buildPurchaseHistoryForValidation, timelineProperties, calculateAffordabilityForProperty]);
 
   // Update validation state when hovering over a period
