@@ -1,12 +1,9 @@
 import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis, GrowthProjection, GrowthCurve } from '../types/property';
-
-// Period conversion constants
-const PERIODS_PER_YEAR = 2;
-
-// Convert annual rate to per-period rate using compound interest formula
-const annualRateToPeriodRate = (annualRate: number): number => {
-  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
-};
+import {
+  PERIODS_PER_YEAR,
+  ANNUAL_INFLATION_RATE,
+  annualRateToPeriodRate,
+} from '../constants/financialParams';
 
 // Tiered growth function: Customizable growth rates per year
 // Default: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
@@ -101,8 +98,8 @@ export const calculateAnnualExpenses = (
   expenses: PropertyExpenses = DEFAULT_PROPERTY_EXPENSES,
   periodsOwned: number = 0
 ): { total: number; breakdown: CashFlowAnalysis['expenseBreakdown'] } => {
-  // Apply 3% annual inflation to all expenses
-  const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
+  // Apply annual inflation to all expenses
+  const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
   
   const managementFees = rentalIncome * expenses.managementFeeRate * inflationFactor;
   const councilRates = expenses.councilRates * inflationFactor;

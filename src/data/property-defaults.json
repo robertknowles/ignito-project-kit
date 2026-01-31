@@ -30,10 +30,10 @@
     "propertyManagementPercent": 6.6,
     "buildingInsuranceAnnual": 350,
     "councilRatesWater": 2000,
-    "strata": 3200,
+    "strata": 2560,
     "maintenanceAllowanceAnnual": 1750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 2000
   },
   "villas-townhouses": {
     "state": "QLD",
@@ -66,10 +66,10 @@
     "propertyManagementPercent": 6.6,
     "buildingInsuranceAnnual": 1000,
     "councilRatesWater": 2200,
-    "strata": 2500,
+    "strata": 2000,
     "maintenanceAllowanceAnnual": 1625,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 2000
   },
   "houses-regional": {
     "state": "NSW",
@@ -105,7 +105,7 @@
     "strata": 0,
     "maintenanceAllowanceAnnual": 1750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 2000
   },
   "duplexes": {
     "state": "QLD",
@@ -138,10 +138,10 @@
     "propertyManagementPercent": 6.6,
     "buildingInsuranceAnnual": 1800,
     "councilRatesWater": 2500,
-    "strata": 500,
+    "strata": 400,
     "maintenanceAllowanceAnnual": 2750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 2000
   },
   "small-blocks-3-4-units": {
     "state": "NSW",
@@ -174,10 +174,10 @@
     "propertyManagementPercent": 6.6,
     "buildingInsuranceAnnual": 2500,
     "councilRatesWater": 4000,
-    "strata": 5000,
+    "strata": 4000,
     "maintenanceAllowanceAnnual": 4500,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 3000
   },
   "metro-houses": {
     "state": "VIC",
@@ -213,7 +213,7 @@
     "strata": 0,
     "maintenanceAllowanceAnnual": 4000,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 3000
   },
   "larger-blocks-10-20-units": {
     "state": "NSW",
@@ -246,10 +246,10 @@
     "propertyManagementPercent": 6.6,
     "buildingInsuranceAnnual": 6000,
     "councilRatesWater": 12000,
-    "strata": 15000,
+    "strata": 12000,
     "maintenanceAllowanceAnnual": 17500,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 5000
   },
   "commercial-property": {
     "state": "VIC",
@@ -282,10 +282,10 @@
     "propertyManagementPercent": 6.0,
     "buildingInsuranceAnnual": 5000,
     "councilRatesWater": 8000,
-    "strata": 10000,
+    "strata": 8000,
     "maintenanceAllowanceAnnual": 15000,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 0
+    "potentialDeductionsRebates": 5000
   }
 }
 

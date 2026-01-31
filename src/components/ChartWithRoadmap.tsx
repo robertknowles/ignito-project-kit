@@ -23,6 +23,7 @@ import { MiniPurchaseCard } from './MiniPurchaseCard';
 import { SingleTestModal, TestType } from './SingleTestModal';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
 import { GuardrailFixModal } from './GuardrailFixModal';
+import { TourStep } from '@/components/TourManager';
 import type { TimelineProperty } from '../types/property';
 import type { GuardrailViolation } from '../utils/guardrailValidator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -448,6 +449,40 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   // Validation state for drag-over feedback
   const [hoverValidation, setHoverValidation] = useState<{ period: number; isValid: boolean } | null>(null);
   
+  // Expandable row state for Available Funds breakdown
+  const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
+  
+  // Expandable row state for Buy row funding breakdown
+  const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
+  
+  // Calculate funding breakdown for a purchase
+  // Logic: Cash is used first, then savings, then equity
+  const calculateFundingBreakdown = useCallback((
+    depositRequired: number,
+    availableCash: number,
+    availableSavings: number,
+    availableEquity: number
+  ) => {
+    let remaining = depositRequired;
+    
+    // Use cash first
+    const cashUsed = Math.min(remaining, availableCash);
+    remaining -= cashUsed;
+    
+    // Then savings
+    const savingsUsed = Math.min(remaining, availableSavings);
+    remaining -= savingsUsed;
+    
+    // Then equity
+    const equityUsed = Math.min(remaining, availableEquity);
+    
+    return {
+      cash: cashUsed,
+      savings: savingsUsed,
+      equity: equityUsed,
+    };
+  }, []);
+  
   // Get violations for a property
   const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
     const violations: GuardrailViolation[] = [];
@@ -842,6 +877,13 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 </div>
 
                 {/* Draggable Property Icons Overlay - positioned over the chart */}
+                <TourStep
+                  id="property-interactions"
+                  title="Interactive Property Icons"
+                  content="Each property icon is interactive. Click to view detailed performance metrics (ROI, equity growth, cashflow analysis). Drag to reposition - green highlights show valid placements, red indicates constraint violations."
+                  order={9}
+                  position="bottom"
+                >
                 <div 
                   className="absolute inset-0"
                   style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
@@ -861,6 +903,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                     )
                   ))}
                 </div>
+                </TourStep>
 
                 <AreaChart
                 width={chartWidth + Y_AXIS_WIDTH}
@@ -983,37 +1026,69 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             ))}
           </div>
 
-          {/* PURCHASE Row - Same height as other rows */}
+          {/* PURCHASE Row - Expandable to show funding sources */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div 
+              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
+            >
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
+                <span className={`transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
                 Buy
               </span>
             </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`purchase-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
-                  // Render a MiniPurchaseCard for each property in this year
-                  yearData.purchaseDetails.map((purchase, purchaseIndex) => (
-                    <MiniPurchaseCard
-                      key={`${purchase.instanceId}-${purchaseIndex}`}
-                      propertyTitle={purchase.propertyTitle}
-                      cost={purchase.cost}
-                      loanAmount={purchase.loanAmount}
-                      depositRequired={purchase.depositRequired}
-                      onClick={() => handlePropertyClick(purchase.instanceId)}
-                    />
-                  ))
-                ) : (
-                  <span className="text-[8px] text-slate-400 self-center">–</span>
-                )}
-              </div>
-            ))}
+            {years.map((yearData, index) => {
+              // Calculate funding breakdown for this year's purchases
+              const yearBreakdown = yearData.yearBreakdownData;
+              const availableCash = yearBreakdown?.baseDeposit || 0;
+              const availableSavings = yearBreakdown?.cumulativeSavings || 0;
+              const availableEquity = yearBreakdown?.equityRelease || 0;
+              
+              return (
+                <div 
+                  key={`purchase-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
+                    // Render a MiniPurchaseCard for each property in this year
+                    yearData.purchaseDetails.map((purchase, purchaseIndex) => {
+                      const fundingBreakdown = calculateFundingBreakdown(
+                        purchase.depositRequired,
+                        availableCash,
+                        availableSavings,
+                        availableEquity
+                      );
+                      
+                      return (
+                        <MiniPurchaseCard
+                          key={`${purchase.instanceId}-${purchaseIndex}`}
+                          propertyTitle={purchase.propertyTitle}
+                          cost={purchase.cost}
+                          loanAmount={purchase.loanAmount}
+                          depositRequired={purchase.depositRequired}
+                          onClick={() => handlePropertyClick(purchase.instanceId)}
+                          fundingBreakdown={fundingBreakdown}
+                          showFunding={isBuyFundingExpanded}
+                        />
+                      );
+                    })
+                  ) : (
+                    <span className="text-[8px] text-slate-400 self-center">–</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
+          {/* Affordability Guardrails - Status Rows */}
+          <TourStep
+            id="affordability-guardrails"
+            title="Affordability Guardrails"
+            content="The roadmap shows pass/fail tests for each purchase year: Deposit (funds available), Borrowing (capacity remaining), and Serviceability (income coverage). Click any status pill to see the full analysis. Red warning badges on property icons indicate violations - click for suggested fixes."
+            order={11}
+            position="top"
+          >
+          <div>
           {/* DEPOSIT Status Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
@@ -1085,11 +1160,17 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
               );
             })}
           </div>
+          </div>
+          </TourStep>
 
-          {/* AVAILABLE Funds Row */}
+          {/* AVAILABLE Funds Row - Expandable */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div 
+              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
+            >
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
+                <span className={`transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
                 Avail
               </span>
             </div>
@@ -1104,6 +1185,71 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
               </div>
             ))}
           </div>
+
+          {/* Expandable Sub-rows for Available Funds Breakdown */}
+          {isAvailableFundsExpanded && (
+            <>
+              {/* Sub-row: Cash (Base Deposit) */}
+              <div style={gridStyle} className="border-b border-slate-100/50 bg-slate-100/30">
+                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
+                  <span className="text-[6px] text-slate-400 pr-1">├ Cash</span>
+                </div>
+                {years.map((yearData, index) => {
+                  const baseDeposit = yearData.yearBreakdownData?.baseDeposit || 0;
+                  return (
+                    <div 
+                      key={`cash-${yearData.year}`}
+                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
+                    >
+                      <span className="text-[6px] text-slate-500">
+                        {baseDeposit > 0 ? formatCompactCurrency(baseDeposit) : '–'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sub-row: Savings (Cumulative) */}
+              <div style={gridStyle} className="border-b border-slate-100/50 bg-slate-100/30">
+                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
+                  <span className="text-[6px] text-slate-400 pr-1">├ Save</span>
+                </div>
+                {years.map((yearData, index) => {
+                  const savings = yearData.yearBreakdownData?.cumulativeSavings || 0;
+                  return (
+                    <div 
+                      key={`savings-${yearData.year}`}
+                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
+                    >
+                      <span className="text-[6px] text-slate-500">
+                        {savings > 0 ? formatCompactCurrency(savings) : '–'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sub-row: Equity Released */}
+              <div style={gridStyle} className="border-b border-slate-200/40 bg-slate-100/30">
+                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
+                  <span className="text-[6px] text-slate-400 pr-1">└ Equity</span>
+                </div>
+                {years.map((yearData, index) => {
+                  const equityRelease = yearData.yearBreakdownData?.equityRelease || 0;
+                  return (
+                    <div 
+                      key={`equity-release-${yearData.year}`}
+                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
+                    >
+                      <span className={`text-[6px] ${equityRelease > 0 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                        {equityRelease > 0 ? formatCompactCurrency(equityRelease) : '–'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* LVR Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">

@@ -116,7 +116,14 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [propertyOrder, setPropertyOrder] = useState<string[]>([]);
   // Ref to track pending quantity changes to avoid stale closure issues with rapid clicks
   const pendingQuantityRef = useRef<Record<string, number>>({});
-  const { propertyAssumptions } = useDataAssumptions(); // Get profile-level assumptions from DataAssumptionsContext
+  const { propertyTypeTemplates } = useDataAssumptions(); // Get profile-level templates from DataAssumptionsContext
+  
+  // Growth rate tiers - must match DataAssumptionsContext.tsx
+  const GROWTH_RATES = {
+    High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
+    Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
+    Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
+  } as const;
 
   // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
   // to prevent conflicts between individual context loading and unified scenario loading
@@ -164,25 +171,31 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     pendingQuantityRef.current = { ...selections };
   }, [selections]);
 
-  // Convert data assumptions to property types for calculations
+  // Convert property type templates to property types for calculations
   const propertyTypes = useMemo(() => {
-    // Predefined property types from assumptions
-    const predefinedTypes = propertyAssumptions.map((assumption, index) => ({
-      id: `property_${index}`,
-      title: assumption.type,
-      priceRange: `$${parseFloat(assumption.averageCost).toLocaleString()}`,
-      yield: `${assumption.yield}%`,
-      cashFlow: `$${Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.yield)) / 100 / 12)}`,
-      riskLevel: 'Medium' as const,
-      cost: parseFloat(assumption.averageCost),
-      depositRequired: Math.round((parseFloat(assumption.averageCost) * parseFloat(assumption.deposit)) / 100),
-      yieldPercent: parseFloat(assumption.yield),
-      growthPercent: parseFloat(assumption.growthYear1), // Use Year 1 growth rate for display
-      state: 'NSW', // Default to NSW for all properties
-      // Loan type will be managed per-instance in the timeline
-      loanType: assumption.loanType || 'IO',
-      isCustom: false,
-    }));
+    // Predefined property types from templates (source of truth)
+    const predefinedTypes = propertyTypeTemplates.map((template, index) => {
+      const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100;
+      const depositPercent = 100 - template.lvr;
+      const growthTier = (template.growthAssumption || 'Medium') as keyof typeof GROWTH_RATES;
+      const rates = GROWTH_RATES[growthTier] || GROWTH_RATES.Medium;
+      
+      return {
+        id: `property_${index}`,
+        title: template.propertyType,
+        priceRange: `$${template.purchasePrice.toLocaleString()}`,
+        yield: `${yieldPercent.toFixed(1)}%`,
+        cashFlow: `$${Math.round((template.purchasePrice * yieldPercent / 100) / 12)}`,
+        riskLevel: 'Medium' as const,
+        cost: template.purchasePrice,
+        depositRequired: Math.round((template.purchasePrice * depositPercent) / 100),
+        yieldPercent: yieldPercent,
+        growthPercent: rates.year1, // Use Year 1 growth rate for display
+        state: template.state || 'NSW',
+        loanType: template.loanProduct || 'IO',
+        isCustom: false,
+      };
+    });
 
     // Custom property types
     const customTypes = customBlocks.map((block) => ({
@@ -202,7 +215,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     }));
 
     return [...predefinedTypes, ...customTypes];
-  }, [propertyAssumptions, customBlocks]);
+  }, [propertyTypeTemplates, customBlocks]);
 
   // Calculate portfolio totals
   const calculations = useMemo((): PortfolioCalculations => {

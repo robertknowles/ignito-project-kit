@@ -32,7 +32,7 @@ export interface TimelineClient {
  */
 export const useAllClientScenarios = () => {
   const { clients } = useClient();
-  const { propertyAssumptions } = useDataAssumptions();
+  const { propertyAssumptions, propertyTypeTemplates, getPropertyData } = useDataAssumptions();
   const [timelineData, setTimelineData] = useState<TimelineClient[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -154,12 +154,13 @@ export const useAllClientScenarios = () => {
                 
                 const propertyIndex = parseInt(match[1], 10);
                 
-                // Find the matching assumption by index from global propertyAssumptions
-                const assumption = propertyAssumptions[propertyIndex];
+                // Find the matching template by index, then get fresh data via getPropertyData
+                const template = propertyTypeTemplates[propertyIndex];
+                const assumption = template ? getPropertyData(template.propertyType) : propertyAssumptions[propertyIndex];
                 
                 if (!assumption) {
                   console.warn(`    WARNING: No property assumption found at index ${propertyIndex} (${propertyId})`);
-                  console.warn(`    Available assumptions:`, propertyAssumptions.map((a, i) => `${i}: ${a.type}`));
+                  console.warn(`    Available templates:`, propertyTypeTemplates.map((t, i) => `${i}: ${t.propertyType}`));
                   return;
                 }
                 
@@ -255,7 +256,7 @@ export const useAllClientScenarios = () => {
     };
 
     fetchAllScenarios();
-  }, [clients, propertyAssumptions]);
+  }, [clients, propertyAssumptions, propertyTypeTemplates, getPropertyData]);
 
   return { timelineData, loading };
 };

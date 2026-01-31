@@ -185,7 +185,7 @@ export const LeftRail = () => {
             id="tour-complete"
             title="You're All Set! 🎉"
             content="That's the tour! Remember: click the Help icon (?) in the sidebar anytime to restart this tour. Now go build some amazing investment strategies for your clients!"
-            order={12}
+            order={13}
             position="right"
           >
           <Tooltip>

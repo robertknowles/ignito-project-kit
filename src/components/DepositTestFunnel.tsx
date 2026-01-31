@@ -2,6 +2,7 @@ import React from 'react';
 import { DollarSign, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
 import { BreakdownInfo } from './BreakdownInfo';
+import { EQUITY_EXTRACTION_LVR_CAP } from '@/constants/financialParams';
 
 interface DepositTestFunnelProps {
   yearData: YearBreakdownData;
@@ -49,7 +50,7 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
   
   // Calculate pre-purchase metrics for Equity Release breakdown
   const prePurchaseValue = Math.max(0, yearData.portfolioValue - yearData.propertyCost);
-  const maxLendable = prePurchaseValue * 0.80;
+  const maxLendable = prePurchaseValue * EQUITY_EXTRACTION_LVR_CAP;
   const existingDebt = yearData.existingDebt;
   const calculatedEquity = Math.max(0, maxLendable - existingDebt);
   
@@ -146,7 +147,7 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
                   title="Equity Release Breakdown (Pre-Purchase)"
                   items={[
                     { label: 'Existing Portfolio Value', value: prePurchaseValue },
-                    { label: 'Max Lendable Amount (80%)', value: maxLendable },
+                    { label: `Max Lendable Amount (${(EQUITY_EXTRACTION_LVR_CAP * 100).toFixed(0)}%)`, value: maxLendable },
                     { label: 'Less: Existing Debt', value: -existingDebt }
                   ]}
                   total={calculatedEquity}

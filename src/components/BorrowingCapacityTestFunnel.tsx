@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
 import { BreakdownInfo } from './BreakdownInfo';
+import { EQUITY_EXTRACTION_LVR_CAP } from '@/constants/financialParams';
 
 interface BorrowingCapacityTestFunnelProps {
   yearData: YearBreakdownData;
@@ -106,12 +107,12 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600 flex items-center">
-                  Extractable (80%)
+                  Extractable ({(EQUITY_EXTRACTION_LVR_CAP * 100).toFixed(0)}%)
                   <BreakdownInfo
                     title="Usable Equity Calculation"
                     items={[
                       { label: 'Portfolio Value', value: portfolioValue },
-                      { label: 'Lending Limit (80%)', value: portfolioValue * 0.80 },
+                      { label: `Lending Limit (${(EQUITY_EXTRACTION_LVR_CAP * 100).toFixed(0)}%)`, value: portfolioValue * EQUITY_EXTRACTION_LVR_CAP },
                       { label: 'Less: Current Debt', value: -totalDebt }
                     ]}
                     total={extractableEquity}
@@ -219,7 +220,7 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
                 <span className="text-sm font-bold text-blue-600">{formatCurrency(effectiveCapacity)}</span>
               </div>
               <div className="text-[10px] italic text-gray-500">
-                {formatCurrency(borrowingCapacity)} + ({formatCurrency(extractableEquity)} × 75%)
+                {formatCurrency(borrowingCapacity)} + ({formatCurrency(extractableEquity)} × {(equityFactor * 100).toFixed(0)}%)
               </div>
             </div>
           </div>

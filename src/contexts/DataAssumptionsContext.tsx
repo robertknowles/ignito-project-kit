@@ -373,13 +373,24 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
   };
 
   const updatePropertyTypeTemplate = (propertyType: string, updates: Partial<PropertyInstanceDetails>) => {
-    setPropertyTypeTemplates(prev => 
-      prev.map(template => 
-        template.propertyType === propertyType
-          ? { ...template, ...updates }
-          : template
-      )
-    );
+    setPropertyTypeTemplates(prev => {
+      // Helper to normalize property type names for matching (same as getPropertyTypeTemplate)
+      const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim();
+      const normalizedInput = normalizeForMatch(propertyType);
+      
+      return prev.map(template => {
+        // First try exact match
+        if (template.propertyType === propertyType) {
+          return { ...template, ...updates };
+        }
+        // Then try normalized match (handles legacy name mismatches from database)
+        // Known mismatches: "Houses (Regional focus)" vs "Houses (Regional)", case differences
+        if (normalizeForMatch(template.propertyType) === normalizedInput) {
+          return { ...template, ...updates };
+        }
+        return template;
+      });
+    });
   };
 
   // DEPRECATED: Old methods (kept for backward compatibility)
@@ -402,6 +413,32 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
   };
 
   const getPropertyData = (propertyType: string): PropertyAssumption | undefined => {
+    // First try to get from propertyTypeTemplates (source of truth for editable values)
+    const template = getPropertyTypeTemplate(propertyType);
+    
+    if (template) {
+      // Convert template to PropertyAssumption format
+      const growthTier = (template.growthAssumption || 'Medium') as GrowthAssumption;
+      const rates = GROWTH_RATES[growthTier] || GROWTH_RATES.Medium;
+      
+      return {
+        // Legacy fields (derived from template)
+        type: template.propertyType,
+        averageCost: template.purchasePrice.toString(),
+        yield: ((template.rentPerWeek * 52 / template.purchasePrice) * 100).toFixed(1),
+        growthYear1: rates.year1.toString(),
+        growthYears2to3: rates.years2to3.toString(),
+        growthYear4: rates.year4.toString(),
+        growthYear5plus: rates.year5plus.toString(),
+        deposit: (100 - template.lvr).toString(),
+        loanType: template.loanProduct,
+        
+        // All PropertyInstanceDetails fields from template
+        ...template,
+      };
+    }
+    
+    // Fallback to deprecated propertyAssumptions for backward compatibility
     return propertyAssumptions.find(prop => prop.type === propertyType);
   };
 

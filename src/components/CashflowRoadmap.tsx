@@ -70,7 +70,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           Rental Income: {formatCurrency(data?.rentalIncome || 0)}
         </p>
         <p className="text-xs text-slate-500">
-          Loan Repayments: {formatCurrency(data?.loanRepayments || 0)}
+          Expenses: {formatCurrency(data?.expenses || 0)}
+        </p>
+        <p className="text-xs text-slate-500">
+          Loan Interest: {formatCurrency(data?.loanRepayments || 0)}
         </p>
       </div>
     );
@@ -142,6 +145,7 @@ interface ChartDataPoint {
   year: number;
   cashflow: number;
   rentalIncome: number;
+  expenses: number;
   loanRepayments: number;
   purchaseInYear: boolean;
   purchaseDetails?: YearData['purchaseDetails'];
@@ -249,6 +253,7 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
         // Use cashflow values from useChartDataGenerator (more accurate)
         cashflow: cfData?.cashflow ?? 0,
         rentalIncome: cfData?.rentalIncome ?? 0,
+        expenses: cfData?.expenses ?? 0,
         loanRepayments: cfData?.loanRepayments ?? 0,
         // Keep purchase info from useRoadmapData
         purchaseInYear: yearData.purchaseInYear,
@@ -467,6 +472,25 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 >
                   <span className="text-[9px] text-slate-600">
                     {data.rentalIncome > 0 ? formatCompactCurrency(data.rentalIncome) : '–'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* EXPENSES Row */}
+            <div style={gridStyle} className="border-b border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                  Expenses
+                </span>
+              </div>
+              {chartData.map((data, index) => (
+                <div 
+                  key={`expenses-${data.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  <span className="text-[9px] text-slate-600">
+                    {data.expenses > 0 ? formatCompactCurrency(data.expenses) : '–'}
                   </span>
                 </div>
               ))}

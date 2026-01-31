@@ -2,6 +2,10 @@ import React from 'react';
 import { BarChart3, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
 import { BreakdownInfo } from './BreakdownInfo';
+import { 
+  SERVICEABILITY_FACTOR, 
+  RENTAL_SERVICEABILITY_CONTRIBUTION_RATE 
+} from '@/constants/financialParams';
 
 interface ServiceabilityTestFunnelProps {
   yearData: YearBreakdownData;
@@ -170,34 +174,34 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
             Serviceability Capacity
           </h4>
           <div className="bg-gray-50 rounded p-2 space-y-1">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600 flex items-center">
-                Borrowing Power
-                <BreakdownInfo
-                  title="Salary Based Capacity"
-                  items={[
-                    { label: 'User Borrowing Input', value: borrowingCapacity },
-                    { label: 'Serviceability Factor (10%)', value: baseServiceabilityCapacity }
-                  ]}
-                />
-              </span>
-              <span className="text-xs font-semibold text-gray-800">{formatCurrency(baseServiceabilityCapacity)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600 flex items-center">
-                Rental (70%)
-                <BreakdownInfo
-                  title="Shading Calculation"
-                  items={[
-                    { label: 'Gross Market Rent', value: grossRental },
-                    { label: 'Bank Shading (30%)', value: -(grossRental * 0.30) },
-                  ]}
-                  total={rentalServiceabilityContribution}
-                  totalLabel="Recognized Income"
-                />
-              </span>
-              <span className="text-xs font-semibold text-gray-800">{formatCurrency(rentalServiceabilityContribution)}</span>
-            </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600 flex items-center">
+                  Borrowing Power
+                  <BreakdownInfo
+                    title="Salary Based Capacity"
+                    items={[
+                      { label: 'User Borrowing Input', value: borrowingCapacity },
+                      { label: `Serviceability Factor (${(SERVICEABILITY_FACTOR * 100).toFixed(0)}%)`, value: baseServiceabilityCapacity }
+                    ]}
+                  />
+                </span>
+                <span className="text-xs font-semibold text-gray-800">{formatCurrency(baseServiceabilityCapacity)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600 flex items-center">
+                  Rental ({(RENTAL_SERVICEABILITY_CONTRIBUTION_RATE * 100).toFixed(0)}%)
+                  <BreakdownInfo
+                    title="Shading Calculation"
+                    items={[
+                      { label: 'Gross Market Rent', value: grossRental },
+                      { label: `Bank Shading (${((1 - RENTAL_SERVICEABILITY_CONTRIBUTION_RATE) * 100).toFixed(0)}%)`, value: -(grossRental * (1 - RENTAL_SERVICEABILITY_CONTRIBUTION_RATE)) },
+                    ]}
+                    total={rentalServiceabilityContribution}
+                    totalLabel="Recognized Income"
+                  />
+                </span>
+                <span className="text-xs font-semibold text-gray-800">{formatCurrency(rentalServiceabilityContribution)}</span>
+              </div>
             <div className="pt-1 border-t border-gray-300">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-gray-700 flex items-center">
@@ -214,7 +218,7 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
                 <span className="text-sm font-bold text-blue-600">{formatCurrency(totalCapacity)}</span>
               </div>
               <div className="text-[10px] italic text-gray-500">
-                {formatCurrency(borrowingCapacity)} × 10% + {formatCurrency(grossRental)} × 70%
+                {formatCurrency(borrowingCapacity)} × {(SERVICEABILITY_FACTOR * 100).toFixed(0)}% + {formatCurrency(grossRental)} × {(RENTAL_SERVICEABILITY_CONTRIBUTION_RATE * 100).toFixed(0)}%
               </div>
             </div>
           </div>

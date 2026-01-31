@@ -459,6 +459,13 @@ export const PropertyBlocksPanel: React.FC = () => {
     setDuplicatingProperty(null)
   }
 
+  // Growth rate tiers - must match DataAssumptionsContext.tsx
+  const GROWTH_RATES = {
+    High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
+    Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
+    Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
+  } as const
+
   // Helper to get cascading growth rates for a property
   const getGrowthRatesForProperty = (propertyTitle: string, isCustom?: boolean): CascadingGrowthRates | undefined => {
     if (isCustom) {
@@ -471,7 +478,20 @@ export const PropertyBlocksPanel: React.FC = () => {
       return undefined
     }
     
-    // Find the property assumption by type
+    // Get from property type template (source of truth for editable values)
+    const template = getPropertyTypeTemplate(propertyTitle)
+    if (template) {
+      const growthTier = template.growthAssumption || 'Medium'
+      const rates = GROWTH_RATES[growthTier as keyof typeof GROWTH_RATES] || GROWTH_RATES.Medium
+      return {
+        year1: rates.year1.toString(),
+        years2to3: rates.years2to3.toString(),
+        year4: rates.year4.toString(),
+        year5plus: rates.year5plus.toString(),
+      }
+    }
+    
+    // Fallback to property assumptions for backward compatibility
     const assumption = propertyAssumptions.find(a => a.type === propertyTitle)
     if (assumption) {
       return {
@@ -490,7 +510,7 @@ export const PropertyBlocksPanel: React.FC = () => {
     <TourStep
       id="property-blocks"
       title="Property Building Blocks"
-      content="These are your property templates - pre-configured investment types with different price points, yields, and growth profiles. Think of them as 'Lego blocks' for building a strategy. Click + to add properties to your timeline."
+      content="Your property 'building blocks' - templates with preset price points, yields, and growth profiles. Click + to add to the timeline. Need something custom? Use 'Add Custom Property Block' at the top to create your own."
       order={7}
       position="right"
     >
@@ -542,14 +562,21 @@ export const PropertyBlocksPanel: React.FC = () => {
         const imageUrl = getPropertyImage(property.title)
         
         if (imageUrl && !property.isCustom) {
-          // Get state from template
+          // Get state and price from template (source of truth for editable values)
           const template = getPropertyTypeTemplate(property.title)
+          // Use template values if available, otherwise fall back to property values
+          const displayPrice = template?.purchasePrice 
+            ? `$${template.purchasePrice.toLocaleString()}`
+            : property.priceRange
+          const displayYield = template?.purchasePrice && template?.rentPerWeek
+            ? `${((template.rentPerWeek * 52 / template.purchasePrice) * 100).toFixed(1)}%`
+            : property.yield
           return (
             <PropertyBlockCardV2
               key={property.id}
               title={property.title}
-              priceRange={property.priceRange}
-              yieldValue={property.yield}
+              priceRange={displayPrice}
+              yieldValue={displayYield}
               growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
               count={getPropertyQuantity(property.id)}
               imageUrl={imageUrl}
@@ -562,13 +589,21 @@ export const PropertyBlocksPanel: React.FC = () => {
           )
         }
         
-        // Original card design for other properties
+        // Original card design for other properties (custom blocks or properties without images)
+        // For non-custom properties, get values from template (source of truth)
+        const templateForCard = !property.isCustom ? getPropertyTypeTemplate(property.title) : null
+        const cardDisplayPrice = templateForCard?.purchasePrice 
+          ? `$${templateForCard.purchasePrice.toLocaleString()}`
+          : property.priceRange
+        const cardDisplayYield = templateForCard?.purchasePrice && templateForCard?.rentPerWeek
+          ? `${((templateForCard.rentPerWeek * 52 / templateForCard.purchasePrice) * 100).toFixed(1)}%`
+          : property.yield
         return (
           <PropertyBlockCard
             key={property.id}
             title={property.title}
-            priceRange={property.priceRange}
-            yieldValue={property.yield}
+            priceRange={cardDisplayPrice}
+            yieldValue={cardDisplayYield}
             growthRates={getGrowthRatesForProperty(property.title, property.isCustom)}
             count={getPropertyQuantity(property.id)}
             isCustom={property.isCustom}

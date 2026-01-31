@@ -11,10 +11,17 @@ import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { PurchaseEventCard } from './PurchaseEventCard'
 import { PauseBlockCard } from './PauseBlockCard'
 import type { YearBreakdownData } from '@/types/property'
-
-// Period conversion helpers
-const PERIODS_PER_YEAR = 2;
-const BASE_YEAR = 2025;
+import {
+  PERIODS_PER_YEAR,
+  BASE_YEAR,
+  SERVICEABILITY_FACTOR,
+  RENTAL_SERVICEABILITY_CONTRIBUTION_RATE,
+  EQUITY_EXTRACTION_LVR_CAP,
+  DEFAULT_INTEREST_RATE,
+  ANNUAL_INFLATION_RATE,
+  annualRateToPeriodRate,
+  periodToDisplay,
+} from '../constants/financialParams';
 
 // Timeline Progress Bar Component - Now exported for use in Dashboard
 export interface TimelineProgressBarProps {
@@ -96,12 +103,6 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
   );
 };
 
-const periodToDisplay = (period: number): string => {
-  const year = BASE_YEAR + Math.floor((period - 1) / PERIODS_PER_YEAR);
-  const half = ((period - 1) % PERIODS_PER_YEAR) + 1;
-  return `${year} H${half}`;
-};
-
 // Currency formatter helper
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('en-AU', {
@@ -110,11 +111,6 @@ const formatCurrency = (value: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
-};
-
-// Convert annual rate to per-period rate using compound interest formula
-const annualRateToPeriodRate = (annualRate: number): number => {
-  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
 };
 
 // Tiered growth function: Uses customizable growth curve from profile
@@ -221,7 +217,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     const baseYear = 2025;
     const endYear = baseYear + profile.timelineYears - 1; // e.g., 2025 + 15 - 1 = 2039
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
-    const defaultInterestRate = 0.065; // Default 6.5% for timeline calculations
+    const defaultInterestRate = DEFAULT_INTEREST_RATE;
     const defaultGrowthRate = 0.06; // Default 6% for timeline calculations
     
     // Create a map of years to properties for quick lookup
@@ -259,7 +255,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           : 0;
 
         // Calculate new fields for pure presentation
-        const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
+        const extractableEquity = Math.max(0, (property.portfolioValueAfter * EQUITY_EXTRACTION_LVR_CAP) - property.totalDebtAfter);
         const existingDebt = property.totalDebtAfter - property.loanAmount;
         const newDebt = property.loanAmount;
         const existingLoanInterest = existingDebt * defaultInterestRate;
@@ -268,14 +264,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
         
         // Calculate enhanced serviceability values
-        const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
-        const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
+        const baseServiceabilityCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
+        const rentalServiceabilityContribution = property.grossRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
         
         // Calculate borrowing capacity breakdown
         // Note: Use portfolio BEFORE current purchase to calculate equity boost
         const portfolioValueBeforePurchase = property.portfolioValueBefore;
         const totalDebtBeforePurchase = property.totalDebtBefore;
-        const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * 0.88 - totalDebtBeforePurchase);
+        const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * EQUITY_EXTRACTION_LVR_CAP - totalDebtBeforePurchase);
         const equityBoost = totalUsableEquityForBoost * profile.equityFactor;
         const effectiveCapacity = profile.borrowingCapacity + equityBoost;
         
@@ -288,7 +284,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
             // Use tiered growth with period-based calculations
             const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
             const equity = currentValue - p.loanAmount;
-            const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+            const extractable = Math.max(0, (currentValue * EQUITY_EXTRACTION_LVR_CAP) - p.loanAmount);
             
             return {
               propertyId: p.id,
@@ -423,7 +419,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
             displayPeriod: prop.displayPeriod,
             currentValue: prop.cost,
             equity: prop.cost - prop.loanAmount,
-            extractableEquity: Math.max(0, (prop.cost * 0.80) - prop.loanAmount),
+            extractableEquity: Math.max(0, (prop.cost * EQUITY_EXTRACTION_LVR_CAP) - prop.loanAmount),
             // Acquisition costs
             stampDuty: prop.acquisitionCosts?.stampDuty || 0,
             lmi: prop.acquisitionCosts?.lmi || 0,
@@ -465,7 +461,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
   // Helper function to create a hybrid snapshot for a specific purchase
   // Combines specific transaction costs with accumulated portfolio metrics
   const createPurchaseSnapshot = (property: any, profile: any): YearBreakdownData => {
-    const defaultInterestRate = 0.065; // Default 6.5% for timeline calculations
+    const defaultInterestRate = DEFAULT_INTEREST_RATE;
     // Use Math.floor for consistent calendar year display (2026.5 belongs to 2026)
     const year = Math.floor(property.affordableYear);
     const yearIndex = year - BASE_YEAR;
@@ -480,7 +476,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       : 0;
 
     // Calculate new fields for presentation
-    const extractableEquity = Math.max(0, (property.portfolioValueAfter * 0.80) - property.totalDebtAfter);
+    const extractableEquity = Math.max(0, (property.portfolioValueAfter * EQUITY_EXTRACTION_LVR_CAP) - property.totalDebtAfter);
     const existingDebt = property.totalDebtAfter - property.loanAmount;
     const newDebt = property.loanAmount;
     const existingLoanInterest = existingDebt * defaultInterestRate;
@@ -489,13 +485,13 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     const totalAnnualCapacity = annualSavingsRate + property.cashflowReinvestment;
     
     // Calculate enhanced serviceability values
-    const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
-    const rentalServiceabilityContribution = property.grossRentalIncome * 0.70;
+    const baseServiceabilityCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
+    const rentalServiceabilityContribution = property.grossRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
     
     // Calculate borrowing capacity breakdown using portfolio BEFORE current purchase
     const portfolioValueBeforePurchase = property.portfolioValueBefore;
     const totalDebtBeforePurchase = property.totalDebtBefore;
-    const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * 0.88 - totalDebtBeforePurchase);
+    const totalUsableEquityForBoost = Math.max(0, portfolioValueBeforePurchase * EQUITY_EXTRACTION_LVR_CAP - totalDebtBeforePurchase);
     const equityBoost = totalUsableEquityForBoost * profile.equityFactor;
     const effectiveCapacity = profile.borrowingCapacity + equityBoost;
     
@@ -507,7 +503,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
         const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
         const equity = currentValue - p.loanAmount;
-        const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+        const extractable = Math.max(0, (currentValue * EQUITY_EXTRACTION_LVR_CAP) - p.loanAmount);
         
         return {
           propertyId: p.id,
@@ -524,14 +520,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
 
     // Calculate period from year
     const periodNumber = Math.round((year - BASE_YEAR) * PERIODS_PER_YEAR) + 1;
-    const displayPeriod = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
+    const displayPeriodVal = `${year} H${((periodNumber - 1) % PERIODS_PER_YEAR) + 1}`;
     
     // Build the hybrid snapshot
     return {
       period: periodNumber,
       year,
       displayYear: yearIndex,
-      displayPeriod,
+      displayPeriod: displayPeriodVal,
       status: 'purchased',
       propertyNumber: propertyIndex,
       propertyType: property.title,
@@ -643,7 +639,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         displayPeriod: property.displayPeriod,
         currentValue: property.cost,
         equity: property.cost - property.loanAmount,
-        extractableEquity: Math.max(0, (property.cost * 0.80) - property.loanAmount),
+        extractableEquity: Math.max(0, (property.cost * EQUITY_EXTRACTION_LVR_CAP) - property.loanAmount),
         // Acquisition costs
         stampDuty: property.acquisitionCosts?.stampDuty || 0,
         lmi: property.acquisitionCosts?.lmi || 0,
@@ -1109,13 +1105,14 @@ function interpolateYearData(
       
       // Scale the pre-calculated values for time elapsed since purchase
       const growthFactor = propertyValue / purchase.cost;
-      const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-      const combinedFactor = growthFactor * inflationFactor;
+      const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
       
       // Use pre-calculated detailed cashflow values from the timeline property
-      grossRental += purchase.grossRentalIncome * combinedFactor;
+      // Income grows with both property value AND inflation
+      grossRental += purchase.grossRentalIncome * growthFactor * inflationFactor;
       loanInterest += purchase.loanInterest; // Interest doesn't scale with property growth
-      expenses += purchase.expenses * combinedFactor;
+      // Expenses only grow with inflation, NOT property value
+      expenses += purchase.expenses * inflationFactor;
     }
   });
   
@@ -1175,7 +1172,7 @@ function interpolateYearData(
   }
   
   // Calculate new fields for pure presentation
-  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const extractableEquity = Math.max(0, (portfolioValue * EQUITY_EXTRACTION_LVR_CAP) - totalDebt);
   const existingDebt = totalDebt;
   const newDebt = requiredLoan;
   const existingLoanInterest = existingDebt * interestRate;
@@ -1198,7 +1195,7 @@ function interpolateYearData(
       // Use tiered growth with period-based calculations
       const currentValue = calculatePropertyGrowth(p.cost, periodsOwned, profile.growthCurve);
       const equity = currentValue - p.loanAmount;
-      const extractable = Math.max(0, (currentValue * 0.80) - p.loanAmount);
+      const extractable = Math.max(0, (currentValue * EQUITY_EXTRACTION_LVR_CAP) - p.loanAmount);
       
       return {
         propertyId: p.id,
@@ -1300,8 +1297,8 @@ function interpolateYearData(
     newLoanInterest,
     
     // Enhanced serviceability breakdown
-    baseServiceabilityCapacity: profile.borrowingCapacity * 0.10,
-    rentalServiceabilityContribution: grossRental * 0.70,
+    baseServiceabilityCapacity: profile.borrowingCapacity * SERVICEABILITY_FACTOR,
+    rentalServiceabilityContribution: grossRental * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE,
     
     // Assumptions
     interestRate: interestRate * 100,
@@ -1325,7 +1322,7 @@ function interpolateYearData(
     serviceabilityTest: {
       pass: serviceabilityTestPass,
       surplus: serviceabilityTestSurplus,
-      available: profile.borrowingCapacity * 0.10 + grossRental * 0.70,
+      available: profile.borrowingCapacity * SERVICEABILITY_FACTOR + grossRental * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE,
       required: requiredLoan,
     },
     
@@ -1386,7 +1383,7 @@ function findNextPropertyToPurchase(
 function createInitialYearData(year: number, yearIndex: number, profile: any, defaultInterestRate: number): YearBreakdownData {
   const portfolioValue = profile.portfolioValue;
   const totalDebt = profile.currentDebt;
-  const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+  const extractableEquity = Math.max(0, (portfolioValue * EQUITY_EXTRACTION_LVR_CAP) - totalDebt);
   const annualSavingsRate = profile.annualSavings;
   
   // Calculate effective borrowing capacity with equity boost (for initial portfolio)

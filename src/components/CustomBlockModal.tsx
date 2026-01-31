@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { calculateLandTax } from '../utils/landTaxCalculator';
 
 interface CustomBlockModalProps {
   isOpen: boolean;
@@ -191,6 +193,17 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
       managementFees
     );
   }, [formData, annualRentalIncome]);
+
+  // Calculate auto-calculated stamp duty
+  const calculatedStampDuty = useMemo(() => {
+    return calculateStampDuty(formData.state, formData.purchasePrice, false);
+  }, [formData.state, formData.purchasePrice]);
+  
+  // Calculate auto-calculated land tax (using 40% of purchase price as estimated land value)
+  const calculatedLandTax = useMemo(() => {
+    const estimatedLandValue = formData.purchasePrice * 0.4;
+    return calculateLandTax(formData.state, estimatedLandValue);
+  }, [formData.state, formData.purchasePrice]);
 
   if (!isOpen) return null;
 
@@ -582,12 +595,17 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Stamp Duty Override ($)</label>
+                    <label className={labelClass}>
+                      Stamp Duty Override ($)
+                      <span className="ml-1 text-xs text-gray-400 font-normal">
+                        (auto: ${calculatedStampDuty.toLocaleString()})
+                      </span>
+                    </label>
                     <input
                       type="number"
                       value={formData.stampDutyOverride ?? ''}
                       onChange={(e) => setFormData({ ...formData, stampDutyOverride: e.target.value ? parseInt(e.target.value) : null })}
-                      placeholder="Auto-calculated"
+                      placeholder={`Auto: $${calculatedStampDuty.toLocaleString()}`}
                       step="1000"
                       className={inputClass}
                     />
@@ -693,12 +711,17 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Land Tax Override ($)</label>
+                    <label className={labelClass}>
+                      Land Tax Override ($/yr)
+                      <span className="ml-1 text-xs text-gray-400 font-normal">
+                        (auto: ${calculatedLandTax.toLocaleString()})
+                      </span>
+                    </label>
                     <input
                       type="number"
                       value={formData.landTaxOverride ?? ''}
                       onChange={(e) => setFormData({ ...formData, landTaxOverride: e.target.value ? parseInt(e.target.value) : null })}
-                      placeholder="Auto-calculated"
+                      placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
                       step="100"
                       className={inputClass}
                     />

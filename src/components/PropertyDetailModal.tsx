@@ -6,6 +6,8 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
 import { toast } from '@/hooks/use-toast';
+import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { calculateLandTax } from '../utils/landTaxCalculator';
 
 // Helper to safely parse numeric input (prevents NaN bugs)
 const parseNumericInput = (value: string, defaultValue: number = 0): number => {
@@ -354,6 +356,22 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       formData.maintenanceAllowancePostSettlement
     );
   }, [formData]);
+
+  // Calculate auto-calculated stamp duty (for display in placeholder)
+  const calculatedStampDuty = useMemo(() => {
+    if (!formData) return 0;
+    return calculateStampDuty(formData.state, formData.purchasePrice, false);
+  }, [formData?.state, formData?.purchasePrice]);
+  
+  // Calculate auto-calculated land tax (for display in placeholder)
+  // Note: Land tax is typically based on land value, not purchase price
+  // Using purchase price as a rough estimate (typically land is 30-50% of property value)
+  const calculatedLandTax = useMemo(() => {
+    if (!formData) return 0;
+    // Estimate land value as 40% of purchase price for land tax calculation
+    const estimatedLandValue = formData.purchasePrice * 0.4;
+    return calculateLandTax(formData.state, estimatedLandValue);
+  }, [formData?.state, formData?.purchasePrice]);
 
   // Calculate annual expenses total
   const totalAnnualExpenses = useMemo(() => {
@@ -823,12 +841,17 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Stamp Duty Override ($)</label>
+                        <label className={labelClass}>
+                          Stamp Duty Override ($)
+                          <span className="ml-1 text-xs text-gray-400 font-normal">
+                            (auto: ${calculatedStampDuty.toLocaleString()})
+                          </span>
+                        </label>
                         <input
                           type="number"
                           value={formData.stampDutyOverride ?? ''}
                           onChange={(e) => handleFieldChange('stampDutyOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
-                          placeholder="Auto-calculated"
+                          placeholder={`Auto: $${calculatedStampDuty.toLocaleString()}`}
                           step="1000"
                           className={inputClass}
                           disabled={isSaving || readOnly}
@@ -947,12 +970,17 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>Land Tax Override ($)</label>
+                        <label className={labelClass}>
+                          Land Tax Override ($/yr)
+                          <span className="ml-1 text-xs text-gray-400 font-normal">
+                            (auto: ${calculatedLandTax.toLocaleString()})
+                          </span>
+                        </label>
                         <input
                           type="number"
                           value={formData.landTaxOverride ?? ''}
                           onChange={(e) => handleFieldChange('landTaxOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
-                          placeholder="Auto-calculated"
+                          placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
                           step="100"
                           className={inputClass}
                           disabled={isSaving || readOnly}

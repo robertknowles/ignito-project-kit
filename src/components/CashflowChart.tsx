@@ -24,6 +24,7 @@ export const CashflowChart = () => {
       year: '2025',
       cashflow: 0,
       rentalIncome: 0,
+      expenses: 0,
       loanRepayments: 0,
     }
   ]

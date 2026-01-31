@@ -121,7 +121,7 @@ export const ClientInputsPanel: React.FC = () => {
         <TourStep
           id="investment-goals"
           title="Investment Goals"
-          content="Set your client's targets here: Investment Horizon (how many years to model), Equity Goal (wealth target), and Cashflow Goal (passive income target). These goals drive the entire strategy."
+          content="Set your client's targets: Investment Horizon, Equity Goal, and Cashflow Goal. These drive the entire strategy. Use the Borrowing Capacity Calculator at the bottom to estimate how much they can borrow."
           order={6}
           position="right"
         >

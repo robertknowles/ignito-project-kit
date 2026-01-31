@@ -27,7 +27,7 @@ export const TimelineColumn: React.FC<TimelineColumnProps> = ({ scenarioData, no
     <TourStep
       id="wealth-cashflow-chart"
       title="Portfolio Growth Chart"
-      content="This chart visualizes your portfolio journey. The colored area shows equity building over time, with property icons marking each purchase. Toggle between Wealth and Cashflow views using the buttons in the top-right."
+      content="Your portfolio visualization showing equity or cashflow growth. Toggle views in the top-right. Property icons mark each purchase - they're interactive: click for performance details, or drag to reposition on the timeline."
       order={10}
       position="top"
     >

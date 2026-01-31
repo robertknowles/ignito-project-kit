@@ -2,11 +2,17 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import type { YearBreakdownData } from '@/types/property';
-
-// Period conversion constants
-const PERIODS_PER_YEAR = 2;
-const BASE_YEAR = 2025;
-// Force HMR update
+import {
+  PERIODS_PER_YEAR,
+  BASE_YEAR,
+  SERVICEABILITY_FACTOR,
+  RENTAL_SERVICEABILITY_CONTRIBUTION_RATE,
+  EQUITY_EXTRACTION_LVR_CAP,
+  DEFAULT_INTEREST_RATE,
+  ANNUAL_INFLATION_RATE,
+  annualRateToPeriodRate,
+  calculateRentalRecognitionRate,
+} from '../constants/financialParams';
 
 // Currency formatter helper
 const formatCurrency = (value: number): string => {
@@ -16,11 +22,6 @@ const formatCurrency = (value: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
-};
-
-// Convert annual rate to per-period rate using compound interest formula
-const annualRateToPeriodRate = (annualRate: number): number => {
-  return Math.pow(1 + annualRate, 1 / PERIODS_PER_YEAR) - 1;
 };
 
 // Tiered growth function matching useAffordabilityCalculator pattern
@@ -57,13 +58,6 @@ const calculatePropertyGrowth = (
   }
   
   return currentValue;
-};
-
-// Progressive rental recognition rates based on portfolio size
-const calculateRentalRecognitionRate = (portfolioSize: number): number => {
-  if (portfolioSize <= 2) return 0.75;      // Properties 1-2: 75%
-  if (portfolioSize <= 4) return 0.70;      // Properties 3-4: 70%
-  return 0.65;                              // Properties 5+: 65%
 };
 
 // Single purchase detail structure
@@ -130,7 +124,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     const endYear = BASE_YEAR + (profile.timelineYears || 15) - 1;
     
     // Default interest rate for calculations
-    const defaultInterestRate = 0.065; // 6.5%
+    const defaultInterestRate = DEFAULT_INTEREST_RATE;
     
     // Build a map of years to purchases
     const purchasesByYear = new Map<number, typeof timelineProperties>();
@@ -166,6 +160,12 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       let totalLoanInterest = 0;
       let totalExpenses = 0;
       
+      // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
+      let portfolioValueBeforeThisYear = profile.portfolioValue > 0 
+        ? calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve)
+        : 0;
+      let totalDebtBeforeThisYear = profile.currentDebt;
+      
       // Add each property's contribution using pre-calculated values from timeline properties
       // These values already use the detailed cashflow calculator with all 39 property inputs
       propertiesPurchasedByYear.forEach(prop => {
@@ -178,21 +178,30 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         portfolioValue += currentValue;
         totalDebt += prop.loanAmount;
         
+        // Track portfolio BEFORE this year's purchases (for equity calculation)
+        if (purchaseYear < year) {
+          portfolioValueBeforeThisYear += currentValue;
+          totalDebtBeforeThisYear += prop.loanAmount;
+        }
+        
         // Use pre-calculated values from the timeline property (already computed via detailed cashflow)
         // These include all 39 property inputs like management fees, strata, insurance, etc.
-        // Apply growth factor for properties owned longer than at purchase
+        // Apply growth factor for income (rent grows with property value), inflation only for expenses
         const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
-        const inflationFactor = Math.pow(1.03, periodsOwned / PERIODS_PER_YEAR);
-        const combinedFactor = growthFactor * inflationFactor;
+        const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
         
         // Scale the pre-calculated values for time elapsed since purchase
-        grossRentalIncome += prop.grossRentalIncome * combinedFactor;
+        // BUG FIX: Income grows with both property value AND inflation
+        grossRentalIncome += prop.grossRentalIncome * growthFactor * inflationFactor;
         totalLoanInterest += prop.loanInterest; // Interest doesn't scale with growth
-        totalExpenses += prop.expenses * combinedFactor;
+        // BUG FIX: Expenses only grow with inflation, NOT property value
+        totalExpenses += prop.expenses * inflationFactor;
       });
       
       const totalEquity = portfolioValue - totalDebt;
-      const extractableEquity = Math.max(0, (portfolioValue * 0.80) - totalDebt);
+      // CRITICAL: Extractable equity is based on portfolio BEFORE this year's purchases
+      // You can't use equity from a property you haven't bought yet to fund that purchase!
+      const extractableEquity = Math.max(0, (portfolioValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP) - totalDebtBeforeThisYear);
       const netCashflow = grossRentalIncome - totalLoanInterest - totalExpenses;
       
       // Calculate cumulative savings
@@ -204,20 +213,35 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         cashflowReinvestment = Math.max(0, netCashflow * yearIndex);
       }
       
-      // Calculate deposits used
+      // Calculate deposits used (all properties purchased by this year)
       const depositsUsed = propertiesPurchasedByYear.reduce(
         (sum, p) => sum + p.depositRequired, 
         0
       );
       
-      // Available funds = base deposit + savings + cashflow + equity - deposits used
-      const availableFunds = Math.max(0,
-        profile.depositPool + 
-        cumulativeSavings + 
-        cashflowReinvestment + 
-        extractableEquity - 
-        depositsUsed
-      );
+      // Calculate how deposits were funded from each source
+      // Logic: Cash (base deposit) is used first, then savings, then equity
+      let remainingDepositsToAllocate = depositsUsed;
+      
+      // 1. First, use cash (base deposit pool)
+      const cashUsedForDeposits = Math.min(remainingDepositsToAllocate, profile.depositPool);
+      remainingDepositsToAllocate -= cashUsedForDeposits;
+      
+      // 2. Then, use cumulative savings
+      const savingsUsedForDeposits = Math.min(remainingDepositsToAllocate, cumulativeSavings);
+      remainingDepositsToAllocate -= savingsUsedForDeposits;
+      
+      // 3. Finally, use equity (any remainder)
+      const equityUsedForDeposits = Math.min(remainingDepositsToAllocate, extractableEquity);
+      remainingDepositsToAllocate -= equityUsedForDeposits;
+      
+      // Calculate NET remaining amounts (what's still available after funding purchases)
+      const cashRemaining = Math.max(0, profile.depositPool - cashUsedForDeposits);
+      const savingsRemaining = Math.max(0, cumulativeSavings - savingsUsedForDeposits);
+      const equityRemaining = Math.max(0, extractableEquity - equityUsedForDeposits);
+      
+      // Available funds = sum of remaining amounts (should match the old formula)
+      const availableFunds = cashRemaining + savingsRemaining + cashflowReinvestment + equityRemaining;
       
       // Determine test statuses
       // For years with purchases, use the actual test results
@@ -256,8 +280,8 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const newDebt = firstPurchase.loanAmount;
         const existingLoanInterest = existingDebt * defaultInterestRate;
         const newLoanInterest = newDebt * defaultInterestRate;
-        const baseServiceabilityCapacity = profile.borrowingCapacity * 0.10;
-        const rentalServiceabilityContribution = grossRentalIncome * 0.70;
+        const baseServiceabilityCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
+        const rentalServiceabilityContribution = grossRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
         const equityBoost = extractableEquity * profile.equityFactor;
         const effectiveCapacity = profile.borrowingCapacity + equityBoost;
         const lvr = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
@@ -282,7 +306,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             currentValue: propCurrentValue,
             loanAmount: prop.loanAmount,
             equity: propCurrentValue - prop.loanAmount,
-            extractableEquity: Math.max(0, (propCurrentValue * 0.80) - prop.loanAmount),
+            extractableEquity: Math.max(0, (propCurrentValue * EQUITY_EXTRACTION_LVR_CAP) - prop.loanAmount),
           };
         });
         
@@ -306,11 +330,11 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           availableDeposit: availableFunds,
           annualCashFlow: netCashflow,
           
-          // Available funds breakdown
-          baseDeposit: profile.depositPool,
-          cumulativeSavings,
+          // Available funds breakdown (NET remaining after funding previous purchases)
+          baseDeposit: cashRemaining,
+          cumulativeSavings: savingsRemaining,
           cashflowReinvestment,
-          equityRelease: extractableEquity,
+          equityRelease: equityRemaining,
           annualSavingsRate: profile.annualSavings,
           totalAnnualCapacity: profile.annualSavings + Math.max(0, netCashflow),
           
@@ -403,7 +427,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             displayPeriod: `${year} H1`,
             currentValue: firstPurchase.cost,
             equity: firstPurchase.cost - firstPurchase.loanAmount,
-            extractableEquity: Math.max(0, (firstPurchase.cost * 0.80) - firstPurchase.loanAmount),
+            extractableEquity: Math.max(0, (firstPurchase.cost * EQUITY_EXTRACTION_LVR_CAP) - firstPurchase.loanAmount),
           }],
           
           // All portfolio properties
@@ -417,14 +441,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const remainingBorrowingCapacity = Math.max(0, effectiveBorrowingCapacity - totalDebt);
         
         // Enhanced serviceability with rental income contribution
-        const baseCapacity = profile.borrowingCapacity * 0.10;
-        const rentalContribution = grossRentalIncome * 0.70;
+        const baseCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
+        const rentalContribution = grossRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
         const enhancedServiceabilityCapacity = baseCapacity + rentalContribution;
         
         // Assume a hypothetical $500k property to test capacity
         const hypotheticalPropertyCost = 500000;
-        const hypotheticalDeposit = hypotheticalPropertyCost * 0.20;
-        const hypotheticalLoan = hypotheticalPropertyCost * 0.80;
+        const hypotheticalDeposit = hypotheticalPropertyCost * (1 - EQUITY_EXTRACTION_LVR_CAP);
+        const hypotheticalLoan = hypotheticalPropertyCost * EQUITY_EXTRACTION_LVR_CAP;
         const hypotheticalLoanPayment = hypotheticalLoan * defaultInterestRate;
         
         // Check deposit capacity
@@ -467,7 +491,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             currentValue: propCurrentValue,
             loanAmount: prop.loanAmount,
             equity: propCurrentValue - prop.loanAmount,
-            extractableEquity: Math.max(0, (propCurrentValue * 0.80) - prop.loanAmount),
+            extractableEquity: Math.max(0, (propCurrentValue * EQUITY_EXTRACTION_LVR_CAP) - prop.loanAmount),
           };
         });
         
@@ -491,11 +515,11 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           availableDeposit: availableFunds,
           annualCashFlow: netCashflow,
           
-          // Available funds breakdown
-          baseDeposit: profile.depositPool,
-          cumulativeSavings,
+          // Available funds breakdown (NET remaining after funding previous purchases)
+          baseDeposit: cashRemaining,
+          cumulativeSavings: savingsRemaining,
           cashflowReinvestment,
-          equityRelease: extractableEquity,
+          equityRelease: equityRemaining,
           annualSavingsRate: profile.annualSavings,
           totalAnnualCapacity: profile.annualSavings + Math.max(0, netCashflow),
           
