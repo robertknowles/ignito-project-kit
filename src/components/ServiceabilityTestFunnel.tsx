@@ -28,10 +28,14 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
     totalDebt
   } = yearData;
   
+  // SINGLE SOURCE OF TRUTH: Use serviceabilityTest.available and serviceabilityTest.required from the calculator
+  // These are the exact values used in the pass/fail determination
+  const totalCapacity = serviceabilityTest.available;
+  const totalInterestDue = serviceabilityTest.required;
+  
+  // For display breakdown only
   const totalIncome = grossRental;
-  const totalInterestDue = existingLoanInterest + newLoanInterest;
   const netIncome = totalIncome - expenses;
-  const totalCapacity = baseServiceabilityCapacity + rentalServiceabilityContribution;
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;

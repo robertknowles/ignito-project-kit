@@ -214,6 +214,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
         period: p.period,
         cost: p.cost,
         depositRequired: p.depositRequired,
+        totalCashRequired: p.totalCashRequired, // CRITICAL: Include for accurate funding calculations
         loanAmount: p.loanAmount,
         title: p.title,
         instanceId: p.instanceId,
@@ -296,24 +297,19 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       totalCashRequired: calculatedCosts.totalCashRequired,
     };
 
-    // Run affordability calculation
+    // Run affordability calculation - SINGLE SOURCE OF TRUTH for all test results
     const result = calculateAffordabilityForProperty(
       property.period,
       modifiedProperty,
       purchaseHistory
     );
 
-    // Calculate adjusted deposit test using our calculated total cash required
-    // The standard affordability calculation may not account for our adjusted one-off costs
-    const availableFunds = property.availableFundsUsed;
-    const adjustedDepositSurplus = availableFunds - calculatedCosts.totalCashRequired;
-    const adjustedDepositPass = adjustedDepositSurplus >= 0;
-
-    // Update live validation state
+    // Update live validation state using ONLY the calculator results
+    // This ensures consistency between the modal preview and actual engine calculations
     setLiveValidation({
       deposit: {
-        pass: adjustedDepositPass,
-        surplus: adjustedDepositSurplus,
+        pass: result.depositTestPass,
+        surplus: result.depositTestSurplus,
       },
       borrowing: {
         pass: result.borrowingCapacityPass ?? true,

@@ -227,20 +227,16 @@ export const BorrowingCapacityTestFunnel: React.FC<BorrowingCapacityTestFunnelPr
         </div>
       </div>
 
-      {/* Section 4: The Calculation */}
+      {/* Section 4: The Calculation - SINGLE SOURCE OF TRUTH from calculator */}
       <div className="bg-blue-50 rounded p-2">
         <div className="space-y-0.5 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Total Capacity</span>
-            <span className="font-semibold text-blue-700">{formatCurrency(effectiveCapacity)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">− Existing Debt</span>
-            <span className="font-semibold text-gray-700">−{formatCurrency(existingDebt || (totalDebt - newDebt))}</span>
+            <span className="font-semibold text-blue-700">{formatCurrency(borrowingCapacityTest.available)}</span>
           </div>
           <div className="flex items-center justify-between pb-1 border-b border-gray-300">
-            <span className="text-gray-600">− New Loan</span>
-            <span className="font-semibold text-orange-700">−{formatCurrency(newDebt)}</span>
+            <span className="text-gray-600">− Total Debt Required</span>
+            <span className="font-semibold text-orange-700">−{formatCurrency(borrowingCapacityTest.required)}</span>
           </div>
           <div className="flex items-center justify-between pt-1">
             <span className="font-medium text-gray-700">= Remaining</span>

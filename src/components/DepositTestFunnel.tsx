@@ -19,34 +19,19 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
     purchases 
   } = yearData;
   
-  // Helper to get the rounded value that will be displayed
-  const getRoundedValue = (value: number): number => {
-    if (value >= 1000000) return Math.round(value / 1000000 * 10) / 10 * 1000000; // Round to 0.1M
-    if (value >= 1000) return Math.round(value / 1000) * 1000; // Round to nearest k
-    return Math.round(value);
-  };
+  // SINGLE SOURCE OF TRUTH: Use depositTest.available and depositTest.required from the calculator
+  // These are the exact values used in the pass/fail determination
+  // Individual line items are shown for transparency but totals come from the source
+  const totalAvailable = depositTest.available;
+  const totalRequired = depositTest.required;
   
-  // Calculate total available by summing the rounded display values
-  const roundedBaseDeposit = getRoundedValue(baseDeposit);
-  const roundedCumulativeSavings = getRoundedValue(cumulativeSavings);
-  const roundedCashflowReinvestment = getRoundedValue(cashflowReinvestment);
-  const roundedEquityRelease = getRoundedValue(equityRelease);
-  const totalAvailable = roundedBaseDeposit + roundedCumulativeSavings + roundedCashflowReinvestment + roundedEquityRelease;
-  
-  // Get acquisition costs from first purchase
-  const purchase = purchases && purchases.length > 0 ? purchases[0] : null;
-  const stampDuty = purchase?.stampDuty || 0;
-  const lmi = purchase?.lmi || 0;
-  const legalFees = purchase?.legalFees || 2000;
-  const inspectionFees = purchase?.inspectionFees || 650;
-  const otherFees = purchase?.otherFees || 1500;
+  // Get acquisition costs from ALL purchases this year (sum them) - for display breakdown only
+  const stampDuty = purchases?.reduce((sum, p) => sum + (p.stampDuty || 0), 0) || 0;
+  const lmi = purchases?.reduce((sum, p) => sum + (p.lmi || 0), 0) || 0;
+  const legalFees = purchases?.reduce((sum, p) => sum + (p.legalFees || 0), 0) || 0;
+  const inspectionFees = purchases?.reduce((sum, p) => sum + (p.inspectionFees || 0), 0) || 0;
+  const otherFees = purchases?.reduce((sum, p) => sum + (p.otherFees || 0), 0) || 0;
   const totalAcquisitionCosts = stampDuty + lmi + legalFees + inspectionFees + otherFees;
-  
-  // Calculate total required by summing the rounded display values
-  // This ensures visual consistency: if we show "$53k + $32k", the total will show "$85k"
-  const roundedDeposit = getRoundedValue(requiredDeposit);
-  const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
-  const totalRequired = roundedDeposit + roundedAcquisitionCosts;
   
   // Calculate pre-purchase metrics for Equity Release breakdown
   const prePurchaseValue = Math.max(0, yearData.portfolioValue - yearData.propertyCost);
@@ -94,7 +79,7 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         {/* Section 1: What We Have */}
         <div className="space-y-1">
           <h4 className="text-xs font-medium uppercase text-gray-700">
-            What We Have
+            What We Have (Start of Year)
           </h4>
           <div className="bg-gray-50 rounded p-2 space-y-1">
             <div className="flex justify-between items-center">
@@ -113,15 +98,15 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600 flex items-center">
-                Cumulative Savings
+                Savings (at purchase)
                 <BreakdownInfo
-                  title="Savings Accumulation"
+                  title="Savings at Time of Purchase"
                   items={[
                     { label: 'Annual Savings Rate', value: yearData.annualSavingsRate },
-                    { label: 'Years Accumulated', value: yearsAccumulated, isNumeric: true },
+                    { label: 'Purchase Period', value: `${yearData.displayPeriod || yearData.year}`, isNumeric: false },
                   ]}
                   total={cumulativeSavings}
-                  totalLabel="Total Accumulated"
+                  totalLabel="Available at Purchase"
                 />
               </span>
               <span className="text-xs font-semibold text-gray-800">{formatCurrency(cumulativeSavings)}</span>
@@ -214,8 +199,8 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
                   title="Legal & Fees Breakdown"
                   items={[
                     { label: 'Conveyancing / Legal', value: legalFees },
-                    { label: 'Building & Pest', value: inspectionFees },
-                    { label: 'Bank & Mortgage Fees', value: otherFees }
+                    { label: 'Inspections (Building, Pest, Plumbing, Electrical, Valuation)', value: inspectionFees },
+                    { label: 'Other (Mortgage Fees, Rates Adjustment, Engagement Fee, Holding Deposits, Insurance, Maintenance)', value: otherFees }
                   ]}
                   total={legalFees + inspectionFees + otherFees}
                 />
@@ -235,14 +220,14 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
         </div>
       </div>
 
-      {/* Section 3: The Calculation */}
+      {/* Section 3: The Calculation - Use centralized depositTest values for consistency */}
       <div className="bg-blue-50 rounded p-2">
         <div className="flex items-center justify-center gap-2 text-sm">
           <span className="font-semibold text-blue-700">{formatCurrency(totalAvailable)}</span>
           <span className="text-gray-600">−</span>
           <span className="font-semibold text-orange-700">{formatCurrency(totalRequired)}</span>
           <ArrowRight className="w-3 h-3 text-gray-400" />
-          <span className={`font-bold ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+          <span className={`font-bold ${depositTest.pass ? 'text-green-700' : 'text-red-700'}`}>
             {formatCurrency(depositTest.surplus)}
           </span>
         </div>

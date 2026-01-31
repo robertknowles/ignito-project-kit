@@ -576,13 +576,15 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   }, []);
 
   // Build purchase history for validation (all properties except the one being dragged)
+  // CRITICAL: Include properties at the SAME period (p.period <= upToPeriod) because they consume funds too
   const buildPurchaseHistoryForValidation = useCallback((excludeInstanceId: string, upToPeriod: number) => {
     return timelineProperties
-      .filter(p => p.instanceId !== excludeInstanceId && p.period !== Infinity && p.period < upToPeriod)
+      .filter(p => p.instanceId !== excludeInstanceId && p.period !== Infinity && p.period <= upToPeriod)
       .map(p => ({
         period: p.period,
         cost: p.cost,
         depositRequired: p.depositRequired,
+        totalCashRequired: p.totalCashRequired, // CRITICAL: Include totalCashRequired for accurate funding calculations
         loanAmount: p.loanAmount,
         title: p.title,
         instanceId: p.instanceId,
@@ -620,6 +622,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     const borrowingCapacityPass = result.borrowingCapacityPass ?? 
       (result.borrowingCapacityRemaining === undefined || result.borrowingCapacityRemaining >= 0);
     
+    // DEBUG: Log validation details during drag
+    console.log(`[DragValidation] Period ${period}: deposit=${result.depositTestPass} (surplus: ${result.depositTestSurplus?.toFixed(0)}), service=${result.serviceabilityTestPass}, borrow=${borrowingCapacityPass}, canAfford=${result.canAfford}, availableFunds=${result.availableFunds?.toFixed(0)}`);
+    
     return result.canAfford && result.depositTestPass && result.serviceabilityTestPass && borrowingCapacityPass;
   }, [buildPurchaseHistoryForValidation, timelineProperties, calculateAffordabilityForProperty]);
 
@@ -627,6 +632,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   useEffect(() => {
     if (isDragging && draggedProperty && targetPeriod) {
       const isValid = validatePlacementAtPeriod(draggedProperty, targetPeriod);
+      console.log(`[HoverValidation] Setting period ${targetPeriod} to isValid=${isValid}`);
       setHoverValidation({ period: targetPeriod, isValid });
     } else {
       setHoverValidation(null);

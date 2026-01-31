@@ -63,6 +63,7 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
     const propertyData = active.data.current as DraggedProperty;
     
     if (propertyData) {
+      console.log(`[DragStart] Started dragging ${propertyData.title} from period ${propertyData.currentPeriod}`);
       setDraggedProperty(propertyData);
       setIsDragging(true);
     }
@@ -80,6 +81,7 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
       if (periodId.startsWith('period-')) {
         const period = parseInt(periodId.replace('period-', ''), 10);
         if (!isNaN(period)) {
+          console.log(`[DragOver] Hovering over period ${period}`);
           setTargetPeriod(period);
         }
       }

@@ -154,7 +154,7 @@ export const useAffordabilityCalculator = () => {
 
   const calculateAvailableFunds = (
       currentPeriod: number, 
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; totalCashRequired?: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
     ): {
       total: number;
       baseDeposit: number;
@@ -162,98 +162,25 @@ export const useAffordabilityCalculator = () => {
       cashflowReinvestment: number;
       equityRelease: number;
       depositsUsed: number;
+      // New: Track remaining balances after equity-first allocation
+      cashRemaining: number;
+      savingsRemaining: number;
+      equityRemaining: number;
     } => {
-      // Calculate enhanced period savings with cashflow feedback
-      let totalEnhancedSavings = 0;
-      const periodSavings = profile.annualSavings / PERIODS_PER_YEAR;
+      // ============================================================================
+      // EQUITY-FIRST FUNDING ALLOCATION
+      // Strategy: Leverage portfolio equity before using cash/savings
+      // This matches how BAs help investors accelerate property acquisition
+      // ============================================================================
       
-      for (let period = 1; period <= currentPeriod; period++) {
-        // Base period savings
-        let currentPeriodSavings = periodSavings;
-        
-        // Calculate net cashflow from all properties purchased before this period
-        let netCashflow = 0;
-        previousPurchases.forEach(purchase => {
-          if (purchase.period < period) { // Only properties purchased in previous periods generate cashflow
-            const periodsOwned = period - purchase.period;
-            const propertyData = getPropertyData(purchase.title);
-            
-            if (propertyData) {
-              // Calculate current property value with tiered growth
-              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              
-              // Calculate rental income with progressive recognition rates
-              const yieldRate = parseFloat(propertyData.yield) / 100;
-              // Fix: Portfolio size should exclude current property for non-purchase periods
-              const portfolioSize = previousPurchases.filter(p => p.period < period).length;
-              const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
-              const annualRentalIncome = currentValue * yieldRate * recognitionRate;
-              const periodRentalIncome = annualRentalIncome / PERIODS_PER_YEAR;
-              
-              // Get property instance for detailed cashflow calculation
-              const propertyInstance = getInstance(purchase.instanceId);
-              
-              if (propertyInstance) {
-                // Calculate detailed cashflow using all 39 inputs
-                const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
-                
-                // Adjust rent for property growth (rent increases with property value)
-                const growthFactor = currentValue / purchase.cost;
-                const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
-                
-                // Apply inflation to expenses
-                const inflationFactor = calculateInflationFactor(periodsOwned);
-                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
-                
-                // Convert to period cashflow
-                const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
-                netCashflow += propertyCashflow;
-              } else {
-                // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
-                console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
-                const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
-                // Override with actual purchase values
-                fallbackInstance.purchasePrice = purchase.cost;
-                fallbackInstance.rentPerWeek = (currentValue * (parseFloat(propertyData.yield) / 100)) / 52;
-                
-                const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
-                const growthFactor = currentValue / purchase.cost;
-                const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
-                const inflationFactor = calculateInflationFactor(periodsOwned);
-                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
-                const propertyCashflow = inflationAdjustedCashflow / PERIODS_PER_YEAR;
-                netCashflow += propertyCashflow;
-              }
-            }
-          }
-        });
-        
-        // Total savings for this period = base savings + net cashflow
-        const totalPeriodSavings = currentPeriodSavings + netCashflow;
-        totalEnhancedSavings += totalPeriodSavings;
-      }
+      // Initialize running balances
+      let runningCashBalance = calculatedValues.availableDeposit; // Starting cash pool
+      let runningSavingsBalance = 0; // Accumulates over time
+      let cumulativeEquityUsed = 0; // Tracks total equity extracted across all purchases
       
-      // Calculate deposits used for previous purchases
-      const totalDepositsUsed = previousPurchases.reduce((sum, purchase) => {
-        if (purchase.period <= currentPeriod) {
-          return sum + purchase.depositRequired;
-        }
-        return sum;
-      }, 0);
-
-      // Calculate base savings (without cashflow)
-      const baseSavings = profile.annualSavings * (currentPeriod / PERIODS_PER_YEAR);
-      
-      // Calculate net cashflow reinvestment
-      const netCashflow = totalEnhancedSavings - baseSavings;
-      
-      // CONTINUOUS EQUITY RECYCLING: Release equity whenever available (80% LVR cap)
+      // Calculate existing portfolio equity at current period (from existing properties before this scenario)
       let existingPortfolioEquity = 0;
-      let totalUsableEquity = 0;
-      
-      // Calculate existing portfolio equity with LVR cap
       if (profile.portfolioValue > 0) {
-        // Use first property type's growth rates for existing portfolio (from templates - source of truth)
         const firstTemplate = propertyTypeTemplates[0];
         const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
         if (defaultAssumption) {
@@ -261,33 +188,140 @@ export const useAffordabilityCalculator = () => {
           existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
         }
       }
-
-      // Calculate usable equity from previous purchases - with LVR cap
-      // CRITICAL: Account for cumulative equity already released
-      totalUsableEquity = previousPurchases.reduce((acc, purchase) => {
-        if (purchase.period <= currentPeriod) {
+      
+      // Process each period chronologically to track running balances
+      // Only 25% of annual savings goes into the "available for investment" pool
+      // This matches the 25% usage rate when funding purchases
+      const SAVINGS_RATE = 0.25;
+      const periodSavings = (profile.annualSavings * SAVINGS_RATE) / PERIODS_PER_YEAR;
+      let totalBaseSavings = 0;
+      let totalCashflowReinvestment = 0;
+      
+      for (let period = 1; period <= currentPeriod; period++) {
+        // Calculate net cashflow from properties owned BEFORE this period
+        let periodNetCashflow = 0;
+        previousPurchases.forEach(purchase => {
+          if (purchase.period < period) {
+            const periodsOwned = period - purchase.period;
+            const propertyData = getPropertyData(purchase.title);
+            
+            if (propertyData) {
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              const propertyInstance = getInstance(purchase.instanceId);
+              
+              if (propertyInstance) {
+                const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
+                const growthFactor = currentValue / purchase.cost;
+                const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
+                const inflationFactor = calculateInflationFactor(periodsOwned);
+                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
+                periodNetCashflow += inflationAdjustedCashflow / PERIODS_PER_YEAR;
+              } else {
+                const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
+                fallbackInstance.purchasePrice = purchase.cost;
+                fallbackInstance.rentPerWeek = (currentValue * (parseFloat(propertyData.yield) / 100)) / 52;
+                const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
+                const growthFactor = currentValue / purchase.cost;
+                const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
+                const inflationFactor = calculateInflationFactor(periodsOwned);
+                periodNetCashflow += (adjustedAnnualCashflow * inflationFactor) / PERIODS_PER_YEAR;
+              }
+            }
+          }
+        });
+        
+        // Add this period's savings contribution
+        // Only deduct negative cashflow (property shortfall you need to cover from savings)
+        // Positive cashflow stays in the property portfolio, not added to savings
+        const cashflowDeduction = periodNetCashflow < 0 ? periodNetCashflow : 0;
+        const periodContribution = periodSavings + cashflowDeduction;
+        runningSavingsBalance = Math.max(0, runningSavingsBalance + periodContribution);
+        totalBaseSavings += periodSavings;
+        totalCashflowReinvestment += cashflowDeduction; // Only track negative cashflow impact
+        
+        // Calculate extractable equity at this period (from properties bought BEFORE this period)
+        let extractableEquityThisPeriod = existingPortfolioEquity;
+        previousPurchases.forEach(purchase => {
+          if (purchase.period < period) { // Only properties bought before this period have usable equity
+            const propertyData = getPropertyData(purchase.title);
+            if (propertyData) {
+              const periodsOwned = period - purchase.period;
+              const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
+              const usableEquity = Math.max(0, propertyCurrentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
+              extractableEquityThisPeriod += usableEquity;
+            }
+          }
+        });
+        
+        // Process purchases made in this period
+        const purchasesInThisPeriod = previousPurchases.filter(p => p.period === period);
+        purchasesInThisPeriod.forEach(purchase => {
+          // Use totalCashRequired (deposit + stamp duty + fees) if available, otherwise depositRequired
+          const cashNeeded = purchase.totalCashRequired || purchase.depositRequired;
+          let remaining = cashNeeded;
+          
+          // EQUITY-FIRST: 1. Use available equity first
+          const availableEquity = Math.max(0, extractableEquityThisPeriod - cumulativeEquityUsed);
+          const fromEquity = Math.min(remaining, availableEquity);
+          remaining -= fromEquity;
+          cumulativeEquityUsed += fromEquity;
+          
+          // 2. Then use cash (depletes permanently)
+          const fromCash = Math.min(remaining, runningCashBalance);
+          remaining -= fromCash;
+          runningCashBalance = Math.max(0, runningCashBalance - fromCash);
+          
+          // 3. Finally use savings - use all accumulated savings (already only 25% of total)
+          const savingsAvailableForPurchase = runningSavingsBalance;
+          const fromSavings = Math.min(remaining, savingsAvailableForPurchase);
+          runningSavingsBalance = Math.max(0, runningSavingsBalance - fromSavings);
+        });
+      }
+      
+      // Calculate extractable equity at current period (for availability display)
+      let totalExtractableEquity = existingPortfolioEquity;
+      previousPurchases.forEach(purchase => {
+        if (purchase.period < currentPeriod) { // Only properties bought before current period
           const propertyData = getPropertyData(purchase.title);
           if (propertyData) {
-            const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, currentPeriod - purchase.period, propertyData);
-            // Current loan = original loan + any equity released so far
+            const periodsOwned = currentPeriod - purchase.period;
+            const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
             const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
             const usableEquity = Math.max(0, propertyCurrentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
-            return acc + usableEquity;
+            totalExtractableEquity += usableEquity;
           }
         }
-        return acc;
-      }, existingPortfolioEquity);
+      });
       
-      // Calculate final funds
-      const finalFunds = calculatedValues.availableDeposit + totalEnhancedSavings + totalUsableEquity - totalDepositsUsed;
+      // Calculate remaining balances
+      const equityRemaining = Math.max(0, totalExtractableEquity - cumulativeEquityUsed);
+      const cashRemaining = runningCashBalance;
+      const savingsRemaining = runningSavingsBalance;
+      
+      // Total available = remaining from each source
+      const totalAvailable = cashRemaining + savingsRemaining + equityRemaining;
+      
+      // Calculate total deposits used (for backwards compatibility)
+      const totalDepositsUsed = previousPurchases.reduce((sum, purchase) => {
+        if (purchase.period <= currentPeriod) {
+          return sum + (purchase.totalCashRequired || purchase.depositRequired);
+        }
+        return sum;
+      }, 0);
       
       return {
-        total: finalFunds,
-        baseDeposit: Math.max(0, calculatedValues.availableDeposit - totalDepositsUsed),
-        cumulativeSavings: baseSavings,
-        cashflowReinvestment: netCashflow,
-        equityRelease: totalUsableEquity,
-        depositsUsed: totalDepositsUsed
+        total: totalAvailable,
+        baseDeposit: cashRemaining, // Now reflects actual remaining cash
+        cumulativeSavings: totalBaseSavings,
+        cashflowReinvestment: totalCashflowReinvestment,
+        equityRelease: totalExtractableEquity,
+        depositsUsed: totalDepositsUsed,
+        // New fields for accurate tracking
+        cashRemaining,
+        savingsRemaining,
+        equityRemaining,
+        totalEquityUsed: cumulativeEquityUsed, // Total equity used across all purchases
       };
     };
 
@@ -849,7 +883,7 @@ export const useAffordabilityCalculator = () => {
 
     const determineNextPurchasePeriod = (
       property: any,
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>,
+      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; totalCashRequired?: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>,
       propertyIndex: number
     ): { period: number } => {
       let currentPurchases = [...previousPurchases];
@@ -983,7 +1017,7 @@ export const useAffordabilityCalculator = () => {
     }
 
     const timelineProperties: TimelineProperty[] = [];
-    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }> = [];
+    let purchaseHistory: Array<{ period: number; cost: number; depositRequired: number; totalCashRequired?: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }> = [];
     
     // Process properties sequentially, determining purchase period for each
     allPropertiesToPurchase.forEach(({ property, index, instanceId }, globalIndex) => {
@@ -1254,36 +1288,71 @@ export const useAffordabilityCalculator = () => {
       let equityRelease = 0;
       let cashflowReinvestment = 0;
       
+      // Funding breakdown for THIS purchase (SINGLE SOURCE OF TRUTH)
+      let fundingFromCash = 0;
+      let fundingFromSavings = 0;
+      let fundingFromEquity = 0;
+      
+      // Balances AFTER this purchase (SINGLE SOURCE OF TRUTH for useRoadmapData)
+      let cashAfterPurchase = 0;
+      let savingsAfterPurchase = 0;
+      let equityUsedAfterPurchase = 0;
+      
       // Calculate available funds breakdown only if property is affordable
+      // CRITICAL: These values represent what was available AT TIME OF PURCHASE (before this purchase)
+      // This is used for the Deposit Test modal to show "what we had" when making the decision
       if (result.period !== Infinity) {
         const purchasePeriod = result.period;
         const fundsBreakdownFinal = calculateAvailableFunds(purchasePeriod, purchaseHistory);
-        cumulativeSavings = fundsBreakdownFinal.cumulativeSavings;
-        baseDeposit = fundsBreakdownFinal.baseDeposit; // Rolling amount based on deposits used
         
-        // Calculate equity release (continuous, 88% LVR cap)
-        // CRITICAL: Track total equity released per property (replaces previous value, not additive)
+        // Use the "remaining" values which represent what's available BEFORE this purchase
+        // (purchaseHistory doesn't include current purchase yet)
+        baseDeposit = fundsBreakdownFinal.cashRemaining;
+        cumulativeSavings = fundsBreakdownFinal.cumulativeSavings;  // Use accumulated savings (for display), not remaining
+        equityRelease = fundsBreakdownFinal.equityRemaining;
+        cashflowReinvestment = fundsBreakdownFinal.cashflowReinvestment;
+        
+        // ============================================================================
+        // CALCULATE FUNDING BREAKDOWN FOR THIS PURCHASE (SINGLE SOURCE OF TRUTH)
+        // This determines exactly how much comes from each source
+        // Equity → Cash → Savings (with 75% savings buffer)
+        // ============================================================================
+        let remaining = totalCashRequired;
+        
+        // 1. EQUITY FIRST - leverage existing portfolio
+        fundingFromEquity = Math.min(remaining, equityRelease);
+        remaining -= fundingFromEquity;
+        
+        // 2. CASH SECOND - from deposit pool
+        fundingFromCash = Math.min(remaining, baseDeposit);
+        remaining -= fundingFromCash;
+        
+        // 3. SAVINGS LAST - use all accumulated savings (already only 25% of total)
+        const savingsAvailableForPurchase = cumulativeSavings;
+        fundingFromSavings = Math.min(remaining, savingsAvailableForPurchase);
+        
+        // Calculate balances AFTER this purchase (SINGLE SOURCE OF TRUTH)
+        // These will be passed to useRoadmapData to avoid recalculation
+        cashAfterPurchase = baseDeposit - fundingFromCash;
+        savingsAfterPurchase = cumulativeSavings - fundingFromSavings;
+        equityUsedAfterPurchase = fundsBreakdownFinal.totalEquityUsed + fundingFromEquity;
+        
+        console.log(`[CALC] ${property.title} period=${purchasePeriod}: savingsBefore=${cumulativeSavings.toFixed(0)} used=${fundingFromSavings.toFixed(0)} after=${savingsAfterPurchase.toFixed(0)}`);
+        
+        
+        // Update cumulative equity released tracking on previous purchases
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
             const propertyData = getPropertyData(purchase.title);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              // Calculate maximum refinance amount (LVR cap)
               const maxLoan = currentValue * EQUITY_EXTRACTION_LVR_CAP;
-              // Equity released = maximum loan minus original loan amount
               const equityReleasedFromProperty = Math.max(0, maxLoan - purchase.loanAmount);
-              equityRelease += equityReleasedFromProperty;
-              
-              // Set cumulative equity released to the total amount refinanced from this property
-              // (This is not additive - it's the current refinanced amount)
               purchase.cumulativeEquityReleased = equityReleasedFromProperty;
             }
           }
         });
-        
-        // Fix: Display accumulated reinvestment correctly
-        cashflowReinvestment = Math.max(0, netCashflow);
       }
       
       // Calculate effective borrowing capacity for timeline display
@@ -1360,10 +1429,34 @@ export const useAffordabilityCalculator = () => {
           lmi: lmi,
           legalFees: oneOffCosts.conveyancing,
           inspectionFees: oneOffCosts.buildingPestInspection + oneOffCosts.plumbingElectricalInspections + oneOffCosts.independentValuation,
-          otherFees: oneOffCosts.mortgageFees + oneOffCosts.ratesAdjustment + oneOffCosts.engagementFee,
+          // Other fees includes ALL remaining one-off costs
+          otherFees: oneOffCosts.mortgageFees + 
+                     oneOffCosts.ratesAdjustment + 
+                     oneOffCosts.engagementFee +
+                     oneOffCosts.conditionalHoldingDeposit +
+                     oneOffCosts.unconditionalHoldingDeposit +
+                     oneOffCosts.buildingInsuranceUpfront +
+                     oneOffCosts.maintenanceAllowancePostSettlement,
           total: oneOffCosts.totalCashRequired + lmi,
         },
         totalCashRequired: totalCashRequired,
+        
+        // FUNDING BREAKDOWN - SINGLE SOURCE OF TRUTH
+        // Calculated here, consumed by useRoadmapData for display
+        fundingBreakdown: {
+          cash: fundingFromCash,
+          savings: fundingFromSavings,
+          equity: fundingFromEquity,
+          total: fundingFromCash + fundingFromSavings + fundingFromEquity,
+        },
+        
+        // RUNNING BALANCES AFTER PURCHASE - SINGLE SOURCE OF TRUTH
+        // Used by useRoadmapData to display correct balances without recalculating
+        balancesAfterPurchase: {
+          cash: cashAfterPurchase,
+          savings: savingsAfterPurchase,
+          equityUsed: equityUsedAfterPurchase,
+        },
       };
       
       timelineProperties.push(timelineProperty);
@@ -1374,6 +1467,7 @@ export const useAffordabilityCalculator = () => {
           period: result.period,
           cost: correctPurchasePrice,
           depositRequired: correctDepositRequired,
+          totalCashRequired: totalCashRequired, // Include full acquisition costs for equity-first allocation
           loanAmount: loanAmount,
           title: property.title,
           instanceId: instanceId,

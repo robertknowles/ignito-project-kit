@@ -70,12 +70,8 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
     });
   };
   
-  // Helper to get the rounded value that will be displayed (for compact format)
-  const getRoundedValue = (value: number): number => {
-    if (value >= 1000000) return Math.round(value / 1000000 * 10) / 10 * 1000000; // Round to 0.1M
-    if (value >= 1000) return Math.round(value / 1000) * 1000; // Round to nearest k
-    return Math.round(value);
-  };
+  // NOTE: We no longer use getRoundedValue for calculations - all totals come from the calculator
+  // This function is kept only for display purposes where individual line items need rounding
   
   const formatCurrency = (value: number, compact = false) => {
     if (compact) {
@@ -245,22 +241,22 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               <h4 className="font-semibold text-[11px] text-[#374151]">🏠 This Purchase Funding</h4>
                             </div>
                             {(() => {
+                              // SINGLE SOURCE OF TRUTH: Use depositTest.required from the calculator
+                              // This is the exact value used in the pass/fail determination
+                              const depositTest = year.depositTest;
+                              const totalFundsUsed = depositTest.required;
+                              
+                              // For display breakdown only - approximate funding sources
                               const depositFromBase = Math.min(year.requiredDeposit || 0, year.baseDeposit || 0);
                               const depositFromSavings = Math.max(0, Math.min((year.requiredDeposit || 0) - depositFromBase, year.cumulativeSavings || 0));
                               const depositFromEquity = Math.max(0, (year.requiredDeposit || 0) - depositFromBase - depositFromSavings);
                               
-                              // Task 1: Calculate funding story
+                              // Determine funding story based on equity vs savings
                               const isEquityFunded = (depositFromEquity || 0) > (depositFromSavings || 0);
                               
-                              // Get acquisition costs from purchases
+                              // Get acquisition costs from purchases for display breakdown
                               const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
                               const totalAcquisitionCosts = purchase?.totalAcquisitionCosts || 0;
-                              
-                              // Calculate total funds used by summing rounded display values
-                              // This ensures visual consistency: if we show "$53k + $32k", the total will show "$85k"
-                              const roundedDeposit = getRoundedValue(year.requiredDeposit || 0);
-                              const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
-                              const totalFundsUsed = roundedDeposit + roundedAcquisitionCosts;
                               
                               const loanType = purchase?.loanType || 'IO';
                               const loanTypeLabel = loanType === 'IO' ? 'Interest Only' : 'Principal & Interest';
@@ -412,38 +408,31 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                               <h4 className="font-semibold text-[11px] text-[#374151]">💰 Remaining After Purchase</h4>
                             </div>
                             {(() => {
-                              // Get acquisition costs from purchases
-                              const purchase = year.purchases && year.purchases.length > 0 ? year.purchases[0] : null;
-                              const totalAcquisitionCosts = purchase?.totalAcquisitionCosts || 0;
-                              
-                              // Calculate total cash used by summing rounded display values
-                              const roundedDeposit = getRoundedValue(year.requiredDeposit || 0);
-                              const roundedAcquisitionCosts = getRoundedValue(totalAcquisitionCosts);
-                              const totalCashUsed = roundedDeposit + roundedAcquisitionCosts;
+                              // SINGLE SOURCE OF TRUTH: Use depositTest values from the calculator
+                              const totalCashRequired = depositTest.required;
+                              const totalAvailable = depositTest.available;
                               
                               return (
                             <div className="divide-y divide-gray-100">
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Base Deposit</span>
-                                <span className="font-medium text-right text-[#111827]">{formatCurrency(Math.max(0, (year.baseDeposit || 0) - totalCashUsed), true)}</span>
+                                <span className="text-[#374151]">Total Available</span>
+                                <span className="font-medium text-right text-[#111827]">{formatCurrency(totalAvailable, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]" title="Includes your Annual Savings multiplied by years, PLUS any reinvested positive cashflow from your existing properties.">Accumulated Savings</span>
-                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.cumulativeSavings || 0, true)}</span>
-                              </div>
-                              <div className="flex justify-between px-3 py-1 bg-white">
-                                <span className="text-[#374151]">Equity Release</span>
-                                <span className="font-medium text-right text-[#111827]">{formatCurrency(year.equityRelease || 0, true)}</span>
+                                <span className="text-[#374151]">Total Required</span>
+                                <span className="font-medium text-right text-red-700">−{formatCurrency(totalCashRequired, true)}</span>
                               </div>
                               <div className="flex justify-between px-3 py-1 bg-[#f9fafb]">
-                                <span className="font-medium text-[#374151]">Total Remaining</span>
-                                <span className="font-bold text-right text-[#111827]">{formatCurrency((depositTest.available || 0) - totalCashUsed, true)}</span>
+                                <span className="font-medium text-[#374151]">Surplus/Shortfall</span>
+                                <span className={`font-bold text-right ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                  {formatCurrency(depositTest.surplus || 0, true)}
+                                </span>
                               </div>
                               <div className={`px-3 py-1.5 ${depositTest.surplus >= 0 ? 'bg-green-300/70' : 'bg-red-300/70'}`}>
                                 <div className="flex justify-between">
                                   <span className={`font-medium ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>Purchase Result</span>
                                   <span className={`font-bold text-right ${depositTest.surplus >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                                    {formatCurrency(depositTest.surplus || 0, true)}
+                                    {depositTest.pass ? 'PASS' : 'FAIL'}
                                   </span>
                                 </div>
                               </div>

@@ -374,18 +374,18 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           interestRate: defaultInterestRate * 100,
           rentalRecognition: property.rentalRecognitionRate * 100,
           
-          // Tests (from calculator)
+          // Tests - SINGLE SOURCE OF TRUTH: Use values directly from calculator
           depositTest: {
             pass: property.depositTestPass,
             surplus: property.depositTestSurplus,
             available: property.availableFundsUsed,
-            required: property.depositRequired,
+            required: property.totalCashRequired,  // Use totalCashRequired for consistency
           },
           
           borrowingCapacityTest: {
             pass: property.borrowingCapacityRemaining >= 0,
             surplus: property.borrowingCapacityRemaining,
-            available: profile.borrowingCapacity,
+            available: effectiveCapacity,  // Use effective capacity (includes equity boost)
             required: property.totalDebtAfter,
           },
           
@@ -393,7 +393,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
             pass: property.serviceabilityTestPass,
             surplus: property.serviceabilityTestSurplus,
             available: baseServiceabilityCapacity + rentalServiceabilityContribution,
-            required: property.loanAmount,
+            required: existingLoanInterest + newLoanInterest,  // Use total interest, not loan amount
           },
           
           // Flags (from calculator)
@@ -594,10 +594,10 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       interestRate: defaultInterestRate * 100,
       rentalRecognition: property.rentalRecognitionRate * 100,
       
-      // Tests - Recalculated for specific property
+      // Tests - SINGLE SOURCE OF TRUTH: Use values directly from calculator
       depositTest: {
         pass: property.depositTestPass,
-        surplus: property.availableFundsUsed - property.totalCashRequired,
+        surplus: property.depositTestSurplus,
         available: property.availableFundsUsed,
         required: property.totalCashRequired,
       },
@@ -605,7 +605,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       borrowingCapacityTest: {
         pass: property.borrowingCapacityRemaining >= 0,
         surplus: property.borrowingCapacityRemaining,
-        available: profile.borrowingCapacity,
+        available: effectiveCapacity,  // Use effective capacity (includes equity boost)
         required: property.totalDebtAfter,
       },
       
@@ -613,7 +613,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
         pass: property.serviceabilityTestPass,
         surplus: property.serviceabilityTestSurplus,
         available: baseServiceabilityCapacity + rentalServiceabilityContribution,
-        required: property.loanAmount,
+        required: existingLoanInterest + newLoanInterest,  // Use total interest, not loan amount
       },
       
       // Flags
@@ -1141,18 +1141,25 @@ function interpolateYearData(
     
     if (nextProperty) {
       // Convert timelineProperties to purchase history format
+      // Period is calculated as: (year - BASE_YEAR) * PERIODS_PER_YEAR + 1
       const purchaseHistory = timelineProperties
         .filter(prop => prop.affordableYear < year)
         .map(prop => ({
-          year: prop.affordableYear - 2025 + 1, // Convert to relative year
+          period: prop.period,  // Use period directly from TimelineProperty
           cost: prop.cost,
           depositRequired: prop.depositRequired,
+          totalCashRequired: prop.totalCashRequired, // CRITICAL: Include for accurate funding calculations
           loanAmount: prop.loanAmount,
-          title: prop.title
+          title: prop.title,
+          instanceId: prop.instanceId,
+          loanType: prop.loanType,
+          cumulativeEquityReleased: 0,
         }));
       
-      // Run affordability tests
-      const affordabilityResult = calculateAffordabilityForProperty(year - 2025 + 1, nextProperty, purchaseHistory);
+      // Run affordability tests - use period (not year) for consistency with calculator
+      // Period = (year - BASE_YEAR) * PERIODS_PER_YEAR + 1
+      const period = (year - BASE_YEAR) * PERIODS_PER_YEAR + 1;
+      const affordabilityResult = calculateAffordabilityForProperty(period, nextProperty, purchaseHistory);
       
       depositTestSurplus = affordabilityResult.depositTestSurplus;
       depositTestPass = affordabilityResult.depositTestPass;

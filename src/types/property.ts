@@ -134,6 +134,24 @@ export interface TimelineProperty {
     total: number;
   };
   totalCashRequired: number; // deposit + acquisition costs
+  
+  // Funding breakdown - how this purchase was funded (SINGLE SOURCE OF TRUTH)
+  // Calculated by useAffordabilityCalculator, consumed by useRoadmapData
+  fundingBreakdown: {
+    cash: number;      // Amount from cash pool
+    savings: number;   // Amount from savings (max 25% of savings)
+    equity: number;    // Amount from extracted equity
+    total: number;     // Total funded (should equal totalCashRequired)
+  };
+  
+  // Running balances at time of purchase (SINGLE SOURCE OF TRUTH)
+  // These are the balances AFTER this purchase is made
+  // Used by useRoadmapData to display correct balances without recalculating
+  balancesAfterPurchase: {
+    cash: number;      // Cash remaining after this purchase
+    savings: number;   // Savings remaining after this purchase
+    equityUsed: number; // Cumulative equity used (including this purchase)
+  };
 }
 
 export interface YearBreakdownData {
