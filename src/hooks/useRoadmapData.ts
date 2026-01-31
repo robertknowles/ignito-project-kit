@@ -60,14 +60,24 @@ const calculatePropertyGrowth = (
   return currentValue;
 };
 
+// Funding breakdown for a purchase
+export interface FundingBreakdown {
+  cash: number;
+  savings: number;
+  equity: number;
+  totalCashRequired: number;
+}
+
 // Single purchase detail structure
 export interface PurchaseDetail {
   propertyTitle: string;
   cost: number;
   depositRequired: number;
+  totalCashRequired: number;
   loanAmount: number;
   instanceId: string;
   propertyType: string;
+  fundingBreakdown: FundingBreakdown;
 }
 
 export interface YearData {
@@ -138,6 +148,15 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         purchasesByYear.get(year)!.push(prop);
       });
     
+    // ============================================================================
+    // CHRONOLOGICAL FUNDING TRACKING
+    // Track cumulative spending from each source across all years
+    // Once cash is spent, it stays spent. Savings accumulate but can be drawn down.
+    // ============================================================================
+    let runningCashBalance = profile.depositPool; // Starts at initial deposit, depletes permanently
+    let runningSavingsBalance = 0; // Accumulates each year, can be drawn down for purchases
+    let cumulativeEquityUsed = 0; // Track total equity extracted across all purchases
+    
     // Generate data for each year from BASE_YEAR to user's timeline end
     for (let year = BASE_YEAR; year <= endYear; year++) {
       const yearIndex = year - BASE_YEAR;
@@ -146,6 +165,11 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // Get all properties purchased by this year
       const propertiesPurchasedByYear = timelineProperties.filter(
         p => p.affordableYear !== Infinity && Math.floor(p.affordableYear) <= year
+      );
+      
+      // Get properties purchased BEFORE this year (for cashflow calculation)
+      const propertiesPurchasedBeforeThisYear = timelineProperties.filter(
+        p => p.affordableYear !== Infinity && Math.floor(p.affordableYear) < year
       );
       
       const propertyCount = propertiesPurchasedByYear.length;
@@ -202,51 +226,108 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // CRITICAL: Extractable equity is based on portfolio BEFORE this year's purchases
       // You can't use equity from a property you haven't bought yet to fund that purchase!
       const extractableEquity = Math.max(0, (portfolioValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP) - totalDebtBeforeThisYear);
+      
+      // Calculate net cashflow from properties owned BEFORE this year
+      // (Properties bought this year don't generate cashflow until next year)
+      let netCashflowFromExistingProperties = 0;
+      propertiesPurchasedBeforeThisYear.forEach(prop => {
+        const purchaseYear = Math.floor(prop.affordableYear);
+        const yearsOwned = year - purchaseYear;
+        const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, profile.growthCurve);
+        const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
+        const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
+        
+        const propRentalIncome = prop.grossRentalIncome * growthFactor * inflationFactor;
+        const propExpenses = prop.expenses * inflationFactor;
+        const propInterest = prop.loanInterest;
+        
+        netCashflowFromExistingProperties += propRentalIncome - propInterest - propExpenses;
+      });
+      
       const netCashflow = grossRentalIncome - totalLoanInterest - totalExpenses;
       
-      // Calculate cumulative savings
-      const cumulativeSavings = profile.annualSavings * yearIndex;
-      
-      // Calculate cashflow reinvestment (cumulative positive cashflow)
-      let cashflowReinvestment = 0;
-      if (propertyCount > 0) {
-        cashflowReinvestment = Math.max(0, netCashflow * yearIndex);
+      // ============================================================================
+      // STEP 1: Add this year's savings to the running balance
+      // Savings = Annual savings rate + net cashflow (can be negative!)
+      // ============================================================================
+      const thisYearSavingsContribution = profile.annualSavings + netCashflowFromExistingProperties;
+      if (yearIndex > 0) { // Don't add savings for year 0 (starting point)
+        runningSavingsBalance = Math.max(0, runningSavingsBalance + thisYearSavingsContribution);
       }
       
-      // Calculate deposits used (all properties purchased by this year)
-      const depositsUsed = propertiesPurchasedByYear.reduce(
-        (sum, p) => sum + p.depositRequired, 
-        0
-      );
+      // ============================================================================
+      // STEP 2: Process this year's purchases and allocate funding
+      // EQUITY-FIRST: Use equity before cash, keep savings as buffer
+      // Track per-purchase funding breakdown for display
+      // ============================================================================
+      const purchasesThisYear = purchasesByYear.get(year);
+      let equityUsedThisYear = 0;
+      let cashUsedThisYear = 0;
+      let savingsUsedThisYear = 0;
       
-      // Calculate how deposits were funded from each source
-      // Logic: Cash (base deposit) is used first, then savings, then equity
-      let remainingDepositsToAllocate = depositsUsed;
+      // Store funding breakdown for each purchase this year
+      const purchaseFundingBreakdowns: Map<string, FundingBreakdown> = new Map();
       
-      // 1. First, use cash (base deposit pool)
-      const cashUsedForDeposits = Math.min(remainingDepositsToAllocate, profile.depositPool);
-      remainingDepositsToAllocate -= cashUsedForDeposits;
+      if (purchasesThisYear && purchasesThisYear.length > 0) {
+        purchasesThisYear.forEach(purchase => {
+          // Use totalCashRequired (deposit + stamp duty + legal fees + other acquisition costs)
+          // Not just depositRequired, which is only the deposit portion
+          const totalRequired = purchase.totalCashRequired || purchase.depositRequired;
+          let cashNeeded = totalRequired;
+          
+          // Available equity = extractable equity minus what we've already used cumulatively
+          const availableEquity = Math.max(0, extractableEquity - cumulativeEquityUsed - equityUsedThisYear);
+          
+          // 1. First, use extractable equity (leverage existing portfolio)
+          const fromEquity = Math.min(cashNeeded, availableEquity);
+          cashNeeded -= fromEquity;
+          equityUsedThisYear += fromEquity;
+          
+          // 2. Then, use cash (depletes permanently)
+          const availableCashForThisPurchase = Math.max(0, runningCashBalance - cashUsedThisYear);
+          const fromCash = Math.min(cashNeeded, availableCashForThisPurchase);
+          cashNeeded -= fromCash;
+          cashUsedThisYear += fromCash;
+          
+          // 3. Finally, use savings (draws down the balance)
+          const availableSavingsForThisPurchase = Math.max(0, runningSavingsBalance - savingsUsedThisYear);
+          const fromSavings = Math.min(cashNeeded, availableSavingsForThisPurchase);
+          savingsUsedThisYear += fromSavings;
+          
+          // Store this purchase's funding breakdown
+          purchaseFundingBreakdowns.set(purchase.instanceId, {
+            cash: fromCash,
+            savings: fromSavings,
+            equity: fromEquity,
+            totalCashRequired: totalRequired,
+          });
+        });
+        
+        // Update running balances after this year's purchases
+        runningCashBalance = Math.max(0, runningCashBalance - cashUsedThisYear);
+        runningSavingsBalance = Math.max(0, runningSavingsBalance - savingsUsedThisYear);
+        cumulativeEquityUsed += equityUsedThisYear;
+      }
       
-      // 2. Then, use cumulative savings
-      const savingsUsedForDeposits = Math.min(remainingDepositsToAllocate, cumulativeSavings);
-      remainingDepositsToAllocate -= savingsUsedForDeposits;
+      // ============================================================================
+      // STEP 3: Calculate remaining balances for display
+      // ============================================================================
+      const cashRemaining = runningCashBalance;
+      const savingsRemaining = runningSavingsBalance;
+      const equityRemaining = Math.max(0, extractableEquity - cumulativeEquityUsed);
       
-      // 3. Finally, use equity (any remainder)
-      const equityUsedForDeposits = Math.min(remainingDepositsToAllocate, extractableEquity);
-      remainingDepositsToAllocate -= equityUsedForDeposits;
+      // Cashflow reinvestment is now built into savings
+      // This variable is kept for backwards compatibility
+      const cashflowReinvestment = 0;
       
-      // Calculate NET remaining amounts (what's still available after funding purchases)
-      const cashRemaining = Math.max(0, profile.depositPool - cashUsedForDeposits);
-      const savingsRemaining = Math.max(0, cumulativeSavings - savingsUsedForDeposits);
-      const equityRemaining = Math.max(0, extractableEquity - equityUsedForDeposits);
-      
-      // Available funds = sum of remaining amounts (should match the old formula)
-      const availableFunds = cashRemaining + savingsRemaining + cashflowReinvestment + equityRemaining;
+      // Available funds = sum of remaining amounts
+      const availableFunds = cashRemaining + savingsRemaining + equityRemaining;
       
       // Determine test statuses
       // For years with purchases, use the actual test results
       // For years without purchases, calculate if a hypothetical purchase could be made
-      const purchasesThisYear = purchasesByYear.get(year);
+      // (purchasesThisYear already defined above in funding allocation section)
       let depositStatus: 'pass' | 'fail' | 'na' = 'na';
       let borrowingStatus: 'pass' | 'fail' | 'na' = 'na';
       let serviceabilityStatus: 'pass' | 'fail' | 'na' = 'na';
@@ -266,14 +347,25 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         borrowingStatus = firstPurchase.borrowingCapacityRemaining >= 0 ? 'pass' : 'fail';
         
         // Include ALL purchases for this year (supports stacking multiple properties)
-        purchaseDetails = purchasesThisYear.map(purchase => ({
-          propertyTitle: purchase.title,
-          cost: purchase.cost,
-          depositRequired: purchase.depositRequired,
-          loanAmount: purchase.loanAmount,
-          instanceId: purchase.instanceId,
-          propertyType: purchase.title,
-        }));
+        // Include the actual funding breakdown calculated during allocation
+        purchaseDetails = purchasesThisYear.map(purchase => {
+          const funding = purchaseFundingBreakdowns.get(purchase.instanceId) || {
+            cash: 0,
+            savings: 0,
+            equity: 0,
+            totalCashRequired: purchase.totalCashRequired || purchase.depositRequired,
+          };
+          return {
+            propertyTitle: purchase.title,
+            cost: purchase.cost,
+            depositRequired: purchase.depositRequired,
+            totalCashRequired: purchase.totalCashRequired || purchase.depositRequired,
+            loanAmount: purchase.loanAmount,
+            instanceId: purchase.instanceId,
+            propertyType: purchase.title,
+            fundingBreakdown: funding,
+          };
+        });
         
         // Calculate values needed for YearBreakdownData
         const existingDebt = totalDebt - firstPurchase.loanAmount;

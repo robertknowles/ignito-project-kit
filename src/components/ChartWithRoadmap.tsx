@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { AlertTriangle } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
+import { useRoadmapData, YearData, FundingBreakdown } from '../hooks/useRoadmapData';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -61,15 +61,18 @@ const formatCurrency = (value: number): string => {
   return `$${value.toFixed(0)}`;
 };
 
-// Format compact currency for table cells
+// Format compact currency for table cells (handles negative values)
 const formatCompactCurrency = (value: number): string => {
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`;
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  
+  if (absValue >= 1000000) {
+    return `${sign}$${Math.round(absValue / 1000000)}M`;
   }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}k`;
+  if (absValue >= 1000) {
+    return `${sign}$${Math.round(absValue / 1000)}k`;
   }
-  return `$${value.toFixed(0)}`;
+  return `${sign}$${Math.round(absValue)}`;
 };
 
 // Determine if property is a house type (for color coding)
@@ -454,34 +457,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   
   // Expandable row state for Buy row funding breakdown
   const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
-  
-  // Calculate funding breakdown for a purchase
-  // Logic: Cash is used first, then savings, then equity
-  const calculateFundingBreakdown = useCallback((
-    depositRequired: number,
-    availableCash: number,
-    availableSavings: number,
-    availableEquity: number
-  ) => {
-    let remaining = depositRequired;
-    
-    // Use cash first
-    const cashUsed = Math.min(remaining, availableCash);
-    remaining -= cashUsed;
-    
-    // Then savings
-    const savingsUsed = Math.min(remaining, availableSavings);
-    remaining -= savingsUsed;
-    
-    // Then equity
-    const equityUsed = Math.min(remaining, availableEquity);
-    
-    return {
-      cash: cashUsed,
-      savings: savingsUsed,
-      equity: equityUsed,
-    };
-  }, []);
   
   // Get violations for a property
   const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
@@ -1037,47 +1012,31 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 Buy
               </span>
             </div>
-            {years.map((yearData, index) => {
-              // Calculate funding breakdown for this year's purchases
-              const yearBreakdown = yearData.yearBreakdownData;
-              const availableCash = yearBreakdown?.baseDeposit || 0;
-              const availableSavings = yearBreakdown?.cumulativeSavings || 0;
-              const availableEquity = yearBreakdown?.equityRelease || 0;
-              
-              return (
-                <div 
-                  key={`purchase-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
-                    // Render a MiniPurchaseCard for each property in this year
-                    yearData.purchaseDetails.map((purchase, purchaseIndex) => {
-                      const fundingBreakdown = calculateFundingBreakdown(
-                        purchase.depositRequired,
-                        availableCash,
-                        availableSavings,
-                        availableEquity
-                      );
-                      
-                      return (
-                        <MiniPurchaseCard
-                          key={`${purchase.instanceId}-${purchaseIndex}`}
-                          propertyTitle={purchase.propertyTitle}
-                          cost={purchase.cost}
-                          loanAmount={purchase.loanAmount}
-                          depositRequired={purchase.depositRequired}
-                          onClick={() => handlePropertyClick(purchase.instanceId)}
-                          fundingBreakdown={fundingBreakdown}
-                          showFunding={isBuyFundingExpanded}
-                        />
-                      );
-                    })
-                  ) : (
-                    <span className="text-[8px] text-slate-400 self-center">–</span>
-                  )}
-                </div>
-              );
-            })}
+            {years.map((yearData, index) => (
+              <div 
+                key={`purchase-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
+                  // Render a MiniPurchaseCard for each property in this year
+                  // Use the pre-calculated funding breakdown from useRoadmapData
+                  yearData.purchaseDetails.map((purchase, purchaseIndex) => (
+                    <MiniPurchaseCard
+                      key={`${purchase.instanceId}-${purchaseIndex}`}
+                      propertyTitle={purchase.propertyTitle}
+                      cost={purchase.cost}
+                      loanAmount={purchase.loanAmount}
+                      depositRequired={purchase.totalCashRequired}
+                      onClick={() => handlePropertyClick(purchase.instanceId)}
+                      fundingBreakdown={purchase.fundingBreakdown}
+                      showFunding={isBuyFundingExpanded}
+                    />
+                  ))
+                ) : (
+                  <span className="text-[8px] text-slate-400 self-center">–</span>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* Affordability Guardrails - Status Rows */}
@@ -1209,20 +1168,20 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 })}
               </div>
 
-              {/* Sub-row: Savings (Cumulative) */}
+              {/* Sub-row: Savings (Cumulative Balance) */}
               <div style={gridStyle} className="border-b border-slate-100/50 bg-slate-100/30">
                 <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
                   <span className="text-[6px] text-slate-400 pr-1">├ Save</span>
                 </div>
                 {years.map((yearData, index) => {
-                  const savings = yearData.yearBreakdownData?.cumulativeSavings || 0;
+                  const savings = yearData.yearBreakdownData?.cumulativeSavings ?? 0;
                   return (
                     <div 
                       key={`savings-${yearData.year}`}
                       className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
                     >
                       <span className="text-[6px] text-slate-500">
-                        {savings > 0 ? formatCompactCurrency(savings) : '–'}
+                        {savings > 0 ? formatCompactCurrency(savings) : '$0'}
                       </span>
                     </div>
                   );
