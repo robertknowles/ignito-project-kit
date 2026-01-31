@@ -41,7 +41,7 @@ const getDefaultFormData = (): Omit<CustomPropertyBlock, 'id' | 'isCustom'> => (
   // Section B: Contract & Loan Details
   daysToUnconditional: 21,
   daysForSettlement: 42,
-  lvr: 85,
+  lvr: 88,
   lmiWaiver: false,
   loanProduct: 'IO',
   loanType: 'IO',

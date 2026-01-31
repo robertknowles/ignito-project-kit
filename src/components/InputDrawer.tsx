@@ -16,7 +16,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
 
   const tabs = [
     { id: 'inputs' as TabType, label: 'Client Inputs', icon: SlidersHorizontal },
-    { id: 'blocks' as TabType, label: 'Property Blocks', icon: LayoutGrid },
+    { id: 'blocks' as TabType, label: 'Property Library', icon: LayoutGrid },
   ]
 
   return (
@@ -34,7 +34,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
           <TourStep
             id="drawer-tabs"
             title="Drawer Tabs"
-            content="The drawer has two tabs: Client Inputs for financial details and goals, and Property Blocks for selecting which properties to include in the strategy."
+            content="The drawer has two tabs: Client Inputs for financial details and goals, and Property Library for selecting which properties to include in the strategy."
             order={5}
             position="bottom"
           >

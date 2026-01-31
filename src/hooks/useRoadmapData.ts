@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import type { YearBreakdownData } from '@/types/property';
 import {
   PERIODS_PER_YEAR,
@@ -122,6 +123,7 @@ interface ScenarioDataInput {
 export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData => {
   const { profile: contextProfile } = useInvestmentProfile();
   const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
+  const { getInstance } = usePropertyInstance();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
   const profile = scenarioData?.profile ?? contextProfile;
@@ -158,6 +160,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     let runningCashBalance = profile.depositPool; // Starts at initial deposit, depletes permanently
     let runningSavingsBalance = 0; // Accumulates each year, can be drawn down for purchases
     let cumulativeEquityUsed = 0; // Track total equity extracted across all purchases
+    let cumulativeSavingsSpent = 0; // Track total savings used for purchases
     
     // Generate data for each year from BASE_YEAR to user's timeline end
     for (let year = BASE_YEAR; year <= endYear; year++) {
@@ -185,6 +188,15 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       let grossRentalIncome = 0;
       let totalLoanInterest = 0;
       let totalExpenses = 0;
+      
+      // Expense breakdown accumulators - accumulate ACTUAL values from each property
+      let accCouncilRatesWater = 0;
+      let accStrataFees = 0;
+      let accInsurance = 0;
+      let accManagementFees = 0;
+      let accRepairsMaintenance = 0;
+      let accLandTax = 0;
+      let accOther = 0;
       
       // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
       let portfolioValueBeforeThisYear = profile.portfolioValue > 0 
@@ -222,6 +234,25 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         totalLoanInterest += prop.loanInterest; // Interest doesn't scale with growth
         // BUG FIX: Expenses only grow with inflation, NOT property value
         totalExpenses += prop.expenses * inflationFactor;
+        
+        // Get INDIVIDUAL property expense values from the property instance
+        // This avoids the cumulative breakdown issue in timeline properties
+        const propertyInstance = getInstance(prop.instanceId);
+        if (propertyInstance) {
+          // Calculate management fee based on adjusted income (rent - vacancy)
+          const grossAnnualIncome = propertyInstance.rentPerWeek * 52;
+          const vacancyAmount = grossAnnualIncome * (propertyInstance.vacancyRate / 100);
+          const adjustedIncome = grossAnnualIncome - vacancyAmount;
+          const managementFee = adjustedIncome * (propertyInstance.propertyManagementPercent / 100);
+          
+          // Add each property's individual expenses (with inflation)
+          accCouncilRatesWater += propertyInstance.councilRatesWater * inflationFactor;
+          accStrataFees += propertyInstance.strata * inflationFactor;
+          accInsurance += propertyInstance.buildingInsuranceAnnual * inflationFactor;
+          accManagementFees += managementFee * inflationFactor;
+          accRepairsMaintenance += propertyInstance.maintenanceAllowanceAnnual * inflationFactor;
+          accLandTax += (propertyInstance.landTaxOverride || 0) * inflationFactor;
+        }
       });
       
       const totalEquity = portfolioValue - totalDebt;
@@ -267,10 +298,12 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         ? firstPurchaseThisYear.baseDeposit 
         : runningCashBalance;
       
-      // Savings: simple accumulation for display
-      const startOfYearSavings = yearIndex > 0 
+      // Savings: accumulation minus what's been spent on previous purchases
+      // This ensures the displayed savings value correctly accounts for funds used
+      const grossSavingsAccumulated = yearIndex > 0 
         ? profile.annualSavings * SAVINGS_RATE * yearIndex
         : 0;
+      const startOfYearSavings = Math.max(0, grossSavingsAccumulated - cumulativeSavingsSpent);
       
       // Equity: use calculator's equityRelease for purchase years (what was actually available)
       const startOfYearEquity = firstPurchaseThisYear
@@ -287,12 +320,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             equity: funding.equity,
             totalCashRequired: funding.total,
           });
+          // Track cumulative savings spent across all purchases
+          cumulativeSavingsSpent += funding.savings;
         });
         
         // Use balances from the LAST purchase this year (SINGLE SOURCE OF TRUTH)
         // The calculator has already computed these correctly
         const lastPurchase = purchasesThisYear[purchasesThisYear.length - 1];
-        console.log(`[ROADMAP] Year ${year} reading from ${lastPurchase.title}: savings=${lastPurchase.balancesAfterPurchase.savings.toFixed(0)}`);
+        console.log(`[ROADMAP] Year ${year} reading from ${lastPurchase.title}: savings=${lastPurchase.balancesAfterPurchase.savings.toFixed(0)}, savingsSpent=${cumulativeSavingsSpent.toFixed(0)}`);
         runningCashBalance = lastPurchase.balancesAfterPurchase.cash;
         runningSavingsBalance = lastPurchase.balancesAfterPurchase.savings;
         cumulativeEquityUsed = lastPurchase.balancesAfterPurchase.equityUsed;
@@ -444,15 +479,15 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           loanRepayments: totalLoanInterest,
           expenses: totalExpenses,
           
-          // Expense breakdown
+          // Expense breakdown - USE ACTUAL VALUES from property instances
           expenseBreakdown: {
-            councilRatesWater: totalExpenses * 0.15,
-            strataFees: totalExpenses * 0.20,
-            insurance: totalExpenses * 0.10,
-            managementFees: totalExpenses * 0.35,
-            repairsMaintenance: totalExpenses * 0.15,
-            landTax: totalExpenses * 0.05,
-            other: 0,
+            councilRatesWater: accCouncilRatesWater,
+            strataFees: accStrataFees,
+            insurance: accInsurance,
+            managementFees: accManagementFees,
+            repairsMaintenance: accRepairsMaintenance,
+            landTax: accLandTax,
+            other: accOther,
           },
           
           // Requirements - SUM of ALL purchases this year
@@ -636,15 +671,15 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           loanRepayments: totalLoanInterest,
           expenses: totalExpenses,
           
-          // Expense breakdown
+          // Expense breakdown - USE ACTUAL VALUES from property instances
           expenseBreakdown: {
-            councilRatesWater: totalExpenses * 0.15,
-            strataFees: totalExpenses * 0.20,
-            insurance: totalExpenses * 0.10,
-            managementFees: totalExpenses * 0.35,
-            repairsMaintenance: totalExpenses * 0.15,
-            landTax: totalExpenses * 0.05,
-            other: 0,
+            councilRatesWater: accCouncilRatesWater,
+            strataFees: accStrataFees,
+            insurance: accInsurance,
+            managementFees: accManagementFees,
+            repairsMaintenance: accRepairsMaintenance,
+            landTax: accLandTax,
+            other: accOther,
           },
           
           // Requirements (hypothetical $500k property)

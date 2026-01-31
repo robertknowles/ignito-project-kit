@@ -3,20 +3,20 @@ import { motion, useInView } from 'framer-motion';
 
 const problems = [
   {
-    title: "Capture the Essentials",
-    desc: "Automatically capture key client details during the discovery call, so PropPath can immediately map out what's achievable.",
+    title: "Enter a few key inputs",
+    desc: "Capture the essentials so the strategy can be built quickly.",
   },
   {
-    title: "Build Scenarios in Minutes",
-    desc: "Create side-by-side strategy scenarios that clearly show how different decisions affect a client's portfolio over the long term.",
+    title: "Build your roadmap",
+    desc: "Use smart property blocks to outline purchase timing, equity and progress.",
   },
   {
-    title: "Present the Roadmap & Close",
-    desc: "Present a clear, visual portfolio roadmap using polished, branded outputs that demonstrate your value and help clients commit with confidence.",
+    title: "See the bigger picture",
+    desc: "Instant visual output makes complex interactions obvious - fast.",
   },
   {
-    title: "Save, Share & Integrate",
-    desc: "Export plans, sync them with your CRM, share with referral partners, and reuse templates to streamline your end-to-end workflow.",
+    title: "Share & discuss with confidence",
+    desc: "A clear, simple narrative that supports your advice, not competes with it.",
   }
 ];
 

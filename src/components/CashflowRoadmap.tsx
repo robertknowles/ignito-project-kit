@@ -16,7 +16,14 @@ import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
+import { Info } from 'lucide-react';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
@@ -429,10 +436,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
             {/* PURCHASE Row - Same height as other rows */}
             <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
                 <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                   Buy
                 </span>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center">
+                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px] text-xs">
+                      <p>Property purchases scheduled for each year</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
               {years.map((yearData, index) => (
                 <div 
@@ -460,10 +479,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
             {/* RENTAL INCOME Row */}
             <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
                 <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                   Income
                 </span>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center">
+                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px] text-xs">
+                      <p>Total annual rental income from all properties</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
                 <div 
@@ -479,10 +510,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
             {/* EXPENSES Row */}
             <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
                 <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                  Expenses
+                  Expen
                 </span>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center">
+                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px] text-xs">
+                      <p>Net expenses after deductions (e.g. depreciation)</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
                 <div 
@@ -498,10 +541,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
             {/* LOAN REPAYMENTS Row */}
             <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
                 <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                   Loans
                 </span>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center">
+                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px] text-xs">
+                      <p>Annual interest-only loan repayments across all properties</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
                 <div 
@@ -517,10 +572,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
             {/* NET CASHFLOW Row */}
             <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
                 <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                   Net
                 </span>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex items-center justify-center">
+                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px] text-xs">
+                      <p>Net cashflow = Income − Expenses − Loans</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
               {chartData.map((data, index) => {
                 const cashflow = data.cashflow;

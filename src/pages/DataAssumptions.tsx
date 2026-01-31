@@ -1,14 +1,22 @@
 import React, { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { PropertyDetailModal } from '../components/PropertyDetailModal'
 import { TitleDeedCard } from '../components/TitleDeedCard'
+import { CustomBlockModal } from '../components/CustomBlockModal'
+import type { CustomPropertyBlock } from '../components/CustomBlockModal'
 
 export const DataAssumptions = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
-  const { customBlocks, removeCustomBlock } = usePropertySelection()
+  const { customBlocks, removeCustomBlock, addCustomBlock } = usePropertySelection()
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
+  const [showCustomBlockModal, setShowCustomBlockModal] = useState(false)
+
+  const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
+    addCustomBlock(block)
+  }
   
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
@@ -18,13 +26,22 @@ export const DataAssumptions = () => {
           <div className="p-8">
             <div className="mb-8">
               <h1 className="text-[#111827] text-xl font-medium">
-                Property Type Templates
+                Property Library
               </h1>
               <p className="text-sm text-[#6b7280] mt-2">
                 Set default values for each property type. When you add a property to the timeline, 
                 it will inherit these defaults. You can still customize individual properties.
               </p>
             </div>
+
+            {/* Add Custom Block Button - First block */}
+            <button
+              onClick={() => setShowCustomBlockModal(true)}
+              className="w-full mb-6 py-4 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus size={18} />
+              Add Custom Property Block
+            </button>
 
             {/* Property Type Templates - Title Deed Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -117,6 +134,13 @@ export const DataAssumptions = () => {
           isTemplate={true}
         />
       )}
+
+      {/* Custom Block Modal */}
+      <CustomBlockModal
+        isOpen={showCustomBlockModal}
+        onClose={() => setShowCustomBlockModal(false)}
+        onSave={handleSaveCustomBlock}
+      />
     </div>
   )
 }

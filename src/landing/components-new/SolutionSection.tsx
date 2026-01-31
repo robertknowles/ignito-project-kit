@@ -99,7 +99,7 @@ const SolutionSection: React.FC = () => {
           >
              <div className="mb-10 relative z-10">
               <h3 className="text-3xl font-serif mb-4">Client Roadmap</h3>
-              <p className="text-gray-400">A clear, visual timeline clients instantly understand. No overwhelm.</p>
+              <p className="text-gray-400">A clean, visual journey clients immediately understand</p>
             </div>
 
             {/* Mock Interface - Mobile View */}

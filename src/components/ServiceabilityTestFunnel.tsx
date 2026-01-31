@@ -35,7 +35,16 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
   
   // For display breakdown only
   const totalIncome = grossRental;
-  const netIncome = totalIncome - expenses;
+  
+  // Calculate property expenses from breakdown (excludes loan interest which is in expenses)
+  const propertyExpensesFromBreakdown = (yearData.expenseBreakdown?.councilRatesWater || 0) +
+    (yearData.expenseBreakdown?.strataFees || 0) +
+    (yearData.expenseBreakdown?.insurance || 0) +
+    (yearData.expenseBreakdown?.managementFees || 0) +
+    (yearData.expenseBreakdown?.repairsMaintenance || 0) +
+    (yearData.expenseBreakdown?.landTax || 0);
+  
+  const netIncome = totalIncome - propertyExpensesFromBreakdown;
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -104,10 +113,10 @@ export const ServiceabilityTestFunnel: React.FC<ServiceabilityTestFunnelProps> =
                       { label: 'Repairs & Maintenance', value: yearData.expenseBreakdown?.repairsMaintenance || 0 },
                       { label: 'Land Tax', value: yearData.expenseBreakdown?.landTax || 0 },
                     ]}
-                    total={expenses}
+                    total={propertyExpensesFromBreakdown}
                   />
                 </span>
-                <span className="text-xs font-semibold text-red-700">−{formatCurrency(expenses)}</span>
+                <span className="text-xs font-semibold text-red-700">−{formatCurrency(propertyExpensesFromBreakdown)}</span>
               </div>
               <div className="pt-1 border-t border-gray-300">
                 <div className="flex justify-between items-center">

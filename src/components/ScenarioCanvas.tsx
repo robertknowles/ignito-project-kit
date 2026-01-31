@@ -2,6 +2,8 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
+import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
+import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { Button } from '@/components/ui/button';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
@@ -14,6 +16,11 @@ interface ScenarioCanvasProps {
 export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) => {
   const { scenarios, activeScenarioId, setActiveScenario, removeScenario, isMultiScenarioMode } = useMultiScenario();
   const { saveScenario } = useScenarioSave();
+  
+  // Get live calculated timeline for the active scenario
+  // This ensures the active scenario always shows fresh data, not stale stored data
+  const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
+  const { profile: liveProfile } = useInvestmentProfile();
   
   const scenario = scenarios.find(s => s.id === scenarioId);
   const isActive = scenarioId === activeScenarioId;
@@ -90,18 +97,21 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
       </div>
       
       {/* Main Content - SummaryBar + TimelineColumn (Roadmap Chart) */}
+      {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
+          For inactive scenarios, use stored data from the scenario object.
+          This prevents stale timeline data from being displayed for the active scenario. */}
       <div className="flex flex-col">
         <SummaryBar 
           scenarioData={isMultiScenarioMode ? {
-            timelineProperties: scenario.timeline,
-            profile: scenario.investmentProfile,
+            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+            profile: isActive ? liveProfile : scenario.investmentProfile,
           } : undefined}
           noBorder={isMultiScenarioMode}
         />
         <TimelineColumn 
           scenarioData={isMultiScenarioMode ? {
-            timelineProperties: scenario.timeline,
-            profile: scenario.investmentProfile,
+            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+            profile: isActive ? liveProfile : scenario.investmentProfile,
           } : undefined}
           noBorder={isMultiScenarioMode}
         />

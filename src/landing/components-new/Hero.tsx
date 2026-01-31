@@ -74,7 +74,7 @@ const Hero: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed"
           >
-            Give clients a clear, visual plan of how they can get to their goal in minutes so they have the confidence to keep on buying.
+            A fast, visual portfolio-planning tool that helps buyers' agents clearly show clients where they're going, not just what they're buying.
           </motion.p>
 
           <motion.div 
@@ -87,8 +87,8 @@ const Hero: React.FC = () => {
               Become a Founding Agency
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="px-8 py-4 rounded-full text-base font-medium text-gray-600 hover:text-black border border-transparent hover:border-gray-200 transition-all flex items-center gap-2">
-              <Play size={16} fill="currentColor" /> Watch 2 min demo
+            <button className="px-8 py-4 rounded-full text-base font-medium text-gray-400 border border-transparent transition-all flex items-center gap-2 cursor-not-allowed" disabled>
+              <Play size={16} fill="currentColor" /> <span className="line-through">Watch 2 min demo</span> <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full ml-1">Coming Soon</span>
             </button>
           </motion.div>
 
@@ -102,7 +102,7 @@ const Hero: React.FC = () => {
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
             <span>Simple to understand</span>
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-            <span>Made for sales</span>
+            <span>Designed for sales</span>
           </motion.div>
         </div>
 

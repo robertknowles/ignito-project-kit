@@ -6,7 +6,7 @@ const DarkFooterSection: React.FC = () => {
     <section className="bg-black text-white pt-32 pb-12">
       <div className="max-w-7xl mx-auto px-6">
         
-        {/* Testimonials (Stories) */}
+{/* Testimonials (Stories) - Hidden for now
         <div className="mb-32 scroll-mt-28" id="testimonials">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-500">Stories</span>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mt-12">
@@ -48,6 +48,7 @@ const DarkFooterSection: React.FC = () => {
              </motion.div>
           </div>
         </div>
+        */}
 
         {/* Big CTA */}
         <div id="founders" className="relative border-t border-gray-800 pt-24 pb-24 text-center scroll-mt-28">
@@ -79,7 +80,7 @@ const DarkFooterSection: React.FC = () => {
            </div>
 
            <div>
-              © 2025 — Sydney, Australia.
+              © 2025 Sydney, Australia.
            </div>
         </footer>
 

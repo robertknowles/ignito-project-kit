@@ -145,31 +145,34 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
     }
   }, [isMultiScenarioMode, selections, propertyOrder, profile, instances, timelineProperties]);
 
-  // Add a new scenario (clones the active scenario)
+  // Add a new scenario (starts with EMPTY property selections for independent modeling)
+  // Each scenario should be independent - not a clone of the current scenario
   const addScenario = useCallback(() => {
-    // Sync current state before cloning
+    // Sync current state before adding new scenario
     syncCurrentScenarioFromContext();
 
     const currentActiveScenario = scenarios.find(s => s.id === activeScenarioId);
     
+    // NEW SCENARIO STARTS FRESH:
+    // - Empty property selections (no properties selected)
+    // - Empty property order
+    // - Empty property instances  
+    // - Empty timeline (will be calculated when properties are added)
+    // - BUT: Copy the investment profile so financial assumptions are consistent
     const newScenario: Scenario = {
       id: `scenario-${Date.now()}`,
       name: `Scenario ${String.fromCharCode(65 + scenarios.length)}`, // A, B, C, etc.
-      propertySelections: currentActiveScenario 
-        ? { ...currentActiveScenario.propertySelections } 
-        : { ...selections },
-      propertyOrder: currentActiveScenario 
-        ? [...currentActiveScenario.propertyOrder] 
-        : [...propertyOrder],
+      // Start with EMPTY property selections - this is key for independent scenarios
+      propertySelections: {},
+      propertyOrder: [],
+      // Copy investment profile from current scenario (keeps financial assumptions consistent)
       investmentProfile: currentActiveScenario 
         ? { ...currentActiveScenario.investmentProfile } 
         : { ...profile },
-      propertyInstances: currentActiveScenario 
-        ? { ...currentActiveScenario.propertyInstances } 
-        : { ...instances },
-      timeline: currentActiveScenario 
-        ? [...currentActiveScenario.timeline] 
-        : [...timelineProperties],
+      // Start with EMPTY property instances
+      propertyInstances: {},
+      // Start with EMPTY timeline (will be recalculated when properties are added)
+      timeline: [],
       isActive: false,
     };
 
@@ -178,7 +181,7 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
     
     // Don't switch to the new scenario - keep the existing active scenario
     // The user can click on the new scenario to switch to it when ready
-  }, [scenarios, activeScenarioId, selections, propertyOrder, profile, instances, timelineProperties, syncCurrentScenarioFromContext]);
+  }, [scenarios, activeScenarioId, profile, syncCurrentScenarioFromContext]);
 
   // Remove a scenario
   const removeScenario = useCallback((id: string) => {

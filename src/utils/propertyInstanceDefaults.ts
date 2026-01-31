@@ -53,7 +53,7 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     minimumYield: 6.5,
     daysToUnconditional: 21,
     daysForSettlement: 42,
-    lvr: 80,
+    lvr: 88,
     lmiWaiver: false,
     loanProduct: 'IO',
     interestRate: 6.5,

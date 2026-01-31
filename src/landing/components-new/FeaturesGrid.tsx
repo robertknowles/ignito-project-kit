@@ -4,33 +4,33 @@ import { Clock, Sliders, LineChart, ShieldCheck, Download, Layers } from 'lucide
 
 const features = [
   {
-    title: "Dynamic 30-year simulation",
-    desc: "Period-by-period modelling, not static projections. See the long-term compound effect.",
-    icon: Clock
-  },
-  {
-    title: "Lending rule engine",
-    desc: "Built-in deposit tests, serviceability checks, and borrowing capacity logic.",
-    icon: ShieldCheck
-  },
-  {
-    title: "Equity recycling logic",
-    desc: "Automatically models refinance events to accelerate buying timelines.",
-    icon: Sliders
-  },
-  {
-    title: "Detailed cashflow engine",
-    desc: "Real expenses: land tax, fees, interest, management, and insurance accounted for.",
-    icon: LineChart
-  },
-  {
-    title: "Clean, client-ready output",
-    desc: "A simple visual timeline clients instantly understand without explanation.",
+    title: "Visual portfolio roadmap builder",
+    desc: "Present a clear, long-term view of a client's property journey and how decisions connect over time.",
     icon: Layers
   },
   {
-    title: "One-click export",
-    desc: "Instantly produce the final roadmap for your client meeting.",
+    title: "Scenario-based strategy planning",
+    desc: "Compare and refine different strategy paths to align on the most appropriate long-term direction.",
+    icon: Sliders
+  },
+  {
+    title: "Property strategy modelling",
+    desc: "Apply consistent property strategy frameworks to clearly show sequencing, progression, and intent.",
+    icon: LineChart
+  },
+  {
+    title: "Equity pathway visibility",
+    desc: "Show how equity builds and is deployed across the journey to support future purchases and portfolio growth.",
+    icon: Clock
+  },
+  {
+    title: "Client-facing portal",
+    desc: "Give clients a single place to view and revisit their strategy roadmap as their journey progresses.",
+    icon: ShieldCheck
+  },
+  {
+    title: "Client records & purchase alerts",
+    desc: "Maintain a living record of each client's strategy with clear milestones that signal when they're approaching their next purchase or review point.",
     icon: Download
   }
 ];
@@ -61,7 +61,7 @@ const FeaturesGrid: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Features</span>
-          <h2 className="font-serif text-4xl mt-3">Built for Clarity & Confidence</h2>
+          <h2 className="font-serif text-4xl mt-3">Features</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
