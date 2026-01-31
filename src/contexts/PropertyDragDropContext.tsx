@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent, DragOverEvent, DragCancelEvent } from '@dnd-kit/core';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { getPropertyTypeIcon } from '@/utils/propertyTypeIcon';
+
+// Period conversion constants (must match useAffordabilityCalculator)
+const PERIODS_PER_YEAR = 2;
 
 /**
  * Information about the property currently being dragged on the chart
@@ -16,6 +19,11 @@ export interface DraggedProperty {
   loanAmount: number;
 }
 
+/**
+ * Validation function type for checking if a property can be placed at a period
+ */
+export type PlacementValidator = (instanceId: string, period: number) => { isValid: boolean };
+
 interface PropertyDragDropContextValue {
   // State
   draggedProperty: DraggedProperty | null;
@@ -26,6 +34,9 @@ interface PropertyDragDropContextValue {
   resetManualPlacement: (instanceId: string) => void;
   isManuallyPlaced: (instanceId: string) => boolean;
   getManualPlacementPeriod: (instanceId: string) => number | undefined;
+  
+  // Validation callback registration
+  setPlacementValidator: (validator: PlacementValidator | null) => void;
 }
 
 const PropertyDragDropContext = createContext<PropertyDragDropContextValue | null>(null);
@@ -45,6 +56,14 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
   
   // Whether a drag operation is in progress
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Placement validator function (set by ChartWithRoadmap which has access to previewPlacementAtPeriod)
+  const placementValidatorRef = useRef<PlacementValidator | null>(null);
+  
+  // Setter for the placement validator
+  const setPlacementValidator = useCallback((validator: PlacementValidator | null) => {
+    placementValidatorRef.current = validator;
+  }, []);
 
   // Configure drag sensors with activation constraints
   const sensors = useSensors(
@@ -123,24 +142,58 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
 
     const propertyData = active.data.current as DraggedProperty;
     
+    // CRITICAL: Reset drag state BEFORE updating instance to prevent useEffect infinite loops
+    // The validation useEffect in ChartWithRoadmap watches isDragging + targetPeriod + validatePlacementAtPeriod
+    // If we update instance while isDragging is true, the timeline recalculates, which triggers
+    // validatePlacementAtPeriod to change, which triggers the useEffect, causing an infinite loop.
+    // By clearing drag state first, the useEffect sees isDragging=false and skips validation.
+    setDraggedProperty(null);
+    setTargetPeriod(null);
+    setIsDragging(false);
+    
     if (propertyData && propertyData.instanceId) {
       // Update property with manual placement data
       const currentInstance = getInstance(propertyData.instanceId);
       
       if (currentInstance) {
+        // Determine the BEST period within the year to place the property
+        // The droppable column represents a whole year, but we need to find
+        // which half (H1 or H2) the property can actually be afforded in.
+        const yearStartPeriod = Math.floor((newPeriod - 1) / PERIODS_PER_YEAR) * PERIODS_PER_YEAR + 1;
+        const yearEndPeriod = yearStartPeriod + 1; // H2 of the same year
+        
+        let finalPeriod = newPeriod;
+        
+        // If we have a validator, use it to find the valid period
+        if (placementValidatorRef.current) {
+          const validator = placementValidatorRef.current;
+          const resultH1 = validator(propertyData.instanceId, yearStartPeriod);
+          const resultH2 = validator(propertyData.instanceId, yearEndPeriod);
+          
+          if (resultH1.isValid && resultH2.isValid) {
+            // Both valid - prefer H1 (earlier in the year)
+            finalPeriod = yearStartPeriod;
+          } else if (resultH1.isValid) {
+            finalPeriod = yearStartPeriod;
+          } else if (resultH2.isValid) {
+            finalPeriod = yearEndPeriod;
+          } else {
+            // Neither valid - still place at the dropped period (user explicitly chose this year)
+            // The guardrails will show the violation
+            finalPeriod = newPeriod;
+          }
+          
+          console.log(`[DragEnd] Year validation: H1(${yearStartPeriod})=${resultH1.isValid}, H2(${yearEndPeriod})=${resultH2.isValid}, using period ${finalPeriod}`);
+        }
+        
         updateInstance(propertyData.instanceId, {
           isManuallyPlaced: true,
-          manualPlacementPeriod: newPeriod,
+          manualPlacementPeriod: finalPeriod,
         });
         
-        console.log(`Property ${propertyData.instanceId} manually placed at period ${newPeriod}`);
+        console.log(`Property ${propertyData.instanceId} manually placed at period ${finalPeriod}`);
       }
     }
-
-    // Reset drag state
-    setDraggedProperty(null);
-    setTargetPeriod(null);
-    setIsDragging(false);
   }, [draggedProperty, updateInstance, getInstance]);
 
   /**
@@ -186,6 +239,7 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
     resetManualPlacement,
     isManuallyPlaced,
     getManualPlacementPeriod,
+    setPlacementValidator,
   };
 
   return (

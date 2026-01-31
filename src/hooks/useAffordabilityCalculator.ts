@@ -1337,9 +1337,6 @@ export const useAffordabilityCalculator = () => {
         savingsAfterPurchase = cumulativeSavings - fundingFromSavings;
         equityUsedAfterPurchase = fundsBreakdownFinal.totalEquityUsed + fundingFromEquity;
         
-        console.log(`[CALC] ${property.title} period=${purchasePeriod}: savingsBefore=${cumulativeSavings.toFixed(0)} used=${fundingFromSavings.toFixed(0)} after=${savingsAfterPurchase.toFixed(0)}`);
-        
-        
         // Update cumulative equity released tracking on previous purchases
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
@@ -1743,11 +1740,172 @@ export const useAffordabilityCalculator = () => {
     return () => clearTimeout(timer);
   }, [instances]);
 
+  // PREVIEW PLACEMENT: Evaluate what would happen if a property were placed at a specific period
+  // This uses the SAME logic as the auto-placer to ensure consistent validation
+  const previewPlacementAtPeriod = useCallback((
+    instanceId: string,
+    targetPeriod: number
+  ): { isValid: boolean; depositTestPass: boolean; serviceabilityTestPass: boolean; borrowingCapacityPass: boolean } => {
+    // Find the property in timelineProperties
+    const property = calculateTimelineProperties.find(p => p.instanceId === instanceId);
+    if (!property) {
+      return { isValid: false, depositTestPass: false, serviceabilityTestPass: false, borrowingCapacityPass: false };
+    }
+    
+    // Get the property's position in the FIFO order
+    const draggedPropertyOrderIndex = propertyOrder.indexOf(instanceId);
+    
+    // Build purchase history for all properties that would come BEFORE this one
+    // This includes:
+    // 1. Properties at periods before the target period
+    // 2. Properties at the same period but earlier in FIFO order
+    const purchaseHistoryForValidation: Array<{
+      period: number;
+      cost: number;
+      depositRequired: number;
+      totalCashRequired?: number;
+      loanAmount: number;
+      title: string;
+      instanceId: string;
+      loanType?: 'IO' | 'PI';
+      cumulativeEquityReleased?: number;
+    }> = [];
+    
+    // Process properties in FIFO order to build correct purchase history
+    propertyOrder.forEach((orderId, orderIndex) => {
+      if (orderId === instanceId) return; // Skip the property being validated
+      
+      const tp = calculateTimelineProperties.find(p => p.instanceId === orderId);
+      if (!tp || tp.period === Infinity) return;
+      
+      // Include this property if:
+      // 1. Its period is before the target period, OR
+      // 2. Its period equals target period AND it comes before the dragged property in FIFO order
+      let shouldInclude = false;
+      if (tp.period < targetPeriod) {
+        shouldInclude = true;
+      } else if (tp.period === targetPeriod && orderIndex < draggedPropertyOrderIndex) {
+        shouldInclude = true;
+      }
+      
+      if (shouldInclude) {
+        purchaseHistoryForValidation.push({
+          period: tp.period,
+          cost: tp.cost,
+          depositRequired: tp.depositRequired,
+          totalCashRequired: tp.totalCashRequired,
+          loanAmount: tp.loanAmount,
+          title: tp.title,
+          instanceId: tp.instanceId,
+          loanType: tp.loanType,
+          cumulativeEquityReleased: 0, // Will be recalculated by calculateAvailableFunds
+        });
+      }
+    });
+    
+    // Sort by period then by FIFO order for consistent processing
+    purchaseHistoryForValidation.sort((a, b) => {
+      if (a.period !== b.period) return a.period - b.period;
+      return propertyOrder.indexOf(a.instanceId) - propertyOrder.indexOf(b.instanceId);
+    });
+    
+    // Now calculate available funds at the target period with this purchase history
+    const availableFunds = calculateAvailableFunds(targetPeriod, purchaseHistoryForValidation);
+    
+    // Check affordability using the same function as the auto-placer
+    const affordabilityResult = checkAffordability(
+      { cost: property.cost, depositRequired: property.depositRequired, instanceId: property.instanceId, title: property.title },
+      availableFunds.total,
+      purchaseHistoryForValidation,
+      targetPeriod
+    );
+    
+    // Calculate deposit test
+    const depositTestSurplus = availableFunds.total - property.totalCashRequired;
+    const depositTestPass = depositTestSurplus >= 0;
+    
+    // Calculate serviceability test
+    // Get total rental income from previous purchases
+    let totalRentalIncome = 0;
+    purchaseHistoryForValidation.forEach(purchase => {
+      if (purchase.period <= targetPeriod) {
+        const periodsOwned = targetPeriod - purchase.period;
+        const propertyData = getPropertyData(purchase.title);
+        const purchaseInstance = getInstance(purchase.instanceId);
+        
+        if (purchaseInstance && propertyData) {
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+          const growthFactor = currentValue / purchase.cost;
+          const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
+          const vacancyAdjusted = annualRent * (1 - purchaseInstance.vacancyRate / 100);
+          const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
+          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          totalRentalIncome += vacancyAdjusted * recognitionRate;
+        } else if (propertyData) {
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+          const yieldRate = parseFloat(propertyData.yield) / 100;
+          const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
+          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          totalRentalIncome += currentValue * yieldRate * recognitionRate;
+        }
+      }
+    });
+    
+    // Calculate total debt from previous purchases
+    let totalDebtFromPurchases = 0;
+    purchaseHistoryForValidation.forEach(purchase => {
+      if (purchase.period <= targetPeriod) {
+        totalDebtFromPurchases += purchase.loanAmount;
+      }
+    });
+    
+    // Calculate total interest payments
+    const interestRate = parseFloat(globalFactors.interestRate) / 100;
+    const totalInterestPayments = (totalDebtFromPurchases + property.loanAmount) * interestRate;
+    
+    // Calculate serviceability
+    const effectiveRentalIncome = totalRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
+    const adjustedIncome = profile.borrowingCapacity / SERVICEABILITY_FACTOR + effectiveRentalIncome;
+    const assessmentInterestPayments = totalInterestPayments * SERVICEABILITY_FACTOR;
+    const serviceabilitySurplus = adjustedIncome - assessmentInterestPayments;
+    const serviceabilityTestPass = serviceabilitySurplus >= 0;
+    
+    // Calculate borrowing capacity test
+    const newLoanAmount = property.loanAmount;
+    let totalUsableEquity = 0;
+    purchaseHistoryForValidation.forEach(purchase => {
+      if (purchase.period <= targetPeriod) {
+        const periodsOwned = targetPeriod - purchase.period;
+        const propertyData = getPropertyData(purchase.title);
+        if (propertyData && periodsOwned >= 2) {
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+          const maxLoan = currentValue * EQUITY_EXTRACTION_LVR_CAP;
+          const usableEquity = Math.max(0, maxLoan - purchase.loanAmount);
+          totalUsableEquity += usableEquity;
+        }
+      }
+    });
+    
+    const equityBoost = totalUsableEquity * profile.equityFactor;
+    const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+    const borrowingCapacityPass = newLoanAmount <= effectiveBorrowingCapacity;
+    
+    const isValid = affordabilityResult.canAfford && depositTestPass && serviceabilityTestPass && borrowingCapacityPass;
+    
+    return {
+      isValid,
+      depositTestPass,
+      serviceabilityTestPass,
+      borrowingCapacityPass,
+    };
+  }, [calculateTimelineProperties, propertyOrder, calculateAvailableFunds, checkAffordability, getPropertyData, getInstance, globalFactors.interestRate, profile.borrowingCapacity, profile.equityFactor, calculatePropertyGrowth]);
+
   // Only expose the memoized result
   return {
     timelineProperties: calculateTimelineProperties,
     isCalculating: false, // Could add state tracking if needed
     calculateAffordabilityForProperty: calculateAffordabilityForPeriod,
+    previewPlacementAtPeriod,
     updateTimelinePropertyLoanType,
     isRecalculating,
   };

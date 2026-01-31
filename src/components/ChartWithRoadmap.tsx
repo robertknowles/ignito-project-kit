@@ -413,7 +413,7 @@ interface ChartWithRoadmapProps {
 
 export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData }) => {
   const { profile: contextProfile } = useInvestmentProfile();
-  const { timelineProperties: contextTimelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
+  const { timelineProperties: contextTimelineProperties, previewPlacementAtPeriod, isRecalculating } = useAffordabilityCalculator();
   const { getInstance, updateInstance } = usePropertyInstance();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use context
@@ -428,6 +428,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     draggedProperty,
     targetPeriod,
     isDragging,
+    setPlacementValidator,
   } = usePropertyDragDropContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -451,6 +452,18 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   
   // Validation state for drag-over feedback
   const [hoverValidation, setHoverValidation] = useState<{ period: number; isValid: boolean } | null>(null);
+  
+  // Ref to track validation state and prevent infinite loops
+  // We use a ref to avoid triggering re-renders when tracking validation state
+  const validationStateRef = useRef<{
+    lastDraggedInstanceId: string | null;
+    lastTargetPeriod: number | null;
+    lastValidationResult: boolean | null;
+  }>({
+    lastDraggedInstanceId: null,
+    lastTargetPeriod: null,
+    lastValidationResult: null,
+  });
   
   // Expandable row state for Available Funds breakdown
   const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
@@ -575,69 +588,88 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     }
   }, []);
 
-  // Build purchase history for validation (all properties except the one being dragged)
-  // CRITICAL: Include properties at the SAME period (p.period <= upToPeriod) because they consume funds too
-  const buildPurchaseHistoryForValidation = useCallback((excludeInstanceId: string, upToPeriod: number) => {
-    return timelineProperties
-      .filter(p => p.instanceId !== excludeInstanceId && p.period !== Infinity && p.period <= upToPeriod)
-      .map(p => ({
-        period: p.period,
-        cost: p.cost,
-        depositRequired: p.depositRequired,
-        totalCashRequired: p.totalCashRequired, // CRITICAL: Include totalCashRequired for accurate funding calculations
-        loanAmount: p.loanAmount,
-        title: p.title,
-        instanceId: p.instanceId,
-        loanType: p.loanType,
-        cumulativeEquityReleased: 0,
-      }));
-  }, [timelineProperties]);
-
-  // Validate property placement at a specific period
+  // Validate property placement at a specific period (or year)
+  // Since the chart shows whole years but the timeline uses half-year periods,
+  // we validate BOTH halves of the year and return true if EITHER is affordable.
+  // This prevents false-negative red guardrails when a property is affordable in H2 but not H1.
   const validatePlacementAtPeriod = useCallback((
     property: DraggedProperty,
     period: number
   ): boolean => {
-    // Build purchase history excluding the dragged property
-    const previousPurchases = buildPurchaseHistoryForValidation(property.instanceId, period);
+    // Calculate both periods for this year (H1 and H2)
+    // Period 1,2 = 2025; Period 3,4 = 2026; etc.
+    // For any period, find the start of its year: ((period-1) / 2) * 2 + 1
+    const yearStartPeriod = Math.floor((period - 1) / PERIODS_PER_YEAR) * PERIODS_PER_YEAR + 1;
+    const yearEndPeriod = yearStartPeriod + 1; // H2 of the same year
     
-    // Get the full property data from timelineProperties
-    const fullProperty = timelineProperties.find(p => p.instanceId === property.instanceId);
-    if (!fullProperty) return false;
+    // Check if property can be placed in EITHER half of the year
+    const resultH1 = previewPlacementAtPeriod(property.instanceId, yearStartPeriod);
+    const resultH2 = previewPlacementAtPeriod(property.instanceId, yearEndPeriod);
+    
+    // Return true if either half of the year is valid
+    return resultH1.isValid || resultH2.isValid;
+  }, [previewPlacementAtPeriod]);
 
-    // Create property object for affordability check
-    const propertyForCheck = {
-      title: property.title,
-      cost: property.cost,
-      depositRequired: property.depositRequired,
-      loanAmount: property.loanAmount,
-      instanceId: property.instanceId,
-      totalCashRequired: fullProperty.totalCashRequired,
-    };
-
-    // Use the calculator to check affordability
-    const result = calculateAffordabilityForProperty(period, propertyForCheck, previousPurchases);
-    
-    // Check all three tests: deposit, serviceability, AND borrowing capacity
-    const borrowingCapacityPass = result.borrowingCapacityPass ?? 
-      (result.borrowingCapacityRemaining === undefined || result.borrowingCapacityRemaining >= 0);
-    
-    // DEBUG: Log validation details during drag
-    console.log(`[DragValidation] Period ${period}: deposit=${result.depositTestPass} (surplus: ${result.depositTestSurplus?.toFixed(0)}), service=${result.serviceabilityTestPass}, borrow=${borrowingCapacityPass}, canAfford=${result.canAfford}, availableFunds=${result.availableFunds?.toFixed(0)}`);
-    
-    return result.canAfford && result.depositTestPass && result.serviceabilityTestPass && borrowingCapacityPass;
-  }, [buildPurchaseHistoryForValidation, timelineProperties, calculateAffordabilityForProperty]);
+  // Register the placement validator with the drag-drop context
+  // This allows the drop handler to find the valid period within a year
+  useEffect(() => {
+    setPlacementValidator(previewPlacementAtPeriod);
+    return () => setPlacementValidator(null);
+  }, [setPlacementValidator, previewPlacementAtPeriod]);
 
   // Update validation state when hovering over a period
+  // CRITICAL: Use ref-based memoization to prevent infinite loops
+  // The validatePlacementAtPeriod function changes when calculateTimelineProperties recalculates,
+  // but we only want to re-validate when the actual drag target changes, not when the underlying
+  // timeline data changes mid-drag.
   useEffect(() => {
+    // Skip validation entirely during recalculation phase
+    // This prevents reading from partially-updated state
+    if (isRecalculating) {
+      return;
+    }
+    
     if (isDragging && draggedProperty && targetPeriod) {
+      // Check if we've already validated this exact combination
+      const ref = validationStateRef.current;
+      if (
+        ref.lastDraggedInstanceId === draggedProperty.instanceId &&
+        ref.lastTargetPeriod === targetPeriod &&
+        ref.lastValidationResult !== null
+      ) {
+        // Already validated this combination, skip re-validation
+        // Just ensure the state matches what we cached
+        setHoverValidation(prev => {
+          if (prev?.period === targetPeriod && prev?.isValid === ref.lastValidationResult) {
+            return prev; // No change needed
+          }
+          return { period: targetPeriod, isValid: ref.lastValidationResult! };
+        });
+        return;
+      }
+      
+      // New combination - perform validation
       const isValid = validatePlacementAtPeriod(draggedProperty, targetPeriod);
-      console.log(`[HoverValidation] Setting period ${targetPeriod} to isValid=${isValid}`);
+      
+      // Cache the result
+      ref.lastDraggedInstanceId = draggedProperty.instanceId;
+      ref.lastTargetPeriod = targetPeriod;
+      ref.lastValidationResult = isValid;
+      
       setHoverValidation({ period: targetPeriod, isValid });
     } else {
+      // Reset validation state when not dragging
       setHoverValidation(null);
+      // Clear the cache when drag ends
+      if (!isDragging) {
+        validationStateRef.current = {
+          lastDraggedInstanceId: null,
+          lastTargetPeriod: null,
+          lastValidationResult: null,
+        };
+      }
     }
-  }, [isDragging, draggedProperty, targetPeriod, validatePlacementAtPeriod]);
+  }, [isDragging, draggedProperty, targetPeriod, validatePlacementAtPeriod, isRecalculating]);
 
   // Check if a property has guardrail violations (for displaying warning icon)
   const hasGuardrailViolations = useCallback((property: TimelineProperty): boolean => {
