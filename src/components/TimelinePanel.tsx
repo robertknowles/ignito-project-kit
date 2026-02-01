@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
-import { Plus, X, Calendar, Home, Pause, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Plus, X, Calendar, Home, Pause, ChevronUp, ChevronDown, Settings, Info } from 'lucide-react';
 import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { EVENT_TYPES, EVENT_CATEGORIES, getEventLabel } from '../constants/eventTypes';
 import { EventConfigModal } from './EventConfigModal';
 import { AddToTimelineModal } from './AddToTimelineModal';
+import { PropertyDetailModal } from './PropertyDetailModal';
 import { PERIODS_PER_YEAR, BASE_YEAR } from '../constants/financialParams';
 import { TourStep } from '@/components/TourManager';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { getPropertyTypeImagePath } from '../utils/propertyTypeIcon';
+import { calculateStampDuty } from '../utils/stampDutyCalculator';
 
 // Convert period to year for display
 const periodToYear = (period: number): number => {
@@ -79,7 +82,7 @@ const SliderInput: React.FC<SliderInputProps> = ({
   return (
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide truncate">
+        <span className="text-[9px] font-medium text-slate-400 tracking-wide truncate">
           {label}
         </span>
         <span className="text-[11px] font-semibold text-slate-700 ml-1">
@@ -101,21 +104,118 @@ const SliderInput: React.FC<SliderInputProps> = ({
 };
 
 // =============================================================================
-// PROPERTY EXPANDED DETAILS - Shows all fields when expanded
+// TOOLTIP COMPONENT - For showing breakdown details
+// =============================================================================
+
+interface TooltipProps {
+  content: React.ReactNode;
+  children: React.ReactNode;
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
+  const [show, setShow] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (show && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.top - 8, // 8px above the trigger
+        left: rect.left + rect.width / 2,
+      });
+    }
+  }, [show]);
+  
+  return (
+    <div className="relative inline-block">
+      <div
+        ref={triggerRef}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        {children}
+      </div>
+      {show && createPortal(
+        <div 
+          className="fixed z-[9999] px-3 py-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl whitespace-nowrap pointer-events-none"
+          style={{
+            top: position.top,
+            left: position.left,
+            transform: 'translateX(-50%) translateY(-100%)',
+          }}
+        >
+          {content}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
+// PROPERTY EXPANDED DETAILS - Shows all fields when expanded (CONDENSED VERSION)
 // =============================================================================
 
 interface PropertyExpandedDetailsProps {
   instanceId: string;
   instanceData: PropertyInstanceDetails | null;
   onFieldChange: (field: keyof PropertyInstanceDetails, value: any) => void;
+  propertyType: string;
+  onOpenAdvanced: () => void;
+  onOpenPurchaseCosts: () => void;
+  onOpenAnnualExpenses: () => void;
 }
 
 const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
   instanceId,
   instanceData,
   onFieldChange,
+  propertyType,
+  onOpenAdvanced,
+  onOpenPurchaseCosts,
+  onOpenAnnualExpenses,
 }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'costs' | 'assumptions' | 'expenses'>('details');
+  const [activeTab, setActiveTab] = useState<'property' | 'loan' | 'assumptions' | 'costs'>('property');
+  
+  // Calculate totals for summary displays
+  const calculatedStampDuty = useMemo(() => {
+    if (!instanceData) return 0;
+    return calculateStampDuty(instanceData.state, instanceData.purchasePrice, false);
+  }, [instanceData?.state, instanceData?.purchasePrice]);
+  
+  const oneOffCostsTotal = useMemo(() => {
+    if (!instanceData) return 0;
+    const stampDuty = instanceData.stampDutyOverride ?? calculatedStampDuty;
+    return (
+      stampDuty +
+      instanceData.engagementFee +
+      instanceData.conditionalHoldingDeposit +
+      instanceData.buildingInsuranceUpfront +
+      instanceData.buildingPestInspection +
+      instanceData.plumbingElectricalInspections +
+      instanceData.independentValuation +
+      instanceData.unconditionalHoldingDeposit +
+      instanceData.mortgageFees +
+      instanceData.conveyancing +
+      instanceData.ratesAdjustment +
+      instanceData.maintenanceAllowancePostSettlement
+    );
+  }, [instanceData, calculatedStampDuty]);
+  
+  const annualExpensesTotal = useMemo(() => {
+    if (!instanceData) return 0;
+    const annualRent = instanceData.rentPerWeek * 52;
+    const managementFees = (annualRent * instanceData.propertyManagementPercent) / 100;
+    return (
+      instanceData.councilRatesWater +
+      instanceData.buildingInsuranceAnnual +
+      instanceData.strata +
+      instanceData.maintenanceAllowanceAnnual +
+      managementFees
+    );
+  }, [instanceData]);
   
   if (!instanceData) {
     return (
@@ -126,11 +226,27 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
   }
   
   const tabs = [
-    { id: 'details' as const, label: 'DETAILS' },
-    { id: 'costs' as const, label: 'BUYING COSTS' },
+    { id: 'property' as const, label: 'PROPERTY' },
+    { id: 'loan' as const, label: 'LOAN' },
     { id: 'assumptions' as const, label: 'ASSUMPTIONS' },
-    { id: 'expenses' as const, label: 'EXPENSES' },
+    { id: 'costs' as const, label: 'COSTS' },
   ];
+  
+  // Growth assumption to slider value mapping
+  const growthToValue = (growth: string): number => {
+    switch (growth) {
+      case 'Low': return 0;
+      case 'Medium': return 1;
+      case 'High': return 2;
+      default: return 2;
+    }
+  };
+  
+  const valueToGrowth = (value: number): 'Low' | 'Medium' | 'High' => {
+    if (value <= 0.5) return 'Low';
+    if (value <= 1.5) return 'Medium';
+    return 'High';
+  };
   
   return (
     <div className="bg-white">
@@ -152,13 +268,24 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
       </div>
       
       {/* Tab Content - Scrollable */}
-      <div className="max-h-[280px] overflow-y-auto px-3 py-2">
-        {activeTab === 'details' && (
+      <div className="max-h-[320px] overflow-y-auto px-3 py-2">
+        
+        {/* ============ PROPERTY TAB ============ */}
+        {activeTab === 'property' && (
           <div className="space-y-3">
             <SliderInput
               label="Purchase Price"
               value={instanceData.purchasePrice}
               onChange={(v) => onFieldChange('purchasePrice', v)}
+              min={100000}
+              max={2000000}
+              step={10000}
+              format="currency"
+            />
+            <SliderInput
+              label="Valuation at Purchase"
+              value={instanceData.valuationAtPurchase}
+              onChange={(v) => onFieldChange('valuationAtPurchase', v)}
               min={100000}
               max={2000000}
               step={10000}
@@ -182,69 +309,28 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
               step={1}
               format="percent"
             />
-            <SliderInput
-              label="Cash Contribution"
-              value={instanceData.loanOffsetAccount}
-              onChange={(v) => onFieldChange('loanOffsetAccount', v)}
-              min={0}
-              max={200000}
-              step={5000}
-              format="currency"
-            />
+            {/* State Dropdown */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                  State
+                </span>
+                <select
+                  value={instanceData.state}
+                  onChange={(e) => onFieldChange('state', e.target.value)}
+                  className="text-[11px] font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+                >
+                  {['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         )}
         
-        {activeTab === 'costs' && (
-          <div className="space-y-3">
-            <SliderInput
-              label="Stamp Duty Override"
-              value={instanceData.stampDutyOverride ?? 0}
-              onChange={(v) => onFieldChange('stampDutyOverride', v || null)}
-              min={0}
-              max={100000}
-              step={1000}
-              format="currency"
-            />
-            <SliderInput
-              label="Conveyancing"
-              value={instanceData.conveyancing}
-              onChange={(v) => onFieldChange('conveyancing', v)}
-              min={500}
-              max={5000}
-              step={100}
-              format="currency"
-            />
-            <SliderInput
-              label="Building & Pest"
-              value={instanceData.buildingPestInspection}
-              onChange={(v) => onFieldChange('buildingPestInspection', v)}
-              min={0}
-              max={2000}
-              step={50}
-              format="currency"
-            />
-            <SliderInput
-              label="Mortgage Fees"
-              value={instanceData.mortgageFees}
-              onChange={(v) => onFieldChange('mortgageFees', v)}
-              min={0}
-              max={5000}
-              step={100}
-              format="currency"
-            />
-            <SliderInput
-              label="Engagement Fee"
-              value={instanceData.engagementFee}
-              onChange={(v) => onFieldChange('engagementFee', v)}
-              min={0}
-              max={20000}
-              step={500}
-              format="currency"
-            />
-          </div>
-        )}
-        
-        {activeTab === 'assumptions' && (
+        {/* ============ LOAN TAB ============ */}
+        {activeTab === 'loan' && (
           <div className="space-y-3">
             <SliderInput
               label="Interest Rate"
@@ -264,10 +350,10 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
               step={1}
               format="years"
             />
-            {/* Dropdown fields */}
+            {/* Loan Product Dropdown */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
                   Loan Product
                 </span>
                 <select
@@ -280,43 +366,102 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                 </select>
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide">
-                  Growth
+            {/* LMI Waiver Checkbox - only show if LVR > 80% */}
+            {instanceData.lvr > 80 && (
+              <div className="flex items-center justify-between py-1">
+                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                  LMI Waiver
                 </span>
-                <select
-                  value={instanceData.growthAssumption}
-                  onChange={(e) => onFieldChange('growthAssumption', e.target.value)}
-                  className="text-[11px] font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-                >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={instanceData.lmiWaiver}
+                    onChange={(e) => onFieldChange('lmiWaiver', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-slate-900"></div>
+                </label>
               </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide">
-                  State
-                </span>
-                <select
-                  value={instanceData.state}
-                  onChange={(e) => onFieldChange('state', e.target.value)}
-                  className="text-[11px] font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-                >
-                  {['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            )}
           </div>
         )}
         
-        {activeTab === 'expenses' && (
+        {/* ============ ASSUMPTIONS TAB ============ */}
+        {activeTab === 'assumptions' && (
           <div className="space-y-3">
+            {/* Growth Rate Slider - TOP PRIORITY */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                  Growth
+                </span>
+                <span className="text-[8px] text-slate-400">
+                  {instanceData.growthAssumption === 'High' 
+                    ? '12.5→10→7.5→6%'
+                    : instanceData.growthAssumption === 'Medium'
+                    ? '8→6→5→4%'
+                    : '5→4→3.5→3%'
+                  }
+                </span>
+              </div>
+              <input
+                type="range"
+                className={sliderClassName}
+                style={getSliderStyle(growthToValue(instanceData.growthAssumption), 0, 2)}
+                min={0}
+                max={2}
+                step={1}
+                value={growthToValue(instanceData.growthAssumption)}
+                onChange={(e) => onFieldChange('growthAssumption', valueToGrowth(parseFloat(e.target.value)))}
+              />
+              <div className="flex justify-between text-[8px] text-slate-400 mt-0.5">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
+              </div>
+            </div>
+            
+            {/* Stamp Duty Override */}
+            <div className="flex-1 min-w-0 pt-2">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                  Stamp Duty
+                </span>
+                <span className="text-[11px] font-semibold text-slate-700">
+                  {instanceData.stampDutyOverride 
+                    ? formatCompactCurrency(instanceData.stampDutyOverride)
+                    : `Auto: ${formatCompactCurrency(calculatedStampDuty)}`
+                  }
+                </span>
+              </div>
+              <input
+                type="range"
+                className={sliderClassName}
+                style={getSliderStyle(instanceData.stampDutyOverride ?? calculatedStampDuty, 0, 100000)}
+                min={0}
+                max={100000}
+                step={1000}
+                value={instanceData.stampDutyOverride ?? calculatedStampDuty}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  // Only set override if different from auto-calculated
+                  onFieldChange('stampDutyOverride', Math.abs(val - calculatedStampDuty) < 500 ? null : val);
+                }}
+              />
+            </div>
+            
+            {/* Property Management Fee */}
+            <SliderInput
+              label="Property Mgmt Fee"
+              value={instanceData.propertyManagementPercent}
+              onChange={(v) => onFieldChange('propertyManagementPercent', v)}
+              min={0}
+              max={15}
+              step={0.5}
+              format="percent"
+            />
+            
+            {/* Vacancy Rate */}
             <SliderInput
               label="Vacancy Rate"
               value={instanceData.vacancyRate}
@@ -326,55 +471,388 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
               step={0.5}
               format="percent"
             />
-            <SliderInput
-              label="Property Mgmt"
-              value={instanceData.propertyManagementPercent}
-              onChange={(v) => onFieldChange('propertyManagementPercent', v)}
-              min={0}
-              max={15}
-              step={0.5}
-              format="percent"
-            />
-            <SliderInput
-              label="Council & Water"
-              value={instanceData.councilRatesWater}
-              onChange={(v) => onFieldChange('councilRatesWater', v)}
-              min={0}
-              max={10000}
-              step={100}
-              format="currency"
-            />
-            <SliderInput
-              label="Insurance"
-              value={instanceData.buildingInsuranceAnnual}
-              onChange={(v) => onFieldChange('buildingInsuranceAnnual', v)}
-              min={0}
-              max={5000}
-              step={100}
-              format="currency"
-            />
-            <SliderInput
-              label="Strata"
-              value={instanceData.strata}
-              onChange={(v) => onFieldChange('strata', v)}
-              min={0}
-              max={15000}
-              step={100}
-              format="currency"
-            />
-            <SliderInput
-              label="Maintenance"
-              value={instanceData.maintenanceAllowanceAnnual}
-              onChange={(v) => onFieldChange('maintenanceAllowanceAnnual', v)}
-              min={0}
-              max={10000}
-              step={100}
-              format="currency"
-            />
+          </div>
+        )}
+        
+        {/* ============ COSTS & EXPENSES TAB ============ */}
+        {activeTab === 'costs' && (
+          <div className="space-y-3">
+            {/* One-Off Purchase Costs Summary (excluding stamp duty - that's in Assumptions) */}
+            <div className="bg-slate-50 rounded-lg p-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-slate-600">Purchase Costs</span>
+                  <Tooltip content={
+                    <div className="space-y-1">
+                      <div className="flex justify-between gap-4">
+                        <span>Engagement Fee:</span>
+                        <span className="font-medium">${instanceData.engagementFee.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Conditional Deposit:</span>
+                        <span className="font-medium">${instanceData.conditionalHoldingDeposit.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Insurance Upfront:</span>
+                        <span className="font-medium">${instanceData.buildingInsuranceUpfront.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Building & Pest:</span>
+                        <span className="font-medium">${instanceData.buildingPestInspection.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Plumbing/Electrical:</span>
+                        <span className="font-medium">${instanceData.plumbingElectricalInspections.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Independent Valuation:</span>
+                        <span className="font-medium">${instanceData.independentValuation.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Unconditional Deposit:</span>
+                        <span className="font-medium">${instanceData.unconditionalHoldingDeposit.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Mortgage Fees:</span>
+                        <span className="font-medium">${instanceData.mortgageFees.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Conveyancing:</span>
+                        <span className="font-medium">${instanceData.conveyancing.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Rates Adjustment:</span>
+                        <span className="font-medium">${instanceData.ratesAdjustment.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Maintenance Post Settlement:</span>
+                        <span className="font-medium">${instanceData.maintenanceAllowancePostSettlement.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  }>
+                    <Info size={10} className="text-slate-400 cursor-help" />
+                  </Tooltip>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-900">
+                    {formatCompactCurrency(oneOffCostsTotal - (instanceData.stampDutyOverride ?? calculatedStampDuty))}
+                  </span>
+                  <button
+                    onClick={onOpenPurchaseCosts}
+                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded transition-colors"
+                    title="Edit Purchase Costs"
+                  >
+                    <Settings size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Annual Expenses Summary */}
+            <div className="bg-slate-50 rounded-lg p-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-slate-600">Annual Expenses</span>
+                  <Tooltip content={
+                    <div className="space-y-1">
+                      <div className="flex justify-between gap-4">
+                        <span>Council & Water:</span>
+                        <span className="font-medium">${instanceData.councilRatesWater.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Insurance:</span>
+                        <span className="font-medium">${instanceData.buildingInsuranceAnnual.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Strata:</span>
+                        <span className="font-medium">${instanceData.strata.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Maintenance:</span>
+                        <span className="font-medium">${instanceData.maintenanceAllowanceAnnual.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span>Mgmt ({instanceData.propertyManagementPercent}%):</span>
+                        <span className="font-medium">${Math.round((instanceData.rentPerWeek * 52 * instanceData.propertyManagementPercent) / 100).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  }>
+                    <Info size={10} className="text-slate-400 cursor-help" />
+                  </Tooltip>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-900">
+                    {formatCompactCurrency(annualExpensesTotal)}/yr
+                  </span>
+                  <button
+                    onClick={onOpenAnnualExpenses}
+                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded transition-colors"
+                    title="Edit Annual Expenses"
+                  >
+                    <Settings size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
+  );
+};
+
+// =============================================================================
+// PURCHASE COSTS EDIT MODAL
+// =============================================================================
+
+interface PurchaseCostsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  instanceId: string;
+  propertyType: string;
+  instanceData: PropertyInstanceDetails | null;
+  onFieldChange: (field: keyof PropertyInstanceDetails, value: any) => void;
+}
+
+const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
+  isOpen,
+  onClose,
+  instanceId,
+  propertyType,
+  instanceData,
+  onFieldChange,
+}) => {
+  if (!isOpen || !instanceData) return null;
+  
+  const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
+  
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+      <div className="bg-slate-900 rounded-xl p-5 w-full max-w-md shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-white">Purchase Costs</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Engagement Fee ($)</label>
+              <input
+                type="number"
+                value={instanceData.engagementFee}
+                onChange={(e) => onFieldChange('engagementFee', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Conditional Deposit ($)</label>
+              <input
+                type="number"
+                value={instanceData.conditionalHoldingDeposit}
+                onChange={(e) => onFieldChange('conditionalHoldingDeposit', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Insurance Upfront ($)</label>
+              <input
+                type="number"
+                value={instanceData.buildingInsuranceUpfront}
+                onChange={(e) => onFieldChange('buildingInsuranceUpfront', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Building & Pest ($)</label>
+              <input
+                type="number"
+                value={instanceData.buildingPestInspection}
+                onChange={(e) => onFieldChange('buildingPestInspection', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Plumbing/Electrical ($)</label>
+              <input
+                type="number"
+                value={instanceData.plumbingElectricalInspections}
+                onChange={(e) => onFieldChange('plumbingElectricalInspections', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Independent Valuation ($)</label>
+              <input
+                type="number"
+                value={instanceData.independentValuation}
+                onChange={(e) => onFieldChange('independentValuation', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Unconditional Deposit ($)</label>
+              <input
+                type="number"
+                value={instanceData.unconditionalHoldingDeposit}
+                onChange={(e) => onFieldChange('unconditionalHoldingDeposit', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Mortgage Fees ($)</label>
+              <input
+                type="number"
+                value={instanceData.mortgageFees}
+                onChange={(e) => onFieldChange('mortgageFees', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Conveyancing ($)</label>
+              <input
+                type="number"
+                value={instanceData.conveyancing}
+                onChange={(e) => onFieldChange('conveyancing', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Rates Adjustment ($)</label>
+              <input
+                type="number"
+                value={instanceData.ratesAdjustment}
+                onChange={(e) => onFieldChange('ratesAdjustment', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Maintenance Post Settlement ($)</label>
+            <input
+              type="number"
+              value={instanceData.maintenanceAllowancePostSettlement}
+              onChange={(e) => onFieldChange('maintenanceAllowancePostSettlement', parseFloat(e.target.value) || 0)}
+              className={inputClass}
+            />
+          </div>
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="w-full mt-4 py-2.5 bg-white text-slate-900 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+        >
+          Done
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// =============================================================================
+// ANNUAL EXPENSES EDIT MODAL
+// =============================================================================
+
+interface AnnualExpensesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  instanceId: string;
+  propertyType: string;
+  instanceData: PropertyInstanceDetails | null;
+  onFieldChange: (field: keyof PropertyInstanceDetails, value: any) => void;
+}
+
+const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
+  isOpen,
+  onClose,
+  instanceId,
+  propertyType,
+  instanceData,
+  onFieldChange,
+}) => {
+  if (!isOpen || !instanceData) return null;
+  
+  const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
+  
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+      <div className="bg-slate-900 rounded-xl p-5 w-full max-w-md shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-white">Annual Expenses</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Council & Water ($/yr)</label>
+              <input
+                type="number"
+                value={instanceData.councilRatesWater}
+                onChange={(e) => onFieldChange('councilRatesWater', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Insurance ($/yr)</label>
+              <input
+                type="number"
+                value={instanceData.buildingInsuranceAnnual}
+                onChange={(e) => onFieldChange('buildingInsuranceAnnual', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Strata ($/yr)</label>
+              <input
+                type="number"
+                value={instanceData.strata}
+                onChange={(e) => onFieldChange('strata', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Maintenance ($/yr)</label>
+              <input
+                type="number"
+                value={instanceData.maintenanceAllowanceAnnual}
+                onChange={(e) => onFieldChange('maintenanceAllowanceAnnual', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="w-full mt-4 py-2.5 bg-white text-slate-900 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+        >
+          Done
+        </button>
+      </div>
+    </div>,
+    document.body
   );
 };
 
@@ -398,6 +876,10 @@ interface TimelineItemCardProps {
   onFieldChange?: (field: keyof PropertyInstanceDetails, value: any) => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  propertyType?: string;
+  onOpenAdvanced?: () => void;
+  onOpenPurchaseCosts?: () => void;
+  onOpenAnnualExpenses?: () => void;
 }
 
 // State colors matching AddToTimelineModal
@@ -427,6 +909,10 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   onFieldChange,
   isExpanded,
   onToggleExpand,
+  propertyType,
+  onOpenAdvanced,
+  onOpenPurchaseCosts,
+  onOpenAnnualExpenses,
 }) => {
   const isProperty = type === 'property';
   
@@ -472,7 +958,7 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm truncate">{title}</h4>
             <p className="text-gray-500 text-xs mt-0.5">
-              {subtitle ? `${subtitle}` : ''} · {priceDisplay || '$0'}
+              {priceDisplay || '$0'}
             </p>
           </div>
           {/* Right: expand and delete buttons */}
@@ -503,6 +989,10 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
           instanceId={instanceId}
           instanceData={instanceData ?? null}
           onFieldChange={onFieldChange}
+          propertyType={propertyType || title}
+          onOpenAdvanced={onOpenAdvanced || (() => {})}
+          onOpenPurchaseCosts={onOpenPurchaseCosts || (() => {})}
+          onOpenAnnualExpenses={onOpenAnnualExpenses || (() => {})}
         />
       )}
     </div>
@@ -537,6 +1027,18 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventBlock | null>(null);
+  const [advancedModalProperty, setAdvancedModalProperty] = useState<{
+    instanceId: string;
+    propertyType: string;
+  } | null>(null);
+  const [purchaseCostsModal, setPurchaseCostsModal] = useState<{
+    instanceId: string;
+    propertyType: string;
+  } | null>(null);
+  const [annualExpensesModal, setAnnualExpensesModal] = useState<{
+    instanceId: string;
+    propertyType: string;
+  } | null>(null);
   
   // Expanded card state - track which cards are expanded (all start expanded)
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -695,71 +1197,107 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
           )}
         </button>
         
-        {/* Timeline Items List */}
+        {/* Timeline Items List - Grouped by Year */}
         {timelineList.length > 0 && (
-          <div className="flex-1 overflow-y-auto space-y-2">
-            <h4 className="text-[10px] font-medium text-gray-500 uppercase tracking-wide px-1">
-              Timeline Items
-            </h4>
-            
-            {timelineList.map((item, index) => {
-              if (item.type === 'property') {
-                const instanceData = getInstance(item.id);
-                // First property starts expanded (if defaultFirstPropertyExpanded is true and has properties), others start collapsed
-                const isFirstProperty = index === 0;
-                const isExpanded = isFirstProperty 
-                  ? (defaultFirstPropertyExpanded && !expandedCards.has(`collapsed_${item.id}`))
-                  : expandedCards.has(`expanded_${item.id}`);
-                return (
-                  <TimelineItemCard
-                    key={item.id}
-                    type="property"
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    imageUrl={getPropertyImageUrl(item.title)}
-                    bgColor="bg-gray-100"
-                    onRemove={() => handleRemoveProperty(item.propertyId!)}
-                    instanceId={item.id}
-                    instanceData={instanceData}
-                    onFieldChange={(field, value) => handlePropertyFieldChange(item.id, field, value)}
-                    isExpanded={isExpanded}
-                    onToggleExpand={() => isFirstProperty ? handleToggleExpandProperty(item.id) : handleToggleExpand(`expanded_${item.id}`)}
-                  />
-                );
-              }
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {(() => {
+              // Group items by year
+              const groupedByYear: Record<string, typeof timelineList> = {};
               
-              if (item.type === 'event') {
-                const categoryDef = EVENT_CATEGORIES[item.event!.category];
-                return (
-                  <TimelineItemCard
-                    key={item.id}
-                    type="event"
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    period={item.period}
-                    icon={<span className="text-sm">{EVENT_TYPES[item.event!.eventType].icon}</span>}
-                    bgColor={categoryDef.bgColor}
-                    onRemove={() => handleRemoveEvent(item.id)}
-                    onEdit={() => handleEditEvent(item.event!)}
-                  />
-                );
-              }
+              timelineList.forEach(item => {
+                const year = item.subtitle || 'Other';
+                if (!groupedByYear[year]) {
+                  groupedByYear[year] = [];
+                }
+                groupedByYear[year].push(item);
+              });
               
-              if (item.type === 'pause') {
-                return (
-                  <TimelineItemCard
-                    key={item.id}
-                    type="pause"
-                    title={item.title}
-                    icon={<Pause size={14} className="text-amber-600" />}
-                    bgColor="bg-amber-50"
-                    onRemove={() => handleRemovePause(item.pauseIndex!)}
-                  />
-                );
-              }
+              // Sort years
+              const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
+                if (a === 'Other') return 1;
+                if (b === 'Other') return -1;
+                return parseInt(a) - parseInt(b);
+              });
               
-              return null;
-            })}
+              let globalIndex = 0;
+              
+              return sortedYears.map((year) => (
+                <div key={year} className="space-y-2">
+                  {/* Year Header */}
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-xs font-semibold text-gray-900">{year}</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                  
+                  {/* Items for this year */}
+                  <div className="space-y-2">
+                    {groupedByYear[year].map((item) => {
+                      const currentIndex = globalIndex++;
+                      
+                      if (item.type === 'property') {
+                        const instanceData = getInstance(item.id);
+                        const isFirstProperty = currentIndex === 0;
+                        const isExpanded = isFirstProperty 
+                          ? (defaultFirstPropertyExpanded && !expandedCards.has(`collapsed_${item.id}`))
+                          : expandedCards.has(`expanded_${item.id}`);
+                        return (
+                          <TimelineItemCard
+                            key={item.id}
+                            type="property"
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            imageUrl={getPropertyImageUrl(item.title)}
+                            bgColor="bg-gray-100"
+                            onRemove={() => handleRemoveProperty(item.propertyId!)}
+                            instanceId={item.id}
+                            instanceData={instanceData}
+                            onFieldChange={(field, value) => handlePropertyFieldChange(item.id, field, value)}
+                            isExpanded={isExpanded}
+                            onToggleExpand={() => isFirstProperty ? handleToggleExpandProperty(item.id) : handleToggleExpand(`expanded_${item.id}`)}
+                            propertyType={item.title}
+                            onOpenAdvanced={() => setAdvancedModalProperty({ instanceId: item.id, propertyType: item.title })}
+                            onOpenPurchaseCosts={() => setPurchaseCostsModal({ instanceId: item.id, propertyType: item.title })}
+                            onOpenAnnualExpenses={() => setAnnualExpensesModal({ instanceId: item.id, propertyType: item.title })}
+                          />
+                        );
+                      }
+                      
+                      if (item.type === 'event') {
+                        const categoryDef = EVENT_CATEGORIES[item.event!.category];
+                        return (
+                          <TimelineItemCard
+                            key={item.id}
+                            type="event"
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            period={item.period}
+                            icon={<span className="text-sm">{EVENT_TYPES[item.event!.eventType].icon}</span>}
+                            bgColor={categoryDef.bgColor}
+                            onRemove={() => handleRemoveEvent(item.id)}
+                            onEdit={() => handleEditEvent(item.event!)}
+                          />
+                        );
+                      }
+                      
+                      if (item.type === 'pause') {
+                        return (
+                          <TimelineItemCard
+                            key={item.id}
+                            type="pause"
+                            title={item.title}
+                            icon={<Pause size={14} className="text-amber-600" />}
+                            bgColor="bg-amber-50"
+                            onRemove={() => handleRemovePause(item.pauseIndex!)}
+                          />
+                        );
+                      }
+                      
+                      return null;
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         )}
         
@@ -791,6 +1329,40 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
             onClose={() => setEditingEvent(null)}
             category={editingEvent.category}
             editingEvent={editingEvent}
+          />
+        )}
+        
+        {/* Advanced Property Settings Modal */}
+        {advancedModalProperty && (
+          <PropertyDetailModal
+            isOpen={true}
+            onClose={() => setAdvancedModalProperty(null)}
+            instanceId={advancedModalProperty.instanceId}
+            propertyType={advancedModalProperty.propertyType}
+          />
+        )}
+        
+        {/* Purchase Costs Edit Modal */}
+        {purchaseCostsModal && (
+          <PurchaseCostsModal
+            isOpen={true}
+            onClose={() => setPurchaseCostsModal(null)}
+            instanceId={purchaseCostsModal.instanceId}
+            propertyType={purchaseCostsModal.propertyType}
+            instanceData={getInstance(purchaseCostsModal.instanceId)}
+            onFieldChange={(field, value) => handlePropertyFieldChange(purchaseCostsModal.instanceId, field, value)}
+          />
+        )}
+        
+        {/* Annual Expenses Edit Modal */}
+        {annualExpensesModal && (
+          <AnnualExpensesModal
+            isOpen={true}
+            onClose={() => setAnnualExpensesModal(null)}
+            instanceId={annualExpensesModal.instanceId}
+            propertyType={annualExpensesModal.propertyType}
+            instanceData={getInstance(annualExpensesModal.instanceId)}
+            onFieldChange={(field, value) => handlePropertyFieldChange(annualExpensesModal.instanceId, field, value)}
           />
         )}
       </div>

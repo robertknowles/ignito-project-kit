@@ -813,11 +813,13 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
         false
       );
       
-      // Calculate LMI
+      // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
       const affordLmi = calculateLMI(
         newLoanAmount,
         affordInstanceLvr,
-        lmiWaiver
+        lmiWaiver,
+        affordPropertyInstanceForCosts.valuationAtPurchase,
+        property.cost
       );
       
       // Calculate deposit balance
@@ -1309,11 +1311,13 @@ return { period: Infinity };
         false
       );
       
-      // Calculate LMI
+      // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
       const lmi = calculateLMI(
         loanAmount,
         instanceLvr,
-        propertyInstanceForCosts.lmiWaiver ?? false
+        propertyInstanceForCosts.lmiWaiver ?? false,
+        propertyInstanceForCosts.valuationAtPurchase,
+        correctPurchasePrice
       );
       
       // Calculate deposit balance
@@ -1590,11 +1594,13 @@ return { period: Infinity };
       false
     );
     
-    // Calculate LMI
+    // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
     const affordabilityLmi = calculateLMI(
       newLoanAmount,
       affordabilityInstanceLvr,
-      affordabilityPropertyInstanceForCosts.lmiWaiver ?? false
+      affordabilityPropertyInstanceForCosts.lmiWaiver ?? false,
+      affordabilityPropertyInstanceForCosts.valuationAtPurchase,
+      property.cost
     );
     
     // Calculate deposit balance

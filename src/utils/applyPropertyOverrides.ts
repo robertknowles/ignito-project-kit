@@ -78,3 +78,68 @@ export function validatePropertyInstance(property: PropertyInstanceDetails): str
   return errors;
 }
 
+/**
+ * Calculate the actual yield of a property based on instance values
+ */
+export function calculatePropertyYield(property: PropertyInstanceDetails): number {
+  if (property.purchasePrice <= 0) return 0;
+  const annualRent = property.rentPerWeek * 52;
+  return (annualRent / property.purchasePrice) * 100;
+}
+
+/**
+ * Check if a property's yield is below the minimum threshold
+ * Returns warning information if yield is below minimum
+ */
+export function checkYieldThreshold(property: PropertyInstanceDetails): {
+  isValid: boolean;
+  actualYield: number;
+  minimumYield: number;
+  shortfall: number;
+  warningMessage?: string;
+} {
+  const actualYield = calculatePropertyYield(property);
+  const minimumYield = property.minimumYield || 0;
+  const shortfall = minimumYield - actualYield;
+  const isValid = actualYield >= minimumYield;
+  
+  return {
+    isValid,
+    actualYield,
+    minimumYield,
+    shortfall: isValid ? 0 : shortfall,
+    warningMessage: isValid 
+      ? undefined 
+      : `Yield (${actualYield.toFixed(1)}%) is below minimum threshold (${minimumYield.toFixed(1)}%). Consider increasing rent or negotiating price.`
+  };
+}
+
+/**
+ * Get all warnings for a property instance
+ * This can be used by the UI to show warning indicators on property cards
+ */
+export function getPropertyWarnings(property: PropertyInstanceDetails): string[] {
+  const warnings: string[] = [];
+  
+  // Check yield threshold
+  const yieldCheck = checkYieldThreshold(property);
+  if (!yieldCheck.isValid && yieldCheck.warningMessage) {
+    warnings.push(yieldCheck.warningMessage);
+  }
+  
+  // Check if valuation is significantly different from purchase price
+  if (property.valuationAtPurchase && property.purchasePrice) {
+    const valuationDiff = ((property.valuationAtPurchase - property.purchasePrice) / property.purchasePrice) * 100;
+    if (valuationDiff < -10) {
+      warnings.push(`Valuation is ${Math.abs(valuationDiff).toFixed(0)}% below purchase price - consider renegotiating`);
+    }
+  }
+  
+  // Check for high LVR without LMI waiver
+  if (property.lvr > 90 && !property.lmiWaiver) {
+    warnings.push(`High LVR (${property.lvr}%) will result in significant LMI costs`);
+  }
+  
+  return warnings;
+}
+

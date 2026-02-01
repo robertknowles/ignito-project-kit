@@ -384,14 +384,14 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                   ))}
                 </Bar>
                 
-                {/* Goal Achievement Marker */}
+                {/* Goal Achievement Marker - Gold dot when cashflow goal is reached */}
                 {cashflowGoalReached && (
                   <ReferenceDot
                     x={cashflowGoalReached.year}
                     y={cashflowGoalReached.cashflow}
                     r={8}
-                    fill="rgba(253, 186, 116, 0.9)"
-                    stroke="white"
+                    fill="#FFD700"
+                    stroke="#DAA520"
                     strokeWidth={2}
                   >
                     <Label content={<GoalAchievedLabel year={cashflowGoalReached.year} />} />

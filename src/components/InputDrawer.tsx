@@ -30,7 +30,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
             position="bottom"
           >
             <div id="drawer-header" className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
-              <h2 className="text-sm font-medium text-gray-900">Timeline</h2>
+              <h2 className="text-sm font-medium text-gray-900">Property Timeline</h2>
             </div>
           </TourStep>
 

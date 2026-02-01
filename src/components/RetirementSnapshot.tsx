@@ -35,6 +35,8 @@ interface CompactSliderProps {
   max: number
   step: number
   formatValue?: (val: number) => string
+  markerPosition?: number // Optional position (0-100) for an indicator dot
+  markerLabel?: string // Optional label for the marker tooltip
 }
 
 const CompactSlider: React.FC<CompactSliderProps> = ({
@@ -45,6 +47,8 @@ const CompactSlider: React.FC<CompactSliderProps> = ({
   max,
   step,
   formatValue = formatCompactCurrency,
+  markerPosition,
+  markerLabel,
 }) => {
   return (
     <div className="flex-1 min-w-0">
@@ -56,16 +60,26 @@ const CompactSlider: React.FC<CompactSliderProps> = ({
           {formatValue(value)}
         </span>
       </div>
-      <input
-        type="range"
-        className={sliderClassName}
-        style={getSliderStyle(value, min, max)}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-      />
+      <div className="relative">
+        <input
+          type="range"
+          className={sliderClassName}
+          style={getSliderStyle(value, min, max)}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value))}
+        />
+        {/* Marker dot indicator */}
+        {markerPosition !== undefined && markerPosition >= 0 && markerPosition <= 100 && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-green-500 border border-white shadow-sm pointer-events-none"
+            style={{ left: `calc(${markerPosition}% - 4px)` }}
+            title={markerLabel}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -111,6 +125,7 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
         netCashflow: 0,
         liquidity: 0,
         serviceability: 0,
+        debtPayoffPercent: undefined as number | undefined,
       }
     }
     
@@ -119,19 +134,42 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
     const totalEquity = yearData.totalEquityRaw || 0
     const netCashflow = yearData.annualCashflow || 0
     
-    // Apply sell-off percentage
+    // NEW MODEL: Sale proceeds first pay down debt, then remaining becomes liquidity
+    // This matches the Investor Kit approach
+    const saleProceeds = portfolioValue * (sellOffPercent / 100)
+    
+    // Debt is paid down by sale proceeds first
+    const debtPaidDown = Math.min(saleProceeds, totalDebt)
+    const adjustedDebt = totalDebt - debtPaidDown
+    
+    // Liquidity only starts after debt is fully paid off
+    const liquidity = Math.max(0, saleProceeds - totalDebt)
+    
+    // Remaining portfolio after sell-off
     const sellOffFactor = 1 - (sellOffPercent / 100)
     const adjustedValue = portfolioValue * sellOffFactor
-    const adjustedDebt = totalDebt * sellOffFactor
-    const adjustedEquity = totalEquity * sellOffFactor
+    const adjustedEquity = adjustedValue - adjustedDebt // Equity = Value - Debt
     const adjustedCashflow = netCashflow * sellOffFactor
-    
-    // Liquidity = cash from selling properties (value - debt for sold portion)
-    const liquidity = (portfolioValue - totalDebt) * (sellOffPercent / 100)
     
     // Serviceability surplus from yearBreakdownData
     const serviceability = yearData.yearBreakdownData?.serviceabilityTest?.surplus || 
       (yearData.availableFundsRaw || 0)
+    
+    // Calculate the sell-off percentage at which total debt is paid off
+    // Debt paid off when: saleProceeds >= totalDebt
+    // V * (X / 100) = D
+    // X = 100 * D / V
+    let debtPayoffPercent: number | undefined = undefined
+    if (portfolioValue > 0 && totalDebt > 0) {
+      const calculatedPercent = (100 * totalDebt) / portfolioValue
+      // Only show marker if it's within the slider range (0-100%)
+      if (calculatedPercent >= 0 && calculatedPercent <= 100) {
+        debtPayoffPercent = calculatedPercent
+      }
+    } else if (totalDebt === 0) {
+      // No debt means already paid off at 0%
+      debtPayoffPercent = 0
+    }
     
     return {
       value: Math.round(adjustedValue),
@@ -140,6 +178,7 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
       netCashflow: Math.round(adjustedCashflow),
       liquidity: Math.round(liquidity),
       serviceability: Math.round(serviceability * sellOffFactor + liquidity * 0.05), // Simplified calculation
+      debtPayoffPercent,
     }
   }, [years, snapshotYears, sellOffPercent])
 
@@ -200,6 +239,8 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
               max={100}
               step={5}
               formatValue={formatPercent}
+              markerPosition={snapshotMetrics.debtPayoffPercent}
+              markerLabel="Debt paid off"
             />
           </div>
           

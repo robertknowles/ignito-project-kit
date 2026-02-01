@@ -4,7 +4,6 @@ import { X, ChevronDown, ChevronRight, Loader2, AlertCircle } from 'lucide-react
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
-import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
 import { toast } from '@/hooks/use-toast';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
@@ -105,11 +104,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     loan: false,
     costs: false,
     cashflow: false,
-    projections: false,
   });
-  
-  // Get tracking data for projections (only for instances, not templates)
-  const { trackingData } = usePerPropertyTracking(isTemplate ? '' : instanceId);
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -981,113 +976,6 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                 )}
               </div>
 
-              {/* Section 5: Projections (only for instances, not templates) */}
-              {!isTemplate && !isDuplicating && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => toggleSection('projections')}
-                    className={sectionHeaderClass}
-                  >
-                    <span className="text-sm font-medium text-gray-700">10-Year Projections</span>
-                    {expandedSections.projections ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  </button>
-                  
-                  {expandedSections.projections && (
-                    <div className="p-4">
-                      {!trackingData ? (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                          <Loader2 className="animate-spin text-gray-400" size={24} />
-                          <p className="text-sm text-gray-500">Calculating projections...</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {/* Header with context */}
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <p className="text-xs text-blue-700">
-                              Based on {trackingData.propertyTitle} purchased in {trackingData.purchasePeriod}
-                            </p>
-                          </div>
-                          
-                          {/* Projections Table */}
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-sm">
-                              <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 font-medium text-gray-700">Metric</th>
-                                  <th className="text-right py-2 px-3 font-medium text-gray-700">Year 1</th>
-                                  <th className="text-right py-2 px-3 font-medium text-gray-700">Year 5</th>
-                                  <th className="text-right py-2 px-3 font-medium text-gray-700">Year 10</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr className="border-b border-gray-100">
-                                  <td className="py-2 px-3 text-gray-700">Property Value</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[0]?.propertyValue.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[4]?.propertyValue.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[9]?.propertyValue.toLocaleString()}</td>
-                                </tr>
-                                <tr className="border-b border-gray-100">
-                                  <td className="py-2 px-3 text-gray-700">Total Equity</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[0]?.equity.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[4]?.equity.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right text-gray-900">${trackingData.equityOverTime[9]?.equity.toLocaleString()}</td>
-                                </tr>
-                                <tr className="border-b border-gray-100">
-                                  <td className="py-2 px-3 text-gray-700">Net Annual Cashflow</td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className={trackingData.cashflowOverTime[0]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
-                                      {trackingData.cashflowOverTime[0]?.netCashflow >= 0 ? '+' : ''}${trackingData.cashflowOverTime[0]?.netCashflow.toLocaleString()}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className={trackingData.cashflowOverTime[4]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
-                                      {trackingData.cashflowOverTime[4]?.netCashflow >= 0 ? '+' : ''}${trackingData.cashflowOverTime[4]?.netCashflow.toLocaleString()}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className={trackingData.cashflowOverTime[9]?.netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}>
-                                      {trackingData.cashflowOverTime[9]?.netCashflow >= 0 ? '+' : ''}${trackingData.cashflowOverTime[9]?.netCashflow.toLocaleString()}
-                                    </span>
-                                  </td>
-                                </tr>
-                                <tr className="border-b border-gray-100 bg-amber-50">
-                                  <td className="py-2 px-3 text-gray-700">COC Return %</td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className={trackingData.cashOnCashReturn >= 0 ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
-                                      {trackingData.cashOnCashReturn.toFixed(2)}%
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3 text-right text-gray-400">—</td>
-                                  <td className="py-2 px-3 text-right text-gray-400">—</td>
-                                </tr>
-                                <tr className="bg-blue-50">
-                                  <td className="py-2 px-3 text-gray-700">Annualized ROIC %</td>
-                                  <td className="py-2 px-3 text-right text-gray-400">—</td>
-                                  <td className="py-2 px-3 text-right text-gray-400">—</td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className={trackingData.roic >= 0 ? 'text-green-700 font-medium' : 'text-red-700 font-medium'}>
-                                      {trackingData.roic.toFixed(2)}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                          
-                          {/* Footer with additional context */}
-                          <div className="bg-gray-50 p-3 rounded-md">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Total Cash Invested:</span>
-                              <span className="font-medium text-gray-900">${trackingData.totalCashInvested.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Action Buttons */}

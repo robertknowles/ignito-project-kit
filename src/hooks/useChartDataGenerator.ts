@@ -5,7 +5,7 @@ import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
-import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
+import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import type { PropertyPurchase } from '../types/property';
 import {
   PERIODS_PER_YEAR,
@@ -96,14 +96,32 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
       const propertyData = getPropertyData(property.title);
+      const propertyInstance = getInstance(property.instanceId);
       
-      // Extract property-specific growth curve
-      const propertyGrowthCurve = propertyData ? {
-        year1: parseFloat(propertyData.growthYear1),
-        years2to3: parseFloat(propertyData.growthYears2to3),
-        year4: parseFloat(propertyData.growthYear4),
-        year5plus: parseFloat(propertyData.growthYear5plus)
-      } : profile.growthCurve; // Fallback to profile growth curve if no data
+      // PRIORITY: Use instance growthAssumption if available, then template, then profile fallback
+      // This ensures edits to the property card slider are reflected in charts
+      let propertyGrowthCurve;
+      if (propertyInstance?.growthAssumption) {
+        // Instance has explicit growth assumption - use it (connects slider to chart)
+        propertyGrowthCurve = getGrowthCurveFromAssumption(propertyInstance.growthAssumption);
+      } else if (propertyData) {
+        // Fallback to property type template rates
+        propertyGrowthCurve = {
+          year1: parseFloat(propertyData.growthYear1),
+          years2to3: parseFloat(propertyData.growthYears2to3),
+          year4: parseFloat(propertyData.growthYear4),
+          year5plus: parseFloat(propertyData.growthYear5plus)
+        };
+      } else {
+        // Final fallback to profile growth curve
+        propertyGrowthCurve = profile.growthCurve;
+      }
+      
+      // Use instance rent if available, otherwise calculate from yield
+      const instanceRentPerWeek = propertyInstance?.rentPerWeek;
+      const rentalYield = instanceRentPerWeek 
+        ? (instanceRentPerWeek * 52) / property.cost 
+        : (propertyData ? parseFloat(propertyData.yield) / 100 : DEFAULT_RENTAL_YIELD);
       
       return {
         year: property.affordableYear,
@@ -111,9 +129,9 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         loanAmount: property.loanAmount,
         depositRequired: property.depositRequired,
         title: property.title,
-        rentalYield: propertyData ? parseFloat(propertyData.yield) / 100 : DEFAULT_RENTAL_YIELD,
+        rentalYield: rentalYield,
         growthRate: defaultGrowthRate, // DEPRECATED: kept for backward compatibility
-        growthCurve: propertyGrowthCurve, // Use property-specific tiered growth rates
+        growthCurve: propertyGrowthCurve, // Use instance-specific tiered growth rates
         interestRate: defaultInterestRate
       };
     });
@@ -219,13 +237,20 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         const propertyData = getPropertyData(property.title);
         
         if (propertyInstance) {
-          // Calculate property growth for rent adjustment
-          const propertyGrowthCurve = propertyData ? {
-            year1: parseFloat(propertyData.growthYear1),
-            years2to3: parseFloat(propertyData.growthYears2to3),
-            year4: parseFloat(propertyData.growthYear4),
-            year5plus: parseFloat(propertyData.growthYear5plus)
-          } : profile.growthCurve;
+          // PRIORITY: Use instance growthAssumption if set, then template, then profile fallback
+          let propertyGrowthCurve;
+          if (propertyInstance.growthAssumption) {
+            propertyGrowthCurve = getGrowthCurveFromAssumption(propertyInstance.growthAssumption);
+          } else if (propertyData) {
+            propertyGrowthCurve = {
+              year1: parseFloat(propertyData.growthYear1),
+              years2to3: parseFloat(propertyData.growthYears2to3),
+              year4: parseFloat(propertyData.growthYear4),
+              year5plus: parseFloat(propertyData.growthYear5plus)
+            };
+          } else {
+            propertyGrowthCurve = profile.growthCurve;
+          }
           
           const currentValue = calculatePropertyGrowth(property.cost, periodsOwned, propertyGrowthCurve);
           const growthFactor = currentValue / property.cost;

@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   Cell,
   Label,
 } from 'recharts'
@@ -233,15 +234,18 @@ export const CashflowChart = () => {
               ))}
             </Bar>
 
-            {/* Income Goal Achievement Marker */}
+            {/* Income Goal Achievement Marker - Gold dot when cashflow goal is reached */}
             {incomeGoalReached && (
-              <ReferenceLine
+              <ReferenceDot
                 x={incomeGoalReached.year}
-                stroke="transparent"
-                strokeWidth={0}
+                y={incomeGoalReached.cashflow}
+                r={8}
+                fill="#FFD700"
+                stroke="#DAA520"
+                strokeWidth={2}
               >
                 <Label content={<GoalAchievedLabel />} position="top" />
-              </ReferenceLine>
+              </ReferenceDot>
             )}
 
             {/* End State Annotation */}

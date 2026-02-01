@@ -4,6 +4,7 @@ import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection, type EventBlock, type EventCategory } from '../contexts/PropertySelectionContext';
 import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
+import { getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import type { YearBreakdownData } from '@/types/property';
 import {
   PERIODS_PER_YEAR,
@@ -223,8 +224,17 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
         
-        // Calculate current property value with tiered growth
-        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, profile.growthCurve);
+        // Get property instance to check for custom growth rate
+        const propertyInstance = getInstance(prop.instanceId);
+        
+        // PRIORITY: Use instance growthAssumption if set, then profile fallback
+        // This ensures edits to the property card slider are reflected in roadmap
+        const effectiveGrowthCurve = propertyInstance?.growthAssumption 
+          ? getGrowthCurveFromAssumption(propertyInstance.growthAssumption)
+          : profile.growthCurve;
+        
+        // Calculate current property value with tiered growth (using instance growth rate)
+        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, effectiveGrowthCurve);
         portfolioValue += currentValue;
         totalDebt += prop.loanAmount;
         
@@ -249,7 +259,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         
         // Get INDIVIDUAL property expense values from the property instance
         // This avoids the cumulative breakdown issue in timeline properties
-        const propertyInstance = getInstance(prop.instanceId);
+        // Note: propertyInstance already declared above, reuse it
         if (propertyInstance) {
           // Calculate management fee based on adjusted income (rent - vacancy)
           const grossAnnualIncome = propertyInstance.rentPerWeek * 52;
@@ -279,7 +289,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const purchaseYear = Math.floor(prop.affordableYear);
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
-        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, profile.growthCurve);
+        
+        // Get instance for custom growth rate
+        const propInstance = getInstance(prop.instanceId);
+        const propGrowthCurve = propInstance?.growthAssumption 
+          ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
+          : profile.growthCurve;
+        
+        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, propGrowthCurve);
         const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
         const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
         
@@ -437,7 +454,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           const propPurchaseYear = Math.floor(prop.affordableYear);
           const propYearsOwned = year - propPurchaseYear;
           const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
-          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, profile.growthCurve);
+          
+          // Get instance for custom growth rate
+          const propInstance = getInstance(prop.instanceId);
+          const propGrowthCurve = propInstance?.growthAssumption 
+            ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
+            : profile.growthCurve;
+          
+          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, propGrowthCurve);
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
           
           return {
@@ -631,7 +655,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           const propPurchaseYear = Math.floor(prop.affordableYear);
           const propYearsOwned = year - propPurchaseYear;
           const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
-          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, profile.growthCurve);
+          
+          // Get instance for custom growth rate
+          const propInstance = getInstance(prop.instanceId);
+          const propGrowthCurve = propInstance?.growthAssumption 
+            ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
+            : profile.growthCurve;
+          
+          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, propGrowthCurve);
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
           
           return {

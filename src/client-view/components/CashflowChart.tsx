@@ -18,8 +18,8 @@ import { TrendingUp } from 'lucide-react';
 const COLORS = {
   positive: '#a7dfc4', // Softer green
   negative: '#f5c4c4', // Softer red
-  goal: '#f5d0a9', // Softer amber
-  goalStroke: '#e9b97a',
+  goal: '#FFD700', // Gold for cashflow goal achieved
+  goalStroke: '#DAA520', // Darker gold stroke
   breakEven: '#b8c5d3',
   propertyMarker: '#7eb8e0', // Soft blue
   text: '#64748b',
@@ -304,14 +304,14 @@ export function CashflowChart({
             ))}
           </Bar>
           
-          {/* Goal Achievement Marker */}
+          {/* Goal Achievement Marker - Gold dot when cashflow goal is reached */}
           {incomeGoalReachedData && (
             <ReferenceDot
               x={incomeGoalReachedData.year}
               y={incomeGoalReachedData.cashflow}
-              r={7}
+              r={8}
               fill={COLORS.goal}
-              stroke="white"
+              stroke={COLORS.goalStroke}
               strokeWidth={2}
             >
               <Label content={<GoalAchievedLabel year={incomeGoalReachedData.year} />} />
@@ -331,6 +331,12 @@ export function CashflowChart({
             <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: COLORS.negative }}></div>
             <span className="text-slate-500">Negative</span>
           </div>
+          {incomeGoalReachedData && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.goal, border: `1px solid ${COLORS.goalStroke}` }}></div>
+              <span className="text-slate-500">Goal Achieved</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-4 text-xs">
           {breakEvenYear && (

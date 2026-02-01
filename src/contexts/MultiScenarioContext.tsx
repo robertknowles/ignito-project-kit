@@ -3,7 +3,6 @@ import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
-import type { ScenarioData } from './ScenarioSaveContext';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from './InvestmentProfileContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';

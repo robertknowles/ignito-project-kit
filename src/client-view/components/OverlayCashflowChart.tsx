@@ -27,8 +27,8 @@ const COLORS = {
   negativeB: '#fda4af',
   lineB: '#3b82f6',
   // Shared
-  goal: '#f5d0a9',
-  goalStroke: '#e9b97a',
+  goal: '#FFD700', // Gold for cashflow goal achieved
+  goalStroke: '#DAA520', // Darker gold stroke
   breakEven: '#b8c5d3',
   text: '#64748b',
   grid: 'rgba(148, 163, 184, 0.2)',
@@ -285,14 +285,14 @@ export function OverlayCashflowChart({
             }}
           />
           
-          {/* Goal Achievement Markers */}
+          {/* Goal Achievement Markers - Gold dots when cashflow goal is reached */}
           {goalDataA && (
             <ReferenceDot
               x={goalDataA.year}
               y={goalDataA.cashflowA}
-              r={7}
-              fill={COLORS.lineA}
-              stroke="white"
+              r={8}
+              fill={COLORS.goal}
+              stroke={COLORS.goalStroke}
               strokeWidth={2}
             >
               <Label content={<GoalAchievedLabel scenario="A" year={goalDataA.year} />} />
@@ -303,9 +303,9 @@ export function OverlayCashflowChart({
             <ReferenceDot
               x={goalDataB.year}
               y={goalDataB.cashflowB}
-              r={7}
-              fill={COLORS.lineB}
-              stroke="white"
+              r={8}
+              fill={COLORS.goal}
+              stroke={COLORS.goalStroke}
               strokeWidth={2}
             >
               <Label content={<GoalAchievedLabel scenario="B" year={goalDataB.year} />} />
