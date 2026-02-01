@@ -31,10 +31,11 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 // Column dimension constants
-const LABEL_COLUMN_WIDTH = 50; // Reduced from 70px
+// IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
+const LABEL_COLUMN_WIDTH = 65;
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
-const Y_AXIS_WIDTH = 50; // Width for the chart Y-axis
+const Y_AXIS_WIDTH = 65; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
 const CHART_HEIGHT = 220; // Height of the chart area
 
 // Period conversion constants (matching useAffordabilityCalculator)
@@ -929,7 +930,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 }}
                 axisLine={false}
                 tickLine={false}
-                width={50}
+                width={Y_AXIS_WIDTH}
               />
               
               <Tooltip content={<CustomTooltip />} />

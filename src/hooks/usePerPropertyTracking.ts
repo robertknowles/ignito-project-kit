@@ -7,6 +7,7 @@ import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
 import { calculatePropertyGrowth } from '../utils/metricsCalculator';
+import { ANNUAL_INFLATION_RATE } from '../constants/financialParams';
 import type { GrowthCurve } from '../types/property';
 
 // Period conversion constants (aligned with calculator)
@@ -23,7 +24,8 @@ interface EquityDataPoint {
 interface CashflowDataPoint {
   year: number;
   grossIncome: number;
-  totalExpenses: number;
+  totalExpenses: number; // Operating expenses (excl. loan interest) + non-deductible - deductions
+  loanInterest: number;  // Loan interest tracked separately (matches Cashflow table pattern)
   netCashflow: number;
 }
 
@@ -164,15 +166,42 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
         loanBalance
       );
       
+      // Apply inflation to expenses (matches useChartDataGenerator pattern)
+      // Expenses grow with inflation over time, rent grows with property value
+      const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, year);
+      
+      // Operating expenses EXCLUDING loan interest (to match Cashflow table display)
+      // Note: propertyManagementFee is already growth-adjusted because we adjusted rentPerWeek above
+      // (management fee is calculated as % of rent in calculateDetailedCashflow)
+      // So management fee grows with rent (via rentGrowthFactor), other expenses grow with inflation
+      const adjustedManagement = cashflowBreakdown.propertyManagementFee; // Already growth-adjusted via rent
+      const adjustedInsurance = cashflowBreakdown.buildingInsurance * inflationFactor;
+      const adjustedCouncil = cashflowBreakdown.councilRatesWater * inflationFactor;
+      const adjustedStrata = cashflowBreakdown.strata * inflationFactor;
+      const adjustedMaintenance = cashflowBreakdown.maintenance * inflationFactor;
+      
+      const adjustedOperatingExpensesExLoan = 
+        adjustedManagement +
+        adjustedInsurance +
+        adjustedCouncil +
+        adjustedStrata +
+        adjustedMaintenance;
+      
+      // Non-deductible expenses (land tax, principal) grow with inflation
+      const inflationAdjustedNonDeductible = cashflowBreakdown.totalNonDeductibleExpenses * inflationFactor;
+      
+      // Total expenses for display (excludes loan interest, net of deductions)
+      const totalExpensesForDisplay = adjustedOperatingExpensesExLoan + inflationAdjustedNonDeductible - cashflowBreakdown.potentialDeductions;
+      
+      // Net cashflow = Income - Operating Expenses - Non-deductible - Loan Interest + Deductions
+      const netCashflow = cashflowBreakdown.adjustedIncome - totalExpensesForDisplay - cashflowBreakdown.loanInterest;
+      
       cashflowOverTime.push({
         year,
         grossIncome: Math.round(cashflowBreakdown.adjustedIncome),
-        totalExpenses: Math.round(
-          cashflowBreakdown.totalOperatingExpenses + 
-          cashflowBreakdown.totalNonDeductibleExpenses -
-          cashflowBreakdown.potentialDeductions
-        ),
-        netCashflow: Math.round(cashflowBreakdown.netAnnualCashflow),
+        totalExpenses: Math.round(totalExpensesForDisplay),
+        loanInterest: Math.round(cashflowBreakdown.loanInterest),
+        netCashflow: Math.round(netCashflow),
       });
     }
     

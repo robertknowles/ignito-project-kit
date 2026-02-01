@@ -28,10 +28,11 @@ import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 // Column dimension constants
-const LABEL_COLUMN_WIDTH = 50;
+// IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
+const LABEL_COLUMN_WIDTH = 65;
 const MIN_YEAR_COLUMN_WIDTH = 50;
 const MAX_YEAR_COLUMN_WIDTH = 120;
-const Y_AXIS_WIDTH = 50;
+const Y_AXIS_WIDTH = 65;
 
 // Format currency for display (always abbreviated with 1 decimal)
 const formatCurrency = (value: number): string => {
@@ -353,7 +354,7 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={50}
+                  width={Y_AXIS_WIDTH}
                   domain={yAxisDomain}
                   ticks={yAxisTicks}
                 />
@@ -440,8 +441,12 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                         <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px] text-xs">
-                      <p>Property purchases scheduled for each year</p>
+                    <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                      <p className="text-[10px] font-medium text-slate-700 mb-1">Scheduled property purchases</p>
+                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                        <li>• Click property to view details</li>
+                        <li>• Timing based on 3 affordability tests</li>
+                      </ul>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
@@ -483,8 +488,13 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                         <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px] text-xs">
-                      <p>Total annual rental income from all properties</p>
+                    <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                      <p className="text-[10px] font-medium text-slate-700 mb-1">= (Rent/week × 52) − Vacancy</p>
+                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                        <li>• Rent/week: From property settings</li>
+                        <li>• Vacancy: Rent × vacancy rate %</li>
+                        <li>• Growth: Increases with property value</li>
+                      </ul>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
@@ -514,8 +524,13 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                         <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px] text-xs">
-                      <p>Net expenses after deductions (e.g. depreciation)</p>
+                    <TooltipContent side="right" className="max-w-[220px] z-50 p-2">
+                      <p className="text-[10px] font-medium text-slate-700 mb-1">= Mgmt + Insurance + Council + Strata + Maintenance + Land Tax − Deductions</p>
+                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                        <li>• Management: % of rent (grows with rent)</li>
+                        <li>• Other costs: +3% inflation per year</li>
+                        <li>• Deductions: From Annual Expenses settings</li>
+                      </ul>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
@@ -545,8 +560,13 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                         <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px] text-xs">
-                      <p>Annual interest-only loan repayments across all properties</p>
+                    <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                      <p className="text-[10px] font-medium text-slate-700 mb-1">= (Loan − Offset) × Interest Rate</p>
+                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                        <li>• Loan: Purchase price × LVR %</li>
+                        <li>• Offset: Reduces interest (if set)</li>
+                        <li>• Rate: From property loan settings</li>
+                      </ul>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
@@ -576,8 +596,13 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                         <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px] text-xs">
-                      <p>Net cashflow = Income − Expenses − Loans</p>
+                    <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                      <p className="text-[10px] font-medium text-slate-700 mb-1">= Income − Expenses − Loans</p>
+                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                        <li>• <span className="text-green-600">Positive</span>: Cash in your pocket</li>
+                        <li>• <span className="text-rose-600">Negative</span>: Out-of-pocket cost</li>
+                        <li>• Year 1 matches property inputs</li>
+                      </ul>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>

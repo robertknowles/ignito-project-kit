@@ -842,6 +842,22 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
               />
             </div>
           </div>
+          
+          {/* Deductions/Depreciation Section */}
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Tax Deductions / Depreciation ($/yr)</label>
+              <input
+                type="number"
+                value={instanceData.potentialDeductionsRebates || 0}
+                onChange={(e) => onFieldChange('potentialDeductionsRebates', parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Estimated annual depreciation deductions. Reduces expenses and improves net cashflow.
+              </p>
+            </div>
+          </div>
         </div>
         
         <button

@@ -6,6 +6,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   LineChart,
   Line,
   BarChart,
@@ -18,6 +24,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
+import { Info } from 'lucide-react';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
 import type { TimelineProperty } from '../types/property';
 
@@ -100,6 +107,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
         equity: equity.equity,
         rentalIncome: cashflow?.grossIncome || 0,
         expenses: cashflow?.totalExpenses || 0,
+        loanInterest: cashflow?.loanInterest || 0,
         netCashflow: cashflow?.netCashflow || 0,
       };
     });
@@ -225,7 +233,21 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 
                 {/* Property Cashflow Analysis Chart */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-4">Property Cashflow Analysis</h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-sm font-medium text-gray-900">Property Cashflow Analysis</h3>
+                    <TooltipProvider>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="inline-flex items-center justify-center">
+                            <Info className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[280px] text-xs">
+                          <p>Expenses shown include 3% annual inflation adjustment. Year 1 values match your property inputs; subsequent years reflect projected cost increases.</p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
+                  </div>
                   {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={chartData}>
@@ -271,6 +293,12 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                           dataKey="expenses" 
                           fill="#fca5a5" 
                           name="Expenses"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="loanInterest" 
+                          fill="#fbbf24" 
+                          name="Loan Interest"
                           radius={[4, 4, 0, 0]}
                         />
                         <Bar 

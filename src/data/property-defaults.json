@@ -33,7 +33,7 @@
     "strata": 2560,
     "maintenanceAllowanceAnnual": 1750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 2000
+    "potentialDeductionsRebates": 0
   },
   "villas-townhouses": {
     "state": "QLD",
@@ -69,7 +69,7 @@
     "strata": 2000,
     "maintenanceAllowanceAnnual": 1625,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 2000
+    "potentialDeductionsRebates": 0
   },
   "houses-regional": {
     "state": "NSW",
@@ -105,7 +105,7 @@
     "strata": 0,
     "maintenanceAllowanceAnnual": 1750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 2000
+    "potentialDeductionsRebates": 0
   },
   "duplexes": {
     "state": "QLD",
@@ -141,7 +141,7 @@
     "strata": 400,
     "maintenanceAllowanceAnnual": 2750,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 2000
+    "potentialDeductionsRebates": 0
   },
   "small-blocks-3-4-units": {
     "state": "NSW",
@@ -177,7 +177,7 @@
     "strata": 4000,
     "maintenanceAllowanceAnnual": 4500,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 3000
+    "potentialDeductionsRebates": 0
   },
   "metro-houses": {
     "state": "VIC",
@@ -213,7 +213,7 @@
     "strata": 0,
     "maintenanceAllowanceAnnual": 4000,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 3000
+    "potentialDeductionsRebates": 0
   },
   "larger-blocks-10-20-units": {
     "state": "NSW",
@@ -249,7 +249,7 @@
     "strata": 12000,
     "maintenanceAllowanceAnnual": 17500,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 5000
+    "potentialDeductionsRebates": 0
   },
   "commercial-property": {
     "state": "VIC",
@@ -285,7 +285,7 @@
     "strata": 8000,
     "maintenanceAllowanceAnnual": 15000,
     "landTaxOverride": null,
-    "potentialDeductionsRebates": 5000
+    "potentialDeductionsRebates": 0
   }
 }
 
