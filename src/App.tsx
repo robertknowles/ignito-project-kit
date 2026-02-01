@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Dashboard } from './components/Dashboard';
 import { LeftRail } from './components/LeftRail';
 import { TopBar } from './components/TopBar';
@@ -7,18 +7,25 @@ import { useClient } from './contexts/ClientContext';
 import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
 import { useBranding } from './contexts/BrandingContext';
+import { useAffordabilityCalculator } from './hooks/useAffordabilityCalculator';
 import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
+import { LayoutProvider, useLayout } from './contexts/LayoutContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
 
-export function App() {
+function AppContent() {
   const { activeClient } = useClient();
   const { role } = useAuth();
   const { clientScenarioLoading, noScenarioForClient } = useScenarioSave();
   const { branding } = useBranding();
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { drawerOpen, toggleDrawer } = useLayout();
   
   const isClient = role === 'client';
   const showInputDrawer = !isClient || branding.isClientInteractiveEnabled;
+  
+  // Check if this is a saved scenario with properties
+  // Used to determine if first property should be expanded in timeline panel
+  const hasSavedProperties = timelineProperties.length > 0;
   
   // Client empty state - no scenario shared yet
   if (isClient && noScenarioForClient) {
@@ -87,7 +94,11 @@ export function App() {
     <PropertyDragDropProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <InputDrawer isOpen={drawerOpen} onToggle={() => setDrawerOpen(!drawerOpen)} />
+        <InputDrawer 
+          isOpen={drawerOpen} 
+          onToggle={toggleDrawer} 
+          defaultFirstPropertyExpanded={hasSavedProperties}
+        />
         
         {/* Main Content Area - margin adjusts based on drawer state */}
         <div 
@@ -104,5 +115,13 @@ export function App() {
         </div>
       </div>
     </PropertyDragDropProvider>
+  );
+}
+
+export function App() {
+  return (
+    <LayoutProvider>
+      <AppContent />
+    </LayoutProvider>
   );
 }

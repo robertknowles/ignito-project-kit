@@ -38,7 +38,7 @@ export function AppRouter() {
                   <PropertyInstanceProvider>
                     <MultiScenarioProvider>
                       <ScenarioSaveProvider>
-                      <BrowserRouter>
+                      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                         <TourManagerProvider>
                           <Routes>
                             {/* Public landing page - redirects to /clients if authenticated */}

@@ -82,7 +82,6 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
   const syncCurrentScenarioFromContext = useCallback((): Scenario[] => {
     // Skip sync during deletion to prevent restoring deleted scenarios with stale data
     if (deletionInProgressRef.current) {
-      console.log('MultiScenarioContext: Skipping sync during deletion');
       return scenarios;
     }
     
@@ -115,17 +114,8 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
     // Find the scenario in the current state
     const scenario = scenarios.find(s => s.id === scenarioId);
     if (!scenario) {
-      console.warn('MultiScenarioContext: Cannot restore - scenario not found:', scenarioId);
       return;
     }
-
-    console.log('MultiScenarioContext: Restoring scenario to global contexts:', {
-      scenarioId,
-      scenarioName: scenario.name,
-      selectionsCount: Object.keys(scenario.propertySelections).length,
-      propertyOrderLength: scenario.propertyOrder.length,
-      instancesCount: Object.keys(scenario.propertyInstances).length,
-    });
 
     // Restore property selections and order
     setAllSelections(scenario.propertySelections, scenario.propertyOrder);
@@ -187,7 +177,6 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
   const removeScenario = useCallback((id: string) => {
     // Don't allow removing the last scenario
     if (scenarios.length === 1) {
-      console.warn('Cannot remove the last scenario');
       return;
     }
 
@@ -220,8 +209,6 @@ export const MultiScenarioProvider: React.FC<MultiScenarioProviderProps> = ({ ch
   const setActiveScenarioHandler = useCallback((id: string) => {
     // Don't do anything if switching to the already-active scenario
     if (id === activeScenarioId) return;
-
-    console.log('MultiScenarioContext: Switching active scenario from', activeScenarioId, 'to', id);
 
     // First sync the current scenario's state FROM global contexts
     syncCurrentScenarioFromContext();

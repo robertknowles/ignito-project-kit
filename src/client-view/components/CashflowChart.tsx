@@ -83,44 +83,9 @@ const BreakEvenLabel = (props: any) => {
   );
 };
 
-// Income Goal Label component
-const IncomeGoalLabel = (props: any) => {
-  const { viewBox, incomeGoal } = props;
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + viewBox.width - 10}
-      y={viewBox.y - 5}
-      fill={COLORS.goalStroke}
-      fontSize={10}
-      fontWeight={600}
-      textAnchor="end"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Income Goal: {formatCurrency(incomeGoal)}/yr
-    </text>
-  );
-};
-
-// Goal Achievement Label component
-const GoalAchievedLabel = (props: any) => {
-  const { cx, cy, year } = props;
-  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
-    return null;
-  }
-  return (
-    <text
-      x={cx}
-      y={cy - 16}
-      fill={COLORS.goalStroke}
-      fontSize={9}
-      fontWeight={500}
-      textAnchor="middle"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Goal: {year}
-    </text>
-  );
+// Goal Achievement Label component (empty - we only show the yellow dot)
+const GoalAchievedLabel = () => {
+  return null;
 };
 
 interface PropertyPurchase {
@@ -228,13 +193,40 @@ export function CashflowChart({
     return normalizedData.find(d => d.year === incomeGoalYear);
   }, [normalizedData, incomeGoalYear]);
 
-  // Calculate Y-axis domain based on data
-  const yAxisDomain = useMemo(() => {
+  // Calculate Y-axis domain with nice round intervals
+  const { yAxisDomain, yAxisTicks } = useMemo(() => {
     const values = normalizedData.map(d => d.cashflow);
-    const min = Math.min(...values, 0);
-    const max = Math.max(...values, incomeGoal || 0);
-    const padding = Math.abs(max - min) * 0.1;
-    return [Math.floor(min - padding), Math.ceil(max + padding)];
+    const dataMin = Math.min(...values, 0);
+    const dataMax = Math.max(...values, incomeGoal || 0);
+    
+    // Determine a nice interval based on the range
+    const range = dataMax - dataMin;
+    let interval: number;
+    
+    if (range <= 50000) {
+      interval = 10000; // 10K intervals for small ranges
+    } else if (range <= 100000) {
+      interval = 20000; // 20K intervals
+    } else if (range <= 200000) {
+      interval = 50000; // 50K intervals
+    } else {
+      interval = 100000; // 100K intervals for large ranges
+    }
+    
+    // Round min down and max up to nearest interval
+    const niceMin = Math.floor(dataMin / interval) * interval;
+    const niceMax = Math.ceil(dataMax / interval) * interval;
+    
+    // Generate tick values
+    const ticks: number[] = [];
+    for (let tick = niceMin; tick <= niceMax; tick += interval) {
+      ticks.push(tick);
+    }
+    
+    return {
+      yAxisDomain: [niceMin, niceMax],
+      yAxisTicks: ticks,
+    };
   }, [normalizedData, incomeGoal]);
 
   return (
@@ -281,6 +273,7 @@ export function CashflowChart({
             tickLine={false}
             width={50}
             domain={yAxisDomain}
+            ticks={yAxisTicks}
           />
           
           <Tooltip content={<CustomTooltip />} />
@@ -294,18 +287,6 @@ export function CashflowChart({
           >
             <Label content={<BreakEvenLabel />} />
           </ReferenceLine>
-          
-          {/* Income Goal Reference Line */}
-          {incomeGoal > 0 && (
-            <ReferenceLine
-              y={incomeGoal}
-              stroke={COLORS.goal}
-              strokeDasharray="5 5"
-              strokeWidth={2}
-            >
-              <Label content={<IncomeGoalLabel incomeGoal={incomeGoal} />} />
-            </ReferenceLine>
-          )}
           
           {/* Cashflow Bars with conditional coloring and property markers */}
           <Bar 

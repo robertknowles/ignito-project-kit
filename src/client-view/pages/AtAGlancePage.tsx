@@ -76,9 +76,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   const { portfolioData, cashflowData, equityGoalYear, incomeGoalYear } = useMemo(() => {
     // If we have pre-calculated chart data from the dashboard, use it directly
     if (chartData && chartData.portfolioGrowthData && chartData.portfolioGrowthData.length > 0) {
-      console.log('AtAGlancePage: Using pre-calculated chart data from dashboard');
-      
-      // Convert dashboard format (year as string) to component format (year as number)
+// Convert dashboard format (year as string) to component format (year as number)
       const portfolioDataArr = chartData.portfolioGrowthData.map(d => ({
         year: parseInt(d.year, 10),
         portfolioValue: d.portfolioValue,
@@ -99,8 +97,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
     }
 
     // Fallback: Calculate from propertySelections (legacy behavior for older saved scenarios)
-    console.log('AtAGlancePage: Falling back to calculating chart data from propertySelections');
-    const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: number }> = [];
+const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: number }> = [];
     const cashflowDataArr: Array<{ year: number; cashflow: number }> = [];
     
     // Convert propertySelections to PropertyPurchase format

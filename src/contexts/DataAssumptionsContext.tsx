@@ -203,16 +203,8 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
 
   const saveAssumptionsToProfile = useCallback(async () => {
     if (!user) {
-      console.log('DataAssumptionsContext: No user, skipping save');
       return;
     }
-
-    console.log('DataAssumptionsContext: Saving assumptions to profile for user:', user.id);
-    console.log('DataAssumptionsContext: Data to save:', {
-      propertyTypeTemplates: propertyTypeTemplates,
-      propertyAssumptions: propertyAssumptions,
-      globalFactors: globalFactors,
-    });
 
     try {
       const dataToSave = {
@@ -231,23 +223,17 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
         .select();
 
       if (error) {
-        console.error('DataAssumptionsContext: Error saving:', error);
         throw error;
       }
-
-      console.log('DataAssumptionsContext: Successfully saved assumptions:', data);
     } catch (error) {
-      console.error('DataAssumptionsContext: Failed to save assumptions to profile:', error);
+      // Failed to save assumptions to profile
     }
   }, [user, propertyTypeTemplates, propertyAssumptions, globalFactors]);
 
   const loadAssumptionsFromProfile = async () => {
     if (!user) {
-      console.log('DataAssumptionsContext: No user, skipping load');
       return;
     }
-
-    console.log('DataAssumptionsContext: Loading assumptions from profile for user:', user.id);
 
     try {
       const { data, error } = await supabase
@@ -259,13 +245,10 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       if (error) {
         // PGRST116 means no rows found - this is normal for new users
         if (error.code === 'PGRST116') {
-          console.log('DataAssumptionsContext: No profile data found, using defaults');
           return;
         }
         throw error;
       }
-
-      console.log('DataAssumptionsContext: Profile data retrieved:', data);
 
       if (data?.data) {
         const profileData = data.data as {
@@ -274,28 +257,23 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
           globalFactors?: GlobalEconomicFactors;
         };
 
-        console.log('DataAssumptionsContext: Parsing profile data:', profileData);
-
-        // NEW: Load property type templates if available
+        // Load property type templates if available
         if (profileData.propertyTypeTemplates) {
-          console.log('DataAssumptionsContext: Loading property type templates:', profileData.propertyTypeTemplates);
           setPropertyTypeTemplates(profileData.propertyTypeTemplates);
         }
 
         // DEPRECATED: Load old property assumptions for backward compatibility
         if (profileData.propertyAssumptions) {
-          console.log('DataAssumptionsContext: Loading property assumptions:', profileData.propertyAssumptions);
           setPropertyAssumptions(profileData.propertyAssumptions);
         }
 
         // DEPRECATED: Load old global factors for backward compatibility
         if (profileData.globalFactors) {
-          console.log('DataAssumptionsContext: Loading global factors:', profileData.globalFactors);
           setGlobalFactors(profileData.globalFactors);
         }
       }
     } catch (error) {
-      console.error('DataAssumptionsContext: Error loading assumptions from profile:', error);
+      // Failed to load assumptions from profile
     }
   };
 
@@ -313,7 +291,6 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     
     // Block auto-save for client role - sandbox mode
     if (role === 'client') {
-      console.log('DataAssumptionsContext: Auto-save blocked for client role (sandbox mode)');
       return;
     }
     
@@ -331,11 +308,8 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     // Skip the first render (initial load)
     if (prevAssumptionsRef.current === '') {
       prevAssumptionsRef.current = currentAssumptions;
-      console.log('DataAssumptionsContext: Initial load, skipping save');
       return;
     }
-    
-    console.log('DataAssumptionsContext: Assumptions changed, scheduling auto-save in 1 second');
     
     // Clear previous timeout
     if (saveTimeoutRef.current) {
@@ -344,7 +318,6 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     
     // Set new timeout
     saveTimeoutRef.current = setTimeout(() => {
-      console.log('DataAssumptionsContext: Debounce complete, executing save');
       saveAssumptionsToProfile();
       prevAssumptionsRef.current = currentAssumptions;
     }, 1000);

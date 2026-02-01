@@ -160,18 +160,15 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const saveScenario = useCallback(async () => {
     // Block saves for client role - sandbox mode
     if (role === 'client') {
-      console.log('ScenarioSaveContext: Save blocked for client role (sandbox mode)');
       return;
     }
 
     if (!activeClient) {
-      console.warn('ScenarioSaveContext: Cannot save - no active client');
       return;
     }
 
     // Prevent concurrent save operations
     if (saveInProgressRef.current) {
-      console.warn('ScenarioSaveContext: Save already in progress, skipping');
       toast({
         title: "Save in Progress",
         description: "Please wait for the current save to complete",
@@ -184,8 +181,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     try {
       const scenarioData = getCurrentScenarioData();
-      console.log('ScenarioSaveContext: Saving scenario with', Object.keys(scenarioData.propertyInstances || {}).length, 'property instances');
-      console.log('ScenarioSaveContext: Property instances:', Object.keys(scenarioData.propertyInstances || {}));
       
       // Fetch agent profile for display names
       let agentDisplayName = 'Agent';
@@ -215,7 +210,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (existingScenarios && existingScenarios.length > 0) {
         // Update existing scenario
-        console.log('ScenarioSaveContext: Updating existing scenario', existingScenarios[0].id);
         const { error } = await supabase
           .from('scenarios')
           .update({
@@ -230,10 +224,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         if (error) throw error;
         setScenarioId(existingScenarios[0].id);
-        console.log('ScenarioSaveContext: ✓ Scenario updated successfully');
       } else {
         // Insert new scenario
-        console.log('ScenarioSaveContext: Creating new scenario');
         const { data: newScenario, error } = await supabase
           .from('scenarios')
           .insert({
@@ -252,7 +244,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (newScenario) {
           setScenarioId(newScenario.id);
         }
-        console.log('ScenarioSaveContext: ✓ New scenario created successfully');
       }
       
       setLastSavedData(scenarioData);
@@ -272,7 +263,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       }
     } catch (error) {
-      console.error('ScenarioSaveContext: ✗ Error saving scenario:', error);
       toast({
         title: "Save Error",
         description: "Failed to save scenario. Please try again.",
@@ -286,11 +276,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {
-    console.log('ScenarioSaveContext: Loading scenario for client:', clientId);
-    
     // Prevent concurrent load operations
     if (loadInProgressRef.current) {
-      console.warn('ScenarioSaveContext: Load already in progress, skipping');
       return null;
     }
 
@@ -308,7 +295,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) {
         // PGRST116 means no rows found
         if (error.code === 'PGRST116') {
-          console.log('ScenarioSaveContext: No saved scenario found for client', clientId);
           setLastSavedData(null);
           setLastSaved(null);
           setScenarioId(null);
@@ -323,9 +309,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
-        console.log('ScenarioSaveContext: ✓ Loaded scenario data');
-        console.log('ScenarioSaveContext: - Property selections:', Object.keys(scenarioData.propertySelections).length);
-        console.log('ScenarioSaveContext: - Property instances:', Object.keys(scenarioData.propertyInstances || {}).length);
         
         // Set the scenario ID
         setScenarioId(data.id);
@@ -345,28 +328,22 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         // Load property instances
         if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
-          console.log('ScenarioSaveContext: Restoring', Object.keys(scenarioData.propertyInstances).length, 'property instances');
-          console.log('ScenarioSaveContext: Instance IDs:', Object.keys(scenarioData.propertyInstances).join(', '));
           propertyInstanceContext.setInstances(scenarioData.propertyInstances);
         } else {
-          console.log('ScenarioSaveContext: No property instances to restore');
           propertyInstanceContext.setInstances({});
         }
         
         // Restore property order (chronological order in which properties were added)
         if (scenarioData.propertyOrder && scenarioData.propertyOrder.length > 0) {
-          console.log('ScenarioSaveContext: Restoring property order with', scenarioData.propertyOrder.length, 'entries');
           setPropertyOrder(scenarioData.propertyOrder);
         } else {
           // Backwards compatibility: reconstruct order from selections if propertyOrder not saved
-          // This groups by property type, so chronological order is lost for legacy data
           const reconstructedOrder: string[] = [];
           Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
             for (let i = 0; i < quantity; i++) {
               reconstructedOrder.push(`${propertyId}_instance_${i}`);
             }
           });
-          console.log('ScenarioSaveContext: Reconstructed property order from selections (legacy data)');
           setPropertyOrder(reconstructedOrder);
         }
         
@@ -374,10 +351,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
         
-        console.log('ScenarioSaveContext: ✓ Scenario loaded successfully');
         return scenarioData;
       } else {
-        console.log('ScenarioSaveContext: No data in scenario');
         setLastSavedData(null);
         setLastSaved(null);
         setHasUnsavedChanges(false);
@@ -386,7 +361,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return null;
       }
     } catch (error) {
-      console.error('ScenarioSaveContext: ✗ Error loading scenario:', error);
       toast({
         title: "Load Error",
         description: "Failed to load scenario. Please refresh the page.",
@@ -401,11 +375,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reset scenario - clear all data and delete from database
   const resetScenario = useCallback(async () => {
     if (!activeClient) {
-      console.warn('ScenarioSaveContext: Cannot reset - no active client');
       return;
     }
 
-    console.log('ScenarioSaveContext: Resetting scenario to empty state for client:', activeClient.id);
     setIsLoading(true);
 
     try {
@@ -417,7 +389,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           .eq('id', scenarioId);
         
         if (error) throw error;
-        console.log('ScenarioSaveContext: ✓ Deleted scenario from database');
       }
 
       // Reset all local state to empty/defaults
@@ -438,7 +409,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: `${activeClient.name}'s scenario has been cleared.`,
       });
     } catch (error) {
-      console.error('ScenarioSaveContext: ✗ Error resetting scenario:', error);
       toast({
         title: "Reset Error",
         description: "Failed to reset scenario. Please try again.",
@@ -451,8 +421,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Load scenario for client user by client_user_id (for sandbox mode)
   const loadScenarioForClientUser = useCallback(async (userId: string) => {
-    console.log('ScenarioSaveContext: Loading scenario for client user:', userId);
-    
     setClientScenarioLoading(true);
     setNoScenarioForClient(false);
     
@@ -469,7 +437,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) {
         // PGRST116 means no rows found
         if (error.code === 'PGRST116') {
-          console.log('ScenarioSaveContext: No scenario found for client user', userId);
           setNoScenarioForClient(true);
           setLastSavedData(null);
           setLastSaved(null);
@@ -483,8 +450,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
-        console.log('ScenarioSaveContext: ✓ Loaded scenario for client user');
-        console.log('ScenarioSaveContext: - Property selections:', Object.keys(scenarioData.propertySelections).length);
         
         // Set the scenario ID
         setScenarioId(data.id);
@@ -504,7 +469,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         // Load property instances
         if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
-          console.log('ScenarioSaveContext: Restoring', Object.keys(scenarioData.propertyInstances).length, 'property instances');
           propertyInstanceContext.setInstances(scenarioData.propertyInstances);
         } else {
           propertyInstanceContext.setInstances({});
@@ -528,10 +492,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(false);
         setNoScenarioForClient(false);
         
-        console.log('ScenarioSaveContext: ✓ Client user scenario loaded successfully');
         return scenarioData;
       } else {
-        console.log('ScenarioSaveContext: No data in scenario for client user');
         setNoScenarioForClient(true);
         setLastSavedData(null);
         setLastSaved(null);
@@ -540,7 +502,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return null;
       }
     } catch (error) {
-      console.error('ScenarioSaveContext: ✗ Error loading scenario for client user:', error);
       setNoScenarioForClient(true);
       toast({
         title: "Load Error",
@@ -556,7 +517,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Auto-load scenario for client users (sandbox mode)
   useEffect(() => {
     if (role === 'client' && user?.id && !clientUserLoadedRef.current) {
-      console.log('ScenarioSaveContext: Client user detected, auto-loading scenario');
       clientUserLoadedRef.current = true;
       loadScenarioForClientUser(user.id);
     }
@@ -565,7 +525,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Load scenario when activeClient changes
   useEffect(() => {
     if (activeClient && loadedClientRef.current !== activeClient.id) {
-      console.log('ScenarioSaveContext: activeClient changed, loading scenario for client:', activeClient.id);
       loadClientScenario(activeClient.id);
       loadedClientRef.current = activeClient.id;
     }

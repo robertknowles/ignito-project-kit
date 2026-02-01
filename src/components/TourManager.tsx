@@ -86,7 +86,7 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
   // Fetch tour completion status from database on mount
   useEffect(() => {
     const fetchTourStatus = async () => {
-      if (!user) {
+      if (!user?.id) {
         setLoading(false)
         return
       }
@@ -96,9 +96,11 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
           .from('profiles')
           .select('has_completed_tour')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
-        if (!error && data) {
+        if (error) {
+          // Could not fetch tour status - fall back to localStorage
+        } else if (data) {
           const completed = data.has_completed_tour ?? false
           setHasCompletedTourDB(completed)
           // Sync to localStorage if DB says completed
@@ -107,13 +109,13 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
           }
         }
       } catch (error) {
-        console.error('Error fetching tour status:', error)
+        // Error fetching tour status - fall back to localStorage
       }
       setLoading(false)
     }
 
     fetchTourStatus()
-  }, [user])
+  }, [user?.id])
 
   // Mark tour as completed in BOTH localStorage AND database
   const markTourCompletedPersistent = useCallback(async () => {
@@ -129,7 +131,7 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
           .update({ has_completed_tour: true })
           .eq('id', user.id)
       } catch (error) {
-        console.error('Error saving tour completion to database:', error)
+        // Failed to save tour completion to database
       }
     }
   }, [user])

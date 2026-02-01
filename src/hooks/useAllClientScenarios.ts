@@ -46,20 +46,14 @@ export const useAllClientScenarios = () => {
 
       // Wait for property assumptions to load
       if (!propertyAssumptions || propertyAssumptions.length === 0) {
-        console.log('useAllClientScenarios: Waiting for property assumptions to load...');
-        setLoading(false);
+setLoading(false);
         return;
       }
-
-      console.log(`useAllClientScenarios: Starting with ${clients.length} clients and ${propertyAssumptions.length} property types`);
-
-      const allClientTimelines: TimelineClient[] = [];
+const allClientTimelines: TimelineClient[] = [];
 
       for (const client of clients) {
         try {
-          console.log(`Loading scenarios for client ${client.id}: ${client.name}`);
-          
-          // Fetch ALL scenarios for this client from Supabase
+// Fetch ALL scenarios for this client from Supabase
           const { data: scenarios, error } = await supabase
             .from('scenarios')
             .select('*')
@@ -67,13 +61,11 @@ export const useAllClientScenarios = () => {
             .order('updated_at', { ascending: false });
 
           if (error) {
-            console.error(`Error fetching scenarios for client ${client.id}:`, error);
-            continue;
+continue;
           }
 
           if (!scenarios || scenarios.length === 0) {
-            console.log(`No scenarios found for ${client.name}`);
-            // Add an empty row for this client
+// Add an empty row for this client
             allClientTimelines.push({
               id: `${client.id}-empty`,
               name: client.name,
@@ -85,18 +77,13 @@ export const useAllClientScenarios = () => {
             continue;
           }
 
-          console.log(`Found ${scenarios.length} scenario(s) for ${client.name}`);
-
           // Create a separate timeline row for EACH scenario
           for (let scenarioIndex = 0; scenarioIndex < scenarios.length; scenarioIndex++) {
             const scenario = scenarios[scenarioIndex];
             const scenarioData = scenario.data as any;
             const selections = scenarioData?.propertySelections || {};
             const profile = scenarioData?.investmentProfile || {};
-
-            console.log(`  Scenario "${scenario.name}":`, selections);
-
-            // Extract purchases from this scenario
+// Extract purchases from this scenario
             const scenarioPurchases: TimelinePurchase[] = [];
             
             // Check if we have a saved timeline snapshot (the "truth" from the dashboard)
@@ -104,9 +91,7 @@ export const useAllClientScenarios = () => {
             
             if (timelineSnapshot && Array.isArray(timelineSnapshot) && timelineSnapshot.length > 0) {
               // USE SAVED SNAPSHOT - This is the accurate timeline from the dashboard
-              console.log(`    Using saved timeline snapshot with ${timelineSnapshot.length} properties`);
-              
-              let propertyNumber = 1;
+let propertyNumber = 1;
               timelineSnapshot
                 .filter((item: any) => item.status === 'feasible' && item.affordableYear !== Infinity)
                 .forEach((item: any) => {
@@ -125,10 +110,7 @@ export const useAllClientScenarios = () => {
                   // Use affordableYear from the snapshot (this is the accurate year)
                   const year = Math.round(item.affordableYear);
                   const cost = item.cost || 0;
-                  
-                  console.log(`    Snapshot property: "${item.title}" in year ${year}, cost: $${cost}`);
-                  
-                  scenarioPurchases.push({
+scenarioPurchases.push({
                     year,
                     propertyType,
                     cost,
@@ -138,8 +120,7 @@ export const useAllClientScenarios = () => {
                 });
             } else {
               // FALLBACK CALCULATION - For legacy data without snapshot
-              console.log(`    No timeline snapshot found, using fallback calculation`);
-              let propertyNumber = 1;
+let propertyNumber = 1;
 
               Object.entries(selections).forEach(([propertyId, quantity]) => {
                 const qty = quantity as number;
@@ -148,7 +129,6 @@ export const useAllClientScenarios = () => {
                 // Extract the index number
                 const match = propertyId.match(/property_(\d+)/);
                 if (!match || qty === 0) {
-                  console.log(`    Skipping ${propertyId} (qty: ${qty})`);
                   return;
                 }
                 
@@ -159,8 +139,6 @@ export const useAllClientScenarios = () => {
                 const assumption = template ? getPropertyData(template.propertyType) : propertyAssumptions[propertyIndex];
                 
                 if (!assumption) {
-                  console.warn(`    WARNING: No property assumption found at index ${propertyIndex} (${propertyId})`);
-                  console.warn(`    Available templates:`, propertyTypeTemplates.map((t, i) => `${i}: ${t.propertyType}`));
                   return;
                 }
                 
@@ -205,8 +183,6 @@ export const useAllClientScenarios = () => {
                   
                   const estimatedYear = baseYear + yearsNeeded;
                   
-                  console.log(`    Fallback: Creating ${qty} purchases of "${assumption.type}", starting year ${estimatedYear} (depositPool: $${depositPool}, totalDepositNeeded: $${totalDepositNeeded}, shortfall: $${shortfall}, yearsNeeded: ${yearsNeeded})`);
-                  
                   // Add one purchase for each quantity
                   for (let i = 0; i < qty; i++) {
                     scenarioPurchases.push({
@@ -220,10 +196,7 @@ export const useAllClientScenarios = () => {
                 }
               });
             }
-
-            console.log(`Total purchases for ${client.name} - ${scenario.name}: ${scenarioPurchases.length}`);
-            
-            // Create a separate row for this scenario
+// Create a separate row for this scenario
             // Use a compound ID to ensure uniqueness
             const displayName = scenarios.length > 1 
               ? `${client.name} - ${scenario.name || `Scenario ${scenarioIndex + 1}`}`
@@ -239,19 +212,9 @@ export const useAllClientScenarios = () => {
             });
           }
         } catch (error) {
-          console.error(`Error loading timeline data for client ${client.id}:`, error);
-        }
+}
       }
-
-      console.log(`useAllClientScenarios: Final timeline data with ${allClientTimelines.length} rows:`, allClientTimelines);
-      console.log(`useAllClientScenarios: Summary:`, allClientTimelines.map(t => ({
-        id: t.id,
-        name: t.name,
-        scenario: t.scenarioName,
-        purchaseCount: t.purchases.length
-      })));
-      
-      setTimelineData(allClientTimelines);
+setTimelineData(allClientTimelines);
       setLoading(false);
     };
 

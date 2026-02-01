@@ -12,7 +12,8 @@ import {
 } from 'recharts';
 import { AlertTriangle } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useRoadmapData, YearData, FundingBreakdown } from '../hooks/useRoadmapData';
+import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
+import { EVENT_CATEGORIES } from '../constants/eventTypes';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -364,44 +365,9 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
   );
 };
 
-// Equity Goal Label component
-const EquityGoalLabel = (props: any) => {
-  const { viewBox, equityGoal } = props;
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + viewBox.width - 10}
-      y={viewBox.y - 5}
-      fill="#d97706"
-      fontSize={11}
-      fontWeight={600}
-      textAnchor="end"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Equity Goal: {formatCurrency(equityGoal)}
-    </text>
-  );
-};
-
-// Goal Achievement Label component
-const GoalAchievedLabel = (props: any) => {
-  const { cx, cy, year } = props;
-  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
-    return null;
-  }
-  return (
-    <text
-      x={cx}
-      y={cy - 18}
-      fill="rgba(253, 186, 116, 1)"
-      fontSize={10}
-      fontWeight={500}
-      textAnchor="middle"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Goal: {year}
-    </text>
-  );
+// Goal Achievement Label component (empty - we only show the yellow dot)
+const GoalAchievedLabel = () => {
+  return null;
 };
 
 interface ChartWithRoadmapProps {
@@ -470,6 +436,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   
   // Expandable row state for Buy row funding breakdown
   const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
+  
+  // Expandable state for the table rows (excluding year header)
+  const [isTableExpanded, setIsTableExpanded] = useState(true);
   
   // Get violations for a property
   const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
@@ -993,19 +962,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 dot={false}
               />
               
-              {/* Equity Goal Reference Line - Rendered after Areas to appear on top */}
-              {profile.equityGoal > 0 && (
-                <ReferenceLine
-                  y={profile.equityGoal}
-                  stroke="rgba(253, 186, 116, 0.7)"
-                  strokeDasharray="5 5"
-                  strokeWidth={2}
-                >
-                  <Label content={<EquityGoalLabel equityGoal={profile.equityGoal} />} />
-                </ReferenceLine>
-              )}
-              
-              {/* Goal Achievement Marker */}
+              {/* Goal Achievement Marker - yellow dot only */}
               {equityGoalReached && (
                 <ReferenceDot
                   x={equityGoalReached.year}
@@ -1024,9 +981,15 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
         {/* Table Section with light grey background */}
         <div className="bg-slate-50/70 -mt-5">
-          {/* YEAR Header Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40" />
+          {/* YEAR Header Row - Always visible, clickable to expand/collapse table */}
+          <div 
+            style={gridStyle} 
+            className="border-b border-slate-200/40 cursor-pointer hover:bg-slate-100/50 transition-colors"
+            onClick={() => setIsTableExpanded(!isTableExpanded)}
+          >
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40 flex items-center justify-end">
+              <span className={`text-[8px] text-slate-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
+            </div>
             {years.map((yearData, index) => (
               <div 
                 key={yearData.year}
@@ -1039,6 +1002,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             ))}
           </div>
 
+          {/* Expandable Table Content */}
+          {isTableExpanded && (
+          <>
           {/* PURCHASE Row - Expandable to show funding sources */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div 
@@ -1077,90 +1043,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             ))}
           </div>
 
-          {/* Affordability Guardrails - Status Rows */}
-          <TourStep
-            id="affordability-guardrails"
-            title="Affordability Guardrails"
-            content="The roadmap shows pass/fail tests for each purchase year: Deposit (funds available), Borrowing (capacity remaining), and Serviceability (income coverage). Click any status pill to see the full analysis. Red warning badges on property icons indicate violations - click for suggested fixes."
-            order={11}
-            position="top"
-          >
-          <div>
-          {/* DEPOSIT Status Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Deposit
-              </span>
-            </div>
-            {years.map((yearData, index) => {
-              const isClickable = !!yearData.yearBreakdownData;
-              return (
-                <div 
-                  key={`deposit-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  <StatusPill 
-                    status={yearData.depositStatus} 
-                    isClickable={isClickable}
-                    onClick={isClickable ? () => handleTestClick(yearData, 'deposit') : undefined}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* BORROWING Status Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Borrow
-              </span>
-            </div>
-            {years.map((yearData, index) => {
-              const isClickable = !!yearData.yearBreakdownData;
-              return (
-                <div 
-                  key={`borrowing-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  <StatusPill 
-                    status={yearData.borrowingStatus}
-                    isClickable={isClickable}
-                    onClick={isClickable ? () => handleTestClick(yearData, 'borrowing') : undefined}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* SERVICEABILITY Status Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Service
-              </span>
-            </div>
-            {years.map((yearData, index) => {
-              const isClickable = !!yearData.yearBreakdownData;
-              return (
-                <div 
-                  key={`service-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  <StatusPill 
-                    status={yearData.serviceabilityStatus}
-                    isClickable={isClickable}
-                    onClick={isClickable ? () => handleTestClick(yearData, 'serviceability') : undefined}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          </div>
-          </TourStep>
-
-          {/* AVAILABLE Funds Row - Expandable */}
+          {/* AVAIL Row - Expandable to show funding breakdown */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div 
               className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
@@ -1173,80 +1056,22 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             </div>
             {years.map((yearData, index) => (
               <div 
-                key={`available-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                key={`avail-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex flex-col items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
               >
-                <span className="text-[8px] font-light text-slate-600">
+                <span className="text-[9px] font-medium text-slate-700">
                   {formatCompactCurrency(yearData.availableFundsRaw)}
                 </span>
+                {isAvailableFundsExpanded && yearData.yearBreakdownData && (
+                  <div className="text-[7px] text-slate-400 mt-0.5 space-y-0.5">
+                    <div>Cash: {formatCompactCurrency(yearData.yearBreakdownData.baseDeposit || 0)}</div>
+                    <div>Sav: {formatCompactCurrency(yearData.yearBreakdownData.cumulativeSavings || 0)}</div>
+                    <div>Eq: {formatCompactCurrency(yearData.yearBreakdownData.equityRelease || 0)}</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-
-          {/* Expandable Sub-rows for Available Funds Breakdown */}
-          {isAvailableFundsExpanded && (
-            <>
-              {/* Sub-row: Cash (Base Deposit) */}
-              <div style={gridStyle} className="border-b border-slate-100/50 bg-slate-100/30">
-                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
-                  <span className="text-[6px] text-slate-400 pr-1">├ Cash</span>
-                </div>
-                {years.map((yearData, index) => {
-                  const baseDeposit = yearData.yearBreakdownData?.baseDeposit || 0;
-                  return (
-                    <div 
-                      key={`cash-${yearData.year}`}
-                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
-                    >
-                      <span className="text-[6px] text-slate-500">
-                        {baseDeposit > 0 ? formatCompactCurrency(baseDeposit) : '–'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Sub-row: Savings (Cumulative Balance) */}
-              <div style={gridStyle} className="border-b border-slate-100/50 bg-slate-100/30">
-                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
-                  <span className="text-[6px] text-slate-400 pr-1">├ Save</span>
-                </div>
-                {years.map((yearData, index) => {
-                  const savings = yearData.yearBreakdownData?.cumulativeSavings ?? 0;
-                  return (
-                    <div 
-                      key={`savings-${yearData.year}`}
-                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
-                    >
-                      <span className="text-[6px] text-slate-500">
-                        {savings > 0 ? formatCompactCurrency(savings) : '$0'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Sub-row: Equity Released */}
-              <div style={gridStyle} className="border-b border-slate-200/40 bg-slate-100/30">
-                <div className="sticky left-0 bg-slate-100/50 z-10 px-1 py-0.5 flex items-center justify-end border-r border-slate-200/40">
-                  <span className="text-[6px] text-slate-400 pr-1">└ Equity</span>
-                </div>
-                {years.map((yearData, index) => {
-                  const equityRelease = yearData.yearBreakdownData?.equityRelease || 0;
-                  return (
-                    <div 
-                      key={`equity-release-${yearData.year}`}
-                      className={`px-0.5 py-0.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-200/20' : ''}`}
-                    >
-                      <span className={`text-[6px] ${equityRelease > 0 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                        {equityRelease > 0 ? formatCompactCurrency(equityRelease) : '–'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
 
           {/* LVR Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
@@ -1264,7 +1089,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   key={`lvr-${yearData.year}`}
                   className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
                 >
-                  <span className="text-[8px] font-light text-slate-600">
+                  <span className="text-[9px] font-medium text-slate-700">
                     {lvr > 0 ? `${lvr.toFixed(0)}%` : '–'}
                   </span>
                 </div>
@@ -1272,26 +1097,55 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             })}
           </div>
 
-          {/* EQUITY Row */}
+          {/* DEBT Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Equity
+                Debt
               </span>
             </div>
             {years.map((yearData, index) => (
               <div 
-                key={`equity-${yearData.year}`}
+                key={`debt-${yearData.year}`}
                 className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
               >
-                <span className="text-[8px] font-light text-slate-600">
-                  {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
+                <span className="text-[9px] font-medium text-slate-700">
+                  {formatCompactCurrency(yearData.totalDebt)}
                 </span>
               </div>
             ))}
           </div>
-        </div>
 
+          {/* SERVICE Row - Shows serviceability surplus/shortfall as a number */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Service
+              </span>
+            </div>
+            {years.map((yearData, index) => {
+              const serviceabilitySurplus = yearData.yearBreakdownData?.serviceabilityTest?.surplus;
+              const hasData = serviceabilitySurplus !== undefined;
+              return (
+                <div 
+                  key={`service-${yearData.year}`}
+                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                >
+                  {hasData ? (
+                    <span className="text-[9px] font-medium text-slate-700">
+                      {formatCompactCurrency(serviceabilitySurplus)}
+                    </span>
+                  ) : (
+                    <span className="text-[8px] text-slate-400">–</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          </>
+          )}
+
+        </div>
 
         </div>
       </div>

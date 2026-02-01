@@ -52,11 +52,8 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const fetchClients = async () => {
     if (!user || authLoading) {
-      console.log('ClientContext - fetchClients skipped:', { user: !!user, authLoading });
       return;
     }
-    
-    console.log('ClientContext - Fetching clients for user:', user.id, 'role:', role);
     setLoading(true);
     try {
       // Fetch seat limit from company if we have a companyId
@@ -94,16 +91,14 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (error) throw error;
       
-      console.log('ClientContext - Fetched clients:', data);
       setClients(data || []);
       
       // Set first client as active if none is selected
       if (!activeClient && data && data.length > 0) {
-        console.log('ClientContext - Setting active client:', data[0]);
         setActiveClient(data[0]);
       }
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      // Failed to fetch clients
     } finally {
       setLoading(false);
     }
@@ -133,7 +128,6 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       return newClient;
     } catch (error) {
-      console.error('Error creating client:', error);
       return null;
     }
   };
@@ -162,7 +156,6 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return true;
     } catch (error) {
-      console.error('Error updating client:', error);
       return false;
     }
   };
@@ -178,7 +171,6 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .eq('client_id', clientId);
 
       if (scenariosError) {
-        console.error('Error deleting scenarios:', scenariosError);
         throw scenariosError;
       }
 
@@ -201,7 +193,6 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return true;
     } catch (error) {
-      console.error('Error deleting client:', error);
       return false;
     }
   };

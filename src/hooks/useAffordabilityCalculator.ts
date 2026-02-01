@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { useInvestmentProfile } from './useInvestmentProfile';
-import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { useInvestmentProfile, type InvestmentProfileData } from './useInvestmentProfile';
+import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions, type PropertyAssumption } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
 import { useClient } from '../contexts/ClientContext';
@@ -41,7 +41,7 @@ export interface AffordabilityResult {
 
 export const useAffordabilityCalculator = () => {
   const { profile, calculatedValues } = useInvestmentProfile();
-  const { selections, propertyTypes, pauseBlocks, propertyOrder } = usePropertySelection();
+  const { selections, propertyTypes, pauseBlocks, propertyOrder, eventBlocks } = usePropertySelection();
   const { globalFactors, getPropertyData, propertyAssumptions, getPropertyTypeTemplate, propertyTypeTemplates } = useDataAssumptions();
   const { activeClient } = useClient();
   const { getInstance, createInstance, instances } = usePropertyInstance();
@@ -58,8 +58,7 @@ export const useAffordabilityCalculator = () => {
         try {
           setTimelineLoanTypes(JSON.parse(stored));
         } catch (error) {
-          console.error('Failed to load timeline loan types:', error);
-          setTimelineLoanTypes({});
+setTimelineLoanTypes({});
         }
       } else {
         setTimelineLoanTypes({});
@@ -152,6 +151,195 @@ export const useAffordabilityCalculator = () => {
 
   // Progressive rental recognition rates - imported from financialParams
 
+  // =============================================================================
+  // EVENT PROCESSING - Get modified profile at a specific period
+  // =============================================================================
+  
+  /**
+   * Computes a modified InvestmentProfileData based on events that have occurred
+   * up to (and including) the specified period. This allows events to modify
+   * simulation parameters like salary, borrowing capacity, etc.
+   * 
+   * @param period - The period number (1, 2, 3...)
+   * @param baseProfile - The original investment profile
+   * @param events - Array of event blocks to process
+   * @returns Modified profile with event effects applied
+   */
+  const getProfileAtPeriod = (
+    period: number,
+    baseProfile: InvestmentProfileData,
+    events: EventBlock[]
+  ): InvestmentProfileData => {
+    // Start with a copy of the base profile
+    let modifiedProfile = { ...baseProfile };
+    
+    // Sort events by period (process in chronological order)
+    const eventsUpToPeriod = events
+      .filter(e => e.period <= period)
+      .sort((a, b) => a.period - b.period);
+    
+    // Track cumulative one-time cash events for the current period only
+    let oneTimeCashAdjustment = 0;
+    
+    for (const event of eventsUpToPeriod) {
+      switch (event.eventType) {
+        // =============================================================================
+        // INCOME EVENTS
+        // =============================================================================
+        case 'salary_change':
+          if (event.payload.newSalary !== undefined) {
+            modifiedProfile.baseSalary = event.payload.newSalary;
+            // Recalculate borrowing capacity based on new salary
+            modifiedProfile.borrowingCapacity = 
+              event.payload.newSalary * modifiedProfile.salaryServiceabilityMultiplier;
+            // Estimate savings change (rough approximation - 25% of salary delta)
+            const salaryDelta = event.payload.newSalary - (event.payload.previousSalary || baseProfile.baseSalary);
+            modifiedProfile.annualSavings = baseProfile.annualSavings + (salaryDelta * 0.25);
+          }
+          break;
+          
+        case 'partner_income_change':
+          if (event.payload.newPartnerSalary !== undefined) {
+            // Partner income affects household borrowing capacity and savings
+            const partnerDelta = event.payload.newPartnerSalary - (event.payload.previousPartnerSalary || 0);
+            // Add partner income contribution to borrowing capacity (assume same multiplier)
+            modifiedProfile.borrowingCapacity += partnerDelta * modifiedProfile.salaryServiceabilityMultiplier;
+            // Add to household savings (assume 25% contribution)
+            modifiedProfile.annualSavings += partnerDelta * 0.25;
+          }
+          break;
+          
+        case 'bonus_windfall':
+          // One-time cash event - only apply at the event period
+          if (event.period === period && event.payload.bonusAmount !== undefined) {
+            oneTimeCashAdjustment += event.payload.bonusAmount;
+          }
+          break;
+          
+        // =============================================================================
+        // LIFE EVENTS
+        // =============================================================================
+        case 'inheritance':
+          // One-time cash event - only apply at the event period
+          if (event.period === period && event.payload.cashAmount !== undefined) {
+            oneTimeCashAdjustment += event.payload.cashAmount;
+          }
+          break;
+          
+        case 'major_expense':
+          // One-time cash event (deduction) - only apply at the event period
+          if (event.period === period && event.payload.cashAmount !== undefined) {
+            oneTimeCashAdjustment -= event.payload.cashAmount;
+          }
+          break;
+          
+        case 'dependent_change':
+          if (event.payload.dependentChange !== undefined) {
+            // Each dependent reduces borrowing capacity by ~$10k-15k (bank policy)
+            // and increases expenses (reducing savings)
+            const capacityReductionPerDependent = 12000;
+            const savingsReductionPerDependent = 6000;
+            
+            modifiedProfile.borrowingCapacity -= 
+              event.payload.dependentChange * capacityReductionPerDependent;
+            modifiedProfile.annualSavings -= 
+              event.payload.dependentChange * savingsReductionPerDependent;
+          }
+          break;
+          
+        // =============================================================================
+        // MARKET EVENTS
+        // =============================================================================
+        case 'interest_rate_change':
+          // Market-wide rate change - this is handled in the cashflow calculations
+          // by storing the rate change and applying it to all loan calculations
+          // The profile doesn't directly store interest rate, but we could track it
+          // for now, this is a placeholder - actual implementation in cashflow calc
+          break;
+          
+        case 'market_correction':
+          // Market correction affects growth rates - handled in property growth calc
+          // This is a placeholder - actual implementation would modify growth curve
+          break;
+          
+        // =============================================================================
+        // PORTFOLIO EVENTS
+        // =============================================================================
+        case 'sell_property':
+          // Property sale is complex - handled separately in timeline calculation
+          // The equity release from sale would be tracked as available funds
+          break;
+          
+        case 'refinance':
+          // Refinance at new rate - similar to interest rate change but property-specific
+          break;
+          
+        case 'renovate':
+          // Renovation uses cash and increases property value
+          // One-time cash deduction for renovation cost
+          if (event.period === period && event.payload.renovationCost !== undefined) {
+            oneTimeCashAdjustment -= event.payload.renovationCost;
+          }
+          break;
+      }
+    }
+    
+    // Apply one-time cash adjustments to deposit pool
+    // This happens at the specific period when the event occurs
+    modifiedProfile.depositPool = baseProfile.depositPool + oneTimeCashAdjustment;
+    
+    // Ensure values don't go negative
+    modifiedProfile.borrowingCapacity = Math.max(0, modifiedProfile.borrowingCapacity);
+    modifiedProfile.annualSavings = Math.max(0, modifiedProfile.annualSavings);
+    modifiedProfile.depositPool = Math.max(0, modifiedProfile.depositPool);
+    
+    return modifiedProfile;
+  };
+
+  /**
+   * Get the cumulative interest rate adjustment from market events up to a period
+   */
+  const getInterestRateAdjustment = (period: number, events: EventBlock[]): number => {
+    let adjustment = 0;
+    
+    const rateEvents = events
+      .filter(e => e.eventType === 'interest_rate_change' && e.period <= period)
+      .sort((a, b) => a.period - b.period);
+    
+    for (const event of rateEvents) {
+      if (event.payload.rateChange !== undefined) {
+        adjustment += event.payload.rateChange / 100; // Convert percentage points to decimal
+      }
+    }
+    
+    return adjustment;
+  };
+
+  /**
+   * Get the growth rate adjustment from market correction events at a period
+   */
+  const getGrowthRateAdjustment = (period: number, events: EventBlock[]): number => {
+    let adjustment = 0;
+    
+    const correctionEvents = events
+      .filter(e => e.eventType === 'market_correction')
+      .sort((a, b) => a.period - b.period);
+    
+    for (const event of correctionEvents) {
+      const startPeriod = event.period;
+      const endPeriod = startPeriod + (event.payload.durationPeriods || 0);
+      
+      // Check if current period is within the correction window
+      if (period >= startPeriod && period < endPeriod) {
+        if (event.payload.growthAdjustment !== undefined) {
+          adjustment += event.payload.growthAdjustment / 100; // Convert percentage points to decimal
+        }
+      }
+    }
+    
+    return adjustment;
+  };
+
   const calculateAvailableFunds = (
       currentPeriod: number, 
       previousPurchases: Array<{ period: number; cost: number; depositRequired: number; totalCashRequired?: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
@@ -173,19 +361,23 @@ export const useAffordabilityCalculator = () => {
       // This matches how BAs help investors accelerate property acquisition
       // ============================================================================
       
-      // Initialize running balances
-      let runningCashBalance = calculatedValues.availableDeposit; // Starting cash pool
+      // Get the event-modified profile for this period
+      // This applies salary changes, one-time cash events (inheritance, expense), etc.
+      const periodProfile = getProfileAtPeriod(currentPeriod, profile, eventBlocks);
+      
+      // Initialize running balances using event-modified profile
+      let runningCashBalance = periodProfile.depositPool; // Starting cash pool (may be modified by events)
       let runningSavingsBalance = 0; // Accumulates over time
       let cumulativeEquityUsed = 0; // Tracks total equity extracted across all purchases
       
       // Calculate existing portfolio equity at current period (from existing properties before this scenario)
       let existingPortfolioEquity = 0;
-      if (profile.portfolioValue > 0) {
+      if (periodProfile.portfolioValue > 0) {
         const firstTemplate = propertyTypeTemplates[0];
         const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
         if (defaultAssumption) {
-          const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
-          existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
+          const grownPortfolioValue = calculatePropertyGrowth(periodProfile.portfolioValue, currentPeriod - 1, defaultAssumption);
+          existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
         }
       }
       
@@ -193,7 +385,8 @@ export const useAffordabilityCalculator = () => {
       // Only 25% of annual savings goes into the "available for investment" pool
       // This matches the 25% usage rate when funding purchases
       const SAVINGS_RATE = 0.25;
-      const periodSavings = (profile.annualSavings * SAVINGS_RATE) / PERIODS_PER_YEAR;
+      // Use the event-modified annual savings rate
+      const periodSavings = (periodProfile.annualSavings * SAVINGS_RATE) / PERIODS_PER_YEAR;
       let totalBaseSavings = 0;
       let totalCashflowReinvestment = 0;
       
@@ -356,8 +549,7 @@ export const useAffordabilityCalculator = () => {
       netCashflow = adjustedAnnualCashflow * inflationFactor;
     } else {
       // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
-      console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
-      const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
+const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       const yieldRate = parseFloat(propertyData.yield) / 100;
       // Override with actual purchase values
       fallbackInstance.purchasePrice = purchase.cost;
@@ -465,8 +657,7 @@ export const useAffordabilityCalculator = () => {
             accLandTax += cashflowBreakdown.landTax * inflationFactor;
           } else {
             // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
-            console.warn(`Property instance not found for ${purchase.instanceId}, using property type defaults`);
-            const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
+const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
             const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
@@ -682,154 +873,32 @@ export const useAffordabilityCalculator = () => {
         const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineDisplay : '❌';
         const requiredDeposit = property.depositRequired;
 
-        console.log(`\n--- Period ${timelineDisplay} (Year ${timelineYear.toFixed(1)}) Debug Trace ---`);
-
         // === AVAILABLE FUNDS BREAKDOWN ===
         const cumulativeSavings = annualSavings * (currentPeriod / PERIODS_PER_YEAR);
         const continuousEquityAccess = totalUsableEquity;
         const totalAnnualSavings = profile.annualSavings + netCashflow; // Self-funding flywheel
         
-        console.log(
-          `💰 Available Funds: Total = ${depositPool.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Base Deposit Pool: $${baseDeposit.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Cumulative Savings: $${cumulativeSavings.toLocaleString()} (${(currentPeriod / PERIODS_PER_YEAR).toFixed(1)} years × $${profile.annualSavings.toLocaleString()})`
-        );
-        console.log(
-          `   ├─ Net Cashflow Reinvestment: $${netCashflow.toLocaleString()}`
-        );
-        console.log(
-          `   └─ Continuous Equity Access: $${continuousEquityAccess.toLocaleString()} (88% LVR cap)`
-        );
-
         // === SELF-FUNDING FLYWHEEL ===
-        console.log(
-          `🔄 Self-Funding Flywheel: AnnualSavings = BaseSavings($${profile.annualSavings.toLocaleString()}) + NetCashflowReinvestment($${netCashflow.toLocaleString()}) = $${totalAnnualSavings.toLocaleString()}`
-        );
-
         // === EQUITY BREAKDOWN ===
-        console.log(
-          `🏠 Equity Breakdown: Total Usable = $${totalUsableEquity.toLocaleString()}`
-        );
         propertyValues.forEach((value, i) => {
           const equity = usableEquityPerProperty[i];
-          console.log(
-            `   Property ${i+1}: Value $${value.toLocaleString()} → Usable Equity $${equity.toLocaleString()}`
-          );
-        });
+          });
 
         // === CASHFLOW BREAKDOWN ===
-        console.log(
-          `💵 Cashflow: Net = $${netCashflow.toLocaleString()}/year`
-        );
-        console.log(
-          `   ├─ Gross Rental: $${rentalIncome.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Loan Interest: -$${loanInterest.toLocaleString()}`
-        );
-        console.log(
-          `   └─ Expenses: -$${expenses.toLocaleString()} (detailed cashflow + 3% annual inflation)`
-        );
-
         // === SERVICEABILITY TEST ===
         const annualLoanPayment = totalAnnualLoanPayment;
         const maxAnnualPaymentValue = maxAnnualPayment;
         const serviceabilitySurplus = serviceabilityTestSurplus;
         
-        console.log(
-          `📊 Serviceability Test: ${serviceabilityPass ? "PASS" : "FAIL"} (Enhanced with Rental)`
-        );
-        console.log(
-          `   ├─ Loan Payment: $${annualLoanPayment.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Base Capacity: $${baseCapacity.toLocaleString()} (10% of $${profile.borrowingCapacity.toLocaleString()})`
-        );
-        console.log(
-          `   ├─ Rental Contribution: $${rentalContribution.toLocaleString()} (70% of $${totalRentalIncome.toLocaleString()})`
-        );
-        console.log(
-          `   ├─ Max Annual Payment: $${maxAnnualPaymentValue.toLocaleString()} (base + rental)`
-        );
-        console.log(
-          `   └─ Surplus: $${serviceabilitySurplus.toLocaleString()}`
-        );
-        console.log(
-          `   └─ Deposit Test: $${availableFunds.toLocaleString()} ≥ $${totalCashRequired.toLocaleString()} (deposit + costs)`
-        );
-        
         // === DYNAMIC BORROWING CAPACITY ===
-        console.log(
-          `📈 Dynamic Borrowing Capacity:`
-        );
-        console.log(
-          `   ├─ Base Capacity: $${baseCapacity.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Usable Equity: $${totalUsableEquity.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Equity Factor: ${(profile.equityFactor * 100).toFixed(0)}%`
-        );
-        console.log(
-          `   ├─ Equity Boost: $${equityBoost.toLocaleString()}`
-        );
-        console.log(
-          `   └─ Effective Capacity: $${effectiveBorrowingCapacity.toLocaleString()}`
-        );
-
-        // === DEBT POSITION ===
-        console.log(
-          `💳 Debt Position: Total After Purchase = $${totalDebt.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Existing Debt: $${existingDebt.toLocaleString()}`
-        );
-        console.log(
-          `   └─ New Loan Required: $${newLoan.toLocaleString()}`
-        );
-        
+// === DEBT POSITION ===
         // === BORROWING CAPACITY CHECK ===
-        console.log(
-          `🏦 Borrowing Capacity Check: ${borrowingCapacityTestPass ? "PASS" : "FAIL"}`
-        );
-        console.log(
-          `   ├─ Total Debt After Purchase: $${totalDebtAfterPurchase.toLocaleString()}`
-        );
-        console.log(
-          `   ├─ Effective Borrowing Capacity Limit: $${effectiveBorrowingCapacity.toLocaleString()}`
-        );
-        console.log(
-          `   └─ Remaining Capacity: $${borrowingCapacityTestSurplus.toLocaleString()}`
-        );
-
-        // === STRATEGY INSIGHTS ===
+// === STRATEGY INSIGHTS ===
         const portfolioScalingVelocity = previousPurchases.filter(p => p.period <= currentPeriod).length;
         const selfFundingEfficiency = netCashflow > 0 ? (netCashflow / totalAnnualSavings * 100) : 0;
         const equityRecyclingImpact = continuousEquityAccess > 0 ? (continuousEquityAccess / depositPool * 100) : 0;
-        
-        console.log(
-          `📈 Strategy Insights:`
-        );
-        console.log(
-          `   ├─ Portfolio Scaling: ${portfolioScalingVelocity} properties acquired so far`
-        );
-        console.log(
-          `   ├─ Self-Funding Efficiency: ${selfFundingEfficiency.toFixed(1)}% (cashflow contribution to annual savings)`
-        );
-        console.log(
-          `   └─ Equity Recycling Impact: ${equityRecyclingImpact.toFixed(1)}% (equity as % of available funds)`
-        );
-
-        // === FINAL DECISION ===
-        console.log(
-          `✅ Final Decision: DepositTest = ${depositPass ? "PASS" : "FAIL"} | BorrowingCapacity = ${borrowingCapacityTestPass ? "PASS" : "FAIL"} | ServiceabilityTest = ${serviceabilityPass ? "PASS" : "FAIL"} | Purchase = ${purchaseDecision}`
-        );
-      }
+// === FINAL DECISION ===
+}
       
       if (!canAffordDeposit) {
         return { canAfford: false };
@@ -912,8 +981,7 @@ export const useAffordabilityCalculator = () => {
       for (let period = minPeriod; period <= maxPeriods + pausePeriodsToAdd; period++) {
         iterationCount++;
         if (iterationCount > maxIterations) {
-          console.error('[SAFETY] Max iterations exceeded in determineNextPurchasePeriod');
-          return { period: Infinity };
+return { period: Infinity };
         }
         
         // Check if this period is within a pause range
@@ -944,8 +1012,7 @@ export const useAffordabilityCalculator = () => {
         
         if (isInPause) {
           if (DEBUG_MODE) {
-            console.log(`[PAUSE] Period ${period} (${periodToDisplay(period)}): Skipped due to active pause period`);
-          }
+            }
           continue;
         }
         
@@ -954,8 +1021,7 @@ export const useAffordabilityCalculator = () => {
         
         if (purchasesInThisPeriod >= MAX_PURCHASES_PER_PERIOD) {
           if (DEBUG_MODE) {
-            console.log(`[PURCHASE LIMIT] Period ${period} (${periodToDisplay(period)}): Blocked - already ${purchasesInThisPeriod} purchases in this period (max: ${MAX_PURCHASES_PER_PERIOD})`);
-          }
+            }
           continue; // Skip to the next period
         }
         
@@ -966,8 +1032,7 @@ export const useAffordabilityCalculator = () => {
         if (!propertyInstance) {
           // Just log - instance will be created in useEffect
           if (DEBUG_MODE) {
-            console.log(`Property instance not found for ${property.instanceId}, using template defaults`);
-          }
+}
         }
         
         const availableFunds = calculateAvailableFunds(period, currentPurchases);
@@ -1042,8 +1107,7 @@ export const useAffordabilityCalculator = () => {
         // Use the manually specified period
         result = { period: propertyInstance.manualPlacementPeriod };
         if (DEBUG_MODE) {
-          console.log(`[MANUAL] Property ${instanceId} manually placed at period ${result.period} (${periodToDisplay(result.period)})`);
-        }
+          }
       } else {
         // Auto-calculate the purchase period based on affordability
         result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
@@ -1494,6 +1558,7 @@ export const useAffordabilityCalculator = () => {
     propertyAssumptions,
     propertyTypeTemplates,
     pauseBlocks,
+    eventBlocks, // CRITICAL: Trigger recalculation when events change (Custom Events System)
     timelineLoanTypes,
     getInstance, // Keep getInstance as it depends on instances state
     instances, // CRITICAL: Trigger recalculation when property instances change (e.g., purchasePrice updates)
@@ -1716,10 +1781,8 @@ export const useAffordabilityCalculator = () => {
     
     // Create all missing instances in a batch
     if (instancesToCreate.length > 0) {
-      console.log(`Auto-creating ${instancesToCreate.length} missing property instances`);
-      instancesToCreate.forEach(({ instanceId, propertyType, period }) => {
-        console.log(`Creating instance: ${instanceId} for ${propertyType} at period ${period}`);
-        createInstance(instanceId, propertyType, period);
+instancesToCreate.forEach(({ instanceId, propertyType, period }) => {
+createInstance(instanceId, propertyType, period);
       });
     }
     // Note: createInstance is stable (useCallback), so we don't need it in deps

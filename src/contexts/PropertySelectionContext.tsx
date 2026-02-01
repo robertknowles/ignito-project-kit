@@ -42,6 +42,66 @@ export interface PauseBlock {
   order: number; // Sequence position in timeline
 }
 
+// =============================================================================
+// EVENT BLOCK TYPES - For Custom Events System
+// =============================================================================
+
+export type EventCategory = 'income' | 'portfolio' | 'life' | 'market';
+
+export type EventType = 
+  // Income events
+  | 'salary_change' 
+  | 'partner_income_change' 
+  | 'bonus_windfall'
+  // Portfolio events  
+  | 'sell_property' 
+  | 'refinance' 
+  | 'renovate'
+  // Life events
+  | 'inheritance' 
+  | 'major_expense' 
+  | 'dependent_change'
+  // Market events
+  | 'interest_rate_change' 
+  | 'market_correction';
+
+export interface EventPayload {
+  // Income events
+  newSalary?: number;
+  previousSalary?: number;
+  newPartnerSalary?: number;
+  previousPartnerSalary?: number;
+  bonusAmount?: number;
+  
+  // Portfolio events
+  propertyInstanceId?: string;
+  salePrice?: number;
+  newInterestRate?: number;
+  previousInterestRate?: number;
+  renovationCost?: number;
+  valueIncrease?: number;
+  
+  // Life events
+  cashAmount?: number;        // For inheritance/expense
+  dependentChange?: number;   // +1 or -1
+  
+  // Market events
+  rateChange?: number;        // e.g., +0.5 (percentage points)
+  growthAdjustment?: number;  // e.g., -3 (percentage points)
+  durationPeriods?: number;   // How long effect lasts (in periods)
+}
+
+export interface EventBlock {
+  id: string;
+  type: 'event';
+  eventType: EventType;
+  category: EventCategory;
+  period: number;           // When event occurs (1, 2, 3... = period number)
+  order: number;            // Position in timeline sequence (for interleaving with properties/pauses)
+  payload: EventPayload;    // Event-specific data
+  label?: string;           // Optional custom label for display
+}
+
 export interface PortfolioCalculations {
   totalProperties: number;
   totalCost: number;
@@ -85,6 +145,15 @@ interface PropertySelectionContextType {
   removeCustomBlock: (blockId: string) => void;
   updateCustomBlock: (blockId: string, updates: Partial<CustomPropertyBlock>) => void;
   
+  // Event block management - Custom Events System
+  eventBlocks: EventBlock[];
+  addEvent: (event: Omit<EventBlock, 'id'>) => void;
+  removeEvent: (eventId: string) => void;
+  updateEvent: (eventId: string, updates: Partial<EventBlock>) => void;
+  getEventCount: () => number;
+  getEventsAtPeriod: (period: number) => EventBlock[];
+  getEventsUpToPeriod: (period: number) => EventBlock[];
+  
   // Client switching - load all data for a client
   loadClientData: (clientId: number) => void;
   
@@ -111,6 +180,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [selections, setSelections] = useState<PropertySelection>({});
   const [pauseBlocks, setPauseBlocks] = useState<PauseBlock[]>([]);
   const [customBlocks, setCustomBlocks] = useState<CustomPropertyBlock[]>([]);
+  const [eventBlocks, setEventBlocks] = useState<EventBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // Property order tracking - stores instance IDs in the order they were added
   const [propertyOrder, setPropertyOrder] = useState<string[]>([]);
@@ -164,6 +234,14 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       localStorage.setItem(propertyOrderStorageKey, JSON.stringify(propertyOrder));
     }
   }, [propertyOrder, activeClient?.id]);
+
+  // Save event blocks to localStorage whenever they change
+  useEffect(() => {
+    if (activeClient?.id) {
+      const eventBlocksStorageKey = `event_blocks_${activeClient.id}`;
+      localStorage.setItem(eventBlocksStorageKey, JSON.stringify(eventBlocks));
+    }
+  }, [eventBlocks, activeClient?.id]);
 
   // Sync the pendingQuantityRef with actual selections state after each render
   // This ensures the ref stays in sync and handles cases like loading from localStorage
@@ -379,12 +457,46 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     ));
   }, []);
 
+  // =============================================================================
+  // EVENT BLOCK MANAGEMENT FUNCTIONS - Custom Events System
+  // =============================================================================
+
+  const addEvent = useCallback((event: Omit<EventBlock, 'id'>) => {
+    const newEvent: EventBlock = {
+      ...event,
+      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    setEventBlocks(prev => [...prev, newEvent]);
+  }, []);
+
+  const removeEvent = useCallback((eventId: string) => {
+    setEventBlocks(prev => prev.filter(e => e.id !== eventId));
+  }, []);
+
+  const updateEvent = useCallback((eventId: string, updates: Partial<EventBlock>) => {
+    setEventBlocks(prev => prev.map(event => 
+      event.id === eventId ? { ...event, ...updates } : event
+    ));
+  }, []);
+
+  const getEventCount = useCallback(() => {
+    return eventBlocks.length;
+  }, [eventBlocks.length]);
+
+  // Get all events that occur at a specific period
+  const getEventsAtPeriod = useCallback((period: number): EventBlock[] => {
+    return eventBlocks.filter(e => e.period === period);
+  }, [eventBlocks]);
+
+  // Get all events that occur at or before a specific period (for cumulative effects)
+  const getEventsUpToPeriod = useCallback((period: number): EventBlock[] => {
+    return eventBlocks
+      .filter(e => e.period <= period)
+      .sort((a, b) => a.period - b.period);
+  }, [eventBlocks]);
+
   // Bulk setter for scenario restoration - sets selections and propertyOrder atomically
   const setAllSelections = useCallback((newSelections: PropertySelection, newPropertyOrder: string[]) => {
-    console.log('PropertySelectionContext: setAllSelections called', {
-      selectionsCount: Object.keys(newSelections).length,
-      orderLength: newPropertyOrder.length,
-    });
     setSelections({ ...newSelections });
     setPropertyOrder([...newPropertyOrder]);
     // Update pending ref to match new selections
@@ -393,7 +505,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Load all client data from localStorage
   const loadClientData = useCallback((clientId: number) => {
-    console.log('PropertySelectionContext: Loading data for client', clientId);
     setIsLoading(true);
     
     // Use setTimeout to ensure state updates happen in next tick
@@ -403,16 +514,12 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         // Load property selections
         const storageKey = `property_selections_${clientId}`;
         const stored = localStorage.getItem(storageKey);
-        console.log('PropertySelectionContext: localStorage key:', storageKey);
-        console.log('PropertySelectionContext: stored data:', stored);
         
         if (stored) {
           const parsedSelections = JSON.parse(stored);
           setSelections(parsedSelections);
-          console.log('PropertySelectionContext: Loaded selections', parsedSelections);
         } else {
           setSelections({});
-          console.log('PropertySelectionContext: No selections found, reset to empty');
         }
         
         // Load pause blocks
@@ -420,7 +527,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         const storedPauses = localStorage.getItem(pauseStorageKey);
         if (storedPauses) {
           setPauseBlocks(JSON.parse(storedPauses));
-          console.log('PropertySelectionContext: Loaded pause blocks');
         } else {
           setPauseBlocks([]);
         }
@@ -430,9 +536,17 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
         if (storedCustomBlocks) {
           setCustomBlocks(JSON.parse(storedCustomBlocks));
-          console.log('PropertySelectionContext: Loaded custom blocks');
         } else {
           setCustomBlocks([]);
+        }
+        
+        // Load event blocks
+        const eventBlocksStorageKey = `event_blocks_${clientId}`;
+        const storedEventBlocks = localStorage.getItem(eventBlocksStorageKey);
+        if (storedEventBlocks) {
+          setEventBlocks(JSON.parse(storedEventBlocks));
+        } else {
+          setEventBlocks([]);
         }
         
         // Load property order
@@ -440,10 +554,8 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         const storedPropertyOrder = localStorage.getItem(propertyOrderStorageKey);
         if (storedPropertyOrder) {
           setPropertyOrder(JSON.parse(storedPropertyOrder));
-          console.log('PropertySelectionContext: Loaded property order');
         } else {
           // If no property order exists, reconstruct from selections for backwards compatibility
-          // This handles cases where data was saved before propertyOrder was introduced
           const parsedSelections = stored ? JSON.parse(stored) : {};
           const reconstructedOrder: string[] = [];
           Object.entries(parsedSelections).forEach(([propertyId, quantity]) => {
@@ -452,15 +564,12 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
             }
           });
           setPropertyOrder(reconstructedOrder);
-          console.log('PropertySelectionContext: Reconstructed property order from selections');
         }
-        
-        console.log('PropertySelectionContext: Finished loading client data for client', clientId);
       } catch (error) {
-        console.error('PropertySelectionContext: Failed to load client data:', error);
         setSelections({});
         setPauseBlocks([]);
         setCustomBlocks([]);
+        setEventBlocks([]);
         setPropertyOrder([]);
       } finally {
         setIsLoading(false);
@@ -496,6 +605,15 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     addCustomBlock,
     removeCustomBlock,
     updateCustomBlock,
+    
+    // Event block management - Custom Events System
+    eventBlocks,
+    addEvent,
+    removeEvent,
+    updateEvent,
+    getEventCount,
+    getEventsAtPeriod,
+    getEventsUpToPeriod,
     
     // Client switching
     loadClientData,

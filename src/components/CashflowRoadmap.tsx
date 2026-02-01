@@ -107,44 +107,9 @@ const BreakEvenLabel = (props: any) => {
   );
 };
 
-// Cashflow Goal Label component - styled to match EquityGoalLabel
-const CashflowGoalLabel = (props: any) => {
-  const { viewBox, cashflowGoal } = props;
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + 10}
-      y={viewBox.y - 5}
-      fill="#d97706"
-      fontSize={11}
-      fontWeight={600}
-      textAnchor="start"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Income Goal: {formatCurrency(cashflowGoal)}/yr
-    </text>
-  );
-};
-
-// Goal Achievement Label component
-const GoalAchievedLabel = (props: any) => {
-  const { cx, cy, year } = props;
-  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
-    return null;
-  }
-  return (
-    <text
-      x={cx}
-      y={cy - 18}
-      fill="rgba(253, 186, 116, 1)"
-      fontSize={10}
-      fontWeight={500}
-      textAnchor="middle"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Goal: {year}
-    </text>
-  );
+// Goal Achievement Label component (empty - we only show the yellow dot)
+const GoalAchievedLabel = () => {
+  return null;
 };
 
 // Chart data point type for the merged data
@@ -183,6 +148,9 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
   // Modal state for property details
   const [selectedProperty, setSelectedProperty] = useState<TimelineProperty | null>(null);
   const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
+  
+  // Expandable state for the table rows (excluding year header)
+  const [isTableExpanded, setIsTableExpanded] = useState(true);
   
   // Handler to open property details modal
   const handlePropertyClick = useCallback((instanceId: string) => {
@@ -283,13 +251,40 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
 
-  // Calculate Y-axis domain based on data
-  const yAxisDomain = useMemo(() => {
+  // Calculate Y-axis domain with nice round intervals
+  const { yAxisDomain, yAxisTicks } = useMemo(() => {
     const values = chartData.map(d => d.cashflow);
-    const min = Math.min(...values, 0);
-    const max = Math.max(...values, profile.cashflowGoal || 0);
-    const padding = Math.abs(max - min) * 0.1;
-    return [Math.floor(min - padding), Math.ceil(max + padding)];
+    const dataMin = Math.min(...values, 0);
+    const dataMax = Math.max(...values, profile.cashflowGoal || 0);
+    
+    // Determine a nice interval based on the range
+    const range = dataMax - dataMin;
+    let interval: number;
+    
+    if (range <= 50000) {
+      interval = 10000; // 10K intervals for small ranges
+    } else if (range <= 100000) {
+      interval = 20000; // 20K intervals
+    } else if (range <= 200000) {
+      interval = 50000; // 50K intervals
+    } else {
+      interval = 100000; // 100K intervals for large ranges
+    }
+    
+    // Round min down and max up to nearest interval
+    const niceMin = Math.floor(dataMin / interval) * interval;
+    const niceMax = Math.ceil(dataMax / interval) * interval;
+    
+    // Generate tick values
+    const ticks: number[] = [];
+    for (let tick = niceMin; tick <= niceMax; tick += interval) {
+      ticks.push(tick);
+    }
+    
+    return {
+      yAxisDomain: [niceMin, niceMax],
+      yAxisTicks: ticks,
+    };
   }, [chartData, profile.cashflowGoal]);
 
   return (
@@ -360,6 +355,7 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                   tickLine={false}
                   width={50}
                   domain={yAxisDomain}
+                  ticks={yAxisTicks}
                 />
                 
                 <Tooltip content={<CustomTooltip />} />
@@ -373,18 +369,6 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 >
                   <Label content={<BreakEvenLabel />} />
                 </ReferenceLine>
-                
-                {/* Cashflow Goal Reference Line */}
-                {profile.cashflowGoal > 0 && (
-                  <ReferenceLine
-                    y={profile.cashflowGoal}
-                    stroke="rgba(253, 186, 116, 0.7)"
-                    strokeDasharray="5 5"
-                    strokeWidth={2}
-                  >
-                    <Label content={<CashflowGoalLabel cashflowGoal={profile.cashflowGoal} />} />
-                  </ReferenceLine>
-                )}
                 
                 {/* Cashflow Bars with conditional coloring */}
                 <Bar 
@@ -419,9 +403,15 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
 
           {/* Table Section with light grey background */}
           <div className="bg-slate-50/70 -mt-5">
-            {/* YEAR Header Row */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40" />
+            {/* YEAR Header Row - Always visible, clickable to expand/collapse table */}
+            <div 
+              style={gridStyle} 
+              className="border-b border-slate-200/40 cursor-pointer hover:bg-slate-100/50 transition-colors"
+              onClick={() => setIsTableExpanded(!isTableExpanded)}
+            >
+              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40 flex items-center justify-end">
+                <span className={`text-[8px] text-slate-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
+              </div>
               {years.map((yearData, index) => (
                 <div 
                   key={yearData.year}
@@ -434,6 +424,9 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
               ))}
             </div>
 
+            {/* Expandable Table Content */}
+            {isTableExpanded && (
+            <>
             {/* PURCHASE Row - Same height as other rows */}
             <div style={gridStyle} className="border-b border-slate-200/40">
               <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
@@ -605,6 +598,8 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 );
               })}
             </div>
+            </>
+            )}
           </div>
 
         </div>

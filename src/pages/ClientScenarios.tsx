@@ -220,8 +220,7 @@ export const ClientScenarios = () => {
 
         setClientStatuses(statusMap);
       } catch (error) {
-        console.error('Error fetching client statuses:', error);
-      }
+}
     };
 
     fetchClientStatuses();
@@ -255,8 +254,7 @@ export const ClientScenarios = () => {
           }
         }
       } catch (error) {
-        console.error('Error fetching property onboarding status:', error);
-      }
+}
       setOnboardingLoading(false);
     };
     
@@ -279,8 +277,7 @@ export const ClientScenarios = () => {
           .update({ has_completed_property_onboarding: true })
           .eq('id', user.id);
       } catch (error) {
-        console.error('Error saving property onboarding completion:', error);
-      }
+}
     }
   };
   
@@ -374,8 +371,7 @@ export const ClientScenarios = () => {
     await generateClientReport({
       clientName: client.name,
       onProgress: (stage) => {
-        console.log('PDF Generation:', stage);
-      },
+},
       onComplete: () => {
         toast.success('PDF report generated successfully!');
         setPdfGenerating(false);
@@ -517,20 +513,15 @@ export const ClientScenarios = () => {
         description: 'Share this link with your client to collect their financial details.',
       });
     } catch (error) {
-      console.error('Error generating onboarding link:', error);
-      toast.error('Failed to generate onboarding link');
+toast.error('Failed to generate onboarding link');
     }
   };
 
   // Copy onboarding link to clipboard
   const handleCopyOnboardingLink = async (client: Client) => {
-    console.log('Onboarding button clicked for:', client.name);
-    
-    try {
+try {
       const status = clientStatuses[client.id];
-      console.log('Client status:', status);
-      
-      if (status?.onboardingId) {
+if (status?.onboardingId) {
         const onboardingUrl = `${window.location.origin}/onboarding/${status.onboardingId}`;
         await navigator.clipboard.writeText(onboardingUrl);
         toast.success('Questionnaire link copied!', {
@@ -544,8 +535,7 @@ export const ClientScenarios = () => {
         await handleGenerateOnboardingLink(client);
       }
     } catch (error) {
-      console.error('Error copying onboarding link:', error);
-      toast.error('Failed to copy link. Please try again.');
+toast.error('Failed to copy link. Please try again.');
     }
   };
 
@@ -614,8 +604,7 @@ export const ClientScenarios = () => {
       });
 
       if (authError) {
-        console.error('Error creating client user:', authError);
-        toast.error(`Failed to create client account: ${authError.message}`);
+toast.error(`Failed to create client account: ${authError.message}`);
         return;
       }
 
@@ -637,8 +626,7 @@ export const ClientScenarios = () => {
         .eq('id', newUserId);
 
       if (profileError) {
-        console.error('Error updating profile:', profileError);
-        toast.error('Failed to set up client profile');
+toast.error('Failed to set up client profile');
         return;
       }
 
@@ -651,8 +639,7 @@ export const ClientScenarios = () => {
           .eq('id', status.scenarioId);
 
         if (scenarioError) {
-          console.error('Error updating scenario:', scenarioError);
-          toast.error('Failed to link client to scenario');
+toast.error('Failed to link client to scenario');
           return;
         }
       } else {
@@ -681,8 +668,7 @@ export const ClientScenarios = () => {
           });
 
         if (insertError) {
-          console.error('Error creating scenario:', insertError);
-          toast.error('Failed to create client scenario');
+toast.error('Failed to create client scenario');
           return;
         }
       }
@@ -709,8 +695,7 @@ export const ClientScenarios = () => {
 
       toast.success('Client dashboard invite created!');
     } catch (error) {
-      console.error('Error inviting client:', error);
-      toast.error('Failed to create client invite');
+toast.error('Failed to create client invite');
     }
   };
 
@@ -1295,8 +1280,7 @@ export const ClientScenarios = () => {
 
                 setClientStatuses(statusMap);
               } catch (error) {
-                console.error('Error refreshing client statuses:', error);
-              }
+}
             };
             fetchClientStatuses();
           }}

@@ -224,8 +224,7 @@ export const ClientOnboarding = () => {
 
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching onboarding data:', err);
-        setError('Failed to load onboarding form');
+setError('Failed to load onboarding form');
         setLoading(false);
       }
     };
@@ -294,8 +293,7 @@ export const ClientOnboarding = () => {
 
       setSubmitted(true);
     } catch (err) {
-      console.error('Error submitting onboarding form:', err);
-      setError('Failed to submit your details. Please try again.');
+setError('Failed to submit your details. Please try again.');
     } finally {
       setSubmitting(false);
     }

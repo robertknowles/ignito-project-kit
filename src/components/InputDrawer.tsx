@@ -1,24 +1,15 @@
-import React, { useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, SlidersHorizontal, LayoutGrid } from 'lucide-react'
-import { ClientInputsPanel } from './ClientInputsPanel'
-import { PropertyBlocksPanel } from './PropertyBlocksPanel'
+import React from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { TimelinePanel } from './TimelinePanel'
 import { TourStep } from '@/components/TourManager'
 
 interface InputDrawerProps {
   isOpen: boolean
   onToggle: () => void
+  defaultFirstPropertyExpanded?: boolean
 }
 
-type TabType = 'inputs' | 'blocks'
-
-export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('inputs')
-
-  const tabs = [
-    { id: 'inputs' as TabType, label: 'Client Inputs', icon: SlidersHorizontal },
-    { id: 'blocks' as TabType, label: 'Property Library', icon: LayoutGrid },
-  ]
-
+export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defaultFirstPropertyExpanded = true }) => {
   return (
     <>
       {/* Drawer Container */}
@@ -30,52 +21,22 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       >
         {/* Content wrapper - only visible when open */}
         <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Tab Switcher Header */}
+          {/* Header */}
           <TourStep
-            id="drawer-tabs"
-            title="Drawer Tabs"
-            content="The drawer has two tabs: Client Inputs for financial details and goals, and Property Library for selecting which properties to include in the strategy."
+            id="drawer-header"
+            title="Timeline Builder"
+            content="This is your timeline builder. Add properties and events to create your investment strategy. All property templates are managed in the Settings page."
             order={5}
             position="bottom"
           >
-          <div id="drawer-tabs-container" className="relative flex items-center border-b border-gray-200 h-[45px]">
-            {tabs.map((tab, index) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 h-full text-[12px] font-medium transition-colors ${
-                    isActive
-                      ? 'text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Icon size={14} />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
-            {/* Active indicator - positioned at bottom of container */}
-            <div 
-              className="absolute bottom-0 h-0.5 bg-gray-900 transition-all duration-200"
-              style={{
-                left: activeTab === 'inputs' ? '0%' : '50%',
-                width: '50%'
-              }}
-            />
-          </div>
+            <div id="drawer-header" className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
+              <h2 className="text-sm font-medium text-gray-900">Timeline</h2>
+            </div>
           </TourStep>
 
-          {/* Tab Content Area */}
+          {/* Timeline Panel */}
           <div className="flex-1 overflow-y-auto p-4 bg-white">
-            {activeTab === 'inputs' && (
-              <ClientInputsPanel />
-            )}
-            {activeTab === 'blocks' && (
-              <PropertyBlocksPanel />
-            )}
+            <TimelinePanel defaultFirstPropertyExpanded={defaultFirstPropertyExpanded} />
           </div>
         </div>
       </div>
@@ -87,8 +48,8 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle }) =>
       }`}>
         <TourStep
           id="drawer-toggle"
-          title="Input Drawer Toggle"
-          content="Click this arrow to expand or collapse the Input Drawer - your control panel for building investment strategies. The drawer contains all the inputs needed to model a client's portfolio."
+          title="Timeline Drawer"
+          content="Click this arrow to expand or collapse the timeline drawer. Use it to add properties and life events to your investment timeline."
           order={4}
           position="right"
         >

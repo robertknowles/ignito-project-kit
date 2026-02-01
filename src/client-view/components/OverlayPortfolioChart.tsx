@@ -82,44 +82,9 @@ const ComparisonTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Equity Goal Label component
-const EquityGoalLabel = (props: any) => {
-  const { viewBox, equityGoal } = props;
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + viewBox.width - 10}
-      y={viewBox.y - 5}
-      fill={COLORS.goalStroke}
-      fontSize={10}
-      fontWeight={600}
-      textAnchor="end"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      Equity Goal: {formatCurrency(equityGoal)}
-    </text>
-  );
-};
-
-// Goal Achievement Label component
-const GoalAchievedLabel = (props: any) => {
-  const { cx, cy, scenario, year } = props;
-  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
-    return null;
-  }
-  return (
-    <text
-      x={cx}
-      y={cy - 16}
-      fill={scenario === 'A' ? COLORS.portfolioStrokeA : COLORS.portfolioStrokeB}
-      fontSize={9}
-      fontWeight={500}
-      textAnchor="middle"
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      {scenario}: {year}
-    </text>
-  );
+// Goal Achievement Label component (empty - we only show the yellow dot)
+const GoalAchievedLabel = () => {
+  return null;
 };
 
 interface OverlayPortfolioChartProps {
@@ -278,19 +243,7 @@ export function OverlayPortfolioChart({
             }}
           />
           
-          {/* Equity Goal Reference Line */}
-          {equityGoal > 0 && (
-            <ReferenceLine
-              y={equityGoal}
-              stroke={COLORS.goal}
-              strokeDasharray="8 4"
-              strokeWidth={2}
-            >
-              <Label content={<EquityGoalLabel equityGoal={equityGoal} />} />
-            </ReferenceLine>
-          )}
-          
-          {/* Goal Achievement Markers */}
+          {/* Goal Achievement Markers - yellow dots only */}
           {goalDataA && (
             <ReferenceDot
               x={goalDataA.year}

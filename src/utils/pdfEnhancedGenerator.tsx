@@ -894,8 +894,7 @@ export const generateEnhancedClientReport = async (options: PDFGenerationOptions
     
     onComplete?.();
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    onError?.(error as Error);
+onError?.(error as Error);
   }
 };
 

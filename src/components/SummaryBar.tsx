@@ -40,12 +40,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData, noBorder }
       }
     }
 
-    // Calculate as of the LATEST PURCHASE YEAR instead of timeline end
-    // This shows "where you are now" not "where you'll be in 30 years"
-    const latestPurchaseYear = feasibleProperties.length > 0
-      ? Math.max(...feasibleProperties.map(p => Math.round(p.affordableYear)))
-      : 2025;
-    const currentYear = latestPurchaseYear;
+    // Calculate as of the END of the timeline
+    const startYear = 2025;
+    const currentYear = startYear + (profile.timelineYears || 15);
     
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for summary calculations only
@@ -110,25 +107,13 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData, noBorder }
 
   const kpis = calculateSummaryKPIs()
 
-  // Calculate current year progress
-  const calculateYearProgress = () => {
-    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible' && p.affordableYear !== Infinity)
-    if (feasibleProperties.length === 0) {
-      return { currentYear: 1, totalYears: profile.timelineYears || 15 }
-    }
-    
-    // Find the latest purchase year
-    const latestPurchaseYear = Math.max(...feasibleProperties.map(p => Math.round(p.affordableYear)))
-    const startYear = 2025
-    const currentYear = latestPurchaseYear - startYear + 1
-    
-    return {
-      currentYear: Math.max(1, currentYear),
-      totalYears: profile.timelineYears || 15
-    }
-  }
-
-  const yearProgress = calculateYearProgress()
+  // Calculate progress towards goals
+  const equityProgress = profile.equityGoal > 0 
+    ? Math.min((kpis.totalEquity / profile.equityGoal) * 100, 100) 
+    : 0
+  const cashflowProgress = profile.cashflowGoal > 0 
+    ? Math.min((kpis.annualCashflow / profile.cashflowGoal) * 100, 100) 
+    : 0
 
   // Format currency values (always abbreviated with 1 decimal for k values)
   const formatCurrency = (value: number) => {
@@ -145,34 +130,54 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData, noBorder }
     <TourStep
       id="summary-bar"
       title="Portfolio Scoreboard"
-      content="Your at-a-glance KPIs: Portfolio Value, number of Properties, Cashflow vs Goal, Equity vs Goal, Total Debt, and Timeline Progress. These update in real-time as you modify the strategy."
+      content="Your at-a-glance KPIs: Portfolio Value, Cashflow, and Equity with progress towards goals. These update in real-time as you modify the strategy."
       order={8}
-      position="bottom"
+      position="top"
     >
-    <div id="summary-bar-container" className="bg-white overflow-hidden">
+    <div id="summary-bar-container" className={`bg-white overflow-hidden ${noBorder ? 'border-b border-gray-200' : 'rounded-lg border border-gray-200'}`}>
       <div className="grid grid-cols-3">
-        {/* Cashflow Goal Card */}
-        <div className="flex flex-col items-center justify-center border-r border-gray-200 p-3">
-          <span className="metric-label mb-0.5">Cashflow Goal</span>
-          <span className="metric-value-sm whitespace-nowrap">
-            {formatCurrency(kpis.annualCashflow)} / {formatCurrency(profile.cashflowGoal)}
+        {/* Portfolio Value */}
+        <div className="flex flex-col items-center justify-center border-r border-gray-200 py-3 px-4">
+          <span className="metric-label mb-0.5">Portfolio Value</span>
+          <span className="metric-value-sm whitespace-nowrap text-slate-900 font-semibold">
+            {formatCurrency(kpis.finalPortfolioValue)}
           </span>
         </div>
         
-        {/* Equity Goal Card */}
-        <div className="flex flex-col items-center justify-center border-r border-gray-200 p-3">
-          <span className="metric-label mb-0.5">Equity Goal</span>
-          <span className="metric-value-sm whitespace-nowrap">
-            {formatCurrency(kpis.totalEquity)} / {formatCurrency(profile.equityGoal)}
+        {/* Equity with Progress Bar */}
+        <div className="flex flex-col items-center justify-center border-r border-gray-200 py-2 px-4">
+          <span className="metric-label mb-0.5">Total Equity</span>
+          <span className="metric-value-sm whitespace-nowrap text-slate-900 font-semibold">
+            {formatCurrency(kpis.totalEquity)}
+            <span className="text-[10px] text-slate-400 font-normal ml-1">/ {formatCurrency(profile.equityGoal)}</span>
+            {equityProgress >= 100 && <span className="ml-1 text-green-600 font-medium">✓</span>}
           </span>
+          <div className="w-full mt-1.5 h-1 bg-slate-200 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                equityProgress >= 100 ? 'bg-green-500' : 'bg-slate-900'
+              }`}
+              style={{ width: `${equityProgress}%` }}
+            />
+          </div>
         </div>
         
-        {/* Timeline Progress Card */}
-        <div className="flex flex-col items-center justify-center p-3">
-          <span className="metric-label mb-0.5">Timeline Progress</span>
-          <span className="metric-value-sm whitespace-nowrap">
-            Year {yearProgress.currentYear} / {yearProgress.totalYears}
+        {/* Cashflow with Progress Bar */}
+        <div className="flex flex-col items-center justify-center py-2 px-4">
+          <span className="metric-label mb-0.5">Annual Cashflow</span>
+          <span className={`metric-value-sm whitespace-nowrap font-semibold ${kpis.annualCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatCurrency(kpis.annualCashflow)}
+            <span className="text-[10px] text-slate-400 font-normal ml-1">/ {formatCurrency(profile.cashflowGoal)}</span>
+            {cashflowProgress >= 100 && <span className="ml-1 text-green-600 font-medium">✓</span>}
           </span>
+          <div className="w-full mt-1.5 h-1 bg-slate-200 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                cashflowProgress >= 100 ? 'bg-green-500' : 'bg-slate-900'
+              }`}
+              style={{ width: `${Math.max(0, cashflowProgress)}%` }}
+            />
+          </div>
         </div>
       </div>
     </div>

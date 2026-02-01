@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { usePropertySelection, type EventBlock, type EventCategory } from '../contexts/PropertySelectionContext';
+import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
 import type { YearBreakdownData } from '@/types/property';
 import {
   PERIODS_PER_YEAR,
@@ -81,6 +83,16 @@ export interface PurchaseDetail {
   fundingBreakdown: FundingBreakdown;
 }
 
+// Event summary for roadmap display
+export interface EventSummary {
+  id: string;
+  eventType: string;
+  category: EventCategory;
+  label: string;
+  icon: string;
+  period: number;
+}
+
 export interface YearData {
   year: number;
   depositStatus: 'pass' | 'fail' | 'na';
@@ -106,6 +118,8 @@ export interface YearData {
   purchaseDetails?: PurchaseDetail[];
   // Full breakdown data for funnel components (only for years with purchases)
   yearBreakdownData?: YearBreakdownData;
+  // Events scheduled for this year
+  events?: EventSummary[];
 }
 
 export interface RoadmapData {
@@ -124,6 +138,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
   const { profile: contextProfile } = useInvestmentProfile();
   const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
   const { getInstance } = usePropertyInstance();
+  const { eventBlocks } = usePropertySelection();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
   const profile = scenarioData?.profile ?? contextProfile;
@@ -134,10 +149,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     
     // Calculate end year based on user's timeline setting (max 20 years)
     const endYear = BASE_YEAR + (profile.timelineYears || 15) - 1;
-    
-    console.log(`[ROADMAP useMemo] Running with ${timelineProperties.length} properties`);
-    
-    // Default interest rate for calculations
+// Default interest rate for calculations
     const defaultInterestRate = DEFAULT_INTEREST_RATE;
     
     // Build a map of years to purchases
@@ -327,7 +339,6 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         // Use balances from the LAST purchase this year (SINGLE SOURCE OF TRUTH)
         // The calculator has already computed these correctly
         const lastPurchase = purchasesThisYear[purchasesThisYear.length - 1];
-        console.log(`[ROADMAP] Year ${year} reading from ${lastPurchase.title}: savings=${lastPurchase.balancesAfterPurchase.savings.toFixed(0)}, savingsSpent=${cumulativeSavingsSpent.toFixed(0)}`);
         runningCashBalance = lastPurchase.balancesAfterPurchase.cash;
         runningSavingsBalance = lastPurchase.balancesAfterPurchase.savings;
         cumulativeEquityUsed = lastPurchase.balancesAfterPurchase.equityUsed;
@@ -347,9 +358,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         if (yearIndex > 0) { // Don't add savings for year 0 (starting point)
           runningSavingsBalance = Math.max(0, runningSavingsBalance + thisYearSavingsContribution);
         }
-        console.log(`[ROADMAP] Year ${year} NO PURCHASE: prev=${prevSavings.toFixed(0)} + contrib=${thisYearSavingsContribution.toFixed(0)} = ${runningSavingsBalance.toFixed(0)}`);
-        
-      }
+        }
       
       // ============================================================================
       // STEP 3: Calculate balances for display
@@ -751,6 +760,25 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         };
       }
       
+      // Get events scheduled for this year
+      // Convert year to period range (H1 and H2 of this year)
+      const yearStartPeriod = (year - BASE_YEAR) * PERIODS_PER_YEAR + 1;
+      const yearEndPeriod = yearStartPeriod + PERIODS_PER_YEAR - 1;
+      
+      const eventsThisYear: EventSummary[] = eventBlocks
+        .filter(e => e.period >= yearStartPeriod && e.period <= yearEndPeriod)
+        .map(e => {
+          const typeDef = EVENT_TYPES[e.eventType];
+          return {
+            id: e.id,
+            eventType: e.eventType,
+            category: e.category,
+            label: e.label || getEventLabel(e.eventType, e.payload),
+            icon: typeDef?.icon || '📅',
+            period: e.period,
+          };
+        });
+      
       years.push({
         year,
         depositStatus,
@@ -771,6 +799,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         purchaseInYear,
         purchaseDetails,
         yearBreakdownData,
+        events: eventsThisYear.length > 0 ? eventsThisYear : undefined,
       });
     }
     
@@ -779,7 +808,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       startYear: BASE_YEAR,
       endYear,
     };
-  }, [profile, timelineProperties]);
+  }, [profile, timelineProperties, eventBlocks]);
   
   return roadmapData;
 };

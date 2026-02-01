@@ -88,7 +88,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .single();
 
       if (companyError) {
-        console.error('Error fetching company:', companyError);
         setError('Failed to fetch company data');
         setLoading(false);
         return;
@@ -103,28 +102,25 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           .from('profiles')
           .select('id, full_name, role, created_at')
           .eq('company_id', companyId)
-          .in('role', ['owner', 'agent', 'other']);
+          .not('role', 'is', null);
 
         if (profilesError) {
-          console.error('Error fetching team members:', profilesError);
-          setError('Failed to fetch team members');
-          setLoading(false);
-          return;
+          // Don't treat this as a fatal error - permissions issue or user may not have access yet
+        } else {
+          // Filter to only include owner, agent, and other roles
+          const members: TeamMember[] = (profilesData || [])
+            .filter((profile) => ['owner', 'agent', 'other'].includes(profile.role as string))
+            .map((profile) => ({
+              id: profile.id,
+              full_name: profile.full_name,
+              role: profile.role as 'owner' | 'agent' | 'other',
+              created_at: profile.created_at,
+            }));
+
+          setTeamMembers(members);
         }
-
-        // Fetch emails from auth.users via a separate query if needed
-        // For now, we'll use the profile data
-        const members: TeamMember[] = (profilesData || []).map((profile) => ({
-          id: profile.id,
-          full_name: profile.full_name,
-          role: profile.role as 'owner' | 'agent' | 'other',
-          created_at: profile.created_at,
-        }));
-
-        setTeamMembers(members);
       }
     } catch (err) {
-      console.error('Unexpected error fetching company data:', err);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -165,7 +161,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       if (authError) {
-        console.error('Error creating auth user:', authError);
         return { success: false, error: authError.message };
       }
 
@@ -184,7 +179,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .eq('id', authData.user.id);
 
       if (profileError) {
-        console.error('Error updating profile:', profileError);
         return { success: false, error: 'Failed to set up agent profile' };
       }
 
@@ -193,7 +187,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       return { success: true };
     } catch (err) {
-      console.error('Unexpected error inviting agent:', err);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
@@ -219,7 +212,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .eq('id', companyId);
 
       if (updateError) {
-        console.error('Error updating company branding:', updateError);
         return { success: false, error: updateError.message };
       }
 
@@ -233,7 +225,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       return { success: true };
     } catch (err) {
-      console.error('Unexpected error updating company branding:', err);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
@@ -258,7 +249,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .eq('company_id', companyId);
 
       if (updateError) {
-        console.error('Error updating member role:', updateError);
         return { success: false, error: updateError.message };
       }
 
@@ -271,7 +261,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       return { success: true };
     } catch (err) {
-      console.error('Unexpected error updating member role:', err);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };

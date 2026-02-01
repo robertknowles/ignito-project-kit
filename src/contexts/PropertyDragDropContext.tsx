@@ -82,7 +82,6 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
     const propertyData = active.data.current as DraggedProperty;
     
     if (propertyData) {
-      console.log(`[DragStart] Started dragging ${propertyData.title} from period ${propertyData.currentPeriod}`);
       setDraggedProperty(propertyData);
       setIsDragging(true);
     }
@@ -100,7 +99,6 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
       if (periodId.startsWith('period-')) {
         const period = parseInt(periodId.replace('period-', ''), 10);
         if (!isNaN(period)) {
-          console.log(`[DragOver] Hovering over period ${period}`);
           setTargetPeriod(period);
         }
       }
@@ -183,15 +181,12 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
             finalPeriod = newPeriod;
           }
           
-          console.log(`[DragEnd] Year validation: H1(${yearStartPeriod})=${resultH1.isValid}, H2(${yearEndPeriod})=${resultH2.isValid}, using period ${finalPeriod}`);
         }
         
         updateInstance(propertyData.instanceId, {
           isManuallyPlaced: true,
           manualPlacementPeriod: finalPeriod,
         });
-        
-        console.log(`Property ${propertyData.instanceId} manually placed at period ${finalPeriod}`);
       }
     }
   }, [draggedProperty, updateInstance, getInstance]);
@@ -213,7 +208,6 @@ export const PropertyDragDropProvider: React.FC<PropertyDragDropProviderProps> =
       isManuallyPlaced: false,
       manualPlacementPeriod: undefined,
     });
-    console.log(`Property ${instanceId} reset to auto-placement`);
   }, [updateInstance]);
 
   /**

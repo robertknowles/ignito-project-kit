@@ -47,8 +47,7 @@ export const PublicReport = () => {
         setScenario(data as ScenarioData);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching scenario:', err);
-        setError('Failed to load report');
+setError('Failed to load report');
         setLoading(false);
       }
     };

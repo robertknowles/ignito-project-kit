@@ -134,8 +134,7 @@ export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
       // Notify parent to refresh status
       onStatusChange?.();
     } catch (error) {
-      console.error('Error adding note:', error);
-      toast.error('Failed to add note');
+toast.error('Failed to add note');
     } finally {
       setSavingNote(false);
     }

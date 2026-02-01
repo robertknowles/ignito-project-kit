@@ -88,14 +88,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     };
   }, [profile.portfolioValue, profile.currentDebt, profile.depositPool]);
 
-  // Log calculations for development (can be removed in production)
-  useEffect(() => {
-    console.log('Investment Profile Updated:', {
-      profile,
-      calculated: calculatedValues,
-    });
-  }, [profile, calculatedValues]);
-
   const updateProfile = (updates: Partial<InvestmentProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
   };
@@ -114,7 +106,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   // Bulk setter for scenario restoration - replaces entire profile
   const setProfileFull = (newProfile: InvestmentProfileData) => {
-    console.log('InvestmentProfileContext: setProfile called');
     setProfile({ ...newProfile });
   };
 

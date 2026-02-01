@@ -170,13 +170,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   
   // Update local state when field changes
   const handleFieldChange = (field: keyof PropertyInstanceDetails, value: any) => {
-    console.log(`PropertyDetailModal: Field "${field}" changed to:`, value);
-    
-    const error = validateField(field, value);
+const error = validateField(field, value);
     
     if (error) {
-      console.warn(`PropertyDetailModal: Validation error for "${field}":`, error);
-    }
+}
     
     setValidationErrors(prev => ({
       ...prev,
@@ -189,9 +186,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         ...prev,
         [field]: value,
       };
-      console.log(`PropertyDetailModal: Updated formData for "${field}"`);
-      
-      // Check if data has changed from initial
+// Check if data has changed from initial
       if (initialFormData) {
         const hasChanged = JSON.stringify(updated) !== JSON.stringify(initialFormData);
         setHasUnsavedChanges(hasChanged);
@@ -203,11 +198,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   
   // Save changes to context
   const handleSave = async () => {
-    console.log('PropertyDetailModal: === SAVE OPERATION STARTED ===');
-    console.log('PropertyDetailModal: Instance ID:', instanceId);
-    console.log('PropertyDetailModal: Is Template:', isTemplate);
-    
-    try {
+try {
       setIsSaving(true);
       setSaveError(null);
       
@@ -217,8 +208,6 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       if (!formData) {
         throw new Error('Cannot save - form data is null or undefined');
       }
-      
-      console.log('PropertyDetailModal: FormData contains', Object.keys(formData).length, 'fields');
       
       // Log all fields being saved
       const fieldsList = [
@@ -231,14 +220,10 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         'vacancyRate', 'propertyManagementPercent', 'buildingInsuranceAnnual', 'councilRatesWater',
         'strata', 'maintenanceAllowanceAnnual', 'landTaxOverride', 'potentialDeductionsRebates'
       ];
-      
-      console.log('PropertyDetailModal: Field values being saved:');
-      fieldsList.forEach(field => {
+fieldsList.forEach(field => {
         if (field in formData) {
-          console.log(`  - ${field}:`, (formData as any)[field]);
-        } else {
-          console.warn(`  - ${field}: MISSING`);
-        }
+          } else {
+}
       });
       
       // Check for validation errors before saving
@@ -249,17 +234,14 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       
       if (isDuplicating) {
         // Duplicating: First call the callback to increment property count, then save the new instance
-        console.log('PropertyDetailModal: Duplicating property - calling onDuplicateSave callback');
-        
-        if (onDuplicateSave) {
+if (onDuplicateSave) {
           onDuplicateSave();
         }
         
         // Save the form data to the new instance (instanceId is the new instance ID)
         // Small delay to ensure the instance is created first
         setTimeout(() => {
-          console.log('PropertyDetailModal: Saving duplicated instance data to:', instanceId);
-          updateInstance(instanceId, formData);
+updateInstance(instanceId, formData);
           
           toast({
             title: "Property Duplicated",
@@ -269,8 +251,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         
       } else if (isTemplate) {
         // Save to property type template
-        console.log('PropertyDetailModal: Saving template for', propertyType);
-        updatePropertyTypeTemplate(propertyType, formData);
+updatePropertyTypeTemplate(propertyType, formData);
         
         toast({
           title: "Template Saved",
@@ -278,46 +259,36 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         });
       } else {
         // Save to property instance
-        console.log('PropertyDetailModal: Calling updateInstance() with all fields');
         updateInstance(instanceId, formData);
         
         // Verify save by retrieving the instance
         setTimeout(() => {
           const savedInstance = getInstance(instanceId);
           if (savedInstance) {
-            console.log('PropertyDetailModal: ✓ Instance saved successfully to context');
-            console.log('PropertyDetailModal: Verifying saved fields...');
-            
-            const missingFields = fieldsList.filter(field => !(field in savedInstance));
+const missingFields = fieldsList.filter(field => !(field in savedInstance));
             if (missingFields.length > 0) {
-              console.error('PropertyDetailModal: ✗ Missing fields in saved instance:', missingFields);
-              toast({
+toast({
                 title: "Warning",
                 description: `Some fields may not have saved correctly. Check console for details.`,
                 variant: "destructive",
               });
             } else {
-              console.log('PropertyDetailModal: ✓ All fields present in saved instance');
-              toast({
+toast({
                 title: "Property Saved",
                 description: "All changes saved successfully to context. Click 'Save' in the main app to persist to database.",
               });
             }
           } else {
-            console.error('PropertyDetailModal: ✗ Failed to verify instance save - getInstance returned undefined');
-            throw new Error('Failed to verify save operation');
+throw new Error('Failed to verify save operation');
           }
         }, 100);
       }
-      
-      console.log('PropertyDetailModal: === SAVE OPERATION COMPLETED ===');
-      setHasUnsavedChanges(false);
+setHasUnsavedChanges(false);
       setInitialFormData(formData);
       onClose();
       
     } catch (error) {
-      console.error('PropertyDetailModal: ✗ Save error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setSaveError(errorMessage);
       
       toast({

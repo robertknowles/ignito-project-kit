@@ -76,17 +76,14 @@ export const PublicReport = () => {
             .eq('id', data.id)
             .then(({ error: updateError }) => {
               if (updateError) {
-                console.error('Error tracking view:', updateError);
-              } else {
-                console.log('Client view tracked successfully');
-              }
+} else {
+}
             });
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching scenario:', err);
-        setError('Failed to load report');
+setError('Failed to load report');
         setLoading(false);
       }
     };

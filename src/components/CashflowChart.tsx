@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   BarChart,
   Bar,
@@ -71,6 +71,42 @@ export const CashflowChart = () => {
   // Get final data point for end state annotation
   const finalDataPoint = data[data.length - 1]
 
+  // Calculate Y-axis domain with nice round intervals
+  const { yAxisDomain, yAxisTicks } = useMemo(() => {
+    const values = data.map(d => d.cashflow);
+    const dataMin = Math.min(...values, 0);
+    const dataMax = Math.max(...values, profile.cashflowGoal || 0);
+    
+    // Determine a nice interval based on the range
+    const range = dataMax - dataMin;
+    let interval: number;
+    
+    if (range <= 50000) {
+      interval = 10000; // 10K intervals for small ranges
+    } else if (range <= 100000) {
+      interval = 20000; // 20K intervals
+    } else if (range <= 200000) {
+      interval = 50000; // 50K intervals
+    } else {
+      interval = 100000; // 100K intervals for large ranges
+    }
+    
+    // Round min down and max up to nearest interval
+    const niceMin = Math.floor(dataMin / interval) * interval;
+    const niceMax = Math.ceil(dataMax / interval) * interval;
+    
+    // Generate tick values
+    const ticks: number[] = [];
+    for (let tick = niceMin; tick <= niceMax; tick += interval) {
+      ticks.push(tick);
+    }
+    
+    return {
+      yAxisDomain: [niceMin, niceMax],
+      yAxisTicks: ticks,
+    };
+  }, [data, profile.cashflowGoal]);
+
   // Custom label for break-even line
   const BreakEvenLabel = (props: any) => {
     const { viewBox } = props
@@ -89,22 +125,9 @@ export const CashflowChart = () => {
     )
   }
 
-  // Custom label for passive income goal line
-  const IncomeGoalLabel = (props: any) => {
-    const { viewBox } = props
-    if (!viewBox || !incomeGoalYear) return null
-    return (
-      <text
-        x={viewBox.x + 10}
-        y={viewBox.y - 5}
-        fill="#9ca3af"
-        fontSize={12}
-        fontWeight={500}
-        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-      >
-        Income Goal: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
-      </text>
-    )
+  // Custom label for passive income goal line (empty - we only show the yellow dot)
+  const IncomeGoalLabel = () => {
+    return null
   }
 
   // Custom label for cashflow positive marker
@@ -130,27 +153,9 @@ export const CashflowChart = () => {
     )
   }
 
-  // Custom label for income goal achievement
-  const GoalAchievedLabel = (props: any) => {
-    if (!incomeGoalYear) return null
-    // Check if we have valid coordinates
-    if (typeof props.x !== 'number' || typeof props.y !== 'number' || 
-        isNaN(props.x) || isNaN(props.y)) {
-      return null
-    }
-    return (
-      <text
-        x={props.x}
-        y={props.y - 10}
-        fill="#9ca3af"
-        fontSize={12}
-        fontWeight={500}
-        textAnchor="middle"
-        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-      >
-        Income: ${(profile.cashflowGoal / 1000).toFixed(0)}k/year
-      </text>
-    )
+  // Custom label for income goal achievement (empty - we only show the yellow dot)
+  const GoalAchievedLabel = () => {
+    return null
   }
 
   // Custom label for end state
@@ -203,7 +208,8 @@ export const CashflowChart = () => {
                 fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               }}
               stroke="#9ca3af"
-              domain={[-30000, 40000]}
+              domain={yAxisDomain}
+              ticks={yAxisTicks}
             />
             <Tooltip content={<CustomTooltip />} />
             
@@ -216,18 +222,6 @@ export const CashflowChart = () => {
             >
               <Label content={<BreakEvenLabel />} />
             </ReferenceLine>
-
-            {/* Passive Income Goal Line */}
-            {profile.cashflowGoal > 0 && (
-              <ReferenceLine
-                y={profile.cashflowGoal}
-                stroke="rgba(253, 186, 116, 0.7)"
-                strokeDasharray="5 5"
-                strokeWidth={2}
-              >
-                <Label content={<IncomeGoalLabel />} />
-              </ReferenceLine>
-            )}
 
             <Bar dataKey="cashflow" fill="rgba(134, 239, 172, 0.7)" radius={[2, 2, 0, 0]}>
               {data.map((entry, index) => (

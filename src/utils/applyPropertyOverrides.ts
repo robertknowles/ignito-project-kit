@@ -19,18 +19,15 @@ export function applyPropertyOverrides(
   
   // Validate ranges
   if (merged.lvr < 0 || merged.lvr > 100) {
-    console.warn(`Invalid LVR: ${merged.lvr}, clamping to 0-100`);
-    merged.lvr = Math.max(0, Math.min(100, merged.lvr));
+merged.lvr = Math.max(0, Math.min(100, merged.lvr));
   }
   
   if (merged.interestRate < 0 || merged.interestRate > 20) {
-    console.warn(`Invalid interest rate: ${merged.interestRate}, clamping to 0-20`);
-    merged.interestRate = Math.max(0, Math.min(20, merged.interestRate));
+merged.interestRate = Math.max(0, Math.min(20, merged.interestRate));
   }
   
   if (merged.vacancyRate < 0 || merged.vacancyRate > 100) {
-    console.warn(`Invalid vacancy rate: ${merged.vacancyRate}, clamping to 0-100`);
-    merged.vacancyRate = Math.max(0, Math.min(100, merged.vacancyRate));
+merged.vacancyRate = Math.max(0, Math.min(100, merged.vacancyRate));
   }
   
   // Calculate stamp duty if not overridden

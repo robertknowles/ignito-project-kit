@@ -4,12 +4,13 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { PurchaseEventCard } from './PurchaseEventCard'
 import { PauseBlockCard } from './PauseBlockCard'
+import { EventBlockCard } from './EventBlockCard'
 import type { YearBreakdownData } from '@/types/property'
 import {
   PERIODS_PER_YEAR,
@@ -184,7 +185,7 @@ interface InvestmentTimelineProps {
 export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number) => void }, InvestmentTimelineProps>((props, ref) => {
   const { onInspectProperty } = props;
   const { calculatedValues, profile } = useInvestmentProfile()
-  const { calculations, checkFeasibility, pauseBlocks, propertyTypes, selections, removePause, updatePauseDuration } = usePropertySelection()
+  const { calculations, checkFeasibility, pauseBlocks, eventBlocks, propertyTypes, selections, removePause, updatePauseDuration, removeEvent } = usePropertySelection()
   const { timelineProperties, updateTimelinePropertyLoanType, isRecalculating, calculateAffordabilityForProperty } = useAffordabilityCalculator()
   const { globalFactors, getPropertyData } = useDataAssumptions()
   const { setTimelineSnapshot } = useScenarioSave()
@@ -661,7 +662,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     }
 
     const timelineElements: Array<{
-      type: 'purchase' | 'gap' | 'pause';
+      type: 'purchase' | 'gap' | 'pause' | 'event';
       property?: typeof timelineProperties[0];
       yearData?: YearBreakdownData;
       isLastPropertyInYear?: boolean;
@@ -669,6 +670,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
       endYear?: number;
       pauseId?: string;
       duration?: number;
+      event?: EventBlock;
     }> = [];
 
     // Keep properties in user-defined order (FIFO) - only filter out unaffordable ones
@@ -676,19 +678,31 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     const sortedProperties = [...timelineProperties]
       .filter((p) => p.affordableYear !== Infinity);
 
-    // Build timeline with individual property cards, pause blocks, and gaps
-    // We need to insert pause blocks based on their 'order' field
+    // Build timeline with individual property cards, pause blocks, events, and gaps
+    // We need to insert pause blocks and events based on their 'order' field
     let propertyIndex = 0;
     let pauseIndex = 0;
+    let eventIndex = 0;
     let currentOrder = 0;
 
-    // Sort pause blocks by order
+    // Sort pause blocks and events by order
     const sortedPauses = [...pauseBlocks].sort((a, b) => a.order - b.order);
+    const sortedEvents = [...eventBlocks].sort((a, b) => a.order - b.order);
 
-    // Interleave properties and pauses based on order
-    while (propertyIndex < sortedProperties.length || pauseIndex < sortedPauses.length) {
+    // Interleave properties, pauses, and events based on order
+    while (propertyIndex < sortedProperties.length || pauseIndex < sortedPauses.length || eventIndex < sortedEvents.length) {
+      // Check if there's an event at this position
+      if (eventIndex < sortedEvents.length && sortedEvents[eventIndex].order === currentOrder) {
+        const event = sortedEvents[eventIndex];
+        timelineElements.push({
+          type: 'event',
+          event,
+        });
+        eventIndex++;
+        currentOrder++;
+      }
       // Check if there's a pause at this position
-      if (pauseIndex < sortedPauses.length && sortedPauses[pauseIndex].order === currentOrder) {
+      else if (pauseIndex < sortedPauses.length && sortedPauses[pauseIndex].order === currentOrder) {
         const pause = sortedPauses[pauseIndex];
         
         // Calculate pause year range
@@ -768,7 +782,7 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     }
 
     return timelineElements;
-  }, [timelineProperties, fullYearlyBreakdown, pauseBlocks]);
+  }, [timelineProperties, fullYearlyBreakdown, pauseBlocks, eventBlocks]);
 
   // Group timeline elements by year for the year circles
   const timelineByYear = useMemo(() => {
@@ -803,8 +817,8 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           // Same year - add to current group
           currentElements.push(element);
         }
-      } else if (element.type === 'gap' || element.type === 'pause') {
-        // Save current year group before gap/pause
+      } else if (element.type === 'gap' || element.type === 'pause' || element.type === 'event') {
+        // Save current year group before gap/pause/event
         if (currentYear !== null && currentElements.length > 0) {
           yearGroups.push({
             year: currentYear,
@@ -815,9 +829,13 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
           currentElements = [];
         }
         
-        // Add gap/pause as its own group
+        // Add gap/pause/event as its own group
+        // For events, use the event's period converted to year
+        const elementYear = element.type === 'event' && element.event 
+          ? BASE_YEAR + Math.floor((element.event.period - 1) / PERIODS_PER_YEAR)
+          : element.startYear || 0;
         yearGroups.push({
-          year: element.startYear || 0,
+          year: elementYear,
           elements: [element],
           height: 0
         });
@@ -906,6 +924,14 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
                             duration={element.duration}
                             onRemove={() => removePause(element.pauseId!)}
                             onUpdateDuration={(newDuration) => updatePauseDuration(element.pauseId!, newDuration)}
+                          />
+                        );
+                      } else if (element.type === 'event' && element.event) {
+                        return (
+                          <EventBlockCard
+                            key={`event-${element.event.id}-${index}`}
+                            event={element.event}
+                            onRemove={() => removeEvent(element.event!.id)}
                           />
                         );
                       }

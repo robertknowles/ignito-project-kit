@@ -25,7 +25,6 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
   const [instances, setInstances] = useState<Record<string, PropertyInstanceDetails>>({});
 
   const createInstance = useCallback((instanceId: string, propertyType: string, period: number) => {
-    console.log('Creating instance:', instanceId, propertyType, period);
     const defaults = getPropertyInstanceDefaults(propertyType);
     
     // Ensure state is always set (fallback to VIC if missing)
@@ -36,8 +35,6 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
       valuationAtPurchase: defaults.purchasePrice,
     };
     
-    console.log(`Created instance ${instanceId} with state: ${instanceWithState.state}`);
-    
     setInstances(prev => ({
       ...prev,
       [instanceId]: instanceWithState,
@@ -45,7 +42,6 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
   }, []);
 
   const updateInstance = useCallback((instanceId: string, updates: Partial<PropertyInstanceDetails>) => {
-    console.log('PropertyInstanceContext: Updating instance', instanceId, 'with', Object.keys(updates).length, 'fields');
     setInstances(prev => ({
       ...prev,
       [instanceId]: {
@@ -67,9 +63,8 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
     return instances[instanceId];
   }, [instances]);
 
-  // Override setInstances to add logging
-  const setInstancesWithLogging = useCallback((newInstances: Record<string, PropertyInstanceDetails>) => {
-    console.log('PropertyInstanceContext: Setting instances - total count:', Object.keys(newInstances).length);
+  // Wrapper for setInstances
+  const setInstancesWrapper = useCallback((newInstances: Record<string, PropertyInstanceDetails>) => {
     setInstances(newInstances);
   }, []);
 
@@ -81,7 +76,7 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
         updateInstance,
         deleteInstance,
         getInstance,
-        setInstances: setInstancesWithLogging,
+        setInstances: setInstancesWrapper,
       }}
     >
       {children}

@@ -16,26 +16,12 @@ export const useClientSwitching = () => {
   
   // Log selection changes for debugging
   useEffect(() => {
-    console.log('useClientSwitching: selections updated', {
-      pathname: location.pathname,
-      selections,
-      activeClientId: activeClient?.id
-    });
-  }, [selections, location.pathname, activeClient?.id]);
+}, [selections, location.pathname, activeClient?.id]);
   
   // Handle client switching - only when client ID actually changes
   useEffect(() => {
-    console.log('useClientSwitching: Effect triggered', {
-      pathname: location.pathname,
-      activeClientId: activeClient?.id,
-      activeClientName: activeClient?.name,
-      lastLoaded: lastLoadedClientRef.current,
-      shouldLoad: activeClient && activeClient.id !== lastLoadedClientRef.current
-    });
-    
-    if (activeClient && activeClient.id !== lastLoadedClientRef.current) {
-      console.log('useClientSwitching: Client changed, loading new data for:', activeClient.id, 'on path:', location.pathname);
-      lastLoadedClientRef.current = activeClient.id;
+if (activeClient && activeClient.id !== lastLoadedClientRef.current) {
+lastLoadedClientRef.current = activeClient.id;
       
       // Load property selection data
       loadPropertyData(activeClient.id);

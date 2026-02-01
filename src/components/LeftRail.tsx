@@ -61,12 +61,11 @@ export const LeftRail = () => {
       await signOut()
       navigate('/')
     } catch (error) {
-      console.error('Error during logout:', error)
+      // Logout failed
     }
   }
 
   const handleSettings = () => {
-    console.log('Opening settings...')
     setDropdownOpen(false)
   }
 

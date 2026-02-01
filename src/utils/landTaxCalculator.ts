@@ -6,8 +6,7 @@
 export function calculateLandTax(state: string, landValue: number): number {
   // Handle undefined or empty state
   if (!state) {
-    console.warn('calculateLandTax: state is undefined, returning 0');
-    return 0;
+return 0;
   }
   
   switch (state.toUpperCase()) {

@@ -27,7 +27,6 @@ export const getPropertyInstanceDefaults = (
   const defaults = propertyDefaults[key as keyof typeof propertyDefaults];
   
   if (!defaults) {
-    console.warn(`No defaults found for property type: ${propertyType} (key: ${key})`);
     // Return minimal defaults
     return createMinimalDefaults();
   }

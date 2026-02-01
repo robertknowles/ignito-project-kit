@@ -41,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
         return;
       }
 
@@ -50,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCompanyId(data.company_id);
       }
     } catch (error) {
-      console.error('Unexpected error fetching user profile:', error);
+      // Profile fetch failed - user will need to re-authenticate
     }
   };
 
@@ -125,12 +124,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Error signing out:', error);
         throw error;
       }
       clearProfileData();
     } catch (error) {
-      console.error('Unexpected error during sign out:', error);
       throw error;
     }
   };

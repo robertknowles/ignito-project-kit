@@ -99,7 +99,6 @@ export const TopBar = () => {
         description: 'Client report opened in new tab',
       })
     } catch (error) {
-      console.error('Error generating client report link:', error)
       toast({
         title: 'Error',
         description: 'Failed to generate client report link',
@@ -235,7 +234,7 @@ export const TopBar = () => {
           })
 
         if (userInsertError) {
-          console.error('Error creating user record:', userInsertError)
+          // Failed to create user record
         }
 
         // Link the client user to the scenario
@@ -245,7 +244,7 @@ export const TopBar = () => {
           .eq('id', scenarioId)
 
         if (scenarioError) {
-          console.error('Error updating scenario:', scenarioError)
+          // Failed to update scenario
         }
 
         // Show credentials modal
@@ -258,7 +257,6 @@ export const TopBar = () => {
         setShareModalOpen(true)
       }
     } catch (error) {
-      console.error('Error sharing dashboard:', error)
       toast({
         title: 'Error',
         description: 'Failed to generate share credentials',
@@ -328,7 +326,7 @@ export const TopBar = () => {
         })
 
       if (userInsertError) {
-        console.error('Error creating user record:', userInsertError)
+        // Failed to create user record
       }
 
       // Link the client user to the scenario
@@ -339,7 +337,7 @@ export const TopBar = () => {
           .eq('id', scenarioId)
 
         if (scenarioError) {
-          console.error('Error updating scenario:', scenarioError)
+          // Failed to update scenario
         }
       }
 
@@ -353,7 +351,6 @@ export const TopBar = () => {
       setShareModalOpen(true)
       setPendingEmail('')
     } catch (error) {
-      console.error('Error creating client account:', error)
       toast({
         title: 'Error',
         description: 'Failed to create client account',
@@ -365,7 +362,7 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-between w-full h-[45px] px-12 bg-white border-b border-gray-200">
+    <div id="top-bar" className="sticky top-0 z-40 flex items-end justify-between w-full h-[52px] px-12 bg-transparent">
       {/* Left side: Scenario Selector (hidden for clients) */}
       <div className="flex items-center">
         {!isClient && (
@@ -376,7 +373,9 @@ export const TopBar = () => {
             order={2}
             position="bottom"
           >
-            <ClientSelector />
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
+              <ClientSelector />
+            </div>
           </TourStep>
         )}
       </div>
@@ -386,18 +385,18 @@ export const TopBar = () => {
         <TourStep
           id="topbar-actions"
           title="Top Bar Actions"
-          content="View Client Report to share with your clients. Reset and Save controls are on each scenario chart."
+          content="Save your scenario, reset to start fresh, or view the Client Report to share with your clients."
           order={3}
           position="bottom"
         >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <SaveButton />
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[12px]"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-200/60 text-gray-700 rounded-lg hover:bg-white shadow-sm transition-colors font-medium text-[13px]"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={15} />
             <span>Client Report</span>
           </button>
         </div>
@@ -516,7 +515,6 @@ export const TopBar = () => {
                     description: 'You can now start the invite process again with a new email or password.',
                   });
                 } catch (error) {
-                  console.error('Error resetting invite:', error);
                   toast({
                     title: 'Error',
                     description: 'Failed to reset invite. Please try again.',

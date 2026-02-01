@@ -79,7 +79,6 @@ export const Navbar = () => {
         description: 'Client report opened in new tab',
       })
     } catch (error) {
-      console.error('Error generating client report link:', error)
       toast({
         title: 'Error',
         description: 'Failed to generate client report link',
@@ -109,12 +108,10 @@ export const Navbar = () => {
       // Redirect to landing page after logout
       navigate('/')
     } catch (error) {
-      console.error('Error during logout:', error)
+      // Logout failed
     }
   }
   const handleSettings = () => {
-    // Navigate to settings page or open settings modal
-    console.log('Opening settings...')
     setDropdownOpen(false)
   }
   return (

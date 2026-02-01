@@ -63,7 +63,6 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .single();
 
       if (fetchError) {
-        console.error('Error fetching branding:', fetchError);
         setError('Failed to fetch branding settings');
         setLoading(false);
         return;
@@ -81,7 +80,6 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Inject CSS variables
       injectCSSVariables(brandingData.primaryColor);
     } catch (err) {
-      console.error('Unexpected error fetching branding:', err);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -112,7 +110,6 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .eq('id', companyId);
 
       if (updateError) {
-        console.error('Error updating branding:', updateError);
         return { success: false, error: updateError.message };
       }
 
@@ -127,7 +124,6 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       return { success: true };
     } catch (err) {
-      console.error('Unexpected error updating branding:', err);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };

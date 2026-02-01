@@ -102,16 +102,7 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         // Check for comparison mode (multi-scenario data)
         const comparisonMode = parsedData.comparisonMode === true;
         const scenarios = parsedData.scenarios as Scenario[] | undefined;
-        
-        console.log('useSharedScenario: comparisonMode:', comparisonMode);
-        console.log('useSharedScenario: scenarios count:', scenarios?.length || 0);
-
-        console.log('useSharedScenario: rawPropertySelections type:', Array.isArray(rawPropertySelections) ? 'array' : 'object');
-        console.log('useSharedScenario: propertyInstances count:', Object.keys(propertyInstances).length);
-        console.log('useSharedScenario: timelineSnapshot count:', timelineSnapshot.length);
-        console.log('useSharedScenario: chartData present:', !!chartData);
-
-        // Convert propertySelections from various formats to array format
+// Convert propertySelections from various formats to array format
         // Priority order:
         // 1. timelineSnapshot (contains real property titles from dashboard)
         // 2. rawPropertySelections as array (backward compatibility)
@@ -120,8 +111,6 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         
         // PRIORITY 1: Use timelineSnapshot if available - it has real property titles!
         if (timelineSnapshot && timelineSnapshot.length > 0) {
-          console.log('useSharedScenario: Using timelineSnapshot for property data (has real titles)');
-          
           // Filter for feasible properties and convert to PropertySelection format
           timelineSnapshot
             .filter((tp: any) => tp.status === 'feasible')
@@ -154,13 +143,11 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         }
         // PRIORITY 2: Check if propertySelections is already an array (backward compatibility)
         else if (Array.isArray(rawPropertySelections)) {
-          console.log('useSharedScenario: Using rawPropertySelections array');
-          propertySelections.push(...rawPropertySelections);
+propertySelections.push(...rawPropertySelections);
         } 
         // PRIORITY 3: Convert object format to array (legacy format)
         else {
-          console.log('useSharedScenario: Converting rawPropertySelections object to array');
-          // Convert object format to array
+// Convert object format to array
           // First, collect all property instances with their IDs
           const allInstances: Array<{instanceKey: string, instanceData: any, propertyId: string, instanceIndex: number}> = [];
           
@@ -218,11 +205,8 @@ export function useSharedScenario(): UseSharedScenarioReturn {
             }
           });
         }
-
-        console.log('useSharedScenario: Final propertySelections array with', propertySelections.length, 'properties');
-        if (propertySelections.length > 0) {
-          console.log('useSharedScenario: First property title:', propertySelections[0].title);
-        }
+if (propertySelections.length > 0) {
+}
 
         // Construct the scenario object
         const scenarioData: ScenarioData = {
@@ -245,8 +229,7 @@ export function useSharedScenario(): UseSharedScenarioReturn {
         setScenario(scenarioData);
         setError(null);
       } catch (err) {
-        console.error('Error fetching shared scenario:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+setError(err instanceof Error ? err : new Error('Unknown error occurred'));
         setScenario(null);
       } finally {
         setLoading(false);

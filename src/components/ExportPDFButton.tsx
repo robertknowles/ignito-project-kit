@@ -54,8 +54,7 @@ export const ExportPDFButton: React.FC<ExportPDFButtonProps> = ({ iconOnly = fal
       globalFactors,
       agentBranding,
       onProgress: (stage) => {
-        console.log('PDF Generation:', stage);
-      },
+},
       onComplete: () => {
         toast.success('PDF report generated successfully!');
         setPdfGenerating(false);

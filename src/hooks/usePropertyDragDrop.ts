@@ -108,9 +108,7 @@ export const usePropertyDragDrop = () => {
           isManuallyPlaced: true,
           manualPlacementPeriod: newPeriod,
         });
-        
-        console.log(`Property ${propertyData.instanceId} manually placed at period ${newPeriod}`);
-      }
+}
     }
 
     // Reset drag state
@@ -136,8 +134,7 @@ export const usePropertyDragDrop = () => {
       isManuallyPlaced: false,
       manualPlacementPeriod: undefined,
     });
-    console.log(`Property ${instanceId} reset to auto-placement`);
-  }, [updateInstance]);
+}, [updateInstance]);
 
   /**
    * Check if a property is manually placed
