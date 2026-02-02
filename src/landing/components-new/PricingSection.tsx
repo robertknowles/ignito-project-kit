@@ -64,7 +64,7 @@ const PricingSection: React.FC = () => {
             className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg relative flex flex-col ring-1 ring-black/5 hover:shadow-xl transition-shadow duration-300"
           >
             <h3 className="text-2xl font-serif text-gray-900 mb-2">Professional</h3>
-            <p className="text-gray-500 text-sm mb-6 h-auto min-h-[40px]">Includes everything in Starter, plus:</p>
+            <p className="text-gray-500 text-sm mb-6 h-auto min-h-[40px]">For growing agencies and larger teams</p>
             
             <div className="flex items-baseline gap-1 mb-8">
               <span className="text-4xl font-serif font-semibold">$999</span>

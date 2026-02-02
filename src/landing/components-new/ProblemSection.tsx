@@ -39,14 +39,6 @@ const ProblemSection: React.FC = () => {
             >
               How it works.
             </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-xl text-gray-500 leading-relaxed max-w-sm"
-            >
-              Designed for the sales process.
-            </motion.p>
             
             <motion.div 
                initial={{ width: 0 }}

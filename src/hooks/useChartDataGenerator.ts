@@ -3,9 +3,17 @@ import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
+import {
+  getGrowthRateAdjustment,
+  getEffectiveInterestRate,
+  getPropertyEffectiveRate,
+  getRenovationValueIncrease,
+  applyGrowthAdjustment,
+} from '../utils/eventProcessing';
 import type { PropertyPurchase } from '../types/property';
 import {
   PERIODS_PER_YEAR,
@@ -79,6 +87,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
   const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
   const { globalFactors, getPropertyData } = useDataAssumptions();
   const { getInstance } = usePropertyInstance();
+  const { eventBlocks } = usePropertySelection();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
   const profile = scenarioData?.profile ?? contextProfile;
@@ -129,6 +138,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         loanAmount: property.loanAmount,
         depositRequired: property.depositRequired,
         title: property.title,
+        instanceId: property.instanceId, // Include instanceId for renovation tracking
         rentalYield: rentalYield,
         growthRate: defaultGrowthRate, // DEPRECATED: kept for backward compatibility
         growthCurve: propertyGrowthCurve, // Use instance-specific tiered growth rates
@@ -148,29 +158,73 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     });
 
     for (let year = startYear; year <= endYear; year++) {
-      // Calculate metrics for existing portfolio
+      const yearsElapsed = year - startYear;
+      const periodsElapsed = yearsElapsed * PERIODS_PER_YEAR;
+      
+      // Get market correction adjustment for this period
+      const growthAdjustment = getGrowthRateAdjustment(periodsElapsed, eventBlocks);
+      
+      // Apply growth adjustment to profile's growth curve for existing portfolio
+      const adjustedProfileGrowthCurve = growthAdjustment !== 0 
+        ? applyGrowthAdjustment(profile.growthCurve, growthAdjustment)
+        : profile.growthCurve;
+      
+      // Calculate metrics for existing portfolio with event-adjusted growth
       const existingMetrics = calculateExistingPortfolioMetrics(
         profile.portfolioValue,
         profile.currentDebt,
-        year - startYear,
+        yearsElapsed,
         defaultGrowthRate,
-        profile.growthCurve,
+        adjustedProfileGrowthCurve,
         defaultInterestRate
       );
 
       // Calculate metrics for purchases made by this year
+      // Apply growth adjustment to each purchase's growth curve
       const relevantPurchases = purchases.filter(p => p.year <= year);
+      const adjustedPurchases = relevantPurchases.map(purchase => {
+        const adjustedGrowthCurve = growthAdjustment !== 0 && purchase.growthCurve
+          ? applyGrowthAdjustment(purchase.growthCurve, growthAdjustment)
+          : purchase.growthCurve;
+        
+        return {
+          ...purchase,
+          growthCurve: adjustedGrowthCurve,
+        };
+      });
+      
       const newPurchasesMetrics = calculatePortfolioMetrics(
-        relevantPurchases,
+        adjustedPurchases,
         year,
         defaultGrowthRate,
-        profile.growthCurve,
+        adjustedProfileGrowthCurve,
         defaultInterestRate,
         DEFAULT_PROPERTY_EXPENSES
       );
 
       // Combine metrics
-      const totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics);
+      let totalMetrics = combineMetrics(existingMetrics, newPurchasesMetrics);
+      
+      // Add renovation value increases to portfolio value and equity
+      let totalRenovationIncrease = 0;
+      relevantPurchases.forEach(purchase => {
+        if (purchase.instanceId) {
+          const renovationIncrease = getRenovationValueIncrease(
+            purchase.instanceId,
+            periodsElapsed,
+            eventBlocks
+          );
+          totalRenovationIncrease += renovationIncrease;
+        }
+      });
+      
+      if (totalRenovationIncrease > 0) {
+        totalMetrics = {
+          ...totalMetrics,
+          portfolioValue: totalMetrics.portfolioValue + totalRenovationIncrease,
+          totalEquity: totalMetrics.totalEquity + totalRenovationIncrease,
+        };
+      }
 
       // Determine if there's a property purchase this year
       const purchasesThisYear = purchaseSchedule[year] || [];
@@ -189,19 +243,28 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     }
 
     return data;
-  }, [timelineProperties, profile, globalFactors, getPropertyData]);
+  }, [timelineProperties, profile, globalFactors, getPropertyData, eventBlocks, getInstance]);
 
   const cashflowData = useMemo((): CashflowDataPoint[] => {
     const data: CashflowDataPoint[] = [];
     const startYear = 2025;
     const endYear = startYear + profile.timelineYears - 1;
-    const defaultInterestRate = DEFAULT_INTEREST_RATE;
 
     // Get feasible properties with their detailed cashflow data
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
 
     for (let year = startYear; year <= endYear; year++) {
       const yearsElapsed = year - startYear;
+      const periodsElapsed = yearsElapsed * PERIODS_PER_YEAR;
+      
+      // Get event-adjusted interest rate for this period (market-wide)
+      const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks);
+      
+      // Get market correction adjustment for growth calculations
+      const growthAdjustment = getGrowthRateAdjustment(periodsElapsed, eventBlocks);
+      const adjustedProfileGrowthCurve = growthAdjustment !== 0 
+        ? applyGrowthAdjustment(profile.growthCurve, growthAdjustment)
+        : profile.growthCurve;
       
       // Calculate existing portfolio cashflow (simplified - uses default expenses)
       let existingCashflow = 0;
@@ -210,10 +273,10 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       let existingLoanPayments = 0;
       
       if (profile.portfolioValue > 0) {
-        const periodsElapsed = yearsElapsed * PERIODS_PER_YEAR;
-        const grownValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve);
+        const grownValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, adjustedProfileGrowthCurve);
         existingRentalIncome = grownValue * DEFAULT_RENTAL_YIELD;
-        existingLoanPayments = profile.currentDebt * defaultInterestRate;
+        // Use event-adjusted interest rate for existing debt
+        existingLoanPayments = profile.currentDebt * effectiveInterestRate;
         // Simplified expense ratio for existing portfolio
         existingExpenses = existingRentalIncome * DEFAULT_EXPENSE_RATIO;
         existingCashflow = existingRentalIncome - existingLoanPayments - existingExpenses;
@@ -236,6 +299,20 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         const propertyInstance = getInstance(property.instanceId);
         const propertyData = getPropertyData(property.title);
         
+        // Get the effective interest rate for this property (considers property-specific refinance)
+        const propertyEffectiveRate = getPropertyEffectiveRate(
+          periodsElapsed,
+          eventBlocks,
+          property.instanceId
+        );
+        
+        // Get renovation value increase for this property
+        const renovationValueIncrease = getRenovationValueIncrease(
+          property.instanceId,
+          periodsElapsed,
+          eventBlocks
+        );
+        
         if (propertyInstance) {
           // PRIORITY: Use instance growthAssumption if set, then template, then profile fallback
           let propertyGrowthCurve;
@@ -252,11 +329,21 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             propertyGrowthCurve = profile.growthCurve;
           }
           
-          const currentValue = calculatePropertyGrowth(property.cost, periodsOwned, propertyGrowthCurve);
+          // Apply market correction to property's growth curve
+          const adjustedPropertyGrowthCurve = growthAdjustment !== 0
+            ? applyGrowthAdjustment(propertyGrowthCurve, growthAdjustment)
+            : propertyGrowthCurve;
+          
+          const baseValue = calculatePropertyGrowth(property.cost, periodsOwned, adjustedPropertyGrowthCurve);
+          // Add renovation value increase
+          const currentValue = baseValue + renovationValueIncrease;
           const growthFactor = currentValue / property.cost;
           
           // Calculate detailed cashflow using all 39 property fields
           const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount);
+          
+          // Recalculate loan interest with event-adjusted rate
+          const adjustedLoanInterest = property.loanAmount * propertyEffectiveRate;
           
           // Adjust for property growth (rent increases with property value)
           // Apply inflation to expenses
@@ -292,13 +379,13 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           // Deductions (depreciation benefits) - stays constant or grows slightly
           const adjustedDeductions = cashflowBreakdown.potentialDeductions;
           
-          // Net cashflow for this property
-          const propertyCashflow = adjustedIncome - totalPropertyExpenses - cashflowBreakdown.loanInterest + adjustedDeductions;
+          // Net cashflow for this property (using event-adjusted loan interest)
+          const propertyCashflow = adjustedIncome - totalPropertyExpenses - adjustedLoanInterest + adjustedDeductions;
           
           newPurchasesCashflow += propertyCashflow;
           newPurchasesRentalIncome += adjustedIncome;
           newPurchasesExpenses += totalPropertyExpenses - adjustedDeductions; // Net of deductions
-          newPurchasesLoanPayments += cashflowBreakdown.loanInterest;
+          newPurchasesLoanPayments += adjustedLoanInterest;
         } else {
           // Fallback: Use property type defaults if instance not found
           const fallbackInstance = getPropertyInstanceDefaults(property.title);
@@ -313,16 +400,25 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, property.loanAmount);
           
           // Simple growth adjustment for fallback
-          const propertyGrowthCurve = propertyData ? {
+          let propertyGrowthCurve = propertyData ? {
             year1: parseFloat(propertyData.growthYear1),
             years2to3: parseFloat(propertyData.growthYears2to3),
             year4: parseFloat(propertyData.growthYear4),
             year5plus: parseFloat(propertyData.growthYear5plus)
           } : profile.growthCurve;
           
-          const currentValue = calculatePropertyGrowth(property.cost, periodsOwned, propertyGrowthCurve);
+          // Apply market correction to growth curve
+          if (growthAdjustment !== 0) {
+            propertyGrowthCurve = applyGrowthAdjustment(propertyGrowthCurve, growthAdjustment);
+          }
+          
+          const baseValue = calculatePropertyGrowth(property.cost, periodsOwned, propertyGrowthCurve);
+          const currentValue = baseValue + renovationValueIncrease;
           const growthFactor = currentValue / property.cost;
           const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+          
+          // Recalculate loan interest with event-adjusted rate
+          const adjustedLoanInterest = property.loanAmount * propertyEffectiveRate;
           
           // Calculate fallback expenses (excluding loan interest)
           const fallbackExpenses = (
@@ -335,12 +431,12 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             fallbackCashflow.potentialDeductions
           ) * inflationFactor;
           
-          const adjustedCashflow = (fallbackCashflow.netAnnualCashflow + fallbackCashflow.loanInterest) * growthFactor - fallbackCashflow.loanInterest;
+          const adjustedCashflow = (fallbackCashflow.netAnnualCashflow + fallbackCashflow.loanInterest) * growthFactor - adjustedLoanInterest;
           
           newPurchasesCashflow += adjustedCashflow;
           newPurchasesRentalIncome += fallbackCashflow.adjustedIncome * growthFactor;
           newPurchasesExpenses += fallbackExpenses;
-          newPurchasesLoanPayments += fallbackCashflow.loanInterest;
+          newPurchasesLoanPayments += adjustedLoanInterest;
         }
       });
 
@@ -361,7 +457,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     }
 
     return data;
-  }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance]);
+  }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance, eventBlocks]);
 
   return {
     portfolioGrowthData,

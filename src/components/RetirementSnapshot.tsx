@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
-import { ChevronDown, ChevronRight, Building2 } from 'lucide-react'
-import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useRoadmapData } from '../hooks/useRoadmapData'
+import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 
 // Slider styles for consistent appearance - Clean black track and handle (matching ClientDetailsCard)
 const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
@@ -100,6 +100,8 @@ interface RetirementSnapshotProps {
 export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultExpanded = true }) => {
   const { profile } = useInvestmentProfile()
   const { years } = useRoadmapData()
+  // Use the same data source as the charts for cashflow consistency
+  const { cashflowData } = useChartDataGenerator()
   
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   
@@ -132,7 +134,11 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
     const portfolioValue = yearData.portfolioValueRaw || 0
     const totalDebt = yearData.totalDebt || 0
     const totalEquity = yearData.totalEquityRaw || 0
-    const netCashflow = yearData.annualCashflow || 0
+    
+    // Use cashflow from useChartDataGenerator (same source as charts) for consistency
+    // This ensures the retirement snapshot shows the exact same values as the cashflow chart
+    const chartCashflowData = cashflowData.find(d => d.year === targetYear.toString())
+    const netCashflow = chartCashflowData?.cashflow || 0
     
     // NEW MODEL: Sale proceeds first pay down debt, then remaining becomes liquidity
     // This matches the Investor Kit approach
@@ -180,7 +186,7 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
       serviceability: Math.round(serviceability * sellOffFactor + liquidity * 0.05), // Simplified calculation
       debtPayoffPercent,
     }
-  }, [years, snapshotYears, sellOffPercent])
+  }, [years, cashflowData, snapshotYears, sellOffPercent])
 
   // Combined slider value for snapshot time
   const totalMonths = snapshotYears * 12 + snapshotMonths

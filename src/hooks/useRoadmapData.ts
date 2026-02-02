@@ -5,6 +5,13 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection, type EventBlock, type EventCategory } from '../contexts/PropertySelectionContext';
 import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
 import { getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
+import {
+  getGrowthRateAdjustment,
+  getEffectiveInterestRate,
+  getPropertyEffectiveRate,
+  getRenovationValueIncrease,
+  applyGrowthAdjustment,
+} from '../utils/eventProcessing';
 import type { YearBreakdownData } from '@/types/property';
 import {
   PERIODS_PER_YEAR,
@@ -29,10 +36,13 @@ const formatCurrency = (value: number): string => {
 };
 
 // Tiered growth function matching useAffordabilityCalculator pattern
-const calculatePropertyGrowth = (
+// Now supports event-adjusted growth rates via market correction events
+const calculatePropertyGrowthWithEvents = (
   initialValue: number, 
   periods: number, 
-  growthCurve: { year1: number; years2to3: number; year4: number; year5plus: number }
+  growthCurve: { year1: number; years2to3: number; year4: number; year5plus: number },
+  eventBlocks: EventBlock[],
+  basePeriod: number = 0 // The period at which the property was purchased
 ): number => {
   let currentValue = initialValue;
   
@@ -42,6 +52,12 @@ const calculatePropertyGrowth = (
   const year5plusRate = annualRateToPeriodRate(growthCurve.year5plus / 100);
   
   for (let period = 1; period <= periods; period++) {
+    // Calculate the actual calendar period (for market correction event lookup)
+    const actualPeriod = basePeriod + period;
+    
+    // Get market correction adjustment for this period
+    const growthAdjustment = getGrowthRateAdjustment(actualPeriod, eventBlocks);
+    
     let periodRate;
     
     if (period <= 2) {
@@ -58,10 +74,23 @@ const calculatePropertyGrowth = (
       periodRate = year5plusRate;
     }
     
-    currentValue *= (1 + periodRate);
+    // Apply market correction adjustment (convert to period rate)
+    const adjustedPeriodRate = periodRate + annualRateToPeriodRate(growthAdjustment);
+    
+    // Ensure rate doesn't go negative
+    currentValue *= (1 + Math.max(-0.1, adjustedPeriodRate)); // Cap at -10% per period
   }
   
   return currentValue;
+};
+
+// Legacy version without event support (kept for backward compatibility)
+const calculatePropertyGrowth = (
+  initialValue: number, 
+  periods: number, 
+  growthCurve: { year1: number; years2to3: number; year4: number; year5plus: number }
+): number => {
+  return calculatePropertyGrowthWithEvents(initialValue, periods, growthCurve, [], 0);
 };
 
 // Funding breakdown for a purchase
@@ -192,9 +221,12 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       
       const propertyCount = propertiesPurchasedByYear.length;
       
-      // Calculate portfolio value with growth
+      // Get event-adjusted interest rate for this period
+      const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks);
+      
+      // Calculate portfolio value with growth (applying market correction events)
       let portfolioValue = profile.portfolioValue > 0 
-        ? calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve)
+        ? calculatePropertyGrowthWithEvents(profile.portfolioValue, periodsElapsed, profile.growthCurve, eventBlocks, 0)
         : 0;
       
       let totalDebt = profile.currentDebt;
@@ -213,7 +245,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       
       // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
       let portfolioValueBeforeThisYear = profile.portfolioValue > 0 
-        ? calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve)
+        ? calculatePropertyGrowthWithEvents(profile.portfolioValue, periodsElapsed, profile.growthCurve, eventBlocks, 0)
         : 0;
       let totalDebtBeforeThisYear = profile.currentDebt;
       
@@ -223,6 +255,9 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const purchaseYear = Math.floor(prop.affordableYear);
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+        
+        // Calculate the purchase period for event adjustment
+        const purchasePeriod = (purchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
         
         // Get property instance to check for custom growth rate
         const propertyInstance = getInstance(prop.instanceId);
@@ -234,7 +269,13 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           : profile.growthCurve;
         
         // Calculate current property value with tiered growth (using instance growth rate)
-        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, effectiveGrowthCurve);
+        // Apply market correction events using purchasePeriod as basePeriod
+        const baseValue = calculatePropertyGrowthWithEvents(prop.cost, periodsOwned, effectiveGrowthCurve, eventBlocks, purchasePeriod);
+        
+        // Add renovation value increases
+        const renovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
+        const currentValue = baseValue + renovationIncrease;
+        
         portfolioValue += currentValue;
         totalDebt += prop.loanAmount;
         
@@ -289,6 +330,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const purchaseYear = Math.floor(prop.affordableYear);
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+        const propPurchasePeriod = (purchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
         
         // Get instance for custom growth rate
         const propInstance = getInstance(prop.instanceId);
@@ -296,13 +338,18 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
           : profile.growthCurve;
         
-        const currentValue = calculatePropertyGrowth(prop.cost, periodsOwned, propGrowthCurve);
+        // Use event-aware growth calculation
+        const baseValue = calculatePropertyGrowthWithEvents(prop.cost, periodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+        const renovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
+        const currentValue = baseValue + renovationIncrease;
         const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
         const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
         
         const propRentalIncome = prop.grossRentalIncome * growthFactor * inflationFactor;
         const propExpenses = prop.expenses * inflationFactor;
-        const propInterest = prop.loanInterest;
+        // Use event-adjusted interest rate for property
+        const propEffectiveRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, prop.instanceId);
+        const propInterest = prop.loanAmount * propEffectiveRate;
         
         netCashflowFromExistingProperties += propRentalIncome - propInterest - propExpenses;
       });
@@ -436,10 +483,11 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         });
         
         // Calculate values needed for YearBreakdownData
+        // Use event-adjusted interest rate for this period
         const existingDebt = totalDebt - firstPurchase.loanAmount;
         const newDebt = firstPurchase.loanAmount;
-        const existingLoanInterest = existingDebt * defaultInterestRate;
-        const newLoanInterest = newDebt * defaultInterestRate;
+        const existingLoanInterest = existingDebt * effectiveInterestRate;
+        const newLoanInterest = newDebt * effectiveInterestRate;
         const baseServiceabilityCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
         const rentalServiceabilityContribution = grossRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
         const equityBoost = extractableEquity * profile.equityFactor;
@@ -454,6 +502,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           const propPurchaseYear = Math.floor(prop.affordableYear);
           const propYearsOwned = year - propPurchaseYear;
           const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
+          const propPurchasePeriod = (propPurchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
           
           // Get instance for custom growth rate
           const propInstance = getInstance(prop.instanceId);
@@ -461,7 +510,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
             : profile.growthCurve;
           
-          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, propGrowthCurve);
+          // Use event-aware growth calculation
+          const propBaseValue = calculatePropertyGrowthWithEvents(prop.cost, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+          const propRenovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
+          const propCurrentValue = propBaseValue + propRenovationIncrease;
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
           
           return {
@@ -622,10 +674,11 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const enhancedServiceabilityCapacity = baseCapacity + rentalContribution;
         
         // Assume a hypothetical $500k property to test capacity
+        // Use event-adjusted interest rate
         const hypotheticalPropertyCost = 500000;
         const hypotheticalDeposit = hypotheticalPropertyCost * (1 - EQUITY_EXTRACTION_LVR_CAP);
         const hypotheticalLoan = hypotheticalPropertyCost * EQUITY_EXTRACTION_LVR_CAP;
-        const hypotheticalLoanPayment = hypotheticalLoan * defaultInterestRate;
+        const hypotheticalLoanPayment = hypotheticalLoan * effectiveInterestRate;
         
         // Check deposit capacity
         const depositTestPass = availableFunds >= hypotheticalDeposit;
@@ -644,7 +697,8 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         serviceabilityStatus = serviceabilityTestPass ? 'pass' : 'fail';
         
         // Calculate additional values for YearBreakdownData
-        const existingLoanInterest = totalDebt * defaultInterestRate;
+        // Use event-adjusted interest rate
+        const existingLoanInterest = totalDebt * effectiveInterestRate;
         const lvr = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
         const dsr = enhancedServiceabilityCapacity > 0 
           ? (totalLoanInterest / enhancedServiceabilityCapacity) * 100 
@@ -655,6 +709,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           const propPurchaseYear = Math.floor(prop.affordableYear);
           const propYearsOwned = year - propPurchaseYear;
           const propPeriodsOwned = propYearsOwned * PERIODS_PER_YEAR;
+          const propPurchasePeriod = (propPurchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
           
           // Get instance for custom growth rate
           const propInstance = getInstance(prop.instanceId);
@@ -662,7 +717,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
             : profile.growthCurve;
           
-          const propCurrentValue = calculatePropertyGrowth(prop.cost, propPeriodsOwned, propGrowthCurve);
+          // Use event-aware growth calculation
+          const propBaseValue = calculatePropertyGrowthWithEvents(prop.cost, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+          const propRenovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
+          const propCurrentValue = propBaseValue + propRenovationIncrease;
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
           
           return {

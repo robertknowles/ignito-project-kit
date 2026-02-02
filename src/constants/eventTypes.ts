@@ -282,13 +282,21 @@ export const getEventLabel = (eventType: EventType, payload: EventPayload): stri
   
   switch (eventType) {
     case 'salary_change':
-      return payload.newSalary 
-        ? `Salary: $${payload.newSalary.toLocaleString()}`
-        : typeDef.label;
+      if (payload.newSalary !== undefined && payload.newSalary !== null) {
+        const direction = payload.previousSalary !== undefined 
+          ? (payload.newSalary > payload.previousSalary ? ' ↑' : payload.newSalary < payload.previousSalary ? ' ↓' : '')
+          : ' ↑';
+        return `Salary${direction}`;
+      }
+      return typeDef.label;
     case 'partner_income_change':
-      return payload.newPartnerSalary
-        ? `Partner: $${payload.newPartnerSalary.toLocaleString()}`
-        : typeDef.label;
+      if (payload.newPartnerSalary !== undefined && payload.newPartnerSalary !== null) {
+        const direction = payload.previousPartnerSalary !== undefined
+          ? (payload.newPartnerSalary > payload.previousPartnerSalary ? ' ↑' : payload.newPartnerSalary < payload.previousPartnerSalary ? ' ↓' : '')
+          : ' ↑';
+        return `Partner Income${direction}`;
+      }
+      return typeDef.label;
     case 'bonus_windfall':
       return payload.bonusAmount
         ? `Bonus: +$${payload.bonusAmount.toLocaleString()}`
@@ -302,12 +310,24 @@ export const getEventLabel = (eventType: EventType, payload: EventPayload): stri
         ? `Expense: -$${payload.cashAmount.toLocaleString()}`
         : typeDef.label;
     case 'interest_rate_change':
-      return payload.rateChange !== undefined
-        ? `Rates: ${payload.rateChange > 0 ? '+' : ''}${payload.rateChange}%`
-        : typeDef.label;
+      if (payload.rateChange !== undefined) {
+        const direction = payload.rateChange > 0 ? ' ↑' : payload.rateChange < 0 ? ' ↓' : '';
+        return `Rates: ${payload.rateChange > 0 ? '+' : ''}${payload.rateChange}%${direction}`;
+      }
+      return typeDef.label;
     case 'market_correction':
       return payload.growthAdjustment !== undefined
-        ? `Correction: ${payload.growthAdjustment}% for ${payload.durationPeriods || 0} periods`
+        ? `Market: ${payload.growthAdjustment}% growth ↓`
+        : typeDef.label;
+    case 'dependent_change':
+      if (payload.dependentChange) {
+        const direction = payload.dependentChange > 0 ? ' ↑' : ' ↓';
+        return `Dependents: ${payload.dependentChange > 0 ? '+' : ''}${payload.dependentChange}${direction}`;
+      }
+      return typeDef.label;
+    case 'refinance':
+      return payload.newInterestRate
+        ? `Refinance: ${payload.newInterestRate}%`
         : typeDef.label;
     default:
       return typeDef.label;

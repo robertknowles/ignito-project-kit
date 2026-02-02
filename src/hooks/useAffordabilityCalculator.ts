@@ -14,6 +14,13 @@ import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
 import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
 import { calculateCascadeEffect, initializeCascadeState } from '../utils/cascadeCalculator';
 import {
+  getInterestRateAdjustment,
+  getGrowthRateAdjustment,
+  getEffectiveInterestRate,
+  getPropertyEffectiveRate,
+  getRenovationValueIncrease,
+} from '../utils/eventProcessing';
+import {
   PERIODS_PER_YEAR,
   BASE_YEAR,
   SERVICEABILITY_FACTOR,
@@ -117,7 +124,13 @@ setTimelineLoanTypes({});
   };
 
   // Move helper functions outside useMemo so they can be accessed by other functions
-  const calculatePropertyGrowth = (initialValue: number, periods: number, assumption: PropertyAssumption) => {
+  // This function now optionally accepts a basePeriod to apply market correction events
+  const calculatePropertyGrowth = (
+    initialValue: number, 
+    periods: number, 
+    assumption: PropertyAssumption,
+    basePeriod: number = 0 // The period at which the property was purchased (for event adjustment)
+  ) => {
     let currentValue = initialValue;
     
     // Use per-property tiered growth rates
@@ -127,6 +140,12 @@ setTimelineLoanTypes({});
     const year5plusRate = annualRateToPeriodRate(parseFloat(assumption.growthYear5plus) / 100);
     
     for (let period = 1; period <= periods; period++) {
+      // Calculate the actual calendar period (for market correction event lookup)
+      const actualPeriod = basePeriod + period;
+      
+      // Get market correction adjustment for this period
+      const growthAdjustment = getGrowthRateAdjustment(actualPeriod, eventBlocks);
+      
       let periodRate;
       
       if (period <= 2) {
@@ -143,7 +162,12 @@ setTimelineLoanTypes({});
         periodRate = year5plusRate;
       }
       
-      currentValue *= (1 + periodRate);
+      // Apply market correction adjustment (convert to period rate)
+      // Growth adjustment is already a decimal (e.g., -0.03 for -3%)
+      const adjustedPeriodRate = periodRate + annualRateToPeriodRate(growthAdjustment);
+      
+      // Ensure rate doesn't go negative
+      currentValue *= (1 + Math.max(-0.1, adjustedPeriodRate)); // Cap at -10% per period
     }
     
     return currentValue;
@@ -296,49 +320,8 @@ setTimelineLoanTypes({});
     return modifiedProfile;
   };
 
-  /**
-   * Get the cumulative interest rate adjustment from market events up to a period
-   */
-  const getInterestRateAdjustment = (period: number, events: EventBlock[]): number => {
-    let adjustment = 0;
-    
-    const rateEvents = events
-      .filter(e => e.eventType === 'interest_rate_change' && e.period <= period)
-      .sort((a, b) => a.period - b.period);
-    
-    for (const event of rateEvents) {
-      if (event.payload.rateChange !== undefined) {
-        adjustment += event.payload.rateChange / 100; // Convert percentage points to decimal
-      }
-    }
-    
-    return adjustment;
-  };
-
-  /**
-   * Get the growth rate adjustment from market correction events at a period
-   */
-  const getGrowthRateAdjustment = (period: number, events: EventBlock[]): number => {
-    let adjustment = 0;
-    
-    const correctionEvents = events
-      .filter(e => e.eventType === 'market_correction')
-      .sort((a, b) => a.period - b.period);
-    
-    for (const event of correctionEvents) {
-      const startPeriod = event.period;
-      const endPeriod = startPeriod + (event.payload.durationPeriods || 0);
-      
-      // Check if current period is within the correction window
-      if (period >= startPeriod && period < endPeriod) {
-        if (event.payload.growthAdjustment !== undefined) {
-          adjustment += event.payload.growthAdjustment / 100; // Convert percentage points to decimal
-        }
-      }
-    }
-    
-    return adjustment;
-  };
+  // NOTE: getInterestRateAdjustment and getGrowthRateAdjustment are now imported from '../utils/eventProcessing'
+  // They are used throughout this file to apply market events to calculations
 
   const calculateAvailableFunds = (
       currentPeriod: number, 
@@ -399,7 +382,8 @@ setTimelineLoanTypes({});
             const propertyData = getPropertyData(purchase.title);
             
             if (propertyData) {
-              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              // Pass purchase.period as basePeriod for correct market correction event timing
+              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
               const propertyInstance = getInstance(purchase.instanceId);
               
               if (propertyInstance) {
@@ -439,7 +423,8 @@ setTimelineLoanTypes({});
             const propertyData = getPropertyData(purchase.title);
             if (propertyData) {
               const periodsOwned = period - purchase.period;
-              const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+              // Pass purchase.period as basePeriod for correct market correction event timing
+              const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
               const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
               const usableEquity = Math.max(0, propertyCurrentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
               extractableEquityThisPeriod += usableEquity;
@@ -610,7 +595,8 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
           
         if (propertyData) {
           // Calculate current property value with tiered growth
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
+          // Pass purchase.period as basePeriod for correct market correction event timing
+          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
           
           // Get property instance for detailed cashflow calculation
           const propertyInstance = getInstance(purchase.instanceId);
@@ -752,29 +738,42 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       
       // NEW SERVICEABILITY-BASED DEBT TEST
       // Calculate annual loan payments for all properties (IO or P&I)
+      // Apply market-wide interest rate adjustments from events
       let totalAnnualLoanPayment = 0;
       
-      // Existing debt payment (use default interest rate)
+      // Get the effective interest rate for this period (market-wide adjustment)
+      const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
+      
+      // Existing debt payment (use event-adjusted market rate)
       if (profile.currentDebt > 0) {
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, DEFAULT_INTEREST_RATE, 'IO');
+        totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRate, 'IO');
       }
       
-      // Previous purchases loan payments (use their instance interest rates)
+      // Previous purchases loan payments (use their instance interest rates + refinance events)
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
-          const purchaseInstance = getInstance(purchase.instanceId);
-          const purchaseInterestRate = purchaseInstance ? (purchaseInstance.interestRate / 100) : DEFAULT_INTEREST_RATE;
+          // Get property-specific effective rate (considers refinance events)
+          const purchaseEffectiveRate = getPropertyEffectiveRate(
+            currentPeriod,
+            eventBlocks,
+            purchase.instanceId
+          );
           const purchaseLoanType = purchase.loanType || 'IO';
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseInterestRate, purchaseLoanType);
+          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
         }
       });
       
       // Get property instance for interest rate and LMI waiver
       const propertyInstance = getInstance(property.instanceId);
-      const propertyInterestRate = propertyInstance ? (propertyInstance.interestRate / 100) : DEFAULT_INTEREST_RATE;
+      // Get property-specific effective rate (considers refinance events)
+      const propertyInterestRate = getPropertyEffectiveRate(
+        currentPeriod,
+        eventBlocks,
+        property.instanceId
+      );
       const lmiWaiver = propertyInstance?.lmiWaiver ?? false;
       
-      // Add new property loan payment (use property instance interest rate)
+      // Add new property loan payment (use event-adjusted property interest rate)
       const newPropertyLoanType = property.loanType || 'IO';
       const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
       totalAnnualLoanPayment += newPropertyLoanPayment;
@@ -1672,28 +1671,40 @@ return { period: Infinity };
     }
     
     // Calculate total loan payment for serviceability test
+    // Apply market-wide interest rate adjustments from events
     let totalAnnualLoanPayment = 0;
     
-    // Existing debt payment (use default interest rate)
+    // Get the effective interest rate for this period (market-wide adjustment)
+    const effectiveMarketRateForPeriod = getEffectiveInterestRate(period, eventBlocks);
+    
+    // Existing debt payment (use event-adjusted market rate)
     if (profile.currentDebt > 0) {
-      totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, DEFAULT_INTEREST_RATE, 'IO');
+      totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRateForPeriod, 'IO');
     }
     
-    // Previous purchases loan payments (use their instance interest rates)
+    // Previous purchases loan payments (use property-specific effective rates with refinance events)
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
-        const purchaseInstance = getInstance(purchase.instanceId);
-        const purchaseInterestRate = purchaseInstance ? (purchaseInstance.interestRate / 100) : DEFAULT_INTEREST_RATE;
+        // Get property-specific effective rate (considers refinance events)
+        const purchaseEffectiveRate = getPropertyEffectiveRate(
+          period,
+          eventBlocks,
+          purchase.instanceId
+        );
         const purchaseLoanType = purchase.loanType || 'IO';
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseInterestRate, purchaseLoanType);
+        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
       }
     });
     
-    // Add new property loan payment (use property instance interest rate, newLoanAmount already declared above)
-    const propertyInstance = getInstance(property.instanceId);
-    const propertyInterestRate = propertyInstance ? (propertyInstance.interestRate / 100) : 0.065;
+    // Add new property loan payment (use event-adjusted property interest rate)
+    // Get property-specific effective rate (considers refinance events)
+    const propertyEffectiveRateForPeriod = getPropertyEffectiveRate(
+      period,
+      eventBlocks,
+      property.instanceId
+    );
     const newPropertyLoanType = property.loanType || 'IO';
-    const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
+    const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyEffectiveRateForPeriod, newPropertyLoanType);
     totalAnnualLoanPayment += newPropertyLoanPayment;
     
     // Enhanced serviceability test with rental income contribution

@@ -61,7 +61,7 @@ const FeaturesGrid: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Features</span>
-          <h2 className="font-serif text-4xl mt-3">Features</h2>
+          <h2 className="font-serif text-4xl mt-3">What you can do</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">

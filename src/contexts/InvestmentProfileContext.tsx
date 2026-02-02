@@ -10,7 +10,6 @@ export interface InvestmentProfileData {
   timelineYears: number;
   equityGoal: number; // Changed from equityGrowth percentage to dollar amount
   cashflowGoal: number; // Changed from cashflow percentage to dollar amount
-  portfolioValueGoal: number; // Target portfolio value in dollars
   // Enhanced dynamic features
   equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
   // NEW: Dual serviceability model
@@ -56,7 +55,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     timelineYears: 15,
     equityGoal: 1000000, // Default $1M equity goal
     cashflowGoal: 50000, // Default $50k annual cashflow goal
-    portfolioValueGoal: 3000000, // Default $3M portfolio value goal
     // Enhanced dynamic features
     equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
     // NEW: Dual serviceability model

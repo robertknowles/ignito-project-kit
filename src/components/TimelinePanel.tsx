@@ -4,7 +4,8 @@ import { Plus, X, Calendar, Home, Pause, ChevronUp, ChevronDown, Settings, Info 
 import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
-import { EVENT_TYPES, EVENT_CATEGORIES, getEventLabel } from '../constants/eventTypes';
+import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
+import { EventTypeIcon } from '../utils/eventIcons';
 import { EventConfigModal } from './EventConfigModal';
 import { AddToTimelineModal } from './AddToTimelineModal';
 import { PropertyDetailModal } from './PropertyDetailModal';
@@ -880,6 +881,7 @@ interface TimelineItemCardProps {
   type: 'property' | 'event' | 'pause';
   title: string;
   subtitle?: string;
+  subtitleText?: string; // For events/pauses - displayed instead of price
   period?: number;
   icon?: React.ReactNode;
   imageUrl?: string;
@@ -914,6 +916,7 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   type,
   title,
   subtitle,
+  subtitleText,
   period,
   icon,
   imageUrl,
@@ -931,6 +934,8 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   onOpenAnnualExpenses,
 }) => {
   const isProperty = type === 'property';
+  const isEvent = type === 'event';
+  const isPause = type === 'pause';
   
   // Format price for display
   const priceDisplay = instanceData?.purchasePrice 
@@ -950,10 +955,10 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
     <div className={`bg-white border border-gray-200 rounded-xl transition-colors overflow-hidden ${isExpanded ? '' : 'hover:border-gray-400'}`}>
       {/* Header Row */}
       <div 
-        className={`group flex items-center gap-2 cursor-pointer ${isProperty && isExpanded ? 'border-b border-gray-100' : ''} ${isProperty && imageUrl ? 'pr-2' : 'p-2.5'}`}
+        className={`group flex items-center gap-2 cursor-pointer ${isProperty && isExpanded ? 'border-b border-gray-100' : ''} pr-2`}
         onClick={isProperty ? onToggleExpand : onEdit}
       >
-        {/* Property Image - fills entire left side, no gaps */}
+        {/* Left side - Image for properties, Icon for events/pauses */}
         {isProperty && imageUrl ? (
           <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center overflow-hidden">
             <img 
@@ -963,7 +968,7 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
             />
           </div>
         ) : (
-          <div className={`flex-shrink-0 ${bgColor} p-1.5 rounded-md`}>
+          <div className={`flex-shrink-0 w-16 self-stretch ${bgColor} flex items-center justify-center border-r border-gray-100`}>
             {icon}
           </div>
         )}
@@ -974,7 +979,7 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm truncate">{title}</h4>
             <p className="text-gray-500 text-xs mt-0.5">
-              {priceDisplay || '$0'}
+              {isProperty ? (priceDisplay || '$0') : (subtitleText || '')}
             </p>
           </div>
           {/* Right: expand and delete buttons */}
@@ -1099,12 +1104,14 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
     
     // Add events
     eventBlocks.forEach(event => {
-      const typeDef = EVENT_TYPES[event.eventType];
+      const eventYear = periodToYear(event.period);
+      // Always compute label dynamically to ensure it reflects current payload
+      const eventLabel = getEventLabel(event.eventType, event.payload);
       items.push({
         id: event.id,
         type: 'event',
-        title: event.label || getEventLabel(event.eventType, event.payload),
-        subtitle: typeDef.shortLabel,
+        title: eventLabel,
+        subtitle: String(eventYear),
         period: event.period,
         event,
       });
@@ -1279,16 +1286,57 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
                       }
                       
                       if (item.type === 'event') {
-                        const categoryDef = EVENT_CATEGORIES[item.event!.category];
+                        const payload = item.event!.payload;
+                        // Generate subtitle showing the change amount
+                        const getEventSubtitle = (): string => {
+                          switch (item.event!.eventType) {
+                            case 'salary_change':
+                              if (payload.newSalary !== undefined && payload.previousSalary !== undefined) {
+                                const diff = payload.newSalary - payload.previousSalary;
+                                return diff >= 0 ? `+$${diff.toLocaleString()}` : `-$${Math.abs(diff).toLocaleString()}`;
+                              }
+                              return payload.newSalary ? `$${payload.newSalary.toLocaleString()}` : 'Salary';
+                            case 'partner_income_change':
+                              if (payload.newPartnerSalary !== undefined && payload.previousPartnerSalary !== undefined) {
+                                const diff = payload.newPartnerSalary - payload.previousPartnerSalary;
+                                return diff >= 0 ? `+$${diff.toLocaleString()}` : `-$${Math.abs(diff).toLocaleString()}`;
+                              }
+                              return payload.newPartnerSalary ? `$${payload.newPartnerSalary.toLocaleString()}` : 'Partner';
+                            case 'bonus_windfall':
+                              return payload.bonusAmount ? `+$${payload.bonusAmount.toLocaleString()}` : 'Bonus';
+                            case 'inheritance':
+                              return payload.cashAmount ? `+$${payload.cashAmount.toLocaleString()}` : 'Inheritance';
+                            case 'major_expense':
+                              return payload.cashAmount ? `-$${payload.cashAmount.toLocaleString()}` : 'Expense';
+                            case 'interest_rate_change':
+                              return payload.rateChange !== undefined 
+                                ? `${payload.rateChange > 0 ? '+' : ''}${payload.rateChange}%` 
+                                : 'Rate change';
+                            case 'dependent_change':
+                              return payload.dependentChange 
+                                ? `${payload.dependentChange > 0 ? '+' : ''}${payload.dependentChange} dependent${Math.abs(payload.dependentChange) !== 1 ? 's' : ''}`
+                                : 'Dependents';
+                            case 'market_correction':
+                              return payload.growthAdjustment !== undefined 
+                                ? `${payload.growthAdjustment}% growth`
+                                : 'Market';
+                            case 'refinance':
+                              return payload.newInterestRate ? `${payload.newInterestRate}% rate` : 'Refinance';
+                            default:
+                              return EVENT_TYPES[item.event!.eventType].shortLabel;
+                          }
+                        };
+                        
                         return (
                           <TimelineItemCard
                             key={item.id}
                             type="event"
                             title={item.title}
                             subtitle={item.subtitle}
+                            subtitleText={getEventSubtitle()}
                             period={item.period}
-                            icon={<span className="text-sm">{EVENT_TYPES[item.event!.eventType].icon}</span>}
-                            bgColor={categoryDef.bgColor}
+                            icon={<EventTypeIcon eventType={item.event!.eventType} size={24} className="text-slate-500" />}
+                            bgColor="bg-white"
                             onRemove={() => handleRemoveEvent(item.id)}
                             onEdit={() => handleEditEvent(item.event!)}
                           />
@@ -1301,8 +1349,9 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
                             key={item.id}
                             type="pause"
                             title={item.title}
-                            icon={<Pause size={14} className="text-amber-600" />}
-                            bgColor="bg-amber-50"
+                            subtitleText="Strategic break"
+                            icon={<Pause size={24} className="text-slate-500" />}
+                            bgColor="bg-white"
                             onRemove={() => handleRemovePause(item.pauseIndex!)}
                           />
                         );

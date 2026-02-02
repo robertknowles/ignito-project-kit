@@ -2,11 +2,11 @@ import React from 'react';
 import { X } from 'lucide-react';
 import type { EventBlock } from '../contexts/PropertySelectionContext';
 import { 
-  EVENT_CATEGORIES, 
   EVENT_TYPES, 
   getEventLabel,
   getEventEffectDescriptions 
 } from '../constants/eventTypes';
+import { EventTypeIcon } from '../utils/eventIcons';
 import { PERIODS_PER_YEAR, BASE_YEAR } from '../constants/financialParams';
 
 // Convert period to year for display
@@ -25,45 +25,44 @@ export const EventBlockCard: React.FC<EventBlockCardProps> = ({
   onRemove,
   onEdit,
 }) => {
-  const categoryDef = EVENT_CATEGORIES[event.category];
   const typeDef = EVENT_TYPES[event.eventType];
   const displayLabel = event.label || getEventLabel(event.eventType, event.payload);
   const effectDescriptions = getEventEffectDescriptions(event.eventType, event.payload);
 
   return (
     <div 
-      className={`${categoryDef.bgColor} border-2 border-gray-200 rounded-lg p-6 mb-4 ${onEdit ? 'cursor-pointer hover:border-gray-300' : ''}`}
+      className={`bg-white border border-gray-200 rounded-xl p-5 mb-4 shadow-sm ${onEdit ? 'cursor-pointer hover:border-gray-300 hover:shadow-md transition-all' : ''}`}
       onClick={onEdit}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4 flex-1">
           {/* Event Icon */}
-          <div className={`flex-shrink-0 w-12 h-12 ${categoryDef.bgColor} border border-gray-200 rounded-lg flex items-center justify-center text-2xl`}>
-            {typeDef.icon}
+          <div className="flex-shrink-0 w-12 h-12 bg-slate-50 border border-gray-100 rounded-xl flex items-center justify-center">
+            <EventTypeIcon eventType={event.eventType} size={24} className="text-slate-500" />
           </div>
 
           {/* Event Details */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-semibold text-gray-800">{displayLabel}</h3>
-              <span className={`text-xs font-medium ${categoryDef.color} ${categoryDef.bgColor} px-2 py-0.5 rounded-full border border-current/20`}>
-                {categoryDef.label}
+              <h3 className="text-base font-semibold text-slate-900">{displayLabel}</h3>
+              <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                {typeDef.shortLabel}
               </span>
             </div>
 
-            <p className="text-sm text-gray-600 mb-3">
-              Scheduled for <span className="font-medium">{periodToYear(event.period)}</span>
+            <p className="text-sm text-slate-500 mb-3">
+              Scheduled for <span className="font-medium text-slate-700">{periodToYear(event.period)}</span>
             </p>
 
             {/* Effects List */}
-            <div className={`${categoryDef.bgColor} border border-gray-200 rounded-md p-3`}>
-              <p className="text-xs text-gray-600 font-medium mb-1.5">
-                This event will affect:
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+              <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-2">
+                This event will affect
               </p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {effectDescriptions.map((desc, idx) => (
-                  <li key={idx} className="text-xs text-gray-600 flex items-start gap-1.5">
-                    <span className="text-green-500 mt-0.5">✓</span>
+                  <li key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
                     <span>{desc}</span>
                   </li>
                 ))}
@@ -78,7 +77,7 @@ export const EventBlockCard: React.FC<EventBlockCardProps> = ({
         {/* Remove Button */}
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="flex-shrink-0 ml-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="flex-shrink-0 ml-4 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           title="Remove event"
         >
           <X size={20} />
@@ -97,16 +96,16 @@ const renderEventDetails = (event: EventBlock) => {
       return payload.newSalary ? (
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           {payload.previousSalary && (
-            <div className="bg-white/50 rounded p-2">
-              <span className="text-gray-500">Previous:</span>
-              <span className="font-medium text-gray-700 ml-1">
+            <div className="bg-white border border-gray-100 rounded-lg p-2">
+              <span className="text-slate-500">Previous:</span>
+              <span className="font-medium text-slate-700 ml-1">
                 ${payload.previousSalary.toLocaleString()}
               </span>
             </div>
           )}
-          <div className="bg-white/50 rounded p-2">
-            <span className="text-gray-500">New Salary:</span>
-            <span className="font-medium text-gray-700 ml-1">
+          <div className="bg-white border border-gray-100 rounded-lg p-2">
+            <span className="text-slate-500">New Salary:</span>
+            <span className="font-medium text-slate-700 ml-1">
               ${payload.newSalary.toLocaleString()}
             </span>
           </div>
@@ -115,9 +114,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'partner_income_change':
       return payload.newPartnerSalary ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Partner Income:</span>
-          <span className="font-medium text-gray-700 ml-1">
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Partner Income:</span>
+          <span className="font-medium text-slate-700 ml-1">
             ${payload.newPartnerSalary.toLocaleString()}
           </span>
         </div>
@@ -125,9 +124,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'bonus_windfall':
       return payload.bonusAmount ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Bonus:</span>
-          <span className="font-medium text-green-600 ml-1">
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Bonus:</span>
+          <span className="font-semibold text-green-600 ml-1">
             +${payload.bonusAmount.toLocaleString()}
           </span>
         </div>
@@ -135,9 +134,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'inheritance':
       return payload.cashAmount ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Amount:</span>
-          <span className="font-medium text-green-600 ml-1">
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Amount:</span>
+          <span className="font-semibold text-green-600 ml-1">
             +${payload.cashAmount.toLocaleString()}
           </span>
         </div>
@@ -145,9 +144,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'major_expense':
       return payload.cashAmount ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Expense:</span>
-          <span className="font-medium text-red-600 ml-1">
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Expense:</span>
+          <span className="font-semibold text-red-600 ml-1">
             -${payload.cashAmount.toLocaleString()}
           </span>
         </div>
@@ -155,9 +154,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'dependent_change':
       return payload.dependentChange ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Change:</span>
-          <span className={`font-medium ml-1 ${payload.dependentChange > 0 ? 'text-blue-600' : 'text-gray-600'}`}>
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Change:</span>
+          <span className={`font-semibold ml-1 ${payload.dependentChange > 0 ? 'text-slate-700' : 'text-slate-600'}`}>
             {payload.dependentChange > 0 ? '+' : ''}{payload.dependentChange} dependent{Math.abs(payload.dependentChange) !== 1 ? 's' : ''}
           </span>
         </div>
@@ -165,9 +164,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'interest_rate_change':
       return payload.rateChange !== undefined ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">Rate Change:</span>
-          <span className={`font-medium ml-1 ${payload.rateChange > 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">Rate Change:</span>
+          <span className={`font-semibold ml-1 ${payload.rateChange > 0 ? 'text-red-600' : 'text-green-600'}`}>
             {payload.rateChange > 0 ? '+' : ''}{payload.rateChange}%
           </span>
         </div>
@@ -177,17 +176,17 @@ const renderEventDetails = (event: EventBlock) => {
       return (
         <div className="mt-3 flex gap-2 text-xs">
           {payload.growthAdjustment !== undefined && (
-            <div className="bg-white/50 rounded p-2">
-              <span className="text-gray-500">Growth Adj:</span>
-              <span className="font-medium text-red-600 ml-1">
+            <div className="bg-white border border-gray-100 rounded-lg p-2">
+              <span className="text-slate-500">Growth Adj:</span>
+              <span className="font-semibold text-red-600 ml-1">
                 {payload.growthAdjustment}%
               </span>
             </div>
           )}
           {payload.durationPeriods && (
-            <div className="bg-white/50 rounded p-2">
-              <span className="text-gray-500">Duration:</span>
-              <span className="font-medium text-gray-700 ml-1">
+            <div className="bg-white border border-gray-100 rounded-lg p-2">
+              <span className="text-slate-500">Duration:</span>
+              <span className="font-medium text-slate-700 ml-1">
                 {payload.durationPeriods / 2} year{payload.durationPeriods > 2 ? 's' : ''}
               </span>
             </div>
@@ -197,9 +196,9 @@ const renderEventDetails = (event: EventBlock) => {
 
     case 'refinance':
       return payload.newInterestRate ? (
-        <div className="mt-3 bg-white/50 rounded p-2 text-xs inline-block">
-          <span className="text-gray-500">New Rate:</span>
-          <span className="font-medium text-gray-700 ml-1">
+        <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
+          <span className="text-slate-500">New Rate:</span>
+          <span className="font-medium text-slate-700 ml-1">
             {payload.newInterestRate}%
           </span>
         </div>

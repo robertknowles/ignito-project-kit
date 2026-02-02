@@ -11,6 +11,7 @@ import {
   getDefaultPayload,
   type EventTypeDefinition 
 } from '../constants/eventTypes';
+import { EventCategoryIcon, EventTypeIcon } from '../utils/eventIcons';
 import { 
   PERIODS_PER_YEAR, 
   BASE_YEAR,
@@ -42,30 +43,34 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
   
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-        <span>{categoryDef.icon}</span>
-        <span>{categoryDef.label}</span>
-      </h3>
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100">
+          <EventCategoryIcon category={category} size={18} className="text-slate-600" />
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900">{categoryDef.label}</h3>
+      </div>
       
       <div className="space-y-2">
         {eventTypes.map((eventType) => (
           <button
             key={eventType.id}
             onClick={() => onSelect(eventType.id)}
-            className="w-full flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
+            className="w-full flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
           >
-            <span className="text-lg mt-0.5">{eventType.icon}</span>
+            <div className="flex-shrink-0 w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100 mt-0.5">
+              <EventTypeIcon eventType={eventType.id} size={18} className="text-slate-500" />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-900">{eventType.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{eventType.description}</div>
+              <div className="font-medium text-sm text-slate-900">{eventType.label}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{eventType.description}</div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {eventType.effects.map((effect, idx) => (
                   <span 
                     key={idx}
-                    className={`text-[10px] px-1.5 py-0.5 rounded ${
-                      effect.direction === 'increase' ? 'bg-green-100 text-green-700' :
-                      effect.direction === 'decrease' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-600'
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      effect.direction === 'increase' ? 'bg-green-50 text-green-600 border border-green-100' :
+                      effect.direction === 'decrease' ? 'bg-red-50 text-red-600 border border-red-100' :
+                      'bg-slate-100 text-slate-600'
                     }`}
                   >
                     {effect.field} {effect.direction === 'increase' ? '↑' : effect.direction === 'decrease' ? '↓' : '↕'}
@@ -73,7 +78,7 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
                 ))}
               </div>
             </div>
-            <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 mt-0.5" />
+            <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-600 mt-0.5" />
           </button>
         ))}
       </div>
@@ -107,7 +112,6 @@ const EventForm: React.FC<EventFormProps> = ({
   isEditing,
 }) => {
   const { profile } = useInvestmentProfile();
-  const categoryDef = EVENT_CATEGORIES[eventType.category];
   
   // Generate year options (from now until timeline end)
   const currentYear = new Date().getFullYear();
@@ -129,30 +133,32 @@ const EventForm: React.FC<EventFormProps> = ({
   // Get effect descriptions for preview
   const effectDescriptions = getEventEffectDescriptions(eventType.id, payload);
   
-  const inputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900 text-sm";
-  const labelClass = "block text-xs font-medium text-gray-600 mb-1";
+  const inputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 text-sm bg-white";
+  const labelClass = "block text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-1.5";
   
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <button 
           onClick={onBack}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded"
+          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
         >
           <ChevronRight size={16} className="rotate-180" />
         </button>
-        <span className="text-lg">{eventType.icon}</span>
-        <h3 className="text-sm font-medium text-gray-900">{eventType.label}</h3>
+        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100">
+          <EventTypeIcon eventType={eventType.id} size={18} className="text-slate-500" />
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900">{eventType.label}</h3>
       </div>
       
       {/* When - Year Selection */}
-      <div className="bg-gray-50 p-3 rounded-lg">
+      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
         <label className={labelClass}>When does this happen?</label>
         <select
           value={periodYear}
           onChange={(e) => handleYearChange(parseInt(e.target.value))}
-          className={`${inputClass} mt-1`}
+          className={inputClass}
         >
           {yearOptions.map((year) => (
             <option key={year} value={year}>{year}</option>
@@ -335,8 +341,8 @@ const EventForm: React.FC<EventFormProps> = ({
         
         {/* Sell Property - Placeholder for now */}
         {eventType.id === 'sell_property' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs text-yellow-700">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <p className="text-xs text-slate-600">
               Property sale events will be linked to specific properties in your timeline.
               This feature is coming soon.
             </p>
@@ -345,8 +351,8 @@ const EventForm: React.FC<EventFormProps> = ({
         
         {/* Renovate - Placeholder for now */}
         {eventType.id === 'renovate' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs text-yellow-700">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <p className="text-xs text-slate-600">
               Renovation events will be linked to specific properties in your timeline.
               This feature is coming soon.
             </p>
@@ -355,12 +361,12 @@ const EventForm: React.FC<EventFormProps> = ({
       </div>
       
       {/* Effects Preview */}
-      <div className={`${categoryDef.bgColor} border ${categoryDef.color.replace('text-', 'border-').replace('600', '200')} p-3 rounded-lg`}>
-        <p className="text-xs font-medium text-gray-700 mb-2">This will affect:</p>
-        <ul className="space-y-1">
+      <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+        <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-2">This will affect</p>
+        <ul className="space-y-1.5">
           {effectDescriptions.map((desc, idx) => (
-            <li key={idx} className="text-xs text-gray-600 flex items-start gap-1.5">
-              <span className="text-green-500 mt-0.5">✓</span>
+            <li key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+              <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
               <span>{desc}</span>
             </li>
           ))}
@@ -370,7 +376,7 @@ const EventForm: React.FC<EventFormProps> = ({
       {/* Save Button */}
       <button
         onClick={onSave}
-        className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+        className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors"
       >
         {isEditing ? 'Update Event' : 'Add Event'}
       </button>
@@ -420,7 +426,14 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
   // Handle event type selection
   const handleEventTypeSelect = (eventType: EventType) => {
     setSelectedEventType(eventType);
-    setPayload(getDefaultPayload(eventType));
+    const defaultPayload = getDefaultPayload(eventType);
+    
+    // Inject current profile values for comparison (to show ↑/↓ indicators)
+    if (eventType === 'salary_change') {
+      defaultPayload.previousSalary = profile.baseSalary;
+    }
+    
+    setPayload(defaultPayload);
   };
   
   // Handle save
@@ -459,17 +472,17 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
   
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-white rounded-lg p-5 w-full max-w-md max-h-[85vh] overflow-hidden shadow-xl flex flex-col">
+      <div className="bg-white rounded-xl p-5 w-full max-w-md max-h-[85vh] overflow-hidden shadow-xl flex flex-col border border-gray-200">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-slate-900">
             {editingEvent ? 'Edit Event' : 'Add Event'}
           </h3>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
         
