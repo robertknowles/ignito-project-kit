@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronRight } from 'lucide-react';
 import { usePropertySelection, type EventBlock, type EventCategory, type EventType, type EventPayload } from '../contexts/PropertySelectionContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { 
   EVENT_CATEGORIES, 
   EVENT_TYPES, 
@@ -16,6 +17,7 @@ import {
   PERIODS_PER_YEAR, 
   BASE_YEAR,
 } from '../constants/financialParams';
+import type { TimelineProperty } from '../types/property';
 
 // =============================================================================
 // MODAL PROPS
@@ -99,6 +101,7 @@ interface EventFormProps {
   onBack: () => void;
   onSave: () => void;
   isEditing: boolean;
+  timelineProperties: TimelineProperty[];
 }
 
 const EventForm: React.FC<EventFormProps> = ({
@@ -110,8 +113,15 @@ const EventForm: React.FC<EventFormProps> = ({
   onBack,
   onSave,
   isEditing,
+  timelineProperties,
 }) => {
   const { profile } = useInvestmentProfile();
+  
+  // Get feasible properties for property-specific events (refinance, renovate)
+  const feasibleProperties = useMemo(() => 
+    timelineProperties.filter(p => p.status === 'feasible'),
+    [timelineProperties]
+  );
   
   // Generate year options (from now until timeline end)
   const currentYear = new Date().getFullYear();
@@ -152,19 +162,21 @@ const EventForm: React.FC<EventFormProps> = ({
         <h3 className="text-sm font-semibold text-slate-900">{eventType.label}</h3>
       </div>
       
-      {/* When - Year Selection */}
-      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-        <label className={labelClass}>When does this happen?</label>
-        <select
-          value={periodYear}
-          onChange={(e) => handleYearChange(parseInt(e.target.value))}
-          className={inputClass}
-        >
-          {yearOptions.map((year) => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
-      </div>
+      {/* When - Year Selection (hidden for property-specific events like refinance/renovate) */}
+      {eventType.id !== 'refinance' && eventType.id !== 'renovate' && (
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <label className={labelClass}>When does this happen?</label>
+          <select
+            value={periodYear}
+            onChange={(e) => handleYearChange(parseInt(e.target.value))}
+            className={inputClass}
+          >
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      )}
       
       {/* Dynamic Form Fields based on event type */}
       <div className="space-y-3">
@@ -326,17 +338,56 @@ const EventForm: React.FC<EventFormProps> = ({
         
         {/* Refinance */}
         {eventType.id === 'refinance' && (
-          <div>
-            <label className={labelClass}>New Interest Rate (%)</label>
-            <input
-              type="number"
-              value={payload.newInterestRate || ''}
-              onChange={(e) => onPayloadChange({ ...payload, newInterestRate: parseFloat(e.target.value) || 0 })}
-              placeholder="e.g., 5.5"
-              step="0.1"
-              className={inputClass}
-            />
-          </div>
+          <>
+            {feasibleProperties.length > 0 ? (
+              <>
+                <div>
+                  <label className={labelClass}>Which Property?</label>
+                  <select
+                    value={payload.propertyInstanceId || ''}
+                    onChange={(e) => {
+                      const selectedProp = feasibleProperties.find(p => p.instanceId === e.target.value);
+                      onPayloadChange({ ...payload, propertyInstanceId: e.target.value });
+                      // Auto-set period to match property's purchase year
+                      if (selectedProp) {
+                        const propYear = Math.floor(selectedProp.affordableYear);
+                        const propPeriod = (propYear - BASE_YEAR) * PERIODS_PER_YEAR + 1;
+                        onPeriodChange(propPeriod);
+                      }
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="">Select a property...</option>
+                    {feasibleProperties.map((prop) => (
+                      <option key={prop.instanceId} value={prop.instanceId}>
+                        {prop.title} ({Math.floor(prop.affordableYear)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>New Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    value={payload.newInterestRate || ''}
+                    onChange={(e) => onPayloadChange({ ...payload, newInterestRate: parseFloat(e.target.value) || 0 })}
+                    placeholder="e.g., 5.5"
+                    step="0.1"
+                    className={inputClass}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    This rate will apply permanently to the selected property
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs text-amber-700">
+                  Add properties to your timeline first before creating a refinance event.
+                </p>
+              </div>
+            )}
+          </>
         )}
         
         {/* Sell Property - Placeholder for now */}
@@ -349,14 +400,72 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         )}
         
-        {/* Renovate - Placeholder for now */}
+        {/* Renovate */}
         {eventType.id === 'renovate' && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <p className="text-xs text-slate-600">
-              Renovation events will be linked to specific properties in your timeline.
-              This feature is coming soon.
-            </p>
-          </div>
+          <>
+            {feasibleProperties.length > 0 ? (
+              <>
+                <div>
+                  <label className={labelClass}>Which Property?</label>
+                  <select
+                    value={payload.propertyInstanceId || ''}
+                    onChange={(e) => {
+                      const selectedProp = feasibleProperties.find(p => p.instanceId === e.target.value);
+                      onPayloadChange({ ...payload, propertyInstanceId: e.target.value });
+                      // Auto-set period to match property's purchase year
+                      if (selectedProp) {
+                        const propYear = Math.floor(selectedProp.affordableYear);
+                        const propPeriod = (propYear - BASE_YEAR) * PERIODS_PER_YEAR + 1;
+                        onPeriodChange(propPeriod);
+                      }
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="">Select a property...</option>
+                    {feasibleProperties.map((prop) => (
+                      <option key={prop.instanceId} value={prop.instanceId}>
+                        {prop.title} ({Math.floor(prop.affordableYear)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Renovation Cost ($)</label>
+                  <input
+                    type="number"
+                    value={payload.renovationCost || ''}
+                    onChange={(e) => onPayloadChange({ ...payload, renovationCost: parseInt(e.target.value) || 0 })}
+                    placeholder="e.g., 50000"
+                    step="5000"
+                    className={inputClass}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    This amount will be deducted from your available funds
+                  </p>
+                </div>
+                <div>
+                  <label className={labelClass}>Value Increase ($)</label>
+                  <input
+                    type="number"
+                    value={payload.valueIncrease || ''}
+                    onChange={(e) => onPayloadChange({ ...payload, valueIncrease: parseInt(e.target.value) || 0 })}
+                    placeholder="e.g., 75000"
+                    step="5000"
+                    className={inputClass}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    The permanent increase in property value after renovation
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs text-amber-700">
+                  Add properties to your timeline first before creating a renovation event.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
       
@@ -395,6 +504,8 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
   editingEvent,
 }) => {
   const { addEvent, updateEvent, eventBlocks, propertyOrder } = usePropertySelection();
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
   
   // State
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(
@@ -505,6 +616,7 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
               onBack={() => setSelectedEventType(null)}
               onSave={handleSave}
               isEditing={!!editingEvent}
+              timelineProperties={timelineProperties}
             />
           ) : null}
         </div>
