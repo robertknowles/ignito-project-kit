@@ -191,7 +191,7 @@ const CustomDot = (props: CustomDotProps) => {
   const propertyTitle = firstPurchase.propertyTitle;
   const instanceId = firstPurchase.instanceId;
   const isHouse = isHouseType(propertyTitle);
-  const borderColor = isHouse ? '#22c55e' : '#3b82f6'; // Green for houses, blue for units
+  const borderColor = '#9ca3af'; // Grey border
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -201,14 +201,16 @@ const CustomDot = (props: CustomDotProps) => {
   };
   
   return (
-    <foreignObject x={cx - 12} y={cy - 12} width={24} height={24}>
+    <foreignObject x={cx - 17} y={cy - 17} width={34} height={34}>
       <div 
-        className={`w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm ${onPropertyClick ? 'cursor-pointer hover:scale-110 hover:shadow-md transition-all duration-150' : ''}`}
-        style={{ border: `2px solid ${borderColor}` }}
+        className={`w-[34px] h-[34px] bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden ${onPropertyClick ? 'cursor-pointer hover:scale-110 hover:shadow-md transition-all duration-150' : ''}`}
+        style={{ border: `1px solid ${borderColor}` }}
         onClick={handleClick}
         title={onPropertyClick ? `Click for details: ${propertyTitle}` : undefined}
       >
-        {getPropertyTypeIcon(propertyTitle, 14, isHouse ? 'text-green-600' : 'text-blue-600')}
+        <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
+          {getPropertyTypeIcon(propertyTitle, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
+        </div>
       </div>
     </foreignObject>
   );
@@ -246,16 +248,15 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
   });
 
   const isHouse = isHouseType(property.title);
-  const baseColor = isHouse ? '#22c55e' : '#3b82f6';
-  const borderColor = hasViolations ? '#ef4444' : baseColor;
-  const borderWidth = hasViolations ? 3 : 2;
+  const borderColor = hasViolations ? '#ef4444' : '#9ca3af'; // Grey border, red for violations
+  const borderWidth = hasViolations ? 2 : 1;
 
   const style: React.CSSProperties = {
     position: 'absolute',
-    left: x - 12,
-    top: y - 12,
-    width: 24,
-    height: 24,
+    left: x - 17,
+    top: y - 17,
+    width: 34,
+    height: 34,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     zIndex: isDragging ? 1000 : 10,
     opacity: isDragging ? 0.5 : 1,
@@ -276,12 +277,14 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
       className="touch-none"
     >
       <div
-        className={`w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 hover:shadow-md transition-all duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-[34px] h-[34px] bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden hover:scale-110 hover:shadow-md transition-all duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{ border: `${borderWidth}px solid ${borderColor}` }}
         onClick={handleClick}
         title={`Drag to move: ${property.title}`}
       >
-        {getPropertyTypeIcon(property.title, 14, isHouse ? 'text-green-600' : 'text-blue-600')}
+        <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
+          {getPropertyTypeIcon(property.title, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
+        </div>
       </div>
       {/* Warning indicator for violations */}
       {hasViolations && (
