@@ -10,7 +10,13 @@ import {
   ReferenceDot,
   Label,
 } from 'recharts';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
@@ -1009,13 +1015,29 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
           {/* PURCHASE Row - Expandable to show funding sources */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div 
-              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
               onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
             >
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
                 <span className={`transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
                 Buy
               </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">Scheduled property purchases</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• Click property to view details</li>
+                      <li>• Timing based on 3 affordability tests</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
             </div>
             {years.map((yearData, index) => (
               <div 
@@ -1047,13 +1069,30 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
           {/* AVAIL Row - Expandable to show funding breakdown */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div 
-              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
               onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
             >
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
                 <span className={`transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
                 Avail
               </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Cash + Savings + Equity Release</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• Cash: Your initial deposit pool</li>
+                      <li>• Savings: 25% of annual savings</li>
+                      <li>• Equity: Usable equity at 80% LVR</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
             </div>
             {years.map((yearData, index) => (
               <div 
@@ -1076,10 +1115,27 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
           {/* LVR Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                 LVR
               </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center">
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Total Debt ÷ Portfolio Value</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• Shows overall portfolio leverage</li>
+                      <li>• Below 80% allows equity release</li>
+                      <li>• Includes all property loans</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
             </div>
             {years.map((yearData, index) => {
               const lvr = yearData.portfolioValueRaw > 0 
@@ -1100,10 +1156,27 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
           {/* DEBT Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                 Debt
               </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center">
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Existing Debt + Property Loans</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• Existing: From client profile</li>
+                      <li>• New loans: Price × LVR %</li>
+                      <li>• Grows with each purchase</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
             </div>
             {years.map((yearData, index) => (
               <div 
@@ -1119,10 +1192,27 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
           {/* SERVICE Row - Shows serviceability surplus/shortfall as a number */}
           <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end border-r border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
                 Service
               </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center">
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[210px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Capacity − Required Payments</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• Capacity: Borrowing power + rental</li>
+                      <li>• Required: Total loan interest</li>
+                      <li>• <span className="text-green-600">Positive</span> = headroom for more</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
             </div>
             {years.map((yearData, index) => {
               const serviceabilitySurplus = yearData.yearBreakdownData?.serviceabilityTest?.surplus;

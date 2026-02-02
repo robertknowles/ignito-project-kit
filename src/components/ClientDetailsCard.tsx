@@ -126,6 +126,14 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
                     formatValue={formatYears}
                   />
                   <CompactSlider
+                    label="Portfolio Value Goal"
+                    value={profile.portfolioValueGoal}
+                    onChange={(val) => updateProfile({ portfolioValueGoal: val })}
+                    min={500000}
+                    max={10000000}
+                    step={100000}
+                  />
+                  <CompactSlider
                     label="Equity Goal"
                     value={profile.equityGoal}
                     onChange={handleEquityGoalChange}
