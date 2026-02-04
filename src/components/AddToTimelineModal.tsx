@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Home, CalendarClock, ChevronRight, MapPin, Plus, Minus, Pause } from 'lucide-react';
+import { X, Home, CalendarClock, ChevronRight, MapPin, Plus, Minus, Pause, Copy } from 'lucide-react';
 import { usePropertySelection, type EventCategory } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { 
@@ -10,6 +10,7 @@ import {
 } from '../constants/eventTypes';
 import { EventCategoryIcon } from '../utils/eventIcons';
 import { EventConfigModal } from './EventConfigModal';
+import { CustomBlockModal, type CustomPropertyBlock } from './CustomBlockModal';
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,8 @@ interface PropertyCardProps {
   state?: string;
   imageUrl?: string;
   onAdd: () => void;
+  onDuplicate?: () => void;
+  isCustom?: boolean;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -77,14 +80,15 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   state = 'VIC',
   imageUrl,
   onAdd,
+  onDuplicate,
+  isCustom,
 }) => {
   const stateColors = STATE_COLORS[state] || { bg: 'bg-slate-100', text: 'text-slate-600' };
   const stateName = STATE_NAMES[state] || state;
   
   return (
     <div 
-      onClick={onAdd}
-      className="group flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all"
+      className="group flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all"
     >
       {/* Image thumbnail */}
       {imageUrl && (
@@ -112,9 +116,28 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         </p>
       </div>
       
-      {/* Add indicator */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center transition-colors">
-        <Plus size={16} />
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Duplicate button - only for non-custom templates */}
+        {!isCustom && onDuplicate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors"
+            title="Duplicate & Customize"
+          >
+            <Copy size={14} />
+          </button>
+        )}
+        {/* Add button */}
+        <button
+          onClick={onAdd}
+          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-slate-900 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <Plus size={16} />
+        </button>
       </div>
     </div>
   );
@@ -153,11 +176,14 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
   const [activeTab, setActiveTab] = useState<TabType>('properties');
   const [selectedEventCategory, setSelectedEventCategory] = useState<EventCategory | null>(null);
   const [selectedPauseDuration, setSelectedPauseDuration] = useState(1);
+  const [showCustomBlockModal, setShowCustomBlockModal] = useState(false);
+  const [duplicatingFromTemplate, setDuplicatingFromTemplate] = useState<string | null>(null);
   
   const {
     propertyTypes,
     incrementProperty,
     addPause,
+    addCustomBlock,
   } = usePropertySelection();
   
   const { getPropertyTypeTemplate } = useDataAssumptions();
@@ -172,6 +198,20 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
   const handleAddPause = () => {
     addPause(selectedPauseDuration);
     onClose();
+  };
+  
+  // Handle saving a custom block
+  const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
+    addCustomBlock(block);
+    setShowCustomBlockModal(false);
+    setDuplicatingFromTemplate(null);
+    onClose();
+  };
+  
+  // Handle duplicating a template - opens CustomBlockModal pre-filled with template data
+  const handleDuplicateTemplate = (propertyTitle: string) => {
+    setDuplicatingFromTemplate(propertyTitle);
+    setShowCustomBlockModal(true);
   };
   
   // Handle selecting an event category
@@ -190,6 +230,8 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
     if (isOpen) {
       setActiveTab('properties');
       setSelectedEventCategory(null);
+      setShowCustomBlockModal(false);
+      setDuplicatingFromTemplate(null);
     }
   }, [isOpen]);
   
@@ -244,7 +286,24 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
           <div className="flex-1 overflow-y-auto py-2">
             {activeTab === 'properties' && (
               <div className="space-y-2">
-                {/* Standard Property Cards */}
+                {/* Add Custom Property Button - Always at top */}
+                <button
+                  onClick={() => setShowCustomBlockModal(true)}
+                  className="w-full flex items-center gap-3 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-left hover:bg-slate-100 hover:border-slate-400 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-900 group-hover:border-slate-900 transition-colors">
+                    <Plus size={20} className="text-slate-500 group-hover:text-white transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-slate-900 text-sm">Add Custom Property</h4>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Create your own property with custom settings
+                    </p>
+                  </div>
+                </button>
+                
+                {/* Standard Property Templates */}
+                <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mt-3 mb-1">Property Templates</h4>
                 {propertyTypes.filter(p => !p.isCustom).map((property) => {
                   const template = getPropertyTypeTemplate(property.title);
                   const displayPrice = template?.purchasePrice 
@@ -264,6 +323,8 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                       state={template?.state}
                       imageUrl={getPropertyImage(property.title)}
                       onAdd={() => handleAddProperty(property.id)}
+                      onDuplicate={() => handleDuplicateTemplate(property.title)}
+                      isCustom={false}
                     />
                   );
                 })}
@@ -280,6 +341,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                         priceRange={property.priceRange}
                         yieldValue={property.yield}
                         onAdd={() => handleAddProperty(property.id)}
+                        isCustom={true}
                       />
                     ))}
                   </div>
@@ -348,6 +410,17 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
           editingEvent={null}
         />
       )}
+      
+      {/* Custom Block Modal - for adding custom properties or duplicating templates */}
+      <CustomBlockModal
+        isOpen={showCustomBlockModal}
+        onClose={() => {
+          setShowCustomBlockModal(false);
+          setDuplicatingFromTemplate(null);
+        }}
+        onSave={handleSaveCustomBlock}
+        sourceTemplate={duplicatingFromTemplate ? getPropertyTypeTemplate(duplicatingFromTemplate) : undefined}
+      />
     </>
   );
 };

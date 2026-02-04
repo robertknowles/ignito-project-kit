@@ -9,6 +9,38 @@ interface CustomBlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (block: CustomPropertyBlock) => void;
+  sourceTemplate?: {
+    propertyType: string;
+    state: string;
+    purchasePrice: number;
+    rentPerWeek: number;
+    growthAssumption?: string;
+    lvr: number;
+    loanProduct?: 'IO' | 'PI';
+    interestRate?: number;
+    // Additional fields if available
+    engagementFee?: number;
+    conveyancing?: number;
+    buildingInsuranceUpfront?: number;
+    buildingPestInspection?: number;
+    plumbingElectricalInspections?: number;
+    mortgageFees?: number;
+    maintenanceAllowancePostSettlement?: number;
+    councilRatesWater?: number;
+    strata?: number;
+    maintenanceAllowanceAnnual?: number;
+    buildingInsuranceAnnual?: number;
+    propertyManagementPercent?: number;
+    vacancyRate?: number;
+    minimumYield?: number;
+    valuationAtPurchase?: number;
+    daysToUnconditional?: number;
+    daysForSettlement?: number;
+    conditionalHoldingDeposit?: number;
+    lmiWaiver?: boolean;
+    loanTerm?: number;
+    loanOffsetAccount?: number;
+  };
 }
 
 // Extended CustomPropertyBlock interface with all PropertyInstanceDetails fields
@@ -100,6 +132,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  sourceTemplate,
 }) => {
   const [formData, setFormData] = useState(getDefaultFormData());
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -108,6 +141,54 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
     costs: false,
     cashflow: false,
   });
+  
+  // Pre-fill form data from sourceTemplate when duplicating
+  React.useEffect(() => {
+    if (isOpen && sourceTemplate) {
+      const yieldPercent = ((sourceTemplate.rentPerWeek * 52) / sourceTemplate.purchasePrice) * 100;
+      const scaledDefaults = scaleDefaultsForPrice(sourceTemplate.purchasePrice);
+      
+      setFormData(prev => ({
+        ...prev,
+        title: `${sourceTemplate.propertyType} (Copy)`,
+        state: sourceTemplate.state || 'VIC',
+        purchasePrice: sourceTemplate.purchasePrice,
+        cost: sourceTemplate.purchasePrice,
+        rentPerWeek: sourceTemplate.rentPerWeek,
+        yieldPercent: parseFloat(yieldPercent.toFixed(2)),
+        growthAssumption: (sourceTemplate.growthAssumption || 'Medium') as 'High' | 'Medium' | 'Low',
+        lvr: sourceTemplate.lvr || 88,
+        loanProduct: sourceTemplate.loanProduct || 'IO',
+        loanType: sourceTemplate.loanProduct || 'IO',
+        interestRate: sourceTemplate.interestRate || 6.5,
+        // Use template values if available, otherwise scaled defaults
+        valuationAtPurchase: sourceTemplate.valuationAtPurchase || scaledDefaults.valuationAtPurchase || Math.round(sourceTemplate.purchasePrice * 1.08),
+        minimumYield: sourceTemplate.minimumYield || 6.5,
+        daysToUnconditional: sourceTemplate.daysToUnconditional || 21,
+        daysForSettlement: sourceTemplate.daysForSettlement || 42,
+        lmiWaiver: sourceTemplate.lmiWaiver || false,
+        loanTerm: sourceTemplate.loanTerm || 30,
+        loanOffsetAccount: sourceTemplate.loanOffsetAccount || 0,
+        engagementFee: sourceTemplate.engagementFee || scaledDefaults.engagementFee || 8000,
+        conditionalHoldingDeposit: sourceTemplate.conditionalHoldingDeposit || scaledDefaults.conditionalHoldingDeposit || Math.round(sourceTemplate.purchasePrice * 0.02),
+        buildingInsuranceUpfront: sourceTemplate.buildingInsuranceUpfront || scaledDefaults.buildingInsuranceUpfront || 1400,
+        buildingPestInspection: sourceTemplate.buildingPestInspection || scaledDefaults.buildingPestInspection || 600,
+        plumbingElectricalInspections: sourceTemplate.plumbingElectricalInspections || 250,
+        mortgageFees: sourceTemplate.mortgageFees || scaledDefaults.mortgageFees || 1000,
+        conveyancing: sourceTemplate.conveyancing || scaledDefaults.conveyancing || 2200,
+        maintenanceAllowancePostSettlement: sourceTemplate.maintenanceAllowancePostSettlement || scaledDefaults.maintenanceAllowancePostSettlement || 1000,
+        councilRatesWater: sourceTemplate.councilRatesWater || scaledDefaults.councilRatesWater || 2000,
+        strata: sourceTemplate.strata || scaledDefaults.strata || 3200,
+        maintenanceAllowanceAnnual: sourceTemplate.maintenanceAllowanceAnnual || scaledDefaults.maintenanceAllowanceAnnual || 1750,
+        buildingInsuranceAnnual: sourceTemplate.buildingInsuranceAnnual || scaledDefaults.buildingInsuranceAnnual || 350,
+        propertyManagementPercent: sourceTemplate.propertyManagementPercent || 6.6,
+        vacancyRate: sourceTemplate.vacancyRate || 0,
+      }));
+    } else if (isOpen && !sourceTemplate) {
+      // Reset to defaults when opening for new custom block
+      setFormData(getDefaultFormData());
+    }
+  }, [isOpen, sourceTemplate]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -216,7 +297,9 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-[#111827]">Create Custom Property Block</h3>
+          <h3 className="text-lg font-semibold text-[#111827]">
+            {sourceTemplate ? 'Duplicate & Customize Property' : 'Create Custom Property Block'}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
@@ -787,13 +870,13 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
             onClick={onClose}
             className="flex-1 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
           >
-            Cancel
+            Back
           </button>
           <button
             onClick={handleSave}
             className="flex-1 py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
           >
-            Add Block
+            {sourceTemplate ? 'Add Customized Block' : 'Add Block'}
           </button>
         </div>
       </div>
