@@ -69,8 +69,10 @@ interface PropertyCardProps {
   state?: string;
   imageUrl?: string;
   onAdd: () => void;
+  onRemove?: () => void;
   onDuplicate?: () => void;
   isCustom?: boolean;
+  quantity?: number;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -80,15 +82,19 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   state = 'VIC',
   imageUrl,
   onAdd,
+  onRemove,
   onDuplicate,
   isCustom,
+  quantity = 0,
 }) => {
   const stateColors = STATE_COLORS[state] || { bg: 'bg-slate-100', text: 'text-slate-600' };
   const stateName = STATE_NAMES[state] || state;
   
   return (
     <div 
-      className="group flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all"
+      className={`group flex items-center gap-3 p-3 bg-white border rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all ${
+        quantity > 0 ? 'border-green-300 bg-green-50/30' : 'border-gray-200'
+      }`}
     >
       {/* Image thumbnail */}
       {imageUrl && (
@@ -106,29 +112,45 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h4 className="font-medium text-slate-900 text-sm truncate">{title}</h4>
+          {quantity > 0 && (
+            <span className="text-[10px] font-semibold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              {quantity} added
+            </span>
+          )}
           <span className={`flex items-center gap-0.5 text-[9px] font-medium ${stateColors.text} ${stateColors.bg} px-1.5 py-0.5 rounded flex-shrink-0`}>
             <MapPin size={9} />
             {stateName}
           </span>
         </div>
-        <p className="text-slate-500 text-xs mt-0.5">
-          {priceRange} · Yield: {yieldValue}
-        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-slate-500 text-xs">
+            {priceRange} · Yield: {yieldValue}
+          </p>
+          {/* Duplicate link - only for non-custom templates */}
+          {!isCustom && onDuplicate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate();
+              }}
+              className="text-[10px] text-blue-600 hover:text-blue-700 hover:underline transition-colors flex items-center gap-0.5"
+            >
+              <Copy size={10} />
+              Duplicate
+            </button>
+          )}
+        </div>
       </div>
       
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Duplicate button - only for non-custom templates */}
-        {!isCustom && onDuplicate && (
+      {/* Action buttons - minus and plus */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Minus button - only show when quantity > 0 */}
+        {quantity > 0 && onRemove && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDuplicate();
-            }}
-            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-blue-100 hover:text-blue-600 flex items-center justify-center transition-colors"
-            title="Duplicate & Customize"
+            onClick={onRemove}
+            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <Copy size={14} />
+            <Minus size={16} />
           </button>
         )}
         {/* Add button */}
@@ -182,16 +204,23 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
   const {
     propertyTypes,
     incrementProperty,
+    decrementProperty,
     addPause,
     addCustomBlock,
+    getPropertyQuantity,
   } = usePropertySelection();
   
   const { getPropertyTypeTemplate } = useDataAssumptions();
   
-  // Handle adding a property and closing the modal
+  // Handle adding a property - keep modal open to allow adding multiple
   const handleAddProperty = (propertyId: string) => {
     incrementProperty(propertyId);
-    onClose();
+    // Modal stays open so user can add more properties
+  };
+  
+  // Handle removing a property
+  const handleRemoveProperty = (propertyId: string) => {
+    decrementProperty(propertyId);
   };
   
   // Handle adding a pause and closing the modal
@@ -323,8 +352,10 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                       state={template?.state}
                       imageUrl={getPropertyImage(property.title)}
                       onAdd={() => handleAddProperty(property.id)}
+                      onRemove={() => handleRemoveProperty(property.id)}
                       onDuplicate={() => handleDuplicateTemplate(property.title)}
                       isCustom={false}
+                      quantity={getPropertyQuantity(property.id)}
                     />
                   );
                 })}
@@ -341,7 +372,9 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                         priceRange={property.priceRange}
                         yieldValue={property.yield}
                         onAdd={() => handleAddProperty(property.id)}
+                        onRemove={() => handleRemoveProperty(property.id)}
                         isCustom={true}
+                        quantity={getPropertyQuantity(property.id)}
                       />
                     ))}
                   </div>
@@ -397,6 +430,16 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                 ))}
               </div>
             )}
+          </div>
+          
+          {/* Footer with Done button */}
+          <div className="pt-3 border-t border-gray-100 mt-2">
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium text-sm"
+            >
+              Done
+            </button>
           </div>
         </DialogContent>
       </Dialog>
