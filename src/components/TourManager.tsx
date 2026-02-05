@@ -7,6 +7,9 @@ import { supabase } from '@/integrations/supabase/client'
 // Storage key for tour completion status
 const TOUR_STORAGE_KEY = 'ignito_tour_status'
 
+// TEMPORARY: Set to true to disable the tour/help system entirely
+const TOUR_DISABLED = true
+
 // Context for exposing startManualTour function
 interface TourManagerContextType {
   startManualTour: () => void
@@ -28,6 +31,9 @@ const TourManagerInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const { startTour, resetTourCompletion } = useTour()
   
   const startManualTour = useCallback(() => {
+    // Don't start tour if disabled
+    if (TOUR_DISABLED) return
+    
     // Reset the completion status so the tour can run again
     resetTourCompletion()
     // Start the tour after a short delay to allow reset to complete
@@ -142,7 +148,7 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
   // 3. Tour should NEVER auto-start on /clients or any other page
   const isOnDashboard = location.pathname === '/dashboard'
   const hasCompletedTour = hasCompletedTourDB === true || hasCompletedTourLocally()
-  const shouldAutoStart = isOnDashboard && !hasCompletedTour && !loading
+  const shouldAutoStart = !TOUR_DISABLED && isOnDashboard && !hasCompletedTour && !loading
 
   return (
     <TourProvider
