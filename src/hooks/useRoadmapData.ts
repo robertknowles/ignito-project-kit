@@ -912,7 +912,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       startYear: BASE_YEAR,
       endYear,
     };
-  }, [profile, timelineProperties, eventBlocks]);
+  }, [profile, timelineProperties, eventBlocks, getInstance]);
   
   return roadmapData;
 };

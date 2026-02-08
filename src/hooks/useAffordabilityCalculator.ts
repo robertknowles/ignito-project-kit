@@ -578,6 +578,24 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       let loanInterest = 0;
       let expenses = 0;
       
+      // CRITICAL: Add rental income from EXISTING portfolio (before this scenario)
+      // The existing portfolio generates rental income that helps serviceability
+      if (profile.portfolioValue > 0) {
+        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, existingGrowthRate);
+        const existingRentalYield = profile.existingRentalYield || 0.04; // Default 4% yield
+        const existingAnnualRent = grownPortfolioValue * existingRentalYield;
+        // Apply recognition rate (conservative 75% for existing portfolio)
+        const existingRecognizedRent = existingAnnualRent * 0.75;
+        grossRentalIncome += existingRecognizedRent;
+        
+        // Also add existing portfolio's loan interest to track
+        if (profile.currentDebt > 0) {
+          const effectiveRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
+          loanInterest += profile.currentDebt * effectiveRate;
+        }
+      }
+      
       // Expense breakdown accumulators
       let accCouncilRatesWater = 0;
       let accStrataFees = 0;
@@ -1553,23 +1571,22 @@ return { period: Infinity };
     profile.borrowingCapacity,
     profile.depositPool,
     profile.annualSavings,
-    profile.portfolioValue, // CRITICAL: Trigger recalculation when existing portfolio changes
-    profile.currentDebt, // CRITICAL: Trigger recalculation when existing debt changes
-    profile.useExistingEquity, // CRITICAL: Trigger recalculation when equity toggle changes
-    profile.existingPortfolioGrowthRate, // CRITICAL: Trigger recalculation when growth rate changes
-    profile.maxPurchasesPerYear, // CRITICAL: Trigger recalculation when purchase limit changes
+    profile.portfolioValue, // Trigger recalculation when existing portfolio changes
+    profile.currentDebt, // Trigger recalculation when existing debt changes
+    profile.useExistingEquity, // Trigger recalculation when equity toggle changes
+    profile.existingPortfolioGrowthRate, // Trigger recalculation when growth rate changes
+    profile.maxPurchasesPerYear, // Trigger recalculation when purchase limit changes
     calculatedValues.availableDeposit,
     globalFactors.interestRate,
     getPropertyData,
     propertyAssumptions,
     propertyTypeTemplates,
     pauseBlocks,
-    eventBlocks, // CRITICAL: Trigger recalculation when events change (Custom Events System)
+    eventBlocks, // Trigger recalculation when events change (Custom Events System)
     timelineLoanTypes,
     getInstance, // Keep getInstance as it depends on instances state
-    instances, // CRITICAL: Trigger recalculation when property instances change (e.g., purchasePrice updates)
-    propertyOrder, // CRITICAL: Trigger recalculation when property order changes
-    // Removed createInstance - it's stable and shouldn't trigger recalcs
+    instances, // Trigger recalculation when property instances change (e.g., purchasePrice updates)
+    propertyOrder, // Trigger recalculation when property order changes
   ]);
 
   // Function to calculate affordability for any period and property
