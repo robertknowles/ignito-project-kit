@@ -108,6 +108,7 @@ export function ClientDashboard({
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
   const existingRentalYield = investmentProfile?.existingRentalYield || 0.04;
+  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.03; // 3% default for mature properties
 
   // Calculate chart data
   const { portfolioData, cashflowData, equityGoalYear, incomeGoalYear } = useMemo(() => {
@@ -186,7 +187,7 @@ export function ClientDashboard({
         existingPortfolioValue,
         existingDebt,
         yearsGrown,
-        defaultGrowthRate,
+        existingPortfolioGrowthRate,
         defaultGrowthCurve,
         defaultInterestRate,
         existingRentalYield,
@@ -345,15 +346,16 @@ export function ClientDashboard({
       const yearsSinceStart = year - scenarioStartYear;
       
       // Existing portfolio metrics
+      const scenarioExistingGrowthRate = profile?.existingPortfolioGrowthRate || 0.03;
       const existingMetrics = calculateExistingPortfolioMetrics(
         scenarioExistingValue,
         scenarioExistingDebt,
-        scenarioExistingYield,
-        profile?.currentDebt || 0,
         yearsSinceStart,
-        defaultGrowthRate,
+        scenarioExistingGrowthRate,
         scenarioGrowthCurve,
-        defaultInterestRate
+        defaultInterestRate,
+        scenarioExistingYield,
+        DEFAULT_PROPERTY_EXPENSES
       );
       
       // New purchases metrics

@@ -477,6 +477,19 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
           </p>
         </DialogHeader>
 
+        {/* Success Banner - shown when all tests pass */}
+        {allViolationsResolved && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Check className="text-green-600" size={20} />
+              <div>
+                <h4 className="font-semibold text-green-900">All Tests Passed!</h4>
+                <p className="text-sm text-green-700">This property can now be placed in this year.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Violation Summary Section */}
         <div className="space-y-2 bg-red-50 border border-red-200 p-4 rounded-lg">
           <h3 className="font-medium text-sm text-red-800 mb-3">Constraint Failures</h3>

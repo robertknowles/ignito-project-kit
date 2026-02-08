@@ -148,6 +148,19 @@ const calculatePropertyGrowth = (initialValue: number, periods: number, growthCu
   return currentValue;
 };
 
+// Conservative growth for existing/mature portfolios
+// Default 3% annual rate (configurable via profile.existingPortfolioGrowthRate)
+const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+
+const calculateExistingPortfolioGrowthByPeriod = (
+  initialValue: number,
+  periods: number,
+  growthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
+): number => {
+  const years = periods / PERIODS_PER_YEAR;
+  return initialValue * Math.pow(1 + growthRate, years);
+};
+
 // Export timeline data for use in parent components
 export const useTimelineData = () => {
   const { profile } = useInvestmentProfile()
@@ -1246,8 +1259,10 @@ function interpolateYearData(
   // Calculate effective borrowing capacity with equity boost
   let totalUsableEquity = 0;
   if (profile.portfolioValue > 0) {
+    // Use configurable flat rate for existing portfolio (mature properties)
     const periodsElapsed = (year - BASE_YEAR) * PERIODS_PER_YEAR;
-    const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, profile.growthCurve);
+    const existingGrowthRate = profile.existingPortfolioGrowthRate || DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE;
+    const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
     totalUsableEquity += Math.max(0, grownPortfolioValue * 0.88 - profile.currentDebt);
   }
   previousPurchases.forEach(purchase => {

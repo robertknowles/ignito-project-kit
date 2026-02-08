@@ -10,7 +10,7 @@ import {
   ReferenceDot,
   Label,
 } from 'recharts';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, Check } from 'lucide-react';
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -223,6 +223,7 @@ interface DraggablePropertyIconProps {
   y: number;
   isDragging: boolean;
   hasViolations: boolean;
+  isAmended: boolean;
   onPropertyClick: (instanceId: string) => void;
 }
 
@@ -232,6 +233,7 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
   y,
   isDragging,
   hasViolations,
+  isAmended,
   onPropertyClick,
 }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -290,6 +292,12 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
       {hasViolations && (
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
           <AlertTriangle size={10} className="text-white" />
+        </div>
+      )}
+      {/* Green tick indicator for successfully amended properties */}
+      {isAmended && !hasViolations && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+          <Check size={10} className="text-white" />
         </div>
       )}
     </div>
@@ -536,8 +544,11 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const handleApplyGuardrailChanges = useCallback((updatedFields: Partial<PropertyInstanceDetails>) => {
     if (!selectedProperty) return;
     
-    // Update the property instance with new values
-    updateInstance(selectedProperty.instanceId, updatedFields);
+    // Update the property instance with new values and mark as amended
+    updateInstance(selectedProperty.instanceId, {
+      ...updatedFields,
+      hasBeenAmended: true,
+    });
     
     // Close the guardrail modal
     setIsGuardrailFixModalOpen(false);
@@ -889,6 +900,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                           y={y}
                           isDragging={draggedProperty?.instanceId === instanceId}
                           hasViolations={hasGuardrailViolations(property)}
+                          isAmended={getInstance(property.instanceId)?.hasBeenAmended ?? false}
                           onPropertyClick={handlePropertyClick}
                         />
                       </div>

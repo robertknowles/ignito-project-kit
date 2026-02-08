@@ -70,6 +70,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
   const existingRentalYield = investmentProfile?.existingRentalYield || 0.04; // 4% default
+  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.03; // 3% default for mature properties
 
   // Use pre-calculated chart data from dashboard if available (ensures exact match)
   // Otherwise fall back to calculating from propertySelections
@@ -151,12 +152,12 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
     for (let year = startYear; year <= endYear; year++) {
       const yearsGrown = year - startYear;
       
-      // Calculate existing portfolio metrics
+      // Calculate existing portfolio metrics (using 3% default for mature properties)
       const existingMetrics = calculateExistingPortfolioMetrics(
         existingPortfolioValue,
         existingDebt,
         yearsGrown,
-        defaultGrowthRate,
+        existingPortfolioGrowthRate,
         defaultGrowthCurve,
         defaultInterestRate,
         existingRentalYield,

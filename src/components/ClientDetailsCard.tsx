@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, CalculatorIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, CalculatorIcon, Settings2 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { BorrowingCalculatorModal } from './BorrowingCalculatorModal'
+import { AdvancedSettingsModal } from './AdvancedSettingsModal'
+import { Switch } from '@/components/ui/switch'
 import { TourStep } from '@/components/TourManager'
 
 // Slider styles for consistent appearance - Clean black track and handle
@@ -76,6 +78,7 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
   const { profile, updateProfile, handleEquityGoalChange, handleCashflowGoalChange } = useInvestmentProfile()
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const [isCalcOpen, setIsCalcOpen] = useState(false)
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
 
   // Collapsed state metrics
   const collapsedMetrics = `${formatCompactCurrency(profile.depositPool)} deposit | ${formatCompactCurrency(profile.borrowingCapacity)} capacity | ${formatCompactCurrency(profile.annualSavings)}/yr savings`
@@ -195,20 +198,45 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
                     max={4000000}
                     step={50000}
                   />
-                  {/* Calculate Borrowing Capacity Button */}
-                  <button
-                    onClick={() => setIsCalcOpen(true)}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition-colors mt-2"
-                  >
-                    <CalculatorIcon size={14} />
-                    <div className="text-left">
-                      <div className="font-medium">Calculate Borrowing Capacity</div>
-                      <div className="text-[10px] text-slate-400">Estimate how much your client can borrow</div>
+                  
+                  {/* Use Existing Equity Toggle */}
+                  <div className="flex items-center justify-between py-1">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide">
+                        Use Existing Equity
+                      </span>
+                      <span className="text-[8px] text-slate-400">
+                        Include in purchase calculations
+                      </span>
                     </div>
+                    <Switch
+                      checked={profile.useExistingEquity}
+                      onCheckedChange={(checked) => updateProfile({ useExistingEquity: checked })}
+                      className="data-[state=checked]:bg-slate-900 scale-90"
+                    />
+                  </div>
+
+                  {/* Advanced Settings Button */}
+                  <button
+                    onClick={() => setIsAdvancedOpen(true)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  >
+                    <Settings2 size={14} />
+                    <span className="font-medium">Advanced Settings</span>
                   </button>
                 </div>
               </div>
             </div>
+
+            {/* Calculate Borrowing Capacity Button - Full Width */}
+            <button
+              onClick={() => setIsCalcOpen(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 mt-4 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            >
+              <CalculatorIcon size={14} />
+              <span className="font-medium">Calculate Borrowing Capacity</span>
+              <span className="text-slate-400">— Estimate how much your client can borrow</span>
+            </button>
           </div>
         )}
       </div>
@@ -217,6 +245,12 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
       <BorrowingCalculatorModal
         isOpen={isCalcOpen}
         onClose={() => setIsCalcOpen(false)}
+      />
+
+      {/* Advanced Settings Modal */}
+      <AdvancedSettingsModal
+        isOpen={isAdvancedOpen}
+        onClose={() => setIsAdvancedOpen(false)}
       />
     </TourStep>
   )

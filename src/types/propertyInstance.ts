@@ -120,6 +120,9 @@ export interface PropertyInstanceDetails {
   
   /** The target period when manually placed (1 = 2025 H1, 2 = 2025 H2, etc.) */
   manualPlacementPeriod?: number;
+  
+  /** Flag indicating this property has been manually amended to fit guardrails */
+  hasBeenAmended?: boolean;
 }
 
 

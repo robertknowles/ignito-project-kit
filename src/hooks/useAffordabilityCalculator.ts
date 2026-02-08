@@ -28,7 +28,6 @@ import {
   EQUITY_EXTRACTION_LVR_CAP,
   DEFAULT_INTEREST_RATE,
   ANNUAL_INFLATION_RATE,
-  MAX_PURCHASES_PER_PERIOD,
   annualRateToPeriodRate,
   periodToDisplay,
   periodToYear,
@@ -36,6 +35,7 @@ import {
   calculateRentalRecognitionRate,
   calculateInflationFactor,
 } from '../constants/financialParams';
+import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 
 export interface AffordabilityResult {
   period: number;
@@ -354,14 +354,13 @@ setTimelineLoanTypes({});
       let cumulativeEquityUsed = 0; // Tracks total equity extracted across all purchases
       
       // Calculate existing portfolio equity at current period (from existing properties before this scenario)
+      // Uses conservative flat rate for mature properties (configurable in profile)
+      // Only include if useExistingEquity toggle is enabled
       let existingPortfolioEquity = 0;
-      if (periodProfile.portfolioValue > 0) {
-        const firstTemplate = propertyTypeTemplates[0];
-        const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
-        if (defaultAssumption) {
-          const grownPortfolioValue = calculatePropertyGrowth(periodProfile.portfolioValue, currentPeriod - 1, defaultAssumption);
-          existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
-        }
+      if (periodProfile.portfolioValue > 0 && profile.useExistingEquity) {
+        const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(periodProfile.portfolioValue, currentPeriod - 1, growthRate);
+        existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
       }
       
       // Process each period chronologically to track running balances
@@ -695,18 +694,15 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       let propertyValues: number[] = [];
       let usableEquityPerProperty: number[] = [];
       
-        if (profile.portfolioValue > 0) {
-          // Use first property type's growth rates for existing portfolio (from templates - source of truth)
-          const firstTemplate = propertyTypeTemplates[0];
-          const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
-          if (defaultAssumption) {
-            const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, currentPeriod - 1, defaultAssumption);
-            propertyValues.push(grownPortfolioValue);
-            
-            // Continuous equity release - LVR cap, no time constraint
-            const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-            usableEquityPerProperty.push(portfolioEquity);
-          }
+        if (profile.portfolioValue > 0 && profile.useExistingEquity) {
+          // Use configurable flat rate for existing portfolio (mature properties)
+          const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+          const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
+          propertyValues.push(grownPortfolioValue);
+          
+          // Continuous equity release - LVR cap, no time constraint
+          const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
+          usableEquityPerProperty.push(portfolioEquity);
         }
         
         previousPurchases.forEach(purchase => {
@@ -1017,13 +1013,18 @@ return { period: Infinity };
           continue;
         }
         
-        // PURCHASE VELOCITY LIMIT
-        const purchasesInThisPeriod = currentPurchases.filter(p => p.period === period).length;
+        // PURCHASE VELOCITY LIMIT - check against max purchases per year from profile
+        // Calculate which year this period is in and count purchases for that year
+        const currentYear = Math.floor((period - 1) / PERIODS_PER_YEAR);
+        const yearStartPeriod = currentYear * PERIODS_PER_YEAR + 1;
+        const yearEndPeriod = yearStartPeriod + PERIODS_PER_YEAR - 1;
+        const purchasesThisYear = currentPurchases.filter(p => p.period >= yearStartPeriod && p.period <= yearEndPeriod).length;
+        const maxPurchasesPerYear = profile.maxPurchasesPerYear || 3;
         
-        if (purchasesInThisPeriod >= MAX_PURCHASES_PER_PERIOD) {
+        if (purchasesThisYear >= maxPurchasesPerYear) {
           if (DEBUG_MODE) {
             }
-          continue; // Skip to the next period
+          continue; // Skip to the next period - year limit reached
         }
         
         // Check if property instance exists
@@ -1143,13 +1144,10 @@ return { period: Infinity };
         const purchasePeriod = result.period;
         
         // Calculate existing portfolio value (with growth)
+        // Uses configurable flat rate for mature properties
         if (profile.portfolioValue > 0) {
-          // Use first property type's growth rates for existing portfolio (from templates - source of truth)
-          const firstTemplate = propertyTypeTemplates[0];
-          const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
-          if (defaultAssumption) {
-            portfolioValueAfter += calculatePropertyGrowth(profile.portfolioValue, purchasePeriod - 1, defaultAssumption);
-          }
+          const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+          portfolioValueAfter += calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, purchasePeriod - 1, growthRate);
         }
         
         // Calculate total debt from existing portfolio
@@ -1555,6 +1553,11 @@ return { period: Infinity };
     profile.borrowingCapacity,
     profile.depositPool,
     profile.annualSavings,
+    profile.portfolioValue, // CRITICAL: Trigger recalculation when existing portfolio changes
+    profile.currentDebt, // CRITICAL: Trigger recalculation when existing debt changes
+    profile.useExistingEquity, // CRITICAL: Trigger recalculation when equity toggle changes
+    profile.existingPortfolioGrowthRate, // CRITICAL: Trigger recalculation when growth rate changes
+    profile.maxPurchasesPerYear, // CRITICAL: Trigger recalculation when purchase limit changes
     calculatedValues.availableDeposit,
     globalFactors.interestRate,
     getPropertyData,
@@ -1728,15 +1731,13 @@ return { period: Infinity };
     // Calculate usable equity from existing portfolio and previous purchases
     let totalUsableEquity = 0;
     
-    // Existing portfolio equity (from templates - source of truth)
-    if (profile.portfolioValue > 0) {
-      const firstTemplate = propertyTypeTemplates[0];
-      const defaultAssumption = firstTemplate ? getPropertyData(firstTemplate.propertyType) : propertyAssumptions[0];
-      if (defaultAssumption) {
-        const grownPortfolioValue = calculatePropertyGrowth(profile.portfolioValue, period - 1, defaultAssumption);
-        const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-        totalUsableEquity += portfolioEquity;
-      }
+    // Existing portfolio equity - uses configurable flat rate for mature properties
+    // Only include if useExistingEquity toggle is enabled
+    if (profile.portfolioValue > 0 && profile.useExistingEquity) {
+      const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+      const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, period - 1, growthRate);
+      const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
+      totalUsableEquity += portfolioEquity;
     }
     
     // Previous purchases equity

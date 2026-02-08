@@ -93,6 +93,19 @@ const calculatePropertyGrowth = (
   return calculatePropertyGrowthWithEvents(initialValue, periods, growthCurve, [], 0);
 };
 
+// Conservative growth for existing/mature portfolios
+// Default 3% annual rate (configurable via profile.existingPortfolioGrowthRate)
+const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+
+const calculateExistingPortfolioGrowthByPeriod = (
+  initialValue: number,
+  periods: number,
+  growthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
+): number => {
+  const years = periods / PERIODS_PER_YEAR;
+  return initialValue * Math.pow(1 + growthRate, years);
+};
+
 // Funding breakdown for a purchase
 export interface FundingBreakdown {
   cash: number;
@@ -224,9 +237,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // Get event-adjusted interest rate for this period
       const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks);
       
-      // Calculate portfolio value with growth (applying market correction events)
+      // Calculate existing portfolio value with configurable flat rate (mature properties)
+      const existingGrowthRate = profile.existingPortfolioGrowthRate || DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE;
       let portfolioValue = profile.portfolioValue > 0 
-        ? calculatePropertyGrowthWithEvents(profile.portfolioValue, periodsElapsed, profile.growthCurve, eventBlocks, 0)
+        ? calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate)
         : 0;
       
       let totalDebt = profile.currentDebt;
@@ -244,8 +258,9 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       let accOther = 0;
       
       // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
+      // Uses configurable flat rate for existing portfolio (mature properties)
       let portfolioValueBeforeThisYear = profile.portfolioValue > 0 
-        ? calculatePropertyGrowthWithEvents(profile.portfolioValue, periodsElapsed, profile.growthCurve, eventBlocks, 0)
+        ? calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate)
         : 0;
       let totalDebtBeforeThisYear = profile.currentDebt;
       

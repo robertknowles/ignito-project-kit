@@ -43,6 +43,30 @@ export const calculatePropertyGrowth = (
   return currentValue;
 };
 
+// Conservative growth for existing/mature portfolios
+// Uses flat 3% annual rate (vs tiered rates for new purchases)
+// TODO: Make this rate configurable in the future
+// Default growth rate for existing/mature portfolio (can be overridden via profile)
+export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+
+export const calculateExistingPortfolioGrowth = (
+  initialValue: number,
+  years: number,
+  growthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
+): number => {
+  return initialValue * Math.pow(1 + growthRate, years);
+};
+
+// Period-based version for compatibility with period-based calculations
+export const calculateExistingPortfolioGrowthByPeriod = (
+  initialValue: number,
+  periods: number,
+  growthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
+): number => {
+  const years = periods / PERIODS_PER_YEAR;
+  return calculateExistingPortfolioGrowth(initialValue, years, growthRate);
+};
+
 // Helper function to get the growth rate for a specific period
 export const getGrowthRateForPeriod = (
   periodsOwned: number,
@@ -225,13 +249,14 @@ export const calculateExistingPortfolioMetrics = (
     };
   }
 
-  // Use tiered growth with period-based calculations
-  const periodsGrown = yearsGrown * PERIODS_PER_YEAR;
-  const currentValue = calculatePropertyGrowth(portfolioValue, periodsGrown, growthCurve);
+  // Use flat rate for existing portfolio (already mature properties)
+  // Rate is passed in from profile.existingPortfolioGrowthRate (default 3%)
+  const currentValue = portfolioValue * Math.pow(1 + growthRate, yearsGrown);
   const equity = Math.max(0, currentValue - currentDebt);
   const annualRepayments = currentDebt * interestRate;
   
   // Calculate rental income and expenses for existing portfolio
+  const periodsGrown = yearsGrown * PERIODS_PER_YEAR; // For expense inflation calculation
   const annualRent = currentValue * rentalYield;
   const expensesAnalysis = calculateAnnualExpenses(currentValue, annualRent, expenses, periodsGrown);
   
@@ -303,7 +328,8 @@ export const calculateGrowthProjections = (
   existingDebt: number = 0,
   timelineYears: number,
   growthCurve: GrowthCurve,
-  baseYear: number = 2025
+  baseYear: number = 2025,
+  existingPortfolioGrowthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
 ): GrowthProjection[] => {
   const projections: GrowthProjection[] = [];
   
@@ -311,12 +337,13 @@ export const calculateGrowthProjections = (
     const currentYear = baseYear + year;
     const periodsElapsed = year * PERIODS_PER_YEAR;
     
-    // Calculate existing portfolio growth with tiered rates
+    // Calculate existing portfolio growth with flat rate (mature properties)
     let existingValue = 0;
     let existingEquity = 0;
     if (existingPortfolioValue > 0) {
-      // Use tiered growth with period-based calculations
-      existingValue = calculatePropertyGrowth(existingPortfolioValue, periodsElapsed, growthCurve);
+      // Use configurable flat rate for existing portfolio (already mature properties)
+      const annualGrowthFactor = Math.pow(1 + existingPortfolioGrowthRate, year); // Compound annually
+      existingValue = existingPortfolioValue * annualGrowthFactor;
       existingEquity = Math.max(0, existingValue - existingDebt);
     }
     

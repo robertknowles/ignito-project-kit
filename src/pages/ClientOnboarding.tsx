@@ -19,6 +19,10 @@ interface InvestmentProfileFormData {
   timelineYears: number;
   equityGoal: number;
   cashflowGoal: number;
+  // Advanced portfolio settings
+  useExistingEquity: boolean;
+  maxPurchasesPerYear: number;
+  existingPortfolioGrowthRate: number;
 }
 
 const defaultFormData: InvestmentProfileFormData = {
@@ -30,6 +34,10 @@ const defaultFormData: InvestmentProfileFormData = {
   timelineYears: 15,
   equityGoal: 1000000,
   cashflowGoal: 50000,
+  // Advanced portfolio settings
+  useExistingEquity: true,
+  maxPurchasesPerYear: 3,
+  existingPortfolioGrowthRate: 0.03,
 };
 
 const defaultBranding: BrandingData = {
@@ -202,6 +210,10 @@ export const ClientOnboarding = () => {
             timelineYears: existingData.investmentProfile.timelineYears ?? defaultFormData.timelineYears,
             equityGoal: existingData.investmentProfile.equityGoal ?? defaultFormData.equityGoal,
             cashflowGoal: existingData.investmentProfile.cashflowGoal ?? defaultFormData.cashflowGoal,
+            // Advanced portfolio settings
+            useExistingEquity: existingData.investmentProfile.useExistingEquity ?? defaultFormData.useExistingEquity,
+            maxPurchasesPerYear: existingData.investmentProfile.maxPurchasesPerYear ?? defaultFormData.maxPurchasesPerYear,
+            existingPortfolioGrowthRate: existingData.investmentProfile.existingPortfolioGrowthRate ?? defaultFormData.existingPortfolioGrowthRate,
           });
         }
 

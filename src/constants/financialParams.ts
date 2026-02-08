@@ -155,8 +155,17 @@ export const DEFAULT_EXPENSE_RATIO = 0.30; // 30% of rental income
  * Maximum properties that can be purchased in a single 6-month period
  * 
  * Limits portfolio scaling velocity for realistic modeling.
+ * Note: This is a fallback default. The actual value comes from profile.maxPurchasesPerYear.
  */
 export const MAX_PURCHASES_PER_PERIOD = 3;
+
+/**
+ * Default growth rate for existing/mature portfolio properties
+ * 
+ * Mature properties grow at a conservative flat rate (not tiered like new purchases).
+ * Note: This is a fallback default. The actual value comes from profile.existingPortfolioGrowthRate.
+ */
+export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
 
 // =============================================================================
 // LMI THRESHOLDS

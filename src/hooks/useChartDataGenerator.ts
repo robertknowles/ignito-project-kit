@@ -4,7 +4,7 @@ import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
-import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth } from '../utils/metricsCalculator';
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth, calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import {
@@ -170,11 +170,12 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         : profile.growthCurve;
       
       // Calculate metrics for existing portfolio with event-adjusted growth
+      // Use profile's existingPortfolioGrowthRate for mature properties (default 3%)
       const existingMetrics = calculateExistingPortfolioMetrics(
         profile.portfolioValue,
         profile.currentDebt,
         yearsElapsed,
-        defaultGrowthRate,
+        profile.existingPortfolioGrowthRate || 0.03,
         adjustedProfileGrowthCurve,
         defaultInterestRate
       );
@@ -273,7 +274,9 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       let existingLoanPayments = 0;
       
       if (profile.portfolioValue > 0) {
-        const grownValue = calculatePropertyGrowth(profile.portfolioValue, periodsElapsed, adjustedProfileGrowthCurve);
+        // Use configurable flat rate for existing portfolio (mature properties)
+        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const grownValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
         existingRentalIncome = grownValue * DEFAULT_RENTAL_YIELD;
         // Use event-adjusted interest rate for existing debt
         existingLoanPayments = profile.currentDebt * effectiveInterestRate;

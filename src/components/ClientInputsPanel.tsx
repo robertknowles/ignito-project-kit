@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
-import { CalculatorIcon } from 'lucide-react'
+import { CalculatorIcon, Settings2 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { BorrowingCalculatorModal } from './BorrowingCalculatorModal'
+import { AdvancedSettingsModal } from './AdvancedSettingsModal'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -113,6 +115,7 @@ export const ClientInputsPanel: React.FC = () => {
   } = useInvestmentProfile()
   
   const [isCalcOpen, setIsCalcOpen] = useState(false)
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
 
   return (
     <TooltipProvider>
@@ -246,6 +249,32 @@ export const ClientInputsPanel: React.FC = () => {
             minLabel="$0"
             maxLabel="$4M"
           />
+
+          {/* Use Existing Equity Toggle */}
+          <div className="bg-white rounded-lg border border-slate-200 px-2.5 py-2 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wide">
+                Use Existing Equity
+              </span>
+              <span className="text-[8px] text-slate-400">
+                Include in purchase calculations
+              </span>
+            </div>
+            <Switch
+              checked={profile.useExistingEquity}
+              onCheckedChange={(checked) => updateProfile({ useExistingEquity: checked })}
+              className="data-[state=checked]:bg-slate-900"
+            />
+          </div>
+
+          {/* Advanced Settings Button */}
+          <button
+            onClick={() => setIsAdvancedOpen(true)}
+            className="w-full flex items-center gap-2 py-2 px-2.5 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 transition-colors group"
+          >
+            <Settings2 size={14} className="text-slate-400 group-hover:text-slate-600" />
+            <span className="font-medium text-slate-600">Advanced Settings</span>
+          </button>
         </div>
       </div>
 
@@ -268,6 +297,12 @@ export const ClientInputsPanel: React.FC = () => {
       <BorrowingCalculatorModal
         isOpen={isCalcOpen}
         onClose={() => setIsCalcOpen(false)}
+      />
+
+      {/* Advanced Settings Modal */}
+      <AdvancedSettingsModal
+        isOpen={isAdvancedOpen}
+        onClose={() => setIsAdvancedOpen(false)}
       />
     </TooltipProvider>
   )

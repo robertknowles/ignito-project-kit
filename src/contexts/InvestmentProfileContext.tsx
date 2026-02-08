@@ -22,6 +22,10 @@ export interface InvestmentProfileData {
   rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
   // NEW: Growth curve
   growthCurve: GrowthCurve; // Tiered growth: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
+  // NEW: Advanced portfolio settings
+  useExistingEquity: boolean; // Toggle for existing equity in purchases (default: true)
+  maxPurchasesPerYear: number; // Annual purchase cap (default: 3, range: 1-4)
+  existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.03 = 3%)
 }
 
 export interface CalculatedValues {
@@ -72,6 +76,10 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
       year4: 7.5,       // 7.5% Year 4
       year5plus: 6,     // 6% Year 5+
     },
+    // NEW: Advanced portfolio settings
+    useExistingEquity: true, // Use existing equity for purchases by default
+    maxPurchasesPerYear: 3, // Max 3 purchases per year
+    existingPortfolioGrowthRate: 0.03, // 3% annual growth for mature properties
   });
 
   // Background calculations - not displayed in UI but available for simulation engine
