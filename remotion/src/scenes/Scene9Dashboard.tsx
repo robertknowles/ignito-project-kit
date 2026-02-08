@@ -9,7 +9,7 @@ import {
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { MockPhoneFrame } from "../components/MockPhoneFrame";
 import { AnimatedNumber } from "../components/AnimatedNumber";
-import { SceneLabel } from "../components/SceneLabel";
+
 
 const { fontFamily: interFont } = loadInter("normal", {
   weights: ["400", "500", "600", "700"],
@@ -69,15 +69,17 @@ export const Scene9Dashboard: React.FC = () => {
       style={{
         backgroundColor: "#f8fafc",
         display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 60,
+        gap: 80,
         fontFamily: interFont,
         transform: `scale(${sceneScale})`,
+        padding: "0 100px",
       }}
     >
-      {/* Text content */}
-      <div style={{ maxWidth: 420, opacity: phoneSpring }}>
+      {/* LHS — Text content */}
+      <div style={{ maxWidth: 440, opacity: phoneSpring, flexShrink: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#94a3b8", marginBottom: 8 }}>
           Client Portal
         </div>
@@ -105,11 +107,12 @@ export const Scene9Dashboard: React.FC = () => {
         })}
       </div>
 
-      {/* Phone mockup */}
+      {/* RHS — Phone mockup */}
       <div
         style={{
           opacity: phoneSpring,
           transform: `scale(${interpolate(phoneSpring, [0, 1], [0.9, 1])})`,
+          flexShrink: 0,
         }}
       >
         <MockPhoneFrame style={{ width: 320, height: 580 }}>
@@ -162,7 +165,6 @@ export const Scene9Dashboard: React.FC = () => {
         </MockPhoneFrame>
       </div>
 
-      <SceneLabel text="Each client gets their own branded portal" delay={25} style={{ bottom: 30 }} />
     </AbsoluteFill>
   );
 };

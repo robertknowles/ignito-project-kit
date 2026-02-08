@@ -43,8 +43,10 @@ export const Scene4Timeline: React.FC = () => {
 
   // Phase A (0-50): Timeline cards appear  
   // Phase B (50-85): Card 1 expands with tabs + sliders
-  // Phase C (85-140): Zoom into the slider area, handles animate
-  // Phase D (140-180): Tab switch to LOAN, more sliders animate
+  // Phase C (85-115): PROPERTY tab - sliders animate
+  // Phase D (115-135): Fade to LOAN tab, sliders animate
+  // Phase E (135-160): Fade to ASSUMPTIONS tab, show details
+  // Phase F (160-180): Hold on ASSUMPTIONS
 
   const sceneScale = interpolate(frame, [0, 20], [1.04, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
@@ -59,18 +61,19 @@ export const Scene4Timeline: React.FC = () => {
   const expandProgress = frame >= expandStart ? interpolate(frame, [expandStart, expandStart + 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
   const expandHeight = expandProgress * 340;
 
-  // Zoom into detail panel (phase C) - smooth and centered
-  const zoomStart = 85;
-  const zoomProgress = frame >= zoomStart ? interpolate(frame, [zoomStart, zoomStart + 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
-  const detailZoom = 1 + zoomProgress * 0.6;
-  const detailTranslateY = zoomProgress * -180;
+  // Tab switching with smooth crossfades
+  // Tab 0 (PROPERTY): frames 70-130
+  // Tab 1 (LOAN): frames 130-190
+  // Tab 2 (ASSUMPTIONS): frames 190-240
+  const tab0Opacity = interpolate(frame, [70, 80, 125, 135], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const tab1Opacity = interpolate(frame, [130, 140, 185, 195], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const tab2Opacity = interpolate(frame, [190, 200], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // Tab switching (phase D)
-  const activeTab = frame < 140 ? 0 : 1;
-  const tabSwitchOpacity = frame >= 138 && frame < 145 ? interpolate(frame, [138, 145], [1, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
+  // Active tab for styling (which tab is highlighted)
+  const activeTab = frame < 130 ? 0 : frame < 190 ? 1 : 2;
 
-  // Slider animation frames: relative to when sliders become visible
-  const sliderAnimStart = frame >= zoomStart + 10 ? frame - (zoomStart + 10) : -999;
+  // Slider animation frames: relative to when expand completes
+  const sliderAnimStart = frame >= expandStart + 20 ? frame - (expandStart + 20) : -999;
 
   return (
     <AbsoluteFill
@@ -91,13 +94,8 @@ export const Scene4Timeline: React.FC = () => {
         </div>
       </div>
 
-      {/* Timeline content - apply zoom transform */}
-      <div
-        style={{
-          transform: `scale(${detailZoom}) translateY(${detailTranslateY}px)`,
-          transformOrigin: "left top",
-        }}
-      >
+      {/* Timeline content */}
+      <div>
         {/* Vertical timeline rail */}
         <div style={{ position: "relative", paddingLeft: 50 }}>
           {/* Rail line */}
@@ -131,42 +129,73 @@ export const Scene4Timeline: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* PROPERTY tab content */}
-                  <div style={{ padding: "14px 20px", display: activeTab === 0 ? "block" : "none" }}>
-                    <SliderMock label="PURCHASE PRICE" fromValue={350000} toValue={420000} min={100000} max={2000000} startFrame={sliderAnimStart} durationInFrames={40} format="currency" />
-                    <SliderMock label="VALUATION AT PURCHASE" fromValue={378000} toValue={453000} min={100000} max={2000000} startFrame={sliderAnimStart + 5} durationInFrames={38} format="currency" />
-                    <SliderMock label="WEEKLY RENT" fromValue={471} toValue={565} min={100} max={2000} startFrame={sliderAnimStart + 10} durationInFrames={40} format="currency" />
-                    <SliderMock label="DEPOSIT (%)" fromValue={12} toValue={20} min={5} max={40} startFrame={sliderAnimStart + 8} durationInFrames={35} format="percent" />
-                    {/* Extra detail rows */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 8, borderTop: "1px solid #f8fafc" }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Annual Yield</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16a34a" }}>7.0%</span>
+                  {/* Tab content area — relative container for stacked panels */}
+                  <div style={{ position: "relative", height: 280 }}>
+                    {/* PROPERTY tab content */}
+                    <div style={{ padding: "14px 20px", opacity: tab0Opacity, position: "absolute", top: 0, left: 0, right: 0 }}>
+                      <SliderMock label="PURCHASE PRICE" fromValue={350000} toValue={420000} min={100000} max={2000000} startFrame={sliderAnimStart} durationInFrames={40} format="currency" />
+                      <SliderMock label="VALUATION AT PURCHASE" fromValue={378000} toValue={453000} min={100000} max={2000000} startFrame={sliderAnimStart + 5} durationInFrames={38} format="currency" />
+                      <SliderMock label="WEEKLY RENT" fromValue={471} toValue={565} min={100} max={2000} startFrame={sliderAnimStart + 10} durationInFrames={40} format="currency" />
+                      <SliderMock label="DEPOSIT (%)" fromValue={12} toValue={20} min={5} max={40} startFrame={sliderAnimStart + 8} durationInFrames={35} format="percent" />
+                      {/* Extra detail rows */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 8, borderTop: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Annual Yield</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#16a34a" }}>7.0%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Growth Assumption</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Medium</span>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Growth Assumption</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Medium</span>
-                    </div>
-                  </div>
 
-                  {/* LOAN tab content */}
-                  <div style={{ padding: "14px 20px", display: activeTab === 1 ? "block" : "none" }}>
-                    <SliderMock label="INTEREST RATE" fromValue={6.5} toValue={6.0} min={3} max={10} startFrame={0} durationInFrames={30} format="percent" />
-                    <SliderMock label="LOAN TERM (YEARS)" fromValue={30} toValue={30} min={10} max={30} startFrame={0} durationInFrames={5} format="number" />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 8, borderTop: "1px solid #f8fafc" }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Loan Product</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Interest Only</span>
+                    {/* LOAN tab content */}
+                    <div style={{ padding: "14px 20px", opacity: tab1Opacity, position: "absolute", top: 0, left: 0, right: 0 }}>
+                      <SliderMock label="INTEREST RATE" fromValue={6.5} toValue={6.0} min={3} max={10} startFrame={0} durationInFrames={30} format="percent" />
+                      <SliderMock label="LOAN TERM (YEARS)" fromValue={30} toValue={30} min={10} max={30} startFrame={0} durationInFrames={5} format="number" />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 8, borderTop: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Loan Product</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Interest Only</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>LVR</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>80%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Loan Amount</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>$336K</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Monthly Repayment</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#ef4444" }}>$1,820</span>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>LVR</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>80%</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Loan Amount</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>$336K</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Monthly Repayment</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#ef4444" }}>$1,820</span>
+
+                    {/* ASSUMPTIONS tab content */}
+                    <div style={{ padding: "14px 20px", opacity: tab2Opacity, position: "absolute", top: 0, left: 0, right: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Capital Growth (Year 1)</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>8.0%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Capital Growth (Years 2-3)</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>6.0%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Capital Growth (Year 4+)</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>5.0%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Rental Growth (Annual)</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>3.5%</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Vacancy Rate</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>2 weeks/year</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>Property Management Fee</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>7.5%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -200,12 +229,17 @@ export const Scene4Timeline: React.FC = () => {
       </div>
 
       <SceneLabel
-        text={frame < zoomStart ? "Expand any card to edit details" : "Drag sliders to fine-tune every assumption"}
-        delay={frame < zoomStart ? 40 : 0}
-        style={{
-          bottom: 20,
-          opacity: zoomProgress > 0.8 ? interpolate(zoomProgress, [0.8, 1], [1, 0.7], { extrapolateRight: "clamp" }) : 1,
-        }}
+        text={
+          frame < expandStart
+            ? "Expand any card to edit details"
+            : frame < 115
+            ? "Adjust property details with interactive sliders"
+            : frame < 135
+            ? "Configure loan parameters"
+            : "Review growth and rental assumptions"
+        }
+        delay={frame < expandStart ? 40 : 0}
+        style={{ bottom: 20 }}
       />
     </AbsoluteFill>
   );

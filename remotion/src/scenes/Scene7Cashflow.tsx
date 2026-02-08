@@ -21,7 +21,7 @@ const CASHFLOWS = [-32497, -28000, -22000, -15000, -8000, 2000, 12000, 18000, 25
 // Chart dimensions
 const CHART_W = 1000;
 const CHART_H = 200;
-const PAD_L = 50;
+const PAD_L = 80;
 const PAD_R = 20;
 const PAD_T = 15;
 const PAD_B = 28;
@@ -30,9 +30,10 @@ const MAX_VAL = 90000;
 const MIN_VAL = -40000;
 const RANGE = MAX_VAL - MIN_VAL;
 
-const getX = (i: number) => PAD_L + (i / (YEARS.length - 1)) * (CHART_W - PAD_L - PAD_R);
-const getY = (val: number) => PAD_T + (1 - (val - MIN_VAL) / RANGE) * (CHART_H - PAD_T - PAD_B);
-const getBarH = (val: number) => Math.abs(val) / RANGE * (CHART_H - PAD_T - PAD_B);
+const BAND_W = (CHART_W - PAD_L - PAD_R) / YEARS.length;
+const getX = (i: number) => Math.round(PAD_L + (i + 0.5) * BAND_W);
+const getY = (val: number) => Math.round(PAD_T + (1 - (val - MIN_VAL) / RANGE) * (CHART_H - PAD_T - PAD_B));
+const getBarH = (val: number) => Math.round(Math.abs(val) / RANGE * (CHART_H - PAD_T - PAD_B));
 const zeroY = getY(0);
 
 // Softer colors matching client-view
@@ -99,24 +100,24 @@ export const Scene7Cashflow: React.FC = () => {
 
       {/* Chart - bar chart matching client-view CashflowChart */}
       <div style={{ position: "relative", marginBottom: 16, backgroundColor: "white", borderRadius: 12, border: "1px solid #e2e8f0", padding: "8px 4px" }}>
-        <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+        <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ shapeRendering: "crispEdges" }}>
           {/* Horizontal grid */}
           {gridValues.map((v) => (
             <React.Fragment key={v}>
-              <line x1={PAD_L} y1={getY(v)} x2={CHART_W - PAD_R} y2={getY(v)} stroke="rgba(148,163,184,0.2)" strokeWidth={1} />
-              <text x={PAD_L - 8} y={getY(v) + 3} textAnchor="end" fontSize={9} fill="#64748b" fontFamily={interFont}>
+              <line x1={PAD_L} y1={getY(v)} x2={CHART_W - PAD_R} y2={getY(v)} stroke="rgba(148,163,184,0.2)" strokeWidth={1} shapeRendering="crispEdges" />
+              <text x={PAD_L - 8} y={getY(v) + 3} textAnchor="end" fontSize={9} fill="#64748b" fontFamily={interFont} textRendering="geometricPrecision">
                 {v === 0 ? "$0" : `${v > 0 ? "" : "-"}$${Math.abs(v / 1000)}K`}
               </text>
             </React.Fragment>
           ))}
 
           {/* Break-even reference line */}
-          <line x1={PAD_L} y1={zeroY} x2={CHART_W - PAD_R} y2={zeroY} stroke="#b8c5d3" strokeWidth={1} strokeDasharray="3 3" />
-          <text x={PAD_L + 8} y={zeroY - 5} fontSize={9} fill="#b8c5d3" fontWeight={500} fontFamily={interFont}>Break-even</text>
+          <line x1={PAD_L} y1={zeroY} x2={CHART_W - PAD_R} y2={zeroY} stroke="#b8c5d3" strokeWidth={1} strokeDasharray="3 3" shapeRendering="crispEdges" />
+          <text x={PAD_L + 8} y={zeroY - 5} fontSize={9} fill="#b8c5d3" fontWeight={500} fontFamily={interFont} textRendering="geometricPrecision">Break-even</text>
 
           {/* X-axis labels */}
           {YEARS.filter((_, i) => i % 3 === 0).map((year) => (
-            <text key={year} x={getX(YEARS.indexOf(year))} y={CHART_H - 5} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={interFont}>
+            <text key={year} x={getX(YEARS.indexOf(year))} y={CHART_H - 5} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={interFont} textRendering="geometricPrecision">
               {year}
             </text>
           ))}
@@ -128,7 +129,7 @@ export const Scene7Cashflow: React.FC = () => {
             const cf = CASHFLOWS[i];
             const isPositive = cf >= 0;
             const barH = getBarH(cf) * barProgress;
-            const barWidth = 28;
+            const barWidth = 24;
             const x = getX(i) - barWidth / 2;
             const y = isPositive ? zeroY - barH : zeroY;
 

@@ -29,18 +29,18 @@ const PAD_T = 10;
 const PAD_B = 28;
 
 const maxVal = 7000;
-const getX = (i: number) => PAD_L + (i / (YEARS.length - 1)) * (CHART_W - PAD_L - PAD_R);
-const getY = (val: number) => PAD_T + (1 - val / maxVal) * (CHART_H - PAD_T - PAD_B);
+const getX = (i: number) => Math.round(PAD_L + (i / (YEARS.length - 1)) * (CHART_W - PAD_L - PAD_R));
+const getY = (val: number) => Math.round(PAD_T + (1 - val / maxVal) * (CHART_H - PAD_T - PAD_B));
 
 const makePath = (values: number[]): string =>
-  values.map((v, i) => `${i === 0 ? "M" : "L"} ${getX(i).toFixed(1)} ${getY(v).toFixed(1)}`).join(" ");
+  values.map((v, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(v)}`).join(" ");
 
 const makeAreaPath = (values: number[]): string => {
   const linePath = makePath(values);
   const lastX = getX(values.length - 1);
   const firstX = getX(0);
   const baseY = CHART_H - PAD_B;
-  return `${linePath} L ${lastX.toFixed(1)} ${baseY} L ${firstX.toFixed(1)} ${baseY} Z`;
+  return `${linePath} L ${lastX} ${baseY} L ${firstX} ${baseY} Z`;
 };
 
 // AffordabilityBreakdownTable-style data
@@ -111,7 +111,7 @@ export const Scene6Portfolio: React.FC = () => {
 
       {/* Chart - area chart matching client-view PortfolioChart */}
       <div style={{ position: "relative", marginBottom: 16, backgroundColor: "white", borderRadius: 12, border: "1px solid #e2e8f0", padding: "8px 4px" }}>
-        <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+        <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ shapeRendering: "crispEdges" }}>
           <defs>
             <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#7dd3c2" stopOpacity={0.5} />
@@ -125,19 +125,19 @@ export const Scene6Portfolio: React.FC = () => {
 
           {/* Horizontal grid lines */}
           {gridValues.map((v) => (
-            <line key={v} x1={PAD_L} y1={getY(v)} x2={CHART_W - PAD_R} y2={getY(v)} stroke="rgba(148,163,184,0.2)" strokeWidth={1} />
+            <line key={v} x1={PAD_L} y1={getY(v)} x2={CHART_W - PAD_R} y2={getY(v)} stroke="rgba(148,163,184,0.2)" strokeWidth={1} shapeRendering="crispEdges" />
           ))}
 
           {/* Y-axis labels */}
           {gridValues.filter((_, i) => i % 2 === 0).map((v) => (
-            <text key={v} x={PAD_L - 8} y={getY(v) + 3} textAnchor="end" fontSize={9} fill="#64748b" fontFamily={interFont}>
+            <text key={v} x={PAD_L - 8} y={getY(v) + 3} textAnchor="end" fontSize={9} fill="#64748b" fontFamily={interFont} textRendering="geometricPrecision">
               {v === 0 ? "$0" : `$${(v / 1000).toFixed(0)}M`}
             </text>
           ))}
 
           {/* X-axis labels */}
           {YEARS.filter((_, i) => i % 3 === 0).map((year, i) => (
-            <text key={year} x={getX(YEARS.indexOf(year))} y={CHART_H - 5} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={interFont}>
+            <text key={year} x={getX(YEARS.indexOf(year))} y={CHART_H - 5} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={interFont} textRendering="geometricPrecision">
               {year}
             </text>
           ))}

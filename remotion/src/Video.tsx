@@ -7,6 +7,7 @@ import { fade } from "@remotion/transitions/fade";
 import { Scene0Dot } from "./scenes/Scene0Dot";
 import { Scene1Title } from "./scenes/Scene1Title";
 import { Scene2Problem } from "./scenes/Scene2Problem";
+import { SceneHowItWorks } from "./scenes/SceneHowItWorks";
 import { Scene3Templates } from "./scenes/Scene3Templates";
 import { Scene4Timeline } from "./scenes/Scene4Timeline";
 import { Scene5Events } from "./scenes/Scene5Events";
@@ -29,8 +30,8 @@ const CONTENT_SCALE = 1.5;
 export const PropPathDemo = () => {
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Use the first 50 seconds of the audio track
-  const audioTrimAfter = 50 * fps;
+  // Use the first 59 seconds of the audio track (covers full video duration)
+  const audioTrimAfter = 59 * fps;
   // Fade out over the last 2 seconds so the audio doesn't cut abruptly
   const fadeOutStart = durationInFrames - 2 * fps;
 
@@ -84,12 +85,22 @@ export const PropPathDemo = () => {
           </TransitionSeries.Sequence>
 
           <TransitionSeries.Transition
+            presentation={fade()}
+            timing={linearTiming({ durationInFrames: T })}
+          />
+
+          {/* 2b: How it Works — 4-step overview (5s) */}
+          <TransitionSeries.Sequence durationInFrames={150}>
+            <SceneHowItWorks />
+          </TransitionSeries.Sequence>
+
+          <TransitionSeries.Transition
             presentation={slide({ direction: "from-right" })}
             timing={linearTiming({ durationInFrames: T })}
           />
 
-          {/* 3: Property Templates popup (5s) */}
-          <TransitionSeries.Sequence durationInFrames={150}>
+          {/* 3: Input & Simulate + Add to Timeline split (7s) */}
+          <TransitionSeries.Sequence durationInFrames={210}>
             <Scene3Templates />
           </TransitionSeries.Sequence>
 
@@ -98,8 +109,8 @@ export const PropPathDemo = () => {
             timing={linearTiming({ durationInFrames: T })}
           />
 
-          {/* 4: Timeline + expand + sliders (6s) */}
-          <TransitionSeries.Sequence durationInFrames={180}>
+          {/* 4: Timeline + expand + sliders (9s) */}
+          <TransitionSeries.Sequence durationInFrames={270}>
             <Scene4Timeline />
           </TransitionSeries.Sequence>
 
@@ -158,8 +169,8 @@ export const PropPathDemo = () => {
             timing={linearTiming({ durationInFrames: T })}
           />
 
-          {/* 10: CTA / Outro (3s) */}
-          <TransitionSeries.Sequence durationInFrames={90}>
+          {/* 10: CTA / Outro (5s) */}
+          <TransitionSeries.Sequence durationInFrames={150}>
             <Scene10CTA />
           </TransitionSeries.Sequence>
         </TransitionSeries>
