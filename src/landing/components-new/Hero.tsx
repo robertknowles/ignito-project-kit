@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Play, Home, Building2, Building, Store, CheckCircle2 } from 'lucide-react';
+import DemoVideoModal from './DemoVideoModal';
 
 const roadmapSteps = [
   { year: '2025', type: 'Unit', label: 'Entry Level Unit', icon: Home, equity: 150000 },
@@ -13,6 +14,7 @@ const roadmapSteps = [
 
 const Hero: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(0);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
@@ -87,8 +89,11 @@ const Hero: React.FC = () => {
               Become a Founding Agency
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="px-8 py-4 rounded-full text-base font-medium text-gray-400 border border-transparent transition-all flex items-center gap-2 cursor-not-allowed" disabled>
-              <Play size={16} fill="currentColor" /> <span className="line-through">Watch 2 min demo</span> <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full ml-1">Coming Soon</span>
+            <button
+              onClick={() => setIsDemoOpen(true)}
+              className="px-8 py-4 rounded-full text-base font-medium text-gray-600 border border-gray-200 hover:border-gray-400 hover:text-black transition-all flex items-center gap-2"
+            >
+              <Play size={16} fill="currentColor" /> Watch Product Demo
             </button>
           </motion.div>
 
@@ -224,6 +229,7 @@ const Hero: React.FC = () => {
            <div className="absolute top-10 -right-10 w-full h-full bg-gray-100 rounded-2xl -z-10 rotate-3 opacity-50"></div>
         </div>
       </div>
+      <DemoVideoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </section>
   );
 };
