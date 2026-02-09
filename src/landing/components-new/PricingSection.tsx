@@ -24,7 +24,7 @@ const PricingSection: React.FC = () => {
             <p className="text-gray-500 text-sm mb-6 h-auto min-h-[40px]">For solo buyers' agents and small teams</p>
             
             <div className="flex items-baseline gap-1 mb-8">
-              <span className="text-4xl font-serif font-semibold">$799</span>
+              <span className="text-4xl font-serif font-semibold">$699</span>
               <span className="text-gray-400 font-medium">/ month</span>
             </div>
             
@@ -33,7 +33,7 @@ const PricingSection: React.FC = () => {
                 <ul className="space-y-4">
                   {[
                     "Unlimited internal simulations & drafts",
-                    "Up to 10 client portals per month",
+                    "Up to 3 client roadmaps per month",
                     "Visual multi-property roadmaps",
                     "Strategy scenario comparison",
                     "Editable assumptions (growth, yield, cashflow…)",
@@ -75,6 +75,7 @@ const PricingSection: React.FC = () => {
                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4 block">Includes everything in Starter, plus:</span>
                 <ul className="space-y-4">
                   {[
+                    "Up to 10 client roadmaps per month",
                     "Unlimited client-ready roadmap exports",
                     "White-labelling",
                     "Equity release modelling",

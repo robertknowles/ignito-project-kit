@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useChartDataSync } from '../hooks/useChartDataSync';
+import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
@@ -14,21 +15,62 @@ export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
   useChartDataSync();
   
-  const { scenarios, isMultiScenarioMode } = useMultiScenario();
-  const { profile } = useInvestmentProfile();
-  const { timelineProperties } = useAffordabilityCalculator();
+  const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
+  const { profile: liveProfile } = useInvestmentProfile();
+  const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   
   // Check if this is a saved scenario (has properties in timeline)
   // This determines default expanded states for cards
-  const hasSavedProperties = timelineProperties.length > 0;
+  const hasSavedProperties = liveTimelineProperties.length > 0;
+
+  // Helper to get scenario data - use live data for active scenario, stored for inactive
+  // This matches the pattern in ScenarioCanvas to ensure consistency
+  const getScenarioData = (scenario: typeof scenarios[0]) => {
+    const isActive = scenario.id === activeScenarioId;
+    return {
+      timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+      profile: isActive ? liveProfile : scenario.investmentProfile,
+    };
+  };
+
+  // Generate chart data for each scenario using scenario-specific data
+  // CRITICAL: Use live data for active scenario to prevent stale data issues
+  // These hooks must be called unconditionally (React hooks rules)
+  const scenarioAData = scenarios.length >= 1 ? getScenarioData(scenarios[0]) : undefined;
+  const scenarioBData = scenarios.length >= 2 ? getScenarioData(scenarios[1]) : undefined;
+  
+  const chartDataA = useChartDataGenerator(scenarioAData);
+  const chartDataB = useChartDataGenerator(scenarioBData);
+
+  // Build scenario objects with live data for comparison
+  const scenarioAForComparison = useMemo(() => {
+    if (scenarios.length < 1) return null;
+    const isActive = scenarios[0].id === activeScenarioId;
+    return {
+      ...scenarios[0],
+      timeline: isActive ? liveTimelineProperties : scenarios[0].timeline,
+      investmentProfile: isActive ? liveProfile : scenarios[0].investmentProfile,
+    };
+  }, [scenarios, activeScenarioId, liveTimelineProperties, liveProfile]);
+
+  const scenarioBForComparison = useMemo(() => {
+    if (scenarios.length < 2) return null;
+    const isActive = scenarios[1].id === activeScenarioId;
+    return {
+      ...scenarios[1],
+      timeline: isActive ? liveTimelineProperties : scenarios[1].timeline,
+      investmentProfile: isActive ? liveProfile : scenarios[1].investmentProfile,
+    };
+  }, [scenarios, activeScenarioId, liveTimelineProperties, liveProfile]);
 
   // Calculate comparison metrics when 2 scenarios exist
+  // Use chart data for final values to match what charts display
   const comparison = useMemo(() => {
-    if (scenarios.length === 2) {
-      return compareScenarios(scenarios[0], scenarios[1], profile);
+    if (scenarios.length === 2 && scenarioAForComparison && scenarioBForComparison) {
+      return compareScenarios(scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB);
     }
     return null;
-  }, [scenarios, profile]);
+  }, [scenarios, scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB]);
 
   // Root: Fills the App.tsx container exactly.
   // Using 'h-full' instead of 'h-screen' to respect parent container.

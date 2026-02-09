@@ -2,6 +2,23 @@ import type { Scenario } from '../contexts/MultiScenarioContext';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 import type { TimelineProperty } from '../types/property';
 
+// Chart data type matching useChartDataGenerator output
+export interface ChartDataForComparison {
+  portfolioGrowthData: Array<{
+    year: string;
+    portfolioValue: number;
+    equity: number;
+    properties?: string[];
+  }>;
+  cashflowData: Array<{
+    year: string;
+    cashflow: number;
+    rentalIncome: number;
+    expenses: number;
+    loanRepayments: number;
+  }>;
+}
+
 export interface ScenarioMetrics {
   totalProperties: number;
   timelineYears: number;
@@ -52,9 +69,65 @@ const formatCurrency = (value: number): string => {
 };
 
 /**
- * Calculate metrics for a single scenario
+ * Extract final-year values from chart data
+ * This ensures comparison shows the same values as charts and summary bar
  */
-export const calculateScenarioMetrics = (scenario: Scenario): ScenarioMetrics => {
+const getFinalValuesFromChartData = (chartData: ChartDataForComparison): {
+  finalEquity: number;
+  finalCashflow: number;
+  portfolioValue: number;
+} => {
+  const finalPortfolioData = chartData.portfolioGrowthData[chartData.portfolioGrowthData.length - 1];
+  const finalCashflowData = chartData.cashflowData[chartData.cashflowData.length - 1];
+  
+  return {
+    finalEquity: finalPortfolioData?.equity ?? 0,
+    portfolioValue: finalPortfolioData?.portfolioValue ?? 0,
+    finalCashflow: finalCashflowData?.cashflow ?? 0,
+  };
+};
+
+/**
+ * Find goal achievement year from chart data
+ * Returns the year when the goal is first reached, or null if not reached
+ */
+const findGoalYearFromChartData = (
+  chartData: ChartDataForComparison,
+  equityGoal: number,
+  cashflowGoal: number
+): { equityGoalYear: number | null; cashflowGoalYear: number | null } => {
+  let equityGoalYear: number | null = null;
+  let cashflowGoalYear: number | null = null;
+  
+  // Find equity goal year
+  if (equityGoal > 0) {
+    const equityReached = chartData.portfolioGrowthData.find(d => d.equity >= equityGoal);
+    if (equityReached) {
+      equityGoalYear = parseInt(equityReached.year, 10);
+    }
+  }
+  
+  // Find cashflow goal year
+  if (cashflowGoal > 0) {
+    const cashflowReached = chartData.cashflowData.find(d => d.cashflow >= cashflowGoal);
+    if (cashflowReached) {
+      cashflowGoalYear = parseInt(cashflowReached.year, 10);
+    }
+  }
+  
+  return { equityGoalYear, cashflowGoalYear };
+};
+
+/**
+ * Calculate metrics for a single scenario
+ * When chartData is provided, uses chart's final-year values for consistency with charts/summary
+ * When sharedTimelineYears is provided, uses that instead of scenario's own timelineYears (for consistent comparison)
+ */
+export const calculateScenarioMetrics = (
+  scenario: Scenario,
+  chartData?: ChartDataForComparison,
+  sharedTimelineYears?: number
+): ScenarioMetrics => {
   const { timeline, investmentProfile } = scenario;
   
   // Filter to feasible properties only
@@ -62,21 +135,70 @@ export const calculateScenarioMetrics = (scenario: Scenario): ScenarioMetrics =>
   
   const totalProperties = feasibleProperties.length;
   
-  // Calculate final values from the last feasible property (if any)
-  const lastProperty = feasibleProperties[feasibleProperties.length - 1];
+  // Calculate final values - use chart data if provided for consistency
+  let finalEquity: number;
+  let portfolioValue: number;
+  let finalCashflow: number;
+  let totalDebt: number;
+  let equityGoalYear: number | null;
+  let cashflowGoalYear: number | null;
+  let endOfTimelineLVR: number | undefined; // End-of-timeline LVR when chart data available
   
-  // Get portfolio metrics from the last property purchase
-  const finalEquity = lastProperty?.totalEquityAfter ?? 0;
-  const totalDebt = lastProperty?.totalDebtAfter ?? 0;
-  const portfolioValue = lastProperty?.portfolioValueAfter ?? 0;
+  if (chartData && chartData.portfolioGrowthData.length > 0) {
+    // Use chart data for final values - this matches what charts display
+    const finalValues = getFinalValuesFromChartData(chartData);
+    finalEquity = finalValues.finalEquity;
+    portfolioValue = finalValues.portfolioValue;
+    finalCashflow = finalValues.finalCashflow;
+    
+    // Calculate debt from portfolio value and equity
+    totalDebt = portfolioValue - finalEquity;
+    
+    // Calculate end-of-timeline LVR from chart data (more meaningful than purchase-time)
+    endOfTimelineLVR = portfolioValue > 0 ? (totalDebt / portfolioValue) * 100 : 0;
+    
+    // Find goal years from chart data (matches milestone markers on charts)
+    const goalYears = findGoalYearFromChartData(
+      chartData, 
+      investmentProfile.equityGoal, 
+      investmentProfile.cashflowGoal
+    );
+    equityGoalYear = goalYears.equityGoalYear;
+    cashflowGoalYear = goalYears.cashflowGoalYear;
+  } else {
+    // Fallback: Use timeline data (snapshot at purchase time)
+    const lastProperty = feasibleProperties[feasibleProperties.length - 1];
+    finalEquity = lastProperty?.totalEquityAfter ?? 0;
+    totalDebt = lastProperty?.totalDebtAfter ?? 0;
+    portfolioValue = lastProperty?.portfolioValueAfter ?? 0;
+    finalCashflow = feasibleProperties.reduce((sum, p) => sum + (p.netCashflow || 0), 0);
+    
+    // Find equity goal achievement year from timeline
+    equityGoalYear = investmentProfile.equityGoal > 0
+      ? feasibleProperties.find(p => (p.totalEquityAfter || 0) >= investmentProfile.equityGoal)?.affordableYear ?? null
+      : null;
+    
+    // Find cashflow goal achievement year from timeline
+    cashflowGoalYear = investmentProfile.cashflowGoal > 0
+      ? feasibleProperties.find((_, index) => {
+          const cumulativeCashflow = feasibleProperties.slice(0, index + 1).reduce((sum, p) => sum + (p.netCashflow || 0), 0);
+          return cumulativeCashflow >= investmentProfile.cashflowGoal;
+        })?.affordableYear ?? null
+      : null;
+  }
   
-  // Calculate total annual cashflow from all properties
-  const finalCashflow = feasibleProperties.reduce((sum, p) => sum + (p.netCashflow || 0), 0);
-  
-  // Calculate average LVR
-  const totalLoanAmount = feasibleProperties.reduce((sum, p) => sum + (p.loanAmount || 0), 0);
-  const totalCost = feasibleProperties.reduce((sum, p) => sum + (p.cost || 0), 0);
-  const averageLVR = totalCost > 0 ? (totalLoanAmount / totalCost) * 100 : 0;
+  // Calculate LVR - use end-of-timeline LVR when chart data available (more meaningful)
+  // Otherwise fall back to purchase-time LVR
+  let averageLVR: number;
+  if (chartData && chartData.portfolioGrowthData.length > 0 && typeof endOfTimelineLVR !== 'undefined') {
+    // Use end-of-timeline LVR calculated from chart data
+    averageLVR = endOfTimelineLVR;
+  } else {
+    // Fallback: purchase-time LVR from timeline data
+    const totalLoanAmount = feasibleProperties.reduce((sum, p) => sum + (p.loanAmount || 0), 0);
+    const totalCost = feasibleProperties.reduce((sum, p) => sum + (p.cost || 0), 0);
+    averageLVR = totalCost > 0 ? (totalLoanAmount / totalCost) * 100 : 0;
+  }
   
   // Determine risk level based on LVR and debt
   let riskLevel: 'Low' | 'Medium' | 'High' = 'Medium';
@@ -89,22 +211,10 @@ export const calculateScenarioMetrics = (scenario: Scenario): ScenarioMetrics =>
   // Calculate total deposit required
   const totalDepositRequired = feasibleProperties.reduce((sum, p) => sum + (p.depositRequired || 0), 0);
   
-  // Calculate timeline years from first to last purchase
-  const years = feasibleProperties.map(p => p.affordableYear);
-  const timelineYears = years.length > 0 ? Math.max(...years) - Math.min(...years) + 1 : 0;
-  
-  // Find equity goal achievement year
-  const equityGoalYear = investmentProfile.equityGoal > 0
-    ? feasibleProperties.find(p => (p.totalEquityAfter || 0) >= investmentProfile.equityGoal)?.affordableYear ?? null
-    : null;
-  
-  // Find cashflow goal achievement year (annual cashflow)
-  const cashflowGoalYear = investmentProfile.cashflowGoal > 0
-    ? feasibleProperties.find((_, index) => {
-        const cumulativeCashflow = feasibleProperties.slice(0, index + 1).reduce((sum, p) => sum + (p.netCashflow || 0), 0);
-        return cumulativeCashflow >= investmentProfile.cashflowGoal;
-      })?.affordableYear ?? null
-    : null;
+  // Calculate timeline years - use shared timeline if provided (for consistent comparison)
+  // Otherwise fall back to scenario's own investment profile timeline
+  // This is the full investment horizon, not just the span of property purchases
+  const timelineYears = sharedTimelineYears ?? investmentProfile.timelineYears ?? 15;
   
   return {
     totalProperties,
@@ -300,14 +410,22 @@ export const generateInsights = (
 
 /**
  * Main comparison function - compares two scenarios
+ * When chart data is provided, uses final-year values from charts for consistency
+ * with the displayed charts and summary bar
  */
 export const compareScenarios = (
   scenarioA: Scenario, 
   scenarioB: Scenario, 
-  profile: InvestmentProfileData
+  profile: InvestmentProfileData,
+  chartDataA?: ChartDataForComparison,
+  chartDataB?: ChartDataForComparison
 ): ComparisonMetrics => {
-  const metricsA = calculateScenarioMetrics(scenarioA);
-  const metricsB = calculateScenarioMetrics(scenarioB);
+  // Pass chart data to calculateScenarioMetrics for consistent final values
+  // Use the passed profile's timelineYears as the shared baseline for both scenarios
+  // This ensures apples-to-apples comparison over the same time horizon
+  const sharedTimelineYears = profile.timelineYears || 15;
+  const metricsA = calculateScenarioMetrics(scenarioA, chartDataA, sharedTimelineYears);
+  const metricsB = calculateScenarioMetrics(scenarioB, chartDataB, sharedTimelineYears);
   const differences = calculateDifferences(metricsA, metricsB);
   const { winner, reason } = determineWinner(metricsA, metricsB, profile);
   const insights = generateInsights(metricsA, metricsB, differences, profile);

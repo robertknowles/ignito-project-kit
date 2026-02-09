@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { AlertTriangle, Check, X, ArrowRight, ChevronDown, ChevronRight, Edit3 } from 'lucide-react';
+import { AlertTriangle, Check, X, ArrowRight, ChevronDown, ChevronRight, Edit3, Plus, Lightbulb } from 'lucide-react';
+import { EventTypeIcon } from '@/utils/eventIcons';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +18,10 @@ import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 import type { GuardrailViolation, GuardrailViolationType, ValidationResult } from '@/utils/guardrailValidator';
 import { validatePropertyPlacement } from '@/utils/guardrailValidator';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
+import { usePropertySelection } from '@/contexts/PropertySelectionContext';
+import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
-import { calculateSuggestedFixes, type SuggestedFix, type ExtendedPropertyValues } from '@/utils/suggestedFixes';
+import { calculateSuggestedFixes, calculateEventBasedFixes, type SuggestedFix, type SuggestedEventFix, type ExtendedPropertyValues } from '@/utils/suggestedFixes';
 import { calculateOneOffCosts, calculateDepositBalance } from '@/utils/oneOffCostsCalculator';
 import { calculateLMI } from '@/utils/lmiCalculator';
 import { calculateStampDuty } from '@/utils/stampDutyCalculator';
@@ -119,6 +122,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
   onViewDetails,
 }) => {
   const { getInstance } = usePropertyInstance();
+  const { addEvent } = usePropertySelection();
+  const { profile } = useInvestmentProfile();
   const { timelineProperties, calculateAffordabilityForProperty } = useAffordabilityCalculator();
   const costsRef = useRef<HTMLDivElement>(null);
 
@@ -322,11 +327,49 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
     });
   }, [adjustedValues, adjustedOneOffCosts, property, purchaseHistory, calculateAffordabilityForProperty, calculatedCosts, capitalizeLmi]);
 
-  // Get relevant fields based on violations
-  const relevantFields = useMemo(() => getRelevantFieldsForViolations(violations), [violations]);
+  // Create live violations based on current validation state (not just initial violations)
+  // This ensures suggested fixes are recalculated when tests pass/fail after adjustments
+  const liveViolations = useMemo((): GuardrailViolation[] => {
+    const currentViolations: GuardrailViolation[] = [];
+    
+    if (!liveValidation.deposit.pass) {
+      currentViolations.push({
+        type: 'deposit',
+        severity: 'error',
+        message: `Deposit shortfall of ${Math.abs(liveValidation.deposit.surplus).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })}`,
+        shortfall: Math.abs(liveValidation.deposit.surplus),
+      });
+    }
+    
+    if (!liveValidation.borrowing.pass) {
+      currentViolations.push({
+        type: 'borrowing',
+        severity: 'error',
+        message: `Borrowing capacity exceeded by ${Math.abs(liveValidation.borrowing.surplus).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })}`,
+        shortfall: Math.abs(liveValidation.borrowing.surplus),
+      });
+    }
+    
+    if (!liveValidation.serviceability.pass) {
+      currentViolations.push({
+        type: 'serviceability',
+        severity: 'error',
+        message: `Serviceability shortfall of ${Math.abs(liveValidation.serviceability.surplus).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })}`,
+        shortfall: Math.abs(liveValidation.serviceability.surplus),
+      });
+    }
+    
+    return currentViolations;
+  }, [liveValidation]);
 
-  // Calculate suggested fixes with extended values
+  // Get relevant fields based on current live violations (not just initial)
+  const relevantFields = useMemo(() => getRelevantFieldsForViolations(liveViolations), [liveViolations]);
+
+  // Calculate suggested fixes with extended values based on CURRENT violations
   const suggestedFixes = useMemo(() => {
+    // If no violations, no fixes needed
+    if (liveViolations.length === 0) return [];
+    
     const extendedValues: ExtendedPropertyValues = {
       purchasePrice: adjustedValues.purchasePrice,
       lvr: adjustedValues.lvr,
@@ -339,7 +382,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
     
     return calculateSuggestedFixes(
       property,
-      violations,
+      liveViolations, // Use LIVE violations, not initial
       {
         purchasePrice: adjustedValues.purchasePrice,
         lvr: adjustedValues.lvr,
@@ -348,7 +391,34 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       property.availableFundsUsed, // Use available funds at purchase time
       extendedValues
     );
-  }, [property, violations, adjustedValues, calculatedCosts, propertyInstance]);
+  }, [property, liveViolations, adjustedValues, calculatedCosts, propertyInstance]);
+
+  // Track which events have been added during this session
+  const [addedEventTypes, setAddedEventTypes] = useState<Set<string>>(new Set());
+
+  // Reset added events when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setAddedEventTypes(new Set());
+    }
+  }, [isOpen]);
+
+  // Calculate event-based suggestions based on CURRENT violations
+  const suggestedEventFixes = useMemo(() => {
+    // If no violations, no event fixes needed
+    if (liveViolations.length === 0) return [];
+    
+    // Get client salary info (default to 0 for partner if not tracked)
+    const currentSalary = profile.baseSalary || 60000;
+    const partnerSalary = 0; // We don't track partner salary as base assumption, user can add via event
+    
+    return calculateEventBasedFixes(
+      liveViolations,
+      currentSalary,
+      partnerSalary,
+      property.period
+    );
+  }, [liveViolations, profile.baseSalary, property.period]);
 
   // Check if all violations are now resolved
   const allViolationsResolved = useMemo(() => {
@@ -388,6 +458,25 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       handleFieldChange(fix.field, fix.suggestedValue);
     }
   }, [handleFieldChange]);
+
+  // Handle adding an event from suggestions
+  const handleAddEventFix = useCallback((eventFix: SuggestedEventFix) => {
+    // Add the event to the timeline at the period before the property purchase
+    // This ensures the event takes effect before the property is purchased
+    const eventPeriod = Math.max(1, property.period - 1);
+    
+    addEvent({
+      type: 'event',
+      eventType: eventFix.eventType,
+      category: eventFix.category,
+      period: eventPeriod,
+      order: 0, // Will be sorted by period anyway
+      payload: eventFix.payload,
+    });
+    
+    // Mark this event type as added
+    setAddedEventTypes(prev => new Set([...prev, eventFix.eventType]));
+  }, [property.period, addEvent]);
 
   // Handle apply changes - includes all modified fields
   const handleApplyChanges = useCallback(() => {
@@ -479,91 +568,181 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
 
         {/* Success Banner - shown when all tests pass */}
         {allViolationsResolved && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Check className="text-green-600" size={20} />
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-green-50 border border-green-100 rounded-xl flex items-center justify-center">
+                <Check className="text-green-600" size={20} />
+              </div>
               <div>
-                <h4 className="font-semibold text-green-900">All Tests Passed!</h4>
-                <p className="text-sm text-green-700">This property can now be placed in this year.</p>
+                <h4 className="font-semibold text-slate-900">All Tests Passed</h4>
+                <p className="text-sm text-slate-500">This property can now be placed in this year.</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Violation Summary Section */}
-        <div className="space-y-2 bg-red-50 border border-red-200 p-4 rounded-lg">
-          <h3 className="font-medium text-sm text-red-800 mb-3">Constraint Failures</h3>
-          {violations.map((v) => (
-            <div
-              key={v.type}
-              className="flex items-center justify-between py-2 border-b border-red-100 last:border-b-0"
-            >
-              <div className="flex items-center gap-2">
-                <X className="h-4 w-4 text-red-500" />
-                <span className="font-medium text-sm">{getConstraintLabel(v.type)}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-red-600 text-sm font-medium">
-                  Shortfall: {formatCompactCurrency(v.shortfall)}
-                </span>
-                <p className="text-xs text-red-500">{v.message}</p>
-              </div>
+        {/* Violation Summary Section - shows LIVE violations, hidden when all pass */}
+        {liveViolations.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-3">
+              Constraint Failures ({liveViolations.length} remaining)
+            </p>
+            <div className="space-y-2">
+              {liveViolations.map((v) => (
+                <div
+                  key={v.type}
+                  className="flex items-center justify-between py-2.5 px-3 bg-slate-50 border border-slate-100 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-red-50 border border-red-100 rounded-lg flex items-center justify-center">
+                      <X className="h-4 w-4 text-red-500" />
+                    </div>
+                    <span className="font-medium text-sm text-slate-900">{getConstraintLabel(v.type)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-red-600 text-sm font-semibold">
+                      {formatCompactCurrency(v.shortfall)}
+                    </span>
+                    <p className="text-[10px] text-slate-500">{v.type === 'deposit' ? 'deposit shortfall' : v.type === 'borrowing' ? 'over capacity' : 'annual shortfall'}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Suggested Fixes Section */}
         {suggestedFixes.length > 0 && (
-          <div className="space-y-2 bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <h3 className="font-medium text-sm text-blue-800 mb-3">Suggested Fixes</h3>
-            {suggestedFixes.map((fix, idx) => (
-              <div
-                key={`${fix.field}-${idx}`}
-                className="flex items-center justify-between py-2 border-b border-blue-100 last:border-b-0"
-              >
-                <div className="flex-1">
-                  <p className="text-sm text-blue-700">{fix.explanation}</p>
-                  {fix.actionType !== 'editCosts' && fix.actionType !== 'capitalizeLmi' && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      {formatCompactCurrency(fix.currentValue)} <ArrowRight className="h-3 w-3 inline" /> {formatCompactCurrency(fix.suggestedValue)}
-                    </p>
-                  )}
-                  {fix.actionType === 'capitalizeLmi' && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      Upfront LMI: {formatCompactCurrency(fix.currentValue)} <ArrowRight className="h-3 w-3 inline" /> $0 (added to loan)
-                    </p>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleApplySuggestedFix(fix)}
-                  className="ml-3 text-blue-600 border-blue-300 hover:bg-blue-100"
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-slate-400" />
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
+                Quick Fixes
+              </p>
+            </div>
+            <div className="space-y-2">
+              {suggestedFixes.map((fix, idx) => (
+                <div
+                  key={`${fix.field}-${idx}`}
+                  className="flex items-center justify-between py-3 px-3 bg-slate-50 border border-slate-100 rounded-xl"
                 >
-                  {fix.actionType === 'editCosts' ? (
-                    <span className="flex items-center gap-1">
-                      <Edit3 className="h-3 w-3" />
-                      Edit Costs
-                    </span>
-                  ) : fix.actionType === 'capitalizeLmi' ? (
-                    capitalizeLmi ? (
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-700">{fix.explanation}</p>
+                    {fix.actionType !== 'editCosts' && fix.actionType !== 'capitalizeLmi' && (
+                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                        <span className="font-medium">{formatCompactCurrency(fix.currentValue)}</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="font-medium text-slate-700">{formatCompactCurrency(fix.suggestedValue)}</span>
+                      </p>
+                    )}
+                    {fix.actionType === 'capitalizeLmi' && (
+                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                        <span>Upfront LMI:</span>
+                        <span className="font-medium">{formatCompactCurrency(fix.currentValue)}</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="font-medium text-slate-700">$0</span>
+                        <span className="text-slate-400">(added to loan)</span>
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleApplySuggestedFix(fix)}
+                    className="ml-3 text-slate-600 border-gray-200 hover:bg-slate-50 hover:border-gray-300"
+                  >
+                    {fix.actionType === 'editCosts' ? (
                       <span className="flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        Applied
+                        <Edit3 className="h-3 w-3" />
+                        Edit Costs
                       </span>
-                    ) : 'Apply'
-                  ) : (
-                    'Apply'
-                  )}
-                </Button>
-              </div>
-            ))}
+                    ) : fix.actionType === 'capitalizeLmi' ? (
+                      capitalizeLmi ? (
+                        <span className="flex items-center gap-1 text-green-600">
+                          <Check className="h-3 w-3" />
+                          Applied
+                        </span>
+                      ) : 'Apply'
+                    ) : (
+                      'Apply'
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Event-Based Solutions Section */}
+        {suggestedEventFixes.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
+              Alternative Solutions
+            </p>
+            <p className="text-xs text-slate-500 mb-3">
+              Consider these life events instead of adjusting the property:
+            </p>
+            <div className="space-y-2">
+              {suggestedEventFixes.map((eventFix, idx) => {
+                const isAdded = addedEventTypes.has(eventFix.eventType);
+                return (
+                  <div
+                    key={`${eventFix.eventType}-${idx}`}
+                    className="flex items-center justify-between py-3 px-3 bg-slate-50 border border-slate-100 rounded-xl"
+                  >
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="flex-shrink-0 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center">
+                        <EventTypeIcon eventType={eventFix.eventType} size={20} className="text-slate-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700">{eventFix.explanation}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Addresses <span className="capitalize font-medium text-slate-600">{eventFix.violationType}</span> test
+                          {' · '}
+                          <span className="font-medium text-slate-600">{eventFix.formattedAmount}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAddEventFix(eventFix)}
+                      disabled={isAdded}
+                      className={`ml-3 flex-shrink-0 ${
+                        isAdded 
+                          ? 'text-green-600 border-green-200 bg-green-50' 
+                          : 'text-slate-600 border-gray-200 hover:bg-slate-50 hover:border-gray-300'
+                      }`}
+                    >
+                      {isAdded ? (
+                        <span className="flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Added
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Plus className="h-3 w-3" />
+                          Add Event
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            {addedEventTypes.size > 0 && (
+              <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
+                Events are added to the period before this property purchase. Close this modal to see the updated timeline.
+              </p>
+            )}
           </div>
         )}
 
         {/* Adjustment Fields Section */}
-        <div className="space-y-4 border border-slate-200 p-4 rounded-lg">
-          <h3 className="font-medium text-sm text-slate-700">Adjust Property to Fix</h3>
+        <div className="space-y-4 bg-white border border-gray-200 p-4 rounded-xl">
+          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
+            Adjust Property to Fix
+          </p>
 
           {/* Purchase Price */}
           {relevantFields.has('purchasePrice') && (
@@ -680,7 +859,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
                   {!isOneOffCostsExpanded && (
-                    <span className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    <span className="text-xs flex items-center gap-1" style={{ color: '#87B5FA' }}>
                       <Edit3 className="h-3 w-3" />
                       Edit
                     </span>
@@ -690,7 +869,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
               
               <CollapsibleContent className="pt-4 space-y-4">
                 {/* Cost Breakdown Summary */}
-                <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Deposit Balance:</span>
                     <span className="font-medium">{formatCurrency(calculatedCosts.depositBalance)}</span>
@@ -878,10 +1057,10 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
 
                 {/* LMI Capitalization Toggle */}
                 {calculatedCosts.lmi > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
                     <div>
-                      <Label className="text-sm text-amber-800">Capitalize LMI into Loan</Label>
-                      <p className="text-xs text-amber-600 mt-0.5">
+                      <Label className="text-sm text-slate-700">Capitalize LMI into Loan</Label>
+                      <p className="text-xs text-slate-500 mt-0.5">
                         Add {formatCurrency(calculatedCosts.lmi)} to loan instead of paying upfront
                       </p>
                     </div>
@@ -889,7 +1068,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                       type="checkbox"
                       checked={capitalizeLmi}
                       onChange={(e) => setCapitalizeLmi(e.target.checked)}
-                      className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                      className="w-4 h-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500"
                     />
                   </div>
                 )}
@@ -899,20 +1078,22 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
         </div>
 
         {/* Live Feedback Section */}
-        <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-          <h3 className="font-medium text-sm text-slate-700 mb-3">Live Preview</h3>
+        <div className="bg-white border border-gray-200 p-4 rounded-xl">
+          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-3">
+            Live Preview
+          </p>
           
           {/* Cash Required vs Available Summary */}
-          <div className="bg-white p-3 rounded border border-slate-200 mb-3">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-3">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Available Funds:</span>
-              <span className="font-medium">{formatCurrency(property.availableFundsUsed)}</span>
+              <span className="text-slate-500">Available Funds:</span>
+              <span className="font-medium text-slate-700">{formatCurrency(property.availableFundsUsed)}</span>
             </div>
             <div className="flex justify-between text-sm mt-1">
-              <span className="text-slate-600">Total Cash Required:</span>
-              <span className="font-medium">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
+              <span className="text-slate-500">Total Cash Required:</span>
+              <span className="font-medium text-slate-700">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
             </div>
-            <div className={`flex justify-between text-sm mt-1 pt-1 border-t border-slate-100 ${liveValidation.deposit.pass ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`flex justify-between text-sm mt-1 pt-1 border-t border-slate-200 ${liveValidation.deposit.pass ? 'text-green-600' : 'text-red-600'}`}>
               <span className="font-medium">{liveValidation.deposit.pass ? 'Surplus:' : 'Shortfall:'}</span>
               <span className="font-semibold">{formatCurrency(Math.abs(liveValidation.deposit.surplus))}</span>
             </div>
@@ -984,9 +1165,9 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
 
           {/* Success message */}
           {allViolationsResolved && hasChanges && (
-            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-center">
-              <span className="text-green-700 text-sm font-medium">
-                All constraints now pass! Click "Apply Changes" to save.
+            <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+              <span className="text-slate-700 text-sm font-medium">
+                All constraints now pass. Click "Apply Changes" to save.
               </span>
             </div>
           )}

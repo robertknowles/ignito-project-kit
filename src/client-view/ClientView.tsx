@@ -24,7 +24,11 @@ export const ClientView = () => {
     const scenarioA = scenario.scenarios[0];
     const scenarioB = scenario.scenarios[1];
     
-    return compareScenarios(scenarioA, scenarioB, scenario.investmentProfile);
+    // Extract chart data if available (may be stored with scenario)
+    const chartDataA = (scenarioA as any).chartData;
+    const chartDataB = (scenarioB as any).chartData;
+    
+    return compareScenarios(scenarioA, scenarioB, scenario.investmentProfile, chartDataA, chartDataB);
   }, [isComparisonMode, scenario?.scenarios, scenario?.investmentProfile]);
   
   // Build scenario data for comparison mode

@@ -189,8 +189,10 @@ export const RetirementSnapshot: React.FC<RetirementSnapshotProps> = ({ defaultE
   }, [years, cashflowData, snapshotYears, sellOffPercent])
 
   // Combined slider value for snapshot time
+  // Max is (timelineYears - 1) * 12 because data is generated from year 0 to timelineYears-1
+  // e.g., 12-year horizon generates data for years 2025-2036 (0-11 from start)
   const totalMonths = snapshotYears * 12 + snapshotMonths
-  const maxMonths = profile.timelineYears * 12
+  const maxMonths = (profile.timelineYears - 1) * 12
 
   const handleTimeSliderChange = (value: number) => {
     const years = Math.floor(value / 12)

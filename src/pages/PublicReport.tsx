@@ -153,11 +153,17 @@ setError('Failed to load report');
     const scenarioAData = scenariosArray[0];
     const scenarioBData = scenariosArray[1];
     
-    // Build comparison metrics
+    // Extract chart data for each scenario
+    const chartDataA = extractChartData({ chartData: scenarioAData.chartData });
+    const chartDataB = extractChartData({ chartData: scenarioBData.chartData });
+    
+    // Build comparison metrics - pass chart data for consistent final values
     const comparisonMetrics: ComparisonMetrics = compareScenarios(
       scenarioAData,
       scenarioBData,
-      investmentProfile
+      investmentProfile,
+      chartDataA,
+      chartDataB
     );
     
     return (

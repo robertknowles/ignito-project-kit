@@ -163,6 +163,11 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     }
   }, [instanceId, createInstance, getInstance, propertyType, isTemplate, getPropertyTypeTemplate, isDuplicating, sourceInstanceId]);
   
+  // Calculate yield from current form data
+  const calculatedYield = formData 
+    ? ((formData.rentPerWeek * 52) / formData.purchasePrice) * 100
+    : 0;
+
   // Update local state when field changes
   const handleFieldChange = (field: keyof PropertyInstanceDetails, value: any) => {
 const error = validateField(field, value);
@@ -187,6 +192,72 @@ const error = validateField(field, value);
         setHasUnsavedChanges(hasChanged);
       }
       
+      return updated;
+    });
+  };
+
+  // Handle yield change - update rent to match new yield
+  const handleYieldChange = (newYield: number) => {
+    if (!formData) return;
+    const newRentPerWeek = Math.round((formData.purchasePrice * (newYield / 100)) / 52);
+    setFormData(prev => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        rentPerWeek: newRentPerWeek,
+      };
+      if (initialFormData) {
+        const hasChanged = JSON.stringify(updated) !== JSON.stringify(initialFormData);
+        setHasUnsavedChanges(hasChanged);
+      }
+      return updated;
+    });
+  };
+
+  // Handle rent change - recalculate yield display (yield is derived, not stored)
+  const handleRentChange = (newRent: number) => {
+    const error = validateField('rentPerWeek', newRent);
+    setValidationErrors(prev => ({
+      ...prev,
+      rentPerWeek: error || '',
+    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        rentPerWeek: newRent,
+      };
+      if (initialFormData) {
+        const hasChanged = JSON.stringify(updated) !== JSON.stringify(initialFormData);
+        setHasUnsavedChanges(hasChanged);
+      }
+      return updated;
+    });
+  };
+
+  // Handle price change - recalculate rent to maintain yield
+  const handlePriceChange = (newPrice: number) => {
+    if (!formData) return;
+    const currentYield = calculatedYield;
+    const newRentPerWeek = Math.round((newPrice * (currentYield / 100)) / 52);
+    
+    const priceError = validateField('purchasePrice', newPrice);
+    setValidationErrors(prev => ({
+      ...prev,
+      purchasePrice: priceError || '',
+    }));
+    
+    setFormData(prev => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        purchasePrice: newPrice,
+        rentPerWeek: newRentPerWeek,
+      };
+      if (initialFormData) {
+        const hasChanged = JSON.stringify(updated) !== JSON.stringify(initialFormData);
+        setHasUnsavedChanges(hasChanged);
+      }
       return updated;
     });
   };
@@ -468,7 +539,7 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                         <input
                           type="number"
                           value={formData.purchasePrice}
-                          onChange={(e) => handleFieldChange('purchasePrice', parseNumericInput(e.target.value))}
+                          onChange={(e) => handlePriceChange(parseNumericInput(e.target.value))}
                           step="10000"
                           className={validationErrors.purchasePrice ? inputErrorClass : inputClass}
                           disabled={isSaving || readOnly}
@@ -493,13 +564,13 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className={labelClass}>Rent/Week ($)</label>
                         <input
                           type="number"
                           value={formData.rentPerWeek}
-                          onChange={(e) => handleFieldChange('rentPerWeek', parseNumericInput(e.target.value))}
+                          onChange={(e) => handleRentChange(parseNumericInput(e.target.value))}
                           step="10"
                           className={validationErrors.rentPerWeek ? inputErrorClass : inputClass}
                           disabled={isSaving || readOnly}
@@ -508,6 +579,36 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                           <p className="text-xs text-red-700 mt-1">{validationErrors.rentPerWeek}</p>
                         )}
                       </div>
+                      <div>
+                        <label className={labelClass}>Yield (%)</label>
+                        <input
+                          type="number"
+                          value={parseFloat(calculatedYield.toFixed(2))}
+                          onChange={(e) => handleYieldChange(parseNumericInput(e.target.value))}
+                          step="0.1"
+                          min="0"
+                          max="20"
+                          className={inputClass}
+                          disabled={isSaving || readOnly}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-0.5">Auto-syncs with rent</p>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Minimum Yield (%)</label>
+                        <input
+                          type="number"
+                          value={formData.minimumYield}
+                          onChange={(e) => handleFieldChange('minimumYield', parseNumericInput(e.target.value))}
+                          step="0.1"
+                          min="0"
+                          max="20"
+                          className={inputClass}
+                          disabled={isSaving || readOnly}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={labelClass}>Days to Unconditional</label>
                         <input
@@ -518,17 +619,16 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                           disabled={isSaving || readOnly}
                         />
                       </div>
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>Days for Settlement</label>
-                      <input
-                        type="number"
-                        value={formData.daysForSettlement}
-                        onChange={(e) => handleFieldChange('daysForSettlement', parseInt(e.target.value) || 0)}
-                        className={inputClass}
-                        disabled={isSaving || readOnly}
-                      />
+                      <div>
+                        <label className={labelClass}>Days for Settlement</label>
+                        <input
+                          type="number"
+                          value={formData.daysForSettlement}
+                          onChange={(e) => handleFieldChange('daysForSettlement', parseInt(e.target.value) || 0)}
+                          className={inputClass}
+                          disabled={isSaving || readOnly}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

@@ -1,6 +1,7 @@
 import type { TimelineProperty } from '@/types/property';
 import type { GuardrailViolation } from '@/utils/guardrailValidator';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
+import type { EventType, EventCategory, EventPayload } from '@/contexts/PropertySelectionContext';
 
 /**
  * A suggested fix for a guardrail violation
@@ -18,6 +19,24 @@ export interface SuggestedFix {
   violationType: 'deposit' | 'borrowing' | 'serviceability';
   /** Action type for special fix types */
   actionType?: 'editCosts' | 'capitalizeLmi';
+}
+
+/**
+ * A suggested event to add to the timeline to resolve a guardrail violation
+ */
+export interface SuggestedEventFix {
+  /** The type of event to add */
+  eventType: EventType;
+  /** The event category */
+  category: EventCategory;
+  /** The payload for the event */
+  payload: EventPayload;
+  /** Human-readable explanation of why this event helps */
+  explanation: string;
+  /** Which violation type this event addresses */
+  violationType: 'deposit' | 'borrowing' | 'serviceability';
+  /** Formatted amount for display */
+  formattedAmount: string;
 }
 
 /**
@@ -117,6 +136,13 @@ export const calculateSuggestedFixes = (
 
 /**
  * Calculate suggested fixes for deposit violations
+ * 
+ * Key insight: totalCashRequired = deposit + stampDuty + lmi + otherCosts
+ * where:
+ *   deposit = price * (1 - LVR/100)
+ *   stampDuty ≈ price * 0.04 to 0.055 (varies by state, use 4.5% average)
+ *   lmi = varies by LVR (0 if LVR <= 80%, can be $10k-$50k+ for high LVR)
+ *   otherCosts ≈ $15,000 to $25,000 (inspections, conveyancing, etc.)
  */
 const calculateDepositFixes = (
   property: TimelineProperty,
@@ -128,12 +154,35 @@ const calculateDepositFixes = (
   const { purchasePrice, lvr } = currentValues;
   const shortfall = violation.shortfall;
 
+  // Estimate costs that scale with price
+  const STAMP_DUTY_RATE = 0.045; // ~4.5% average across states
+  const FIXED_COSTS = 20000; // Approximate fixed costs (inspections, conveyancing, etc.)
+  
+  // For LVR > 80%, estimate LMI as percentage of loan amount
+  const estimateLMI = (price: number, lvrPercent: number): number => {
+    if (lvrPercent <= 80) return 0;
+    const loanAmount = price * (lvrPercent / 100);
+    // LMI roughly 1-4% of loan for LVR 81-95%
+    const lmiRate = (lvrPercent - 80) * 0.002 + 0.01; // 1% at 81%, up to ~4% at 95%
+    return loanAmount * lmiRate;
+  };
+
   // Fix 1: Reduce purchase price
-  // If shortfall is $X and deposit % is (100 - LVR)%, then:
-  // newPrice = (availableFunds - buffer) / (1 - LVR/100)
-  const depositPercentage = (100 - lvr) / 100;
-  const buffer = 5000; // Small buffer for fees
-  const maxAffordablePrice = (availableFunds - buffer) / depositPercentage;
+  // Total cash required ≈ price * (1 - LVR/100) + price * stampDutyRate + LMI + fixedCosts
+  // Solve for price: price = (availableFunds - fixedCosts - LMI) / (1 - LVR/100 + stampDutyRate)
+  const depositRate = (100 - lvr) / 100;
+  const cashRateExLMI = depositRate + STAMP_DUTY_RATE;
+  
+  // Iterative approach to find max affordable price (because LMI depends on price)
+  let maxAffordablePrice = purchasePrice;
+  for (let i = 0; i < 5; i++) {
+    const estimatedLMI = estimateLMI(maxAffordablePrice, lvr);
+    const availableForPriceRelatedCosts = availableFunds - FIXED_COSTS - estimatedLMI;
+    maxAffordablePrice = availableForPriceRelatedCosts / cashRateExLMI;
+  }
+  
+  // Apply safety margin (5%) to ensure we actually pass
+  maxAffordablePrice = maxAffordablePrice * 0.95;
   
   if (maxAffordablePrice > 0 && maxAffordablePrice < purchasePrice) {
     const suggestedPrice = roundToNearest(maxAffordablePrice, 5000);
@@ -150,25 +199,40 @@ const calculateDepositFixes = (
   }
 
   // Fix 2: Increase LVR (borrow more, need less deposit)
-  // newLVR = 100 - (availableFunds / purchasePrice * 100)
-  const minDepositRequired = availableFunds - buffer;
-  const requiredLvr = 100 - (minDepositRequired / purchasePrice * 100);
+  // This reduces the deposit portion but may increase LMI
+  // Only suggest if it actually helps (i.e., deposit savings > LMI increase)
   
-  if (requiredLvr > lvr && requiredLvr <= 95) {
-    const suggestedLvr = Math.min(95, Math.ceil(requiredLvr));
+  // Calculate current total cash required estimate
+  const currentLMI = estimateLMI(purchasePrice, lvr);
+  const currentDeposit = purchasePrice * (100 - lvr) / 100;
+  const currentStampDuty = purchasePrice * STAMP_DUTY_RATE;
+  const currentTotalCash = currentDeposit + currentStampDuty + currentLMI + FIXED_COSTS;
+  
+  // Try increasing LVR to find one that works
+  for (let testLvr = lvr + 1; testLvr <= 95; testLvr++) {
+    const testDeposit = purchasePrice * (100 - testLvr) / 100;
+    const testLMI = estimateLMI(purchasePrice, testLvr);
+    const testTotalCash = testDeposit + currentStampDuty + testLMI + FIXED_COSTS;
     
-    fixes.push({
-      field: 'lvr',
-      currentValue: lvr,
-      suggestedValue: suggestedLvr,
-      explanation: `Increase LVR to ${suggestedLvr}% to reduce deposit needed (may require LMI above 80%)`,
-      violationType: 'deposit',
-    });
+    // Check if this LVR brings total cash required below available funds (with 5% margin)
+    if (testTotalCash * 1.05 <= availableFunds) {
+      fixes.push({
+        field: 'lvr',
+        currentValue: lvr,
+        suggestedValue: testLvr,
+        explanation: `Increase LVR to ${testLvr}% to reduce deposit needed${testLvr > 80 ? ' (will require LMI)' : ''}`,
+        violationType: 'deposit',
+      });
+      break;
+    }
   }
 };
 
 /**
  * Calculate suggested fixes for borrowing capacity violations
+ * 
+ * The shortfall represents how much the loan amount exceeds borrowing capacity.
+ * We need to either reduce the loan amount or change the property to reduce the loan needed.
  */
 const calculateBorrowingFixes = (
   property: TimelineProperty,
@@ -177,12 +241,13 @@ const calculateBorrowingFixes = (
   fixes: SuggestedFix[]
 ): void => {
   const { purchasePrice, lvr } = currentValues;
-  const shortfall = violation.shortfall;
+  const shortfall = Math.abs(violation.shortfall);
 
   // Fix 1: Reduce purchase price to reduce loan amount needed
   // Loan = purchasePrice * (LVR/100)
-  // If we need to reduce loan by $X, reduce price by $X / (LVR/100)
-  const priceReductionNeeded = shortfall / (lvr / 100);
+  // If we need to reduce loan by shortfall, reduce price by shortfall / (LVR/100)
+  // Add 10% buffer to ensure we pass
+  const priceReductionNeeded = (shortfall * 1.1) / (lvr / 100);
   const suggestedPrice = roundToNearest(purchasePrice - priceReductionNeeded, 5000);
   
   if (suggestedPrice >= 100000 && suggestedPrice < purchasePrice) {
@@ -199,7 +264,8 @@ const calculateBorrowingFixes = (
   // This only works if they have sufficient deposit
   const currentLoan = purchasePrice * (lvr / 100);
   const maxLoan = currentLoan - shortfall;
-  const requiredLvr = (maxLoan / purchasePrice) * 100;
+  // Add 5% buffer to ensure we pass
+  const requiredLvr = ((maxLoan * 0.95) / purchasePrice) * 100;
   
   if (requiredLvr >= 50 && requiredLvr < lvr) {
     const suggestedLvr = Math.max(50, Math.floor(requiredLvr));
@@ -216,6 +282,14 @@ const calculateBorrowingFixes = (
 
 /**
  * Calculate suggested fixes for serviceability violations
+ * 
+ * Serviceability tests whether the borrower can service the loan payments.
+ * The shortfall represents the annual payment gap (how much more payment capacity is needed).
+ * 
+ * Key factors:
+ * - Loan amount affects interest payments: interest = loan * rate
+ * - Rental income partially offsets payments (at reduced recognition rate ~60-80%)
+ * - Assessment rate is typically higher than actual rate (e.g., 8.5% vs 6.5%)
  */
 const calculateServiceabilityFixes = (
   property: TimelineProperty,
@@ -226,30 +300,41 @@ const calculateServiceabilityFixes = (
   const { purchasePrice, lvr, rentPerWeek } = currentValues;
   const shortfall = Math.abs(violation.shortfall);
 
+  // Use typical assessment rate and rental recognition rate
+  const ASSESSMENT_RATE = 0.085; // 8.5% assessment rate
+  const RENTAL_RECOGNITION = 0.70; // Banks typically recognize 70% of rental income
+  
   // Fix 1: Increase rental income
-  // Higher rent improves net cashflow and serviceability
-  // Simplified: Each $1/week rent = ~$52/year = small improvement in serviceability
-  // Estimate: Need to improve annual cashflow by shortfall amount
-  const additionalWeeklyRent = Math.ceil(shortfall / 52);
+  // Each $1/week rent = $52/year gross, but only 70% is recognized for serviceability
+  // So to improve serviceability by $shortfall, we need shortfall / (52 * 0.70) more per week
+  // Add 20% buffer to ensure we pass
+  const additionalWeeklyRent = Math.ceil((shortfall * 1.2) / (52 * RENTAL_RECOGNITION));
   const suggestedRent = roundToNearest(rentPerWeek + additionalWeeklyRent, 10);
   
-  if (suggestedRent > rentPerWeek && suggestedRent <= rentPerWeek * 1.5) {
-    // Only suggest if increase is reasonable (up to 50% more)
+  // Check if the suggested rent is reasonable (yield should be achievable, typically 3-6%)
+  const suggestedYield = (suggestedRent * 52 / purchasePrice) * 100;
+  
+  if (suggestedRent > rentPerWeek && suggestedYield <= 7) {
+    // Only suggest if yield is still realistic
     fixes.push({
       field: 'rentPerWeek',
       currentValue: rentPerWeek,
       suggestedValue: suggestedRent,
-      explanation: `Increase weekly rent to $${suggestedRent}/week to improve serviceability`,
+      explanation: `Increase weekly rent to $${suggestedRent}/week to improve serviceability (${suggestedYield.toFixed(1)}% yield)`,
       violationType: 'serviceability',
     });
   }
 
   // Fix 2: Reduce purchase price to reduce loan servicing costs
-  // Lower loan = lower interest payments = better serviceability
-  // Rough estimate: 10% price reduction as starting point
-  const suggestedPrice = roundToNearest(purchasePrice * 0.9, 5000);
+  // Annual interest = loan * rate = price * (LVR/100) * assessmentRate
+  // To reduce annual interest by shortfall, reduce loan by shortfall / assessmentRate
+  // Then reduce price by that amount / (LVR/100)
+  // Add 15% buffer to ensure we pass
+  const loanReductionNeeded = (shortfall * 1.15) / ASSESSMENT_RATE;
+  const priceReductionNeeded = loanReductionNeeded / (lvr / 100);
+  const suggestedPrice = roundToNearest(purchasePrice - priceReductionNeeded, 5000);
   
-  if (suggestedPrice >= 100000) {
+  if (suggestedPrice >= 100000 && suggestedPrice < purchasePrice) {
     fixes.push({
       field: 'purchasePrice',
       currentValue: purchasePrice,
@@ -260,14 +345,22 @@ const calculateServiceabilityFixes = (
   }
 
   // Fix 3: Reduce LVR (smaller loan = lower interest payments)
-  const suggestedLvr = Math.max(50, lvr - 10);
+  // Calculate how much LVR reduction is needed
+  // Current annual interest = price * (lvr/100) * assessmentRate
+  // We need to reduce by shortfall, so new interest = current - shortfall
+  // new loan = (current interest - shortfall) / assessmentRate
+  // new LVR = new loan / price * 100
+  const currentAnnualInterest = purchasePrice * (lvr / 100) * ASSESSMENT_RATE;
+  const targetAnnualInterest = currentAnnualInterest - (shortfall * 1.15);
+  const targetLoan = targetAnnualInterest / ASSESSMENT_RATE;
+  const targetLvr = Math.floor((targetLoan / purchasePrice) * 100);
   
-  if (suggestedLvr < lvr) {
+  if (targetLvr >= 50 && targetLvr < lvr) {
     fixes.push({
       field: 'lvr',
       currentValue: lvr,
-      suggestedValue: suggestedLvr,
-      explanation: `Reduce LVR to ${suggestedLvr}% to reduce loan interest payments`,
+      suggestedValue: targetLvr,
+      explanation: `Reduce LVR to ${targetLvr}% to reduce loan interest payments`,
       violationType: 'serviceability',
     });
   }
@@ -376,4 +469,226 @@ export const calculateRentalYield = (rentPerWeek: number, purchasePrice: number)
 export const calculateRentForYield = (purchasePrice: number, targetYield: number): number => {
   const annualRent = purchasePrice * (targetYield / 100);
   return Math.round(annualRent / 52);
+};
+
+/**
+ * Calculate suggested event-based fixes for guardrail violations.
+ * 
+ * These are "life event" solutions that can help resolve affordability issues
+ * through income changes, windfalls, or other events rather than just adjusting
+ * the property parameters.
+ * 
+ * @param violations - Array of current guardrail violations
+ * @param currentSalary - Client's current annual salary
+ * @param partnerSalary - Partner's current annual salary (0 if no partner)
+ * @param targetPeriod - The period where the property is being placed
+ * @returns Array of suggested event fixes
+ */
+export const calculateEventBasedFixes = (
+  violations: GuardrailViolation[],
+  currentSalary: number,
+  partnerSalary: number,
+  targetPeriod: number
+): SuggestedEventFix[] => {
+  const eventFixes: SuggestedEventFix[] = [];
+
+  violations.forEach((violation) => {
+    const shortfall = Math.abs(violation.shortfall);
+
+    switch (violation.type) {
+      case 'deposit':
+        // For deposit shortfall, suggest cash injection events
+        calculateDepositEventFixes(shortfall, eventFixes);
+        break;
+
+      case 'serviceability':
+        // For serviceability shortfall, suggest income-boosting events
+        calculateServiceabilityEventFixes(
+          shortfall,
+          currentSalary,
+          partnerSalary,
+          eventFixes
+        );
+        break;
+
+      case 'borrowing':
+        // For borrowing capacity shortfall, suggest income-boosting events
+        // (since borrowing capacity is typically based on income)
+        calculateBorrowingEventFixes(
+          shortfall,
+          currentSalary,
+          partnerSalary,
+          eventFixes
+        );
+        break;
+    }
+  });
+
+  return eventFixes;
+};
+
+/**
+ * Calculate event suggestions for deposit shortfall
+ * Deposit issues can be resolved with cash injections
+ */
+const calculateDepositEventFixes = (
+  shortfall: number,
+  eventFixes: SuggestedEventFix[]
+): void => {
+  // Add 5% buffer to ensure we actually pass
+  const requiredAmount = Math.ceil(shortfall * 1.05);
+  const roundedAmount = roundToNearest(requiredAmount, 1000);
+
+  // Suggestion 1: Bonus/Windfall
+  eventFixes.push({
+    eventType: 'bonus_windfall',
+    category: 'income',
+    payload: {
+      bonusAmount: roundedAmount,
+    },
+    explanation: `Receive a ${formatCurrency(roundedAmount)} bonus or windfall to cover the deposit shortfall`,
+    violationType: 'deposit',
+    formattedAmount: formatCurrency(roundedAmount),
+  });
+
+  // Suggestion 2: Inheritance
+  eventFixes.push({
+    eventType: 'inheritance',
+    category: 'life',
+    payload: {
+      cashAmount: roundedAmount,
+    },
+    explanation: `Receive ${formatCurrency(roundedAmount)} inheritance to cover the deposit shortfall`,
+    violationType: 'deposit',
+    formattedAmount: formatCurrency(roundedAmount),
+  });
+};
+
+/**
+ * Calculate event suggestions for serviceability shortfall
+ * Serviceability is improved by increasing income (which improves borrowing capacity and cash flow)
+ */
+const calculateServiceabilityEventFixes = (
+  shortfall: number,
+  currentSalary: number,
+  partnerSalary: number,
+  eventFixes: SuggestedEventFix[]
+): void => {
+  // Serviceability shortfall is typically expressed as an annual amount
+  // Banks assess loans at ~8.5% assessment rate
+  // A salary increase helps because it increases maximum borrowing capacity
+  // 
+  // Rough rule: Each $1 of gross income adds ~$0.30-0.35 to annual servicing capacity
+  // (after tax and living expenses are considered)
+  // So to improve serviceability by $X, need salary increase of roughly $X / 0.32
+  const INCOME_TO_SERVICEABILITY_RATIO = 0.32;
+  
+  // Add 15% buffer to ensure we pass
+  const requiredIncomeIncrease = Math.ceil((shortfall * 1.15) / INCOME_TO_SERVICEABILITY_RATIO);
+  const roundedIncrease = roundToNearest(requiredIncomeIncrease, 5000);
+
+  // Suggestion 1: Salary increase for primary earner
+  const newSalary = currentSalary + roundedIncrease;
+  eventFixes.push({
+    eventType: 'salary_change',
+    category: 'income',
+    payload: {
+      newSalary: newSalary,
+      previousSalary: currentSalary,
+    },
+    explanation: `Increase salary from ${formatCurrency(currentSalary)} to ${formatCurrency(newSalary)} (+${formatCurrency(roundedIncrease)}/year)`,
+    violationType: 'serviceability',
+    formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+  });
+
+  // Suggestion 2: Partner income change (if partner exists)
+  if (partnerSalary > 0) {
+    const newPartnerSalary = partnerSalary + roundedIncrease;
+    eventFixes.push({
+      eventType: 'partner_income_change',
+      category: 'income',
+      payload: {
+        newPartnerSalary: newPartnerSalary,
+        previousPartnerSalary: partnerSalary,
+      },
+      explanation: `Increase partner salary from ${formatCurrency(partnerSalary)} to ${formatCurrency(newPartnerSalary)} (+${formatCurrency(roundedIncrease)}/year)`,
+      violationType: 'serviceability',
+      formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+    });
+  } else {
+    // Suggest adding partner income if no partner
+    eventFixes.push({
+      eventType: 'partner_income_change',
+      category: 'income',
+      payload: {
+        newPartnerSalary: roundedIncrease,
+        previousPartnerSalary: 0,
+      },
+      explanation: `Add partner with ${formatCurrency(roundedIncrease)}/year income to improve serviceability`,
+      violationType: 'serviceability',
+      formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+    });
+  }
+};
+
+/**
+ * Calculate event suggestions for borrowing capacity shortfall
+ * Borrowing capacity is primarily determined by income
+ */
+const calculateBorrowingEventFixes = (
+  shortfall: number,
+  currentSalary: number,
+  partnerSalary: number,
+  eventFixes: SuggestedEventFix[]
+): void => {
+  // Borrowing capacity shortfall means the loan amount exceeds what the bank will lend
+  // Banks typically lend 5-7x gross income (varies by lender and circumstances)
+  // Using a conservative 5.5x multiplier
+  const INCOME_MULTIPLIER = 5.5;
+  
+  // Add 10% buffer to ensure we pass
+  const requiredIncomeIncrease = Math.ceil((shortfall * 1.1) / INCOME_MULTIPLIER);
+  const roundedIncrease = roundToNearest(requiredIncomeIncrease, 5000);
+
+  // Suggestion 1: Salary increase for primary earner
+  const newSalary = currentSalary + roundedIncrease;
+  eventFixes.push({
+    eventType: 'salary_change',
+    category: 'income',
+    payload: {
+      newSalary: newSalary,
+      previousSalary: currentSalary,
+    },
+    explanation: `Increase salary from ${formatCurrency(currentSalary)} to ${formatCurrency(newSalary)} to boost borrowing capacity`,
+    violationType: 'borrowing',
+    formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+  });
+
+  // Suggestion 2: Partner income change
+  if (partnerSalary > 0) {
+    const newPartnerSalary = partnerSalary + roundedIncrease;
+    eventFixes.push({
+      eventType: 'partner_income_change',
+      category: 'income',
+      payload: {
+        newPartnerSalary: newPartnerSalary,
+        previousPartnerSalary: partnerSalary,
+      },
+      explanation: `Increase partner salary from ${formatCurrency(partnerSalary)} to ${formatCurrency(newPartnerSalary)} to boost borrowing capacity`,
+      violationType: 'borrowing',
+      formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+    });
+  } else {
+    eventFixes.push({
+      eventType: 'partner_income_change',
+      category: 'income',
+      payload: {
+        newPartnerSalary: roundedIncrease,
+        previousPartnerSalary: 0,
+      },
+      explanation: `Add partner with ${formatCurrency(roundedIncrease)}/year income to boost borrowing capacity`,
+      violationType: 'borrowing',
+      formattedAmount: `+${formatCurrency(roundedIncrease)}/yr`,
+    });
+  }
 };
