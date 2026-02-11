@@ -12,9 +12,13 @@ const PricingSection: React.FC = () => {
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
   const handleSubscribe = async (plan: PlanKey) => {
+    console.log('[PricingSection] handleSubscribe called with plan:', plan, 'user:', user?.id);
+    
     if (!user) {
       // Store the selected plan and redirect to signup
+      console.log('[PricingSection] No user, storing plan in localStorage and redirecting to signup');
       localStorage.setItem('pending_subscription_plan', plan);
+      console.log('[PricingSection] localStorage set, value:', localStorage.getItem('pending_subscription_plan'));
       navigate('/signup');
       return;
     }

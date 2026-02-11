@@ -16,16 +16,24 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   useEffect(() => {
     // Check for pending subscription plan when user is authenticated
     const handlePendingCheckout = async () => {
+      const pendingPlan = localStorage.getItem('pending_subscription_plan') as PlanKey | null;
+      console.log('[PublicRoute] handlePendingCheckout called', { 
+        user: user?.id, 
+        pendingPlan, 
+        checkingCheckout, 
+        checkoutComplete 
+      });
+      
       if (!user || checkingCheckout || checkoutComplete) return;
       
-      const pendingPlan = localStorage.getItem('pending_subscription_plan') as PlanKey | null;
-      
       if (pendingPlan) {
+        console.log('[PublicRoute] Found pending plan, starting checkout:', pendingPlan);
         setCheckingCheckout(true);
         // Clear the pending plan immediately to prevent loops
         localStorage.removeItem('pending_subscription_plan');
         
         try {
+          console.log('[PublicRoute] Calling create-checkout function...');
           const { data, error } = await supabase.functions.invoke('create-checkout', {
             body: {
               plan: pendingPlan,
@@ -33,12 +41,17 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
             }
           });
           
+          console.log('[PublicRoute] Checkout response:', { data, error });
+          
           if (!error && data?.url) {
+            console.log('[PublicRoute] Redirecting to:', data.url);
             window.location.href = data.url;
             return;
+          } else {
+            console.error('[PublicRoute] Checkout failed:', error);
           }
         } catch (err) {
-          console.error('Checkout error:', err);
+          console.error('[PublicRoute] Checkout error:', err);
         }
         
         setCheckingCheckout(false);
