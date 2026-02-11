@@ -30,9 +30,12 @@ export const Navigation = () => {
             </button>
             <Button 
               className="py-3 px-6"
-              onClick={() => navigate('/signup')}
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing');
+                pricingSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
-              Request a demo
+              Get early access
             </Button>
           </div>
         </div>

@@ -54,7 +54,10 @@ const Navbar: React.FC = () => {
             Login
           </button>
           <button 
-            onClick={() => navigate('/signup')}
+            onClick={() => {
+              const pricingSection = document.getElementById('pricing');
+              pricingSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
             className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-800 transition-all flex items-center gap-2"
           >
             Get Early Access
@@ -85,7 +88,11 @@ const Navbar: React.FC = () => {
              Login
            </button>
            <button 
-             onClick={() => { setMobileMenuOpen(false); navigate('/signup'); }}
+             onClick={() => { 
+               setMobileMenuOpen(false); 
+               const pricingSection = document.getElementById('pricing');
+               pricingSection?.scrollIntoView({ behavior: 'smooth' });
+             }}
              className="bg-black text-white px-5 py-3 rounded-full text-sm font-medium w-full text-center"
            >
             Get Early Access

@@ -183,20 +183,22 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const scenarioData = getCurrentScenarioData();
       
-      // Fetch agent profile for display names
+      // Fetch agent profile for display names and company_id
       let agentDisplayName = 'Agent';
       let companyDisplayName = 'PropPath';
+      let userCompanyId: string | null = null;
       
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('full_name, company_name')
+          .select('full_name, company_name, company_id')
           .eq('id', user.id)
           .single();
         
         if (profileData) {
           agentDisplayName = profileData.full_name || user.user_metadata?.name || 'Agent';
           companyDisplayName = profileData.company_name || 'PropPath';
+          userCompanyId = profileData.company_id;
         }
       }
       
@@ -220,6 +222,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
             client_display_name: activeClient.name || 'Client',
             agent_display_name: agentDisplayName,
             company_display_name: companyDisplayName,
+            // Include company_id to fix scenarios that were saved without it
+            ...(userCompanyId && { company_id: userCompanyId }),
           })
           .eq('id', existingScenarios[0].id);
         
@@ -237,6 +241,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
             client_display_name: activeClient.name || 'Client',
             agent_display_name: agentDisplayName,
             company_display_name: companyDisplayName,
+            company_id: userCompanyId,
           })
           .select('id')
           .single();

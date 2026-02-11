@@ -179,29 +179,31 @@ export const LeftRail = () => {
             )
           })}
 
-          {/* Help / Restart Tour Button */}
-          <TourStep
-            id="tour-complete"
-            title="You're All Set! 🎉"
-            content="That's the tour! Remember: click the Help icon (?) in the sidebar anytime to restart this tour. Now go build some amazing investment strategies for your clients!"
-            order={13}
-            position="right"
-          >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
-                style={{ color: primaryColor }}
-                onClick={startManualTour}
-              >
-                <HelpCircleIcon size={20} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Help / Restart Tour</p>
-            </TooltipContent>
-          </Tooltip>
-          </TourStep>
+          {/* Help / Restart Tour Button - only show on pages with tours (dashboard/clients) */}
+          {(location.pathname === '/dashboard' || location.pathname === '/clients') && (
+            <TourStep
+              id="tour-complete"
+              title="You're All Set! 🎉"
+              content="That's the tour! Remember: click the Help icon (?) in the sidebar anytime to restart this tour. Now go build some amazing investment strategies for your clients!"
+              order={13}
+              position="right"
+            >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
+                  style={{ color: primaryColor }}
+                  onClick={startManualTour}
+                >
+                  <HelpCircleIcon size={20} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Help / Restart Tour</p>
+              </TooltipContent>
+            </Tooltip>
+            </TourStep>
+          )}
 
           {/* User Profile Menu */}
           <div className="relative" ref={dropdownRef}>

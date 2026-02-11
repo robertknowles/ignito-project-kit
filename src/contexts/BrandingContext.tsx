@@ -134,8 +134,17 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Fetch branding on mount and when companyId changes
   useEffect(() => {
-    if (user && companyId && !authLoading) {
+    // Only proceed once auth is done loading
+    if (authLoading) {
+      return;
+    }
+    
+    // If user is logged in with a company, fetch branding
+    if (user && companyId) {
       fetchBranding();
+    } else {
+      // No user or no company - stop loading and use defaults
+      setLoading(false);
     }
   }, [user, companyId, authLoading, fetchBranding]);
 

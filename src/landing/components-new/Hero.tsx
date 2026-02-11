@@ -85,8 +85,14 @@ const Hero: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 items-start"
           >
-            <button className="group bg-black text-white px-8 py-4 rounded-full text-base font-medium hover:bg-gray-800 transition-all flex items-center gap-2">
-              Become a Founding Agency
+            <button 
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing');
+                pricingSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="group bg-black text-white px-8 py-4 rounded-full text-base font-medium hover:bg-gray-800 transition-all flex items-center gap-2"
+            >
+              Get Early Access
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
             <button

@@ -1,8 +1,51 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { PlanKey } from '@/config/stripe';
 
 const PricingSection: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
+
+  const handleSubscribe = async (plan: PlanKey) => {
+    if (!user) {
+      // Store the selected plan and redirect to signup
+      localStorage.setItem('pending_subscription_plan', plan);
+      navigate('/signup');
+      return;
+    }
+
+    setLoadingPlan(plan);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          plan,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        alert('Failed to start checkout. Please try again.');
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <section id="pricing" className="py-24 bg-offwhite border-t border-gray-100 scroll-mt-28">
       <div className="max-w-7xl mx-auto px-6">
@@ -25,7 +68,7 @@ const PricingSection: React.FC = () => {
             
             <div className="flex items-baseline gap-1 mb-8">
               <span className="text-4xl font-serif font-semibold">$699</span>
-              <span className="text-gray-400 font-medium">/ month</span>
+              <span className="text-gray-400 font-medium">AUD / year</span>
             </div>
             
             <div className="mb-8 flex-1">
@@ -49,8 +92,19 @@ const PricingSection: React.FC = () => {
             </div>
 
              <div className="mt-auto pt-6 border-t border-gray-100">
-                <button className="w-full py-4 rounded-full border border-gray-200 font-medium hover:border-black hover:bg-gray-50 transition-all text-sm uppercase tracking-wide">
-                  Get Started
+                <button 
+                  onClick={() => handleSubscribe('starter')}
+                  disabled={loadingPlan !== null}
+                  className="w-full py-4 rounded-full border border-gray-200 font-medium hover:border-black hover:bg-gray-50 transition-all text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {loadingPlan === 'starter' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Get Started'
+                  )}
                 </button>
             </div>
           </motion.div>
@@ -68,7 +122,7 @@ const PricingSection: React.FC = () => {
             
             <div className="flex items-baseline gap-1 mb-8">
               <span className="text-4xl font-serif font-semibold">$999</span>
-              <span className="text-gray-400 font-medium">/ month</span>
+              <span className="text-gray-400 font-medium">AUD / year</span>
             </div>
 
             <div className="mb-8 flex-1">
@@ -93,8 +147,19 @@ const PricingSection: React.FC = () => {
             </div>
 
             <div className="mt-auto pt-6 border-t border-gray-100">
-                <button className="w-full py-4 rounded-full bg-black text-white font-medium hover:bg-gray-800 transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide">
-                  Get Started
+                <button 
+                  onClick={() => handleSubscribe('professional')}
+                  disabled={loadingPlan !== null}
+                  className="w-full py-4 rounded-full bg-black text-white font-medium hover:bg-gray-800 transition-all shadow-md hover:shadow-lg text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {loadingPlan === 'professional' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Get Started'
+                  )}
                 </button>
             </div>
           </motion.div>
@@ -105,4 +170,3 @@ const PricingSection: React.FC = () => {
 };
 
 export default PricingSection;
-

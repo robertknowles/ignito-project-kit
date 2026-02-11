@@ -266,8 +266,17 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
-    if (user && companyId && !authLoading) {
+    // Only proceed once auth is done loading
+    if (authLoading) {
+      return;
+    }
+    
+    // If user is logged in with a company, fetch data
+    if (user && companyId) {
       fetchCompanyData();
+    } else {
+      // No user or no company - stop loading and show appropriate state
+      setLoading(false);
     }
   }, [user, companyId, authLoading, fetchCompanyData]);
 

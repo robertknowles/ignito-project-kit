@@ -1,10 +1,15 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
 import { Button } from './Button';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { STRIPE_CONFIG, PlanKey } from '@/config/stripe';
 
 export const PricingSection = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
   const freeTrialFeatures = [
     'Access to all platform features',
@@ -16,7 +21,7 @@ export const PricingSection = () => {
   ];
 
   const starterFeatures = [
-    'Up to 10 client plans per month',
+    'Up to 3 client roadmaps per month',
     'All property-type data & assumptions',
     'Editable growth, yield & cash-flow settings',
     'Plan explanations in every PDF',
@@ -25,7 +30,7 @@ export const PricingSection = () => {
   ];
 
   const professionalFeatures = [
-    'Unlimited client plans',
+    'Up to 10 client roadmaps per month',
     'Client milestone tracking (next-purchase alerts)',
     'Editable assumptions (growth, yield, cash-flow)',
     'Advanced property logic (trusts, refinance, equity release)',
@@ -33,8 +38,43 @@ export const PricingSection = () => {
     'Priority chat support'
   ];
 
+  const handleSubscribe = async (plan: PlanKey) => {
+    if (!user) {
+      // Store the selected plan and redirect to signup
+      localStorage.setItem('pending_subscription_plan', plan);
+      navigate('/signup');
+      return;
+    }
+
+    setLoadingPlan(plan);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          plan,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        alert('Failed to start checkout. Please try again.');
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
-    <section className="w-full bg-[#F5F5F5] py-16 md:py-24">
+    <section id="pricing" className="w-full bg-[#F5F5F5] py-16 md:py-24">
       <div className="px-20">
         {/* Header */}
         <div className="text-center mb-20">
@@ -90,14 +130,14 @@ export const PricingSection = () => {
                 Start presenting like a pro
               </p>
               <p className="text-3xl font-medium mb-2 font-figtree tracking-[0.01em]">
-                $79
+                ${STRIPE_CONFIG.features.starter.price}
                 <span className="text-base font-normal text-gray-600">
                   {' '}
-                  / month
+                  AUD / year
                 </span>
               </p>
               <p className="text-gray-600 font-figtree font-normal mb-4 tracking-[0.01em] text-sm">
-                or $790 / year
+                (${Math.round(STRIPE_CONFIG.features.starter.price / 12)} / month)
               </p>
               <p className="text-gray-600 font-figtree font-normal leading-relaxed tracking-[0.01em] text-sm">
                 Includes:
@@ -105,9 +145,17 @@ export const PricingSection = () => {
             </div>
             <Button 
               className="w-full py-4 mb-8"
-              onClick={() => navigate('/signup')}
+              onClick={() => handleSubscribe('starter')}
+              disabled={loadingPlan !== null}
             >
-              Get started
+              {loadingPlan === 'starter' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Get started'
+              )}
             </Button>
             <ul className="space-y-4">
               {starterFeatures.map((feature, index) => (
@@ -131,14 +179,14 @@ export const PricingSection = () => {
                 Run your agency with complete clarity
               </p>
               <p className="text-3xl font-medium mb-2 font-figtree tracking-[0.01em]">
-                $179
+                ${STRIPE_CONFIG.features.professional.price}
                 <span className="text-base font-normal text-gray-600">
                   {' '}
-                  / month
+                  AUD / year
                 </span>
               </p>
               <p className="text-gray-600 font-figtree font-normal mb-4 tracking-[0.01em] text-sm">
-                or $1,790 / year
+                (${Math.round(STRIPE_CONFIG.features.professional.price / 12)} / month)
               </p>
               <p className="text-gray-600 font-figtree font-normal leading-relaxed tracking-[0.01em] text-sm">
                 Includes:
@@ -146,9 +194,17 @@ export const PricingSection = () => {
             </div>
             <Button 
               className="w-full py-4 mb-8"
-              onClick={() => navigate('/signup')}
+              onClick={() => handleSubscribe('professional')}
+              disabled={loadingPlan !== null}
             >
-              Get started
+              {loadingPlan === 'professional' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Get started'
+              )}
             </Button>
             <ul className="space-y-4">
               {professionalFeatures.map((feature, index) => (
@@ -167,4 +223,3 @@ export const PricingSection = () => {
     </section>
   );
 };
-

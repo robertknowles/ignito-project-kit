@@ -38,9 +38,12 @@ export const HeroSection = () => {
           <div className="mt-8">
             <Button 
               className="py-4 px-8 text-base"
-              onClick={() => navigate('/signup')}
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing');
+                pricingSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
-              Request a demo
+              Get early access
             </Button>
           </div>
         </div>

@@ -54,6 +54,7 @@ export interface PropertyInstanceDetails {
 // Type definition for scenario data stored in scenarios.data column
 export interface ScenarioData {
   propertySelections: { [propertyId: string]: number };
+  propertyOrder?: string[];
   investmentProfile: {
     depositPool: number;
     borrowingCapacity: number;
@@ -61,10 +62,51 @@ export interface ScenarioData {
     currentDebt: number;
     annualSavings: number;
     timelineYears: number;
-    equityGrowth: number;
-    cashflow: number;
+    equityGoal: number;
+    cashflowGoal: number;
+    // Enhanced dynamic features
+    equityFactor: number;
+    // Dual serviceability model
+    baseSalary: number;
+    salaryServiceabilityMultiplier: number;
+    serviceabilityRatio: number;
+    // Engine fine-tuning parameters
+    equityReleaseFactor: number;
+    depositBuffer: number;
+    rentFactor: number;
+    // Growth curve
+    growthCurve: {
+      year1: number;
+      years2to3: number;
+      year4: number;
+      year5plus: number;
+    };
+    // Advanced portfolio settings
+    useExistingEquity: boolean;
+    maxPurchasesPerYear: number;
+    existingPortfolioGrowthRate: number;
   };
   propertyInstances?: Record<string, PropertyInstanceDetails>;
+  timelineSnapshot?: unknown[];
+  chartData?: {
+    portfolioGrowthData: Array<{
+      year: string;
+      portfolioValue: number;
+      equity: number;
+      properties?: string[];
+    }>;
+    cashflowData: Array<{
+      year: string;
+      cashflow: number;
+      rentalIncome: number;
+      loanRepayments: number;
+      expenses: number;
+      highlight?: boolean;
+    }>;
+    equityGoalYear: number | null;
+    incomeGoalYear: number | null;
+  };
+  comparisonMode?: boolean;
   lastSaved: string;
 }
 

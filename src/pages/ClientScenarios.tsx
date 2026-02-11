@@ -245,14 +245,8 @@ export const ClientScenarios = () => {
         if (!error && data) {
           const completed = data.has_completed_property_onboarding ?? false;
           setHasCompletedPropertyOnboarding(completed);
-          
-          // Show modal if not completed (covers new users AND existing users who never completed)
-          // Only show modal on first visit - use sessionStorage to prevent showing every page load
-          const modalShownThisSession = sessionStorage.getItem('ignito_property_onboarding_modal_shown') === 'true';
-          if (!completed && !modalShownThisSession) {
-            setShowOnboardingModal(true);
-            sessionStorage.setItem('ignito_property_onboarding_modal_shown', 'true');
-          }
+          // Don't auto-show the modal - just let the yellow warning banner show
+          // Users can click "Configure Now" on the banner to open the modal
         }
       } catch (error) {
 }
