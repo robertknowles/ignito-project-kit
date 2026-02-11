@@ -96,8 +96,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         quantity > 0 ? 'border-green-300 bg-green-50/30' : 'border-gray-200'
       }`}
     >
-      {/* Image thumbnail */}
-      {imageUrl && (
+      {/* Image thumbnail or custom icon */}
+      {imageUrl ? (
         <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-50 border border-gray-100 flex-shrink-0">
           <img 
             src={imageUrl} 
@@ -105,6 +105,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             className="w-full h-full object-cover"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
+        </div>
+      ) : isCustom && (
+        <div className="w-16 h-12 rounded-lg bg-slate-50 border border-gray-100 flex-shrink-0 flex items-center justify-center">
+          <Home size={24} className="text-slate-500" />
         </div>
       )}
       
@@ -229,9 +233,11 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
     onClose();
   };
   
-  // Handle saving a custom block
+  // Handle saving a custom block - adds to templates AND immediately to timeline
   const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
     addCustomBlock(block);
+    // Also add to timeline immediately (this is the "add to timeline" modal after all)
+    incrementProperty(block.id);
     setShowCustomBlockModal(false);
     setDuplicatingFromTemplate(null);
     onClose();
@@ -279,7 +285,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
   
   return (
     <>
-      <Dialog open={isOpen && !selectedEventCategory} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen && !selectedEventCategory && !showCustomBlockModal} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Add to Timeline</DialogTitle>

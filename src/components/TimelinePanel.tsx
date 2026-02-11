@@ -898,6 +898,7 @@ interface TimelineItemCardProps {
   onOpenAdvanced?: () => void;
   onOpenPurchaseCosts?: () => void;
   onOpenAnnualExpenses?: () => void;
+  isCustom?: boolean;
 }
 
 // State colors matching AddToTimelineModal
@@ -932,6 +933,7 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   onOpenAdvanced,
   onOpenPurchaseCosts,
   onOpenAnnualExpenses,
+  isCustom,
 }) => {
   const isProperty = type === 'property';
   const isEvent = type === 'event';
@@ -958,8 +960,12 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
         className={`group flex items-center gap-2 cursor-pointer ${isProperty && isExpanded ? 'border-b border-gray-100' : ''} pr-2`}
         onClick={isProperty ? onToggleExpand : onEdit}
       >
-        {/* Left side - Image for properties, Icon for events/pauses */}
-        {isProperty && imageUrl ? (
+        {/* Left side - Image for properties, Icon for events/pauses, Home icon for custom properties */}
+        {isProperty && isCustom ? (
+          <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center bg-slate-50 border-r border-gray-100">
+            <Home size={24} className="text-slate-500" />
+          </div>
+        ) : isProperty && imageUrl ? (
           <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center overflow-hidden">
             <img 
               src={imageUrl} 
@@ -1078,6 +1084,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
       event?: EventBlock;
       pauseDuration?: number;
       pauseIndex?: number;
+      isCustom?: boolean;
     }> = [];
     
     // Add properties - each instance separately, with purchase year from timeline
@@ -1098,6 +1105,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
           subtitle: purchaseYear ? String(purchaseYear) : undefined,
           propertyId: property.id,
           instanceIndex: i,
+          isCustom: property.isCustom,
         });
       }
     });
@@ -1281,6 +1289,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
                             onOpenAdvanced={() => setAdvancedModalProperty({ instanceId: item.id, propertyType: item.title })}
                             onOpenPurchaseCosts={() => setPurchaseCostsModal({ instanceId: item.id, propertyType: item.title })}
                             onOpenAnnualExpenses={() => setAnnualExpensesModal({ instanceId: item.id, propertyType: item.title })}
+                            isCustom={item.isCustom}
                           />
                         );
                       }

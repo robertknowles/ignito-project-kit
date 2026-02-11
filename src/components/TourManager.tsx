@@ -1,14 +1,25 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react'
+import React, { createContext, useContext, useCallback, useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { TourProvider, TourStep, useTour } from '@/components/guided-tour'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 
-// Storage key for tour completion status
-const TOUR_STORAGE_KEY = 'ignito_tour_status'
+// Storage keys for tour completion status (per page)
+const TOUR_STORAGE_KEYS = {
+  dashboard: 'ignito_tour_dashboard',
+  clients: 'ignito_tour_clients',
+} as const
 
-// TEMPORARY: Set to true to disable the tour/help system entirely
-const TOUR_DISABLED = true
+// Database column names for tour completion (per page)
+const TOUR_DB_COLUMNS = {
+  dashboard: 'has_completed_tour',
+  clients: 'has_completed_clients_tour',
+} as const
+
+type TourPage = 'dashboard' | 'clients'
+
+// Set to true to disable the tour/help system entirely
+const TOUR_DISABLED = false
 
 // Context for exposing startManualTour function
 interface TourManagerContextType {
@@ -49,15 +60,17 @@ const TourManagerInner: React.FC<{ children: React.ReactNode }> = ({ children })
   )
 }
 
-// Check if user has completed the tour in localStorage
-const hasCompletedTourLocally = (): boolean => {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(TOUR_STORAGE_KEY) === 'completed'
+// Get the tour page type from pathname
+const getTourPage = (pathname: string): TourPage | null => {
+  if (pathname === '/dashboard') return 'dashboard'
+  if (pathname === '/clients') return 'clients'
+  return null
 }
 
-// Mark tour as completed in localStorage only (used by TourProvider internally)
-const markTourCompletedLocally = () => {
-  localStorage.setItem(TOUR_STORAGE_KEY, 'completed')
+// Check if user has completed a specific tour in localStorage
+const hasCompletedTourLocally = (page: TourPage): boolean => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem(TOUR_STORAGE_KEYS[page]) === 'completed'
 }
 
 // Props for the TourManagerProvider
@@ -69,25 +82,32 @@ interface TourManagerProviderProps {
  * TourManagerProvider - Wraps the application with tour functionality
  * 
  * STRICT RULES:
- * 1. Tour should ONLY auto-start on /dashboard route
- * 2. Tour should ONLY auto-start if BOTH localStorage AND database say not completed
- * 3. Tour should NEVER auto-start on /clients or any other page
- * 4. Manual tour start (via Help button) works on any page
+ * 1. Tour auto-starts on first visit to /dashboard (dashboard tour)
+ * 2. Tour auto-starts on first visit to /clients (clients tour)
+ * 3. Each page has SEPARATE completion tracking
+ * 4. Tour should ONLY auto-start if BOTH localStorage AND database say not completed for that page
+ * 5. Manual tour start (via Help button) works on any page
  * 
  * Features:
  * - Fuzzy overlay with backdrop-filter: blur(4px)
  * - Semi-transparent dark background
  * - 12px padding around highlighted elements
- * - Auto-starts for first-time users ON DASHBOARD ONLY
- * - Saves completion status to BOTH localStorage AND database
+ * - Auto-starts for first-time users on each tour page independently
+ * - Saves completion status to BOTH localStorage AND database (per page)
  * 
  * Tour steps are now defined inline in each component using TourStep wrapper.
  */
 export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ children }) => {
   const location = useLocation()
   const { user } = useAuth()
-  const [hasCompletedTourDB, setHasCompletedTourDB] = useState<boolean | null>(null)
+  const [tourCompletionDB, setTourCompletionDB] = useState<Record<TourPage, boolean | null>>({
+    dashboard: null,
+    clients: null,
+  })
   const [loading, setLoading] = useState(true)
+
+  // Determine current tour page
+  const currentTourPage = getTourPage(location.pathname)
 
   // Fetch tour completion status from database on mount
   useEffect(() => {
@@ -100,18 +120,27 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('has_completed_tour')
+          .select('has_completed_tour, has_completed_clients_tour')
           .eq('id', user.id)
           .maybeSingle()
 
         if (error) {
           // Could not fetch tour status - fall back to localStorage
         } else if (data) {
-          const completed = data.has_completed_tour ?? false
-          setHasCompletedTourDB(completed)
+          const dashboardCompleted = data.has_completed_tour ?? false
+          const clientsCompleted = data.has_completed_clients_tour ?? false
+          
+          setTourCompletionDB({
+            dashboard: dashboardCompleted,
+            clients: clientsCompleted,
+          })
+          
           // Sync to localStorage if DB says completed
-          if (completed) {
-            localStorage.setItem(TOUR_STORAGE_KEY, 'completed')
+          if (dashboardCompleted) {
+            localStorage.setItem(TOUR_STORAGE_KEYS.dashboard, 'completed')
+          }
+          if (clientsCompleted) {
+            localStorage.setItem(TOUR_STORAGE_KEYS.clients, 'completed')
           }
         }
       } catch (error) {
@@ -123,38 +152,44 @@ export const TourManagerProvider: React.FC<TourManagerProviderProps> = ({ childr
     fetchTourStatus()
   }, [user?.id])
 
-  // Mark tour as completed in BOTH localStorage AND database
+  // Mark tour as completed in BOTH localStorage AND database (for current page)
   const markTourCompletedPersistent = useCallback(async () => {
+    if (!currentTourPage) return
+    
     // Always update localStorage immediately
-    localStorage.setItem(TOUR_STORAGE_KEY, 'completed')
-    setHasCompletedTourDB(true)
+    localStorage.setItem(TOUR_STORAGE_KEYS[currentTourPage], 'completed')
+    setTourCompletionDB(prev => ({ ...prev, [currentTourPage]: true }))
 
     // Also persist to database if user is logged in
     if (user) {
       try {
         await supabase
           .from('profiles')
-          .update({ has_completed_tour: true })
+          .update({ [TOUR_DB_COLUMNS[currentTourPage]]: true })
           .eq('id', user.id)
       } catch (error) {
         // Failed to save tour completion to database
       }
     }
-  }, [user])
+  }, [user, currentTourPage])
 
-  // STRICT RULES:
-  // 1. Tour should ONLY auto-start on /dashboard route
-  // 2. Tour should ONLY auto-start if BOTH localStorage AND database say not completed
-  // 3. Tour should NEVER auto-start on /clients or any other page
-  const isOnDashboard = location.pathname === '/dashboard'
-  const hasCompletedTour = hasCompletedTourDB === true || hasCompletedTourLocally()
-  const shouldAutoStart = !TOUR_DISABLED && isOnDashboard && !hasCompletedTour && !loading
+  // Check if current page's tour has been completed
+  const hasCompletedCurrentTour = useMemo(() => {
+    if (!currentTourPage) return true // Not on a tour page, don't auto-start
+    return tourCompletionDB[currentTourPage] === true || hasCompletedTourLocally(currentTourPage)
+  }, [currentTourPage, tourCompletionDB])
+
+  // Get storage key for current page
+  const currentStorageKey = currentTourPage ? TOUR_STORAGE_KEYS[currentTourPage] : TOUR_STORAGE_KEYS.dashboard
+
+  // Should auto-start for current page
+  const shouldAutoStart = !TOUR_DISABLED && currentTourPage !== null && !hasCompletedCurrentTour && !loading
 
   return (
     <TourProvider
       autoStart={shouldAutoStart}
       ranOnce={true}
-      storageKey={TOUR_STORAGE_KEY}
+      storageKey={currentStorageKey}
       shouldStart={shouldAutoStart}
       onTourComplete={markTourCompletedPersistent}
       onTourSkip={markTourCompletedPersistent}

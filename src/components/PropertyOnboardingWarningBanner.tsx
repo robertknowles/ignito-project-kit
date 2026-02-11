@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X, Settings } from 'lucide-react';
+import { TourStep } from '@/components/TourManager';
 
 interface PropertyOnboardingWarningBannerProps {
   onConfigureNow: () => void;
@@ -26,13 +27,21 @@ export const PropertyOnboardingWarningBanner: React.FC<PropertyOnboardingWarning
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={onConfigureNow}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+            <TourStep
+              id="clients-configure-now"
+              title="Configure Property Templates"
+              content="Set up your property templates to match your local market. This ensures accurate projections for property values, rental yields, and growth rates."
+              order={2}
+              position="bottom"
             >
-              <Settings size={14} />
-              Configure Now
-            </button>
+              <button
+                onClick={onConfigureNow}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+              >
+                <Settings size={14} />
+                Configure Now
+              </button>
+            </TourStep>
             <button
               onClick={onDismiss}
               className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors"

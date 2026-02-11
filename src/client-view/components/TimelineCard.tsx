@@ -138,21 +138,17 @@ export function TimelineCard({
           )}
         </div>
         
-        {/* Bottom Section - Milestone & Next Move */}
-        <div className="px-3 py-2 border-t border-slate-200/60">
-          {/* Milestone Tag */}
-          <p className="text-[10px] text-slate-600 leading-snug">{milestone}</p>
-          
-          {/* Next Move */}
-          {!isLast && (
-            <div className="flex items-start gap-1 pt-1.5 mt-1.5 border-t border-slate-200/60">
+        {/* Bottom Section - Next Move */}
+        {!isLast && (
+          <div className="px-3 py-2 border-t border-slate-200/60">
+            <div className="flex items-start gap-1">
               <TrendingUp className="w-2.5 h-2.5 text-sky-500 mt-0.5 flex-shrink-0" />
               <p className="text-[9px] text-slate-500 leading-snug">
                 <span className="font-medium text-slate-600">Next:</span> {nextMove}
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

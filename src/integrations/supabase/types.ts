@@ -178,6 +178,7 @@ export type Database = {
           company_id: string | null
           role: UserRole | null
           has_completed_tour: boolean | null
+          has_completed_clients_tour: boolean | null
           has_completed_property_onboarding: boolean | null
         }
         Insert: {
@@ -190,6 +191,7 @@ export type Database = {
           company_id?: string | null
           role?: UserRole | null
           has_completed_tour?: boolean | null
+          has_completed_clients_tour?: boolean | null
           has_completed_property_onboarding?: boolean | null
         }
         Update: {
@@ -202,6 +204,7 @@ export type Database = {
           company_id?: string | null
           role?: UserRole | null
           has_completed_tour?: boolean | null
+          has_completed_clients_tour?: boolean | null
           has_completed_property_onboarding?: boolean | null
         }
         Relationships: [

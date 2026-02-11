@@ -880,34 +880,42 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 </div>
 
                 {/* Draggable Property Icons Overlay - positioned over the chart */}
-                <TourStep
-                  id="property-interactions"
-                  title="Interactive Property Icons"
-                  content="Each property icon is interactive. Click to view detailed performance metrics (ROI, equity growth, cashflow analysis). Drag to reposition - green highlights show valid placements, red indicates constraint violations."
-                  order={9}
-                  position="bottom"
-                >
-                <div 
-                  className="absolute inset-0"
-                  style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
-                >
-                  {propertyPositions.map(({ x, y, instanceId, property }) => (
-                    property && (
-                      <div key={`draggable-wrapper-${instanceId}`} style={{ pointerEvents: 'auto' }}>
-                        <DraggablePropertyIcon
-                          property={property}
-                          x={x}
-                          y={y}
-                          isDragging={draggedProperty?.instanceId === instanceId}
-                          hasViolations={hasGuardrailViolations(property)}
-                          isAmended={getInstance(property.instanceId)?.hasBeenAmended ?? false}
-                          onPropertyClick={handlePropertyClick}
-                        />
-                      </div>
-                    )
-                  ))}
-                </div>
-                </TourStep>
+                {/* Only show TourStep when there are properties to display */}
+                {propertyPositions.length > 0 ? (
+                  <TourStep
+                    id="property-interactions"
+                    title="Interactive Property Icons"
+                    content="Each property icon is interactive. Click to view detailed performance metrics (ROI, equity growth, cashflow analysis). Drag to reposition - green highlights show valid placements, red indicates constraint violations."
+                    order={9}
+                    position="bottom"
+                  >
+                    <div 
+                      className="absolute inset-0"
+                      style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
+                    >
+                      {propertyPositions.map(({ x, y, instanceId, property }) => (
+                        property && (
+                          <div key={`draggable-wrapper-${instanceId}`} style={{ pointerEvents: 'auto' }}>
+                            <DraggablePropertyIcon
+                              property={property}
+                              x={x}
+                              y={y}
+                              isDragging={draggedProperty?.instanceId === instanceId}
+                              hasViolations={hasGuardrailViolations(property)}
+                              isAmended={getInstance(property.instanceId)?.hasBeenAmended ?? false}
+                              onPropertyClick={handlePropertyClick}
+                            />
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </TourStep>
+                ) : (
+                  <div 
+                    className="absolute inset-0"
+                    style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
+                  />
+                )}
 
                 <AreaChart
                 width={chartWidth + Y_AXIS_WIDTH}

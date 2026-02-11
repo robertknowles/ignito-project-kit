@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Target, TrendingUp, Trophy, CheckCircle, Clock, Building2, Download, Share2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Target, TrendingUp, Trophy, CheckCircle, Clock, Building2, Download, Share2, Copy } from 'lucide-react';
 import { PortfolioChart } from './components/PortfolioChart';
 import { CashflowChart } from './components/CashflowChart';
 import { TimelineCard } from './components/TimelineCard';
@@ -18,6 +18,19 @@ import {
 import { generateComparisonChartData, ComparisonChartData } from '../hooks/useChartDataGenerator';
 import type { ComparisonMetrics } from '../utils/comparisonCalculator';
 import type { PropertyPurchase, GrowthCurve } from '../types/property';
+import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 interface ChartData {
   portfolioGrowthData: Array<{
@@ -57,6 +70,11 @@ interface ClientDashboardProps {
   scenarioA?: ScenarioData;
   scenarioB?: ScenarioData;
   comparisonMetrics?: ComparisonMetrics;
+  // Share functionality props
+  scenarioId?: string | number;
+  clientId?: string | number;
+  clientEmail?: string;
+  companyId?: string;
 }
 
 export function ClientDashboard({ 
@@ -72,8 +90,152 @@ export function ClientDashboard({
   scenarioA,
   scenarioB,
   comparisonMetrics,
+  // Share functionality props
+  scenarioId,
+  clientId,
+  clientEmail,
+  companyId,
 }: ClientDashboardProps) {
   
+  // Share dashboard state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareCredentials, setShareCredentials] = useState<{
+    email: string;
+    password: string;
+    loginUrl: string;
+    clientName: string;
+  } | null>(null);
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
+
+  // Generate a secure temporary password
+  const generateTempPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const special = '!@#$%';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    password += Math.floor(Math.random() * 10);
+    return password;
+  };
+
+  // Handle share dashboard button click
+  const handleShareDashboard = async () => {
+    if (!scenarioId) {
+      toast.error('Unable to share dashboard', {
+        description: 'Dashboard information is not available.',
+      });
+      return;
+    }
+
+    setIsCreatingShare(true);
+
+    try {
+      // First check if scenario already has a client_user_id
+      const { data: scenario, error: fetchError } = await supabase
+        .from('scenarios')
+        .select('client_user_id, share_id')
+        .eq('id', scenarioId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // If client user already exists, show existing credentials
+      if (scenario?.client_user_id) {
+        setShareCredentials({
+          email: clientEmail || 'Unknown',
+          password: '(Password was sent previously)',
+          loginUrl: `${window.location.origin}/login`,
+          clientName: clientDisplayName,
+        });
+        setShareModalOpen(true);
+        setIsCreatingShare(false);
+        return;
+      }
+
+      // Check if we have an email for the client
+      if (!clientEmail) {
+        toast.error('Client email required', {
+          description: 'Please add an email address for the client before sharing the dashboard.',
+        });
+        setIsCreatingShare(false);
+        return;
+      }
+
+      // Create a new client user account
+      const tempPassword = generateTempPassword();
+      
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: clientEmail,
+        password: tempPassword,
+        options: {
+          data: { name: clientDisplayName },
+        },
+      });
+
+      if (authError) {
+        toast.error(`Failed to create client account: ${authError.message}`);
+        setIsCreatingShare(false);
+        return;
+      }
+
+      if (!authData.user) {
+        toast.error('Failed to create client account');
+        setIsCreatingShare(false);
+        return;
+      }
+
+      const newUserId = authData.user.id;
+
+      // Update the profile with role='client' and company_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'client',
+          company_id: companyId,
+          full_name: clientDisplayName,
+        })
+        .eq('id', newUserId);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        toast.error('Failed to set up client profile');
+        setIsCreatingShare(false);
+        return;
+      }
+
+      // Update the scenario with the client_user_id
+      const { error: scenarioError } = await supabase
+        .from('scenarios')
+        .update({ client_user_id: newUserId })
+        .eq('id', scenarioId);
+
+      if (scenarioError) {
+        console.error('Scenario update error:', scenarioError);
+        toast.error('Failed to link client to dashboard');
+        setIsCreatingShare(false);
+        return;
+      }
+
+      // Show credentials modal
+      setShareCredentials({
+        email: clientEmail,
+        password: tempPassword,
+        loginUrl: `${window.location.origin}/login`,
+        clientName: clientDisplayName,
+      });
+      setShareModalOpen(true);
+      toast.success('Client dashboard access created!');
+    } catch (error) {
+      console.error('Share dashboard error:', error);
+      toast.error('Failed to create dashboard access');
+    } finally {
+      setIsCreatingShare(false);
+    }
+  };
+
   // Format currency helper
   const formatCurrency = (value: number): string => {
     if (value >= 1000000) {
@@ -440,12 +602,13 @@ export function ClientDashboard({
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {/* TODO: Implement share functionality */}}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              onClick={handleShareDashboard}
+              disabled={isCreatingShare || !scenarioId}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Share Dashboard</span>
-              <span className="sm:hidden">Share</span>
+              <span className="hidden sm:inline">{isCreatingShare ? 'Creating...' : 'Share Dashboard'}</span>
+              <span className="sm:hidden">{isCreatingShare ? '...' : 'Share'}</span>
             </button>
             {onPrint && (
               <button
@@ -820,6 +983,102 @@ export function ClientDashboard({
           <p className="text-xs sm:text-sm text-slate-500">Generated {new Date().toLocaleDateString()}</p>
         </div>
       </div>
+
+      {/* Share Dashboard Credentials Modal */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dashboard Login Credentials</DialogTitle>
+            <DialogDescription>
+              Share these credentials with {shareCredentials?.clientName} so they can access their investment dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Email</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={shareCredentials?.email || ''}
+                  readOnly
+                  className="bg-gray-50"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareCredentials?.email || '');
+                    toast.success('Email copied!');
+                  }}
+                >
+                  <Copy size={14} />
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Temporary Password</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={shareCredentials?.password || ''}
+                  readOnly
+                  className="bg-gray-50 font-mono"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareCredentials?.password || '');
+                    toast.success('Password copied!');
+                  }}
+                >
+                  <Copy size={14} />
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Login URL</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={shareCredentials?.loginUrl || ''}
+                  readOnly
+                  className="bg-gray-50 text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareCredentials?.loginUrl || '');
+                    toast.success('Login URL copied!');
+                  }}
+                >
+                  <Copy size={14} />
+                </Button>
+              </div>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <p className="font-medium mb-1">Instructions for your client:</p>
+              <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                <li>Go to the login URL above</li>
+                <li>Enter email and temporary password</li>
+                <li>View their personalized investment dashboard</li>
+              </ol>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                const text = `Dashboard Login for ${shareCredentials?.clientName}\n\nEmail: ${shareCredentials?.email}\nPassword: ${shareCredentials?.password}\nLogin URL: ${shareCredentials?.loginUrl}`;
+                navigator.clipboard.writeText(text);
+                toast.success('All credentials copied to clipboard!');
+              }}
+            >
+              Copy All
+            </Button>
+            <Button variant="outline" onClick={() => setShareModalOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

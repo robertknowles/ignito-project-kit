@@ -207,7 +207,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
         stampDutyOverride: propertyInstance.stampDutyOverride ?? null,
       });
       
-      setCapitalizeLmi(false);
+      // Restore LMI capitalization state from instance
+      setCapitalizeLmi(propertyInstance.lmiCapitalized ?? false);
     }
   }, [property, propertyInstance, propertyDefaults]);
 
@@ -499,10 +500,12 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       ratesAdjustment: adjustedOneOffCosts.ratesAdjustment,
       maintenanceAllowancePostSettlement: adjustedOneOffCosts.maintenanceAllowancePostSettlement,
       stampDutyOverride: adjustedOneOffCosts.stampDutyOverride,
+      // LMI capitalization flag
+      lmiCapitalized: capitalizeLmi,
     };
 
     onApplyChanges(updates);
-  }, [adjustedValues, adjustedOneOffCosts, onApplyChanges]);
+  }, [adjustedValues, adjustedOneOffCosts, capitalizeLmi, onApplyChanges]);
 
   // Check if values have changed
   const hasChanges = useMemo(() => {

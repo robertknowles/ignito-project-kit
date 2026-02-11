@@ -123,6 +123,9 @@ export interface PropertyInstanceDetails {
   
   /** Flag indicating this property has been manually amended to fit guardrails */
   hasBeenAmended?: boolean;
+  
+  /** Whether LMI should be capitalized into the loan (reduces upfront cash required) */
+  lmiCapitalized?: boolean;
 }
 
 

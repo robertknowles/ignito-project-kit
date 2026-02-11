@@ -9,6 +9,7 @@ import type { Scenario } from '@/contexts/MultiScenarioContext';
 interface ScenarioData {
   id: number;
   client_id: number;
+  company_id: string | null;
   name: string;
   data: any;
   created_at: string;
@@ -32,6 +33,7 @@ export const PublicReport = () => {
   const [scenario, setScenario] = useState<ScenarioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clientEmail, setClientEmail] = useState<string | undefined>();
 
   useEffect(() => {
     const fetchScenario = async () => {
@@ -46,7 +48,7 @@ export const PublicReport = () => {
         // Note: This uses the anon key, which should have access via RLS policy
         const { data, error } = await supabase
           .from('scenarios')
-          .select('*')
+          .select('*, company_id')
           .eq('share_id', shareId)
           .single();
 
@@ -90,6 +92,29 @@ setError('Failed to load report');
 
     fetchScenario();
   }, [shareId]);
+
+  // Fetch client email when scenario loads
+  useEffect(() => {
+    const fetchClientEmail = async () => {
+      if (!scenario?.client_id) return;
+      
+      try {
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('email')
+          .eq('id', scenario.client_id)
+          .single();
+        
+        if (clientData?.email) {
+          setClientEmail(clientData.email);
+        }
+      } catch (err) {
+        console.error('Error fetching client email:', err);
+      }
+    };
+
+    fetchClientEmail();
+  }, [scenario?.client_id]);
 
   if (loading) {
     return (
@@ -187,6 +212,10 @@ setError('Failed to load report');
           chartData: extractChartData({ chartData: scenarioBData.chartData }),
         }}
         comparisonMetrics={comparisonMetrics}
+        scenarioId={scenario.id}
+        clientId={scenario.client_id}
+        clientEmail={clientEmail}
+        companyId={scenario.company_id || undefined}
       />
     );
   }
@@ -200,6 +229,10 @@ setError('Failed to load report');
       clientDisplayName={clientDisplayName}
       agentDisplayName={agentDisplayName}
       companyDisplayName={companyDisplayName}
+      scenarioId={scenario.id}
+      clientId={scenario.client_id}
+      clientEmail={clientEmail}
+      companyId={scenario.company_id || undefined}
     />
   );
 };

@@ -234,8 +234,8 @@ setTimelineLoanTypes({});
           break;
           
         case 'bonus_windfall':
-          // One-time cash event - only apply at the event period
-          if (event.period === period && event.payload.bonusAmount !== undefined) {
+          // One-time cash event - effect persists for all future periods
+          if (event.period <= period && event.payload.bonusAmount !== undefined) {
             oneTimeCashAdjustment += event.payload.bonusAmount;
           }
           break;
@@ -244,15 +244,15 @@ setTimelineLoanTypes({});
         // LIFE EVENTS
         // =============================================================================
         case 'inheritance':
-          // One-time cash event - only apply at the event period
-          if (event.period === period && event.payload.cashAmount !== undefined) {
+          // One-time cash event - effect persists for all future periods
+          if (event.period <= period && event.payload.cashAmount !== undefined) {
             oneTimeCashAdjustment += event.payload.cashAmount;
           }
           break;
           
         case 'major_expense':
-          // One-time cash event (deduction) - only apply at the event period
-          if (event.period === period && event.payload.cashAmount !== undefined) {
+          // One-time cash event (deduction) - effect persists for all future periods
+          if (event.period <= period && event.payload.cashAmount !== undefined) {
             oneTimeCashAdjustment -= event.payload.cashAmount;
           }
           break;
@@ -300,16 +300,16 @@ setTimelineLoanTypes({});
           
         case 'renovate':
           // Renovation uses cash and increases property value
-          // One-time cash deduction for renovation cost
-          if (event.period === period && event.payload.renovationCost !== undefined) {
+          // Cash deduction persists for all future periods (money is spent)
+          if (event.period <= period && event.payload.renovationCost !== undefined) {
             oneTimeCashAdjustment -= event.payload.renovationCost;
           }
           break;
       }
     }
     
-    // Apply one-time cash adjustments to deposit pool
-    // This happens at the specific period when the event occurs
+    // Apply cumulative cash adjustments to deposit pool
+    // Cash events (inheritance, expense, bonus, renovation) persist from their period onwards
     modifiedProfile.depositPool = baseProfile.depositPool + oneTimeCashAdjustment;
     
     // Ensure values don't go negative
@@ -1113,8 +1113,24 @@ return { period: Infinity };
       // CRITICAL: Use instance LVR for loan amount calculation, not template deposit percentage
       // This ensures agent edits to LVR are reflected in calculations
       const instanceLvr = propertyInstance?.lvr ?? ((property.cost - property.depositRequired) / property.cost * 100);
-      const correctLoanAmount = correctPurchasePrice * (instanceLvr / 100);
-      const correctDepositRequired = correctPurchasePrice - correctLoanAmount;
+      const baseLoanAmount = correctPurchasePrice * (instanceLvr / 100);
+      const correctDepositRequired = correctPurchasePrice - baseLoanAmount;
+      
+      // Calculate LMI early to determine if it affects loan amount (when capitalized)
+      // LMI is based on the base loan amount before capitalization
+      const earlyLmi = calculateLMI(
+        baseLoanAmount,
+        instanceLvr,
+        propertyInstance?.lmiWaiver ?? false,
+        propertyInstance?.valuationAtPurchase,
+        correctPurchasePrice
+      );
+      
+      // Check if LMI is being capitalized into the loan
+      const isLmiCapitalized = propertyInstance?.lmiCapitalized ?? false;
+      
+      // Final loan amount includes LMI if capitalized (increases debt but reduces upfront cash)
+      const correctLoanAmount = isLmiCapitalized ? baseLoanAmount + earlyLmi : baseLoanAmount;
       
       // Attach instanceId to property for use in determineNextPurchasePeriod
       const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired };
@@ -1326,14 +1342,9 @@ return { period: Infinity };
         false
       );
       
-      // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
-      const lmi = calculateLMI(
-        loanAmount,
-        instanceLvr,
-        propertyInstanceForCosts.lmiWaiver ?? false,
-        propertyInstanceForCosts.valuationAtPurchase,
-        correctPurchasePrice
-      );
+      // Use the LMI calculated earlier (earlyLmi) for consistency
+      // This ensures the same LMI value is used for both loan amount and cash required calculations
+      const lmi = earlyLmi;
       
       // Calculate deposit balance
       const depositBalance = calculateDepositBalance(
@@ -1350,8 +1361,10 @@ return { period: Infinity };
         depositBalance
       );
       
-      // Add LMI to total cash required (it's a one-off cost at purchase)
-      const totalCashRequired = oneOffCosts.totalCashRequired + lmi;
+      // Add LMI to total cash required ONLY if not capitalized into the loan
+      // When LMI is capitalized, it's added to the loan amount instead of paid upfront
+      const lmiCashRequired = isLmiCapitalized ? 0 : lmi;
+      const totalCashRequired = oneOffCosts.totalCashRequired + lmiCashRequired;
       
       // Calculate test results
       const depositTestSurplus = availableFundsUsed - totalCashRequired;
@@ -1599,12 +1612,15 @@ return { period: Infinity };
     const affordabilityResult = checkAffordability(property, availableFunds.total, previousPurchases, period);
     
     // Calculate all purchase costs using property instance (includes all 39 fields)
-    const newLoanAmount = property.cost - property.depositRequired;
+    const baseLoanAmount = property.cost - property.depositRequired;
     const affordabilityPropertyInstance = getInstance(property.instanceId);
     const affordabilityPropertyInstanceForCosts = affordabilityPropertyInstance ?? getPropertyInstanceDefaults(property.title || 'Default');
     
     // Use LVR from instance
-    const affordabilityInstanceLvr = affordabilityPropertyInstance?.lvr ?? ((newLoanAmount / property.cost) * 100);
+    const affordabilityInstanceLvr = affordabilityPropertyInstance?.lvr ?? ((baseLoanAmount / property.cost) * 100);
+    
+    // Check if LMI is being capitalized into the loan
+    const isAffordabilityLmiCapitalized = affordabilityPropertyInstance?.lmiCapitalized ?? false;
     
     // Calculate stamp duty (with override support)
     const affordabilityStampDuty = affordabilityPropertyInstanceForCosts.stampDutyOverride ?? calculateStampDuty(
@@ -1614,13 +1630,19 @@ return { period: Infinity };
     );
     
     // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
+    // LMI is calculated on base loan amount, before any capitalization adjustment
     const affordabilityLmi = calculateLMI(
-      newLoanAmount,
+      baseLoanAmount,
       affordabilityInstanceLvr,
       affordabilityPropertyInstanceForCosts.lmiWaiver ?? false,
       affordabilityPropertyInstanceForCosts.valuationAtPurchase,
       property.cost
     );
+    
+    // Final loan amount: prefer passed value if available (for live preview in modals)
+    // This allows the modal to pass pre-calculated loan amount including LMI capitalization
+    const calculatedLoanAmount = isAffordabilityLmiCapitalized ? baseLoanAmount + affordabilityLmi : baseLoanAmount;
+    const newLoanAmount = property.loanAmount !== undefined ? property.loanAmount : calculatedLoanAmount;
     
     // Calculate deposit balance
     const affordabilityDepositBalance = calculateDepositBalance(
@@ -1637,8 +1659,13 @@ return { period: Infinity };
       affordabilityDepositBalance
     );
     
-    // Add LMI to total cash required
-    const totalCashRequired = affordabilityOneOffCosts.totalCashRequired + affordabilityLmi;
+    // Add LMI to total cash required ONLY if not capitalized into the loan
+    const lmiCashRequired = isAffordabilityLmiCapitalized ? 0 : affordabilityLmi;
+    const calculatedTotalCashRequired = affordabilityOneOffCosts.totalCashRequired + lmiCashRequired;
+    
+    // Use passed totalCashRequired if available (for live preview in modals)
+    // This allows the modal to pass pre-calculated values including adjusted costs and LMI capitalization
+    const totalCashRequired = property.totalCashRequired !== undefined ? property.totalCashRequired : calculatedTotalCashRequired;
     
     // Calculate test results even if affordability fails
     const depositTestSurplus = availableFunds.total - totalCashRequired;

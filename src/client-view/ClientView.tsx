@@ -1,13 +1,53 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { ClientDashboard } from './ClientDashboard';
 import { useSharedScenario } from '../hooks/useSharedScenario';
 import { compareScenarios } from '../utils/comparisonCalculator';
+import { supabase } from '../integrations/supabase/client';
 import './client-view.css';
 
 export const ClientView = () => {
   // Fetch scenario data using the share_id from URL
   const { scenario, loading, error } = useSharedScenario();
+  
+  // State for client email and company ID (for share functionality)
+  const [clientEmail, setClientEmail] = useState<string | undefined>();
+  const [companyId, setCompanyId] = useState<string | undefined>();
+
+  // Fetch client email and company ID when scenario loads
+  useEffect(() => {
+    const fetchClientDetails = async () => {
+      if (!scenario?.client_id) return;
+      
+      try {
+        // Fetch client email from clients table
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('email')
+          .eq('id', scenario.client_id)
+          .single();
+        
+        if (clientData?.email) {
+          setClientEmail(clientData.email);
+        }
+
+        // Fetch company_id from scenario
+        const { data: scenarioData } = await supabase
+          .from('scenarios')
+          .select('company_id')
+          .eq('id', scenario.id)
+          .single();
+        
+        if (scenarioData?.company_id) {
+          setCompanyId(scenarioData.company_id);
+        }
+      } catch (err) {
+        console.error('Error fetching client details:', err);
+      }
+    };
+
+    fetchClientDetails();
+  }, [scenario?.client_id, scenario?.id]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -100,6 +140,10 @@ export const ClientView = () => {
           scenarioA={scenarioAData}
           scenarioB={scenarioBData}
           comparisonMetrics={comparisonMetrics}
+          scenarioId={scenario.id}
+          clientId={scenario.client_id}
+          clientEmail={clientEmail}
+          companyId={companyId}
         />
       </div>
     );
@@ -117,6 +161,10 @@ export const ClientView = () => {
         agentDisplayName={scenario.agent_display_name}
         companyDisplayName={scenario.company_display_name}
         onPrint={handlePrint}
+        scenarioId={scenario.id}
+        clientId={scenario.client_id}
+        clientEmail={clientEmail}
+        companyId={companyId}
       />
     </div>
   );

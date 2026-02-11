@@ -115,6 +115,8 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     maintenanceAllowanceAnnual: 1750,
     landTaxOverride: null,
     potentialDeductionsRebates: 0,
+    // LMI capitalization defaults to false (LMI paid upfront, not added to loan)
+    lmiCapitalized: false,
   };
 };
 

@@ -22,6 +22,7 @@ import {
   UserPlus,
   Target,
 } from 'lucide-react'
+import { TourStep } from '@/components/TourManager'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { LeftRail } from '../components/LeftRail'
 import { ClientCreationForm } from '../components/ClientCreationForm'
@@ -838,13 +839,21 @@ toast.error('Failed to create client invite');
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b7280]"
                     />
                   </div>
-                  <button 
-                    onClick={() => setCreateFormOpen(true)}
-                    className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2563eb] transition-colors"
+                  <TourStep
+                    id="clients-new-client"
+                    title="Add a New Client"
+                    content="Click here to create a new client. You'll enter their basic details and financial information to get started with their property investment journey."
+                    order={1}
+                    position="bottom"
                   >
-                    <PlusIcon size={16} />
-                    <span>New Client</span>
-                  </button>
+                    <button 
+                      onClick={() => setCreateFormOpen(true)}
+                      className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2563eb] transition-colors"
+                    >
+                      <PlusIcon size={16} />
+                      <span>New Client</span>
+                    </button>
+                  </TourStep>
                 </div>
               </div>
               <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden">
@@ -941,13 +950,37 @@ toast.error('Failed to create client invite');
                           Client
                         </th>
                         <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          Onboarding
+                          <TourStep
+                            id="clients-onboarding-column"
+                            title="Onboarding Workflow"
+                            content="Track client onboarding progress here. Send questionnaires to gather client information. Green checkmarks show completed onboarding, while gray indicates pending status."
+                            order={3}
+                            position="bottom"
+                          >
+                            <span>Onboarding</span>
+                          </TourStep>
                         </th>
                         <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          Plan
+                          <TourStep
+                            id="clients-plan-column"
+                            title="Plan Creation"
+                            content="Create and manage property investment plans for each client. Click to build their personalized roadmap with property scenarios and timeline projections."
+                            order={4}
+                            position="bottom"
+                          >
+                            <span>Plan</span>
+                          </TourStep>
                         </th>
                         <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          Dashboard
+                          <TourStep
+                            id="clients-dashboard-column"
+                            title="Client Dashboard Access"
+                            content="Invite clients to their personal dashboard where they can view their investment plan, track progress, and access reports. Monitor who has logged in."
+                            order={5}
+                            position="bottom"
+                          >
+                            <span>Dashboard</span>
+                          </TourStep>
                         </th>
                         <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
                           Next Purchase
@@ -958,7 +991,7 @@ toast.error('Failed to create client invite');
                       </tr>
                     </thead>
                     <tbody>
-                      {clients.map((client) => {
+                      {clients.map((client, clientIndex) => {
                         const initials = client.name
                           .split(' ')
                           .map(word => word[0])
@@ -972,6 +1005,8 @@ toast.error('Failed to create client invite');
                         // Dashboard invite status
                         const hasClientUser = !!status?.clientUserId;
                         const hasLoggedIn = status?.clientHasLoggedIn || false;
+                        // Only show tour step on first row to avoid duplicate registrations
+                        const isFirstRow = clientIndex === 0;
 
                         return (
                           <tr key={client.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
@@ -1046,20 +1081,44 @@ toast.error('Failed to create client invite');
                             
                             <td className="px-4 py-4">
                               <div className="flex items-center gap-1">
-                                {/* Profile Button */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button 
-                                      onClick={() => handleOpenProfile(client)}
-                                      className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
-                                    >
-                                      <User size={16} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View Profile</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                {/* Profile Button - wrapped with TourStep only on first row */}
+                                {isFirstRow ? (
+                                  <TourStep
+                                    id="clients-view-profile"
+                                    title="View Client Profile"
+                                    content="Access detailed client information including financial details, goals, and questionnaire responses. Keep client data organized and up-to-date."
+                                    order={6}
+                                    position="left"
+                                  >
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button 
+                                          onClick={() => handleOpenProfile(client)}
+                                          className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                        >
+                                          <User size={16} />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>View Profile</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TourStep>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button 
+                                        onClick={() => handleOpenProfile(client)}
+                                        className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                      >
+                                        <User size={16} />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View Profile</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
 
                                 {/* Download PDF */}
                                 <Tooltip>
@@ -1119,34 +1178,42 @@ toast.error('Failed to create client invite');
                 </div>
               </div>
               {/* Upcoming Purchases */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <h2 className="text-lg font-medium text-[#111827]">
-                    Upcoming Purchases
-                  </h2>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  {timelineLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-sm text-gray-500">Loading timeline data...</div>
-                    </div>
-                  ) : timelineData.length === 0 ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-center">
-                        <CalendarIcon size={48} className="text-gray-300 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">No client scenarios to display</p>
-                        <p className="text-xs text-gray-400 mt-1">Create scenarios for clients to see them here</p>
+              <TourStep
+                id="clients-upcoming-purchases"
+                title="Upcoming Purchases Chart"
+                content="Visualize all your clients' planned property purchases on a timeline. See who's buying when, track purchase dates across your entire portfolio, and identify busy periods."
+                order={7}
+                position="top"
+              >
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h2 className="text-lg font-medium text-[#111827]">
+                      Upcoming Purchases
+                    </h2>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    {timelineLoading ? (
+                      <div className="flex items-center justify-center h-64">
+                        <div className="text-sm text-gray-500">Loading timeline data...</div>
                       </div>
-                    </div>
-                  ) : (
-                    <PropertyTimeline
-                      clients={timelineData}
-                      startYear={2025}
-                      endYear={2040}
-                    />
-                  )}
+                    ) : timelineData.length === 0 ? (
+                      <div className="flex items-center justify-center h-64">
+                        <div className="text-center">
+                          <CalendarIcon size={48} className="text-gray-300 mx-auto mb-3" />
+                          <p className="text-sm text-gray-500">No client scenarios to display</p>
+                          <p className="text-xs text-gray-400 mt-1">Create scenarios for clients to see them here</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <PropertyTimeline
+                        clients={timelineData}
+                        startYear={2025}
+                        endYear={2040}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
+              </TourStep>
             </div>
           </div>
         </div>
