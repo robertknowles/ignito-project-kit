@@ -110,8 +110,8 @@ Deno.serve(async (req: Request) => {
         price: STRIPE_CONFIG.prices[plan as keyof typeof STRIPE_CONFIG.prices],
         quantity: 1,
       }],
-      success_url: `${appUrl}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/#pricing`,
+      success_url: `${appUrl}/clients?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/upgrade`,
       metadata: {
         supabase_user_id: userId,
         plan: plan

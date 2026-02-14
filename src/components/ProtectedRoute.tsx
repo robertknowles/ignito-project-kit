@@ -6,10 +6,15 @@ import { UserRole } from '@/integrations/supabase/types';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: UserRole[];
+  requireSubscription?: boolean;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { user, loading, role } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  allowedRoles,
+  requireSubscription = true // Default to requiring subscription
+}) => {
+  const { user, loading, role, subscriptionStatus } = useAuth();
 
   if (loading) {
     return (
@@ -21,6 +26,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check subscription status - redirect unpaid users to upgrade page
+  if (requireSubscription && subscriptionStatus !== 'active') {
+    return <Navigate to="/upgrade" replace />;
   }
 
   // Check role restrictions - redirect unauthorized roles to dashboard

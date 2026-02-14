@@ -7,6 +7,7 @@ import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { EmailConfirmed } from './pages/EmailConfirmed'
+import { Upgrade } from './pages/Upgrade'
 import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
 import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
@@ -73,6 +74,16 @@ export function AppRouter() {
                             <Route 
                               path="/email-confirmed" 
                               element={<EmailConfirmed />} 
+                            />
+                            
+                            {/* Upgrade page - requires auth but NOT subscription */}
+                            <Route 
+                              path="/upgrade" 
+                              element={
+                                <ProtectedRoute requireSubscription={false}>
+                                  <Upgrade />
+                                </ProtectedRoute>
+                              } 
                             />
                             
                             {/* Public client view - no authentication required */}
