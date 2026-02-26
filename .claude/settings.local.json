@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.json /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.js /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.ts)"
+    ]
+  }
+}

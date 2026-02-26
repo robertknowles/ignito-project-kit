@@ -29,8 +29,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check subscription status - redirect unpaid users to upgrade page
-  if (requireSubscription && subscriptionStatus !== 'active') {
-    return <Navigate to="/upgrade" replace />;
+  // If subscriptionStatus is still null, profile data hasn't loaded yet — show loading
+  if (requireSubscription) {
+    if (subscriptionStatus === null) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-lg">Loading...</div>
+        </div>
+      );
+    }
+    if (subscriptionStatus !== 'active') {
+      return <Navigate to="/upgrade" replace />;
+    }
   }
 
   // Check role restrictions - redirect unauthorized roles to dashboard

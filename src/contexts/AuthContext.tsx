@@ -86,42 +86,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
+    // Track whether the initial session has been handled by getSession()
+    // so onAuthStateChange doesn't duplicate the profile fetch on mount
+    let initialLoadDone = false;
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
-        
+
         setSession(session);
         setUser(session?.user ?? null);
-        
+
+        // Skip profile fetch on initial mount — getSession() handles that below
+        if (!initialLoadDone) return;
+
+        // Handle subsequent auth changes (sign-in, sign-out, token refresh)
         if (session?.user) {
           // Defer profile fetch to avoid Supabase client deadlock
-          // Keep loading=true until profile fetch completes
           setTimeout(async () => {
             if (!isMounted) return;
             await fetchUserProfile(session.user.id);
-            if (isMounted) setLoading(false);
           }, 0);
         } else {
           clearProfileData();
-          setLoading(false);
         }
       }
     );
 
-    // THEN check for existing session
+    // Handle initial session load (runs once on mount)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
-      
+
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        // Wait for profile fetch to complete before setting loading=false
         await fetchUserProfile(session.user.id);
       }
-      
+
+      initialLoadDone = true;
       if (isMounted) setLoading(false);
     });
 
@@ -132,10 +136,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    // Fetch profile immediately so subscription status is ready
+    // before the caller navigates to a protected route
+    if (!error && data.user) {
+      await fetchUserProfile(data.user.id);
+    }
     return { error };
   };
 
