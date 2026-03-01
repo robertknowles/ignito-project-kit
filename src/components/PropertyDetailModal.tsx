@@ -7,6 +7,7 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { toast } from '@/hooks/use-toast';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
+import { calculateLMI } from '../utils/lmiCalculator';
 
 // Helper to safely parse numeric input (prevents NaN bugs)
 const parseNumericInput = (value: string, defaultValue: number = 0): number => {
@@ -744,11 +745,9 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Loan Amount (+ LMI):</span>
                         <span className="font-medium text-gray-900">
-                          ${(((formData.purchasePrice * (formData.lvr / 100)) + 
-                             (formData.lmiWaiver || formData.lvr <= 80 ? 0 : 
-                              (formData.purchasePrice * (formData.lvr / 100)) * 
-                              (formData.lvr <= 85 ? 0.015 : formData.lvr <= 90 ? 0.020 : formData.lvr <= 95 ? 0.035 : 0.045)
-                             )) / 1000).toFixed(0)}k
+                          ${(((formData.purchasePrice * (formData.lvr / 100)) +
+                             calculateLMI(formData.purchasePrice * (formData.lvr / 100), formData.lvr, formData.lmiWaiver)
+                             ) / 1000).toFixed(0)}k
                         </span>
                       </div>
                     </div>

@@ -1350,7 +1350,7 @@ function interpolateYearData(
     
     // Assumptions
     interestRate: interestRate * 100,
-    rentalRecognition: 75, // Default recognition rate
+    rentalRecognition: 80, // Flat 80% recognition rate
     
     // Tests (from real affordability calculations)
     depositTest: {
@@ -1516,8 +1516,8 @@ function createInitialYearData(year: number, yearIndex: number, profile: any, de
     
     // Assumptions
     interestRate: defaultInterestRate * 100,
-    rentalRecognition: 75,
-    
+    rentalRecognition: 80,
+
     // Tests (not applicable)
     depositTest: {
       pass: true,

@@ -616,7 +616,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           
           // Assumptions
           interestRate: defaultInterestRate * 100,
-          rentalRecognition: 75,
+          rentalRecognition: 80,
           
           // Tests - SINGLE SOURCE OF TRUTH: Use values directly from calculator
           depositTest: {
@@ -821,7 +821,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           
           // Assumptions
           interestRate: defaultInterestRate * 100,
-          rentalRecognition: 75,
+          rentalRecognition: 80,
           
           // Tests (hypothetical)
           depositTest: {

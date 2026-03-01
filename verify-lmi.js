@@ -7,41 +7,41 @@
  * without needing to run the full application.
  */
 
-// LMI Calculation Function (matches costsCalculator.ts)
+// LMI Calculation Function (matches lmiCalculator.ts — single source of truth)
 function calculateLMI(loanAmount, lvr, lmiWaiver = false) {
   // No LMI if waived (e.g., professional packages)
   if (lmiWaiver) {
     console.log('  ✅ LMI Waived - returning $0');
     return 0;
   }
-  
+
   // No LMI required for LVR <= 80%
   if (lvr <= 80) {
     console.log('  ✅ LVR ≤ 80% - no LMI required');
     return 0;
   }
-  
+
   let lmiRate = 0;
   let tier = '';
-  
+
   if (lvr <= 85) {
-    lmiRate = 0.01; // 1%
+    lmiRate = 0.015; // 1.5%
     tier = '80-85%';
   } else if (lvr <= 90) {
-    lmiRate = 0.02; // 2%
+    lmiRate = 0.020; // 2.0%
     tier = '85-90%';
   } else if (lvr <= 95) {
-    lmiRate = 0.04; // 4%
+    lmiRate = 0.035; // 3.5%
     tier = '90-95%';
   } else {
-    lmiRate = 0.05; // 5%
+    lmiRate = 0.045; // 4.5%
     tier = '95%+';
   }
-  
+
   const lmi = Math.round(loanAmount * lmiRate);
   console.log(`  💰 LVR ${lvr}% falls in ${tier} tier (${lmiRate * 100}% rate)`);
   console.log(`  💰 LMI = $${loanAmount.toLocaleString()} × ${lmiRate * 100}% = $${lmi.toLocaleString()}`);
-  
+
   return lmi;
 }
 
@@ -179,10 +179,10 @@ console.log('─'.repeat(70));
 console.log(`1. LMI Waiver works: Savings of $${lmiSavings.toLocaleString()} at 90% LVR`);
 console.log(`2. LVR ≤ 80% has no LMI (standard threshold)`);
 console.log(`3. LMI increases with LVR tiers:`);
-console.log(`   - 80-85%: $${test4.costs.lmi.toLocaleString()} (1.0%)`);
+console.log(`   - 80-85%: $${test4.costs.lmi.toLocaleString()} (1.5%)`);
 console.log(`   - 85-90%: $${test1.costs.lmi.toLocaleString()} (2.0%)`);
 console.log(`   - 90-95%: N/A in tests`);
-console.log(`   - 95%+:   $${test5.costs.lmi.toLocaleString()} (4.0%)`);
+console.log(`   - 95%+:   $${test5.costs.lmi.toLocaleString()} (3.5%)`);
 console.log(`4. Total cash required correctly includes LMI when applicable`);
 
 console.log('\n✅ All LMI calculations verified successfully!\n');

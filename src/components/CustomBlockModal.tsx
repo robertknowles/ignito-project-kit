@@ -96,9 +96,9 @@ const getDefaultFormData = (): Omit<CustomPropertyBlock, 'id' | 'isCustom'> => (
   stampDutyOverride: null,
   
   // Section E: Cashflow
-  vacancyRate: 0,
-  propertyManagementPercent: 6.6,
-  buildingInsuranceAnnual: 350,
+  vacancyRate: 4,
+  propertyManagementPercent: 8,
+  buildingInsuranceAnnual: 1200,
   councilRatesWater: 2000,
   strata: 3200,
   maintenanceAllowanceAnnual: 1750,
@@ -119,7 +119,7 @@ const scaleDefaultsForPrice = (price: number): Partial<CustomPropertyBlock> => {
     mortgageFees: Math.round(1000 + (ratio - 1) * 200),
     conveyancing: Math.round(2200 + (ratio - 1) * 300),
     maintenanceAllowancePostSettlement: Math.round(1000 * ratio),
-    buildingInsuranceAnnual: Math.round(350 * ratio),
+    buildingInsuranceAnnual: Math.round(1200 * ratio),
     councilRatesWater: Math.round(2000 * Math.sqrt(ratio)),
     strata: Math.round(3200 * Math.sqrt(ratio)),
     maintenanceAllowanceAnnual: Math.round(1750 * ratio),
@@ -180,9 +180,9 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
         councilRatesWater: sourceTemplate.councilRatesWater || scaledDefaults.councilRatesWater || 2000,
         strata: sourceTemplate.strata || scaledDefaults.strata || 3200,
         maintenanceAllowanceAnnual: sourceTemplate.maintenanceAllowanceAnnual || scaledDefaults.maintenanceAllowanceAnnual || 1750,
-        buildingInsuranceAnnual: sourceTemplate.buildingInsuranceAnnual || scaledDefaults.buildingInsuranceAnnual || 350,
-        propertyManagementPercent: sourceTemplate.propertyManagementPercent || 6.6,
-        vacancyRate: sourceTemplate.vacancyRate || 0,
+        buildingInsuranceAnnual: sourceTemplate.buildingInsuranceAnnual || scaledDefaults.buildingInsuranceAnnual || 1200,
+        propertyManagementPercent: sourceTemplate.propertyManagementPercent || 8,
+        vacancyRate: sourceTemplate.vacancyRate ?? 4,
       }));
     } else if (isOpen && !sourceTemplate) {
       // Reset to defaults when opening for new custom block

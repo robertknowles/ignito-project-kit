@@ -41,33 +41,27 @@ export const SERVICEABILITY_FACTOR = 0.06;
 export const RENTAL_SERVICEABILITY_CONTRIBUTION_RATE = 0.70;
 
 // =============================================================================
-// RENTAL RECOGNITION RATES
+// RENTAL RECOGNITION RATE
 // =============================================================================
 
 /**
- * Progressive Rental Recognition Rates based on portfolio size
- * 
- * Banks apply stricter shading as portfolio grows:
- * - Properties 1-2: 75% recognition (less risk)
- * - Properties 3-4: 70% recognition (moderate risk)
- * - Properties 5+: 65% recognition (higher concentration risk)
+ * Flat Rental Recognition Rate for all portfolio sizes
+ *
+ * Australian banks typically use a flat 80% rental income recognition
+ * regardless of portfolio size. This aligns with standard bank assessment
+ * practice (separate from the RENTAL_SERVICEABILITY_CONTRIBUTION_RATE shading).
+ *
+ * Previously used a tiered system (75%/70%/65%) which penalised larger
+ * portfolios more aggressively than banks actually do.
  */
-export const RENTAL_RECOGNITION_RATES = {
-  /** Properties 1-2 */
-  TIER_1: 0.75,
-  /** Properties 3-4 */
-  TIER_2: 0.70,
-  /** Properties 5+ */
-  TIER_3: 0.65,
-} as const;
+export const RENTAL_RECOGNITION_RATE = 0.80;
 
 /**
  * Calculate rental recognition rate based on portfolio size
+ * Now returns a flat 80% for all portfolio sizes, matching bank practice.
  */
 export const calculateRentalRecognitionRate = (portfolioSize: number): number => {
-  if (portfolioSize <= 2) return RENTAL_RECOGNITION_RATES.TIER_1;
-  if (portfolioSize <= 4) return RENTAL_RECOGNITION_RATES.TIER_2;
-  return RENTAL_RECOGNITION_RATES.TIER_3;
+  return RENTAL_RECOGNITION_RATE;
 };
 
 // =============================================================================

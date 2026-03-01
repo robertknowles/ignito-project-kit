@@ -33,6 +33,7 @@ import {
   periodToYear,
   yearToPeriod,
   calculateRentalRecognitionRate,
+  RENTAL_RECOGNITION_RATE,
   calculateInflationFactor,
 } from '../constants/financialParams';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
@@ -585,8 +586,8 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
         const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, existingGrowthRate);
         const existingRentalYield = profile.existingRentalYield || 0.04; // Default 4% yield
         const existingAnnualRent = grownPortfolioValue * existingRentalYield;
-        // Apply recognition rate (conservative 75% for existing portfolio)
-        const existingRecognizedRent = existingAnnualRent * 0.75;
+        // Apply flat 80% recognition rate (matches bank practice)
+        const existingRecognizedRent = existingAnnualRent * RENTAL_RECOGNITION_RATE;
         grossRentalIncome += existingRecognizedRent;
         
         // Also add existing portfolio's loan interest to track
@@ -1163,7 +1164,7 @@ return { period: Infinity };
       let expenses = 0;
       let netCashflow = 0;
       let portfolioSize = 0;
-      let rentalRecognitionRate = 0.75;
+      let rentalRecognitionRate = 0.80;
       
       // Expense breakdown accumulators for timeline
       let timelineAccCouncilRatesWater = 0;

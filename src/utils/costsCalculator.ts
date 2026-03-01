@@ -22,32 +22,33 @@ export interface CostCalculationParams {
 /**
  * Calculate Lenders Mortgage Insurance (LMI)
  * LMI is required when LVR > 80%
- * Rates are tiered based on LVR:
- * - 80-85%: ~1% of loan amount
- * - 85-90%: ~2% of loan amount
- * - 90-95%: ~4% of loan amount
+ * Rates are tiered based on LVR (aligned with lmiCalculator.ts):
+ * - 80-85%: ~1.5% of loan amount
+ * - 85-90%: ~2.0% of loan amount
+ * - 90-95%: ~3.5% of loan amount
+ * - 95%+:   ~4.5% of loan amount
  * @param lmiWaiver - If true, LMI is waived (e.g., professional packages, commercial properties)
  */
 const calculateLMI = (loanAmount: number, lvr: number, lmiWaiver: boolean = false): number => {
   // No LMI if waived (e.g., professional packages)
   if (lmiWaiver) return 0;
-  
+
   // No LMI required for LVR <= 80%
   if (lvr <= 80) return 0;
-  
+
   let lmiRate = 0;
-  
+
   if (lvr <= 85) {
-    lmiRate = 0.01; // 1%
+    lmiRate = 0.015; // 1.5%
   } else if (lvr <= 90) {
-    lmiRate = 0.02; // 2%
+    lmiRate = 0.020; // 2.0%
   } else if (lvr <= 95) {
-    lmiRate = 0.04; // 4%
+    lmiRate = 0.035; // 3.5%
   } else {
     // Most lenders won't lend above 95% LVR without exceptional circumstances
-    lmiRate = 0.05; // 5%
+    lmiRate = 0.045; // 4.5%
   }
-  
+
   return Math.round(loanAmount * lmiRate);
 };
 
