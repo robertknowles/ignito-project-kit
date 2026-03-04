@@ -7,6 +7,8 @@ import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { EmailConfirmed } from './pages/EmailConfirmed'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { Upgrade } from './pages/Upgrade'
 import { AuthProvider } from './contexts/AuthContext'
 import { DataAssumptionsProvider } from './contexts/DataAssumptionsContext'
@@ -70,10 +72,26 @@ export function AppRouter() {
                               } 
                             />
                             
+                            {/* Forgot password page - request a reset link */}
+                            <Route
+                              path="/forgot-password"
+                              element={
+                                <PublicRoute>
+                                  <ForgotPassword />
+                                </PublicRoute>
+                              }
+                            />
+
+                            {/* Reset password page - set new password from email link */}
+                            <Route
+                              path="/reset-password"
+                              element={<ResetPassword />}
+                            />
+
                             {/* Email confirmed page - shown after email verification */}
-                            <Route 
-                              path="/email-confirmed" 
-                              element={<EmailConfirmed />} 
+                            <Route
+                              path="/email-confirmed"
+                              element={<EmailConfirmed />}
                             />
                             
                             {/* Upgrade page - requires auth but NOT subscription */}

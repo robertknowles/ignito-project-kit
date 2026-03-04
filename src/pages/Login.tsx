@@ -177,12 +177,12 @@ export function Login() {
                   </label>
                 </div>
                 <div className="text-sm">
-                  <a
-                    href="#"
+                  <Link
+                    to="/forgot-password"
                     className="font-medium text-[#374151] hover:text-[#111827] underline"
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
               </div>
               <div>
