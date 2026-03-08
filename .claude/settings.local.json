@@ -4,7 +4,13 @@
       "Bash(ls -la /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.json /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.js /Users/robknowles/Documents/Cursor-Repos/ignito-project-kit/*.ts)",
       "Bash(grep -l \"LMI\" /Users/robknowles/Projects/Code_Repo/ignito-project-kit/*.md)",
       "Bash(npm run build)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git add src/AppRouter.tsx src/pages/Login.tsx src/pages/ForgotPassword.tsx src/pages/ResetPassword.tsx)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)",
+      "Bash(git checkout HEAD -- src/contexts/DataAssumptionsContext.tsx src/utils/propertyInstanceDefaults.ts src/components/PropertyBlocksPanel.tsx src/components/TitleDeedCard.tsx src/components/AddToTimelineModal.tsx)",
+      "Bash(brew install poppler)",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\")"
     ]
   }
 }

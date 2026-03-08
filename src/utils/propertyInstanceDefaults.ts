@@ -84,9 +84,9 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     state: 'VIC',
     purchasePrice: 350000,
     valuationAtPurchase: 350000, // Default to same as purchase price
-    rentPerWeek: 480,
-    growthAssumption: 'High',
-    minimumYield: 6.5,
+    rentPerWeek: 335,
+    growthAssumption: 'Medium',
+    minimumYield: 4.5,
     daysToUnconditional: 21,
     daysForSettlement: 42,
     lvr: 88,

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react'
 import {
   HomeIcon,
+  UsersIcon,
+  FileTextIcon,
   BarChart3Icon,
   DatabaseIcon,
   UserIcon,
@@ -71,7 +73,9 @@ export const LeftRail = () => {
 
   // Top navigation items
   const topNavItems = [
-    { path: '/clients', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
+    { path: '/home', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
+    { path: '/clients', icon: UsersIcon, label: 'Clients', roles: ['owner', 'agent'] },
+    { path: '/forms', icon: FileTextIcon, label: 'Forms', roles: ['owner', 'agent'] },
     { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard', roles: ['owner', 'agent', 'client'] },
     { path: '/data', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
   ]
@@ -106,7 +110,7 @@ export const LeftRail = () => {
             <TooltipTrigger asChild>
               <button
                 className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
-                onClick={() => navigate('/clients')}
+                onClick={() => navigate('/home')}
               >
                 {branding.logoUrl ? (
                   <img
@@ -180,7 +184,7 @@ export const LeftRail = () => {
           })}
 
           {/* Help / Restart Tour Button - only show on pages with tours (dashboard/clients) */}
-          {(location.pathname === '/dashboard' || location.pathname === '/clients') && (
+          {(location.pathname === '/home' || location.pathname === '/dashboard' || location.pathname === '/clients') && (
             <TourStep
               id="tour-complete"
               title="You're All Set! 🎉"

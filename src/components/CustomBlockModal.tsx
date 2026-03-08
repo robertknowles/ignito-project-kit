@@ -64,9 +64,9 @@ const getDefaultFormData = (): Omit<CustomPropertyBlock, 'id' | 'isCustom'> => (
   purchasePrice: 350000,
   cost: 350000,
   valuationAtPurchase: 378000,
-  rentPerWeek: 471,
-  growthAssumption: 'High',
-  minimumYield: 6.5,
+  rentPerWeek: 335,
+  growthAssumption: 'Medium',
+  minimumYield: 4.5,
   yieldPercent: 7,
   growthPercent: 5,
   
@@ -163,7 +163,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
         interestRate: sourceTemplate.interestRate || 6.5,
         // Use template values if available, otherwise scaled defaults
         valuationAtPurchase: sourceTemplate.valuationAtPurchase || scaledDefaults.valuationAtPurchase || Math.round(sourceTemplate.purchasePrice * 1.08),
-        minimumYield: sourceTemplate.minimumYield || 6.5,
+        minimumYield: sourceTemplate.minimumYield || 4.5,
         daysToUnconditional: sourceTemplate.daysToUnconditional || 21,
         daysForSettlement: sourceTemplate.daysForSettlement || 42,
         lmiWaiver: sourceTemplate.lmiWaiver || false,

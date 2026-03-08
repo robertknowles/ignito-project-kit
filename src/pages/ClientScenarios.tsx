@@ -7,20 +7,15 @@ import {
   CalendarIcon,
   Edit2Icon,
   Trash2Icon,
-  LinkIcon,
-  CheckCircle2,
-  Clock,
   AlertTriangleIcon,
-  XCircle,
   Copy,
   User,
-  FileText,
-  Eye,
   Download,
-  Share2,
   Send,
   UserPlus,
   Target,
+  FileSpreadsheet,
+  Activity,
 } from 'lucide-react'
 import { TourStep } from '@/components/TourManager'
 import { PropertyTimeline } from '../components/PropertyTimeline'
@@ -131,6 +126,10 @@ export const ClientScenarios = () => {
     loginUrl: string;
     clientName: string;
   } | null>(null);
+
+  // CRM filter and search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'review_cycle' | 'onboarding' | 'ready'>('all');
 
   // State for email prompt dialog
   const [emailPromptOpen, setEmailPromptOpen] = useState(false);
@@ -330,6 +329,137 @@ export const ClientScenarios = () => {
       purchasingSoon,
     };
   }, [clients.length, timelineData, currentYear]);
+
+  // --- CRM helpers ---
+
+  // Format relative time for "Last Active" column
+  const formatRelativeTime = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '--';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  };
+
+  // Format review date with countdown
+  const formatReviewDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return { text: '--', badge: null, color: 'text-[#6b7280]' };
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const days = Math.ceil(diff / 86400000);
+    const formatted = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (days < 0) return { text: formatted, badge: 'Overdue', color: 'text-red-600' };
+    if (days <= 14) return { text: formatted, badge: `${days}d`, color: 'text-amber-600' };
+    if (days <= 30) return { text: formatted, badge: `${days}d`, color: 'text-[#374151]' };
+    return { text: formatted, badge: null, color: 'text-[#374151]' };
+  };
+
+  // Status badge configs
+  const stageBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+    onboarding: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Onboarding' },
+    review: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Review' },
+  };
+
+  const portalBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+    not_invited: { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400', label: 'Not invited' },
+    invited: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Invited' },
+    active: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Active' },
+  };
+
+  const roadmapBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+    not_started: { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400', label: 'Not started' },
+    draft: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Draft' },
+    in_review: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'In review' },
+    finalised: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Finalised' },
+  };
+
+  const StatusBadge = ({ config, value }: { config: Record<string, { bg: string; text: string; dot: string; label: string }>; value: string }) => {
+    const c = config[value] || config[Object.keys(config)[0]];
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+        {c.label}
+      </span>
+    );
+  };
+
+  // Filter tabs with counts
+  const filterTabs = useMemo(() => {
+    const counts = {
+      all: clients.length,
+      review_cycle: clients.filter(c => c.stage === 'review').length,
+      onboarding: clients.filter(c => c.stage === 'onboarding').length,
+      ready: clients.filter(c => c.roadmap_status === 'finalised').length,
+    };
+    return [
+      { key: 'all' as const, label: 'All', count: counts.all },
+      { key: 'review_cycle' as const, label: 'Review cycle', count: counts.review_cycle },
+      { key: 'onboarding' as const, label: 'Onboarding', count: counts.onboarding },
+      { key: 'ready' as const, label: 'Ready', count: counts.ready },
+    ];
+  }, [clients]);
+
+  // Filtered + searched clients
+  const filteredClients = useMemo(() => {
+    let result = clients;
+
+    // Apply tab filter
+    if (activeFilter === 'review_cycle') {
+      result = result.filter(c => c.stage === 'review');
+    } else if (activeFilter === 'onboarding') {
+      result = result.filter(c => c.stage === 'onboarding');
+    } else if (activeFilter === 'ready') {
+      result = result.filter(c => c.roadmap_status === 'finalised');
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [clients, activeFilter, searchQuery]);
+
+  // CSV export
+  const handleExportCSV = () => {
+    const headers = ['Name', 'Email', 'Phone', 'Stage', 'Portal Status', 'Roadmap Status', 'Last Active', 'Review Date'];
+    const rows = filteredClients.map(client => [
+      client.name,
+      client.email || '',
+      client.phone || '',
+      client.stage || 'onboarding',
+      client.portal_status || 'not_invited',
+      client.roadmap_status || 'not_started',
+      client.last_active_at || '',
+      client.next_review_date || '',
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clients-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Client data exported!');
+  };
 
   // Helper function to get the next purchase year for a specific client
   const getNextPurchaseYear = (clientId: number): number | null => {
@@ -728,73 +858,6 @@ toast.error('Failed to create client invite');
     }
   };
 
-  // Workflow cell component - shows status + action button together
-  const WorkflowCell = ({ 
-    isComplete, 
-    isWaiting,
-    completeLabel,
-    incompleteLabel,
-    waitingLabel,
-    actionIcon,
-    actionLabel,
-    onAction,
-    disabled
-  }: { 
-    isComplete: boolean;
-    isWaiting?: boolean;
-    completeLabel: string;
-    incompleteLabel: string;
-    waitingLabel?: string;
-    actionIcon: React.ReactNode;
-    actionLabel: string;
-    onAction: () => void;
-    disabled?: boolean;
-  }) => {
-    // Determine status state
-    const statusLabel = isComplete ? completeLabel : isWaiting ? (waitingLabel || incompleteLabel) : incompleteLabel;
-    const statusColor = isComplete 
-      ? 'text-green-600' 
-      : isWaiting 
-        ? 'text-amber-600' 
-        : 'text-gray-400';
-    const statusIcon = isComplete 
-      ? <CheckCircle2 size={12} className="text-green-600" /> 
-      : isWaiting 
-        ? <Clock size={12} className="text-amber-500" />
-        : <XCircle size={12} className="text-gray-400" />;
-
-    return (
-      <div className="flex flex-col items-center gap-1.5">
-        {/* Action button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button 
-              onClick={onAction}
-              disabled={disabled}
-              className={`p-2 rounded-lg border transition-all ${
-                isComplete 
-                  ? 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100' 
-                  : isWaiting
-                    ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
-                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {actionIcon}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{actionLabel}</p>
-          </TooltipContent>
-        </Tooltip>
-        {/* Status label */}
-        <div className={`flex items-center gap-1 text-[10px] ${statusColor}`}>
-          {statusIcon}
-          <span className="whitespace-nowrap">{statusLabel}</span>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <TooltipProvider>
       {/* Property Blocks Onboarding Modal */}
@@ -816,16 +879,18 @@ toast.error('Failed to create client invite');
           )}
           <div className="bg-white flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8 bg-white">
-              {/* Client Portfolio with Stats Header */}
+              {/* Client CRM Header */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium text-[#111827]">
-                  Client Scenarios
+                  Clients
                 </h2>
-                <div className="flex items-center gap-4 relative z-10">
+                <div className="flex items-center gap-3 relative z-10">
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Search clients..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-9 pr-4 py-2 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#3b82f6] focus:border-[#3b82f6] w-64"
                     />
                     <SearchIcon
@@ -833,6 +898,20 @@ toast.error('Failed to create client invite');
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b7280]"
                     />
                   </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleExportCSV}
+                        className="flex items-center gap-2 px-3 py-2 border border-[#f3f4f6] rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                      >
+                        <FileSpreadsheet size={16} className="text-[#6b7280]" />
+                        <span>Export</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export clients to CSV</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <TourStep
                     id="clients-new-client"
                     title="Add a New Client"
@@ -840,7 +919,7 @@ toast.error('Failed to create client invite');
                     order={1}
                     position="bottom"
                   >
-                    <button 
+                    <button
                       onClick={() => setCreateFormOpen(true)}
                       className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2563eb] transition-colors"
                     >
@@ -849,6 +928,28 @@ toast.error('Failed to create client invite');
                     </button>
                   </TourStep>
                 </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 mb-4">
+                {filterTabs.map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveFilter(tab.key)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      activeFilter === tab.key
+                        ? 'bg-[#3b82f6] text-white'
+                        : 'text-[#6b7280] hover:bg-gray-100'
+                    }`}
+                  >
+                    {tab.label}
+                    <span className={`ml-1.5 text-xs ${
+                      activeFilter === tab.key ? 'text-white/70' : 'text-[#9ca3af]'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
               </div>
               <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden">
                 {/* Stats Row - Seat Usage + Stats Cards */}
@@ -943,139 +1044,124 @@ toast.error('Failed to create client invite');
                         <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
                           Client
                         </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          <TourStep
-                            id="clients-onboarding-column"
-                            title="Onboarding Workflow"
-                            content="Track client onboarding progress here. Send questionnaires to gather client information. Green checkmarks show completed onboarding, while gray indicates pending status."
-                            order={3}
-                            position="bottom"
-                          >
-                            <span>Onboarding</span>
-                          </TourStep>
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          <TourStep
-                            id="clients-plan-column"
-                            title="Plan Creation"
-                            content="Create and manage property investment plans for each client. Click to build their personalized roadmap with property scenarios and timeline projections."
-                            order={4}
-                            position="bottom"
-                          >
-                            <span>Plan</span>
-                          </TourStep>
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280] text-center">
-                          <TourStep
-                            id="clients-dashboard-column"
-                            title="Client Dashboard Access"
-                            content="Invite clients to their personal dashboard where they can view their investment plan, track progress, and access reports. Monitor who has logged in."
-                            order={5}
-                            position="bottom"
-                          >
-                            <span>Dashboard</span>
-                          </TourStep>
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
-                          Next Purchase
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+                          Stage
                         </th>
                         <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          
+                          Portal
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+                          Roadmap
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+                          Last Active
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+                          Review Date
+                        </th>
+                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
+
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {clients.map((client, clientIndex) => {
+                      {filteredClients.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-12 text-center">
+                            <div className="text-sm text-[#6b7280]">
+                              {searchQuery ? 'No clients match your search' : 'No clients in this category'}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : filteredClients.map((client, clientIndex) => {
                         const initials = client.name
                           .split(' ')
                           .map(word => word[0])
                           .join('')
                           .toUpperCase()
                           .slice(0, 2);
-                        
+
                         const status = clientStatuses[client.id];
                         const isOnboarded = status?.isQuestionnaireCompleted || false;
                         const hasPlan = status?.hasScenario || false;
-                        // Dashboard invite status
                         const hasClientUser = !!status?.clientUserId;
                         const hasLoggedIn = status?.clientHasLoggedIn || false;
-                        // Only show tour step on first row to avoid duplicate registrations
                         const isFirstRow = clientIndex === 0;
+                        const reviewInfo = formatReviewDate(client.next_review_date);
 
                         return (
                           <tr key={client.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
+                            {/* Client name + email */}
                             <td className="px-6 py-4">
                               <div className="flex items-center">
-                                <button 
+                                <button
                                   onClick={() => handleOpenProfile(client)}
-                                  className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors"
+                                  className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors flex-shrink-0"
                                 >
                                   {initials}
                                 </button>
-                                <div className="text-sm font-medium text-[#111827]">
-                                  {client.name}
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-[#111827] truncate">
+                                    {client.name}
+                                  </div>
+                                  {client.email && (
+                                    <div className="text-xs text-[#6b7280] truncate">
+                                      {client.email}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
-                            
-                            {/* Onboarding Column */}
+
+                            {/* Stage */}
                             <td className="px-4 py-4">
-                              <WorkflowCell
-                                isComplete={isOnboarded}
-                                completeLabel="Completed"
-                                incompleteLabel="Not started"
-                                actionIcon={<UserPlus size={16} />}
-                                actionLabel={isOnboarded ? "Copy questionnaire link" : "Send questionnaire"}
-                                onAction={() => handleCopyOnboardingLink(client)}
-                              />
+                              <StatusBadge config={stageBadgeConfig} value={client.stage || 'onboarding'} />
                             </td>
-                            
-                            {/* Plan Column */}
+
+                            {/* Portal Status */}
                             <td className="px-4 py-4">
-                              <WorkflowCell
-                                isComplete={hasPlan}
-                                completeLabel="Created"
-                                incompleteLabel="Not created"
-                                actionIcon={<Target size={16} />}
-                                actionLabel={hasPlan ? "View plan" : "Create plan"}
-                                onAction={() => handleViewClient(client.id)}
-                              />
+                              <StatusBadge config={portalBadgeConfig} value={client.portal_status || 'not_invited'} />
                             </td>
-                            
-                            {/* Dashboard Column */}
+
+                            {/* Roadmap Status */}
                             <td className="px-4 py-4">
-                              <WorkflowCell
-                                isComplete={hasLoggedIn}
-                                isWaiting={hasClientUser && !hasLoggedIn}
-                                completeLabel="Logged in"
-                                incompleteLabel="Not invited"
-                                waitingLabel="Invited"
-                                actionIcon={<Send size={16} />}
-                                actionLabel={hasLoggedIn ? "View credentials" : hasClientUser ? "Resend invite" : "Invite to dashboard"}
-                                onAction={() => handleInviteClient(client)}
-                              />
+                              <StatusBadge config={roadmapBadgeConfig} value={client.roadmap_status || 'not_started'} />
                             </td>
-                            
-                            <td className="px-6 py-4 text-sm text-[#374151]">
-                              {(() => {
-                                const nextYear = getNextPurchaseYear(client.id);
-                                if (nextYear) {
-                                  return (
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-2 h-2 rounded-full bg-green-300/70"></span>
-                                      <span>Property in {nextYear}</span>
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <span className="text-[#6b7280]">No active plan</span>
-                                );
-                              })()}
+
+                            {/* Last Active */}
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-1.5">
+                                {client.last_active_at && (
+                                  <Activity size={12} className="text-[#9ca3af]" />
+                                )}
+                                <span className="text-sm text-[#374151]">
+                                  {formatRelativeTime(client.last_active_at)}
+                                </span>
+                              </div>
                             </td>
-                            
+
+                            {/* Review Date */}
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm ${reviewInfo.color}`}>
+                                  {reviewInfo.text}
+                                </span>
+                                {reviewInfo.badge && (
+                                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                    reviewInfo.badge === 'Overdue'
+                                      ? 'bg-red-50 text-red-600'
+                                      : 'bg-amber-50 text-amber-600'
+                                  }`}>
+                                    {reviewInfo.badge}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Actions */}
                             <td className="px-4 py-4">
                               <div className="flex items-center gap-1">
-                                {/* Profile Button - wrapped with TourStep only on first row */}
+                                {/* Profile Button */}
                                 {isFirstRow ? (
                                   <TourStep
                                     id="clients-view-profile"
@@ -1086,7 +1172,7 @@ toast.error('Failed to create client invite');
                                   >
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <button 
+                                        <button
                                           onClick={() => handleOpenProfile(client)}
                                           className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
                                         >
@@ -1101,7 +1187,7 @@ toast.error('Failed to create client invite');
                                 ) : (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <button 
+                                      <button
                                         onClick={() => handleOpenProfile(client)}
                                         className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
                                       >
@@ -1117,7 +1203,7 @@ toast.error('Failed to create client invite');
                                 {/* Download PDF */}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <button 
+                                    <button
                                       onClick={() => handleGeneratePDF(client)}
                                       disabled={pdfGenerating}
                                       className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1137,15 +1223,37 @@ toast.error('Failed to create client invite');
                                       <MoreHorizontalIcon size={16} />
                                     </button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuItem 
+                                  <DropdownMenuContent align="end" className="w-52">
+                                    <DropdownMenuItem
+                                      onClick={() => handleViewClient(client.id)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Target size={14} className="mr-2" />
+                                      {hasPlan ? 'View Plan' : 'Create Plan'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleCopyOnboardingLink(client)}
+                                      className="cursor-pointer"
+                                    >
+                                      <UserPlus size={14} className="mr-2" />
+                                      {isOnboarded ? 'Copy Questionnaire Link' : 'Send Questionnaire'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleInviteClient(client)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Send size={14} className="mr-2" />
+                                      {hasLoggedIn ? 'View Credentials' : hasClientUser ? 'Resend Invite' : 'Invite to Portal'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
                                       onClick={() => handleOpenProfile(client)}
                                       className="cursor-pointer"
                                     >
                                       <User size={14} className="mr-2" />
                                       View Profile
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={() => handleRenameClick(client)}
                                       className="cursor-pointer"
                                     >
@@ -1153,7 +1261,7 @@ toast.error('Failed to create client invite');
                                       Rename Client
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={() => handleDeleteClick(client)}
                                       className="cursor-pointer text-red-700 focus:text-red-700"
                                     >

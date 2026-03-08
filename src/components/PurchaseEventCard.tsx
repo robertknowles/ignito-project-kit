@@ -39,8 +39,8 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
     state: 'VIC',
     purchasePrice: yearData.propertyCost || 350000,
     valuationAtPurchase: yearData.propertyCost || 350000, // Default to same as purchase price
-    rentPerWeek: 471,
-    growthAssumption: 'High',
+    rentPerWeek: 335,
+    growthAssumption: 'Medium',
     lvr: 85,
     lmiWaiver: false,
     loanProduct: 'IO',

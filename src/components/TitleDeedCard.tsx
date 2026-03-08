@@ -157,59 +157,10 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
             </div>
           </div>
           
-          {/* GROWTH Section */}
-          <div className="pb-2 border-b border-gray-100">
-            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
-              Growth ({template.growthAssumption})
-            </div>
-            <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
-              <div>
-                <div className="font-medium text-gray-400">Y1</div>
-                <div className="text-gray-700">{growthRates.year1}%</div>
-              </div>
-              <div>
-                <div className="font-medium text-gray-400">Y2-3</div>
-                <div className="text-gray-700">{growthRates.years2to3}%</div>
-              </div>
-              <div>
-                <div className="font-medium text-gray-400">Y4</div>
-                <div className="text-gray-700">{growthRates.year4}%</div>
-              </div>
-              <div>
-                <div className="font-medium text-gray-400">Y5+</div>
-                <div className="text-gray-700">{growthRates.year5plus}%</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* MORTGAGE VALUE Section */}
-          <div>
-            <div className="text-center mb-1.5">
-              <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Mortgage Value</div>
-              <div className="text-sm font-semibold text-gray-900">{formatCurrency(mortgageValue)}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] bg-gray-50 rounded p-2">
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-600">LVR</span>
-                <span className="text-gray-700">{template.lvr}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-600">Rate</span>
-                <span className="text-gray-700">{template.interestRate}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-600">Type</span>
-                <span className="text-gray-700">{template.loanProduct === 'IO' ? 'Interest Only' : 'P&I'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-600">Term</span>
-                <span className="text-gray-700">{template.loanTerm}yr</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-600">State</span>
-                <span className="text-gray-700">{template.state}</span>
-              </div>
-            </div>
+          {/* GROWTH Section - simplified to tier label */}
+          <div className="flex justify-between items-center text-[10px]">
+            <span className="font-medium text-gray-600">Growth</span>
+            <span className="text-gray-700">{template.growthAssumption}</span>
           </div>
         </div>
       </div>

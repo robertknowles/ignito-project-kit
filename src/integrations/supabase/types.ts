@@ -113,46 +113,282 @@ export interface ScenarioData {
 // User role enum type
 export type UserRole = 'owner' | 'agent' | 'client';
 
+// New enum types for client lifecycle
+export type ClientStage = 'onboarding' | 'review';
+export type PortalStatus = 'not_invited' | 'invited' | 'active';
+export type RoadmapStatus = 'not_started' | 'draft' | 'in_review' | 'finalised';
+
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      companies: {
+      activity_log: {
         Row: {
-          id: string
-          name: string
-          logo_url: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          owner_id: string | null
-          seat_limit: number
+          actor_id: string | null
+          client_id: number
+          company_id: string | null
           created_at: string
+          event_type: string
+          id: number
+          metadata: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          client_id: number
+          company_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: number
+          metadata?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          client_id?: number
+          company_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: number
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_properties: {
+        Row: {
+          address: string | null
+          client_id: number
+          company_id: string | null
+          created_at: string
+          current_value: number | null
+          id: number
+          loan_balance: number | null
+          notes: string | null
+          postcode: string | null
+          property_type: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          rental_income_weekly: number | null
+          state: string | null
+          suburb: string | null
+          tenanted_until: string | null
           updated_at: string | null
         }
         Insert: {
-          id?: string
-          name: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          owner_id?: string | null
-          seat_limit?: number
+          address?: string | null
+          client_id: number
+          company_id?: string | null
           created_at?: string
+          current_value?: number | null
+          id?: number
+          loan_balance?: number | null
+          notes?: string | null
+          postcode?: string | null
+          property_type?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          rental_income_weekly?: number | null
+          state?: string | null
+          suburb?: string | null
+          tenanted_until?: string | null
           updated_at?: string | null
         }
         Update: {
-          id?: string
-          name?: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          owner_id?: string | null
-          seat_limit?: number
+          address?: string | null
+          client_id?: number
+          company_id?: string | null
           created_at?: string
+          current_value?: number | null
+          id?: number
+          loan_balance?: number | null
+          notes?: string | null
+          postcode?: string | null
+          property_type?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          rental_income_weekly?: number | null
+          state?: string | null
+          suburb?: string | null
+          tenanted_until?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_properties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_properties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          annual_income: number | null
+          available_savings: number | null
+          borrowing_capacity: number | null
+          company_id: string | null
+          created_at: string
+          date_of_birth: string | null
+          dependants: number | null
+          email: string | null
+          employment: string | null
+          id: number
+          last_active_at: string | null
+          marital_status: string | null
+          name: string | null
+          next_review_date: string | null
+          notes: string | null
+          partner_income: number | null
+          phone: string | null
+          portal_status: PortalStatus
+          pre_approval_expiry: string | null
+          pre_approval_status: string | null
+          preferred_locations: string | null
+          preferred_property_type: string | null
+          primary_goal: string | null
+          purchase_timeline: string | null
+          risk_tolerance: string | null
+          roadmap_status: RoadmapStatus
+          stage: ClientStage
+          strategy_type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          annual_income?: number | null
+          available_savings?: number | null
+          borrowing_capacity?: number | null
+          company_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          dependants?: number | null
+          email?: string | null
+          employment?: string | null
+          id?: number
+          last_active_at?: string | null
+          marital_status?: string | null
+          name?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          partner_income?: number | null
+          phone?: string | null
+          portal_status?: PortalStatus
+          pre_approval_expiry?: string | null
+          pre_approval_status?: string | null
+          preferred_locations?: string | null
+          preferred_property_type?: string | null
+          primary_goal?: string | null
+          purchase_timeline?: string | null
+          risk_tolerance?: string | null
+          roadmap_status?: RoadmapStatus
+          stage?: ClientStage
+          strategy_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          annual_income?: number | null
+          available_savings?: number | null
+          borrowing_capacity?: number | null
+          company_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          dependants?: number | null
+          email?: string | null
+          employment?: string | null
+          id?: number
+          last_active_at?: string | null
+          marital_status?: string | null
+          name?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          partner_income?: number | null
+          phone?: string | null
+          portal_status?: PortalStatus
+          pre_approval_expiry?: string | null
+          pre_approval_status?: string | null
+          preferred_locations?: string | null
+          preferred_property_type?: string | null
+          primary_goal?: string | null
+          purchase_timeline?: string | null
+          risk_tolerance?: string | null
+          roadmap_status?: RoadmapStatus
+          stage?: ClientStage
+          strategy_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_client_interactive_enabled: boolean | null
+          logo_url: string | null
+          name: string
+          owner_id: string | null
+          primary_color: string | null
+          seat_limit: number | null
+          secondary_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_client_interactive_enabled?: boolean | null
+          logo_url?: string | null
+          name: string
+          owner_id?: string | null
+          primary_color?: string | null
+          seat_limit?: number | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_client_interactive_enabled?: boolean | null
+          logo_url?: string | null
+          name?: string
+          owner_id?: string | null
+          primary_color?: string | null
+          seat_limit?: number | null
+          secondary_color?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -162,92 +398,135 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
-      clients: {
+      form_submissions: {
         Row: {
-          created_at: string
-          email: string | null
-          id: number
-          name: string | null
-          notes: string | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string | null
+          client_id: number
           company_id: string | null
+          completed_at: string | null
+          created_at: string
+          form_type: string
+          id: number
+          opened_at: string | null
+          questions: Json | null
+          responses: Json | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
-          email?: string | null
-          id?: number
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          client_id: number
           company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          form_type: string
+          id?: number
+          opened_at?: string | null
+          questions?: Json | null
+          responses?: Json | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
-          email?: string | null
-          id?: number
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          client_id?: number
           company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          form_type?: string
+          id?: number
+          opened_at?: string | null
+          questions?: Json | null
+          responses?: Json | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "clients_company_id_fkey"
+            foreignKeyName: "form_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       profiles: {
         Row: {
+          billing_period_end: string | null
+          billing_period_start: string | null
+          client_roadmaps_limit: number | null
+          client_roadmaps_used: number | null
+          company_id: string | null
           company_name: string | null
           created_at: string
           data: Json | null
           full_name: string | null
-          id: string
-          updated_at: string | null
-          company_id: string | null
-          role: UserRole | null
-          has_completed_tour: boolean | null
           has_completed_clients_tour: boolean | null
           has_completed_property_onboarding: boolean | null
+          has_completed_tour: boolean | null
+          id: string
+          role: UserRole | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          subscription_tier: string | null
+          updated_at: string | null
         }
         Insert: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          client_roadmaps_limit?: number | null
+          client_roadmaps_used?: number | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           data?: Json | null
           full_name?: string | null
-          id?: string
-          updated_at?: string | null
-          company_id?: string | null
-          role?: UserRole | null
-          has_completed_tour?: boolean | null
           has_completed_clients_tour?: boolean | null
           has_completed_property_onboarding?: boolean | null
+          has_completed_tour?: boolean | null
+          id?: string
+          role?: UserRole | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
         }
         Update: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          client_roadmaps_limit?: number | null
+          client_roadmaps_used?: number | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           data?: Json | null
           full_name?: string | null
-          id?: string
-          updated_at?: string | null
-          company_id?: string | null
-          role?: UserRole | null
-          has_completed_tour?: boolean | null
           has_completed_clients_tour?: boolean | null
           has_completed_property_onboarding?: boolean | null
+          has_completed_tour?: boolean | null
+          id?: string
+          role?: UserRole | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -256,51 +535,54 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       scenarios: {
         Row: {
+          agent_display_name: string | null
+          client_display_name: string | null
           client_id: number
+          client_user_id: string | null
+          company_display_name: string | null
+          company_id: string | null
           created_at: string
           data: Json | null
           id: number
           name: string | null
-          updated_at: string | null
-          client_display_name: string | null
-          agent_display_name: string | null
-          company_display_name: string | null
+          onboarding_id: string | null
           share_id: string | null
-          company_id: string | null
-          client_user_id: string | null
+          updated_at: string | null
         }
         Insert: {
+          agent_display_name?: string | null
+          client_display_name?: string | null
           client_id: number
+          client_user_id?: string | null
+          company_display_name?: string | null
+          company_id?: string | null
           created_at?: string
           data?: Json | null
           id?: number
           name?: string | null
-          updated_at?: string | null
-          client_display_name?: string | null
-          agent_display_name?: string | null
-          company_display_name?: string | null
+          onboarding_id?: string | null
           share_id?: string | null
-          company_id?: string | null
-          client_user_id?: string | null
+          updated_at?: string | null
         }
         Update: {
+          agent_display_name?: string | null
+          client_display_name?: string | null
           client_id?: number
+          client_user_id?: string | null
+          company_display_name?: string | null
+          company_id?: string | null
           created_at?: string
           data?: Json | null
           id?: number
           name?: string | null
-          updated_at?: string | null
-          client_display_name?: string | null
-          agent_display_name?: string | null
-          company_display_name?: string | null
+          onboarding_id?: string | null
           share_id?: string | null
-          company_id?: string | null
-          client_user_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -311,19 +593,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scenarios_client_user_id_fkey"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "scenarios_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "scenarios_client_user_id_fkey"
-            columns: ["client_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
     }
@@ -331,9 +613,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_company_id: { Args: never; Returns: string }
+      get_user_role_and_company: {
+        Args: never
+        Returns: {
+          user_company_id: string
+          user_role: UserRole
+        }[]
+      }
+      is_company_owner: { Args: { check_company_id: string }; Returns: boolean }
     }
     Enums: {
+      client_stage: ClientStage
+      portal_status: PortalStatus
+      roadmap_status: RoadmapStatus
       user_role: UserRole
     }
     CompositeTypes: {
@@ -462,6 +755,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      client_stage: ['onboarding', 'review'] as const,
+      portal_status: ['not_invited', 'invited', 'active'] as const,
+      roadmap_status: ['not_started', 'draft', 'in_review', 'finalised'] as const,
       user_role: ['owner', 'agent', 'client'] as const,
     },
   },

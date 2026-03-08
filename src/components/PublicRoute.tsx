@@ -80,8 +80,8 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
       return <Navigate to="/dashboard" replace />;
     }
     
-    // Existing users: Clients go to dashboard, agents/owners go to clients page
-    const redirectPath = role === 'client' ? '/dashboard' : '/clients';
+    // Existing users: Clients go to portal, agents/owners go to home page
+    const redirectPath = role === 'client' ? '/portal' : '/home';
     return <Navigate to={redirectPath} replace />;
   }
 

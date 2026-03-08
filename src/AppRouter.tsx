@@ -2,6 +2,8 @@ import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { App } from './App'
 import { Landing } from './landing/Landing'
+import { AgentHome } from './pages/AgentHome'
+import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { DataAssumptions } from './pages/DataAssumptions'
 import { Login } from './pages/Login'
@@ -28,6 +30,11 @@ import { Toaster as SonnerToaster } from 'sonner'
 import { ClientView } from './client-view/ClientView'
 import { ClientOnboarding } from './pages/ClientOnboarding'
 import { TourManagerProvider } from './components/TourManager'
+import { PortalLayout } from './portal/PortalLayout'
+import { PortalHome } from './portal/PortalHome'
+import { PortalPropertyPlan } from './portal/PortalPropertyPlan'
+import { PortalPortfolio } from './portal/PortalPortfolio'
+import { PortalProfile } from './portal/PortalProfile'
 
 export function AppRouter() {
   return (
@@ -110,39 +117,72 @@ export function AppRouter() {
                             {/* Public client onboarding form - no authentication required */}
                             <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
                             
+                            {/* BA Home - agent/owner overview page */}
+                            <Route
+                              path="/home"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <AgentHome />
+                                </ProtectedRoute>
+                              }
+                            />
+
                             {/* Protected app routes - require authentication */}
-                            <Route 
-                              path="/dashboard" 
+                            <Route
+                              path="/dashboard"
                               element={
                                 <ProtectedRoute>
                                   <App />
                                 </ProtectedRoute>
-                              } 
+                              }
                             />
-                            <Route 
-                              path="/clients" 
+                            <Route
+                              path="/clients"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <ClientScenarios />
                                 </ProtectedRoute>
-                              } 
+                              }
                             />
-                            <Route 
-                              path="/data" 
+                            <Route
+                              path="/forms"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <AgentForms />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/data"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <DataAssumptions />
                                 </ProtectedRoute>
                               } 
                             />
-                            <Route 
-                              path="/company" 
+                            <Route
+                              path="/company"
                               element={
                                 <ProtectedRoute allowedRoles={['owner']}>
                                   <CompanyManagement />
                                 </ProtectedRoute>
-                              } 
+                              }
                             />
+
+                            {/* Client Portal routes */}
+                            <Route
+                              path="/portal"
+                              element={
+                                <ProtectedRoute allowedRoles={['client']} requireSubscription={false}>
+                                  <PortalLayout />
+                                </ProtectedRoute>
+                              }
+                            >
+                              <Route index element={<PortalHome />} />
+                              <Route path="property-plan" element={<PortalPropertyPlan />} />
+                              <Route path="portfolio" element={<PortalPortfolio />} />
+                              <Route path="profile" element={<PortalProfile />} />
+                            </Route>
                           </Routes>
                           <Toaster />
                           <SonnerToaster position="bottom-right" richColors />

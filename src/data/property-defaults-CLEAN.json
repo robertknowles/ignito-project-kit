@@ -2,13 +2,13 @@
   "units-apartments": {
     "state": "VIC",
     "purchasePrice": 350000,
-    "valuationAtPurchase": 378000,
+    "valuationAtPurchase": 350000,
     "rentPerWeek": 335,
     "growthAssumption": "Medium",
     "minimumYield": 4.5,
     "daysToUnconditional": 21,
     "daysForSettlement": 42,
-    "lvr": 88,
+    "lvr": 80,
     "lmiWaiver": false,
     "loanProduct": "IO",
     "interestRate": 6.5,
@@ -38,13 +38,13 @@
   "villas-townhouses": {
     "state": "QLD",
     "purchasePrice": 325000,
-    "valuationAtPurchase": 351000,
+    "valuationAtPurchase": 325000,
     "rentPerWeek": 345,
     "growthAssumption": "High",
     "minimumYield": 5.0,
     "daysToUnconditional": 21,
     "daysForSettlement": 45,
-    "lvr": 88,
+    "lvr": 80,
     "lmiWaiver": false,
     "loanProduct": "IO",
     "interestRate": 6.5,
@@ -74,13 +74,13 @@
   "houses-regional": {
     "state": "NSW",
     "purchasePrice": 350000,
-    "valuationAtPurchase": 378000,
+    "valuationAtPurchase": 350000,
     "rentPerWeek": 370,
     "growthAssumption": "High",
     "minimumYield": 5.0,
     "daysToUnconditional": 14,
     "daysForSettlement": 30,
-    "lvr": 88,
+    "lvr": 80,
     "lmiWaiver": false,
     "loanProduct": "IO",
     "interestRate": 6.5,
@@ -110,13 +110,13 @@
   "duplexes": {
     "state": "QLD",
     "purchasePrice": 550000,
-    "valuationAtPurchase": 594000,
+    "valuationAtPurchase": 550000,
     "rentPerWeek": 635,
     "growthAssumption": "High",
     "minimumYield": 5.5,
     "daysToUnconditional": 21,
     "daysForSettlement": 60,
-    "lvr": 88,
+    "lvr": 80,
     "lmiWaiver": false,
     "loanProduct": "IO",
     "interestRate": 6.5,
@@ -146,7 +146,7 @@
   "small-blocks-3-4-units": {
     "state": "NSW",
     "purchasePrice": 900000,
-    "valuationAtPurchase": 972000,
+    "valuationAtPurchase": 900000,
     "rentPerWeek": 1125,
     "growthAssumption": "Medium",
     "minimumYield": 6.0,
@@ -182,13 +182,13 @@
   "metro-houses": {
     "state": "VIC",
     "purchasePrice": 800000,
-    "valuationAtPurchase": 864000,
+    "valuationAtPurchase": 800000,
     "rentPerWeek": 615,
     "growthAssumption": "High",
     "minimumYield": 3.5,
     "daysToUnconditional": 21,
     "daysForSettlement": 60,
-    "lvr": 88,
+    "lvr": 80,
     "lmiWaiver": false,
     "loanProduct": "IO",
     "interestRate": 6.5,
@@ -218,7 +218,7 @@
   "larger-blocks-10-20-units": {
     "state": "NSW",
     "purchasePrice": 3500000,
-    "valuationAtPurchase": 3780000,
+    "valuationAtPurchase": 3500000,
     "rentPerWeek": 4712,
     "growthAssumption": "Medium",
     "minimumYield": 6.5,
@@ -254,7 +254,7 @@
   "commercial-property": {
     "state": "VIC",
     "purchasePrice": 3000000,
-    "valuationAtPurchase": 3240000,
+    "valuationAtPurchase": 3000000,
     "rentPerWeek": 4615,
     "growthAssumption": "Low",
     "minimumYield": 7.0,
@@ -288,8 +288,3 @@
     "potentialDeductionsRebates": 0
   }
 }
-
-
-
-
-

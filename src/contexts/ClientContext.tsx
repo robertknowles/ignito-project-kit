@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import type { ClientStage, PortalStatus, RoadmapStatus } from '@/integrations/supabase/types';
 
 export interface Client {
   id: number;
@@ -12,6 +13,32 @@ export interface Client {
   updated_at?: string;
   user_id: string;
   company_id?: string;
+  // Lifecycle & workflow
+  stage: ClientStage;
+  portal_status: PortalStatus;
+  roadmap_status: RoadmapStatus;
+  next_review_date?: string;
+  last_active_at?: string;
+  strategy_type?: string;
+  // Personal details
+  date_of_birth?: string;
+  address?: string;
+  marital_status?: string;
+  dependants?: number;
+  // Financial snapshot
+  employment?: string;
+  annual_income?: number;
+  partner_income?: number;
+  available_savings?: number;
+  borrowing_capacity?: number;
+  pre_approval_status?: string;
+  pre_approval_expiry?: string;
+  // Investment preferences
+  risk_tolerance?: string;
+  primary_goal?: string;
+  preferred_property_type?: string;
+  preferred_locations?: string;
+  purchase_timeline?: string;
 }
 
 interface ClientContextType {
