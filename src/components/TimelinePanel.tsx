@@ -14,6 +14,7 @@ import { TourStep } from '@/components/TourManager';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { getPropertyTypeImagePath } from '../utils/propertyTypeIcon';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 
 // Convert period to year for display
 const periodToYear = (period: number): number => {
@@ -948,7 +949,19 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   const yieldDisplay = instanceData?.purchasePrice && instanceData?.rentPerWeek
     ? `${((instanceData.rentPerWeek * 52 / instanceData.purchasePrice) * 100).toFixed(1)}%`
     : null;
-  
+
+  // Calculate monthly holding cost
+  const monthlyCostDisplay = (() => {
+    if (!instanceData?.purchasePrice || !instanceData?.lvr) return null;
+    const loanAmount = instanceData.purchasePrice * (instanceData.lvr / 100);
+    const cashflow = calculateDetailedCashflow(instanceData, loanAmount);
+    const monthly = Math.round(cashflow.netWeeklyCashflow * 52 / 12);
+    const abs = Math.abs(monthly);
+    const sign = monthly < 0 ? '-' : '+';
+    if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k/mo`;
+    return `${sign}$${abs}/mo`;
+  })();
+
   // Get state info
   const stateDisplay = instanceData?.state;
   const stateColors = stateDisplay ? STATE_COLORS[stateDisplay] || { bg: 'bg-gray-100', text: 'text-gray-700' } : null;
@@ -985,7 +998,16 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm truncate">{title}</h4>
             <p className="text-gray-500 text-xs mt-0.5">
-              {isProperty ? (priceDisplay || '$0') : (subtitleText || '')}
+              {isProperty ? (
+                <>
+                  {priceDisplay || '$0'}
+                  {monthlyCostDisplay && (
+                    <span className={`ml-1.5 ${monthlyCostDisplay.startsWith('+') ? 'text-green-500' : 'text-rose-400'}`}>
+                      {monthlyCostDisplay}
+                    </span>
+                  )}
+                </>
+              ) : (subtitleText || '')}
             </p>
           </div>
           {/* Right: expand and delete buttons */}

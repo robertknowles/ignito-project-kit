@@ -1,13 +1,15 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ReferenceLine,
   ReferenceDot,
+  ReferenceArea,
   Label,
 } from 'recharts';
 import { AlertTriangle, Info, Check } from 'lucide-react';
@@ -19,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
+import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
@@ -138,32 +141,46 @@ const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = 
   );
 };
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0]?.payload;
-    return (
-      <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
-        <p className="text-xs font-medium text-slate-900 mb-2">Year: {label}</p>
-        <p className="text-xs text-teal-600">
-          Portfolio: {formatCurrency(data?.portfolioValue || 0)}
-        </p>
-        <p className="text-xs text-slate-500">
-          Equity: {formatCurrency(data?.totalEquity || 0)}
-        </p>
-        {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-slate-100">
-            {data.purchaseDetails.map((purchase: any, idx: number) => (
-              <p key={idx} className="text-xs font-medium text-slate-700">
-                🏠 {purchase.propertyTitle}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-  return null;
+// Custom tooltip factory — accepts refinanceTriggers to show refinance info
+const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]?.payload;
+      const yearTriggers = refinanceTriggers.filter(t => t.triggerYear === Number(label));
+      return (
+        <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
+          <p className="text-xs font-medium text-slate-900 mb-2">Year: {label}</p>
+          <p className="text-xs text-teal-600">
+            Portfolio: {formatCurrency(data?.portfolioValue || 0)}
+          </p>
+          <p className="text-xs text-slate-500">
+            Equity: {formatCurrency(data?.totalEquity || 0)}
+          </p>
+          {data?.doNothingBalance > 0 && (
+            <p className="text-xs text-slate-400 mt-1">
+              Savings Only: {formatCurrency(data.doNothingBalance)}
+            </p>
+          )}
+          {yearTriggers.map(t => (
+            <p key={t.instanceId} className="text-xs text-amber-600 mt-1">
+              {t.propertyTitle}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
+            </p>
+          ))}
+          {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-slate-100">
+              {data.purchaseDetails.map((purchase: any, idx: number) => (
+                <p key={idx} className="text-xs font-medium text-slate-700">
+                  {purchase.propertyTitle}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+  return CustomTooltip;
 };
 
 // Custom dot component for property markers
@@ -456,7 +473,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
   
   // Expandable state for the table rows (excluding year header)
-  const [isTableExpanded, setIsTableExpanded] = useState(true);
+  const [isTableExpanded, setIsTableExpanded] = useState(false);
   
   // Get violations for a property
   const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
@@ -726,6 +743,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     totalEquity: yearData.totalEquityRaw,
     purchaseInYear: yearData.purchaseInYear,
     purchaseDetails: yearData.purchaseDetails,
+    doNothingBalance: yearData.doNothingBalance ?? 0,
   })), [years]);
 
   // Find the year when equity goal is first reached
@@ -738,6 +756,45 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     const purchaseYears = chartData.filter(d => d.purchaseInYear);
     return purchaseYears.length > 0 ? purchaseYears[purchaseYears.length - 1] : null;
   }, [chartData]);
+
+  // Phase labels for Accumulation / Consolidation
+  const phases = useMemo(() => {
+    if (!mostRecentPurchase || chartData.length < 2) return [];
+    const startYear = chartData[0].year;
+    const endYear = chartData[chartData.length - 1].year;
+    const lastPurchaseYear = mostRecentPurchase.year;
+    const result: { label: string; startYear: number; endYear: number; fill: string }[] = [];
+
+    if (lastPurchaseYear > startYear) {
+      result.push({
+        label: 'Accumulation',
+        startYear,
+        endYear: lastPurchaseYear,
+        fill: 'rgba(59, 130, 246, 0.03)',
+      });
+    }
+    if (lastPurchaseYear < endYear) {
+      result.push({
+        label: 'Consolidation',
+        startYear: lastPurchaseYear,
+        endYear,
+        fill: 'rgba(34, 197, 94, 0.03)',
+      });
+    }
+    return result;
+  }, [chartData, mostRecentPurchase]);
+
+  // Refinance trigger dots — first year each property has extractable equity > $50k
+  const refinanceTriggers = useMemo(() => {
+    return calculateRefinanceTriggers(
+      timelineProperties,
+      profile.growthCurve,
+      profile.timelineYears
+    );
+  }, [timelineProperties, profile.growthCurve, profile.timelineYears]);
+
+  // Create tooltip component with refinance trigger context
+  const CustomTooltip = useMemo(() => createCustomTooltip(refinanceTriggers), [refinanceTriggers]);
 
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
@@ -917,7 +974,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   />
                 )}
 
-                <AreaChart
+                <ComposedChart
                 width={chartWidth + Y_AXIS_WIDTH}
                 height={220}
                 data={chartData}
@@ -934,26 +991,39 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.1} />
                 </linearGradient>
               </defs>
-              
-              <CartesianGrid 
-                strokeDasharray="0" 
-                stroke="rgba(148, 163, 184, 0.25)" 
+
+              {/* Phase backgrounds */}
+              {phases.map((phase, i) => (
+                <ReferenceArea
+                  key={`phase-${i}`}
+                  x1={phase.startYear}
+                  x2={phase.endYear}
+                  fill={phase.fill}
+                  fillOpacity={1}
+                  ifOverflow="extendDomain"
+                  label={{ value: phase.label, position: 'insideTopLeft', fontSize: 9, fill: '#94A3B8', fontWeight: 500 }}
+                />
+              ))}
+
+              <CartesianGrid
+                strokeDasharray="0"
+                stroke="rgba(148, 163, 184, 0.25)"
                 vertical={false}
                 horizontal={true}
               />
-              
-              <XAxis 
-                dataKey="year" 
+
+              <XAxis
+                dataKey="year"
                 tick={false}
                 axisLine={false}
                 tickLine={false}
                 padding={{ left: xAxisPadding, right: xAxisPadding }}
               />
-              
-              <YAxis 
+
+              <YAxis
                 tickFormatter={formatCurrency}
-                tick={{ 
-                  fontSize: 11, 
+                tick={{
+                  fontSize: 11,
                   fill: '#64748b',
                   fontFamily: 'Inter, system-ui, sans-serif',
                 }}
@@ -961,9 +1031,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 tickLine={false}
                 width={Y_AXIS_WIDTH}
               />
-              
+
               <Tooltip content={<CustomTooltip />} />
-              
+
               {/* Portfolio Value Area - Teal */}
               <Area
                 type="monotone"
@@ -980,7 +1050,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   fill: 'white',
                 }}
               />
-              
+
               {/* Total Equity Area - Grey */}
               <Area
                 type="monotone"
@@ -991,7 +1061,19 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 fill="url(#greyGradient)"
                 dot={false}
               />
-              
+
+              {/* Do-Nothing Baseline - dashed grey line */}
+              <Line
+                type="monotone"
+                dataKey="doNothingBalance"
+                name="Savings Only"
+                stroke="#9CA3AF"
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                dot={false}
+                connectNulls
+              />
+
               {/* Goal Achievement Marker - yellow dot only */}
               {equityGoalReached && (
                 <ReferenceDot
@@ -1005,7 +1087,24 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   <Label content={<GoalAchievedLabel year={equityGoalReached.year} />} />
                 </ReferenceDot>
               )}
-            </AreaChart>
+
+              {/* Refinance Trigger Dots - amber dots at years when equity extraction is possible */}
+              {refinanceTriggers.map((trigger) => {
+                const yearData = chartData.find(d => d.year === trigger.triggerYear);
+                if (!yearData) return null;
+                return (
+                  <ReferenceDot
+                    key={`refi-${trigger.instanceId}`}
+                    x={trigger.triggerYear}
+                    y={yearData.totalEquity}
+                    r={5}
+                    fill="#F59E0B"
+                    stroke="#D97706"
+                    strokeWidth={1.5}
+                  />
+                );
+              })}
+            </ComposedChart>
           </div>
         </div>
 
@@ -1097,7 +1196,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             >
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
                 <span className={`transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
-                Avail
+                Funds
               </span>
               <TooltipProvider>
                 <UITooltip>
@@ -1136,47 +1235,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             ))}
           </div>
 
-          {/* LVR Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                LVR
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center">
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Total Debt ÷ Portfolio Value</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Shows overall portfolio leverage</li>
-                      <li>• Below 80% allows equity release</li>
-                      <li>• Includes all property loans</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => {
-              const lvr = yearData.portfolioValueRaw > 0 
-                ? (yearData.totalDebt / yearData.portfolioValueRaw) * 100 
-                : 0;
-              return (
-                <div 
-                  key={`lvr-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  <span className="text-[9px] font-medium text-slate-700">
-                    {lvr > 0 ? `${lvr.toFixed(0)}%` : '–'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
           {/* DEBT Row */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
@@ -1213,11 +1271,11 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
             ))}
           </div>
 
-          {/* SERVICE Row - Shows serviceability surplus/shortfall as a number */}
+          {/* EQUITY Row - Usable equity (portfolioValue * 80% - totalDebt) */}
           <div style={gridStyle} className="border-b border-slate-200/40">
             <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
               <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Service
+                Equity
               </span>
               <TooltipProvider>
                 <UITooltip>
@@ -1226,32 +1284,63 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                       <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[210px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Capacity − Required Payments</p>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Portfolio Value − Total Debt</p>
                     <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Capacity: Borrowing power + rental</li>
-                      <li>• Required: Total loan interest</li>
-                      <li>• <span className="text-green-600">Positive</span> = headroom for more</li>
+                      <li>• Grows as property values increase</li>
+                      <li>• Accelerates in later years</li>
+                    </ul>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
+            {years.map((yearData, index) => (
+              <div
+                key={`equity-${yearData.year}`}
+                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+              >
+                <span className="text-[9px] text-green-600 font-medium">
+                  {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* MONTHLY Row - Monthly holding cost */}
+          <div style={gridStyle} className="border-b border-slate-200/40">
+            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
+              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+                Monthly
+              </span>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center">
+                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                    <p className="text-[10px] font-medium text-slate-700 mb-1">Net monthly holding cost</p>
+                    <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <li>• = (Cashflow) ÷ 12</li>
+                      <li>• <span className="text-green-600">Positive</span> = surplus income</li>
+                      <li>• <span className="text-rose-600">Negative</span> = out-of-pocket cost</li>
                     </ul>
                   </TooltipContent>
                 </UITooltip>
               </TooltipProvider>
             </div>
             {years.map((yearData, index) => {
-              const serviceabilitySurplus = yearData.yearBreakdownData?.serviceabilityTest?.surplus;
-              const hasData = serviceabilitySurplus !== undefined;
+              const monthlyCost = Math.round(yearData.annualCashflow / 12);
+              const hasValue = yearData.portfolioValueRaw > 0 || yearData.annualCashflow !== 0;
               return (
-                <div 
-                  key={`service-${yearData.year}`}
+                <div
+                  key={`monthly-${yearData.year}`}
                   className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
                 >
-                  {hasData ? (
-                    <span className="text-[9px] font-medium text-slate-700">
-                      {formatCompactCurrency(serviceabilitySurplus)}
-                    </span>
-                  ) : (
-                    <span className="text-[8px] text-slate-400">–</span>
-                  )}
+                  <span className={`text-[9px] font-medium ${monthlyCost >= 0 ? 'text-green-600' : 'text-rose-600'}`}>
+                    {hasValue ? formatCompactCurrency(monthlyCost) : '–'}
+                  </span>
                 </div>
               );
             })}

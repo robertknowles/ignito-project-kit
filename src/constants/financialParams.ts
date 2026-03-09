@@ -169,6 +169,16 @@ export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
 export const LMI_FREE_LVR_THRESHOLD = 80;
 
 // =============================================================================
+// SAVINGS & EQUITY THRESHOLDS
+// =============================================================================
+
+/** Interest rate for savings not yet deployed (high-interest savings account rate) */
+export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
+
+/** Minimum extractable equity to trigger refinance indicator */
+export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 

@@ -21,6 +21,8 @@ import {
   DEFAULT_RENTAL_YIELD,
   DEFAULT_EXPENSE_RATIO,
   ANNUAL_INFLATION_RATE,
+  SAVINGS_INTEREST_RATE,
+  EQUITY_EXTRACTION_LVR_CAP,
 } from '../constants/financialParams';
 
 export interface PortfolioGrowthDataPoint {
@@ -28,6 +30,12 @@ export interface PortfolioGrowthDataPoint {
   portfolioValue: number;
   equity: number;
   properties?: string[]; // Array of property titles purchased this year
+  // Dashboard redesign fields (optional for backward compatibility)
+  doNothingBalance?: number;      // Compound savings trajectory (no property investment)
+  totalDebt?: number;             // Sum of all loan balances
+  availableFunds?: number;        // Deposit pool + cumulative savings + usable equity
+  monthlyHoldingCost?: number;    // Net monthly cost to hold portfolio
+  borrowingCapacity?: number;     // Remaining borrowing capacity
 }
 
 export interface CashflowDataPoint {
@@ -229,17 +237,40 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
 
       // Determine if there's a property purchase this year
       const purchasesThisYear = purchaseSchedule[year] || [];
-      
+
       // Collect all property titles for this year (one data point per year)
-      const propertiesPurchased = purchasesThisYear.length > 0 
+      const propertiesPurchased = purchasesThisYear.length > 0
         ? purchasesThisYear.map(p => p.title)
         : undefined;
+
+      // Do-nothing baseline: compound savings with no property investment
+      const doNothingBalance = (() => {
+        let balance = profile.depositPool;
+        for (let y = 0; y < yearsElapsed; y++) {
+          balance = balance * (1 + SAVINGS_INTEREST_RATE) + profile.annualSavings;
+        }
+        return Math.round(balance);
+      })();
+
+      // Available funds: deposit pool + cumulative savings + usable equity from portfolio
+      const usableEquity = Math.max(0, totalMetrics.portfolioValue * EQUITY_EXTRACTION_LVR_CAP - totalMetrics.totalDebt);
+      const cumulativeSavings = profile.annualSavings * yearsElapsed;
+      const depositsUsed = relevantPurchases.reduce((sum, p) => sum + p.depositRequired, 0);
+      const availableFunds = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
+
+      // Remaining borrowing capacity
+      const loansUsed = relevantPurchases.reduce((sum, p) => sum + p.loanAmount, 0);
+      const borrowingCapacity = Math.round(Math.max(0, profile.borrowingCapacity - loansUsed));
 
       data.push({
         year: year.toString(),
         portfolioValue: Math.round(totalMetrics.portfolioValue),
         equity: Math.round(totalMetrics.totalEquity),
-        properties: propertiesPurchased
+        properties: propertiesPurchased,
+        doNothingBalance,
+        totalDebt: Math.round(totalMetrics.totalDebt),
+        availableFunds,
+        borrowingCapacity,
       });
     }
 
@@ -462,9 +493,57 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     return data;
   }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance, eventBlocks]);
 
+  // Enrich portfolio data with monthly holding cost from cashflow data
+  const enrichedPortfolioData = useMemo((): PortfolioGrowthDataPoint[] => {
+    return portfolioGrowthData.map((point, index) => {
+      const cashflow = cashflowData[index];
+      if (!cashflow) return point;
+      return {
+        ...point,
+        monthlyHoldingCost: Math.round(cashflow.cashflow / 12),
+      };
+    });
+  }, [portfolioGrowthData, cashflowData]);
+
+  // Monthly holding cost summary for SummaryBar (total + per-property breakdown)
+  const monthlyHoldingCost = useMemo(() => {
+    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible');
+    const finalCashflow = cashflowData[cashflowData.length - 1];
+
+    const byProperty = feasibleProperties.map(property => {
+      const propertyInstance = getInstance(property.instanceId);
+      if (!propertyInstance) {
+        return { propertyTitle: property.title, monthlyCost: 0, instanceId: property.instanceId };
+      }
+      const breakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount);
+      return {
+        propertyTitle: property.title,
+        monthlyCost: Math.round(breakdown.netWeeklyCashflow * 52 / 12),
+        instanceId: property.instanceId,
+      };
+    });
+
+    return {
+      total: finalCashflow ? Math.round(finalCashflow.cashflow / 12) : 0,
+      byProperty,
+    };
+  }, [timelineProperties, cashflowData, getInstance]);
+
+  // Net worth data for NetWorthChart
+  const netWorthData = useMemo(() => {
+    return enrichedPortfolioData.map(point => ({
+      year: point.year,
+      totalAssets: point.portfolioValue,
+      totalDebt: point.totalDebt ?? 0,
+      netWorth: point.portfolioValue - (point.totalDebt ?? 0),
+    }));
+  }, [enrichedPortfolioData]);
+
   return {
-    portfolioGrowthData,
-    cashflowData
+    portfolioGrowthData: enrichedPortfolioData,
+    cashflowData,
+    monthlyHoldingCost,
+    netWorthData,
   };
 };
 

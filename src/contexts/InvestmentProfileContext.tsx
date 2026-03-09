@@ -26,6 +26,9 @@ export interface InvestmentProfileData {
   useExistingEquity: boolean; // Toggle for existing equity in purchases (default: true)
   maxPurchasesPerYear: number; // Annual purchase cap (default: 3, range: 1-4)
   existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.03 = 3%)
+  // NEW: Financial Freedom projection
+  targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
+  ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
 }
 
 export interface CalculatedValues {
@@ -80,6 +83,9 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     useExistingEquity: true, // Use existing equity for purchases by default
     maxPurchasesPerYear: 3, // Max 3 purchases per year
     existingPortfolioGrowthRate: 0.03, // 3% annual growth for mature properties
+    // NEW: Financial Freedom projection
+    targetPassiveIncome: 80000, // $80k annual passive income target
+    ioToPiTransitionYears: 5, // 5 years after last purchase, switch IO→P&I
   });
 
   // Background calculations - not displayed in UI but available for simulation engine
