@@ -1,0 +1,443 @@
+# Phase 1 Architecture Diagram
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        React App Tree                            │
+├─────────────────────────────────────────────────────────────────┤
+│  <AuthProvider>                                                  │
+│    <ClientProvider>                                              │
+│      <DataAssumptionsProvider>                                   │
+│        <PropertySelectionProvider>                               │
+│          <InvestmentProfileProvider>                             │
+│            <PropertyInstanceProvider> ← NEW IN PHASE 1           │
+│              <ScenarioSaveProvider>                              │
+│                <App />                                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Data Flow Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                           USER ACTIONS                                │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ User adds/edits property
+                                    ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│                    PropertyInstanceContext                            │
+│ ┌──────────────────────────────────────────────────────────────────┐ │
+│ │ State: Record<string, PropertyInstanceDetails>                   │ │
+│ │                                                                   │ │
+│ │ Methods:                                                          │ │
+│ │  • createInstance(id, type, period) → loads defaults             │ │
+│ │  • updateInstance(id, updates) → partial update                  │ │
+│ │  • deleteInstance(id) → remove                                   │ │
+│ │  • getInstance(id) → retrieve                                    │ │
+│ │  • setInstances(instances) → bulk load                           │ │
+│ └──────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Auto-save trigger
+                                    ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│                     ScenarioSaveContext                               │
+│ ┌──────────────────────────────────────────────────────────────────┐ │
+│ │ getCurrentScenarioData():                                         │ │
+│ │   {                                                               │ │
+│ │     propertySelections: {...},                                   │ │
+│ │     investmentProfile: {...},                                    │ │
+│ │     propertyInstances: {...}  ← NEW                              │ │
+│ │   }                                                               │ │
+│ └──────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Save to database
+                                    ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│                           Supabase                                    │
+│                                                                       │
+│  scenarios table:                                                     │
+│  {                                                                    │
+│    id: number,                                                        │
+│    client_id: number,                                                 │
+│    data: {                                                            │
+│      propertySelections: {...},                                      │
+│      investmentProfile: {...},                                       │
+│      propertyInstances: {          ← NEW                             │
+│        "prop-1-period-1": {                                           │
+│          state: "VIC",                                                │
+│          purchasePrice: 350000,                                       │
+│          ... 32 more fields                                           │
+│        }                                                              │
+│      }                                                                │
+│    }                                                                  │
+│  }                                                                    │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Property Instance Defaults Flow
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│            User Action: Create Property Instance               │
+│                                                                 │
+│  createInstance('prop-1-period-1', 'Units / Apartments', 1)    │
+└────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌────────────────────────────────────────────────────────────────┐
+│         getPropertyInstanceDefaults() Utility                   │
+│                                                                 │
+│  1. Convert property type to key:                              │
+│     "Units / Apartments" → "units-apartments"                  │
+│                                                                 │
+│  2. Load from property-defaults.json:                          │
+│     propertyDefaults["units-apartments"]                       │
+│                                                                 │
+│  3. Apply global overrides (optional):                         │
+│     { ...defaults, lvr: globalLVR, interestRate: globalRate } │
+│                                                                 │
+│  4. Return complete 34-field object                            │
+└────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌────────────────────────────────────────────────────────────────┐
+│               PropertyInstanceContext State                     │
+│                                                                 │
+│  instances = {                                                  │
+│    "prop-1-period-1": {                                         │
+│      state: "VIC",                                              │
+│      purchasePrice: 350000,                                     │
+│      valuationAtPurchase: 378000,                               │
+│      rentPerWeek: 471,                                          │
+│      growthAssumption: "High",                                  │
+│      minimumYield: 6.5,                                         │
+│      daysToUnconditional: 21,                                   │
+│      ... 27 more fields                                         │
+│    }                                                            │
+│  }                                                              │
+└────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## DataAssumptionsContext Extension
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              OLD PropertyAssumption Interface                    │
+├─────────────────────────────────────────────────────────────────┤
+│  {                                                               │
+│    type: string;              // "Units / Apartments"            │
+│    averageCost: string;       // "350000"                        │
+│    yield: string;             // "7"                             │
+│    growthYear1: string;       // "12.5"                          │
+│    growthYears2to3: string;   // "10"                            │
+│    growthYear4: string;       // "7.5"                           │
+│    growthYear5plus: string;   // "6"                             │
+│    deposit: string;           // "15"                            │
+│    loanType?: 'IO' | 'PI';    // "IO"                            │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            │ EXTENDS
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│         NEW PropertyAssumption Interface (Phase 1)               │
+├─────────────────────────────────────────────────────────────────┤
+│  {                                                               │
+│    // ← All old fields (backward compatible)                    │
+│    type: string;                                                 │
+│    averageCost: string;                                          │
+│    ... etc ...                                                   │
+│                                                                  │
+│    // ← PLUS all 34 PropertyInstanceDetails fields              │
+│    state: string;                                                │
+│    purchasePrice: number;                                        │
+│    valuationAtPurchase: number;                                  │
+│    rentPerWeek: number;                                          │
+│    growthAssumption: 'High' | 'Medium' | 'Low';                 │
+│    minimumYield: number;                                         │
+│    ... 28 more fields ...                                        │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## File Structure
+
+```
+src/
+├── types/
+│   └── propertyInstance.ts          ← NEW: Interface definition (34 fields)
+│
+├── contexts/
+│   ├── PropertyInstanceContext.tsx  ← NEW: CRUD operations
+│   ├── ScenarioSaveContext.tsx      ← UPDATED: Save/load instances
+│   └── DataAssumptionsContext.tsx   ← UPDATED: Extended interface
+│
+├── utils/
+│   └── propertyInstanceDefaults.ts  ← NEW: Defaults resolver
+│
+├── data/
+│   └── property-defaults.json       ← NEW: 8 property types × 34 fields
+│
+└── AppRouter.tsx                     ← UPDATED: Added PropertyInstanceProvider
+```
+
+---
+
+## Property Instance Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         CREATION                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User clicks "Edit" on property timeline block (Phase 2)      │
+│  2. Generate instanceId: `${propertyType}-${period}`             │
+│  3. Check if instance exists: getInstance(instanceId)            │
+│  4. If not exists:                                               │
+│     - createInstance(instanceId, propertyType, period)           │
+│     - Loads defaults from property-defaults.json                 │
+│  5. Show PropertyInstanceModal with values (Phase 2)             │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        EDITING                                   │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User edits field in modal (Phase 2)                          │
+│  2. updateInstance(instanceId, { fieldName: newValue })          │
+│  3. Context state updates                                        │
+│  4. ScenarioSaveContext detects change (150ms debounce)          │
+│  5. "Unsaved Changes" indicator appears                          │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                         SAVING                                   │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User clicks "Save Scenario" or auto-save triggers            │
+│  2. getCurrentScenarioData() collects all data                   │
+│  3. Supabase upsert to scenarios table                           │
+│  4. propertyInstances stored in data.propertyInstances field     │
+│  5. lastSavedData updated, unsaved changes cleared               │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        LOADING                                   │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User switches clients                                        │
+│  2. loadClientScenario(clientId) called                          │
+│  3. Fetch scenario from Supabase                                 │
+│  4. Extract data.propertyInstances                               │
+│  5. setInstances(propertyInstances || {})                        │
+│  6. All property instances restored                              │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        DELETION                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User removes property from timeline (Phase 2)                │
+│  2. deleteInstance(instanceId)                                   │
+│  3. Instance removed from context                                │
+│  4. Changes saved to Supabase on next save                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## TypeScript Type Safety
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                PropertyInstanceDetails Interface                  │
+│                          (34 fields)                              │
+├──────────────────────────────────────────────────────────────────┤
+│  • All fields strongly typed                                      │
+│  • Union types for enums: 'High' | 'Medium' | 'Low'              │
+│  • Nullable overrides: number | null                             │
+│  • Comprehensive JSDoc comments                                   │
+└──────────────────────────────────────────────────────────────────┘
+                            │
+                            ├─────────────────┐
+                            │                 │
+                            ↓                 ↓
+┌──────────────────────────────────┐   ┌─────────────────────────────┐
+│  PropertyInstanceContext         │   │  PropertyAssumption         │
+│                                  │   │                             │
+│  instances:                      │   │  extends                    │
+│    Record<string,                │   │    PropertyInstanceDetails  │
+│           PropertyInstanceDetails│   │                             │
+│          >                       │   │  Backward compatible with   │
+│                                  │   │  existing code              │
+└──────────────────────────────────┘   └─────────────────────────────┘
+                            │
+                            ↓
+┌──────────────────────────────────────────────────────────────────┐
+│                      ScenarioData                                 │
+│                                                                   │
+│  propertyInstances?: Record<string, PropertyInstanceDetails>     │
+│                                                                   │
+│  Optional field for backward compatibility                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Property Defaults JSON Structure
+
+```
+{
+  "units-apartments": {          ← 8 property types
+    "state": "VIC",
+    "purchasePrice": 350000,
+    "valuationAtPurchase": 378000,
+    "rentPerWeek": 471,
+    "growthAssumption": "High",
+    "minimumYield": 6.5,
+    "daysToUnconditional": 21,
+    "daysForSettlement": 42,
+    "lvr": 85,
+    "lmiWaiver": false,
+    "loanProduct": "IO",
+    "interestRate": 6.5,
+    "loanTerm": 30,
+    "loanOffsetAccount": 0,
+    "engagementFee": 8000,
+    "conditionalHoldingDeposit": 7000,
+    "buildingInsuranceUpfront": 1400,
+    "buildingPestInspection": 600,
+    "plumbingElectricalInspections": 250,
+    "independentValuation": 0,
+    "unconditionalHoldingDeposit": 0,
+    "mortgageFees": 1000,
+    "conveyancing": 2200,
+    "ratesAdjustment": 0,
+    "maintenanceAllowancePostSettlement": 1000,
+    "stampDutyOverride": null,
+    "vacancyRate": 0,
+    "propertyManagementPercent": 6.6,
+    "buildingInsuranceAnnual": 350,
+    "councilRatesWater": 2000,
+    "strata": 3200,
+    "maintenanceAllowanceAnnual": 1750,
+    "landTaxOverride": null,
+    "potentialDeductionsRebates": 0
+  },
+  "villas-townhouses": { ... },   ← 34 fields each
+  "houses-regional": { ... },
+  "duplexes": { ... },
+  "small-blocks-3-4-units": { ... },
+  "metro-houses": { ... },
+  "larger-blocks-10-20-units": { ... },
+  "commercial-property": { ... }
+}
+```
+
+---
+
+## Change Detection Logic
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│              ScenarioSaveContext Change Detection              │
+└───────────────────────────────────────────────────────────────┘
+                            │
+                            │ useEffect triggers on:
+                            │  - selections change
+                            │  - profile change
+                            │  - propertyInstances change ← NEW
+                            ↓
+┌───────────────────────────────────────────────────────────────┐
+│                    150ms Debounce Timer                        │
+└───────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌───────────────────────────────────────────────────────────────┐
+│                  Compare Current vs. Saved                     │
+│                                                                │
+│  hasSelectionChanges:                                          │
+│    Object.keys length or values differ                        │
+│                                                                │
+│  hasProfileChanges:                                            │
+│    JSON.stringify(current) !== JSON.stringify(saved)          │
+│                                                                │
+│  hasInstanceChanges: ← NEW                                     │
+│    JSON.stringify(instances) !== JSON.stringify(saved)        │
+│                                                                │
+│  hasUnsavedChanges =                                           │
+│    hasSelectionChanges ||                                      │
+│    hasProfileChanges ||                                        │
+│    hasInstanceChanges                                          │
+└───────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌───────────────────────────────────────────────────────────────┐
+│              Update hasUnsavedChanges State                    │
+│                                                                │
+│  • Shows "Unsaved Changes" indicator in UI                    │
+│  • Enables "Save Scenario" button                             │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Integration Points for Phase 2
+
+```
+Phase 1 (Data Architecture) ✅
+        │
+        ├─► PropertyInstanceDetails interface
+        ├─► PropertyInstanceContext (CRUD)
+        ├─► Property defaults (8 types)
+        └─► Persistence (Supabase)
+        │
+        ↓
+Phase 2 (Timeline Integration) [NEXT]
+        │
+        ├─► Add "Edit" button to PropertyTimelineBlock
+        ├─► Create PropertyInstanceModal component
+        ├─► Wire up createInstance on edit click
+        ├─► Display instance values in timeline
+        └─► Enable field editing in modal
+
+Integration hooks provided by Phase 1:
+  • usePropertyInstance() hook
+  • getPropertyInstanceDefaults() utility
+  • Full type safety with TypeScript
+  • Automatic persistence
+```
+
+---
+
+## Summary
+
+Phase 1 provides a **complete, production-ready data architecture** for property instances:
+
+- ✅ 34 customizable fields per property
+- ✅ 8 property types with realistic defaults
+- ✅ Full CRUD operations
+- ✅ Automatic persistence to Supabase
+- ✅ Backward compatible with existing code
+- ✅ Type-safe with TypeScript
+- ✅ Performance-optimized with useCallback
+- ✅ Change detection with debouncing
+- ✅ Zero linter/build errors
+
+**Ready for Phase 2 UI integration!** 🚀
+
+
+
+
+
