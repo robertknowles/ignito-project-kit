@@ -36,8 +36,8 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
 
   if (!netWorthData || netWorthData.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6 flex items-center justify-center h-full">
-        <p className="text-sm text-slate-400">Add properties to see net worth projection</p>
+      <div className="rounded-lg border border-gray-200 bg-white p-6 flex items-center justify-center h-full">
+        <p className="text-sm text-gray-400">Add properties to see net worth projection</p>
       </div>
     );
   }
@@ -49,41 +49,53 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-4">
-      <h3 className="text-sm font-medium text-slate-700 mb-3">Net Worth Trajectory</h3>
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <h3 className="text-sm font-medium text-gray-700 mb-3">Net Worth Trajectory</h3>
       <ResponsiveContainer width="100%" height={250}>
         <ComposedChart data={netWorthData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" vertical={false} />
-          <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#64748b' }} />
-          <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 10, fill: '#64748b' }} width={55} />
+          <defs>
+            <linearGradient id="assetsGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.08} />
+              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
+            </linearGradient>
+            <linearGradient id="debtGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#EF4444" stopOpacity={0.06} />
+              <stop offset="100%" stopColor="#EF4444" stopOpacity={0.01} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="0" stroke="#F3F4F6" strokeOpacity={0.7} vertical={false} />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} width={55} />
           <Tooltip content={<NetWorthTooltip />} />
 
-          {/* Total assets — light blue area */}
+          {/* Total assets — subtle blue area */}
           <Area
             type="monotone"
             dataKey="totalAssets"
-            fill="rgba(135, 181, 250, 0.15)"
-            stroke="rgba(135, 181, 250, 0.4)"
-            strokeWidth={1}
+            fill="url(#assetsGradient)"
+            stroke="#93C5FD"
+            strokeWidth={1.5}
             name="Total Assets"
+            dot={false}
           />
 
-          {/* Total debt — red area */}
+          {/* Total debt — subtle red area */}
           <Area
             type="monotone"
             dataKey="totalDebt"
-            fill="rgba(252, 165, 165, 0.2)"
-            stroke="rgba(252, 165, 165, 0.5)"
-            strokeWidth={1}
+            fill="url(#debtGradient)"
+            stroke="#FCA5A5"
+            strokeWidth={1.5}
             name="Total Debt"
+            dot={false}
           />
 
-          {/* Net worth — bold green line */}
+          {/* Net worth — clean green line */}
           <Line
             type="monotone"
             dataKey="netWorth"
             stroke="#22C55E"
-            strokeWidth={2.5}
+            strokeWidth={2}
             dot={false}
             name="Net Worth"
           />

@@ -119,20 +119,20 @@ export const Navbar = () => {
       <div className="flex items-center justify-between w-full h-14 px-8 bg-[#f9fafb] relative z-50">
         <div className="flex items-center gap-3">
           <button
-            className={`w-8 h-8 ${location.pathname === '/clients' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-            onClick={() => navigate('/clients')}
+            className={`w-8 h-8 ${location.pathname === '/home' ? 'bg-[#f3f4f6] text-[#2563EB] opacity-60' : 'text-[#6b7280] hover:text-[#2563EB] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            onClick={() => navigate('/home')}
           >
             <HomeIcon size={15} />
           </button>
           <button
-            className={`w-8 h-8 ${location.pathname === '/dashboard' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            className={`w-8 h-8 ${location.pathname === '/dashboard' ? 'bg-[#f3f4f6] text-[#2563EB] opacity-60' : 'text-[#6b7280] hover:text-[#2563EB] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
             onClick={() => navigate('/dashboard')}
           >
             <BarChart3Icon size={15} />
           </button>
           <button
-            className={`w-8 h-8 ${location.pathname === '/data' ? 'bg-[#f3f4f6] text-[#3b82f6] opacity-60' : 'text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
-            onClick={() => navigate('/data')}
+            className={`w-8 h-8 ${location.pathname === '/settings' ? 'bg-[#f3f4f6] text-[#2563EB] opacity-60' : 'text-[#6b7280] hover:text-[#2563EB] hover:opacity-60'} rounded-md flex items-center justify-center transition-colors`}
+            onClick={() => navigate('/settings')}
           >
             <DatabaseIcon size={15} />
           </button>
@@ -156,7 +156,7 @@ export const Navbar = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
+                  className="w-8 h-8 text-[#6b7280] hover:text-[#2563EB] hover:opacity-60 rounded-md flex items-center justify-center transition-colors"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
                   <UserIcon size={15} />

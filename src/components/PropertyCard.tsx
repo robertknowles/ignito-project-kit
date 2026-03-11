@@ -45,13 +45,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       case 'Low':
         return 'bg-green-300/70';
       case 'Medium-Low':
-        return 'bg-[#3b82f6] bg-opacity-60';
+        return 'bg-[#2563EB] bg-opacity-60';
       case 'Medium':
-        return 'bg-[#3b82f6] bg-opacity-60';
+        return 'bg-[#2563EB] bg-opacity-60';
       case 'High':
-        return 'bg-[#3b82f6] bg-opacity-60';
+        return 'bg-[#2563EB] bg-opacity-60';
       case 'Very High':
-        return 'bg-[#3b82f6] bg-opacity-60';
+        return 'bg-[#2563EB] bg-opacity-60';
       default:
         return 'bg-[#6b7280]';
     }

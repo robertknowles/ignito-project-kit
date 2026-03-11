@@ -22,7 +22,7 @@ export const DataAssumptions = () => {
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
       <div className="flex-1 ml-16 overflow-hidden">
-        <div className="bg-white h-full overflow-auto">
+        <div className="h-full overflow-auto">
           <div className="p-8">
             <div className="mb-8">
               <h1 className="text-[#111827] text-xl font-medium">

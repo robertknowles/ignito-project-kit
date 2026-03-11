@@ -25,7 +25,7 @@ const COLORS = {
   // Scenario B
   positiveB: '#93c5fd',
   negativeB: '#fda4af',
-  lineB: '#3b82f6',
+  lineB: '#2563EB',
   // Shared
   goal: '#FFD700', // Gold for cashflow goal achieved
   goalStroke: '#DAA520', // Darker gold stroke
@@ -194,7 +194,7 @@ export function OverlayCashflowChart({
   }, [chartData, incomeGoal]);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
       {/* Title inside the box */}
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-4 h-4 text-slate-500" />

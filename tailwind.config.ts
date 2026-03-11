@@ -60,7 +60,7 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         brand: {
-          primary: "var(--brand-primary, #3b82f6)",
+          primary: "var(--brand-primary, #2563EB)",
           secondary: "var(--brand-secondary, #6366f1)",
         },
         offwhite: '#fafafa',

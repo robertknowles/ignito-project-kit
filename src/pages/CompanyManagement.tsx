@@ -165,19 +165,14 @@ export const CompanyManagement = () => {
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
       <div className="flex-1 ml-16 overflow-hidden">
-        <div className="bg-white h-full overflow-auto">
-          <div className="flex-1 overflow-auto p-8 bg-white">
+        <div className="h-full overflow-auto">
+          <div className="flex-1 overflow-auto p-8">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                <Building2Icon size={20} className="text-gray-600" />
-              </div>
-              <div>
-                <h1 className="text-xl font-medium text-[#111827]">Company Management</h1>
-                <p className="text-sm text-[#6b7280]">
-                  Manage your team, branding, and client portal settings
-                </p>
-              </div>
+            <div className="mb-8">
+              <h1 className="text-xl font-medium text-[#111827]">Company Management</h1>
+              <p className="text-sm text-[#6b7280] mt-0.5">
+                Manage your team, branding, and client portal settings
+              </p>
             </div>
 
             {loading ? (
@@ -188,12 +183,7 @@ export const CompanyManagement = () => {
               <div className="space-y-8">
                 {/* Section A: Team Management */}
                 <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <UsersIcon size={18} className="text-gray-500" />
-                      <h2 className="text-lg font-medium text-[#111827]">Team Management</h2>
-                    </div>
-                  </div>
+                  <h2 className="section-heading mb-4">Team Management</h2>
 
                   {/* Team Members Table */}
                   <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -208,10 +198,10 @@ export const CompanyManagement = () => {
                     ) : (
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-gray-100 text-left bg-gray-50">
-                            <th className="px-5 py-3 text-xs font-medium text-[#6b7280]">Member</th>
-                            <th className="px-5 py-3 text-xs font-medium text-[#6b7280]">Role</th>
-                            <th className="px-5 py-3 text-xs font-medium text-[#6b7280]">Joined</th>
+                          <tr className="border-b border-gray-200 text-left">
+                            <th className="px-5 py-3 table-header">Member</th>
+                            <th className="px-5 py-3 table-header">Role</th>
+                            <th className="px-5 py-3 table-header">Joined</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -229,7 +219,7 @@ export const CompanyManagement = () => {
                               <tr key={member.id} className="border-b border-gray-100 last:border-b-0">
                                 <td className="px-5 py-4">
                                   <div className="flex items-center">
-                                    <div className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center text-white text-xs font-medium mr-3">
+                                    <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-medium mr-3">
                                       {initials}
                                     </div>
                                     <div>
@@ -283,10 +273,7 @@ export const CompanyManagement = () => {
 
                 {/* Section B: Branding */}
                 <section>
-                  <div className="flex items-center gap-2 mb-4">
-                    <PaletteIcon size={18} className="text-gray-500" />
-                    <h2 className="text-lg font-medium text-[#111827]">Branding</h2>
-                  </div>
+                  <h2 className="section-heading mb-4">Branding</h2>
 
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

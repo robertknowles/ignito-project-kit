@@ -74,7 +74,7 @@ export const ExportPDFButton: React.FC<ExportPDFButtonProps> = ({ iconOnly = fal
         <button 
           onClick={handleGeneratePDF}
           disabled={pdfGenerating || !activeClient}
-          className="w-8 h-8 text-[#6b7280] hover:text-[#3b82f6] hover:opacity-60 rounded-md flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-8 h-8 text-[#6b7280] hover:text-[#2563EB] hover:opacity-60 rounded-md flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title={!activeClient ? 'Select a client to export PDF' : 'Export PDF Report'}
         >
           <DownloadIcon size={15} />
@@ -90,7 +90,7 @@ export const ExportPDFButton: React.FC<ExportPDFButtonProps> = ({ iconOnly = fal
       <button 
         onClick={handleGeneratePDF}
         disabled={pdfGenerating || !activeClient}
-        className="flex items-center gap-2 h-8 bg-[#3b82f6] bg-opacity-60 hover:bg-opacity-80 text-white px-3 rounded-md text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 h-8 bg-[#2563EB] bg-opacity-60 hover:bg-opacity-80 text-white px-3 rounded-md text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         title={!activeClient ? 'Select a client to export PDF' : 'Export PDF Report'}
       >
         <DownloadIcon size={14} />

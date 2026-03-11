@@ -32,7 +32,7 @@ export const generateClientReport = async (options: PDFGenerationOptions) => {
     pdf.text('Investment Strategy Report', margin, 20);
     
     pdf.setFontSize(16);
-    pdf.setTextColor(59, 130, 246); // #3b82f6
+    pdf.setTextColor(59, 130, 246); // #2563EB
     pdf.text(clientName, margin, 30);
     
     pdf.setFontSize(10);

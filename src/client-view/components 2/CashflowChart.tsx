@@ -65,23 +65,16 @@ export function CashflowChart() {
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="year" stroke="#6b7280" style={{
-          fontSize: '12px',
-          fontFamily: 'Figtree, sans-serif'
-        }} />
-          <YAxis stroke="#6b7280" style={{
-          fontSize: '12px',
-          fontFamily: 'Figtree, sans-serif'
-        }} tickFormatter={value => `$${(value / 1000).toFixed(0)}k`} />
+          <CartesianGrid strokeDasharray="0" stroke="#F3F4F6" strokeOpacity={0.7} vertical={false} />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={value => `$${(value / 1000).toFixed(0)}k`} />
           <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} contentStyle={{
           backgroundColor: 'white',
           border: '1px solid #e5e7eb',
           borderRadius: '8px',
-          fontFamily: 'Figtree, sans-serif'
         }} />
-          <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
-          <Bar dataKey="cashflow" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <ReferenceLine y={0} stroke="#E5E7EB" />
+          <Bar dataKey="cashflow" fill="#2563EB" radius={[4, 4, 0, 0]} opacity={0.85} />
         </BarChart>
       </ResponsiveContainer>
       <div className="mt-4 flex justify-end text-sm">

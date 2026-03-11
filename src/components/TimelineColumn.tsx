@@ -21,7 +21,7 @@ export const TimelineColumn: React.FC<TimelineColumnProps> = ({ scenarioData, no
       order={10}
       position="top"
     >
-      <div id="wealth-cashflow-chart-container" className={`bg-white overflow-hidden relative ${noBorder ? '' : 'rounded-lg border border-gray-200'}`}>
+      <div id="wealth-cashflow-chart-container" className="overflow-hidden relative">
         <ChartWithRoadmap scenarioData={scenarioData} />
       </div>
     </TourStep>

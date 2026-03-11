@@ -7,6 +7,7 @@ import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { Button } from '@/components/ui/button';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
+import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ResetButton } from './ResetButton';
 
 interface ScenarioCanvasProps {
@@ -64,11 +65,11 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
     >
       {/* Scenario Header - Only show in multi-scenario mode */}
       {isMultiScenarioMode && (
-        <div className={`flex items-center justify-between px-4 py-1.5 mb-4 rounded-lg border bg-white ${isActive ? 'border-2 border-black shadow-lg' : 'border-gray-200 hover:border-gray-300'}`}>
+        <div className={`flex items-center justify-between px-4 py-1.5 mb-4 rounded-lg border bg-white ${isActive ? 'border-2 border-[#2563EB] shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}>
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">{scenario.name}</h2>
             {isActive && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-black text-white rounded">
+              <span className="px-2 py-0.5 text-xs font-medium bg-[#2563EB] text-white rounded">
                 Active
               </span>
             )}
@@ -89,47 +90,52 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         </div>
       )}
       
-      {/* Main Content - SummaryBar at top, TimelineColumn (Roadmap Charts) */}
-      {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
-          For inactive scenarios, use stored data from the scenario object.
-          This prevents stale timeline data from being displayed for the active scenario. */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {/* Investment Timeline Header */}
-        <div className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded -ml-1 pl-1 pr-2 py-0.5"
-          >
-            {isExpanded ? (
-              <ChevronDown size={18} className="text-gray-500" />
-            ) : (
-              <ChevronRight size={18} className="text-gray-500" />
-            )}
-            <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
-          </button>
-          <ResetButton iconOnly />
+      {/* Spaced sections: KPI cards → Timeline chart → Financial table */}
+      <div className="space-y-4">
+        {/* KPI Summary Cards */}
+        <SummaryBar
+          scenarioData={isMultiScenarioMode ? {
+            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+            profile: isActive ? liveProfile : scenario.investmentProfile,
+          } : undefined}
+        />
+
+        {/* Investment Timeline — header + chart only */}
+        {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
+            For inactive scenarios, use stored data from the scenario object. */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded -ml-1 pl-1 pr-2 py-0.5"
+            >
+              {isExpanded ? (
+                <ChevronDown size={18} className="text-gray-500" />
+              ) : (
+                <ChevronRight size={18} className="text-gray-500" />
+              )}
+              <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
+            </button>
+            <ResetButton iconOnly />
+          </div>
+          {isExpanded && (
+            <TimelineColumn
+              scenarioData={isMultiScenarioMode ? {
+                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+                profile: isActive ? liveProfile : scenario.investmentProfile,
+              } : undefined}
+            />
+          )}
         </div>
-        
-        {/* Collapsible Content */}
+
+        {/* Financial Summary Table — separate component */}
         {isExpanded && (
-          <>
-            {/* Summary Cards - attached to chart */}
-            <SummaryBar 
-              scenarioData={isMultiScenarioMode ? {
-                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-                profile: isActive ? liveProfile : scenario.investmentProfile,
-              } : undefined}
-              noBorder={true}
-            />
-            
-            <TimelineColumn 
-              scenarioData={isMultiScenarioMode ? {
-                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-                profile: isActive ? liveProfile : scenario.investmentProfile,
-              } : undefined}
-              noBorder={true}
-            />
-          </>
+          <FinancialSummaryTable
+            scenarioData={isMultiScenarioMode ? {
+              timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+              profile: isActive ? liveProfile : scenario.investmentProfile,
+            } : undefined}
+          />
         )}
       </div>
     </div>

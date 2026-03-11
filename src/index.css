@@ -13,7 +13,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 217.2 91.2% 52.9%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 95%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -29,7 +29,7 @@
     --radius: 0.5rem;
     
     /* Company branding colors - dynamically injected by BrandingContext */
-    --brand-primary: #6b7280;
+    --brand-primary: #2563EB;
   }
 
   .dark {
@@ -121,23 +121,33 @@
 */
 @layer components {
   .bento-card {
-    @apply bg-white border border-gray-200 rounded-xl;
+    @apply bg-white border border-gray-200 rounded-lg;
     box-shadow: none;
   }
 
-  /* Metric Label - Small, uppercase, tracking-wide */
+  /* Metric Label - Small, muted */
   .metric-label {
-    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider;
+    @apply text-xs font-medium text-gray-500;
   }
 
-  /* Metric Value - Large, dark, tight tracking */
+  /* Metric Value - Large, dark, tight tracking (hero stat number) */
   .metric-value {
-    @apply text-3xl font-bold text-gray-900 tracking-tight;
+    @apply text-[32px] font-bold text-gray-900 tracking-tight;
   }
 
-  /* Smaller metric value variant for dashboard cards */
+  /* Smaller metric value variant for compact dashboard cards */
   .metric-value-sm {
     @apply text-lg font-bold text-gray-900 tracking-tight leading-tight;
+  }
+
+  /* Table header - small, grey */
+  .table-header {
+    @apply text-xs font-medium text-gray-500;
+  }
+
+  /* Section heading - consistent across all pages */
+  .section-heading {
+    @apply text-base font-semibold text-gray-900;
   }
 }
 

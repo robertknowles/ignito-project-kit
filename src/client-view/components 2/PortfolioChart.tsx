@@ -81,27 +81,17 @@ export function PortfolioChart() {
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="year" stroke="#6b7280" style={{
-          fontSize: '12px',
-          fontFamily: 'Figtree, sans-serif'
-        }} />
-          <YAxis stroke="#6b7280" style={{
-          fontSize: '12px',
-          fontFamily: 'Figtree, sans-serif'
-        }} tickFormatter={value => `$${(value / 1000000).toFixed(1)}M`} />
+          <CartesianGrid strokeDasharray="0" stroke="#F3F4F6" strokeOpacity={0.7} vertical={false} />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={value => `$${(value / 1000000).toFixed(1)}M`} />
           <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} contentStyle={{
           backgroundColor: 'white',
           border: '1px solid #e5e7eb',
           borderRadius: '8px',
-          fontFamily: 'Figtree, sans-serif'
         }} />
-          <Legend wrapperStyle={{
-          fontFamily: 'Figtree, sans-serif',
-          fontSize: '14px'
-        }} />
-          <Line type="monotone" dataKey="portfolio" stroke="#3b82f6" strokeWidth={2} name="Portfolio Value" dot={false} />
-          <Line type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} name="Equity" dot={false} />
+          <Legend wrapperStyle={{ fontSize: '13px' }} />
+          <Line type="monotone" dataKey="portfolio" stroke="#2563EB" strokeWidth={2} name="Portfolio Value" dot={false} />
+          <Line type="monotone" dataKey="equity" stroke="#CBD5E1" strokeWidth={1.5} name="Equity" dot={false} />
         </LineChart>
       </ResponsiveContainer>
       <div className="mt-4 flex justify-end gap-8 text-sm">
