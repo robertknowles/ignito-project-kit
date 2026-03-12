@@ -885,7 +885,7 @@ toast.error('Failed to create client invite');
             <div className="flex-1 overflow-auto p-8">
               {/* Client CRM Header */}
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-[#111827]">
+                <h2 className="page-title">
                   Clients
                 </h2>
                 <div className="flex items-center gap-3 relative z-10">
@@ -955,20 +955,20 @@ toast.error('Failed to create client invite');
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 text-left">
-                        <th className="px-6 py-3 table-header">Client</th>
-                        <th className="px-4 py-3 table-header">Stage</th>
-                        <th className="px-4 py-3 table-header">Portal</th>
-                        <th className="px-4 py-3 table-header">Roadmap</th>
-                        <th className="px-4 py-3 table-header">Last Active</th>
-                        <th className="px-4 py-3 table-header">Review Date</th>
-                        <th className="px-4 py-3 table-header"></th>
+                        <th className="table-header">Client</th>
+                        <th className="table-header">Stage</th>
+                        <th className="table-header">Portal</th>
+                        <th className="table-header">Roadmap</th>
+                        <th className="table-header">Last Active</th>
+                        <th className="table-header">Review Date</th>
+                        <th className="table-header"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredClients.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="px-6 py-12 text-center">
-                            <div className="text-sm text-[#6b7280]">
+                            <div className="body-secondary">
                               {searchQuery ? 'No clients match your search' : 'No clients in this category'}
                             </div>
                           </td>
@@ -990,9 +990,9 @@ toast.error('Failed to create client invite');
                         const reviewInfo = formatReviewDate(client.next_review_date);
 
                         return (
-                          <tr key={client.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
+                          <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
                             {/* Client name + email */}
-                            <td className="px-6 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center">
                                 <button
                                   onClick={() => handleOpenProfile(client)}
@@ -1001,11 +1001,11 @@ toast.error('Failed to create client invite');
                                   {initials}
                                 </button>
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-[#111827] truncate">
+                                  <div className="body-dark font-medium truncate">
                                     {client.name}
                                   </div>
                                   {client.email && (
-                                    <div className="text-xs text-[#6b7280] truncate">
+                                    <div className="meta truncate">
                                       {client.email}
                                     </div>
                                   )}
@@ -1014,7 +1014,7 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Stage */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <StatusBadgePill
                                 label={stageBadgeConfig[client.stage || 'onboarding']?.label || 'Onboarding'}
                                 variant={stageVariantMap[client.stage || 'onboarding'] || 'blue'}
@@ -1022,7 +1022,7 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Portal Status */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <StatusBadgePill
                                 label={portalBadgeConfig[client.portal_status || 'not_invited']?.label || 'Not invited'}
                                 variant={portalVariantMap[client.portal_status || 'not_invited'] || 'gray'}
@@ -1030,7 +1030,7 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Roadmap Status */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <StatusBadgePill
                                 label={roadmapBadgeConfig[client.roadmap_status || 'not_started']?.label || 'Not started'}
                                 variant={roadmapVariantMap[client.roadmap_status || 'not_started'] || 'gray'}
@@ -1038,19 +1038,19 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Last Active */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-1.5">
                                 {client.last_active_at && (
                                   <Activity size={12} className="text-[#9ca3af]" />
                                 )}
-                                <span className="text-sm text-[#374151]">
+                                <span className="body-dark">
                                   {formatRelativeTime(client.last_active_at)}
                                 </span>
                               </div>
                             </td>
 
                             {/* Review Date */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm ${reviewInfo.color}`}>
                                   {reviewInfo.text}
@@ -1068,7 +1068,7 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Actions */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-1">
                                 {/* Profile Button */}
                                 {isFirstRow ? (
@@ -1198,7 +1198,7 @@ toast.error('Failed to create client invite');
               >
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-4">
-                    <h2 className="text-lg font-medium text-[#111827]">
+                    <h2 className="page-title">
                       Upcoming Purchases
                     </h2>
                   </div>

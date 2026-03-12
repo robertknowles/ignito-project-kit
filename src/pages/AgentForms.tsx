@@ -338,8 +338,8 @@ export const AgentForms = () => {
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-medium text-[#111827]">Forms</h2>
-                <div className="flex items-center gap-3 text-sm text-[#6b7280]">
+                <h2 className="page-title">Forms</h2>
+                <div className="flex items-center gap-3 body-secondary">
                   <span>{formStats.total} sent</span>
                   <span className="text-gray-300">|</span>
                   <span>{formStats.pending} pending</span>
@@ -361,8 +361,8 @@ export const AgentForms = () => {
                           {template.icon}
                         </div>
                         <div>
-                          <h3 className="text-sm font-medium text-[#111827]">{template.name}</h3>
-                          <p className="text-xs text-[#6b7280]">
+                          <h3 className="section-heading">{template.name}</h3>
+                          <p className="meta">
                             {template.questions.length} questions
                           </p>
                         </div>
@@ -375,7 +375,7 @@ export const AgentForms = () => {
                         Send
                       </button>
                     </div>
-                    <p className="text-xs text-[#6b7280] leading-relaxed">
+                    <p className="meta leading-relaxed">
                       {template.description}
                     </p>
 
@@ -397,7 +397,7 @@ export const AgentForms = () => {
               {/* Send History */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium text-[#111827]">Send History</h3>
+                  <h3 className="section-heading">Send History</h3>
                   <div className="flex items-center gap-3">
                     {/* Search */}
                     <div className="relative">
@@ -430,18 +430,18 @@ export const AgentForms = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 text-left">
-                        <th className="px-5 py-3 table-header">Client</th>
-                        <th className="px-4 py-3 table-header">Form</th>
-                        <th className="px-4 py-3 table-header">Status</th>
-                        <th className="px-4 py-3 table-header">Sent</th>
-                        <th className="px-4 py-3 table-header">Completed</th>
-                        <th className="px-4 py-3 table-header"></th>
+                        <th className="table-header">Client</th>
+                        <th className="table-header">Form</th>
+                        <th className="table-header">Status</th>
+                        <th className="table-header">Sent</th>
+                        <th className="table-header">Completed</th>
+                        <th className="table-header"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {submissionsLoading ? (
                         <tr>
-                          <td colSpan={6} className="px-5 py-8 text-center text-sm text-[#6b7280]">
+                          <td colSpan={6} className="px-5 py-8 text-center body-secondary">
                             Loading...
                           </td>
                         </tr>
@@ -449,14 +449,14 @@ export const AgentForms = () => {
                         <tr>
                           <td colSpan={6} className="px-5 py-12 text-center">
                             <FileText size={32} className="text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-[#6b7280]">
+                            <p className="body-secondary">
                               {submissions.length === 0
                                 ? 'No forms sent yet'
                                 : 'No forms match your filters'
                               }
                             </p>
                             {submissions.length === 0 && (
-                              <p className="text-xs text-[#9ca3af] mt-1">
+                              <p className="meta mt-1">
                                 Send a form to a client to get started
                               </p>
                             )}
@@ -472,39 +472,39 @@ export const AgentForms = () => {
                         const status = statusConfig[submission.status] || statusConfig.not_opened
 
                         return (
-                          <tr key={submission.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
-                            <td className="px-5 py-3.5">
+                          <tr key={submission.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
+                            <td className="table-cell">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
                                   {initials}
                                 </div>
-                                <div className="text-sm font-medium text-[#111827]">
+                                <div className="body-dark font-medium">
                                   {client?.name || 'Unknown'}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${formColor}`}>
                                 {formType}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
                                 {status.icon}
                                 {status.label}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5">
-                              <div className="text-sm text-[#374151]">{formatDate(submission.sent_at)}</div>
-                              <div className="text-xs text-[#9ca3af]">{formatTime(submission.sent_at)}</div>
+                            <td className="table-cell">
+                              <div className="body-dark">{formatDate(submission.sent_at)}</div>
+                              <div className="meta">{formatTime(submission.sent_at)}</div>
                             </td>
-                            <td className="px-4 py-3.5 text-sm text-[#374151]">
+                            <td className="table-cell">
                               {submission.completed_at
                                 ? formatDate(submission.completed_at)
-                                : <span className="text-[#9ca3af]">--</span>
+                                : <span className="meta">--</span>
                               }
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
@@ -549,10 +549,10 @@ export const AgentForms = () => {
               <div className={`flex items-center gap-3 p-3 rounded-lg ${selectedTemplate.bgColor} mb-4`}>
                 <div className={selectedTemplate.color}>{selectedTemplate.icon}</div>
                 <div>
-                  <div className={`text-sm font-medium ${selectedTemplate.color}`}>
+                  <div className={`body-dark font-medium ${selectedTemplate.color}`}>
                     {selectedTemplate.name}
                   </div>
-                  <div className="text-xs text-[#6b7280]">
+                  <div className="meta">
                     {selectedTemplate.questions.length} questions
                   </div>
                 </div>
@@ -560,12 +560,12 @@ export const AgentForms = () => {
             )}
 
             {/* Client selector */}
-            <label className="block text-sm font-medium text-[#374151] mb-2">
+            <label className="block body-dark font-medium mb-2">
               Select client
             </label>
             <div className="space-y-1.5 max-h-60 overflow-auto border border-gray-200 rounded-lg p-1.5">
               {clients.length === 0 ? (
-                <div className="text-sm text-[#6b7280] text-center py-4">
+                <div className="body-secondary text-center py-4">
                   No clients found
                 </div>
               ) : (
@@ -592,11 +592,11 @@ export const AgentForms = () => {
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-[#111827] truncate">
+                        <div className="body-dark font-medium truncate">
                           {client.name}
                         </div>
                         {client.email && (
-                          <div className="text-xs text-[#6b7280] truncate">
+                          <div className="meta truncate">
                             {client.email}
                           </div>
                         )}

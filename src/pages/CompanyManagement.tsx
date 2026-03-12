@@ -169,8 +169,8 @@ export const CompanyManagement = () => {
           <div className="flex-1 overflow-auto p-8">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-xl font-medium text-[#111827]">Company Management</h1>
-              <p className="text-sm text-[#6b7280] mt-0.5">
+              <h1 className="page-title">Company Management</h1>
+              <p className="body-secondary mt-0.5">
                 Manage your team, branding, and client portal settings
               </p>
             </div>
@@ -190,8 +190,8 @@ export const CompanyManagement = () => {
                     {teamMembers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-40">
                         <UsersIcon size={40} className="text-gray-300 mb-2" />
-                        <p className="text-sm text-gray-500">No team members yet</p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="body-secondary">No team members yet</p>
+                        <p className="meta mt-1">
                           Invite agents to start building your team
                         </p>
                       </div>
@@ -199,9 +199,9 @@ export const CompanyManagement = () => {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-200 text-left">
-                            <th className="px-5 py-3 table-header">Member</th>
-                            <th className="px-5 py-3 table-header">Role</th>
-                            <th className="px-5 py-3 table-header">Joined</th>
+                            <th className="table-header">Member</th>
+                            <th className="table-header">Role</th>
+                            <th className="table-header">Joined</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -216,23 +216,23 @@ export const CompanyManagement = () => {
                               : 'U';
 
                             return (
-                              <tr key={member.id} className="border-b border-gray-100 last:border-b-0">
-                                <td className="px-5 py-4">
+                              <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors last:border-b-0">
+                                <td className="table-cell">
                                   <div className="flex items-center">
                                     <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-medium mr-3">
                                       {initials}
                                     </div>
                                     <div>
-                                      <div className="text-sm font-medium text-[#111827]">
+                                      <div className="body-dark font-medium">
                                         {member.full_name || 'Unnamed User'}
                                       </div>
                                       {member.email && (
-                                        <div className="text-xs text-[#6b7280]">{member.email}</div>
+                                        <div className="meta">{member.email}</div>
                                       )}
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-5 py-4">
+                                <td className="table-cell">
                                   <Select
                                     value={member.role}
                                     onValueChange={(value: 'owner' | 'agent' | 'other') => 
@@ -259,7 +259,7 @@ export const CompanyManagement = () => {
                                     </SelectContent>
                                   </Select>
                                 </td>
-                                <td className="px-5 py-4 text-sm text-[#374151]">
+                                <td className="table-cell">
                                   {new Date(member.created_at).toLocaleDateString()}
                                 </td>
                               </tr>
@@ -279,7 +279,7 @@ export const CompanyManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Company Name */}
                       <div className="space-y-2">
-                        <Label htmlFor="company-name" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="company-name" className="body-dark font-medium">
                           Company Name
                         </Label>
                         <Input
@@ -293,7 +293,7 @@ export const CompanyManagement = () => {
 
                       {/* Logo URL */}
                       <div className="space-y-2">
-                        <Label htmlFor="logo-url" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="logo-url" className="body-dark font-medium">
                           Logo URL
                         </Label>
                         <div className="flex gap-2">
@@ -326,10 +326,10 @@ export const CompanyManagement = () => {
 
                       {/* Primary Color */}
                       <div className="space-y-2">
-                        <Label htmlFor="primary-color" className="text-sm font-medium text-gray-700">
+                        <Label htmlFor="primary-color" className="body-dark font-medium">
                           Primary Color
                         </Label>
-                        <p className="text-xs text-gray-500">
+                        <p className="meta">
                           This color will be applied to the navigation icons in the left sidebar.
                         </p>
                         <div className="flex gap-2">
@@ -355,7 +355,7 @@ export const CompanyManagement = () => {
 
                     {/* Color Preview */}
                     <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-3">Preview</p>
+                      <p className="meta mb-3">Preview</p>
                       <div className="flex gap-3 items-center">
                         <div
                           className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -376,7 +376,7 @@ export const CompanyManagement = () => {
                             <line x1="6" x2="6" y1="20" y2="14"/>
                           </svg>
                         </div>
-                        <span className="text-xs text-gray-500 ml-2">Navigation icons</span>
+                        <span className="meta ml-2">Navigation icons</span>
                       </div>
                     </div>
 
@@ -405,16 +405,13 @@ export const CompanyManagement = () => {
 
                 {/* Section C: Client Portal Settings */}
                 <section>
-                  <div className="flex items-center gap-2 mb-4">
-                    <ToggleLeftIcon size={18} className="text-gray-500" />
-                    <h2 className="text-lg font-medium text-[#111827]">Client Portal Settings</h2>
-                  </div>
+                  <h2 className="section-heading mb-4">Client Portal Settings</h2>
 
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-[#111827]">Enable Client Interactivity</h3>
-                        <p className="text-xs text-[#6b7280] mt-1">
+                        <h3 className="body-dark font-medium">Enable Client Interactivity</h3>
+                        <p className="meta mt-1">
                           When enabled, clients can interact with the input drawer to explore different scenarios.
                           When disabled, clients have view-only access to the shared scenario.
                         </p>

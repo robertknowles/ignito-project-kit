@@ -104,7 +104,7 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
             For inactive scenarios, use stored data from the scenario object. */}
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+          <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded -ml-1 pl-1 pr-2 py-0.5"

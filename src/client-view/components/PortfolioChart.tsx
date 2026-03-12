@@ -12,18 +12,18 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Home } from 'lucide-react';
+import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS } from '../../constants/chartColors';
 
-// Softer color palette
 const COLORS = {
-  portfolio: '#7dd3c2', // Softer teal
-  portfolioStroke: '#4db6a0',
-  equity: '#b8c5d3', // Softer slate
-  equityStroke: '#94a3b8',
-  goal: '#f5d0a9', // Softer amber
-  goalStroke: '#e9b97a',
-  propertyMarker: '#7eb8e0', // Soft blue
-  text: '#64748b',
-  grid: 'rgba(148, 163, 184, 0.2)',
+  portfolio: CHART_COLORS.primary,
+  portfolioStroke: CHART_COLORS.primary,
+  equity: CHART_COLORS.tertiary,
+  equityStroke: CHART_COLORS.secondary,
+  goal: CHART_COLORS.goal,
+  goalStroke: CHART_COLORS.goal,
+  propertyMarker: CHART_COLORS.primary,
+  text: CHART_COLORS.labelText,
+  grid: CHART_COLORS.grid,
 };
 
 // Format currency for display
@@ -42,8 +42,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0]?.payload;
     return (
-      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
-        <p className="text-xs font-semibold text-slate-800 mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
+        <p className="text-xs font-semibold text-gray-900 mb-2">
           Year: {label}
         </p>
         <p className="text-xs" style={{ color: COLORS.portfolioStroke }}>
@@ -53,7 +53,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           Equity: {formatCurrency(data?.equity || 0)}
         </p>
         {data?.propertyTitle && (
-          <p className="text-xs text-sky-600 mt-1 pt-1 border-t border-slate-100">
+          <p className="text-xs text-sky-600 mt-1 pt-1 border-t border-gray-100">
             🏡 {data.propertyTitle}
           </p>
         )}
@@ -221,11 +221,11 @@ export function PortfolioChart({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       {/* Title inside the box */}
-      <div className="flex items-center gap-2 mb-4">
-        <Home className="w-4 h-4 text-slate-500" />
-        <h3 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <Home className="w-4 h-4 text-gray-500" />
+        <h3 className="text-sm font-semibold text-gray-800">
           Portfolio Value & Equity Growth
         </h3>
       </div>
@@ -235,45 +235,30 @@ export function PortfolioChart({
           data={normalizedData}
           margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
         >
-          {/* Gradient Definitions - softer colors */}
+          {/* Gradient Definitions */}
           <defs>
             <linearGradient id="portfolioGradientSoft" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={COLORS.portfolio} stopOpacity={0.6} />
-              <stop offset="95%" stopColor={COLORS.portfolio} stopOpacity={0.05} />
+              <stop offset="5%" stopColor={CHART_GRADIENTS.primary.startColor} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
+              <stop offset="95%" stopColor={CHART_GRADIENTS.primary.endColor} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
             </linearGradient>
             <linearGradient id="equityGradientSoft" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={COLORS.equity} stopOpacity={0.6} />
-              <stop offset="95%" stopColor={COLORS.equity} stopOpacity={0.05} />
+              <stop offset="5%" stopColor={CHART_GRADIENTS.secondary.startColor} stopOpacity={CHART_GRADIENTS.secondary.startOpacity} />
+              <stop offset="95%" stopColor={CHART_GRADIENTS.secondary.endColor} stopOpacity={CHART_GRADIENTS.secondary.endOpacity} />
             </linearGradient>
           </defs>
           
-          <CartesianGrid 
-            strokeDasharray="0" 
-            stroke={COLORS.grid}
-            vertical={false}
-            horizontal={true}
-          />
+          <CartesianGrid {...CHART_STYLE.grid} />
           
-          <XAxis 
-            dataKey="year" 
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={{ stroke: '#e2e8f0' }}
-            tickLine={false}
+          <XAxis
+            dataKey="year"
+            {...CHART_STYLE.xAxis}
+            tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 10 }}
           />
-          
-          <YAxis 
+
+          <YAxis
             tickFormatter={formatCurrency}
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={false}
-            tickLine={false}
+            {...CHART_STYLE.yAxis}
+            tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 10 }}
             width={50}
           />
           
@@ -328,23 +313,23 @@ export function PortfolioChart({
         <div className="flex gap-4 text-[11px]">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.portfolio }}></div>
-            <span className="text-slate-500">Portfolio Value</span>
+            <span className="text-gray-500">Portfolio Value</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.equity }}></div>
-            <span className="text-slate-500">Equity</span>
+            <span className="text-gray-500">Equity</span>
           </div>
         </div>
         <div className="flex gap-4 text-xs">
           <div>
-            <span className="text-slate-400">Portfolio: </span>
-            <span className="font-semibold text-slate-700">
+            <span className="text-gray-400">Portfolio: </span>
+            <span className="font-semibold text-gray-700">
               {formatCurrency(finalPortfolio)}
             </span>
           </div>
           <div>
-            <span className="text-slate-400">Equity: </span>
-            <span className="font-semibold text-slate-700">
+            <span className="text-gray-400">Equity: </span>
+            <span className="font-semibold text-gray-700">
               {formatCurrency(finalEquity)}
             </span>
           </div>

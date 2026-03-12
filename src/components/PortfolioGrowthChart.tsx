@@ -15,6 +15,7 @@ import {
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
 
 export const PortfolioGrowthChart = () => {
   const { portfolioGrowthData } = useChartDataGenerator()
@@ -36,15 +37,15 @@ export const PortfolioGrowthChart = () => {
       const properties = payload[0]?.payload?.properties || []
       
       return (
-        <div className="bg-white p-3 border border-[#f3f4f6] shadow-sm rounded-md">
-          <p className="text-xs font-medium">{`Year: ${label}`}</p>
-          <p className="text-xs" style={{ color: '#87B5FA' }}>{`Portfolio Value: $${(payload[0].value / 1000000).toFixed(1)}M`}</p>
-          <p className="text-xs" style={{ color: 'rgba(134, 239, 172, 0.9)' }}>{`Equity: $${(payload[1].value / 1000000).toFixed(1)}M`}</p>
+        <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
+          <p className="text-xs font-medium text-gray-900">{`Year: ${label}`}</p>
+          <p className="text-xs" style={{ color: CHART_COLORS.primary }}>{`Portfolio Value: $${(payload[0].value / 1000000).toFixed(1)}M`}</p>
+          <p className="text-xs" style={{ color: CHART_COLORS.secondary }}>{`Equity: $${(payload[1].value / 1000000).toFixed(1)}M`}</p>
           {properties.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-[#f3f4f6]">
+            <div className="mt-2 pt-2 border-t border-gray-100">
               <p className="text-xs font-medium mb-1">Properties Purchased:</p>
               {properties.map((p: string, i: number) => (
-                <p key={i} className="text-xs text-[#6b7280]">• {p}</p>
+                <p key={i} className="text-xs text-gray-500">• {p}</p>
               ))}
             </div>
           )}
@@ -88,8 +89,8 @@ export const PortfolioGrowthChart = () => {
               width={20} 
               height={20}
             >
-              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-[#f3f4f6] shadow-sm">
-                {getPropertyTypeIcon(propertyTitle, 18, 'text-[#6b7280]')}
+              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm">
+                {getPropertyTypeIcon(propertyTitle, 18, 'text-gray-500')}
               </div>
             </foreignObject>
           )
@@ -117,11 +118,10 @@ export const PortfolioGrowthChart = () => {
       <text
         x={viewBox.x + viewBox.width - 10}
         y={viewBox.y - 5}
-        fill="#9ca3af"
+        fill={CHART_COLORS.annotationText}
         fontSize={12}
         fontWeight={500}
         textAnchor="end"
-        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Equity Goal: ${(profile.equityGoal / 1000000).toFixed(1)}M
       </text>
@@ -140,11 +140,10 @@ export const PortfolioGrowthChart = () => {
       <text
         x={props.cx}
         y={props.cy - 20}
-        fill="#9ca3af"
+        fill={CHART_COLORS.annotationText}
         fontSize={12}
         fontWeight={500}
         textAnchor="middle"
-        fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
       >
         Goal Reached: {equityGoalYear}
       </text>
@@ -160,23 +159,21 @@ export const PortfolioGrowthChart = () => {
         <text
           x={viewBox.x - 52}
           y={viewBox.y - 28}
-          fill="#9ca3af"
+          fill={CHART_COLORS.annotationText}
           fontSize={12}
           fontWeight={500}
           textAnchor="middle"
-          fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-        >
+          >
           Portfolio: ${(finalDataPoint.portfolioValue / 1000000).toFixed(1)}M
         </text>
         <text
           x={viewBox.x - 52}
           y={viewBox.y - 16}
-          fill="#9ca3af"
+          fill={CHART_COLORS.annotationText}
           fontSize={12}
           fontWeight={500}
           textAnchor="middle"
-          fontFamily="'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-        >
+          >
           Equity: ${(finalDataPoint.equity / 1000000).toFixed(1)}M
         </text>
       </g>
@@ -185,33 +182,25 @@ export const PortfolioGrowthChart = () => {
 
   return (
     <div>
-      <div className="h-80 w-full">
+      <div className="h-80 w-full pt-2">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             margin={{
               top: 30,
               right: 120,
-              left: 10,
+              left: 14,
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <CartesianGrid {...CHART_STYLE.grid} />
             <XAxis
               dataKey="year"
-              tick={{
-                fontSize: 12,
-                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-              }}
-              stroke="#9ca3af"
+              {...CHART_STYLE.xAxis}
             />
             <YAxis
               tickFormatter={formatYAxis}
-              tick={{
-                fontSize: 12,
-                fontFamily: "'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-              }}
-              stroke="#9ca3af"
+              {...CHART_STYLE.yAxis}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend
@@ -219,7 +208,7 @@ export const PortfolioGrowthChart = () => {
               height={36}
               iconType="line"
               formatter={(value) => (
-                <span className="text-xs text-[#374151]">{value}</span>
+                <span className="text-xs text-gray-600">{value}</span>
               )}
             />
             
@@ -227,7 +216,7 @@ export const PortfolioGrowthChart = () => {
             {profile.equityGoal > 0 && (
               <ReferenceLine
                 y={profile.equityGoal}
-                stroke="rgba(253, 186, 116, 0.7)"
+                stroke={CHART_COLORS.goal}
                 strokeDasharray="5 5"
                 strokeWidth={2}
               >
@@ -238,13 +227,13 @@ export const PortfolioGrowthChart = () => {
             <Line
               type="monotone"
               dataKey="portfolioValue"
-              stroke="#87B5FA"
+              stroke={CHART_COLORS.primary}
               strokeWidth={2}
               name="Portfolio Value"
               dot={<CustomizedDot />}
               activeDot={{
                 r: 6,
-                stroke: '#87B5FA',
+                stroke: CHART_COLORS.primary,
                 strokeWidth: 1,
                 fill: 'white',
               }}
@@ -253,13 +242,13 @@ export const PortfolioGrowthChart = () => {
             <Line
               type="monotone"
               dataKey="equity"
-              stroke="rgba(134, 239, 172, 0.7)"
+              stroke={CHART_COLORS.secondary}
               strokeWidth={2}
               name="Equity"
               dot={false}
               activeDot={{
                 r: 6,
-                stroke: 'rgba(134, 239, 172, 0.7)',
+                stroke: CHART_COLORS.secondary,
                 strokeWidth: 1,
                 fill: 'white',
               }}
@@ -271,8 +260,8 @@ export const PortfolioGrowthChart = () => {
                 x={equityGoalReached.year}
                 y={equityGoalReached.equity}
                 r={8}
-                fill="rgba(253, 186, 116, 0.7)"
-                stroke="white"
+                fill={CHART_COLORS.goalMarker}
+                stroke={CHART_COLORS.goalMarkerStroke}
                 strokeWidth={2}
               >
                 <Label content={<GoalAchievedLabel />} />

@@ -13,7 +13,7 @@ import {
 import { TourStep } from '@/components/TourManager'
 
 // Slider styles for consistent appearance - Clean black track and handle
-const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2563EB] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#2563EB] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2563EB] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#2563EB] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
   background: `linear-gradient(to right, #2563EB 0%, #2563EB ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
@@ -62,16 +62,16 @@ const SliderField: React.FC<SliderFieldProps> = ({
     <div 
       className={`bg-white rounded-lg border px-2.5 py-1.5 transition-all duration-150 ${
         isActive 
-          ? 'border-slate-900 shadow-sm' 
-          : 'border-slate-200 hover:border-slate-300'
+          ? 'border-gray-900 shadow-sm' 
+          : 'border-gray-200 hover:border-gray-300'
       }`}
     >
       {/* Header: Label left, Value right */}
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wide">
+        <span className="text-[9px] uppercase font-semibold text-gray-500 tracking-wide">
           {label}
         </span>
-        <span className="text-xs font-bold text-slate-900">
+        <span className="text-xs font-bold text-gray-900">
           {formatValue(value, formatAsCurrency, suffix)}
         </span>
       </div>
@@ -99,8 +99,8 @@ const SliderField: React.FC<SliderFieldProps> = ({
       <div className={`flex justify-between items-center mt-0.5 transition-opacity duration-150 ${
         isActive ? 'opacity-100' : 'opacity-0'
       }`}>
-        <span className="text-[8px] text-slate-400">{minLabel}</span>
-        <span className="text-[8px] text-slate-400">{maxLabel}</span>
+        <span className="text-[8px] text-gray-400">{minLabel}</span>
+        <span className="text-[8px] text-gray-400">{maxLabel}</span>
       </div>
     </div>
   )
@@ -130,7 +130,7 @@ export const ClientInputsPanel: React.FC = () => {
         >
         <div id="investment-goals-section">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+            <h3 className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">
               Investment Goals
             </h3>
           </div>
@@ -178,7 +178,7 @@ export const ClientInputsPanel: React.FC = () => {
 
       {/* Personal Details Section */}
       <div id="personal-details">
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+        <h3 className="text-[9px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">
           Personal Details
         </h3>
         <div className="flex flex-col gap-1.5">
@@ -222,7 +222,7 @@ export const ClientInputsPanel: React.FC = () => {
 
       {/* Current Portfolio Section */}
       <div>
-        <h3 className="text-[9px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+        <h3 className="text-[9px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">
           Current Portfolio
         </h3>
         <div className="flex flex-col gap-1.5">
@@ -251,12 +251,12 @@ export const ClientInputsPanel: React.FC = () => {
           />
 
           {/* Use Existing Equity Toggle */}
-          <div className="bg-white rounded-lg border border-slate-200 px-2.5 py-2 flex items-center justify-between">
+          <div className="bg-white rounded-lg border border-gray-200 px-2.5 py-2 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[9px] uppercase font-semibold text-slate-500 tracking-wide">
+              <span className="text-[9px] uppercase font-semibold text-gray-500 tracking-wide">
                 Use Existing Equity
               </span>
-              <span className="text-[8px] text-slate-400">
+              <span className="text-[8px] text-gray-400">
                 Include in purchase calculations
               </span>
             </div>
@@ -270,10 +270,10 @@ export const ClientInputsPanel: React.FC = () => {
           {/* Advanced Settings Button */}
           <button
             onClick={() => setIsAdvancedOpen(true)}
-            className="w-full flex items-center gap-2 py-2 px-2.5 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 transition-colors group"
+            className="w-full flex items-center gap-2 py-2 px-2.5 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 transition-colors group"
           >
-            <Settings2 size={14} className="text-slate-400 group-hover:text-slate-600" />
-            <span className="font-medium text-slate-600">Advanced Settings</span>
+            <Settings2 size={14} className="text-gray-400 group-hover:text-gray-600" />
+            <span className="font-medium text-gray-600">Advanced Settings</span>
           </button>
         </div>
       </div>
@@ -281,14 +281,14 @@ export const ClientInputsPanel: React.FC = () => {
       {/* Borrowing Capacity Calculator */}
       <button
         onClick={() => setIsCalcOpen(true)}
-        className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 transition-colors group"
+        className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 transition-colors group"
       >
-        <div className="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-slate-600">
+        <div className="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-gray-600">
           <CalculatorIcon size={14} />
         </div>
         <div className="text-left">
-          <div className="font-medium text-slate-700">Calculate Borrowing Capacity</div>
-          <div className="text-[10px] text-slate-400">Estimate how much your client can borrow</div>
+          <div className="font-medium text-gray-700">Calculate Borrowing Capacity</div>
+          <div className="text-[10px] text-gray-400">Estimate how much your client can borrow</div>
         </div>
       </button>
       </div>

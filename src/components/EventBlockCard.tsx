@@ -37,31 +37,31 @@ export const EventBlockCard: React.FC<EventBlockCardProps> = ({
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4 flex-1">
           {/* Event Icon */}
-          <div className="flex-shrink-0 w-12 h-12 bg-slate-50 border border-gray-100 rounded-xl flex items-center justify-center">
-            <EventTypeIcon eventType={event.eventType} size={24} className="text-slate-500" />
+          <div className="flex-shrink-0 w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center">
+            <EventTypeIcon eventType={event.eventType} size={24} className="text-gray-500" />
           </div>
 
           {/* Event Details */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-base font-semibold text-slate-900">{displayLabel}</h3>
-              <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+              <h3 className="text-base font-semibold text-gray-900">{displayLabel}</h3>
+              <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
                 {typeDef.shortLabel}
               </span>
             </div>
 
-            <p className="text-sm text-slate-500 mb-3">
-              Scheduled for <span className="font-medium text-slate-700">{periodToYear(event.period)}</span>
+            <p className="text-sm text-gray-500 mb-3">
+              Scheduled for <span className="font-medium text-gray-700">{periodToYear(event.period)}</span>
             </p>
 
             {/* Effects List */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-              <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-2">
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+              <p className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide mb-2">
                 This event will affect
               </p>
               <ul className="space-y-1.5">
                 {effectDescriptions.map((desc, idx) => (
-                  <li key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+                  <li key={idx} className="text-xs text-gray-600 flex items-start gap-2">
                     <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
                     <span>{desc}</span>
                   </li>
@@ -77,7 +77,7 @@ export const EventBlockCard: React.FC<EventBlockCardProps> = ({
         {/* Remove Button */}
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="flex-shrink-0 ml-4 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="flex-shrink-0 ml-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           title="Remove event"
         >
           <X size={20} />
@@ -97,15 +97,15 @@ const renderEventDetails = (event: EventBlock) => {
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           {payload.previousSalary && (
             <div className="bg-white border border-gray-100 rounded-lg p-2">
-              <span className="text-slate-500">Previous:</span>
-              <span className="font-medium text-slate-700 ml-1">
+              <span className="text-gray-500">Previous:</span>
+              <span className="font-medium text-gray-700 ml-1">
                 ${payload.previousSalary.toLocaleString()}
               </span>
             </div>
           )}
           <div className="bg-white border border-gray-100 rounded-lg p-2">
-            <span className="text-slate-500">New Salary:</span>
-            <span className="font-medium text-slate-700 ml-1">
+            <span className="text-gray-500">New Salary:</span>
+            <span className="font-medium text-gray-700 ml-1">
               ${payload.newSalary.toLocaleString()}
             </span>
           </div>
@@ -115,8 +115,8 @@ const renderEventDetails = (event: EventBlock) => {
     case 'partner_income_change':
       return payload.newPartnerSalary ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Partner Income:</span>
-          <span className="font-medium text-slate-700 ml-1">
+          <span className="text-gray-500">Partner Income:</span>
+          <span className="font-medium text-gray-700 ml-1">
             ${payload.newPartnerSalary.toLocaleString()}
           </span>
         </div>
@@ -125,7 +125,7 @@ const renderEventDetails = (event: EventBlock) => {
     case 'bonus_windfall':
       return payload.bonusAmount ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Bonus:</span>
+          <span className="text-gray-500">Bonus:</span>
           <span className="font-semibold text-green-600 ml-1">
             +${payload.bonusAmount.toLocaleString()}
           </span>
@@ -135,7 +135,7 @@ const renderEventDetails = (event: EventBlock) => {
     case 'inheritance':
       return payload.cashAmount ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Amount:</span>
+          <span className="text-gray-500">Amount:</span>
           <span className="font-semibold text-green-600 ml-1">
             +${payload.cashAmount.toLocaleString()}
           </span>
@@ -145,7 +145,7 @@ const renderEventDetails = (event: EventBlock) => {
     case 'major_expense':
       return payload.cashAmount ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Expense:</span>
+          <span className="text-gray-500">Expense:</span>
           <span className="font-semibold text-red-600 ml-1">
             -${payload.cashAmount.toLocaleString()}
           </span>
@@ -155,8 +155,8 @@ const renderEventDetails = (event: EventBlock) => {
     case 'dependent_change':
       return payload.dependentChange ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Change:</span>
-          <span className={`font-semibold ml-1 ${payload.dependentChange > 0 ? 'text-slate-700' : 'text-slate-600'}`}>
+          <span className="text-gray-500">Change:</span>
+          <span className={`font-semibold ml-1 ${payload.dependentChange > 0 ? 'text-gray-700' : 'text-gray-600'}`}>
             {payload.dependentChange > 0 ? '+' : ''}{payload.dependentChange} dependent{Math.abs(payload.dependentChange) !== 1 ? 's' : ''}
           </span>
         </div>
@@ -165,7 +165,7 @@ const renderEventDetails = (event: EventBlock) => {
     case 'interest_rate_change':
       return payload.rateChange !== undefined ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">Rate Change:</span>
+          <span className="text-gray-500">Rate Change:</span>
           <span className={`font-semibold ml-1 ${payload.rateChange > 0 ? 'text-red-600' : 'text-green-600'}`}>
             {payload.rateChange > 0 ? '+' : ''}{payload.rateChange}%
           </span>
@@ -177,7 +177,7 @@ const renderEventDetails = (event: EventBlock) => {
         <div className="mt-3 flex gap-2 text-xs">
           {payload.growthAdjustment !== undefined && (
             <div className="bg-white border border-gray-100 rounded-lg p-2">
-              <span className="text-slate-500">Growth Adj:</span>
+              <span className="text-gray-500">Growth Adj:</span>
               <span className="font-semibold text-red-600 ml-1">
                 {payload.growthAdjustment}%
               </span>
@@ -185,8 +185,8 @@ const renderEventDetails = (event: EventBlock) => {
           )}
           {payload.durationPeriods && (
             <div className="bg-white border border-gray-100 rounded-lg p-2">
-              <span className="text-slate-500">Duration:</span>
-              <span className="font-medium text-slate-700 ml-1">
+              <span className="text-gray-500">Duration:</span>
+              <span className="font-medium text-gray-700 ml-1">
                 {payload.durationPeriods / 2} year{payload.durationPeriods > 2 ? 's' : ''}
               </span>
             </div>
@@ -197,8 +197,8 @@ const renderEventDetails = (event: EventBlock) => {
     case 'refinance':
       return payload.newInterestRate ? (
         <div className="mt-3 bg-white border border-gray-100 rounded-lg p-2 text-xs inline-block">
-          <span className="text-slate-500">New Rate:</span>
-          <span className="font-medium text-slate-700 ml-1">
+          <span className="text-gray-500">New Rate:</span>
+          <span className="font-medium text-gray-700 ml-1">
             {payload.newInterestRate}%
           </span>
         </div>

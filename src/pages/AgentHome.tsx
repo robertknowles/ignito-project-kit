@@ -259,7 +259,7 @@ export const AgentHome = () => {
 
     return (
       <div>
-        <div className="text-sm font-medium text-[#111827] mb-3">{monthName}</div>
+        <div className="section-heading mb-3">{monthName}</div>
         <div className="grid grid-cols-7 gap-y-1">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
             <div key={i} className="h-6 text-[10px] font-medium text-[#9ca3af] text-center">
@@ -281,8 +281,8 @@ export const AgentHome = () => {
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
               <div className="mb-6">
-                <h2 className="text-lg font-medium text-[#111827]">Good morning, {firstName}</h2>
-                <p className="text-sm text-[#6b7280] mt-0.5">{dateString}</p>
+                <h2 className="page-title">Good morning, {firstName}</h2>
+                <p className="body-secondary mt-0.5">{dateString}</p>
               </div>
 
               {/* Overdue alert */}
@@ -318,7 +318,7 @@ export const AgentHome = () => {
                 {/* Left column: Upcoming Reviews */}
                 <div className="col-span-2">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-[#111827]">Upcoming Reviews</h3>
+                    <h3 className="section-heading">Upcoming Reviews</h3>
                     <button
                       onClick={() => navigate('/home')}
                       className="text-xs text-[#2563EB] hover:text-[#2563eb] font-medium flex items-center gap-1"
@@ -331,8 +331,8 @@ export const AgentHome = () => {
                   {reviewClients.length === 0 ? (
                     <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                       <CalendarIcon size={32} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-sm text-[#6b7280]">No upcoming reviews scheduled</p>
-                      <p className="text-xs text-[#9ca3af] mt-1">
+                      <p className="body-secondary">No upcoming reviews scheduled</p>
+                      <p className="meta mt-1">
                         Set review dates on client profiles to see them here
                       </p>
                     </div>
@@ -364,9 +364,9 @@ export const AgentHome = () => {
                                 {initials}
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-[#111827]">{client.name}</div>
+                                <div className="body-dark font-medium">{client.name}</div>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-[#6b7280]">{reviewDate}</span>
+                                  <span className="meta">{reviewDate}</span>
                                   <span
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                                       isOverdue
@@ -421,7 +421,7 @@ export const AgentHome = () => {
                   {/* Review Calendar */}
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-medium text-[#111827]">Review Calendar</h3>
+                      <h3 className="section-heading">Review Calendar</h3>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -467,14 +467,14 @@ export const AgentHome = () => {
 
                   {/* Activity Feed */}
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h3 className="text-sm font-medium text-[#111827] mb-4">Recent Activity</h3>
+                    <h3 className="section-heading mb-4">Recent Activity</h3>
                     {activityLoading ? (
-                      <div className="text-sm text-[#6b7280] text-center py-6">Loading...</div>
+                      <div className="body-secondary text-center py-6">Loading...</div>
                     ) : activityLog.length === 0 ? (
                       <div className="text-center py-6">
                         <Clock size={24} className="text-gray-300 mx-auto mb-2" />
-                        <p className="text-sm text-[#6b7280]">No recent activity</p>
-                        <p className="text-xs text-[#9ca3af] mt-0.5">Activity will appear here as you and your clients interact</p>
+                        <p className="body-secondary">No recent activity</p>
+                        <p className="meta mt-0.5">Activity will appear here as you and your clients interact</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -487,14 +487,14 @@ export const AgentHome = () => {
                             <div key={entry.id} className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2 flex-shrink-0" />
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm text-[#374151]">
+                                <div className="body-dark">
                                   <span className={`font-medium ${config.color}`}>{config.label}</span>
                                   {' for '}
-                                  <span className="font-medium text-[#111827]">
+                                  <span className="font-medium">
                                     {getClientName(entry.client_id)}
                                   </span>
                                 </div>
-                                <div className="text-xs text-[#9ca3af] mt-0.5">
+                                <div className="meta mt-0.5">
                                   {formatRelativeTime(entry.created_at)}
                                 </div>
                               </div>
@@ -516,8 +516,8 @@ export const AgentHome = () => {
                     className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
                   >
                     <Users size={20} className="text-[#2563EB] mb-3" />
-                    <h4 className="text-sm font-medium text-gray-900">Clients</h4>
-                    <p className="text-xs text-gray-500 mt-1">Manage client profiles, roadmaps, and portal access</p>
+                    <h4 className="body-dark font-medium">Clients</h4>
+                    <p className="meta mt-1">Manage client profiles, roadmaps, and portal access</p>
                     <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       Open <ArrowRight size={12} />
                     </span>
@@ -527,8 +527,8 @@ export const AgentHome = () => {
                     className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
                   >
                     <FileText size={20} className="text-[#2563EB] mb-3" />
-                    <h4 className="text-sm font-medium text-gray-900">Forms</h4>
-                    <p className="text-xs text-gray-500 mt-1">Send intake forms and track client responses</p>
+                    <h4 className="body-dark font-medium">Forms</h4>
+                    <p className="meta mt-1">Send intake forms and track client responses</p>
                     <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       Open <ArrowRight size={12} />
                     </span>
@@ -539,8 +539,8 @@ export const AgentHome = () => {
                       className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
                     >
                       <Building2 size={20} className="text-[#2563EB] mb-3" />
-                      <h4 className="text-sm font-medium text-gray-900">Company</h4>
-                      <p className="text-xs text-gray-500 mt-1">Team management, branding, and portal settings</p>
+                      <h4 className="body-dark font-medium">Company</h4>
+                      <p className="meta mt-1">Team management, branding, and portal settings</p>
                       <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         Open <ArrowRight size={12} />
                       </span>

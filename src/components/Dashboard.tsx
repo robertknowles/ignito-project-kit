@@ -84,7 +84,7 @@ export const Dashboard = () => {
         {comparison && <ComparisonInsights comparison={comparison} />}
         
         {/* Bottom Section: Net Worth (LHS) + Financial Freedom (RHS) */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-5">
           <NetWorthChart />
           <FinancialFreedomPanel />
         </div>

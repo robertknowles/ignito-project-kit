@@ -23,6 +23,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
 import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
+import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS } from '../constants/chartColors';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -105,7 +106,7 @@ interface StatusPillProps {
 const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = false }) => {
   const baseClasses = "inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium";
   const clickableClasses = isClickable 
-    ? "cursor-pointer border border-slate-300 shadow hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 active:scale-95 active:shadow-sm active:translate-y-0 transition-all duration-150 ease-in-out" 
+    ? "cursor-pointer border border-gray-300 shadow hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 active:scale-95 active:shadow-sm active:translate-y-0 transition-all duration-150 ease-in-out" 
     : "";
   
   if (status === 'pass') {
@@ -135,7 +136,7 @@ const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = 
     );
   }
   return (
-    <span className={`${baseClasses} bg-slate-100 text-slate-400`}>
+    <span className={`${baseClasses} bg-gray-100 text-gray-400`}>
       –
     </span>
   );
@@ -148,16 +149,16 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
       const data = payload[0]?.payload;
       const yearTriggers = refinanceTriggers.filter(t => t.triggerYear === Number(label));
       return (
-        <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
-          <p className="text-xs font-medium text-slate-900 mb-2">Year: {label}</p>
+        <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-md">
+          <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
           <p className="text-xs text-teal-600">
             Portfolio: {formatCurrency(data?.portfolioValue || 0)}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-gray-500">
             Equity: {formatCurrency(data?.totalEquity || 0)}
           </p>
           {data?.doNothingBalance > 0 && (
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Savings Only: {formatCurrency(data.doNothingBalance)}
             </p>
           )}
@@ -167,9 +168,9 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
             </p>
           ))}
           {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="mt-2 pt-2 border-t border-gray-100">
               {data.purchaseDetails.map((purchase: any, idx: number) => (
-                <p key={idx} className="text-xs font-medium text-slate-700">
+                <p key={idx} className="text-xs font-medium text-gray-700">
                   {purchase.propertyTitle}
                 </p>
               ))}
@@ -208,7 +209,7 @@ const CustomDot = (props: CustomDotProps) => {
   const propertyTitle = firstPurchase.propertyTitle;
   const instanceId = firstPurchase.instanceId;
   const isHouse = isHouseType(propertyTitle);
-  const borderColor = '#9ca3af'; // Grey border
+  const borderColor = CHART_COLORS.annotationText; // Grey border
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -267,7 +268,7 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
   });
 
   const isHouse = isHouseType(property.title);
-  const borderColor = hasViolations ? '#ef4444' : '#9ca3af'; // Grey border, red for violations
+  const borderColor = hasViolations ? '#ef4444' : CHART_COLORS.annotationText; // Grey border, red for violations
   const borderWidth = hasViolations ? 2 : 1;
 
   const style: React.CSSProperties = {
@@ -378,7 +379,7 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
     }
   } else if (isDragActive) {
     // Show subtle highlight for all columns during drag
-    backgroundColor = 'rgba(148, 163, 184, 0.05)';
+    backgroundColor = CHART_COLORS.grid;
   }
 
   return (
@@ -892,14 +893,14 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 {/* Grid extends from left border through Y-axis and all year columns */}
                 <div className="h-full flex">
                   <div 
-                    className="h-full border-r border-slate-300/40"
+                    className="h-full border-r border-gray-300/40"
                     style={{ width: LABEL_COLUMN_WIDTH }}
                   />
                   <div className="h-full flex" style={{ width: chartWidth }}>
                     {years.map((_, index) => (
                       <div 
                         key={`grid-line-${index}`}
-                        className="h-full border-r border-slate-300/40"
+                        className="h-full border-r border-gray-300/40"
                         style={{ width: yearColumnWidth }}
                       />
                     ))}
@@ -976,12 +977,12 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
               {/* Gradient Definitions */}
               <defs>
                 <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
-                  <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
+                  <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
+                  <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
                 </linearGradient>
                 <linearGradient id="greyGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.06} />
-                  <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.01} />
+                  <stop offset="0%" stopColor={CHART_COLORS.axisText} stopOpacity={0.06} />
+                  <stop offset="100%" stopColor={CHART_COLORS.axisText} stopOpacity={0.01} />
                 </linearGradient>
               </defs>
 
@@ -1000,7 +1001,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <CartesianGrid
                 strokeDasharray="0"
-                stroke="#F3F4F6"
+                stroke={CHART_COLORS.grid}
                 strokeOpacity={0.7}
                 vertical={false}
                 horizontal={true}
@@ -1018,7 +1019,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 tickFormatter={formatCurrency}
                 tick={{
                   fontSize: 11,
-                  fill: '#9CA3AF',
+                  fill: CHART_COLORS.annotationText,
                   fontFamily: 'Inter, system-ui, sans-serif',
                 }}
                 axisLine={false}
@@ -1033,13 +1034,13 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke="#2563EB"
+                stroke={CHART_COLORS.primary}
                 strokeWidth={2}
                 fill="url(#blueGradient)"
                 dot={false}
                 activeDot={{
                   r: 6,
-                  stroke: '#2563EB',
+                  stroke: CHART_COLORS.primary,
                   strokeWidth: 2,
                   fill: 'white',
                 }}
@@ -1050,7 +1051,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke="#CBD5E1"
+                stroke={CHART_COLORS.tertiary}
                 strokeWidth={1.5}
                 fill="url(#greyGradient)"
                 dot={false}
@@ -1061,7 +1062,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 type="monotone"
                 dataKey="doNothingBalance"
                 name="Savings Only"
-                stroke="#9CA3AF"
+                stroke={CHART_COLORS.annotationText}
                 strokeDasharray="6 4"
                 strokeWidth={1.5}
                 dot={false}
@@ -1074,7 +1075,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   x={equityGoalReached.year}
                   y={equityGoalReached.totalEquity}
                   r={8}
-                  fill="rgba(253, 186, 116, 0.9)"
+                  fill={CHART_COLORS.goal}
                   stroke="white"
                   strokeWidth={2}
                 >
@@ -1092,8 +1093,8 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                     x={trigger.triggerYear}
                     y={yearData.totalEquity}
                     r={5}
-                    fill="#F59E0B"
-                    stroke="#D97706"
+                    fill={CHART_COLORS.goalMarker}
+                    stroke={CHART_COLORS.goal}
                     strokeWidth={1.5}
                   />
                 );

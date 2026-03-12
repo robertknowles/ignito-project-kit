@@ -564,7 +564,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <span>This property violates constraints</span>
           </DialogTitle>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             {property.title} - {property.displayPeriod}
           </p>
         </DialogHeader>
@@ -577,8 +577,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 <Check className="text-green-600" size={20} />
               </div>
               <div>
-                <h4 className="font-semibold text-slate-900">All Tests Passed</h4>
-                <p className="text-sm text-slate-500">This property can now be placed in this year.</p>
+                <h4 className="font-semibold text-gray-900">All Tests Passed</h4>
+                <p className="text-sm text-gray-500">This property can now be placed in this year.</p>
               </div>
             </div>
           </div>
@@ -594,19 +594,19 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
               {liveViolations.map((v) => (
                 <div
                   key={v.type}
-                  className="flex items-center justify-between py-2.5 px-3 bg-slate-50 border border-slate-100 rounded-xl"
+                  className="flex items-center justify-between py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 w-8 h-8 bg-red-50 border border-red-100 rounded-lg flex items-center justify-center">
                       <X className="h-4 w-4 text-red-500" />
                     </div>
-                    <span className="font-medium text-sm text-slate-900">{getConstraintLabel(v.type)}</span>
+                    <span className="font-medium text-sm text-gray-900">{getConstraintLabel(v.type)}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-red-600 text-sm font-semibold">
                       {formatCompactCurrency(v.shortfall)}
                     </span>
-                    <p className="text-[10px] text-slate-500">{v.type === 'deposit' ? 'deposit shortfall' : v.type === 'borrowing' ? 'over capacity' : 'annual shortfall'}</p>
+                    <p className="text-[10px] text-gray-500">{v.type === 'deposit' ? 'deposit shortfall' : v.type === 'borrowing' ? 'over capacity' : 'annual shortfall'}</p>
                   </div>
                 </div>
               ))}
@@ -618,7 +618,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
         {suggestedFixes.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Lightbulb className="h-4 w-4 text-slate-400" />
+              <Lightbulb className="h-4 w-4 text-gray-400" />
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
                 Quick Fixes
               </p>
@@ -627,24 +627,24 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
               {suggestedFixes.map((fix, idx) => (
                 <div
                   key={`${fix.field}-${idx}`}
-                  className="flex items-center justify-between py-3 px-3 bg-slate-50 border border-slate-100 rounded-xl"
+                  className="flex items-center justify-between py-3 px-3 bg-gray-50 border border-gray-100 rounded-xl"
                 >
                   <div className="flex-1">
-                    <p className="text-sm text-slate-700">{fix.explanation}</p>
+                    <p className="text-sm text-gray-700">{fix.explanation}</p>
                     {fix.actionType !== 'editCosts' && fix.actionType !== 'capitalizeLmi' && (
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span className="font-medium">{formatCompactCurrency(fix.currentValue)}</span>
                         <ArrowRight className="h-3 w-3" />
-                        <span className="font-medium text-slate-700">{formatCompactCurrency(fix.suggestedValue)}</span>
+                        <span className="font-medium text-gray-700">{formatCompactCurrency(fix.suggestedValue)}</span>
                       </p>
                     )}
                     {fix.actionType === 'capitalizeLmi' && (
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span>Upfront LMI:</span>
                         <span className="font-medium">{formatCompactCurrency(fix.currentValue)}</span>
                         <ArrowRight className="h-3 w-3" />
-                        <span className="font-medium text-slate-700">$0</span>
-                        <span className="text-slate-400">(added to loan)</span>
+                        <span className="font-medium text-gray-700">$0</span>
+                        <span className="text-gray-400">(added to loan)</span>
                       </p>
                     )}
                   </div>
@@ -652,7 +652,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     size="sm"
                     variant="outline"
                     onClick={() => handleApplySuggestedFix(fix)}
-                    className="ml-3 text-slate-600 border-gray-200 hover:bg-slate-50 hover:border-gray-300"
+                    className="ml-3 text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                   >
                     {fix.actionType === 'editCosts' ? (
                       <span className="flex items-center gap-1">
@@ -682,7 +682,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
             <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">
               Alternative Solutions
             </p>
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               Consider these life events instead of adjusting the property:
             </p>
             <div className="space-y-2">
@@ -691,18 +691,18 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 return (
                   <div
                     key={`${eventFix.eventType}-${idx}`}
-                    className="flex items-center justify-between py-3 px-3 bg-slate-50 border border-slate-100 rounded-xl"
+                    className="flex items-center justify-between py-3 px-3 bg-gray-50 border border-gray-100 rounded-xl"
                   >
                     <div className="flex items-start gap-3 flex-1">
                       <div className="flex-shrink-0 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center">
-                        <EventTypeIcon eventType={eventFix.eventType} size={20} className="text-slate-500" />
+                        <EventTypeIcon eventType={eventFix.eventType} size={20} className="text-gray-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-700">{eventFix.explanation}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Addresses <span className="capitalize font-medium text-slate-600">{eventFix.violationType}</span> test
+                        <p className="text-sm text-gray-700">{eventFix.explanation}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Addresses <span className="capitalize font-medium text-gray-600">{eventFix.violationType}</span> test
                           {' · '}
-                          <span className="font-medium text-slate-600">{eventFix.formattedAmount}</span>
+                          <span className="font-medium text-gray-600">{eventFix.formattedAmount}</span>
                         </p>
                       </div>
                     </div>
@@ -714,7 +714,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                       className={`ml-3 flex-shrink-0 ${
                         isAdded 
                           ? 'text-green-600 border-green-200 bg-green-50' 
-                          : 'text-slate-600 border-gray-200 hover:bg-slate-50 hover:border-gray-300'
+                          : 'text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                       }`}
                     >
                       {isAdded ? (
@@ -734,7 +734,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
               })}
             </div>
             {addedEventTypes.size > 0 && (
-              <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
+              <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
                 Events are added to the period before this property purchase. Close this modal to see the updated timeline.
               </p>
             )}
@@ -768,7 +768,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 max={2000000}
                 className="text-right"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-gray-500">
                 Reduce price to lower deposit/loan requirements
               </p>
             </div>
@@ -791,7 +791,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 max={95}
                 step={1}
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-gray-500">
                 Lower LVR = larger deposit, smaller loan. Higher LVR = smaller deposit, larger loan (may need LMI).
               </p>
             </div>
@@ -818,7 +818,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 max={2000}
                 className="text-right"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-gray-500">
                 Higher rent improves serviceability (cash flow)
               </p>
             </div>
@@ -841,28 +841,28 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 max={10}
                 step={0.1}
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-gray-500">
                 Lower interest rate improves serviceability
               </p>
             </div>
           )}
 
           {/* One-Off Purchase Costs Section */}
-          <div ref={costsRef} className="pt-2 border-t border-slate-100">
+          <div ref={costsRef} className="pt-2 border-t border-gray-100">
             <Collapsible open={isOneOffCostsExpanded} onOpenChange={setIsOneOffCostsExpanded}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-slate-50 rounded transition-colors">
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-gray-50 rounded transition-colors">
                 <div className="flex items-center gap-2">
                   {isOneOffCostsExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-500" />
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
                   )}
                   <Label className="text-sm cursor-pointer">One-Off Purchase Costs</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
                   {!isOneOffCostsExpanded && (
-                    <span className="text-xs flex items-center gap-1" style={{ color: '#87B5FA' }}>
+                    <span className="text-xs flex items-center gap-1" style={{ color: '#4A7BF7' }}>
                       <Edit3 className="h-3 w-3" />
                       Edit
                     </span>
@@ -872,17 +872,17 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
               
               <CollapsibleContent className="pt-4 space-y-4">
                 {/* Cost Breakdown Summary */}
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Deposit Balance:</span>
+                    <span className="text-gray-600">Deposit Balance:</span>
                     <span className="font-medium">{formatCurrency(calculatedCosts.depositBalance)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Stamp Duty:</span>
+                    <span className="text-gray-600">Stamp Duty:</span>
                     <span className="font-medium">{formatCurrency(calculatedCosts.stampDuty)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">LMI:</span>
+                    <span className="text-gray-600">LMI:</span>
                     <span className="font-medium">
                       {capitalizeLmi ? (
                         <span className="text-green-600">$0 (capitalized)</span>
@@ -892,11 +892,11 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Other Costs:</span>
+                    <span className="text-gray-600">Other Costs:</span>
                     <span className="font-medium">{formatCurrency(calculatedCosts.totalOneOffCostsExLmi - calculatedCosts.depositBalance - calculatedCosts.stampDuty)}</span>
                   </div>
-                  <div className="flex justify-between pt-1 border-t border-slate-200">
-                    <span className="text-slate-700 font-medium">Total Cash Required:</span>
+                  <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <span className="text-gray-700 font-medium">Total Cash Required:</span>
                     <span className="font-semibold">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
                   </div>
                 </div>
@@ -904,7 +904,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 1 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Engagement Fee</Label>
+                    <Label className="text-xs text-gray-600">Engagement Fee</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.engagementFee}
@@ -915,7 +915,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Conditional Deposit</Label>
+                    <Label className="text-xs text-gray-600">Conditional Deposit</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.conditionalHoldingDeposit}
@@ -930,7 +930,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 2 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Building Insurance Upfront</Label>
+                    <Label className="text-xs text-gray-600">Building Insurance Upfront</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.buildingInsuranceUpfront}
@@ -941,7 +941,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Building & Pest Inspection</Label>
+                    <Label className="text-xs text-gray-600">Building & Pest Inspection</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.buildingPestInspection}
@@ -956,7 +956,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 3 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Plumbing/Electrical Inspections</Label>
+                    <Label className="text-xs text-gray-600">Plumbing/Electrical Inspections</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.plumbingElectricalInspections}
@@ -967,7 +967,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Independent Valuation</Label>
+                    <Label className="text-xs text-gray-600">Independent Valuation</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.independentValuation}
@@ -982,7 +982,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 4 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Unconditional Deposit</Label>
+                    <Label className="text-xs text-gray-600">Unconditional Deposit</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.unconditionalHoldingDeposit}
@@ -993,7 +993,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Mortgage Fees</Label>
+                    <Label className="text-xs text-gray-600">Mortgage Fees</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.mortgageFees}
@@ -1008,7 +1008,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 5 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Conveyancing</Label>
+                    <Label className="text-xs text-gray-600">Conveyancing</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.conveyancing}
@@ -1019,7 +1019,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Rates Adjustment</Label>
+                    <Label className="text-xs text-gray-600">Rates Adjustment</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.ratesAdjustment}
@@ -1034,7 +1034,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 6 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600">Maintenance Allowance</Label>
+                    <Label className="text-xs text-gray-600">Maintenance Allowance</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.maintenanceAllowancePostSettlement}
@@ -1045,7 +1045,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600">Stamp Duty Override</Label>
+                    <Label className="text-xs text-gray-600">Stamp Duty Override</Label>
                     <Input
                       type="number"
                       value={adjustedOneOffCosts.stampDutyOverride ?? ''}
@@ -1060,10 +1060,10 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
 
                 {/* LMI Capitalization Toggle */}
                 {calculatedCosts.lmi > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl">
                     <div>
-                      <Label className="text-sm text-slate-700">Capitalize LMI into Loan</Label>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <Label className="text-sm text-gray-700">Capitalize LMI into Loan</Label>
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Add {formatCurrency(calculatedCosts.lmi)} to loan instead of paying upfront
                       </p>
                     </div>
@@ -1071,7 +1071,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                       type="checkbox"
                       checked={capitalizeLmi}
                       onChange={(e) => setCapitalizeLmi(e.target.checked)}
-                      className="w-4 h-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500"
+                      className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
                     />
                   </div>
                 )}
@@ -1087,16 +1087,16 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
           </p>
           
           {/* Cash Required vs Available Summary */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-3">
+          <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mb-3">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Available Funds:</span>
-              <span className="font-medium text-slate-700">{formatCurrency(property.availableFundsUsed)}</span>
+              <span className="text-gray-500">Available Funds:</span>
+              <span className="font-medium text-gray-700">{formatCurrency(property.availableFundsUsed)}</span>
             </div>
             <div className="flex justify-between text-sm mt-1">
-              <span className="text-slate-500">Total Cash Required:</span>
-              <span className="font-medium text-slate-700">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
+              <span className="text-gray-500">Total Cash Required:</span>
+              <span className="font-medium text-gray-700">{formatCurrency(calculatedCosts.totalCashRequired)}</span>
             </div>
-            <div className={`flex justify-between text-sm mt-1 pt-1 border-t border-slate-200 ${liveValidation.deposit.pass ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`flex justify-between text-sm mt-1 pt-1 border-t border-gray-200 ${liveValidation.deposit.pass ? 'text-green-600' : 'text-red-600'}`}>
               <span className="font-medium">{liveValidation.deposit.pass ? 'Surplus:' : 'Shortfall:'}</span>
               <span className="font-semibold">{formatCurrency(Math.abs(liveValidation.deposit.surplus))}</span>
             </div>
@@ -1168,8 +1168,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
 
           {/* Success message */}
           {allViolationsResolved && hasChanges && (
-            <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
-              <span className="text-slate-700 text-sm font-medium">
+            <div className="mt-3 p-3 bg-gray-50 border border-gray-100 rounded-xl text-center">
+              <span className="text-gray-700 text-sm font-medium">
                 All constraints now pass. Click "Apply Changes" to save.
               </span>
             </div>

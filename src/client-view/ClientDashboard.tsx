@@ -582,23 +582,23 @@ export function ClientDashboard({
   // ============================================
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 lg:px-10 py-4 sm:py-5">
+      <div className="bg-white border-b border-gray-200 px-6 lg:px-10 py-4 sm:py-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs sm:text-sm text-slate-500 mb-1">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">
               {comparisonMode ? 'Strategy Comparison Report' : 'Investment Strategy Dashboard'}
             </p>
-            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               {clientDisplayName}'s Portfolio Plan
               {comparisonMode && (
-                <span className="ml-2 text-sm font-normal text-slate-500">
+                <span className="ml-2 text-sm font-normal text-gray-500">
                   — Comparing {scenarioA?.name || 'A'} vs {scenarioB?.name || 'B'}
                 </span>
               )}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">Prepared by {agentDisplayName} • {companyDisplayName}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Prepared by {agentDisplayName} • {companyDisplayName}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -640,11 +640,11 @@ export function ClientDashboard({
           // SINGLE SCENARIO MODE: Standard KPI cards
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 lg:mb-8">
             {/* Equity Goal Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-sky-500" />
-                  <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Equity Goal</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Equity Goal</span>
                 </div>
                 {equityGoalYear !== null ? (
                   <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -652,7 +652,7 @@ export function ClientDashboard({
                   <Clock className="w-5 h-5 text-amber-400" />
                 )}
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-slate-800 mb-1">{formatCurrency(equityGoal)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">{formatCurrency(equityGoal)}</p>
               <p className={`text-sm ${equityGoalYear !== null ? 'text-emerald-600' : 'text-amber-500'}`}>
                 {equityGoalYear !== null 
                   ? `Achieved by ${equityGoalYear}` 
@@ -664,11 +664,11 @@ export function ClientDashboard({
             </div>
 
             {/* Passive Income Goal Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Passive Income</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Passive Income</span>
                 </div>
                 {incomeGoalYear !== null ? (
                   <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -676,7 +676,7 @@ export function ClientDashboard({
                   <Clock className="w-5 h-5 text-amber-400" />
                 )}
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-slate-800 mb-1">{formatCurrency(incomeGoal)}/yr</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">{formatCurrency(incomeGoal)}/yr</p>
               <p className={`text-sm ${incomeGoalYear !== null ? 'text-emerald-600' : 'text-amber-500'}`}>
                 {incomeGoalYear !== null 
                   ? `Achieved by ${incomeGoalYear}` 
@@ -688,16 +688,16 @@ export function ClientDashboard({
             </div>
 
             {/* Target Year Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Trophy className="w-4 h-4 text-sky-500" />
-                <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Target Year</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Target Year</span>
               </div>
               <p className="text-xl sm:text-2xl font-bold text-sky-600 mb-1">{targetYear}</p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-gray-600">
                 {timelineYears} year journey
               </p>
-              <p className="text-xs text-slate-500 mt-1">{propertySelections.length} properties planned</p>
+              <p className="text-xs text-gray-500 mt-1">{propertySelections.length} properties planned</p>
             </div>
           </div>
         )}
@@ -746,17 +746,17 @@ export function ClientDashboard({
 
               {/* Comparison Winner Summary */}
               {comparisonMetrics && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    <h3 className="text-sm font-semibold text-gray-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                       Recommendation
                     </h3>
                   </div>
                   
                   <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/60 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-gray-800">
                         {comparisonMetrics.winner === 'tie' 
                           ? 'Both scenarios perform similarly' 
                           : `Scenario ${comparisonMetrics.winner} recommended`}
@@ -774,15 +774,15 @@ export function ClientDashboard({
                       )}
                     </div>
                     
-                    <p className="text-xs text-slate-600 mb-3">{comparisonMetrics.winnerReason}</p>
+                    <p className="text-xs text-gray-600 mb-3">{comparisonMetrics.winnerReason}</p>
                     
                     {/* Key Insights */}
                     {comparisonMetrics.insights.length > 0 && (
                       <div className="border-t border-amber-200/60 pt-3">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-2">Key Insights</p>
+                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-2">Key Insights</p>
                         <ul className="space-y-1">
                           {comparisonMetrics.insights.slice(0, 3).map((insight, index) => (
-                            <li key={index} className="text-xs text-slate-600 flex items-start gap-2">
+                            <li key={index} className="text-xs text-gray-600 flex items-start gap-2">
                               <span className="text-amber-500 mt-0.5">•</span>
                               {insight}
                             </li>
@@ -801,35 +801,35 @@ export function ClientDashboard({
             {/* Left Panel - Property Timeline (50%) */}
             <div className="w-full lg:w-1/2">
               {/* White container with title inside */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="w-4 h-4 text-slate-500" />
-                  <h2 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  <h2 className="text-sm font-semibold text-gray-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     Property Investment Timeline
                   </h2>
                 </div>
                 
                 {/* Starting Position Card */}
-                <div className="bg-slate-50 rounded-lg p-3 mb-3">
-                  <div className="flex items-center gap-3 mb-3 pb-2 border-b border-slate-200/60">
+                <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                  <div className="flex items-center gap-3 mb-3 pb-2 border-b border-gray-200/60">
                     <div className="flex items-center justify-center w-5 h-5 rounded-full bg-sky-100 text-sky-600 text-[10px] font-bold">A</div>
                     <div>
-                      <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Starting Position</h3>
-                      <p className="text-[10px] text-slate-500">Initial capital & borrowing power</p>
+                      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Starting Position</h3>
+                      <p className="text-[10px] text-gray-500">Initial capital & borrowing power</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-white rounded-md p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Starting Cash</p>
-                      <p className="text-xs font-semibold text-slate-800">{summaryData.startingCash}</p>
+                      <p className="text-[10px] text-gray-500 mb-0.5">Starting Cash</p>
+                      <p className="text-xs font-semibold text-gray-800">{summaryData.startingCash}</p>
                     </div>
                     <div className="bg-white rounded-md p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Borrowing</p>
-                      <p className="text-xs font-semibold text-slate-800">{summaryData.borrowingCapacity}</p>
+                      <p className="text-[10px] text-gray-500 mb-0.5">Borrowing</p>
+                      <p className="text-xs font-semibold text-gray-800">{summaryData.borrowingCapacity}</p>
                     </div>
                     <div className="bg-white rounded-md p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Annual Savings</p>
-                      <p className="text-xs font-semibold text-slate-800">{summaryData.annualSavings}</p>
+                      <p className="text-[10px] text-gray-500 mb-0.5">Annual Savings</p>
+                      <p className="text-xs font-semibold text-gray-800">{summaryData.annualSavings}</p>
                     </div>
                   </div>
                 </div>
@@ -847,7 +847,7 @@ export function ClientDashboard({
                 {timelineData.length > 0 && (
                   <div className="relative">
                     {/* Vertical line */}
-                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
                     
                     {/* Timeline items */}
                     {timelineData.map((item, index) => {
@@ -912,11 +912,11 @@ export function ClientDashboard({
 
               {/* Goal Achievement Banner - under charts */}
               {goalsAchieved && finalPortfolioData && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                   {/* Title inside the box */}
                   <div className="flex items-center gap-2 mb-4">
                     <Trophy className="w-4 h-4 text-emerald-600" />
-                    <h3 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    <h3 className="text-sm font-semibold text-gray-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                       Goals Achieved
                     </h3>
                     <span className="text-xs text-emerald-600 font-medium">
@@ -927,29 +927,29 @@ export function ClientDashboard({
                   {/* Content */}
                   <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/60 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-[10px] text-slate-600">Final position by {endYear}</p>
-                      <p className="text-[10px] font-medium text-slate-700">{propertySelections.length} properties in portfolio</p>
+                      <p className="text-[10px] text-gray-600">Final position by {endYear}</p>
+                      <p className="text-[10px] font-medium text-gray-700">{propertySelections.length} properties in portfolio</p>
                     </div>
                     
                     {/* Key Outcomes */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="bg-white/70 rounded-md p-2.5">
                         <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-[9px] text-slate-500">Final Portfolio</p>
-                          <p className="text-xs font-semibold text-slate-800">{formatCurrency(finalPortfolioData.portfolioValue)}</p>
+                          <p className="text-[9px] text-gray-500">Final Portfolio</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatCurrency(finalPortfolioData.portfolioValue)}</p>
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-[9px] text-slate-500">Total Equity</p>
-                          <p className="text-xs font-semibold text-slate-800">{formatCurrency(finalPortfolioData.equity)}</p>
+                          <p className="text-[9px] text-gray-500">Total Equity</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatCurrency(finalPortfolioData.equity)}</p>
                         </div>
                       </div>
                       <div className="bg-white/70 rounded-md p-2.5">
                         <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-[9px] text-slate-500">Passive Income</p>
+                          <p className="text-[9px] text-gray-500">Passive Income</p>
                           <p className="text-xs font-semibold text-emerald-600">{formatCurrency(finalCashflowData?.cashflow || 0)}/yr</p>
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-[9px] text-slate-500">Monthly</p>
+                          <p className="text-[9px] text-gray-500">Monthly</p>
                           <p className="text-xs font-semibold text-emerald-600">{formatCurrency(Math.round((finalCashflowData?.cashflow || 0) / 12))}/mo</p>
                         </div>
                       </div>
@@ -958,13 +958,13 @@ export function ClientDashboard({
                     {/* Progress Summary */}
                     <div className="bg-white/60 rounded-md p-2.5">
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-600">
+                        <span className="text-gray-600">
                           <span className="font-medium text-emerald-600">Equity goal</span> ({formatCurrency(equityGoal)}) achieved in {equityGoalYear}
                         </span>
                         <span className="text-emerald-600 font-medium">✓</span>
                       </div>
                       <div className="flex items-center justify-between text-[10px] mt-1.5">
-                        <span className="text-slate-600">
+                        <span className="text-gray-600">
                           <span className="font-medium text-emerald-600">Income goal</span> ({formatCurrency(incomeGoal)}/yr) achieved in {incomeGoalYear}
                         </span>
                         <span className="text-emerald-600 font-medium">✓</span>
@@ -978,9 +978,9 @@ export function ClientDashboard({
         )}
 
         {/* Footer */}
-        <div className="pt-4 sm:pt-6 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <p className="text-xs sm:text-sm font-semibold text-slate-900">{companyDisplayName.toUpperCase()}</p>
-          <p className="text-xs sm:text-sm text-slate-500">Generated {new Date().toLocaleDateString()}</p>
+        <div className="pt-4 sm:pt-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-2">
+          <p className="text-xs sm:text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</p>
+          <p className="text-xs sm:text-sm text-gray-500">Generated {new Date().toLocaleDateString()}</p>
         </div>
       </div>
 

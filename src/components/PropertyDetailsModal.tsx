@@ -27,6 +27,7 @@ import {
 import { Info } from 'lucide-react';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
 import type { TimelineProperty } from '../types/property';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 
 interface PropertyDetailsModalProps {
   property: TimelineProperty | null;
@@ -174,24 +175,24 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   <h3 className="text-sm font-medium text-gray-900 mb-4">Equity Growth Over Time</h3>
                   <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <CartesianGrid {...CHART_STYLE.grid} />
                       <XAxis 
                         dataKey="year" 
-                        stroke="#6b7280"
+                        stroke="none"
                         style={{ fontSize: '11px' }}
-                        tick={{ fill: '#6b7280' }}
+                        tick={CHART_STYLE.yAxis.tick} axisLine={false} tickLine={false}
                       />
                       <YAxis 
-                        stroke="#6b7280"
+                        stroke="none"
                         style={{ fontSize: '11px' }}
                         tickFormatter={formatYAxis}
-                        tick={{ fill: '#6b7280' }}
+                        tick={CHART_STYLE.yAxis.tick} axisLine={false} tickLine={false}
                         width={60}
                       />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                           borderRadius: '8px',
                           fontSize: '12px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
@@ -205,7 +206,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       <Line 
                         type="monotone" 
                         dataKey="propertyValue" 
-                        stroke="#87B5FA" 
+                        stroke={CHART_COLORS.primary} 
                         strokeWidth={2}
                         name="Property Value"
                         dot={false}
@@ -213,7 +214,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       <Line 
                         type="monotone" 
                         dataKey="equity" 
-                        stroke="#86efac" 
+                        stroke={CHART_COLORS.positive} 
                         strokeWidth={2}
                         name="Equity"
                         dot={false}
@@ -221,7 +222,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       <Line 
                         type="monotone" 
                         dataKey="loanBalance" 
-                        stroke="#fca5a5" 
+                        stroke={CHART_COLORS.negative} 
                         strokeWidth={2}
                         name="Loan Balance"
                         dot={false}
@@ -251,24 +252,24 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <CartesianGrid {...CHART_STYLE.grid} />
                         <XAxis 
                           dataKey="year" 
-                          stroke="#6b7280"
+                          stroke="none"
                           style={{ fontSize: '11px' }}
-                          tick={{ fill: '#6b7280' }}
+                          tick={CHART_STYLE.yAxis.tick} axisLine={false} tickLine={false}
                         />
                         <YAxis 
-                          stroke="#6b7280"
+                          stroke="none"
                           style={{ fontSize: '11px' }}
                           tickFormatter={formatYAxis}
-                          tick={{ fill: '#6b7280' }}
+                          tick={CHART_STYLE.yAxis.tick} axisLine={false} tickLine={false}
                           width={60}
                         />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
+                            border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                             borderRadius: '8px',
                             fontSize: '12px',
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
@@ -282,16 +283,16 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                           wrapperStyle={{ fontSize: '11px' }}
                           iconSize={8}
                         />
-                        <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1} />
+                        <ReferenceLine y={0} stroke={CHART_COLORS.referenceLine} strokeWidth={1} />
                         <Bar 
                           dataKey="rentalIncome" 
-                          fill="#86efac" 
+                          fill={CHART_COLORS.barPositive} 
                           name="Rental Income"
                           radius={[4, 4, 0, 0]}
                         />
                         <Bar 
                           dataKey="expenses" 
-                          fill="#fca5a5" 
+                          fill={CHART_COLORS.barNegative} 
                           name="Expenses"
                           radius={[4, 4, 0, 0]}
                         />
@@ -303,7 +304,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                         />
                         <Bar 
                           dataKey="netCashflow" 
-                          fill="#87B5FA" 
+                          fill={CHART_COLORS.barPrimary} 
                           name="Net Cashflow"
                           radius={[4, 4, 0, 0]}
                         />

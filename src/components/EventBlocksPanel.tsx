@@ -36,19 +36,19 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRemove, onEdit }) => {
       onClick={onEdit}
     >
       {/* Left: Category Icon */}
-      <div className="flex-shrink-0 w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100 mt-0.5">
-        <EventTypeIcon eventType={event.eventType} size={16} className="text-slate-500" />
+      <div className="flex-shrink-0 w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 mt-0.5">
+        <EventTypeIcon eventType={event.eventType} size={16} className="text-gray-500" />
       </div>
       
       {/* Center: Text Stack */}
       <div className="flex-1 min-w-0">
         {/* Title row with actions */}
         <div className="flex items-center justify-between gap-1">
-          <h4 className="font-medium text-slate-900 text-xs truncate">{displayLabel}</h4>
+          <h4 className="font-medium text-gray-900 text-xs truncate">{displayLabel}</h4>
           {/* Remove button */}
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="p-0.5 text-slate-400 hover:text-red-600 rounded transition-colors opacity-0 group-hover:opacity-100"
+            className="p-0.5 text-gray-400 hover:text-red-600 rounded transition-colors opacity-0 group-hover:opacity-100"
             title="Remove event"
           >
             <X size={12} />
@@ -56,10 +56,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRemove, onEdit }) => {
         </div>
         
         {/* Details - period */}
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 leading-tight mt-0.5">
-          <Calendar size={10} className="text-slate-400" />
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 leading-tight mt-0.5">
+          <Calendar size={10} className="text-gray-400" />
           <span>{periodToYear(event.period)}</span>
-          <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-medium">
+          <span className="text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded text-[9px] font-medium">
             {typeDef.shortLabel}
           </span>
         </div>
@@ -83,14 +83,14 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({ category, onClick }) =>
       onClick={onClick}
       className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl text-left hover:bg-gray-50 hover:border-gray-300 transition-colors group w-full"
     >
-      <div className="flex-shrink-0 w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100">
-        <EventCategoryIcon category={category.id} size={20} className="text-slate-600" />
+      <div className="flex-shrink-0 w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
+        <EventCategoryIcon category={category.id} size={20} className="text-gray-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm text-slate-900">{category.label}</div>
-        <div className="text-[10px] text-slate-500">{category.description}</div>
+        <div className="font-medium text-sm text-gray-900">{category.label}</div>
+        <div className="text-[10px] text-gray-500">{category.description}</div>
       </div>
-      <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+      <ChevronRight size={14} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
     </button>
   );
 };
@@ -135,12 +135,12 @@ export const EventBlocksPanel: React.FC = () => {
       {/* Add Event Button */}
       <button
         onClick={() => setShowCategoryPicker(true)}
-        className="w-full py-3 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
       >
         <Plus size={16} />
         Add Custom Event
         {eventCount > 0 && (
-          <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
             {eventCount}
           </span>
         )}
@@ -150,10 +150,10 @@ export const EventBlocksPanel: React.FC = () => {
       {showCategoryPicker && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2.5 shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <h4 className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide">Select event type</h4>
+            <h4 className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide">Select event type</h4>
             <button 
               onClick={() => setShowCategoryPicker(false)}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+              className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
             >
               <X size={14} />
             </button>
@@ -171,7 +171,7 @@ export const EventBlocksPanel: React.FC = () => {
       {/* Active Events List */}
       {sortedEvents.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide px-1">
+          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide px-1">
             Scheduled Events
           </h4>
           {sortedEvents.map((event) => (
@@ -187,9 +187,9 @@ export const EventBlocksPanel: React.FC = () => {
       
       {/* Empty state */}
       {eventBlocks.length === 0 && !showCategoryPicker && (
-        <div className="text-center py-4 px-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-          <p className="text-xs text-slate-600 mb-1">No events scheduled</p>
-          <p className="text-[10px] text-slate-400">
+        <div className="text-center py-4 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <p className="text-xs text-gray-600 mb-1">No events scheduled</p>
+          <p className="text-[10px] text-gray-400">
             Add salary changes, inheritance, or market events to see how they affect your timeline
           </p>
         </div>

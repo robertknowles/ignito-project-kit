@@ -87,19 +87,19 @@ export const CashFlowAnalysis = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Total Rental Income</span>
-            <div className="font-semibold text-green-600">{formatCurrency(totalAnalysis.rentalIncome)}</div>
+            <div className="font-semibold text-gray-700">{formatCurrency(totalAnalysis.rentalIncome)}</div>
           </div>
           <div>
             <span className="text-gray-600">Mortgage Payments</span>
-            <div className="font-semibold text-red-600">-{formatCurrency(totalAnalysis.mortgagePayments)}</div>
+            <div className="font-semibold text-gray-500">-{formatCurrency(totalAnalysis.mortgagePayments)}</div>
           </div>
           <div>
             <span className="text-gray-600">Property Expenses</span>
-            <div className="font-semibold text-red-600">-{formatCurrency(totalAnalysis.propertyExpenses)}</div>
+            <div className="font-semibold text-gray-500">-{formatCurrency(totalAnalysis.propertyExpenses)}</div>
           </div>
           <div>
             <span className="text-gray-600">Net Cash Flow</span>
-            <div className={`font-semibold ${totalAnalysis.netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`font-semibold ${totalAnalysis.netCashflow >= 0 ? 'text-gray-700' : 'text-gray-500'}`}>
               {formatCurrency(totalAnalysis.netCashflow)}
             </div>
           </div>
@@ -153,7 +153,7 @@ export const CashFlowAnalysis = () => {
                 <div className="text-sm text-gray-600">
                   {formatCurrency(item.analysis.rentalIncome)} - {formatCurrency(item.analysis.mortgagePayments + item.analysis.propertyExpenses)}
                 </div>
-                <div className={`font-medium ${item.analysis.netCashflow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`font-medium ${item.analysis.netCashflow >= 0 ? 'text-gray-700' : 'text-gray-500'}`}>
                   {formatCurrency(item.analysis.netCashflow)}
                 </div>
               </div>

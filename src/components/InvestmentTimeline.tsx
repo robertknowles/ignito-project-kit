@@ -70,9 +70,9 @@ export const TimelineProgressBar: React.FC<TimelineProgressBarProps> = ({
             textColor = '#ffffff'; // White text
             borderColor = '#9ca3af';
           } else if (isPurchaseYear) {
-            bgColor = '#87B5FA'; // Blue for purchase years
+            bgColor = '#4A7BF7'; // Blue for purchase years
             textColor = '#ffffff'; // White text
-            borderColor = '#87B5FA';
+            borderColor = '#4A7BF7';
           } else if (isBetweenPurchases) {
             bgColor = '#d1d5db'; // Darker grey for years between purchases
             textColor = '#4b5563'; // Darker text color

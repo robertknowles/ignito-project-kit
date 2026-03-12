@@ -25,11 +25,11 @@ export const DataAssumptions = () => {
         <div className="h-full overflow-auto">
           <div className="p-8">
             <div className="mb-8">
-              <h1 className="text-[#111827] text-xl font-medium">
+              <h1 className="page-title">
                 Property Library
               </h1>
-              <p className="text-sm text-[#6b7280] mt-2">
-                Set default values for each property type. When you add a property to the timeline, 
+              <p className="body-secondary mt-2">
+                Set default values for each property type. When you add a property to the timeline,
                 it will inherit these defaults. You can still customize individual properties.
               </p>
             </div>
@@ -57,55 +57,43 @@ export const DataAssumptions = () => {
             {/* Custom Property Blocks Section */}
             {customBlocks.length > 0 && (
               <div className="border-t border-[#e5e7eb] mt-8 pt-8">
-                <h2 className="text-[#111827] font-medium text-base mb-4">
+                <h2 className="section-heading mb-4">
                   Custom Property Blocks
                 </h2>
-                <p className="text-sm text-[#6b7280] mb-4">
+                <p className="body-secondary mb-4">
                   These are custom property types you've created. They use simplified settings.
                 </p>
-                <div className="overflow-x-auto">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#e5e7eb]">
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Property Name
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Price
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Yield %
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Growth %
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          LVR %
-                        </th>
-                        <th className="text-left p-3 text-xs font-normal text-[#6b7280]">
-                          Actions
-                        </th>
+                      <tr className="border-b border-gray-200">
+                        <th className="table-header text-left">Property Name</th>
+                        <th className="table-header text-left">Price</th>
+                        <th className="table-header text-left">Yield %</th>
+                        <th className="table-header text-left">Growth %</th>
+                        <th className="table-header text-left">LVR %</th>
+                        <th className="table-header text-left">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {customBlocks.map((block) => (
-                        <tr key={block.id} className="border-b border-[#f3f4f6]">
-                          <td className="p-3 text-sm text-[#374151]">
+                        <tr key={block.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
+                          <td className="table-cell">
                             {block.title}
                           </td>
-                          <td className="p-3 text-sm text-[#374151]">
+                          <td className="table-cell">
                             ${block.cost.toLocaleString()}
                           </td>
-                          <td className="p-3 text-sm text-[#374151]">
+                          <td className="table-cell">
                             {block.yieldPercent}%
                           </td>
-                          <td className="p-3 text-sm text-[#374151]">
+                          <td className="table-cell">
                             {block.growthPercent}%
                           </td>
-                          <td className="p-3 text-sm text-[#374151]">
+                          <td className="table-cell">
                             {block.lvr}%
                           </td>
-                          <td className="p-3">
+                          <td className="table-cell">
                             <button
                               onClick={() => removeCustomBlock(block.id)}
                               className="text-red-500 hover:text-red-700 text-sm transition-colors"

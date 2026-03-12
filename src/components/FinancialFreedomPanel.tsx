@@ -7,6 +7,7 @@ import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { useFinancialFreedomProjection } from '../hooks/useFinancialFreedomProjection';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -30,15 +31,15 @@ const FreedomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const data = payload[0]?.payload;
   return (
-    <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
-      <p className="text-xs font-medium text-slate-900 mb-2">Year {label}</p>
-      <p className="text-xs text-slate-600">Rental Income: {formatK(data?.rentalIncome || 0)}</p>
-      <p className="text-xs text-slate-600">Expenses: {formatK(data?.totalExpenses || 0)}</p>
-      <p className="text-xs text-slate-600">Loan Payments: {formatK(data?.loanPayments || 0)}</p>
-      <p className={`text-xs font-medium ${(data?.netCashflow || 0) >= 0 ? 'text-green-600' : 'text-rose-500'}`}>
+    <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
+      <p className="text-xs font-medium text-gray-900 mb-2">Year {label}</p>
+      <p className="text-xs text-gray-500">Rental Income: {formatK(data?.rentalIncome || 0)}</p>
+      <p className="text-xs text-gray-500">Expenses: {formatK(data?.totalExpenses || 0)}</p>
+      <p className="text-xs text-gray-500">Loan Payments: {formatK(data?.loanPayments || 0)}</p>
+      <p className="text-xs font-medium text-gray-700">
         Net Cashflow: {formatK(data?.netCashflow || 0)}
       </p>
-      <p className="text-xs text-slate-400 mt-1">Debt: {formatK(data?.totalDebt || 0)}</p>
+      <p className="text-xs text-gray-400 mt-1">Debt: {formatK(data?.totalDebt || 0)}</p>
     </div>
   );
 };
@@ -64,7 +65,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
   if (projection.yearlyData.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6 flex items-center justify-center h-full">
-        <p className="text-sm text-slate-400">Add properties to see freedom projection</p>
+        <p className="body-secondary">Add properties to see freedom projection</p>
       </div>
     );
   }
@@ -82,25 +83,25 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
   const milestoneTypeColors: Record<string, string> = {
     transition: 'bg-amber-100 text-amber-700',
     positive: 'bg-blue-100 text-blue-700',
-    freedom: 'bg-green-100 text-green-700',
+    freedom: 'bg-blue-100 text-blue-700',
     'debt-free': 'bg-purple-100 text-purple-700',
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-4">
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
       {/* Hero — Freedom Year */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-medium text-slate-700">Financial Freedom</h3>
+          <h3 className="section-heading">Financial Freedom</h3>
           {projection.freedomYear ? (
             <div className="mt-1">
-              <span className="text-2xl font-bold text-green-600">{projection.freedomYear}</span>
-              <span className="text-xs text-slate-400 ml-2">
+              <span className="text-2xl font-bold text-blue-600">{projection.freedomYear}</span>
+              <span className="meta ml-2">
                 (Year {projection.freedomYearIndex})
               </span>
             </div>
           ) : (
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="meta mt-1">
               Not reached within 30-year projection
             </p>
           )}
@@ -108,8 +109,8 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
 
         {/* Target slider */}
         <div className="text-right">
-          <label className="text-[10px] text-slate-400 block">Target Income</label>
-          <span className="text-xs font-medium text-slate-700">{formatK(profile.targetPassiveIncome)}/yr</span>
+          <label className="meta block">Target Income</label>
+          <span className="metric-label">{formatK(profile.targetPassiveIncome)}/yr</span>
           {!scenarioData && (
             <input
               type="range"
@@ -118,28 +119,30 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
               step={5000}
               value={profile.targetPassiveIncome}
               onChange={handleTargetChange}
-              className="w-24 h-1 mt-1 block accent-green-600"
+              className="w-24 h-1 mt-1 block accent-blue-600"
             />
           )}
         </div>
       </div>
 
       {/* Mini Chart — cashflow bars + debt line */}
-      <ResponsiveContainer width="100%" height={150}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" vertical={false} />
-          <XAxis dataKey="year" tick={{ fontSize: 9, fill: '#94a3b8' }} />
+      <ResponsiveContainer width="100%" height={160}>
+        <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 5, bottom: 5 }}>
+          <CartesianGrid {...CHART_STYLE.grid} />
+          <XAxis dataKey="year" {...CHART_STYLE.xAxis} tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 9 }} />
           <YAxis
             yAxisId="cashflow"
             tickFormatter={formatK}
-            tick={{ fontSize: 9, fill: '#94a3b8' }}
+            {...CHART_STYLE.yAxis}
+            tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 9 }}
             width={45}
           />
           <YAxis
             yAxisId="debt"
             orientation="right"
             tickFormatter={formatK}
-            tick={{ fontSize: 9, fill: '#94a3b8' }}
+            {...CHART_STYLE.yAxis}
+            tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 9 }}
             width={45}
             hide
           />
@@ -149,7 +152,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
           <ReferenceLine
             yAxisId="cashflow"
             y={profile.targetPassiveIncome}
-            stroke="#22C55E"
+            stroke={CHART_COLORS.positive}
             strokeDasharray="4 4"
             strokeWidth={1}
           />
@@ -158,7 +161,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
           <Bar
             yAxisId="cashflow"
             dataKey="netCashflow"
-            fill="rgba(135, 181, 250, 0.5)"
+            fill={CHART_COLORS.barPrimary}
             radius={[2, 2, 0, 0]}
             name="Net Cashflow"
           />
@@ -168,7 +171,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
             yAxisId="debt"
             type="monotone"
             dataKey="totalDebt"
-            stroke="#EF4444"
+            stroke={CHART_COLORS.negative}
             strokeWidth={1.5}
             dot={false}
             name="Total Debt"
@@ -179,7 +182,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
             yAxisId="cashflow"
             type="monotone"
             dataKey="rentalIncome"
-            stroke="#22C55E"
+            stroke={CHART_COLORS.positive}
             strokeWidth={1}
             strokeDasharray="3 3"
             dot={false}
@@ -190,11 +193,11 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
 
       {/* Milestones */}
       {projection.milestones.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
+        <div className="flex flex-wrap gap-1.5 mt-4">
           {projection.milestones.map((m, i) => (
             <span
               key={i}
-              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${milestoneTypeColors[m.type] || 'bg-slate-100 text-slate-600'}`}
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${milestoneTypeColors[m.type] || 'bg-gray-100 text-gray-600'}`}
             >
               {m.year}: {m.label}
             </span>
@@ -205,41 +208,41 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
       {/* Expandable breakdown */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 mt-3 transition-colors"
+        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 mt-4 transition-colors"
       >
         {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         {isExpanded ? 'Hide' : 'Show'} yearly breakdown
       </button>
 
       {isExpanded && (
-        <div className="mt-2 max-h-[200px] overflow-y-auto">
-          <table className="w-full text-[10px]">
+        <div className="mt-3 max-h-[220px] overflow-y-auto">
+          <table className="w-full text-[11px]">
             <thead>
-              <tr className="text-slate-400 border-b border-slate-100">
-                <th className="text-left py-1 font-medium">Year</th>
-                <th className="text-right py-1 font-medium">Income</th>
-                <th className="text-right py-1 font-medium">Expenses</th>
-                <th className="text-right py-1 font-medium">Loan</th>
-                <th className="text-right py-1 font-medium">Net</th>
-                <th className="text-right py-1 font-medium">Debt</th>
+              <tr className="text-gray-400 border-b border-gray-200">
+                <th className="text-left py-2 font-medium">Year</th>
+                <th className="text-right py-2 font-medium">Income</th>
+                <th className="text-right py-2 font-medium">Expenses</th>
+                <th className="text-right py-2 font-medium">Loan</th>
+                <th className="text-right py-2 font-medium">Net</th>
+                <th className="text-right py-2 font-medium">Debt</th>
               </tr>
             </thead>
             <tbody>
               {projection.yearlyData.map((d) => (
                 <tr
                   key={d.year}
-                  className={`border-b border-slate-50 ${
-                    d.year === projection.freedomYear ? 'bg-green-50' : ''
-                  } ${d.isPiPhase ? '' : 'text-slate-400'}`}
+                  className={`border-b border-gray-100 ${
+                    d.year === projection.freedomYear ? 'bg-blue-50/60' : ''
+                  } ${d.isPiPhase ? '' : 'text-gray-400'}`}
                 >
-                  <td className="py-1 text-slate-600">{d.year}</td>
-                  <td className="text-right text-slate-600">{formatK(d.rentalIncome)}</td>
-                  <td className="text-right text-rose-400">{formatK(d.totalExpenses)}</td>
-                  <td className="text-right text-slate-500">{formatK(d.loanPayments)}</td>
-                  <td className={`text-right font-medium ${d.netCashflow >= 0 ? 'text-green-600' : 'text-rose-500'}`}>
+                  <td className="py-1.5 text-gray-600">{d.year}</td>
+                  <td className="text-right text-gray-600">{formatK(d.rentalIncome)}</td>
+                  <td className="text-right text-gray-500">{formatK(d.totalExpenses)}</td>
+                  <td className="text-right text-gray-500">{formatK(d.loanPayments)}</td>
+                  <td className="text-right font-medium text-gray-700">
                     {formatK(d.netCashflow)}
                   </td>
-                  <td className="text-right text-slate-400">{formatK(d.totalDebt)}</td>
+                  <td className="text-right text-gray-400">{formatK(d.totalDebt)}</td>
                 </tr>
               ))}
             </tbody>

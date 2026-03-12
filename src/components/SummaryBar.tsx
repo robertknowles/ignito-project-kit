@@ -80,7 +80,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="metric-label">Portfolio Value</span>
         <div className="mt-1">
-          <span className="text-[28px] font-bold text-gray-900 tracking-tight leading-none">
+          <span className="stat-number">
             {formatCurrency(kpis.finalPortfolioValue)}
           </span>
         </div>
@@ -90,12 +90,12 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="metric-label">Net Equity</span>
         <div className="mt-1">
-          <span className="text-[28px] font-bold text-gray-900 tracking-tight leading-none">
+          <span className="stat-number">
             {formatCurrency(kpis.totalEquity)}
           </span>
-          {equityProgress >= 100 && <span className="ml-1.5 text-green-600 text-sm">✓</span>}
+          {equityProgress >= 100 && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
         </div>
-        <span className="text-xs text-gray-400 mt-1 block">/ {formatCurrency(profile.equityGoal)}</span>
+        <span className="meta mt-1 block">/ {formatCurrency(profile.equityGoal)}</span>
       </div>
 
       {/* Monthly Holding Cost */}
@@ -105,7 +105,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <TooltipProvider>
             <UITooltip>
               <TooltipTrigger asChild>
-                <span className={`text-[28px] font-bold tracking-tight leading-none cursor-help ${monthlyHoldingCost.total >= 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                <span className="stat-number cursor-help">
                   {formatCurrency(Math.round(monthlyHoldingCost.total))}
                 </span>
               </TooltipTrigger>
@@ -114,7 +114,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
                   monthlyHoldingCost.byProperty.map(p => (
                     <div key={p.instanceId} className="flex justify-between text-xs gap-4">
                       <span className="text-gray-600">{p.propertyTitle}</span>
-                      <span className={p.monthlyCost >= 0 ? 'text-green-600' : 'text-rose-600'}>
+                      <span className="text-gray-700">
                         {formatCurrency(Math.round(p.monthlyCost))}/mo
                       </span>
                     </div>
@@ -126,7 +126,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
             </UITooltip>
           </TooltipProvider>
         </div>
-        <span className="text-xs text-gray-400 mt-1 block">/mo</span>
+        <span className="meta mt-1 block">/mo</span>
       </div>
     </div>
     </TourStep>

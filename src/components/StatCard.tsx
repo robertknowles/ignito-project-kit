@@ -13,23 +13,23 @@ interface StatCardProps {
 export const StatCard: React.FC<StatCardProps> = ({ label, value, subtitle, trend }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-5">
-      <span className="text-xs font-medium text-gray-500">{label}</span>
+      <span className="metric-label">{label}</span>
       <div className="mt-1">
-        <span className="text-[28px] font-bold text-gray-900 tracking-tight leading-none">
+        <span className="stat-number">
           {value}
         </span>
       </div>
       {subtitle && (
-        <span className="text-xs text-gray-400 mt-1 block">{subtitle}</span>
+        <span className="meta mt-1 block">{subtitle}</span>
       )}
       {trend && (
         <div className="mt-1">
           <span
             className={`text-xs font-medium ${
               trend.direction === 'up'
-                ? 'text-green-600'
+                ? 'text-blue-600'
                 : trend.direction === 'down'
-                ? 'text-red-500'
+                ? 'text-gray-400'
                 : 'text-gray-500'
             }`}
           >

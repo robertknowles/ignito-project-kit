@@ -32,14 +32,14 @@ const PROPERTY_IMAGES: Record<string, string> = {
 
 // State colors - neutral slate-based palette
 const STATE_COLORS: Record<string, { bg: string; text: string }> = {
-  'VIC': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'NSW': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'QLD': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'SA': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'WA': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'TAS': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'NT': { bg: 'bg-slate-100', text: 'text-slate-600' },
-  'ACT': { bg: 'bg-slate-100', text: 'text-slate-600' },
+  'VIC': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'NSW': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'QLD': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'SA': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'WA': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'TAS': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'NT': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'ACT': { bg: 'bg-gray-100', text: 'text-gray-600' },
 };
 
 const STATE_NAMES: Record<string, string> = {
@@ -87,7 +87,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   isCustom,
   quantity = 0,
 }) => {
-  const stateColors = STATE_COLORS[state] || { bg: 'bg-slate-100', text: 'text-slate-600' };
+  const stateColors = STATE_COLORS[state] || { bg: 'bg-gray-100', text: 'text-gray-600' };
   const stateName = STATE_NAMES[state] || state;
   
   return (
@@ -98,7 +98,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     >
       {/* Image thumbnail or custom icon */}
       {imageUrl ? (
-        <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-50 border border-gray-100 flex-shrink-0">
+        <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
           <img 
             src={imageUrl} 
             alt={title}
@@ -107,15 +107,15 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           />
         </div>
       ) : isCustom && (
-        <div className="w-16 h-12 rounded-lg bg-slate-50 border border-gray-100 flex-shrink-0 flex items-center justify-center">
-          <Home size={24} className="text-slate-500" />
+        <div className="w-16 h-12 rounded-lg bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center">
+          <Home size={24} className="text-gray-500" />
         </div>
       )}
       
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h4 className="font-medium text-slate-900 text-sm truncate">{title}</h4>
+          <h4 className="font-medium text-gray-900 text-sm truncate">{title}</h4>
           {quantity > 0 && (
             <span className="text-[10px] font-semibold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
               {quantity} added
@@ -127,7 +127,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-slate-500 text-xs">
+          <p className="text-gray-500 text-xs">
             {priceRange} · Yield: {yieldValue}
           </p>
           {/* Duplicate link - only for non-custom templates */}
@@ -160,7 +160,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {/* Add button */}
         <button
           onClick={onAdd}
-          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-slate-900 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-900 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
         >
           <Plus size={16} />
         </button>
@@ -183,17 +183,17 @@ const EventCategoryButton: React.FC<EventCategoryButtonProps> = ({ category, onC
       onClick={onClick}
       className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl text-left hover:bg-gray-50 hover:border-gray-300 transition-colors group w-full"
     >
-      <div className="flex-shrink-0 w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center border border-gray-100">
-        <EventCategoryIcon category={category.id} size={22} className="text-slate-600" />
+      <div className="flex-shrink-0 w-11 h-11 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
+        <EventCategoryIcon category={category.id} size={22} className="text-gray-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm text-slate-900">{category.label}</div>
-        <div className="text-[11px] text-slate-500">{category.description}</div>
-        <div className="text-[10px] text-slate-400 mt-0.5">
+        <div className="font-medium text-sm text-gray-900">{category.label}</div>
+        <div className="text-[11px] text-gray-500">{category.description}</div>
+        <div className="text-[10px] text-gray-400 mt-0.5">
           {eventTypes.map(et => et.shortLabel).join(' · ')}
         </div>
       </div>
-      <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+      <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" />
     </button>
   );
 };
@@ -297,8 +297,8 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
               onClick={() => setActiveTab('properties')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 activeTab === 'properties'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
               }`}
             >
               <Home size={16} />
@@ -308,8 +308,8 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
               onClick={() => setActiveTab('events')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 activeTab === 'events'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
               }`}
             >
               <CalendarClock size={16} />
@@ -324,21 +324,21 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                 {/* Add Custom Property Button - Always at top */}
                 <button
                   onClick={() => setShowCustomBlockModal(true)}
-                  className="w-full flex items-center gap-3 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-left hover:bg-slate-100 hover:border-slate-400 transition-colors group"
+                  className="w-full flex items-center gap-3 p-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl text-left hover:bg-gray-100 hover:border-gray-400 transition-colors group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-900 group-hover:border-slate-900 transition-colors">
-                    <Plus size={20} className="text-slate-500 group-hover:text-white transition-colors" />
+                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 group-hover:bg-gray-900 group-hover:border-gray-900 transition-colors">
+                    <Plus size={20} className="text-gray-500 group-hover:text-white transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-slate-900 text-sm">Add Custom Property</h4>
-                    <p className="text-slate-500 text-xs mt-0.5">
+                    <h4 className="font-medium text-gray-900 text-sm">Add Custom Property</h4>
+                    <p className="text-gray-500 text-xs mt-0.5">
                       Create your own property with custom settings
                     </p>
                   </div>
                 </button>
                 
                 {/* Standard Property Templates */}
-                <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mt-3 mb-1">Property Templates</h4>
+                <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Property Templates</h4>
                 {propertyTypes.filter(p => !p.isCustom).map((property) => {
                   const template = getPropertyTypeTemplate(property.title);
                   const displayPrice = template?.purchasePrice 
@@ -369,7 +369,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                 {/* Custom Property Blocks */}
                 {propertyTypes.filter(p => p.isCustom).length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Custom Blocks</h4>
+                    <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Custom Blocks</h4>
                     {propertyTypes.filter(p => p.isCustom).map((property) => (
                       <PropertyCard
                         key={property.id}
@@ -388,17 +388,17 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                 
                 {/* Pause Period Option */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Other</h4>
+                  <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Other</h4>
                   <div 
                     className="group flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 cursor-pointer transition-all"
                     onClick={handleAddPause}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                      <Pause size={20} className="text-slate-500" />
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Pause size={20} className="text-gray-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-slate-900 text-sm">Pause Period</h4>
-                      <p className="text-slate-500 text-xs mt-0.5">
+                      <h4 className="font-medium text-gray-900 text-sm">Pause Period</h4>
+                      <p className="text-gray-500 text-xs mt-0.5">
                         Skip a period before the next purchase
                       </p>
                     </div>
@@ -406,7 +406,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                       value={selectedPauseDuration}
                       onChange={(e) => { e.stopPropagation(); setSelectedPauseDuration(parseFloat(e.target.value)); }}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-slate-600 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors"
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
                     >
                       <option value="0.5">6 months</option>
                       <option value="1">1 year</option>
@@ -414,7 +414,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                       <option value="2">2 years</option>
                       <option value="3">3 years</option>
                     </select>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center transition-colors">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-900 group-hover:text-white flex items-center justify-center transition-colors">
                       <Plus size={16} />
                     </div>
                   </div>
@@ -424,7 +424,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
             
             {activeTab === 'events' && (
               <div className="space-y-2.5">
-                <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide">
+                <p className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide">
                   Add life events that affect your investment timeline
                 </p>
                 {Object.values(EVENT_CATEGORIES).map((category) => (
@@ -442,7 +442,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
           <div className="pt-3 border-t border-gray-100 mt-2">
             <button
               onClick={onClose}
-              className="w-full py-2.5 px-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium text-sm"
+              className="w-full py-2.5 px-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
             >
               Done
             </button>

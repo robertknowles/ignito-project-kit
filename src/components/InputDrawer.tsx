@@ -40,7 +40,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
             position="bottom"
           >
             <div id="drawer-header" className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
-              <h2 className="text-sm font-medium text-gray-900">
+              <h2 className="section-heading">
                 {activeTab === 'properties' ? 'Property Timeline' : 'Client Profile'}
               </h2>
             </div>
@@ -54,8 +54,8 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'text-slate-900 border-b-2 border-slate-900 bg-white'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'text-gray-900 border-b-2 border-gray-900 bg-white'
+                    : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {tab.icon}

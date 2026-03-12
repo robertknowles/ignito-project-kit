@@ -46,10 +46,10 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100">
-          <EventCategoryIcon category={category} size={18} className="text-slate-600" />
+        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
+          <EventCategoryIcon category={category} size={18} className="text-gray-600" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-900">{categoryDef.label}</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{categoryDef.label}</h3>
       </div>
       
       <div className="space-y-2">
@@ -59,12 +59,12 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
             onClick={() => onSelect(eventType.id)}
             className="w-full flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
           >
-            <div className="flex-shrink-0 w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100 mt-0.5">
-              <EventTypeIcon eventType={eventType.id} size={18} className="text-slate-500" />
+            <div className="flex-shrink-0 w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 mt-0.5">
+              <EventTypeIcon eventType={eventType.id} size={18} className="text-gray-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-slate-900">{eventType.label}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{eventType.description}</div>
+              <div className="font-medium text-sm text-gray-900">{eventType.label}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{eventType.description}</div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {eventType.effects.map((effect, idx) => (
                   <span 
@@ -72,7 +72,7 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                       effect.direction === 'increase' ? 'bg-green-50 text-green-600 border border-green-100' :
                       effect.direction === 'decrease' ? 'bg-red-50 text-red-600 border border-red-100' :
-                      'bg-slate-100 text-slate-600'
+                      'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {effect.field} {effect.direction === 'increase' ? '↑' : effect.direction === 'decrease' ? '↓' : '↕'}
@@ -80,7 +80,7 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({ category, onSelec
                 ))}
               </div>
             </div>
-            <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-600 mt-0.5" />
+            <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 mt-0.5" />
           </button>
         ))}
       </div>
@@ -143,8 +143,8 @@ const EventForm: React.FC<EventFormProps> = ({
   // Get effect descriptions for preview
   const effectDescriptions = getEventEffectDescriptions(eventType.id, payload);
   
-  const inputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 text-sm bg-white";
-  const labelClass = "block text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-1.5";
+  const inputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-gray-900 text-sm bg-white";
+  const labelClass = "block text-[10px] uppercase font-semibold text-gray-500 tracking-wide mb-1.5";
   
   return (
     <div className="space-y-4">
@@ -152,19 +152,19 @@ const EventForm: React.FC<EventFormProps> = ({
       <div className="flex items-center gap-2.5">
         <button 
           onClick={onBack}
-          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
         >
           <ChevronRight size={16} className="rotate-180" />
         </button>
-        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center border border-gray-100">
-          <EventTypeIcon eventType={eventType.id} size={18} className="text-slate-500" />
+        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
+          <EventTypeIcon eventType={eventType.id} size={18} className="text-gray-500" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-900">{eventType.label}</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{eventType.label}</h3>
       </div>
       
       {/* When - Year Selection (hidden for property-specific events like refinance/renovate) */}
       {eventType.id !== 'refinance' && eventType.id !== 'renovate' && (
-        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
           <label className={labelClass}>When does this happen?</label>
           <select
             value={periodYear}
@@ -392,8 +392,8 @@ const EventForm: React.FC<EventFormProps> = ({
         
         {/* Sell Property - Placeholder for now */}
         {eventType.id === 'sell_property' && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <p className="text-xs text-slate-600">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <p className="text-xs text-gray-600">
               Property sale events will be linked to specific properties in your timeline.
               This feature is coming soon.
             </p>
@@ -470,11 +470,11 @@ const EventForm: React.FC<EventFormProps> = ({
       </div>
       
       {/* Effects Preview */}
-      <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
-        <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide mb-2">This will affect</p>
+      <div className="bg-gray-50 border border-gray-100 p-3 rounded-xl">
+        <p className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide mb-2">This will affect</p>
         <ul className="space-y-1.5">
           {effectDescriptions.map((desc, idx) => (
-            <li key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+            <li key={idx} className="text-xs text-gray-600 flex items-start gap-2">
               <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
               <span>{desc}</span>
             </li>
@@ -485,7 +485,7 @@ const EventForm: React.FC<EventFormProps> = ({
       {/* Save Button */}
       <button
         onClick={onSave}
-        className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors"
+        className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
       >
         {isEditing ? 'Update Event' : 'Add Event'}
       </button>
@@ -586,12 +586,12 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
       <div className="bg-white rounded-xl p-5 w-full max-w-md max-h-[85vh] overflow-hidden shadow-xl flex flex-col border border-gray-200">
         {/* Header */}
         <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-slate-900">
+          <h3 className="text-base font-semibold text-gray-900">
             {editingEvent ? 'Edit Event' : 'Add Event'}
           </h3>
           <button 
             onClick={onClose} 
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <X size={18} />
           </button>

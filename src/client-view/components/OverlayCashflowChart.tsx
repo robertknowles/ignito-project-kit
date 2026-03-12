@@ -14,24 +14,21 @@ import {
   Cell,
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { CHART_COLORS, CHART_STYLE } from '../../constants/chartColors';
 import type { ComparisonCashflowDataPoint } from '../../hooks/useChartDataGenerator';
 
-// Color palette for comparison charts
 const COLORS = {
-  // Scenario A 
-  positiveA: '#a7dfc4',
-  negativeA: '#f5c4c4',
-  lineA: '#4db6a0',
-  // Scenario B
-  positiveB: '#93c5fd',
-  negativeB: '#fda4af',
-  lineB: '#2563EB',
-  // Shared
-  goal: '#FFD700', // Gold for cashflow goal achieved
-  goalStroke: '#DAA520', // Darker gold stroke
-  breakEven: '#b8c5d3',
-  text: '#64748b',
-  grid: 'rgba(148, 163, 184, 0.2)',
+  positiveA: CHART_COLORS.barPositive,
+  negativeA: CHART_COLORS.barNegative,
+  lineA: CHART_COLORS.scenarioA,
+  positiveB: CHART_COLORS.barPrimary,
+  negativeB: CHART_COLORS.barNegative,
+  lineB: CHART_COLORS.scenarioB,
+  goal: CHART_COLORS.goalMarker,
+  goalStroke: CHART_COLORS.goal,
+  breakEven: CHART_COLORS.referenceLine,
+  text: CHART_COLORS.labelText,
+  grid: CHART_COLORS.grid,
 };
 
 // Format currency for display
@@ -53,23 +50,23 @@ const ComparisonTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0]?.payload;
     return (
-      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg min-w-[160px]">
-        <p className="text-xs font-semibold text-slate-800 mb-2 border-b border-slate-100 pb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg min-w-[160px]">
+        <p className="text-xs font-semibold text-gray-900 mb-2 border-b border-gray-100 pb-1">
           Year: {label}
         </p>
         
         {/* Scenario A */}
         <div className="mb-2">
-          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Scenario A</p>
-          <p className={`text-xs ${(data?.cashflowA || 0) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">Scenario A</p>
+          <p className={`text-xs ${(data?.cashflowA || 0) >= 0 ? 'text-gray-700' : 'text-gray-500'}`}>
             Cashflow: {(data?.cashflowA || 0) >= 0 ? '+' : ''}{formatCurrency(data?.cashflowA || 0)}
           </p>
         </div>
         
         {/* Scenario B */}
         <div>
-          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Scenario B</p>
-          <p className={`text-xs ${(data?.cashflowB || 0) >= 0 ? 'text-sky-600' : 'text-rose-500'}`}>
+          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">Scenario B</p>
+          <p className={`text-xs ${(data?.cashflowB || 0) >= 0 ? 'text-sky-600' : 'text-gray-500'}`}>
             Cashflow: {(data?.cashflowB || 0) >= 0 ? '+' : ''}{formatCurrency(data?.cashflowB || 0)}
           </p>
         </div>
@@ -91,7 +88,6 @@ const BreakEvenLabel = (props: any) => {
       fontSize={9}
       fontWeight={500}
       textAnchor="start"
-      fontFamily="Inter, system-ui, sans-serif"
     >
       Break-even
     </text>
@@ -194,11 +190,11 @@ export function OverlayCashflowChart({
   }, [chartData, incomeGoal]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
       {/* Title inside the box */}
-      <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-slate-500" />
-        <h3 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <TrendingUp className="w-4 h-4 text-gray-500" />
+        <h3 className="text-sm font-semibold text-gray-800">
           Cashflow Analysis Comparison
         </h3>
       </div>
@@ -208,33 +204,18 @@ export function OverlayCashflowChart({
           data={chartData}
           margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
         >
-          <CartesianGrid 
-            strokeDasharray="0" 
-            stroke={COLORS.grid}
-            vertical={false}
-            horizontal={true}
+          <CartesianGrid {...CHART_STYLE.grid} />
+
+          <XAxis
+            dataKey="year"
+            {...CHART_STYLE.xAxis}
+            tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 10 }}
           />
-          
-          <XAxis 
-            dataKey="year" 
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={{ stroke: '#e2e8f0' }}
-            tickLine={false}
-          />
-          
-          <YAxis 
+
+          <YAxis
             tickFormatter={formatCurrency}
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={false}
-            tickLine={false}
+            {...CHART_STYLE.yAxis}
+            tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 10 }}
             width={50}
             domain={yAxisDomain}
             ticks={yAxisTicks}
@@ -315,40 +296,40 @@ export function OverlayCashflowChart({
       </ResponsiveContainer>
       
       {/* Legend */}
-      <div className="mt-3 border-t border-slate-100 pt-3">
+      <div className="mt-3 border-t border-gray-100 pt-3">
         <div className="grid grid-cols-2 gap-4 text-[11px]">
           {/* Scenario A Legend */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">{scenarioAName}</p>
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{scenarioAName}</p>
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-0.5 rounded" style={{ backgroundColor: COLORS.lineA }}></div>
-              <span className="text-slate-500">
-                Final: <span className={`font-medium ${finalCashflowA >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+              <span className="text-gray-500">
+                Final: <span className={`font-medium ${finalCashflowA >= 0 ? 'text-gray-700' : 'text-gray-500'}`}>
                   {finalCashflowA >= 0 ? '+' : ''}{formatCurrency(finalCashflowA)}/yr
                 </span>
               </span>
             </div>
             {breakEvenYearA && (
-              <div className="text-slate-400 text-[10px]">
-                Break-even: <span className="text-slate-600">{breakEvenYearA}</span>
+              <div className="text-gray-400 text-[10px]">
+                Break-even: <span className="text-gray-600">{breakEvenYearA}</span>
               </div>
             )}
           </div>
           
           {/* Scenario B Legend */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">{scenarioBName}</p>
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{scenarioBName}</p>
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-0.5 rounded border-dashed border-t-2" style={{ borderColor: COLORS.lineB }}></div>
-              <span className="text-slate-500">
-                Final: <span className={`font-medium ${finalCashflowB >= 0 ? 'text-sky-600' : 'text-rose-500'}`}>
+              <span className="text-gray-500">
+                Final: <span className={`font-medium ${finalCashflowB >= 0 ? 'text-sky-600' : 'text-gray-500'}`}>
                   {finalCashflowB >= 0 ? '+' : ''}{formatCurrency(finalCashflowB)}/yr
                 </span>
               </span>
             </div>
             {breakEvenYearB && (
-              <div className="text-slate-400 text-[10px]">
-                Break-even: <span className="text-slate-600">{breakEvenYearB}</span>
+              <div className="text-gray-400 text-[10px]">
+                Break-even: <span className="text-gray-600">{breakEvenYearB}</span>
               </div>
             )}
           </div>

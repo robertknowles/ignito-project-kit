@@ -14,6 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import { Loader2 } from 'lucide-react';
 
 export const PerPropertyTracking = () => {
@@ -173,47 +174,45 @@ export const PerPropertyTracking = () => {
         <h3 className="text-sm font-medium text-gray-900 mb-4">Equity Growth Over Time</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis 
-              dataKey="year" 
-              stroke="#6b7280"
-              style={{ fontSize: '12px' }}
+            <CartesianGrid {...CHART_STYLE.grid} />
+            <XAxis
+              dataKey="year"
+              {...CHART_STYLE.xAxis}
             />
-            <YAxis 
-              stroke="#6b7280"
-              style={{ fontSize: '12px' }}
+            <YAxis
               tickFormatter={formatYAxis}
+              {...CHART_STYLE.yAxis}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: 'white',
-                border: '1px solid #f3f4f6',
+                border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                 borderRadius: '6px',
                 fontSize: '12px',
               }}
               formatter={(value: number) => formatCurrency(value)}
             />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="propertyValue" 
-              stroke="#87B5FA" 
+            <Line
+              type="monotone"
+              dataKey="propertyValue"
+              stroke={CHART_COLORS.primary}
               strokeWidth={2}
               name="Property Value"
               dot={false}
             />
-            <Line 
-              type="monotone" 
-              dataKey="equity" 
-              stroke="rgba(134, 239, 172, 0.7)" 
+            <Line
+              type="monotone"
+              dataKey="equity"
+              stroke={CHART_COLORS.positive}
               strokeWidth={2}
               name="Equity"
               dot={false}
             />
-            <Line 
-              type="monotone" 
-              dataKey="loanBalance" 
-              stroke="rgba(252, 165, 165, 0.7)" 
+            <Line
+              type="monotone"
+              dataKey="loanBalance"
+              stroke={CHART_COLORS.negative}
               strokeWidth={2}
               name="Loan Balance"
               dot={false}
@@ -228,30 +227,28 @@ export const PerPropertyTracking = () => {
         <h3 className="text-sm font-medium text-gray-900 mb-4">Cashflow Over Time</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis 
-              dataKey="year" 
-              stroke="#6b7280"
-              style={{ fontSize: '12px' }}
+            <CartesianGrid {...CHART_STYLE.grid} />
+            <XAxis
+              dataKey="year"
+              {...CHART_STYLE.xAxis}
             />
-            <YAxis 
-              stroke="#6b7280"
-              style={{ fontSize: '12px' }}
+            <YAxis
               tickFormatter={formatYAxis}
+              {...CHART_STYLE.yAxis}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: 'white',
-                border: '1px solid #f3f4f6',
+                border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                 borderRadius: '6px',
                 fontSize: '12px',
               }}
               formatter={(value: number) => formatCurrency(value)}
             />
             <Legend />
-            <Bar dataKey="rentalIncome" fill="rgba(134, 239, 172, 0.7)" name="Rental Income" />
-            <Bar dataKey="expenses" fill="rgba(252, 165, 165, 0.7)" name="Expenses" />
-            <Bar dataKey="netCashflow" fill="#87B5FA" name="Net Cashflow" />
+            <Bar dataKey="rentalIncome" fill={CHART_COLORS.barPositive} name="Rental Income" />
+            <Bar dataKey="expenses" fill={CHART_COLORS.barNegative} name="Expenses" />
+            <Bar dataKey="netCashflow" fill={CHART_COLORS.primary} name="Net Cashflow" />
           </BarChart>
         </ResponsiveContainer>
       </div>

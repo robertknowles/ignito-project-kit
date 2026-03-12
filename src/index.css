@@ -125,29 +125,102 @@
     box-shadow: none;
   }
 
-  /* Metric Label - Small, muted */
+  /* ============================================
+     TYPOGRAPHIC TOKEN SYSTEM — 7 tokens only
+     If text doesn't map to one of these, something is wrong.
+     ============================================ */
+
+  /* 1. Page Title — main page headings */
+  .page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+  }
+
+  /* 2. Section Heading — card titles, panel headers */
+  .section-heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  /* 3. Stat Number — big KPI numbers in stat cards */
+  .stat-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+
+  /* 4. Metric Label — labels above/below stat numbers */
   .metric-label {
-    @apply text-xs font-medium text-gray-500;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
   }
 
-  /* Metric Value - Large, dark, tight tracking (hero stat number) */
+  /* 5. Body Dark — primary table cell text, form labels */
+  .body-dark {
+    font-size: 14px;
+    font-weight: 400;
+    color: #111827;
+  }
+
+  /* 6. Body Secondary — supporting text, descriptions */
+  .body-secondary {
+    font-size: 14px;
+    font-weight: 400;
+    color: #6B7280;
+  }
+
+  /* 7. Meta — timestamps, axis labels, chart ticks, footnotes */
+  .meta {
+    font-size: 12px;
+    font-weight: 400;
+    color: #9CA3AF;
+  }
+
+  /* ============================================
+     DERIVED TOKENS — composed from the 7 above
+     ============================================ */
+
+  /* Table header — small uppercase column labels (matches reference) */
+  .table-header {
+    font-size: 11px;
+    font-weight: 500;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 20px;
+  }
+
+  /* Table cell — standard body text in table rows */
+  .table-cell {
+    padding: 16px 20px;
+    font-size: 14px;
+    color: #111827;
+  }
+
+  /* Table cell secondary — muted text for secondary columns */
+  .table-cell-secondary {
+    padding: 16px 20px;
+    font-size: 14px;
+    color: #6B7280;
+  }
+
+  /* Legacy aliases (prefer canonical names above) */
   .metric-value {
-    @apply text-[32px] font-bold text-gray-900 tracking-tight;
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.025em;
+    line-height: 1;
   }
 
-  /* Smaller metric value variant for compact dashboard cards */
   .metric-value-sm {
     @apply text-lg font-bold text-gray-900 tracking-tight leading-tight;
-  }
-
-  /* Table header - small, grey */
-  .table-header {
-    @apply text-xs font-medium text-gray-500;
-  }
-
-  /* Section heading - consistent across all pages */
-  .section-heading {
-    @apply text-base font-semibold text-gray-900;
   }
 }
 
