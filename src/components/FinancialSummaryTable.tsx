@@ -14,9 +14,9 @@ import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 // Column dimension constants (must match ChartWithRoadmap for visual consistency)
-const LABEL_COLUMN_WIDTH = 65;
-const MIN_YEAR_COLUMN_WIDTH = 50;
-const MAX_YEAR_COLUMN_WIDTH = 120;
+const LABEL_COLUMN_WIDTH = 80;
+const MIN_YEAR_COLUMN_WIDTH = 55;
+const MAX_YEAR_COLUMN_WIDTH = 130;
 
 // Format compact currency for table cells
 const formatCompactCurrency = (value: number): string => {
@@ -52,7 +52,6 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
   const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
 
-  const [isTableExpanded, setIsTableExpanded] = useState(false);
   const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
   const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
 
@@ -85,39 +84,39 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      {/* YEAR Header Row - Always visible, clickable to expand/collapse table */}
+    <div ref={containerRef} className="bg-white rounded-lg border border-gray-200/80 overflow-hidden">
+      {/* Title section — matches Investment Timeline card header */}
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-900">Financial Summary</h3>
+      </div>
+
+      <div className="px-3 py-2">
+      {/* YEAR Header Row */}
       <div
         style={gridStyle}
-        className="border-b border-gray-200/60 cursor-pointer hover:bg-gray-50/50 transition-colors"
-        onClick={() => setIsTableExpanded(!isTableExpanded)}
+        className="border-b border-gray-200/60"
       >
-        <div className="sticky left-0 bg-white z-10 px-1.5 py-2.5 border-r border-gray-200/50 flex items-center justify-end">
-          <span className={`text-[9px] text-gray-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
-        </div>
-        {years.map((yearData, index) => (
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5" />
+        {years.map((yearData) => (
           <div
             key={yearData.year}
-            className={`px-1 py-2.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+            className="px-1 py-3.5 flex items-center justify-center"
           >
-            <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+            <span className="text-[12px] font-medium text-gray-400 tracking-wide">
               {yearData.year}
             </span>
           </div>
         ))}
       </div>
 
-      {/* Expandable Table Content */}
-      {isTableExpanded && (
-      <>
       {/* PURCHASE Row */}
-      <div style={gridStyle} className="border-b border-gray-200/50">
+      <div style={gridStyle} className="border-b border-gray-100">
         <div
-          className="sticky left-0 bg-white z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50 cursor-pointer hover:bg-gray-50/70 transition-colors"
+          className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
           onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
         >
-          <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide flex items-center gap-0.5">
-            <span className={`transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
+          <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide flex items-center gap-0.5">
+            <span className={`text-[8px] transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
             Buy
           </span>
           <TooltipProvider>
@@ -137,10 +136,10 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </UITooltip>
           </TooltipProvider>
         </div>
-        {years.map((yearData, index) => (
+        {years.map((yearData) => (
           <div
             key={`purchase-${yearData.year}`}
-            className={`px-0.5 py-2 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+            className="px-1 py-3.5 flex flex-col items-center justify-center gap-0.5"
           >
             {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
               yearData.purchaseDetails.map((purchase, purchaseIndex) => (
@@ -156,20 +155,20 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
                 />
               ))
             ) : (
-              <span className="text-[9px] text-gray-400 self-center">–</span>
+              <span className="text-[11px] text-gray-300">–</span>
             )}
           </div>
         ))}
       </div>
 
       {/* FUNDS Row */}
-      <div style={gridStyle} className="border-b border-gray-200/50">
+      <div style={gridStyle} className="border-b border-gray-100">
         <div
-          className="sticky left-0 bg-white z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50 cursor-pointer hover:bg-gray-50/70 transition-colors"
+          className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
           onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
         >
-          <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide flex items-center gap-0.5">
-            <span className={`transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
+          <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide flex items-center gap-0.5">
+            <span className={`text-[8px] transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
             Funds
           </span>
           <TooltipProvider>
@@ -190,16 +189,16 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </UITooltip>
           </TooltipProvider>
         </div>
-        {years.map((yearData, index) => (
+        {years.map((yearData) => (
           <div
             key={`avail-${yearData.year}`}
-            className={`px-0.5 py-2 flex flex-col items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+            className="px-1 py-3.5 flex flex-col items-center justify-center"
           >
-            <span className="text-[10px] font-medium text-gray-700">
+            <span className="text-[13px] font-medium text-gray-700">
               {formatCompactCurrency(yearData.availableFundsRaw)}
             </span>
             {isAvailableFundsExpanded && yearData.yearBreakdownData && (
-              <div className="text-[8px] text-gray-400 mt-0.5 space-y-0.5">
+              <div className="text-[10px] text-gray-400 mt-1 space-y-0.5">
                 <div>Cash: {formatCompactCurrency(yearData.yearBreakdownData.baseDeposit || 0)}</div>
                 <div>Sav: {formatCompactCurrency(yearData.yearBreakdownData.cumulativeSavings || 0)}</div>
                 <div>Eq: {formatCompactCurrency(yearData.yearBreakdownData.equityRelease || 0)}</div>
@@ -210,9 +209,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       </div>
 
       {/* DEBT Row */}
-      <div style={gridStyle} className="border-b border-gray-200/50">
-        <div className="sticky left-0 bg-white z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
-          <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
+      <div style={gridStyle} className="border-b border-gray-100">
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
             Debt
           </span>
           <TooltipProvider>
@@ -233,12 +232,12 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </UITooltip>
           </TooltipProvider>
         </div>
-        {years.map((yearData, index) => (
+        {years.map((yearData) => (
           <div
             key={`debt-${yearData.year}`}
-            className={`px-0.5 py-2 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+            className="px-1 py-3.5 flex items-center justify-center"
           >
-            <span className="text-[10px] font-medium text-gray-700">
+            <span className="text-[13px] font-medium text-gray-700">
               {formatCompactCurrency(yearData.totalDebt)}
             </span>
           </div>
@@ -246,9 +245,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       </div>
 
       {/* EQUITY Row */}
-      <div style={gridStyle} className="border-b border-gray-200/50">
-        <div className="sticky left-0 bg-white z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
-          <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
+      <div style={gridStyle} className="border-b border-gray-100">
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
             Equity
           </span>
           <TooltipProvider>
@@ -268,12 +267,12 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </UITooltip>
           </TooltipProvider>
         </div>
-        {years.map((yearData, index) => (
+        {years.map((yearData) => (
           <div
             key={`equity-${yearData.year}`}
-            className={`px-0.5 py-2 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+            className="px-1 py-3.5 flex items-center justify-center"
           >
-            <span className="text-[10px] text-gray-700 font-medium">
+            <span className="text-[13px] text-gray-700 font-medium">
               {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
             </span>
           </div>
@@ -281,9 +280,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       </div>
 
       {/* MONTHLY Row */}
-      <div style={gridStyle} className="border-b border-gray-200/50">
-        <div className="sticky left-0 bg-white z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
-          <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
+      <div style={gridStyle}>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
             Monthly
           </span>
           <TooltipProvider>
@@ -304,23 +303,22 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </UITooltip>
           </TooltipProvider>
         </div>
-        {years.map((yearData, index) => {
+        {years.map((yearData) => {
           const monthlyCost = Math.round(yearData.annualCashflow / 12);
           const hasValue = yearData.portfolioValueRaw > 0 || yearData.annualCashflow !== 0;
           return (
             <div
               key={`monthly-${yearData.year}`}
-              className={`px-0.5 py-2 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
+              className="px-1 py-3.5 flex items-center justify-center"
             >
-              <span className={`text-[10px] font-medium ${monthlyCost >= 0 ? 'text-gray-700' : 'text-gray-700'}`}>
+              <span className="text-[13px] font-medium text-gray-700">
                 {hasValue ? formatCompactCurrency(monthlyCost) : '–'}
               </span>
             </div>
           );
         })}
       </div>
-      </>
-      )}
+      </div>
     </div>
   );
 };

@@ -951,10 +951,10 @@ toast.error('Failed to create client invite');
                 </div>
 
                 {/* Client Portfolio Table */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200 text-left">
+                      <tr className="border-b border-gray-200/70 text-left">
                         <th className="table-header">Client</th>
                         <th className="table-header">Stage</th>
                         <th className="table-header">Portal</th>
@@ -990,7 +990,7 @@ toast.error('Failed to create client invite');
                         const reviewInfo = formatReviewDate(client.next_review_date);
 
                         return (
-                          <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
+                          <tr key={client.id} className="border-b border-gray-100/70 hover:bg-gray-50/40 transition-colors">
                             {/* Client name + email */}
                             <td className="table-cell">
                               <div className="flex items-center">

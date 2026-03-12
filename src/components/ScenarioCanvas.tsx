@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ChevronDown, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { X } from 'lucide-react';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
@@ -22,8 +22,6 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
   // This ensures the active scenario always shows fresh data, not stale stored data
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { profile: liveProfile } = useInvestmentProfile();
-  
-  const [isExpanded, setIsExpanded] = useState(true);
   
   const scenario = scenarios.find(s => s.id === scenarioId);
   const isActive = scenarioId === activeScenarioId;
@@ -100,43 +98,29 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
           } : undefined}
         />
 
-        {/* Investment Timeline — header + chart only */}
+        {/* Investment Timeline — header + chart */}
         {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
             For inactive scenarios, use stored data from the scenario object. */}
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded -ml-1 pl-1 pr-2 py-0.5"
-            >
-              {isExpanded ? (
-                <ChevronDown size={18} className="text-gray-500" />
-              ) : (
-                <ChevronRight size={18} className="text-gray-500" />
-              )}
-              <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
-            </button>
+          <div className="px-5 py-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
             <ResetButton iconOnly />
           </div>
-          {isExpanded && (
-            <TimelineColumn
-              scenarioData={isMultiScenarioMode ? {
-                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-                profile: isActive ? liveProfile : scenario.investmentProfile,
-              } : undefined}
-            />
-          )}
-        </div>
-
-        {/* Financial Summary Table — separate component */}
-        {isExpanded && (
-          <FinancialSummaryTable
+          <TimelineColumn
             scenarioData={isMultiScenarioMode ? {
               timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
               profile: isActive ? liveProfile : scenario.investmentProfile,
             } : undefined}
           />
-        )}
+        </div>
+
+        {/* Financial Summary Table */}
+        <FinancialSummaryTable
+          scenarioData={isMultiScenarioMode ? {
+            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+            profile: isActive ? liveProfile : scenario.investmentProfile,
+          } : undefined}
+        />
       </div>
     </div>
   );

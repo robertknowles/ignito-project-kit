@@ -46,7 +46,7 @@ const LABEL_COLUMN_WIDTH = 65;
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
 const Y_AXIS_WIDTH = 65; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
-const CHART_HEIGHT = 220; // Height of the chart area
+const CHART_HEIGHT = 276; // Height of the chart area (matches Financial Summary table height)
 
 // Period conversion constants (matching useAffordabilityCalculator)
 const PERIODS_PER_YEAR = 2;
@@ -885,28 +885,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 style={{ width: LABEL_COLUMN_WIDTH - Y_AXIS_WIDTH }}
               />
               
-              {/* Vertical grid lines overlay - positioned to align with table columns */}
-              <div 
-                className="absolute inset-0 pointer-events-none z-0"
-                style={{ left: 0 }}
-              >
-                {/* Grid extends from left border through Y-axis and all year columns */}
-                <div className="h-full flex">
-                  <div 
-                    className="h-full border-r border-gray-300/40"
-                    style={{ width: LABEL_COLUMN_WIDTH }}
-                  />
-                  <div className="h-full flex" style={{ width: chartWidth }}>
-                    {years.map((_, index) => (
-                      <div 
-                        key={`grid-line-${index}`}
-                        className="h-full border-r border-gray-300/40"
-                        style={{ width: yearColumnWidth }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              {/* Vertical grid lines overlay removed for clean look */}
               
               {/* Chart container - YAxis + plotting area with data points centered in year columns */}
               <div ref={chartContainerRef} style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
@@ -970,7 +949,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
                 <ComposedChart
                 width={chartWidth + Y_AXIS_WIDTH}
-                height={220}
+                height={CHART_HEIGHT}
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
@@ -994,24 +973,21 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   x2={phase.endYear}
                   fill={phase.fill}
                   fillOpacity={0.4}
+                  stroke="none"
                   ifOverflow="extendDomain"
                   label={{ value: phase.label, position: 'insideTopLeft', fontSize: 9, fill: '#D1D5DB', fontWeight: 400 }}
                 />
               ))}
 
               <CartesianGrid
-                strokeDasharray="0"
-                stroke={CHART_COLORS.grid}
-                strokeOpacity={0.7}
+                {...CHART_STYLE.grid}
                 vertical={false}
                 horizontal={true}
               />
 
               <XAxis
                 dataKey="year"
-                tick={false}
-                axisLine={false}
-                tickLine={false}
+                {...CHART_STYLE.xAxis}
                 padding={{ left: xAxisPadding, right: xAxisPadding }}
               />
 
