@@ -50,10 +50,10 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="section-heading mb-5">Net Worth Trajectory</h3>
+    <div className="rounded-lg border border-gray-200 bg-white px-10 pt-6 pb-10">
+      <h3 className="text-sm font-semibold text-gray-900 mb-5">Net Worth Trajectory</h3>
       <ResponsiveContainer width="100%" height={260}>
-        <ComposedChart data={netWorthData} margin={{ top: 10, right: 24, left: 10, bottom: 5 }}>
+        <ComposedChart data={netWorthData} margin={{ top: 10, right: 24, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="assetsGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={CHART_GRADIENTS.primary.startColor} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
@@ -66,7 +66,7 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
           </defs>
           <CartesianGrid {...CHART_STYLE.grid} />
           <XAxis dataKey="year" {...CHART_STYLE.xAxis} />
-          <YAxis tickFormatter={formatYAxis} {...CHART_STYLE.yAxis} />
+          <YAxis tickFormatter={formatYAxis} {...CHART_STYLE.yAxis} width={80} />
           <Tooltip content={<NetWorthTooltip />} />
 
           {/* Total assets — subtle blue area */}

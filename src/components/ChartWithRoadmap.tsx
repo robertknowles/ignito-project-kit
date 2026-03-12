@@ -42,10 +42,10 @@ import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext
 
 // Column dimension constants
 // IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
-const LABEL_COLUMN_WIDTH = 65;
+const LABEL_COLUMN_WIDTH = 80;
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
-const Y_AXIS_WIDTH = 65; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
+const Y_AXIS_WIDTH = 80; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
 const CHART_HEIGHT = 276; // Height of the chart area (matches Financial Summary table height)
 
 // Period conversion constants (matching useAffordabilityCalculator)
@@ -706,9 +706,8 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const yearColumnWidth = Math.max(MIN_YEAR_COLUMN_WIDTH, Math.min(MAX_YEAR_COLUMN_WIDTH, calculatedColumnWidth));
   const needsScroll = yearColumnWidth === MIN_YEAR_COLUMN_WIDTH && availableWidth < yearCount * MIN_YEAR_COLUMN_WIDTH;
   
-  // Chart width calculation - use full available width to eliminate whitespace
-  const minChartWidth = yearCount * yearColumnWidth;
-  const chartWidth = Math.max(minChartWidth, availableWidth);
+  // Chart width calculation - always fit within container, never overflow
+  const chartWidth = availableWidth;
   const totalWidth = LABEL_COLUMN_WIDTH + chartWidth;
 
   // Dynamic grid style
@@ -874,7 +873,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   return (
       <div ref={containerRef} className="w-full h-full">
-        <div ref={scrollContainerRef} className="overflow-x-auto h-full">
+        <div ref={scrollContainerRef} className="overflow-hidden h-full">
           {/* Scrollable container with dynamic total width */}
           <div style={{ minWidth: totalWidth }}>
             {/* Chart Section with grid overlay */}

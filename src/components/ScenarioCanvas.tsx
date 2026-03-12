@@ -102,16 +102,18 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
             For inactive scenarios, use stored data from the scenario object. */}
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-5 py-4 flex items-center justify-between">
+          <div className="px-6 pt-6 pb-1 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
             <ResetButton iconOnly />
           </div>
+          <div className="pl-12 pr-4 pt-2 pb-6">
           <TimelineColumn
             scenarioData={isMultiScenarioMode ? {
               timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
               profile: isActive ? liveProfile : scenario.investmentProfile,
             } : undefined}
           />
+          </div>
         </div>
 
         {/* Financial Summary Table */}

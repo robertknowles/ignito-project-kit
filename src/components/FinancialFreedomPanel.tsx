@@ -64,7 +64,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
   // Empty state
   if (projection.yearlyData.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6 flex items-center justify-center h-full">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-10 pt-6 pb-10 flex items-center justify-center h-full">
         <p className="body-secondary">Add properties to see freedom projection</p>
       </div>
     );
@@ -88,11 +88,11 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-10 pt-6 pb-10">
       {/* Hero — Freedom Year */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="section-heading">Financial Freedom</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Financial Freedom</h3>
           {projection.freedomYear ? (
             <div className="mt-1">
               <span className="text-2xl font-bold text-blue-600">{projection.freedomYear}</span>
