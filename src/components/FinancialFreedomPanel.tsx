@@ -95,7 +95,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
           <h3 className="text-sm font-semibold text-gray-900">Financial Freedom</h3>
           {projection.freedomYear ? (
             <div className="mt-1">
-              <span className="text-2xl font-bold text-blue-600">{projection.freedomYear}</span>
+              <span className="text-2xl font-bold text-gray-900">{projection.freedomYear}</span>
               <span className="meta ml-2">
                 (Year {projection.freedomYearIndex})
               </span>
@@ -119,7 +119,7 @@ export const FinancialFreedomPanel: React.FC<FinancialFreedomPanelProps> = ({ sc
               step={5000}
               value={profile.targetPassiveIncome}
               onChange={handleTargetChange}
-              className="w-24 h-1 mt-1 block accent-blue-600"
+              className="w-24 h-1 mt-1 block accent-slate-800"
             />
           )}
         </div>

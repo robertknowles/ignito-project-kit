@@ -1080,7 +1080,23 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
         </div>
       </div>
-      
+
+      {/* Legend */}
+      <div className="flex items-center gap-6 mt-3 ml-[80px]">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.primary }} />
+          <span className="text-xs text-gray-500">Portfolio Value</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.tertiary }} />
+          <span className="text-xs text-gray-500">Total Equity</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.annotationText }} />
+          <span className="text-xs text-gray-500">Do Nothing</span>
+        </div>
+      </div>
+
       {/* Single Test Modal */}
       {selectedTest && selectedTest.yearData.yearBreakdownData && (
         <SingleTestModal

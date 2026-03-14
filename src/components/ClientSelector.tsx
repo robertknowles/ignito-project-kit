@@ -33,7 +33,7 @@ export const ClientSelector: React.FC = () => {
         onClick={() => setDropdownOpen(!dropdownOpen)}
         className="flex items-center px-4 py-2 rounded-lg bg-transparent hover:bg-gray-50 transition-colors"
       >
-        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full mr-2"></div>
+        <div className="w-2.5 h-2.5 bg-green-500 rounded-full mr-2"></div>
         <span className="text-[13px] text-gray-700 font-medium">
           {activeClient ? `${activeClient.name}'s Scenario` : 'Select Client'}
         </span>

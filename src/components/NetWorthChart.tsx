@@ -1,9 +1,16 @@
 import React from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
-import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS } from '../constants/chartColors';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+
+// Net Worth chart uses a distinct 3-color palette: blue, purple, aqua
+const NW_COLORS = {
+  totalAssets: '#3B82F6',   // Blue
+  netWorth: '#8B5CF6',      // Purple
+  totalDebt: '#22D3EE',     // Light blue / aqua
+} as const;
 
 interface NetWorthChartProps {
   scenarioData?: {
@@ -25,9 +32,9 @@ const NetWorthTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
       <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
-      <p className="text-xs" style={{ color: CHART_COLORS.primary }}>Total Assets: {formatK(data?.totalAssets || 0)}</p>
-      <p className="text-xs" style={{ color: CHART_COLORS.negative }}>Total Debt: {formatK(data?.totalDebt || 0)}</p>
-      <p className="text-xs font-medium" style={{ color: CHART_COLORS.positive }}>Net Worth: {formatK(data?.netWorth || 0)}</p>
+      <p className="text-xs" style={{ color: NW_COLORS.totalAssets }}>Total Assets: {formatK(data?.totalAssets || 0)}</p>
+      <p className="text-xs" style={{ color: NW_COLORS.totalDebt }}>Total Debt: {formatK(data?.totalDebt || 0)}</p>
+      <p className="text-xs font-medium" style={{ color: NW_COLORS.netWorth }}>Net Worth: {formatK(data?.netWorth || 0)}</p>
     </div>
   );
 };
@@ -56,12 +63,12 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
         <ComposedChart data={netWorthData} margin={{ top: 10, right: 24, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="assetsGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_GRADIENTS.primary.startColor} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
-              <stop offset="100%" stopColor={CHART_GRADIENTS.primary.endColor} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
+              <stop offset="0%" stopColor={NW_COLORS.totalAssets} stopOpacity={0.08} />
+              <stop offset="100%" stopColor={NW_COLORS.totalAssets} stopOpacity={0.01} />
             </linearGradient>
             <linearGradient id="debtGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_GRADIENTS.negative.startColor} stopOpacity={CHART_GRADIENTS.negative.startOpacity} />
-              <stop offset="100%" stopColor={CHART_GRADIENTS.negative.endColor} stopOpacity={CHART_GRADIENTS.negative.endOpacity} />
+              <stop offset="0%" stopColor={NW_COLORS.totalDebt} stopOpacity={0.06} />
+              <stop offset="100%" stopColor={NW_COLORS.totalDebt} stopOpacity={0.01} />
             </linearGradient>
           </defs>
           <CartesianGrid {...CHART_STYLE.grid} />
@@ -69,39 +76,55 @@ export const NetWorthChart: React.FC<NetWorthChartProps> = ({ scenarioData }) =>
           <YAxis tickFormatter={formatYAxis} {...CHART_STYLE.yAxis} width={80} />
           <Tooltip content={<NetWorthTooltip />} />
 
-          {/* Total assets — subtle blue area */}
+          {/* Total assets — blue area */}
           <Area
             type="monotone"
             dataKey="totalAssets"
             fill="url(#assetsGradient)"
-            stroke={CHART_COLORS.primary}
+            stroke={NW_COLORS.totalAssets}
             strokeWidth={1.5}
             name="Total Assets"
             dot={false}
           />
 
-          {/* Total debt — subtle red area */}
+          {/* Total debt — aqua area */}
           <Area
             type="monotone"
             dataKey="totalDebt"
             fill="url(#debtGradient)"
-            stroke={CHART_COLORS.negative}
+            stroke={NW_COLORS.totalDebt}
             strokeWidth={1.5}
             name="Total Debt"
             dot={false}
           />
 
-          {/* Net worth — clean green line */}
+          {/* Net worth — purple line */}
           <Line
             type="monotone"
             dataKey="netWorth"
-            stroke={CHART_COLORS.positive}
+            stroke={NW_COLORS.netWorth}
             strokeWidth={2}
             dot={false}
             name="Net Worth"
           />
         </ComposedChart>
       </ResponsiveContainer>
+
+      {/* Legend */}
+      <div className="flex items-center gap-6 mt-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NW_COLORS.totalAssets }} />
+          <span className="text-xs text-gray-500">Total Assets</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NW_COLORS.netWorth }} />
+          <span className="text-xs text-gray-500">Net Worth</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NW_COLORS.totalDebt }} />
+          <span className="text-xs text-gray-500">Total Debt</span>
+        </div>
+      </div>
     </div>
   );
 };

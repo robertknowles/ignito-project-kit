@@ -7,6 +7,7 @@ import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { Button } from '@/components/ui/button';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
+import { CashflowChart } from './CashflowChart';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ResetButton } from './ResetButton';
 
@@ -113,6 +114,21 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
               profile: isActive ? liveProfile : scenario.investmentProfile,
             } : undefined}
           />
+          </div>
+        </div>
+
+        {/* Cashflow Projection */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-6 pt-6 pb-1 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Cashflow Projection</h3>
+          </div>
+          <div className="pl-12 pr-4 pt-2 pb-6">
+            <CashflowChart
+              scenarioData={isMultiScenarioMode ? {
+                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+                profile: isActive ? liveProfile : scenario.investmentProfile,
+              } : undefined}
+            />
           </div>
         </div>
 
