@@ -11,12 +11,15 @@ import {
   UserPlus,
   Send,
   ArrowRight,
+  FileText,
+  Building2,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { LeftRail } from '@/components/LeftRail'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
+import { StatCard } from '@/components/StatCard'
 import { supabase } from '@/integrations/supabase/client'
 import {
   Tooltip,
@@ -37,7 +40,7 @@ interface ActivityEntry {
 export const AgentHome = () => {
   const navigate = useNavigate()
   const { clients } = useClient()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const { branding } = useBranding()
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
@@ -219,14 +222,14 @@ export const AgentHome = () => {
                 <div
                   className={`h-8 w-8 flex items-center justify-center text-xs rounded-full mx-auto cursor-default ${
                     isToday
-                      ? 'bg-[#3b82f6] text-white font-semibold'
+                      ? 'bg-[#2563EB] text-white font-semibold'
                       : 'text-[#374151]'
                   }`}
                 >
                   {day}
                   <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                     {reviewClients.slice(0, 3).map((_, i) => (
-                      <span key={i} className="w-1 h-1 rounded-full bg-[#3b82f6]" />
+                      <span key={i} className="w-1 h-1 rounded-full bg-[#2563EB]" />
                     ))}
                   </span>
                 </div>
@@ -243,7 +246,7 @@ export const AgentHome = () => {
             <div
               className={`h-8 w-8 flex items-center justify-center text-xs rounded-full mx-auto ${
                 isToday
-                  ? 'bg-[#3b82f6] text-white font-semibold'
+                  ? 'bg-[#2563EB] text-white font-semibold'
                   : 'text-[#374151]'
               }`}
             >
@@ -256,7 +259,7 @@ export const AgentHome = () => {
 
     return (
       <div>
-        <div className="text-sm font-medium text-[#111827] mb-3">{monthName}</div>
+        <div className="section-heading mb-3">{monthName}</div>
         <div className="grid grid-cols-7 gap-y-1">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
             <div key={i} className="h-6 text-[10px] font-medium text-[#9ca3af] text-center">
@@ -274,12 +277,12 @@ export const AgentHome = () => {
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
         <div className="flex-1 ml-16 overflow-hidden flex flex-col">
-          <div className="bg-white flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8 bg-white">
+          <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto p-8">
               {/* Header */}
               <div className="mb-6">
-                <h2 className="text-lg font-medium text-[#111827]">Good morning, {firstName}</h2>
-                <p className="text-sm text-[#6b7280] mt-0.5">{dateString}</p>
+                <h2 className="page-title">Good morning, {firstName}</h2>
+                <p className="body-secondary mt-0.5">{dateString}</p>
               </div>
 
               {/* Overdue alert */}
@@ -294,7 +297,7 @@ export const AgentHome = () => {
                     </span>
                   </p>
                   <button
-                    onClick={() => navigate('/clients')}
+                    onClick={() => navigate('/home')}
                     className="ml-auto text-sm font-medium text-red-700 hover:text-red-800 whitespace-nowrap"
                   >
                     View all
@@ -304,25 +307,10 @@ export const AgentHome = () => {
 
               {/* Stats cards */}
               <div className="grid grid-cols-4 gap-4 mb-8">
-                {[
-                  { label: 'Total Clients', value: stats.total, icon: Users, color: 'text-[#3b82f6]', bg: 'bg-blue-50' },
-                  { label: 'Upcoming Reviews', value: stats.upcomingReviews, icon: CalendarCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
-                  { label: 'Onboarding', value: stats.onboarding, icon: UserPlus, color: 'text-purple-600', bg: 'bg-purple-50' },
-                  { label: 'Plans Finalised', value: stats.finalised, icon: Target, color: 'text-green-600', bg: 'bg-green-50' },
-                ].map(card => {
-                  const Icon = card.icon
-                  return (
-                    <div key={card.label} className="bg-white border border-gray-200 rounded-lg p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-[#6b7280]">{card.label}</span>
-                        <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
-                          <Icon size={16} className={card.color} />
-                        </div>
-                      </div>
-                      <div className="text-2xl font-semibold text-[#111827]">{card.value}</div>
-                    </div>
-                  )
-                })}
+                <StatCard label="Total Clients" value={stats.total} />
+                <StatCard label="Upcoming Reviews" value={stats.upcomingReviews} />
+                <StatCard label="Onboarding" value={stats.onboarding} />
+                <StatCard label="Plans Finalised" value={stats.finalised} />
               </div>
 
               {/* Main content: Review cards + Calendar/Activity */}
@@ -330,10 +318,10 @@ export const AgentHome = () => {
                 {/* Left column: Upcoming Reviews */}
                 <div className="col-span-2">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-[#111827]">Upcoming Reviews</h3>
+                    <h3 className="section-heading">Upcoming Reviews</h3>
                     <button
-                      onClick={() => navigate('/clients')}
-                      className="text-xs text-[#3b82f6] hover:text-[#2563eb] font-medium flex items-center gap-1"
+                      onClick={() => navigate('/home')}
+                      className="text-xs text-[#2563EB] hover:text-[#2563eb] font-medium flex items-center gap-1"
                     >
                       View all clients
                       <ArrowRight size={12} />
@@ -343,8 +331,8 @@ export const AgentHome = () => {
                   {reviewClients.length === 0 ? (
                     <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                       <CalendarIcon size={32} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-sm text-[#6b7280]">No upcoming reviews scheduled</p>
-                      <p className="text-xs text-[#9ca3af] mt-1">
+                      <p className="body-secondary">No upcoming reviews scheduled</p>
+                      <p className="meta mt-1">
                         Set review dates on client profiles to see them here
                       </p>
                     </div>
@@ -372,13 +360,13 @@ export const AgentHome = () => {
                             className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-5 py-4 hover:border-gray-300 transition-colors"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm flex-shrink-0">
+                              <div className="w-9 h-9 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-sm flex-shrink-0">
                                 {initials}
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-[#111827]">{client.name}</div>
+                                <div className="body-dark font-medium">{client.name}</div>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-[#6b7280]">{reviewDate}</span>
+                                  <span className="meta">{reviewDate}</span>
                                   <span
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                                       isOverdue
@@ -397,8 +385,8 @@ export const AgentHome = () => {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
-                                    onClick={() => navigate('/clients')}
-                                    className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                    onClick={() => navigate('/home')}
+                                    className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
                                   >
                                     <Send size={14} />
                                   </button>
@@ -410,8 +398,8 @@ export const AgentHome = () => {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
-                                    onClick={() => navigate('/clients')}
-                                    className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                    onClick={() => navigate('/home')}
+                                    className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
                                   >
                                     <Target size={14} />
                                   </button>
@@ -433,7 +421,7 @@ export const AgentHome = () => {
                   {/* Review Calendar */}
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-medium text-[#111827]">Review Calendar</h3>
+                      <h3 className="section-heading">Review Calendar</h3>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -465,11 +453,11 @@ export const AgentHome = () => {
                     {/* Legend */}
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
                       <div className="flex items-center gap-1.5 text-[10px] text-[#6b7280]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
                         Client review
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-[#6b7280]">
-                        <span className="w-5 h-5 rounded-full bg-[#3b82f6] inline-flex items-center justify-center text-white text-[9px]">
+                        <span className="w-5 h-5 rounded-full bg-[#2563EB] inline-flex items-center justify-center text-white text-[9px]">
                           {today.getDate()}
                         </span>
                         Today
@@ -479,14 +467,14 @@ export const AgentHome = () => {
 
                   {/* Activity Feed */}
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h3 className="text-sm font-medium text-[#111827] mb-4">Recent Activity</h3>
+                    <h3 className="section-heading mb-4">Recent Activity</h3>
                     {activityLoading ? (
-                      <div className="text-sm text-[#6b7280] text-center py-6">Loading...</div>
+                      <div className="body-secondary text-center py-6">Loading...</div>
                     ) : activityLog.length === 0 ? (
                       <div className="text-center py-6">
                         <Clock size={24} className="text-gray-300 mx-auto mb-2" />
-                        <p className="text-sm text-[#6b7280]">No recent activity</p>
-                        <p className="text-xs text-[#9ca3af] mt-0.5">Activity will appear here as you and your clients interact</p>
+                        <p className="body-secondary">No recent activity</p>
+                        <p className="meta mt-0.5">Activity will appear here as you and your clients interact</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -499,14 +487,14 @@ export const AgentHome = () => {
                             <div key={entry.id} className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2 flex-shrink-0" />
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm text-[#374151]">
+                                <div className="body-dark">
                                   <span className={`font-medium ${config.color}`}>{config.label}</span>
                                   {' for '}
-                                  <span className="font-medium text-[#111827]">
+                                  <span className="font-medium">
                                     {getClientName(entry.client_id)}
                                   </span>
                                 </div>
-                                <div className="text-xs text-[#9ca3af] mt-0.5">
+                                <div className="meta mt-0.5">
                                   {formatRelativeTime(entry.created_at)}
                                 </div>
                               </div>
@@ -516,6 +504,48 @@ export const AgentHome = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Quick Access - Hub Navigation */}
+              <div className="mt-8">
+                <h3 className="section-heading mb-4">Manage</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <button
+                    onClick={() => navigate('/clients')}
+                    className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
+                  >
+                    <Users size={20} className="text-[#2563EB] mb-3" />
+                    <h4 className="body-dark font-medium">Clients</h4>
+                    <p className="meta mt-1">Manage client profiles, roadmaps, and portal access</p>
+                    <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Open <ArrowRight size={12} />
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/forms')}
+                    className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
+                  >
+                    <FileText size={20} className="text-[#2563EB] mb-3" />
+                    <h4 className="body-dark font-medium">Forms</h4>
+                    <p className="meta mt-1">Send intake forms and track client responses</p>
+                    <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Open <ArrowRight size={12} />
+                    </span>
+                  </button>
+                  {role === 'owner' && (
+                    <button
+                      onClick={() => navigate('/company')}
+                      className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
+                    >
+                      <Building2 size={20} className="text-[#2563EB] mb-3" />
+                      <h4 className="body-dark font-medium">Company</h4>
+                      <p className="meta mt-1">Team management, branding, and portal settings</p>
+                      <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Open <ArrowRight size={12} />
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

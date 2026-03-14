@@ -1,13 +1,14 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ReferenceLine,
   ReferenceDot,
+  ReferenceArea,
   Label,
 } from 'recharts';
 import { AlertTriangle, Info, Check } from 'lucide-react';
@@ -19,7 +20,9 @@ import {
 } from '@/components/ui/tooltip';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
+import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -38,11 +41,11 @@ import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext
 
 // Column dimension constants
 // IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
-const LABEL_COLUMN_WIDTH = 65;
+const LABEL_COLUMN_WIDTH = 80;
 const MIN_YEAR_COLUMN_WIDTH = 50; // Minimum readable width
 const MAX_YEAR_COLUMN_WIDTH = 120; // Maximum comfortable width
-const Y_AXIS_WIDTH = 65; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
-const CHART_HEIGHT = 220; // Height of the chart area
+const Y_AXIS_WIDTH = 80; // Width for the chart Y-axis - must match LABEL_COLUMN_WIDTH
+const CHART_HEIGHT = 276; // Height of the chart area (matches Financial Summary table height)
 
 // Period conversion constants (matching useAffordabilityCalculator)
 const PERIODS_PER_YEAR = 2;
@@ -102,7 +105,7 @@ interface StatusPillProps {
 const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = false }) => {
   const baseClasses = "inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium";
   const clickableClasses = isClickable 
-    ? "cursor-pointer border border-slate-300 shadow hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 active:scale-95 active:shadow-sm active:translate-y-0 transition-all duration-150 ease-in-out" 
+    ? "cursor-pointer border border-gray-300 shadow hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 active:scale-95 active:shadow-sm active:translate-y-0 transition-all duration-150 ease-in-out" 
     : "";
   
   if (status === 'pass') {
@@ -132,38 +135,52 @@ const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = 
     );
   }
   return (
-    <span className={`${baseClasses} bg-slate-100 text-slate-400`}>
+    <span className={`${baseClasses} bg-gray-100 text-gray-400`}>
       –
     </span>
   );
 };
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0]?.payload;
-    return (
-      <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
-        <p className="text-xs font-medium text-slate-900 mb-2">Year: {label}</p>
-        <p className="text-xs text-teal-600">
-          Portfolio: {formatCurrency(data?.portfolioValue || 0)}
-        </p>
-        <p className="text-xs text-slate-500">
-          Equity: {formatCurrency(data?.totalEquity || 0)}
-        </p>
-        {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-slate-100">
-            {data.purchaseDetails.map((purchase: any, idx: number) => (
-              <p key={idx} className="text-xs font-medium text-slate-700">
-                🏠 {purchase.propertyTitle}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-  return null;
+// Custom tooltip factory — accepts refinanceTriggers to show refinance info
+const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]?.payload;
+      const yearTriggers = refinanceTriggers.filter(t => t.triggerYear === Number(label));
+      return (
+        <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-md">
+          <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
+          <p className="text-xs text-teal-600">
+            Portfolio: {formatCurrency(data?.portfolioValue || 0)}
+          </p>
+          <p className="text-xs text-gray-500">
+            Equity: {formatCurrency(data?.totalEquity || 0)}
+          </p>
+          {data?.doNothingBalance > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Savings Only: {formatCurrency(data.doNothingBalance)}
+            </p>
+          )}
+          {yearTriggers.map(t => (
+            <p key={t.instanceId} className="text-xs text-amber-600 mt-1">
+              {t.propertyTitle}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
+            </p>
+          ))}
+          {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              {data.purchaseDetails.map((purchase: any, idx: number) => (
+                <p key={idx} className="text-xs font-medium text-gray-700">
+                  {purchase.propertyTitle}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+  return CustomTooltip;
 };
 
 // Custom dot component for property markers
@@ -191,7 +208,7 @@ const CustomDot = (props: CustomDotProps) => {
   const propertyTitle = firstPurchase.propertyTitle;
   const instanceId = firstPurchase.instanceId;
   const isHouse = isHouseType(propertyTitle);
-  const borderColor = '#9ca3af'; // Grey border
+  const borderColor = CHART_COLORS.annotationText; // Grey border
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -250,7 +267,7 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
   });
 
   const isHouse = isHouseType(property.title);
-  const borderColor = hasViolations ? '#ef4444' : '#9ca3af'; // Grey border, red for violations
+  const borderColor = hasViolations ? '#ef4444' : CHART_COLORS.annotationText; // Grey border, red for violations
   const borderWidth = hasViolations ? 2 : 1;
 
   const style: React.CSSProperties = {
@@ -361,7 +378,7 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
     }
   } else if (isDragActive) {
     // Show subtle highlight for all columns during drag
-    backgroundColor = 'rgba(148, 163, 184, 0.05)';
+    backgroundColor = CHART_COLORS.grid;
   }
 
   return (
@@ -450,13 +467,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   });
   
   // Expandable row state for Available Funds breakdown
-  const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
-  
-  // Expandable row state for Buy row funding breakdown
-  const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
-  
-  // Expandable state for the table rows (excluding year header)
-  const [isTableExpanded, setIsTableExpanded] = useState(true);
   
   // Get violations for a property
   const getPropertyViolations = useCallback((property: TimelineProperty): GuardrailViolation[] => {
@@ -695,9 +705,8 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const yearColumnWidth = Math.max(MIN_YEAR_COLUMN_WIDTH, Math.min(MAX_YEAR_COLUMN_WIDTH, calculatedColumnWidth));
   const needsScroll = yearColumnWidth === MIN_YEAR_COLUMN_WIDTH && availableWidth < yearCount * MIN_YEAR_COLUMN_WIDTH;
   
-  // Chart width calculation - use full available width to eliminate whitespace
-  const minChartWidth = yearCount * yearColumnWidth;
-  const chartWidth = Math.max(minChartWidth, availableWidth);
+  // Chart width calculation - always fit within container, never overflow
+  const chartWidth = availableWidth;
   const totalWidth = LABEL_COLUMN_WIDTH + chartWidth;
 
   // Dynamic grid style
@@ -726,6 +735,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     totalEquity: yearData.totalEquityRaw,
     purchaseInYear: yearData.purchaseInYear,
     purchaseDetails: yearData.purchaseDetails,
+    doNothingBalance: yearData.doNothingBalance ?? 0,
   })), [years]);
 
   // Find the year when equity goal is first reached
@@ -738,6 +748,45 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     const purchaseYears = chartData.filter(d => d.purchaseInYear);
     return purchaseYears.length > 0 ? purchaseYears[purchaseYears.length - 1] : null;
   }, [chartData]);
+
+  // Phase labels for Accumulation / Consolidation
+  const phases = useMemo(() => {
+    if (!mostRecentPurchase || chartData.length < 2) return [];
+    const startYear = chartData[0].year;
+    const endYear = chartData[chartData.length - 1].year;
+    const lastPurchaseYear = mostRecentPurchase.year;
+    const result: { label: string; startYear: number; endYear: number; fill: string }[] = [];
+
+    if (lastPurchaseYear > startYear) {
+      result.push({
+        label: 'Accumulation',
+        startYear,
+        endYear: lastPurchaseYear,
+        fill: 'rgba(59, 130, 246, 0.03)',
+      });
+    }
+    if (lastPurchaseYear < endYear) {
+      result.push({
+        label: 'Consolidation',
+        startYear: lastPurchaseYear,
+        endYear,
+        fill: 'rgba(34, 197, 94, 0.03)',
+      });
+    }
+    return result;
+  }, [chartData, mostRecentPurchase]);
+
+  // Refinance trigger dots — first year each property has extractable equity > $50k
+  const refinanceTriggers = useMemo(() => {
+    return calculateRefinanceTriggers(
+      timelineProperties,
+      profile.growthCurve,
+      profile.timelineYears
+    );
+  }, [timelineProperties, profile.growthCurve, profile.timelineYears]);
+
+  // Create tooltip component with refinance trigger context
+  const CustomTooltip = useMemo(() => createCustomTooltip(refinanceTriggers), [refinanceTriggers]);
 
   // XAxis padding to center data points in columns
   const xAxisPadding = yearColumnWidth / 2;
@@ -823,7 +872,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   return (
       <div ref={containerRef} className="w-full h-full">
-        <div ref={scrollContainerRef} className="overflow-x-auto h-full">
+        <div ref={scrollContainerRef} className="overflow-hidden h-full">
           {/* Scrollable container with dynamic total width */}
           <div style={{ minWidth: totalWidth }}>
             {/* Chart Section with grid overlay */}
@@ -834,28 +883,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 style={{ width: LABEL_COLUMN_WIDTH - Y_AXIS_WIDTH }}
               />
               
-              {/* Vertical grid lines overlay - positioned to align with table columns */}
-              <div 
-                className="absolute inset-0 pointer-events-none z-0"
-                style={{ left: 0 }}
-              >
-                {/* Grid extends from left border through Y-axis and all year columns */}
-                <div className="h-full flex">
-                  <div 
-                    className="h-full border-r border-slate-300/40"
-                    style={{ width: LABEL_COLUMN_WIDTH }}
-                  />
-                  <div className="h-full flex" style={{ width: chartWidth }}>
-                    {years.map((_, index) => (
-                      <div 
-                        key={`grid-line-${index}`}
-                        className="h-full border-r border-slate-300/40"
-                        style={{ width: yearColumnWidth }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              {/* Vertical grid lines overlay removed for clean look */}
               
               {/* Chart container - YAxis + plotting area with data points centered in year columns */}
               <div ref={chartContainerRef} style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
@@ -917,353 +945,127 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   />
                 )}
 
-                <AreaChart
+                <ComposedChart
                 width={chartWidth + Y_AXIS_WIDTH}
-                height={220}
+                height={CHART_HEIGHT}
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
-              {/* Gradient Definitions */}
-              <defs>
-                <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#5eead4" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#5eead4" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="greyGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              
-              <CartesianGrid 
-                strokeDasharray="0" 
-                stroke="rgba(148, 163, 184, 0.25)" 
+              {/* Phase labels — no background fill */}
+              {phases.map((phase, i) => (
+                <ReferenceArea
+                  key={`phase-${i}`}
+                  x1={phase.startYear}
+                  x2={phase.endYear}
+                  fill="transparent"
+                  fillOpacity={0}
+                  stroke="none"
+                  ifOverflow="extendDomain"
+                  label={{ value: phase.label, position: 'insideTopLeft', fontSize: 9, fill: '#D1D5DB', fontWeight: 400 }}
+                />
+              ))}
+
+              <CartesianGrid
+                {...CHART_STYLE.grid}
                 vertical={false}
                 horizontal={true}
               />
-              
-              <XAxis 
-                dataKey="year" 
-                tick={false}
-                axisLine={false}
-                tickLine={false}
+
+              <XAxis
+                dataKey="year"
+                {...CHART_STYLE.xAxis}
                 padding={{ left: xAxisPadding, right: xAxisPadding }}
               />
-              
-              <YAxis 
+
+              <YAxis
                 tickFormatter={formatCurrency}
-                tick={{ 
-                  fontSize: 11, 
-                  fill: '#64748b',
+                tick={{
+                  fontSize: 11,
+                  fill: CHART_COLORS.annotationText,
                   fontFamily: 'Inter, system-ui, sans-serif',
                 }}
                 axisLine={false}
                 tickLine={false}
                 width={Y_AXIS_WIDTH}
               />
-              
+
               <Tooltip content={<CustomTooltip />} />
-              
-              {/* Portfolio Value Area - Teal */}
-              <Area
+
+              {/* Portfolio Value Line - Blue */}
+              <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke="#5eead4"
+                stroke={CHART_COLORS.primary}
                 strokeWidth={2}
-                fill="url(#tealGradient)"
                 dot={false}
                 activeDot={{
                   r: 6,
-                  stroke: '#5eead4',
+                  stroke: CHART_COLORS.primary,
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
-              
-              {/* Total Equity Area - Grey */}
-              <Area
+
+              {/* Total Equity Line */}
+              <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke="#94a3b8"
-                strokeWidth={2}
-                fill="url(#greyGradient)"
+                stroke={CHART_COLORS.tertiary}
+                strokeWidth={1.5}
                 dot={false}
               />
-              
+
+              {/* Do-Nothing Baseline - dashed grey line */}
+              <Line
+                type="monotone"
+                dataKey="doNothingBalance"
+                name="Savings Only"
+                stroke={CHART_COLORS.annotationText}
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                dot={false}
+                connectNulls
+              />
+
               {/* Goal Achievement Marker - yellow dot only */}
               {equityGoalReached && (
                 <ReferenceDot
                   x={equityGoalReached.year}
                   y={equityGoalReached.totalEquity}
                   r={8}
-                  fill="rgba(253, 186, 116, 0.9)"
+                  fill={CHART_COLORS.goal}
                   stroke="white"
                   strokeWidth={2}
                 >
                   <Label content={<GoalAchievedLabel year={equityGoalReached.year} />} />
                 </ReferenceDot>
               )}
-            </AreaChart>
-          </div>
-        </div>
 
-        {/* Table Section with light grey background */}
-        <div className="bg-slate-50/70 -mt-5">
-          {/* YEAR Header Row - Always visible, clickable to expand/collapse table */}
-          <div 
-            style={gridStyle} 
-            className="border-b border-slate-200/40 cursor-pointer hover:bg-slate-100/50 transition-colors"
-            onClick={() => setIsTableExpanded(!isTableExpanded)}
-          >
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40 flex items-center justify-end">
-              <span className={`text-[8px] text-slate-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
-            </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={yearData.year}
-                className={`px-1 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
-                  {yearData.year}
-                </span>
-              </div>
-            ))}
+              {/* Refinance Trigger Dots - amber dots at years when equity extraction is possible */}
+              {refinanceTriggers.map((trigger) => {
+                const yearData = chartData.find(d => d.year === trigger.triggerYear);
+                if (!yearData) return null;
+                return (
+                  <ReferenceDot
+                    key={`refi-${trigger.instanceId}`}
+                    x={trigger.triggerYear}
+                    y={yearData.totalEquity}
+                    r={5}
+                    fill={CHART_COLORS.goalMarker}
+                    stroke={CHART_COLORS.goal}
+                    strokeWidth={1.5}
+                  />
+                );
+              })}
+            </ComposedChart>
           </div>
-
-          {/* Expandable Table Content */}
-          {isTableExpanded && (
-          <>
-          {/* PURCHASE Row - Expandable to show funding sources */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div 
-              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
-              onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
-            >
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
-                <span className={`transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
-                Buy
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">Scheduled property purchases</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Click property to view details</li>
-                      <li>• Timing based on 3 affordability tests</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`purchase-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
-                  // Render a MiniPurchaseCard for each property in this year
-                  // Use the pre-calculated funding breakdown from useRoadmapData
-                  yearData.purchaseDetails.map((purchase, purchaseIndex) => (
-                    <MiniPurchaseCard
-                      key={`${purchase.instanceId}-${purchaseIndex}`}
-                      propertyTitle={purchase.propertyTitle}
-                      cost={purchase.cost}
-                      loanAmount={purchase.loanAmount}
-                      depositRequired={purchase.totalCashRequired}
-                      onClick={() => handlePropertyClick(purchase.instanceId)}
-                      fundingBreakdown={purchase.fundingBreakdown}
-                      showFunding={isBuyFundingExpanded}
-                    />
-                  ))
-                ) : (
-                  <span className="text-[8px] text-slate-400 self-center">–</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* AVAIL Row - Expandable to show funding breakdown */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div 
-              className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40 cursor-pointer hover:bg-slate-100/70 transition-colors"
-              onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
-            >
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-0.5">
-                <span className={`transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
-                Avail
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Cash + Savings + Equity Release</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Cash: Your initial deposit pool</li>
-                      <li>• Savings: 25% of annual savings</li>
-                      <li>• Equity: Usable equity at 80% LVR</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`avail-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex flex-col items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <span className="text-[9px] font-medium text-slate-700">
-                  {formatCompactCurrency(yearData.availableFundsRaw)}
-                </span>
-                {isAvailableFundsExpanded && yearData.yearBreakdownData && (
-                  <div className="text-[7px] text-slate-400 mt-0.5 space-y-0.5">
-                    <div>Cash: {formatCompactCurrency(yearData.yearBreakdownData.baseDeposit || 0)}</div>
-                    <div>Sav: {formatCompactCurrency(yearData.yearBreakdownData.cumulativeSavings || 0)}</div>
-                    <div>Eq: {formatCompactCurrency(yearData.yearBreakdownData.equityRelease || 0)}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* LVR Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                LVR
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center">
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Total Debt ÷ Portfolio Value</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Shows overall portfolio leverage</li>
-                      <li>• Below 80% allows equity release</li>
-                      <li>• Includes all property loans</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => {
-              const lvr = yearData.portfolioValueRaw > 0 
-                ? (yearData.totalDebt / yearData.portfolioValueRaw) * 100 
-                : 0;
-              return (
-                <div 
-                  key={`lvr-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  <span className="text-[9px] font-medium text-slate-700">
-                    {lvr > 0 ? `${lvr.toFixed(0)}%` : '–'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* DEBT Row */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Debt
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center">
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Existing Debt + Property Loans</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Existing: From client profile</li>
-                      <li>• New loans: Price × LVR %</li>
-                      <li>• Grows with each purchase</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => (
-              <div 
-                key={`debt-${yearData.year}`}
-                className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-              >
-                <span className="text-[9px] font-medium text-slate-700">
-                  {formatCompactCurrency(yearData.totalDebt)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* SERVICE Row - Shows serviceability surplus/shortfall as a number */}
-          <div style={gridStyle} className="border-b border-slate-200/40">
-            <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-              <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
-                Service
-              </span>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex items-center justify-center">
-                      <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[210px] z-50 p-2">
-                    <p className="text-[10px] font-medium text-slate-700 mb-1">= Capacity − Required Payments</p>
-                    <ul className="text-[9px] text-slate-500 space-y-0.5">
-                      <li>• Capacity: Borrowing power + rental</li>
-                      <li>• Required: Total loan interest</li>
-                      <li>• <span className="text-green-600">Positive</span> = headroom for more</li>
-                    </ul>
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            {years.map((yearData, index) => {
-              const serviceabilitySurplus = yearData.yearBreakdownData?.serviceabilityTest?.surplus;
-              const hasData = serviceabilitySurplus !== undefined;
-              return (
-                <div 
-                  key={`service-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
-                >
-                  {hasData ? (
-                    <span className="text-[9px] font-medium text-slate-700">
-                      {formatCompactCurrency(serviceabilitySurplus)}
-                    </span>
-                  ) : (
-                    <span className="text-[8px] text-slate-400">–</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          </>
-          )}
-
         </div>
 
         </div>
       </div>
-      
+
       {/* Single Test Modal */}
       {selectedTest && selectedTest.yearData.yearBreakdownData && (
         <SingleTestModal

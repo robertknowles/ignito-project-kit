@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { LeftRail } from '@/components/LeftRail'
+import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -333,12 +334,12 @@ export const AgentForms = () => {
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
         <div className="flex-1 ml-16 overflow-hidden flex flex-col">
-          <div className="bg-white flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8 bg-white">
+          <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto p-8">
               {/* Header */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-medium text-[#111827]">Forms</h2>
-                <div className="flex items-center gap-3 text-sm text-[#6b7280]">
+                <h2 className="page-title">Forms</h2>
+                <div className="flex items-center gap-3 body-secondary">
                   <span>{formStats.total} sent</span>
                   <span className="text-gray-300">|</span>
                   <span>{formStats.pending} pending</span>
@@ -360,21 +361,21 @@ export const AgentForms = () => {
                           {template.icon}
                         </div>
                         <div>
-                          <h3 className="text-sm font-medium text-[#111827]">{template.name}</h3>
-                          <p className="text-xs text-[#6b7280]">
+                          <h3 className="section-heading">{template.name}</h3>
+                          <p className="meta">
                             {template.questions.length} questions
                           </p>
                         </div>
                       </div>
                       <button
                         onClick={() => openSendModal(template)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3b82f6] text-white text-sm rounded-lg hover:bg-[#2563eb] transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-sm rounded-lg hover:bg-[#1d4ed8] transition-colors"
                       >
                         <Send size={14} />
                         Send
                       </button>
                     </div>
-                    <p className="text-xs text-[#6b7280] leading-relaxed">
+                    <p className="meta leading-relaxed">
                       {template.description}
                     </p>
 
@@ -396,7 +397,7 @@ export const AgentForms = () => {
               {/* Send History */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium text-[#111827]">Send History</h3>
+                  <h3 className="section-heading">Send History</h3>
                   <div className="flex items-center gap-3">
                     {/* Search */}
                     <div className="relative">
@@ -405,7 +406,7 @@ export const AgentForms = () => {
                         placeholder="Search by client..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-4 py-1.5 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#3b82f6] focus:border-[#3b82f6] w-48"
+                        className="pl-8 pr-4 py-1.5 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] w-48"
                       />
                       <SearchIcon
                         size={14}
@@ -413,44 +414,34 @@ export const AgentForms = () => {
                       />
                     </div>
                     {/* Filter by type */}
-                    <div className="flex items-center gap-1">
-                      {[
-                        { key: 'all' as const, label: 'All' },
-                        { key: 'input_form' as const, label: 'Input Form' },
-                        { key: 'profile_update' as const, label: 'Profile Update' },
-                      ].map(tab => (
-                        <button
-                          key={tab.key}
-                          onClick={() => setFilterType(tab.key)}
-                          className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
-                            filterType === tab.key
-                              ? 'bg-[#3b82f6] text-white'
-                              : 'text-[#6b7280] hover:bg-gray-100'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
+                    <UnderlineTabBar
+                      tabs={[
+                        { key: 'all', label: 'All' },
+                        { key: 'input_form', label: 'Input Form' },
+                        { key: 'profile_update', label: 'Profile Update' },
+                      ]}
+                      activeKey={filterType}
+                      onChange={(key) => setFilterType(key as typeof filterType)}
+                    />
                   </div>
                 </div>
 
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#f3f4f6] text-left">
-                        <th className="px-5 py-3 text-xs font-medium text-[#6b7280]">Client</th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">Form</th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">Status</th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">Sent</th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">Completed</th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]"></th>
+                      <tr className="border-b border-gray-200 text-left">
+                        <th className="table-header">Client</th>
+                        <th className="table-header">Form</th>
+                        <th className="table-header">Status</th>
+                        <th className="table-header">Sent</th>
+                        <th className="table-header">Completed</th>
+                        <th className="table-header"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {submissionsLoading ? (
                         <tr>
-                          <td colSpan={6} className="px-5 py-8 text-center text-sm text-[#6b7280]">
+                          <td colSpan={6} className="px-5 py-8 text-center body-secondary">
                             Loading...
                           </td>
                         </tr>
@@ -458,14 +449,14 @@ export const AgentForms = () => {
                         <tr>
                           <td colSpan={6} className="px-5 py-12 text-center">
                             <FileText size={32} className="text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-[#6b7280]">
+                            <p className="body-secondary">
                               {submissions.length === 0
                                 ? 'No forms sent yet'
                                 : 'No forms match your filters'
                               }
                             </p>
                             {submissions.length === 0 && (
-                              <p className="text-xs text-[#9ca3af] mt-1">
+                              <p className="meta mt-1">
                                 Send a form to a client to get started
                               </p>
                             )}
@@ -481,44 +472,44 @@ export const AgentForms = () => {
                         const status = statusConfig[submission.status] || statusConfig.not_opened
 
                         return (
-                          <tr key={submission.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
-                            <td className="px-5 py-3.5">
+                          <tr key={submission.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
+                            <td className="table-cell">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
                                   {initials}
                                 </div>
-                                <div className="text-sm font-medium text-[#111827]">
+                                <div className="body-dark font-medium">
                                   {client?.name || 'Unknown'}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${formColor}`}>
                                 {formType}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
                                 {status.icon}
                                 {status.label}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5">
-                              <div className="text-sm text-[#374151]">{formatDate(submission.sent_at)}</div>
-                              <div className="text-xs text-[#9ca3af]">{formatTime(submission.sent_at)}</div>
+                            <td className="table-cell">
+                              <div className="body-dark">{formatDate(submission.sent_at)}</div>
+                              <div className="meta">{formatTime(submission.sent_at)}</div>
                             </td>
-                            <td className="px-4 py-3.5 text-sm text-[#374151]">
+                            <td className="table-cell">
                               {submission.completed_at
                                 ? formatDate(submission.completed_at)
-                                : <span className="text-[#9ca3af]">--</span>
+                                : <span className="meta">--</span>
                               }
                             </td>
-                            <td className="px-4 py-3.5">
+                            <td className="table-cell">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     onClick={() => handleResend(submission)}
-                                    className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                    className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
                                   >
                                     <RotateCcw size={14} />
                                   </button>
@@ -558,10 +549,10 @@ export const AgentForms = () => {
               <div className={`flex items-center gap-3 p-3 rounded-lg ${selectedTemplate.bgColor} mb-4`}>
                 <div className={selectedTemplate.color}>{selectedTemplate.icon}</div>
                 <div>
-                  <div className={`text-sm font-medium ${selectedTemplate.color}`}>
+                  <div className={`body-dark font-medium ${selectedTemplate.color}`}>
                     {selectedTemplate.name}
                   </div>
-                  <div className="text-xs text-[#6b7280]">
+                  <div className="meta">
                     {selectedTemplate.questions.length} questions
                   </div>
                 </div>
@@ -569,12 +560,12 @@ export const AgentForms = () => {
             )}
 
             {/* Client selector */}
-            <label className="block text-sm font-medium text-[#374151] mb-2">
+            <label className="block body-dark font-medium mb-2">
               Select client
             </label>
             <div className="space-y-1.5 max-h-60 overflow-auto border border-gray-200 rounded-lg p-1.5">
               {clients.length === 0 ? (
-                <div className="text-sm text-[#6b7280] text-center py-4">
+                <div className="body-secondary text-center py-4">
                   No clients found
                 </div>
               ) : (
@@ -593,25 +584,25 @@ export const AgentForms = () => {
                       onClick={() => setSelectedClientId(client.id)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-colors ${
                         isSelected
-                          ? 'bg-[#3b82f6] bg-opacity-10 border border-[#3b82f6] border-opacity-30'
+                          ? 'bg-[#2563EB] bg-opacity-10 border border-[#2563EB] border-opacity-30'
                           : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="w-7 h-7 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-[#111827] truncate">
+                        <div className="body-dark font-medium truncate">
                           {client.name}
                         </div>
                         {client.email && (
-                          <div className="text-xs text-[#6b7280] truncate">
+                          <div className="meta truncate">
                             {client.email}
                           </div>
                         )}
                       </div>
                       {isSelected && (
-                        <CheckCircle2 size={16} className="text-[#3b82f6] flex-shrink-0" />
+                        <CheckCircle2 size={16} className="text-[#2563EB] flex-shrink-0" />
                       )}
                     </button>
                   )
@@ -634,7 +625,7 @@ export const AgentForms = () => {
             <Button
               onClick={handleSendForm}
               disabled={!selectedClientId || sending}
-              className="bg-[#3b82f6] hover:bg-[#2563eb]"
+              className="bg-[#2563EB] hover:bg-[#1d4ed8]"
             >
               {sending ? 'Sending...' : 'Send Form'}
             </Button>

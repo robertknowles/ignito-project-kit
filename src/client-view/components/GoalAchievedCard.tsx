@@ -6,15 +6,15 @@ export function GoalAchievedCard() {
   return (
     <div className="relative pl-14">
       {/* Timeline dot */}
-      <div className="absolute left-0 top-5 w-10 h-10 rounded-full bg-white border-3 border-green-500 flex items-center justify-center shadow-md z-10">
-        <Trophy className="w-5 h-5 text-green-500" />
+      <div className="absolute left-0 top-5 w-10 h-10 rounded-full bg-white border-3 border-blue-500 flex items-center justify-center shadow-md z-10">
+        <Trophy className="w-5 h-5 text-blue-500" />
       </div>
       {/* Card */}
       <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-green-200 shadow-md p-5">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-            <Trophy className="w-6 h-6 text-green-600" />
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <Trophy className="w-6 h-6 text-blue-600" />
           </div>
           <div>
             <h3
@@ -45,7 +45,7 @@ export function GoalAchievedCard() {
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">
               Passive Income
             </p>
-            <p className="text-base font-semibold text-green-600">
+            <p className="text-base font-semibold text-blue-600">
               $100k–120k p.a.
             </p>
           </div>

@@ -202,7 +202,7 @@ toast.error('Failed to add note');
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm">
+            <div className="w-10 h-10 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-sm">
               {client.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </div>
             <div>

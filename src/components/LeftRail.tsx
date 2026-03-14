@@ -71,19 +71,15 @@ export const LeftRail = () => {
     setDropdownOpen(false)
   }
 
-  // Top navigation items
+  // Top navigation items (consolidated: Home absorbs Clients/Forms/Company)
   const topNavItems = [
     { path: '/home', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
-    { path: '/clients', icon: UsersIcon, label: 'Clients', roles: ['owner', 'agent'] },
-    { path: '/forms', icon: FileTextIcon, label: 'Forms', roles: ['owner', 'agent'] },
     { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard', roles: ['owner', 'agent', 'client'] },
-    { path: '/data', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
+    { path: '/settings', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
   ]
 
   // Bottom navigation items (above user menu)
-  const bottomNavItems = [
-    { path: '/company', icon: Building2Icon, label: 'Company', roles: ['owner'] },
-  ]
+  const bottomNavItems: typeof topNavItems = []
 
   // Filter nav items based on role
   const filteredTopNavItems = topNavItems.filter(item => 
@@ -184,7 +180,7 @@ export const LeftRail = () => {
           })}
 
           {/* Help / Restart Tour Button - only show on pages with tours (dashboard/clients) */}
-          {(location.pathname === '/home' || location.pathname === '/dashboard' || location.pathname === '/clients') && (
+          {(location.pathname === '/home' || location.pathname === '/dashboard') && (
             <TourStep
               id="tour-complete"
               title="You're All Set! 🎉"

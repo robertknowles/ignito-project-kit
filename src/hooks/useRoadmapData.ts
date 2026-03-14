@@ -21,6 +21,7 @@ import {
   EQUITY_EXTRACTION_LVR_CAP,
   DEFAULT_INTEREST_RATE,
   ANNUAL_INFLATION_RATE,
+  SAVINGS_INTEREST_RATE,
   annualRateToPeriodRate,
   calculateRentalRecognitionRate,
 } from '../constants/financialParams';
@@ -163,6 +164,8 @@ export interface YearData {
   yearBreakdownData?: YearBreakdownData;
   // Events scheduled for this year
   events?: EventSummary[];
+  // Do-nothing baseline: savings-only compound growth (no property investment)
+  doNothingBalance?: number;
 }
 
 export interface RoadmapData {
@@ -883,6 +886,15 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           };
         });
       
+      // Do-nothing baseline: savings compounding with no property investment
+      const doNothingBalance = (() => {
+        let balance = profile.depositPool;
+        for (let y = 0; y < yearIndex; y++) {
+          balance = balance * (1 + SAVINGS_INTEREST_RATE) + profile.annualSavings;
+        }
+        return Math.round(balance);
+      })();
+
       years.push({
         year,
         depositStatus,
@@ -904,6 +916,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         purchaseDetails,
         yearBreakdownData,
         events: eventsThisYear.length > 0 ? eventsThisYear : undefined,
+        doNothingBalance,
       });
     }
     

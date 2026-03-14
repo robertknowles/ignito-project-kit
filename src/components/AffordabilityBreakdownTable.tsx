@@ -95,30 +95,30 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse bg-white">
         <thead className="sticky top-0 z-10">
-          <tr className="bg-gray-50 border-b-2 border-gray-200">
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">Year</th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+          <tr className="border-b border-gray-200">
+            <th className="table-header text-left">Year</th>
+            <th className="table-header text-left">
               Portfolio Value/Equity
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Available Funds
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Net Cashflow
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Total Portfolio LVR
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Rental Recognition
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Deposit Test
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Serviceability Test
             </th>
-            <th className="text-left p-3 font-semibold text-sm text-gray-700">
+            <th className="table-header text-left">
               Decision
             </th>
           </tr>
@@ -144,55 +144,55 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
             
             return (
               <React.Fragment key={displayYear}>
-                <tr 
+                <tr
                   className={`
-                    border-b hover:bg-gray-50 cursor-pointer transition-colors
+                    border-b border-gray-100 hover:bg-gray-50/30 cursor-pointer transition-colors
                     ${year.status === 'purchased' ? 'bg-green-50/50' : ''}
                   `}
                   onClick={() => toggleYear(displayYear)}
                 >
-                  <td className="p-3 font-medium">
+                  <td className="table-cell font-medium">
                     <div className="flex items-center gap-2">
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       <span>{displayYear}</span>
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="text-sm">
                       <div>{formatCurrency(portfolioValue, true)}</div>
                       <div className="text-gray-600">{formatCurrency(equity, true)}</div>
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="text-sm">
                       {formatCurrency(availableFunds, true)}
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className={`text-sm ${netCashflow >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                       {netCashflow >= 0 ? '+' : ''}{formatCurrency(netCashflow, true)}
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="text-sm">
                       {formatPercentage(lvr)}
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="text-sm">
                       {formatPercentage(rentalRecognition)}
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="flex items-center gap-2">
-                      {depositTest.pass ? 
-                        <CheckCircle className="w-4 h-4 text-green-700" /> : 
+                      {depositTest.pass ?
+                        <CheckCircle className="w-4 h-4 text-green-700" /> :
                         <XCircle className="w-4 h-4 text-red-700" />
                       }
                       <span className={`text-sm ${depositTest.pass ? 'text-green-700' : 'text-red-700'}`}>
@@ -200,11 +200,11 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                       </span>
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <div className="flex items-center gap-2">
-                      {serviceabilityTest.pass ? 
-                        <CheckCircle className="w-4 h-4 text-green-700" /> : 
+                      {serviceabilityTest.pass ?
+                        <CheckCircle className="w-4 h-4 text-green-700" /> :
                         <XCircle className="w-4 h-4 text-red-700" />
                       }
                       <span className={`text-sm ${serviceabilityTest.pass ? 'text-green-700' : 'text-red-700'}`}>
@@ -212,8 +212,8 @@ export const AffordabilityBreakdownTable: React.FC<Props> = ({ data, isCalculati
                       </span>
                     </div>
                   </td>
-                  
-                  <td className="p-3">
+
+                  <td className="table-cell">
                     <Badge 
                       variant={
                         year.status === 'purchased' ? 'default' : 'outline'

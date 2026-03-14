@@ -1,7 +1,15 @@
-import React from 'react'
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import React, { useState } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon, Home, User } from 'lucide-react'
 import { TimelinePanel } from './TimelinePanel'
+import { ClientInputsPanel } from './ClientInputsPanel'
 import { TourStep } from '@/components/TourManager'
+
+type DrawerTab = 'properties' | 'client'
+
+const tabs: { id: DrawerTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'properties', label: 'Properties', icon: <Home size={13} /> },
+  { id: 'client', label: 'Client', icon: <User size={13} /> },
+]
 
 interface InputDrawerProps {
   isOpen: boolean
@@ -10,6 +18,8 @@ interface InputDrawerProps {
 }
 
 export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defaultFirstPropertyExpanded = true }) => {
+  const [activeTab, setActiveTab] = useState<DrawerTab>('properties')
+
   return (
     <>
       {/* Drawer Container */}
@@ -30,13 +40,38 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
             position="bottom"
           >
             <div id="drawer-header" className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
-              <h2 className="text-sm font-medium text-gray-900">Property Timeline</h2>
+              <h2 className="section-heading">
+                {activeTab === 'properties' ? 'Property Timeline' : 'Client Profile'}
+              </h2>
             </div>
           </TourStep>
 
-          {/* Timeline Panel */}
+          {/* Tab Bar */}
+          <div className="flex border-b border-gray-200 bg-gray-50">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-semibold transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-gray-700 border-b-2 border-gray-900 bg-white'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
           <div className="flex-1 overflow-y-auto p-4 bg-white">
-            <TimelinePanel defaultFirstPropertyExpanded={defaultFirstPropertyExpanded} />
+            {activeTab === 'properties' && (
+              <TimelinePanel defaultFirstPropertyExpanded={defaultFirstPropertyExpanded} />
+            )}
+            {activeTab === 'client' && (
+              <ClientInputsPanel />
+            )}
           </div>
         </div>
       </div>
@@ -70,4 +105,3 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
     </>
   )
 }
-

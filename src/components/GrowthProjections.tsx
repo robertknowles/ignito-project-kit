@@ -50,7 +50,7 @@ export const GrowthProjections = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div className="text-center">
             <div className="text-xs text-gray-600 mb-1">Total Growth</div>
-            <div className="font-semibold text-green-600">{formatCurrency(keyMetrics.totalGrowth)}</div>
+            <div className="font-semibold text-blue-600">{formatCurrency(keyMetrics.totalGrowth)}</div>
             <div className="text-xs text-gray-500">({keyMetrics.totalGrowthPercentage.toFixed(1)}%)</div>
           </div>
           <div className="text-center">
@@ -76,7 +76,7 @@ export const GrowthProjections = () => {
                 <div className="text-xs text-gray-600 mb-1">
                   {isStart ? 'Start' : isEnd ? 'End Goal' : `Year ${projection.year}`}
                 </div>
-                <div className="font-semibold text-green-600 mb-1">
+                <div className="font-semibold text-blue-600 mb-1">
                   {formatCurrency(projection.portfolioValue)}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -107,7 +107,7 @@ export const GrowthProjections = () => {
                 <div className="flex items-center gap-4">
                   <span className="font-medium text-gray-800">{projection.year}</span>
                   <div className="text-sm text-gray-600">
-                    Portfolio: <span className="font-medium text-green-600">{formatCurrency(projection.portfolioValue)}</span>
+                    Portfolio: <span className="font-medium text-blue-600">{formatCurrency(projection.portfolioValue)}</span>
                   </div>
                   <div className="text-sm text-gray-600">
                     Equity: <span className="font-medium text-blue-600">{formatCurrency(projection.totalEquity)}</span>

@@ -26,7 +26,7 @@ export const LoanTypeToggle: React.FC<LoanTypeToggleProps> = ({
           }}
           className={`${isSmall ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'} transition-colors ${
             loanType === 'IO' 
-              ? 'bg-[#3b82f6] text-white' 
+              ? 'bg-[#2563EB] text-white' 
               : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
           }`}
           title="Interest Only - Pay only interest, principal remains unchanged"
@@ -40,7 +40,7 @@ export const LoanTypeToggle: React.FC<LoanTypeToggleProps> = ({
           }}
           className={`${isSmall ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'} transition-colors ${
             loanType === 'PI' 
-              ? 'bg-[#3b82f6] text-white' 
+              ? 'bg-[#2563EB] text-white' 
               : 'bg-white text-[#6b7280] hover:bg-[#f3f4f6]'
           }`}
           title="Principal & Interest - Pay both principal and interest"

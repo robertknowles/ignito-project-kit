@@ -56,7 +56,7 @@ const formatCurrency = (value: number): string => {
 };
 
 // Slider styles - matching ClientInputsPanel
-const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all";
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-gray-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all";
 
 const getSliderStyle = (value: number, min: number, max: number, primaryColor: string) => ({
   background: `linear-gradient(to right, ${primaryColor} 0%, ${primaryColor} ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
@@ -101,18 +101,18 @@ const SliderField: React.FC<SliderFieldProps> = ({
     <div 
       className={`bg-white rounded-xl border px-5 py-4 transition-all duration-150 ${
         isActive 
-          ? 'border-slate-400 shadow-md' 
-          : 'border-slate-200 hover:border-slate-300'
+          ? 'border-gray-400 shadow-md' 
+          : 'border-gray-200 hover:border-gray-300'
       }`}
     >
       {/* Header: Label and Value */}
       <div className="flex justify-between items-start mb-1">
         <div>
-          <span className="text-sm font-semibold text-slate-700">
+          <span className="text-sm font-semibold text-gray-700">
             {label}
           </span>
           {description && (
-            <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{description}</p>
           )}
         </div>
         <span 
@@ -144,8 +144,8 @@ const SliderField: React.FC<SliderFieldProps> = ({
       
       {/* Min/Max Labels */}
       <div className="flex justify-between items-center mt-2">
-        <span className="text-xs text-slate-400">{minLabel}</span>
-        <span className="text-xs text-slate-400">{maxLabel}</span>
+        <span className="text-xs text-gray-400">{minLabel}</span>
+        <span className="text-xs text-gray-400">{maxLabel}</span>
       </div>
     </div>
   );

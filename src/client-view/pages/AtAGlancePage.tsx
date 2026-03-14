@@ -293,7 +293,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
         {/* Goal Achieved Card */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-green-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-green-600" />
+            <TrendingUp className="w-4 h-4 text-blue-600" />
             <h2
               className="text-lg font-semibold text-gray-900"
               style={{
@@ -308,7 +308,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Equity Goal
               </p>
-              <p className={`text-xl font-semibold ${equityGoalYear !== null ? 'text-green-600' : 'text-amber-600'}`}>
+              <p className={`text-xl font-semibold ${equityGoalYear !== null ? 'text-blue-600' : 'text-gray-400'}`}>
                 {formatGoalYear(equityGoalYear)}
               </p>
               <p className="text-xs text-gray-600 mt-1">
@@ -319,7 +319,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
                 Cashflow Goal
               </p>
-              <p className={`text-xl font-semibold ${incomeGoalYear !== null ? 'text-green-600' : 'text-amber-600'}`}>
+              <p className={`text-xl font-semibold ${incomeGoalYear !== null ? 'text-blue-600' : 'text-gray-400'}`}>
                 {formatGoalYear(incomeGoalYear)}
               </p>
               <p className="text-xs text-gray-600 mt-1">

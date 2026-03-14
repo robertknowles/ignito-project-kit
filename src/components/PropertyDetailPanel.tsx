@@ -14,6 +14,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 
 interface PropertyDetailPanelProps {
   isOpen: boolean;
@@ -166,54 +167,50 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
                 <h3 className="text-sm font-medium text-gray-900 mb-4">Equity Growth Over Time</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="year" 
-                      stroke="#6b7280"
-                      style={{ fontSize: '11px' }}
-                      tick={{ fill: '#6b7280' }}
+                    <CartesianGrid {...CHART_STYLE.grid} />
+                    <XAxis
+                      dataKey="year"
+                      {...CHART_STYLE.xAxis}
                     />
-                    <YAxis 
-                      stroke="#6b7280"
-                      style={{ fontSize: '11px' }}
+                    <YAxis
                       tickFormatter={formatYAxis}
-                      tick={{ fill: '#6b7280' }}
+                      {...CHART_STYLE.yAxis}
                       width={60}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
+                        border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                         borderRadius: '8px',
                         fontSize: '12px',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       }}
                       formatter={(value: number) => formatCurrency(value)}
                     />
-                    <Legend 
+                    <Legend
                       wrapperStyle={{ fontSize: '11px' }}
                       iconSize={8}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="propertyValue" 
-                      stroke="#87B5FA" 
+                    <Line
+                      type="monotone"
+                      dataKey="propertyValue"
+                      stroke={CHART_COLORS.primary}
                       strokeWidth={2}
                       name="Property Value"
                       dot={false}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="equity" 
-                      stroke="#86efac" 
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke={CHART_COLORS.positive}
                       strokeWidth={2}
                       name="Equity"
                       dot={false}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="loanBalance" 
-                      stroke="#fca5a5" 
+                    <Line
+                      type="monotone"
+                      dataKey="loanBalance"
+                      stroke={CHART_COLORS.negative}
                       strokeWidth={2}
                       name="Loan Balance"
                       dot={false}
@@ -229,24 +226,20 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
                 {chartData.length > 0 && chartData[0].rentalIncome !== undefined ? (
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis 
-                        dataKey="year" 
-                        stroke="#6b7280"
-                        style={{ fontSize: '11px' }}
-                        tick={{ fill: '#6b7280' }}
+                      <CartesianGrid {...CHART_STYLE.grid} />
+                      <XAxis
+                        dataKey="year"
+                        {...CHART_STYLE.xAxis}
                       />
-                      <YAxis 
-                        stroke="#6b7280"
-                        style={{ fontSize: '11px' }}
+                      <YAxis
                         tickFormatter={formatYAxis}
-                        tick={{ fill: '#6b7280' }}
+                        {...CHART_STYLE.yAxis}
                         width={60}
                       />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
+                          border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                           borderRadius: '8px',
                           fontSize: '12px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
@@ -256,26 +249,26 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
                           name
                         ]}
                       />
-                      <Legend 
+                      <Legend
                         wrapperStyle={{ fontSize: '11px' }}
                         iconSize={8}
                       />
-                      <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1} />
-                      <Bar 
-                        dataKey="rentalIncome" 
-                        fill="#86efac" 
+                      <ReferenceLine y={0} stroke={CHART_COLORS.referenceLine} strokeWidth={1} />
+                      <Bar
+                        dataKey="rentalIncome"
+                        fill={CHART_COLORS.positive}
                         name="Rental Income"
                         radius={[4, 4, 0, 0]}
                       />
-                      <Bar 
-                        dataKey="expenses" 
-                        fill="#fca5a5" 
+                      <Bar
+                        dataKey="expenses"
+                        fill={CHART_COLORS.negative}
                         name="Expenses"
                         radius={[4, 4, 0, 0]}
                       />
-                      <Bar 
-                        dataKey="netCashflow" 
-                        fill="#87B5FA" 
+                      <Bar
+                        dataKey="netCashflow"
+                        fill={CHART_COLORS.primary}
                         name="Net Cashflow"
                         radius={[4, 4, 0, 0]}
                       />

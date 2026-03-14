@@ -20,7 +20,7 @@ interface BrandingContextType {
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
   logoUrl: null,
-  primaryColor: '#6b7280',
+  primaryColor: '#2563EB',
   isClientInteractiveEnabled: true,
 };
 

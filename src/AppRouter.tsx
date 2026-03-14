@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { App } from './App'
 import { Landing } from './landing/Landing'
 import { AgentHome } from './pages/AgentHome'
@@ -137,6 +137,16 @@ export function AppRouter() {
                               }
                             />
                             <Route
+                              path="/settings"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <DataAssumptions />
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            {/* Pages accessible from Home hub */}
+                            <Route
                               path="/clients"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
@@ -153,14 +163,6 @@ export function AppRouter() {
                               }
                             />
                             <Route
-                              path="/data"
-                              element={
-                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <DataAssumptions />
-                                </ProtectedRoute>
-                              } 
-                            />
-                            <Route
                               path="/company"
                               element={
                                 <ProtectedRoute allowedRoles={['owner']}>
@@ -168,6 +170,8 @@ export function AppRouter() {
                                 </ProtectedRoute>
                               }
                             />
+                            {/* Redirect old /data path to /settings */}
+                            <Route path="/data" element={<Navigate to="/settings" replace />} />
 
                             {/* Client Portal routes */}
                             <Route

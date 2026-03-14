@@ -170,7 +170,7 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
         <button
           onClick={onEdit}
           className="text-[10px] hover:underline"
-          style={{ color: '#87B5FA' }}
+          style={{ color: '#4A7BF7' }}
         >
           Edit Template →
         </button>

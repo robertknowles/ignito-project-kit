@@ -61,41 +61,41 @@ export const MiniPurchaseCard: React.FC<MiniPurchaseCardProps> = ({
     <div className="flex flex-col items-center gap-0.5">
       {/* Main property pill */}
       <div 
-        className={`bg-slate-100 rounded border border-slate-200 px-2.5 py-0.5 flex items-center justify-center gap-1 ${onClick ? 'cursor-pointer hover:bg-slate-200 hover:border-slate-300 transition-colors' : ''}`}
+        className={`bg-gray-100 rounded border border-gray-200 px-2.5 py-0.5 flex items-center justify-center gap-1 ${onClick ? 'cursor-pointer hover:bg-gray-200 hover:border-gray-300 transition-colors' : ''}`}
         onClick={onClick}
         title={onClick ? "Click for property details" : undefined}
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
       >
         {isHouse ? (
-          <Home size={9} className="text-slate-500" />
+          <Home size={9} className="text-gray-500" />
         ) : (
-          <Building2 size={9} className="text-slate-500" />
+          <Building2 size={9} className="text-gray-500" />
         )}
-        <span className="text-[8px] font-medium text-slate-700">
+        <span className="text-[8px] font-medium text-gray-700">
           {getShortName(propertyTitle)}
         </span>
       </div>
       
       {/* Funding breakdown - shown when expanded */}
       {showFunding && fundingBreakdown && (
-        <div className="text-[6px] text-slate-500 flex flex-col items-start w-full px-0.5 bg-slate-50 rounded border border-slate-200/50 py-0.5">
+        <div className="text-[6px] text-gray-500 flex flex-col items-start w-full px-0.5 bg-gray-50 rounded border border-gray-200/50 py-0.5">
           {fundingBreakdown.cash > 0 && (
             <div className="flex justify-between w-full px-1">
-              <span className="text-slate-400">Cash</span>
-              <span className="font-medium text-slate-600">{formatCompact(fundingBreakdown.cash)}</span>
+              <span className="text-gray-400">Cash</span>
+              <span className="font-medium text-gray-600">{formatCompact(fundingBreakdown.cash)}</span>
             </div>
           )}
           {fundingBreakdown.savings > 0 && (
             <div className="flex justify-between w-full px-1">
-              <span className="text-slate-400">Save</span>
-              <span className="font-medium text-slate-600">{formatCompact(fundingBreakdown.savings)}</span>
+              <span className="text-gray-400">Save</span>
+              <span className="font-medium text-gray-600">{formatCompact(fundingBreakdown.savings)}</span>
             </div>
           )}
           {fundingBreakdown.equity > 0 && (
             <div className="flex justify-between w-full px-1">
-              <span className="text-slate-400">Equity</span>
-              <span className="font-medium text-green-600">{formatCompact(fundingBreakdown.equity)}</span>
+              <span className="text-gray-400">Equity</span>
+              <span className="font-medium text-blue-600">{formatCompact(fundingBreakdown.equity)}</span>
             </div>
           )}
         </div>

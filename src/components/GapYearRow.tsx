@@ -30,13 +30,13 @@ export const GapYearRow: React.FC<GapYearRowProps> = ({ yearData }) => {
         Equity: {formatCurrency(yearData.totalEquity)} | 
         LVR: {yearData.lvr.toFixed(1)}% | 
         Available: {formatCurrency(yearData.availableDeposit)} | 
-        Deposit: <span className={yearData.depositTest.pass ? '' : 'text-red-700'} style={yearData.depositTest.pass ? { color: '#87B5FA' } : {}}>
+        Deposit: <span className={yearData.depositTest.pass ? '' : 'text-red-700'} style={yearData.depositTest.pass ? { color: '#4A7BF7' } : {}}>
           {yearData.depositTest.pass ? 'PASS' : 'FAIL'}
         </span> | 
-        Serviceability: <span className={yearData.serviceabilityTest.pass ? '' : 'text-red-700'} style={yearData.serviceabilityTest.pass ? { color: '#87B5FA' } : {}}>
+        Serviceability: <span className={yearData.serviceabilityTest.pass ? '' : 'text-red-700'} style={yearData.serviceabilityTest.pass ? { color: '#4A7BF7' } : {}}>
           {yearData.serviceabilityTest.pass ? 'PASS' : 'FAIL'}
         </span> | 
-        Borrowing: <span className={yearData.borrowingCapacityTest.pass ? '' : 'text-red-700'} style={yearData.borrowingCapacityTest.pass ? { color: '#87B5FA' } : {}}>
+        Borrowing: <span className={yearData.borrowingCapacityTest.pass ? '' : 'text-red-700'} style={yearData.borrowingCapacityTest.pass ? { color: '#4A7BF7' } : {}}>
           {yearData.borrowingCapacityTest.pass ? 'PASS' : 'FAIL'}
         </span>
       </button>

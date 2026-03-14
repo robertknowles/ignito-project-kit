@@ -14,6 +14,7 @@ import { TourStep } from '@/components/TourManager';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { getPropertyTypeImagePath } from '../utils/propertyTypeIcon';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 
 // Convert period to year for display
 const periodToYear = (period: number): number => {
@@ -25,10 +26,10 @@ const periodToYear = (period: number): number => {
 // =============================================================================
 
 // Slider styles matching ClientDetailsCard - Clean black track and handle
-const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all";
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1e293b] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#1e293b] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all";
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #0f172a 0%, #0f172a ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
+  background: `linear-gradient(to right, #1e293b 0%, #1e293b ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
 });
 
 // Format compact currency
@@ -83,10 +84,10 @@ const SliderInput: React.FC<SliderInputProps> = ({
   return (
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[9px] font-medium text-slate-400 tracking-wide truncate">
+        <span className="text-[9px] font-medium text-gray-400 tracking-wide truncate">
           {label}
         </span>
-        <span className="text-[11px] font-semibold text-slate-700 ml-1">
+        <span className="text-[11px] font-semibold text-gray-700 ml-1">
           {formatValue(value)}
         </span>
       </div>
@@ -139,7 +140,7 @@ const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
       </div>
       {show && createPortal(
         <div 
-          className="fixed z-[9999] px-3 py-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl whitespace-nowrap pointer-events-none"
+          className="fixed z-[9999] px-3 py-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl whitespace-nowrap pointer-events-none"
           style={{
             top: position.top,
             left: position.left,
@@ -147,7 +148,7 @@ const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
           }}
         >
           {content}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
         </div>,
         document.body
       )}
@@ -220,7 +221,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
   
   if (!instanceData) {
     return (
-      <div className="p-3 text-center text-xs text-slate-500">
+      <div className="p-3 text-center text-xs text-gray-500">
         Loading property details...
       </div>
     );
@@ -259,8 +260,8 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-2 text-[9px] font-medium tracking-wide transition-colors ${
               activeTab === tab.id
-                ? 'text-slate-900 border-b-2 border-slate-900'
-                : 'text-slate-400 hover:text-slate-600'
+                ? 'text-gray-900 border-b-2 border-gray-900'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             {tab.label}
@@ -313,13 +314,13 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             {/* State Dropdown */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-gray-400 tracking-wide">
                   State
                 </span>
                 <select
                   value={instanceData.state}
                   onChange={(e) => onFieldChange('state', e.target.value)}
-                  className="text-[11px] font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+                  className="text-[11px] font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
                 >
                   {['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].map(s => (
                     <option key={s} value={s}>{s}</option>
@@ -354,13 +355,13 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             {/* Loan Product Dropdown */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-gray-400 tracking-wide">
                   Loan Product
                 </span>
                 <select
                   value={instanceData.loanProduct}
                   onChange={(e) => onFieldChange('loanProduct', e.target.value)}
-                  className="text-[11px] font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+                  className="text-[11px] font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
                 >
                   <option value="IO">Interest Only</option>
                   <option value="PI">Principal & Interest</option>
@@ -370,7 +371,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             {/* LMI Waiver Checkbox - only show if LVR > 80% */}
             {instanceData.lvr > 80 && (
               <div className="flex items-center justify-between py-1">
-                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-gray-400 tracking-wide">
                   LMI Waiver
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -380,7 +381,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                     onChange={(e) => onFieldChange('lmiWaiver', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-slate-900"></div>
+                  <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#1e293b]"></div>
                 </label>
               </div>
             )}
@@ -393,10 +394,10 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             {/* Growth Rate Slider - TOP PRIORITY */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-gray-400 tracking-wide">
                   Growth
                 </span>
-                <span className="text-[8px] text-slate-400">
+                <span className="text-[8px] text-gray-400">
                   {instanceData.growthAssumption === 'High' 
                     ? '12.5→10→7.5→6%'
                     : instanceData.growthAssumption === 'Medium'
@@ -415,7 +416,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                 value={growthToValue(instanceData.growthAssumption)}
                 onChange={(e) => onFieldChange('growthAssumption', valueToGrowth(parseFloat(e.target.value)))}
               />
-              <div className="flex justify-between text-[8px] text-slate-400 mt-0.5">
+              <div className="flex justify-between text-[8px] text-gray-400 mt-0.5">
                 <span>Low</span>
                 <span>Medium</span>
                 <span>High</span>
@@ -425,10 +426,10 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             {/* Stamp Duty Override */}
             <div className="flex-1 min-w-0 pt-2">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-medium text-slate-400 tracking-wide">
+                <span className="text-[9px] font-medium text-gray-400 tracking-wide">
                   Stamp Duty
                 </span>
-                <span className="text-[11px] font-semibold text-slate-700">
+                <span className="text-[11px] font-semibold text-gray-700">
                   {instanceData.stampDutyOverride 
                     ? formatCompactCurrency(instanceData.stampDutyOverride)
                     : `Auto: ${formatCompactCurrency(calculatedStampDuty)}`
@@ -479,10 +480,10 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
         {activeTab === 'costs' && (
           <div className="space-y-3">
             {/* One-Off Purchase Costs Summary (excluding stamp duty - that's in Assumptions) */}
-            <div className="bg-slate-50 rounded-lg p-2.5">
+            <div className="bg-gray-50 rounded-lg p-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-medium text-slate-600">Purchase Costs</span>
+                  <span className="text-[10px] font-medium text-gray-600">Purchase Costs</span>
                   <Tooltip content={
                     <div className="space-y-1">
                       <div className="flex justify-between gap-4">
@@ -531,16 +532,16 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                       </div>
                     </div>
                   }>
-                    <Info size={10} className="text-slate-400 cursor-help" />
+                    <Info size={10} className="text-gray-400 cursor-help" />
                   </Tooltip>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-900">
+                  <span className="text-[11px] font-bold text-gray-900">
                     {formatCompactCurrency(oneOffCostsTotal - (instanceData.stampDutyOverride ?? calculatedStampDuty))}
                   </span>
                   <button
                     onClick={onOpenPurchaseCosts}
-                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded transition-colors"
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
                     title="Edit Purchase Costs"
                   >
                     <Settings size={12} />
@@ -550,10 +551,10 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
             </div>
             
             {/* Annual Expenses Summary */}
-            <div className="bg-slate-50 rounded-lg p-2.5">
+            <div className="bg-gray-50 rounded-lg p-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-medium text-slate-600">Annual Expenses</span>
+                  <span className="text-[10px] font-medium text-gray-600">Annual Expenses</span>
                   <Tooltip content={
                     <div className="space-y-1">
                       <div className="flex justify-between gap-4">
@@ -578,16 +579,16 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                       </div>
                     </div>
                   }>
-                    <Info size={10} className="text-slate-400 cursor-help" />
+                    <Info size={10} className="text-gray-400 cursor-help" />
                   </Tooltip>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-900">
+                  <span className="text-[11px] font-bold text-gray-900">
                     {formatCompactCurrency(annualExpensesTotal)}/yr
                   </span>
                   <button
                     onClick={onOpenAnnualExpenses}
-                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded transition-colors"
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
                     title="Edit Annual Expenses"
                   >
                     <Settings size={12} />
@@ -625,14 +626,14 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
 }) => {
   if (!isOpen || !instanceData) return null;
   
-  const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
+  const inputClass = "w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-500";
   
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-slate-900 rounded-xl p-5 w-full max-w-md shadow-xl">
+      <div className="bg-gray-900 rounded-xl p-5 w-full max-w-md shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">Purchase Costs</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
@@ -640,7 +641,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
         <div className="space-y-3 max-h-[60vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Engagement Fee ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Engagement Fee ($)</label>
               <input
                 type="number"
                 value={instanceData.engagementFee}
@@ -649,7 +650,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Conditional Deposit ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Conditional Deposit ($)</label>
               <input
                 type="number"
                 value={instanceData.conditionalHoldingDeposit}
@@ -661,7 +662,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Insurance Upfront ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Insurance Upfront ($)</label>
               <input
                 type="number"
                 value={instanceData.buildingInsuranceUpfront}
@@ -670,7 +671,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Building & Pest ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Building & Pest ($)</label>
               <input
                 type="number"
                 value={instanceData.buildingPestInspection}
@@ -682,7 +683,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Plumbing/Electrical ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Plumbing/Electrical ($)</label>
               <input
                 type="number"
                 value={instanceData.plumbingElectricalInspections}
@@ -691,7 +692,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Independent Valuation ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Independent Valuation ($)</label>
               <input
                 type="number"
                 value={instanceData.independentValuation}
@@ -703,7 +704,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Unconditional Deposit ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Unconditional Deposit ($)</label>
               <input
                 type="number"
                 value={instanceData.unconditionalHoldingDeposit}
@@ -712,7 +713,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Mortgage Fees ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Mortgage Fees ($)</label>
               <input
                 type="number"
                 value={instanceData.mortgageFees}
@@ -724,7 +725,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Conveyancing ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Conveyancing ($)</label>
               <input
                 type="number"
                 value={instanceData.conveyancing}
@@ -733,7 +734,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Rates Adjustment ($)</label>
+              <label className="block text-xs text-gray-400 mb-1">Rates Adjustment ($)</label>
               <input
                 type="number"
                 value={instanceData.ratesAdjustment}
@@ -744,7 +745,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           </div>
           
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Maintenance Post Settlement ($)</label>
+            <label className="block text-xs text-gray-400 mb-1">Maintenance Post Settlement ($)</label>
             <input
               type="number"
               value={instanceData.maintenanceAllowancePostSettlement}
@@ -756,7 +757,7 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
         
         <button
           onClick={onClose}
-          className="w-full mt-4 py-2.5 bg-white text-slate-900 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+          className="w-full mt-4 py-2.5 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-colors"
         >
           Done
         </button>
@@ -789,14 +790,14 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
 }) => {
   if (!isOpen || !instanceData) return null;
   
-  const inputClass = "w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
+  const inputClass = "w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-500";
   
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-slate-900 rounded-xl p-5 w-full max-w-md shadow-xl">
+      <div className="bg-gray-900 rounded-xl p-5 w-full max-w-md shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">Annual Expenses</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
@@ -804,7 +805,7 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Council & Water ($/yr)</label>
+              <label className="block text-xs text-gray-400 mb-1">Council & Water ($/yr)</label>
               <input
                 type="number"
                 value={instanceData.councilRatesWater}
@@ -813,7 +814,7 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Insurance ($/yr)</label>
+              <label className="block text-xs text-gray-400 mb-1">Insurance ($/yr)</label>
               <input
                 type="number"
                 value={instanceData.buildingInsuranceAnnual}
@@ -825,7 +826,7 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Strata ($/yr)</label>
+              <label className="block text-xs text-gray-400 mb-1">Strata ($/yr)</label>
               <input
                 type="number"
                 value={instanceData.strata}
@@ -834,7 +835,7 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Maintenance ($/yr)</label>
+              <label className="block text-xs text-gray-400 mb-1">Maintenance ($/yr)</label>
               <input
                 type="number"
                 value={instanceData.maintenanceAllowanceAnnual}
@@ -845,16 +846,16 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
           </div>
           
           {/* Deductions/Depreciation Section */}
-          <div className="mt-4 pt-4 border-t border-slate-700">
+          <div className="mt-4 pt-4 border-t border-gray-700">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tax Deductions / Depreciation ($/yr)</label>
+              <label className="block text-xs text-gray-400 mb-1">Tax Deductions / Depreciation ($/yr)</label>
               <input
                 type="number"
                 value={instanceData.potentialDeductionsRebates || 0}
                 onChange={(e) => onFieldChange('potentialDeductionsRebates', parseFloat(e.target.value) || 0)}
                 className={inputClass}
               />
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 Estimated annual depreciation deductions. Reduces expenses and improves net cashflow.
               </p>
             </div>
@@ -863,7 +864,7 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
         
         <button
           onClick={onClose}
-          className="w-full mt-4 py-2.5 bg-white text-slate-900 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+          className="w-full mt-4 py-2.5 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-colors"
         >
           Done
         </button>
@@ -948,7 +949,19 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   const yieldDisplay = instanceData?.purchasePrice && instanceData?.rentPerWeek
     ? `${((instanceData.rentPerWeek * 52 / instanceData.purchasePrice) * 100).toFixed(1)}%`
     : null;
-  
+
+  // Calculate monthly holding cost
+  const monthlyCostDisplay = (() => {
+    if (!instanceData?.purchasePrice || !instanceData?.lvr) return null;
+    const loanAmount = instanceData.purchasePrice * (instanceData.lvr / 100);
+    const cashflow = calculateDetailedCashflow(instanceData, loanAmount);
+    const monthly = Math.round(cashflow.netWeeklyCashflow * 52 / 12);
+    const abs = Math.abs(monthly);
+    const sign = monthly < 0 ? '-' : '+';
+    if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k/mo`;
+    return `${sign}$${abs}/mo`;
+  })();
+
   // Get state info
   const stateDisplay = instanceData?.state;
   const stateColors = stateDisplay ? STATE_COLORS[stateDisplay] || { bg: 'bg-gray-100', text: 'text-gray-700' } : null;
@@ -962,8 +975,8 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
       >
         {/* Left side - Image for properties, Icon for events/pauses, Home icon for custom properties */}
         {isProperty && isCustom ? (
-          <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center bg-slate-50 border-r border-gray-100">
-            <Home size={24} className="text-slate-500" />
+          <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center bg-gray-50 border-r border-gray-100">
+            <Home size={24} className="text-gray-500" />
           </div>
         ) : isProperty && imageUrl ? (
           <div className="w-16 self-stretch flex-shrink-0 flex items-center justify-center overflow-hidden">
@@ -985,7 +998,16 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm truncate">{title}</h4>
             <p className="text-gray-500 text-xs mt-0.5">
-              {isProperty ? (priceDisplay || '$0') : (subtitleText || '')}
+              {isProperty ? (
+                <>
+                  {priceDisplay || '$0'}
+                  {monthlyCostDisplay && (
+                    <span className={`ml-1.5 ${monthlyCostDisplay.startsWith('+') ? 'text-green-500' : 'text-rose-400'}`}>
+                      {monthlyCostDisplay}
+                    </span>
+                  )}
+                </>
+              ) : (subtitleText || '')}
             </p>
           </div>
           {/* Right: expand and delete buttons */}
@@ -1344,7 +1366,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
                             subtitle={item.subtitle}
                             subtitleText={getEventSubtitle()}
                             period={item.period}
-                            icon={<EventTypeIcon eventType={item.event!.eventType} size={24} className="text-slate-500" />}
+                            icon={<EventTypeIcon eventType={item.event!.eventType} size={24} className="text-gray-500" />}
                             bgColor="bg-white"
                             onRemove={() => handleRemoveEvent(item.id)}
                             onEdit={() => handleEditEvent(item.event!)}
@@ -1359,7 +1381,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ defaultFirstProper
                             type="pause"
                             title={item.title}
                             subtitleText="Strategic break"
-                            icon={<Pause size={24} className="text-slate-500" />}
+                            icon={<Pause size={24} className="text-gray-500" />}
                             bgColor="bg-white"
                             onRemove={() => handleRemovePause(item.pauseIndex!)}
                           />

@@ -7,10 +7,10 @@ import { Switch } from '@/components/ui/switch'
 import { TourStep } from '@/components/TourManager'
 
 // Slider styles for consistent appearance - Clean black track and handle
-const sliderClassName = "w-full appearance-none cursor-pointer bg-slate-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-900 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-900 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1e293b] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#1e293b] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #0f172a 0%, #0f172a ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
+  background: `linear-gradient(to right, #1e293b 0%, #1e293b ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`,
 })
 
 // Format compact currency
@@ -46,10 +46,10 @@ const CompactSlider: React.FC<CompactSliderProps> = ({
   return (
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide truncate">
+        <span className="text-[9px] uppercase font-medium text-gray-400 tracking-wide truncate">
           {label}
         </span>
-        <span className="text-[11px] font-semibold text-slate-700 ml-1">
+        <span className="text-[11px] font-semibold text-gray-700 ml-1">
           {formatValue(value)}
         </span>
       </div>
@@ -93,7 +93,7 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
     >
       <div 
         id="client-details-card"
-        className="bg-white rounded-xl overflow-hidden"
+        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
       >
         {/* Header - Always visible, clickable to expand/collapse */}
         <button
@@ -117,7 +117,7 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
             <div className="grid grid-cols-3 gap-6">
               {/* Column 1: Investment Goals */}
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide">Investment Goals</h4>
+                <h4 className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide">Investment Goals</h4>
                 <div className="space-y-3">
                   <CompactSlider
                     label="Investment Horizon"
@@ -149,7 +149,7 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
 
               {/* Column 2: Personal Details */}
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide">Personal Details</h4>
+                <h4 className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide">Personal Details</h4>
                 <div className="space-y-3">
                   <CompactSlider
                     label="Deposit Pool"
@@ -180,7 +180,7 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
 
               {/* Column 3: Current Portfolio */}
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase font-semibold text-slate-500 tracking-wide">Current Portfolio</h4>
+                <h4 className="text-[10px] uppercase font-semibold text-gray-500 tracking-wide">Current Portfolio</h4>
                 <div className="space-y-3">
                   <CompactSlider
                     label="Current Value"
@@ -202,24 +202,24 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
                   {/* Use Existing Equity Toggle */}
                   <div className="flex items-center justify-between py-1">
                     <div className="flex flex-col">
-                      <span className="text-[9px] uppercase font-medium text-slate-400 tracking-wide">
+                      <span className="text-[9px] uppercase font-medium text-gray-400 tracking-wide">
                         Use Existing Equity
                       </span>
-                      <span className="text-[8px] text-slate-400">
+                      <span className="text-[8px] text-gray-400">
                         Include in purchase calculations
                       </span>
                     </div>
                     <Switch
                       checked={profile.useExistingEquity}
                       onCheckedChange={(checked) => updateProfile({ useExistingEquity: checked })}
-                      className="data-[state=checked]:bg-slate-900 scale-90"
+                      className="data-[state=checked]:bg-[#1e293b] scale-90"
                     />
                   </div>
 
                   {/* Advanced Settings Button */}
                   <button
                     onClick={() => setIsAdvancedOpen(true)}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-colors"
                   >
                     <Settings2 size={14} />
                     <span className="font-medium">Advanced Settings</span>
@@ -231,11 +231,11 @@ export const ClientDetailsCard: React.FC<ClientDetailsCardProps> = ({ defaultExp
             {/* Calculate Borrowing Capacity Button - Full Width */}
             <button
               onClick={() => setIsCalcOpen(true)}
-              className="w-full flex items-center gap-2 px-3 py-2 mt-4 rounded-lg bg-slate-50 text-xs text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 mt-4 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 hover:text-gray-700 transition-colors"
             >
               <CalculatorIcon size={14} />
               <span className="font-medium">Calculate Borrowing Capacity</span>
-              <span className="text-slate-400">— Estimate how much your client can borrow</span>
+              <span className="text-gray-400">— Estimate how much your client can borrow</span>
             </button>
           </div>
         )}

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/tooltip';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 
 // Column dimension constants
 // IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
@@ -69,18 +70,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const cashflow = data?.cashflow || 0;
     const formattedValue = formatCurrency(Math.abs(cashflow));
     return (
-      <div className="bg-white p-3 border border-slate-200 shadow-sm rounded-md">
-        <p className="text-xs font-medium text-slate-900 mb-2">Year: {label}</p>
-        <p className={`text-xs ${cashflow >= 0 ? 'text-green-600' : 'text-rose-600'}`}>
+      <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-md">
+        <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
+        <p className="text-xs text-gray-700">
           Net Cashflow: {cashflow >= 0 ? '+' : '-'}{formattedValue}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-gray-500">
           Rental Income: {formatCurrency(data?.rentalIncome || 0)}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-gray-500">
           Expenses: {formatCurrency(data?.expenses || 0)}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-gray-500">
           Loan Interest: {formatCurrency(data?.loanRepayments || 0)}
         </p>
       </div>
@@ -97,11 +98,10 @@ const BreakEvenLabel = (props: any) => {
     <text
       x={viewBox.x + 10}
       y={viewBox.y - 5}
-      fill="#9ca3af"
+      fill={CHART_COLORS.annotationText}
       fontSize={10}
       fontWeight={500}
       textAnchor="start"
-      fontFamily="Inter, system-ui, sans-serif"
     >
       Break-even
     </text>
@@ -308,14 +308,14 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             >
               <div className="h-full flex">
                 <div 
-                  className="h-full border-r border-slate-300/40"
+                  className="h-full border-r border-gray-300/40"
                   style={{ width: LABEL_COLUMN_WIDTH }}
                 />
                 <div className="h-full flex" style={{ width: chartWidth }}>
                   {years.map((_, index) => (
                     <div 
                       key={`grid-line-${index}`}
-                      className="h-full border-r border-slate-300/40"
+                      className="h-full border-r border-gray-300/40"
                       style={{ width: yearColumnWidth }}
                     />
                   ))}
@@ -331,12 +331,7 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
-                <CartesianGrid 
-                  strokeDasharray="0" 
-                  stroke="rgba(148, 163, 184, 0.25)" 
-                  vertical={false}
-                  horizontal={true}
-                />
+                <CartesianGrid {...CHART_STYLE.grid} />
                 
                 <XAxis 
                   dataKey="year" 
@@ -345,15 +340,10 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                   tickLine={false}
                 />
                 
-                <YAxis 
+                <YAxis
                   tickFormatter={formatCurrency}
-                  tick={{ 
-                    fontSize: 11, 
-                    fill: '#64748b',
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                  }}
-                  axisLine={false}
-                  tickLine={false}
+                  {...CHART_STYLE.yAxis}
+                  tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 11 }}
                   width={Y_AXIS_WIDTH}
                   domain={yAxisDomain}
                   ticks={yAxisTicks}
@@ -364,8 +354,8 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 {/* Break-even Reference Line */}
                 <ReferenceLine
                   y={0}
-                  stroke="#9ca3af"
-                  strokeDasharray="3 3"
+                  stroke={CHART_COLORS.referenceLine}
+                  strokeDasharray={CHART_STYLE.referenceLine.strokeDasharray}
                   strokeWidth={1}
                 >
                   <Label content={<BreakEvenLabel />} />
@@ -380,7 +370,7 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                   {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.cashflow >= 0 ? "rgba(134, 239, 172, 0.7)" : "rgba(252, 165, 165, 0.7)"}
+                      fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
                     />
                   ))}
                 </Bar>
@@ -391,8 +381,8 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                     x={cashflowGoalReached.year}
                     y={cashflowGoalReached.cashflow}
                     r={8}
-                    fill="#FFD700"
-                    stroke="#DAA520"
+                    fill={CHART_COLORS.goalMarker}
+                    stroke={CHART_COLORS.goal}
                     strokeWidth={2}
                   >
                     <Label content={<GoalAchievedLabel year={cashflowGoalReached.year} />} />
@@ -403,22 +393,22 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
           </div>
 
           {/* Table Section with light grey background */}
-          <div className="bg-slate-50/70 -mt-5">
+          <div className="bg-gray-50/50 -mt-5">
             {/* YEAR Header Row - Always visible, clickable to expand/collapse table */}
             <div 
               style={gridStyle} 
-              className="border-b border-slate-200/40 cursor-pointer hover:bg-slate-100/50 transition-colors"
+              className="border-b border-gray-200/40 cursor-pointer hover:bg-gray-100/50 transition-colors"
               onClick={() => setIsTableExpanded(!isTableExpanded)}
             >
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 border-r border-slate-200/40 flex items-center justify-end">
-                <span className={`text-[8px] text-slate-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2.5 border-r border-gray-200/50 flex items-center justify-end">
+                <span className={`text-[9px] text-gray-400 transition-transform duration-200 ${isTableExpanded ? 'rotate-90' : ''}`}>▶</span>
               </div>
               {years.map((yearData, index) => (
-                <div 
+                <div
                   key={yearData.year}
-                  className={`px-1 py-1.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-1 py-2.5 flex items-center justify-center ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
-                  <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                  <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
                     {yearData.year}
                   </span>
                 </div>
@@ -429,21 +419,21 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             {isTableExpanded && (
             <>
             {/* PURCHASE Row - Same height as other rows */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div style={gridStyle} className="border-b border-gray-200/50">
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
+                <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
                   Buy
                 </span>
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex items-center justify-center">
-                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                        <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                      <p className="text-[10px] font-medium text-slate-700 mb-1">Scheduled property purchases</p>
-                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <p className="text-[10px] font-medium text-gray-700 mb-1">Scheduled property purchases</p>
+                      <ul className="text-[9px] text-gray-500 space-y-0.5">
                         <li>• Click property to view details</li>
                         <li>• Timing based on 3 affordability tests</li>
                       </ul>
@@ -452,9 +442,9 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 </TooltipProvider>
               </div>
               {years.map((yearData, index) => (
-                <div 
+                <div
                   key={`purchase-${yearData.year}`}
-                  className={`px-0.5 py-1.5 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-0.5 py-2 flex flex-col items-center justify-center gap-0.5 ${index < years.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
                   {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
                     // Render a MiniPurchaseCard for each property in this year
@@ -469,28 +459,28 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                       />
                     ))
                   ) : (
-                    <span className="text-[8px] text-slate-400 self-center">–</span>
+                    <span className="text-[9px] text-gray-400 self-center">–</span>
                   )}
                 </div>
               ))}
             </div>
 
             {/* RENTAL INCOME Row */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div style={gridStyle} className="border-b border-gray-200/50">
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
+                <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
                   Income
                 </span>
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex items-center justify-center">
-                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                        <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                      <p className="text-[10px] font-medium text-slate-700 mb-1">= (Rent/week × 52) − Vacancy</p>
-                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <p className="text-[10px] font-medium text-gray-700 mb-1">= (Rent/week × 52) − Vacancy</p>
+                      <ul className="text-[9px] text-gray-500 space-y-0.5">
                         <li>• Rent/week: From property settings</li>
                         <li>• Vacancy: Rent × vacancy rate %</li>
                         <li>• Growth: Increases with property value</li>
@@ -500,11 +490,11 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
-                <div 
+                <div
                   key={`income-${data.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-0.5 py-2 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
-                  <span className="text-[9px] text-slate-600">
+                  <span className="text-[10px] text-gray-600">
                     {data.rentalIncome > 0 ? formatCompactCurrency(data.rentalIncome) : '–'}
                   </span>
                 </div>
@@ -512,21 +502,21 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             </div>
 
             {/* EXPENSES Row */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div style={gridStyle} className="border-b border-gray-200/50">
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
+                <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
                   Expen
                 </span>
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex items-center justify-center">
-                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                        <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[220px] z-50 p-2">
-                      <p className="text-[10px] font-medium text-slate-700 mb-1">= Mgmt + Insurance + Council + Strata + Maintenance + Land Tax − Deductions</p>
-                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <p className="text-[10px] font-medium text-gray-700 mb-1">= Mgmt + Insurance + Council + Strata + Maintenance + Land Tax − Deductions</p>
+                      <ul className="text-[9px] text-gray-500 space-y-0.5">
                         <li>• Management: % of rent (grows with rent)</li>
                         <li>• Other costs: +3% inflation per year</li>
                         <li>• Deductions: From Annual Expenses settings</li>
@@ -536,11 +526,11 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
-                <div 
+                <div
                   key={`expenses-${data.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-0.5 py-2 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
-                  <span className="text-[9px] text-slate-600">
+                  <span className="text-[10px] text-gray-600">
                     {data.expenses > 0 ? formatCompactCurrency(data.expenses) : '–'}
                   </span>
                 </div>
@@ -548,21 +538,21 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             </div>
 
             {/* LOAN REPAYMENTS Row */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div style={gridStyle} className="border-b border-gray-200/50">
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
+                <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
                   Loans
                 </span>
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex items-center justify-center">
-                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                        <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                      <p className="text-[10px] font-medium text-slate-700 mb-1">= (Loan − Offset) × Interest Rate</p>
-                      <ul className="text-[9px] text-slate-500 space-y-0.5">
+                      <p className="text-[10px] font-medium text-gray-700 mb-1">= (Loan − Offset) × Interest Rate</p>
+                      <ul className="text-[9px] text-gray-500 space-y-0.5">
                         <li>• Loan: Purchase price × LVR %</li>
                         <li>• Offset: Reduces interest (if set)</li>
                         <li>• Rate: From property loan settings</li>
@@ -572,11 +562,11 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 </TooltipProvider>
               </div>
               {chartData.map((data, index) => (
-                <div 
+                <div
                   key={`loans-${data.year}`}
-                  className={`px-0.5 py-1.5 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                  className={`px-0.5 py-2 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                 >
-                  <span className="text-[9px] text-slate-600">
+                  <span className="text-[10px] text-gray-600">
                     {data.loanRepayments > 0 ? formatCompactCurrency(data.loanRepayments) : '–'}
                   </span>
                 </div>
@@ -584,23 +574,23 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
             </div>
 
             {/* NET CASHFLOW Row */}
-            <div style={gridStyle} className="border-b border-slate-200/40">
-              <div className="sticky left-0 bg-slate-50/70 z-10 px-1 py-1.5 flex items-center justify-end gap-0.5 border-r border-slate-200/40">
-                <span className="text-[8px] font-medium text-slate-500 uppercase tracking-wide">
+            <div style={gridStyle} className="border-b border-gray-200/50">
+              <div className="sticky left-0 bg-gray-50/50 z-10 px-1.5 py-2 flex items-center justify-end gap-0.5 border-r border-gray-200/50">
+                <span className="text-[9px] font-medium text-gray-500 uppercase tracking-wide">
                   Net
                 </span>
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex items-center justify-center">
-                        <Info className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                        <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                      <p className="text-[10px] font-medium text-slate-700 mb-1">= Income − Expenses − Loans</p>
-                      <ul className="text-[9px] text-slate-500 space-y-0.5">
-                        <li>• <span className="text-green-600">Positive</span>: Cash in your pocket</li>
-                        <li>• <span className="text-rose-600">Negative</span>: Out-of-pocket cost</li>
+                      <p className="text-[10px] font-medium text-gray-700 mb-1">= Income − Expenses − Loans</p>
+                      <ul className="text-[9px] text-gray-500 space-y-0.5">
+                        <li>• <span className="font-medium">Positive</span>: Cash in your pocket</li>
+                        <li>• <span className="font-medium">Negative</span>: Out-of-pocket cost</li>
                         <li>• Year 1 matches property inputs</li>
                       </ul>
                     </TooltipContent>
@@ -612,11 +602,11 @@ export const CashflowRoadmap: React.FC<CashflowRoadmapProps> = ({ scenarioData }
                 const isPositive = cashflow >= 0;
                 const hasValue = data.rentalIncome > 0 || data.loanRepayments > 0;
                 return (
-                  <div 
+                  <div
                     key={`cashflow-${data.year}`}
-                    className={`px-0.5 py-1.5 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-slate-300/40' : ''}`}
+                    className={`px-0.5 py-2 flex items-center justify-center ${index < chartData.length - 1 ? 'border-r border-gray-200/40' : ''}`}
                   >
-                    <span className={`text-[9px] font-medium ${hasValue ? (isPositive ? 'text-green-600' : 'text-rose-600') : 'text-slate-600'}`}>
+                    <span className={`text-[10px] font-medium ${hasValue ? 'text-gray-700' : 'text-gray-400'}`}>
                       {hasValue ? formatCompactCurrency(cashflow) : '–'}
                     </span>
                   </div>

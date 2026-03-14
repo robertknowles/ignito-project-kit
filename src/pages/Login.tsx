@@ -55,7 +55,7 @@ export function Login() {
         }
       }
       
-      navigate('/clients')
+      navigate('/home')
     }
   }
 

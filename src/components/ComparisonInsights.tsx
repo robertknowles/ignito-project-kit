@@ -47,7 +47,7 @@ const DifferenceIndicator: React.FC<DifferenceIndicatorProps> = ({
   const isGood = positiveIsGood ? isPositive : !isPositive;
   
   return (
-    <span className={`flex items-center gap-1 text-xs font-medium ${isGood ? 'text-green-600' : 'text-red-600'}`}>
+    <span className={`flex items-center gap-1 text-xs font-medium ${isGood ? 'text-blue-600' : 'text-gray-500'}`}>
       {showArrow && (
         isPositive 
           ? <TrendingUp className="w-3 h-3" /> 

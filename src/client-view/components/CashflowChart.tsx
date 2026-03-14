@@ -13,17 +13,17 @@ import {
   Cell,
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { CHART_COLORS, CHART_STYLE } from '../../constants/chartColors';
 
-// Softer color palette
 const COLORS = {
-  positive: '#a7dfc4', // Softer green
-  negative: '#f5c4c4', // Softer red
-  goal: '#FFD700', // Gold for cashflow goal achieved
-  goalStroke: '#DAA520', // Darker gold stroke
-  breakEven: '#b8c5d3',
-  propertyMarker: '#7eb8e0', // Soft blue
-  text: '#64748b',
-  grid: 'rgba(148, 163, 184, 0.2)',
+  positive: CHART_COLORS.barPositive,
+  negative: CHART_COLORS.barNegative,
+  goal: CHART_COLORS.goalMarker,
+  goalStroke: CHART_COLORS.goal,
+  breakEven: CHART_COLORS.referenceLine,
+  propertyMarker: CHART_COLORS.primary,
+  text: CHART_COLORS.labelText,
+  grid: CHART_COLORS.grid,
 };
 
 // Format currency for display (always abbreviated with 1 decimal)
@@ -46,15 +46,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const data = payload[0]?.payload;
     const cashflow = data?.cashflow || 0;
     return (
-      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
-        <p className="text-xs font-semibold text-slate-800 mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
+        <p className="text-xs font-semibold text-gray-900 mb-2">
           Year: {label}
         </p>
-        <p className={`text-xs ${cashflow >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+        <p className={`text-xs ${cashflow >= 0 ? 'text-gray-700' : 'text-gray-500'}`}>
           Net Cashflow: {cashflow >= 0 ? '+' : ''}{formatCurrency(cashflow)}
         </p>
         {data?.propertyTitle && (
-          <p className="text-xs text-sky-600 mt-1 pt-1 border-t border-slate-100">
+          <p className="text-xs text-sky-600 mt-1 pt-1 border-t border-gray-100">
             🏡 {data.propertyTitle}
           </p>
         )}
@@ -76,7 +76,6 @@ const BreakEvenLabel = (props: any) => {
       fontSize={9}
       fontWeight={500}
       textAnchor="start"
-      fontFamily="Inter, system-ui, sans-serif"
     >
       Break-even
     </text>
@@ -230,11 +229,11 @@ export function CashflowChart({
   }, [normalizedData, incomeGoal]);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       {/* Title inside the box */}
-      <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-slate-500" />
-        <h3 className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <TrendingUp className="w-4 h-4 text-gray-500" />
+        <h3 className="text-sm font-semibold text-gray-800">
           Cashflow Analysis
         </h3>
       </div>
@@ -244,33 +243,18 @@ export function CashflowChart({
           data={normalizedData}
           margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
         >
-          <CartesianGrid 
-            strokeDasharray="0" 
-            stroke={COLORS.grid}
-            vertical={false}
-            horizontal={true}
-          />
+          <CartesianGrid {...CHART_STYLE.grid} />
           
-          <XAxis 
-            dataKey="year" 
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={{ stroke: '#e2e8f0' }}
-            tickLine={false}
+          <XAxis
+            dataKey="year"
+            {...CHART_STYLE.xAxis}
+            tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 10 }}
           />
-          
-          <YAxis 
+
+          <YAxis
             tickFormatter={formatCurrency}
-            tick={{ 
-              fontSize: 10, 
-              fill: COLORS.text,
-              fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-            axisLine={false}
-            tickLine={false}
+            {...CHART_STYLE.yAxis}
+            tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 10 }}
             width={50}
             domain={yAxisDomain}
             ticks={yAxisTicks}
@@ -325,29 +309,29 @@ export function CashflowChart({
         <div className="flex gap-4 text-[11px]">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: COLORS.positive }}></div>
-            <span className="text-slate-500">Positive</span>
+            <span className="text-gray-500">Positive</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: COLORS.negative }}></div>
-            <span className="text-slate-500">Negative</span>
+            <span className="text-gray-500">Negative</span>
           </div>
           {incomeGoalReachedData && (
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.goal, border: `1px solid ${COLORS.goalStroke}` }}></div>
-              <span className="text-slate-500">Goal Achieved</span>
+              <span className="text-gray-500">Goal Achieved</span>
             </div>
           )}
         </div>
         <div className="flex gap-4 text-xs">
           {breakEvenYear && (
             <div>
-              <span className="text-slate-400">Break-even: </span>
-              <span className="font-semibold text-slate-700">{breakEvenYear}</span>
+              <span className="text-gray-400">Break-even: </span>
+              <span className="font-semibold text-gray-700">{breakEvenYear}</span>
             </div>
           )}
           <div>
-            <span className="text-slate-400">Final: </span>
-            <span className={`font-semibold ${isPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
+            <span className="text-gray-400">Final: </span>
+            <span className={`font-semibold ${isPositive ? 'text-gray-700' : 'text-gray-500'}`}>
               {isPositive ? '+' : ''}{formatCurrency(finalCashflow)}/yr
             </span>
           </div>

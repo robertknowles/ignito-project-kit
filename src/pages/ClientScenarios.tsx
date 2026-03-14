@@ -65,6 +65,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { UnderlineTabBar } from '@/components/UnderlineTabBar'
+import { StatCard } from '@/components/StatCard'
+import { StatusBadge as StatusBadgePill } from '@/components/StatusBadge'
 
 // Track client status for CRM display
 interface ClientStatus {
@@ -382,14 +385,15 @@ export const ClientScenarios = () => {
     finalised: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Finalised' },
   };
 
-  const StatusBadge = ({ config, value }: { config: Record<string, { bg: string; text: string; dot: string; label: string }>; value: string }) => {
-    const c = config[value] || config[Object.keys(config)[0]];
-    return (
-      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-        {c.label}
-      </span>
-    );
+  // Map status values to StatusBadge variants
+  const stageVariantMap: Record<string, 'blue' | 'green' | 'gray'> = {
+    onboarding: 'blue', review: 'green',
+  };
+  const portalVariantMap: Record<string, 'blue' | 'green' | 'gray' | 'amber'> = {
+    not_invited: 'gray', invited: 'amber', active: 'green',
+  };
+  const roadmapVariantMap: Record<string, 'blue' | 'green' | 'gray' | 'amber'> = {
+    not_started: 'gray', draft: 'blue', in_review: 'amber', finalised: 'green',
   };
 
   // Filter tabs with counts
@@ -877,11 +881,11 @@ toast.error('Failed to create client invite');
               onDismiss={handleBannerDismiss}
             />
           )}
-          <div className="bg-white flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8 bg-white">
+          <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto p-8">
               {/* Client CRM Header */}
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-[#111827]">
+                <h2 className="page-title">
                   Clients
                 </h2>
                 <div className="flex items-center gap-3 relative z-10">
@@ -891,7 +895,7 @@ toast.error('Failed to create client invite');
                       placeholder="Search clients..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-4 py-2 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#3b82f6] focus:border-[#3b82f6] w-64"
+                      className="pl-9 pr-4 py-2 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] w-64"
                     />
                     <SearchIcon
                       size={16}
@@ -921,7 +925,7 @@ toast.error('Failed to create client invite');
                   >
                     <button
                       onClick={() => setCreateFormOpen(true)}
-                      className="flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2563eb] transition-colors"
+                      className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
                     >
                       <PlusIcon size={16} />
                       <span>New Client</span>
@@ -931,144 +935,40 @@ toast.error('Failed to create client invite');
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 mb-4">
-                {filterTabs.map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveFilter(tab.key)}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                      activeFilter === tab.key
-                        ? 'bg-[#3b82f6] text-white'
-                        : 'text-[#6b7280] hover:bg-gray-100'
-                    }`}
-                  >
-                    {tab.label}
-                    <span className={`ml-1.5 text-xs ${
-                      activeFilter === tab.key ? 'text-white/70' : 'text-[#9ca3af]'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="mb-4">
+                <UnderlineTabBar
+                  tabs={filterTabs}
+                  activeKey={activeFilter}
+                  onChange={(key) => setActiveFilter(key as typeof activeFilter)}
+                />
               </div>
-              <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden">
-                {/* Stats Row - Seat Usage + Stats Cards */}
-                <div className="grid grid-cols-3 border-b border-gray-200">
-                  {/* Seat Usage Card */}
-                  <div className="bg-white p-5 border-r border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-sm font-medium text-[#111827]">Seat Usage</h3>
-                        <p className="text-xs text-[#6b7280]">Client seats used</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-semibold text-[#111827]">
-                          {activeSeats} <span className="text-base font-normal text-[#6b7280]">of {seatLimit}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          isAtLimit
-                            ? 'bg-red-500'
-                            : isNearLimit
-                            ? 'bg-amber-500'
-                            : 'bg-[#3b82f6]'
-                        }`}
-                        style={{ width: `${Math.min(seatUsagePercent, 100)}%` }}
-                      />
-                    </div>
-                    {isAtLimit && (
-                      <div className="flex items-center gap-2 text-red-600 text-xs mt-2">
-                        <AlertTriangleIcon size={14} />
-                        <span>Seat limit reached</span>
-                      </div>
-                    )}
-                    {isNearLimit && !isAtLimit && (
-                      <div className="flex items-center gap-2 text-amber-600 text-xs mt-2">
-                        <AlertTriangleIcon size={14} />
-                        <span>Approaching limit</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Scenarios Created */}
-                  <div className="bg-white p-5 border-r border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-sm font-medium text-[#111827]">Scenario Coverage</h3>
-                        <p className="text-xs text-[#6b7280]">Clients with active plans</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-semibold text-[#111827]">
-                          {stats.activeScenarios} <span className="text-base font-normal text-[#6b7280]">of {stats.totalClients}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all bg-[#3b82f6]"
-                        style={{ width: `${stats.totalClients > 0 ? Math.min((stats.activeScenarios / stats.totalClients) * 100, 100) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Purchasing Soon */}
-                  <div className="bg-white p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-sm font-medium text-[#111827]">Purchasing Soon</h3>
-                        <p className="text-xs text-[#6b7280]">Clients buying by 2027</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-semibold text-[#111827]">
-                          {stats.purchasingSoon} <span className="text-base font-normal text-[#6b7280]">of {stats.totalClients}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all bg-[#10b981]"
-                        style={{ width: `${stats.totalClients > 0 ? Math.min((stats.purchasingSoon / stats.totalClients) * 100, 100) : 0}%` }}
-                      />
-                    </div>
-                  </div>
+              <div className="mb-8">
+                {/* Stats Row */}
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <StatCard label="Seat Usage" value={activeSeats} subtitle={`/ ${seatLimit}`} />
+                  <StatCard label="Scenario Coverage" value={stats.activeScenarios} subtitle={`/ ${stats.totalClients}`} />
+                  <StatCard label="Purchasing Soon" value={stats.purchasingSoon} subtitle={`/ ${stats.totalClients}`} />
                 </div>
 
                 {/* Client Portfolio Table */}
-                <div className="bg-white">
+                <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#f3f4f6] text-left">
-                        <th className="px-6 py-3 text-xs font-medium text-[#6b7280]">
-                          Client
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          Stage
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          Portal
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          Roadmap
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          Last Active
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-                          Review Date
-                        </th>
-                        <th className="px-4 py-3 text-xs font-medium text-[#6b7280]">
-
-                        </th>
+                      <tr className="border-b border-gray-200/70 text-left">
+                        <th className="table-header">Client</th>
+                        <th className="table-header">Stage</th>
+                        <th className="table-header">Portal</th>
+                        <th className="table-header">Roadmap</th>
+                        <th className="table-header">Last Active</th>
+                        <th className="table-header">Review Date</th>
+                        <th className="table-header"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredClients.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="px-6 py-12 text-center">
-                            <div className="text-sm text-[#6b7280]">
+                            <div className="body-secondary">
                               {searchQuery ? 'No clients match your search' : 'No clients in this category'}
                             </div>
                           </td>
@@ -1090,22 +990,22 @@ toast.error('Failed to create client invite');
                         const reviewInfo = formatReviewDate(client.next_review_date);
 
                         return (
-                          <tr key={client.id} className="border-b border-[#f3f4f6] hover:bg-gray-50/50 transition-colors">
+                          <tr key={client.id} className="border-b border-gray-100/70 hover:bg-gray-50/40 transition-colors">
                             {/* Client name + email */}
-                            <td className="px-6 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center">
                                 <button
                                   onClick={() => handleOpenProfile(client)}
-                                  className="w-8 h-8 rounded-full bg-[#3b82f6] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors flex-shrink-0"
+                                  className="w-8 h-8 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors flex-shrink-0"
                                 >
                                   {initials}
                                 </button>
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-[#111827] truncate">
+                                  <div className="body-dark font-medium truncate">
                                     {client.name}
                                   </div>
                                   {client.email && (
-                                    <div className="text-xs text-[#6b7280] truncate">
+                                    <div className="meta truncate">
                                       {client.email}
                                     </div>
                                   )}
@@ -1114,34 +1014,43 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Stage */}
-                            <td className="px-4 py-4">
-                              <StatusBadge config={stageBadgeConfig} value={client.stage || 'onboarding'} />
+                            <td className="table-cell">
+                              <StatusBadgePill
+                                label={stageBadgeConfig[client.stage || 'onboarding']?.label || 'Onboarding'}
+                                variant={stageVariantMap[client.stage || 'onboarding'] || 'blue'}
+                              />
                             </td>
 
                             {/* Portal Status */}
-                            <td className="px-4 py-4">
-                              <StatusBadge config={portalBadgeConfig} value={client.portal_status || 'not_invited'} />
+                            <td className="table-cell">
+                              <StatusBadgePill
+                                label={portalBadgeConfig[client.portal_status || 'not_invited']?.label || 'Not invited'}
+                                variant={portalVariantMap[client.portal_status || 'not_invited'] || 'gray'}
+                              />
                             </td>
 
                             {/* Roadmap Status */}
-                            <td className="px-4 py-4">
-                              <StatusBadge config={roadmapBadgeConfig} value={client.roadmap_status || 'not_started'} />
+                            <td className="table-cell">
+                              <StatusBadgePill
+                                label={roadmapBadgeConfig[client.roadmap_status || 'not_started']?.label || 'Not started'}
+                                variant={roadmapVariantMap[client.roadmap_status || 'not_started'] || 'gray'}
+                              />
                             </td>
 
                             {/* Last Active */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-1.5">
                                 {client.last_active_at && (
                                   <Activity size={12} className="text-[#9ca3af]" />
                                 )}
-                                <span className="text-sm text-[#374151]">
+                                <span className="body-dark">
                                   {formatRelativeTime(client.last_active_at)}
                                 </span>
                               </div>
                             </td>
 
                             {/* Review Date */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm ${reviewInfo.color}`}>
                                   {reviewInfo.text}
@@ -1159,7 +1068,7 @@ toast.error('Failed to create client invite');
                             </td>
 
                             {/* Actions */}
-                            <td className="px-4 py-4">
+                            <td className="table-cell">
                               <div className="flex items-center gap-1">
                                 {/* Profile Button */}
                                 {isFirstRow ? (
@@ -1174,7 +1083,7 @@ toast.error('Failed to create client invite');
                                       <TooltipTrigger asChild>
                                         <button
                                           onClick={() => handleOpenProfile(client)}
-                                          className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                          className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
                                         >
                                           <User size={16} />
                                         </button>
@@ -1189,7 +1098,7 @@ toast.error('Failed to create client invite');
                                     <TooltipTrigger asChild>
                                       <button
                                         onClick={() => handleOpenProfile(client)}
-                                        className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors"
+                                        className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
                                       >
                                         <User size={16} />
                                       </button>
@@ -1206,7 +1115,7 @@ toast.error('Failed to create client invite');
                                     <button
                                       onClick={() => handleGeneratePDF(client)}
                                       disabled={pdfGenerating}
-                                      className="p-1.5 text-[#6b7280] hover:text-[#3b82f6] hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Download size={16} />
                                     </button>
@@ -1289,7 +1198,7 @@ toast.error('Failed to create client invite');
               >
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-4">
-                    <h2 className="text-lg font-medium text-[#111827]">
+                    <h2 className="page-title">
                       Upcoming Purchases
                     </h2>
                   </div>

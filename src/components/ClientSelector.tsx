@@ -55,7 +55,7 @@ export const ClientSelector: React.FC = () => {
                     activeClient?.id === client.id ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
                   }`}
                 >
-                  <div className={`w-2 h-2 rounded-full mr-3 ${activeClient?.id === client.id ? 'bg-gray-900' : 'bg-green-400'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mr-3 ${activeClient?.id === client.id ? 'bg-gray-900' : 'bg-blue-400'}`}></div>
                   <div className="text-left">
                     <div className="font-medium">{client.name}</div>
                     {client.email && (

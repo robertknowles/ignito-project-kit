@@ -92,7 +92,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
         style={{ 
           width: '40px', 
           height: '40px',
-          backgroundColor: '#87B5FA'
+          backgroundColor: '#4A7BF7'
         }}
         onClick={handlePropertyClick}
         title={onInspectProperty && property?.status === 'feasible' ? 'Click to inspect property' : undefined}
@@ -144,7 +144,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
           <button
             onClick={() => setIsModalOpen(true)}
             className="text-[9px] hover:underline"
-            style={{ color: '#87B5FA' }}
+            style={{ color: '#4A7BF7' }}
           >
             Details →
           </button>

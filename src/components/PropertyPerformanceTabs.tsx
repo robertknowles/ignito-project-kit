@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 
 // Format currency for display
 const formatCurrency = (value: number): string => {
@@ -119,7 +120,7 @@ const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId })
           {activeTab === 'growth' && (
             <div
               className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-              style={{ backgroundColor: '#87B5FA' }}
+              style={{ backgroundColor: CHART_COLORS.primary }}
             />
           )}
         </button>
@@ -135,7 +136,7 @@ const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId })
           {activeTab === 'cashflow' && (
             <div
               className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-              style={{ backgroundColor: '#87B5FA' }}
+              style={{ backgroundColor: CHART_COLORS.primary }}
             />
           )}
         </button>
@@ -165,54 +166,52 @@ const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId })
             <h3 className="text-[10px] font-medium text-gray-900 mb-2">Equity Growth Over Time</h3>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="year" 
-                  stroke="#6b7280"
-                  style={{ fontSize: '9px' }}
-                  tick={{ fill: '#6b7280' }}
+                <CartesianGrid {...CHART_STYLE.grid} />
+                <XAxis
+                  dataKey="year"
+                  {...CHART_STYLE.xAxis}
+                  tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 9 }}
                 />
-                <YAxis 
-                  stroke="#6b7280"
-                  style={{ fontSize: '9px' }}
+                <YAxis
                   tickFormatter={formatYAxis}
-                  tick={{ fill: '#6b7280' }}
+                  {...CHART_STYLE.yAxis}
+                  tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 9 }}
                   width={45}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
+                    border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                     borderRadius: '6px',
                     fontSize: '10px',
                     boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
                   }}
                   formatter={(value: number) => formatCurrencyFull(value)}
                 />
-                <Legend 
+                <Legend
                   wrapperStyle={{ fontSize: '9px' }}
                   iconSize={6}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="propertyValue" 
-                  stroke="#87B5FA" 
+                <Line
+                  type="monotone"
+                  dataKey="propertyValue"
+                  stroke={CHART_COLORS.primary}
                   strokeWidth={1.5}
                   name="Property Value"
                   dot={false}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="equity" 
-                  stroke="#86efac" 
+                <Line
+                  type="monotone"
+                  dataKey="equity"
+                  stroke={CHART_COLORS.positive}
                   strokeWidth={1.5}
                   name="Equity"
                   dot={false}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="loanBalance" 
-                  stroke="#fca5a5" 
+                <Line
+                  type="monotone"
+                  dataKey="loanBalance"
+                  stroke={CHART_COLORS.negative}
                   strokeWidth={1.5}
                   name="Loan Balance"
                   dot={false}
@@ -264,24 +263,22 @@ const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId })
             {chartData.length > 0 && chartData[0].rentalIncome !== undefined ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="year" 
-                    stroke="#6b7280"
-                    style={{ fontSize: '9px' }}
-                    tick={{ fill: '#6b7280' }}
+                  <CartesianGrid {...CHART_STYLE.grid} />
+                  <XAxis
+                    dataKey="year"
+                    {...CHART_STYLE.xAxis}
+                    tick={{ ...CHART_STYLE.xAxis.tick, fontSize: 9 }}
                   />
-                  <YAxis 
-                    stroke="#6b7280"
-                    style={{ fontSize: '9px' }}
+                  <YAxis
                     tickFormatter={formatYAxis}
-                    tick={{ fill: '#6b7280' }}
+                    {...CHART_STYLE.yAxis}
+                    tick={{ ...CHART_STYLE.yAxis.tick, fontSize: 9 }}
                     width={45}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
+                      border: `1px solid ${CHART_COLORS.tooltipBorder}`,
                       borderRadius: '6px',
                       fontSize: '10px',
                       boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
@@ -291,26 +288,26 @@ const PropertyContent: React.FC<PropertyContentProps> = ({ propertyInstanceId })
                       name
                     ]}
                   />
-                  <Legend 
+                  <Legend
                     wrapperStyle={{ fontSize: '9px' }}
                     iconSize={6}
                   />
-                  <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1} />
-                  <Bar 
-                    dataKey="rentalIncome" 
-                    fill="#86efac" 
+                  <ReferenceLine y={0} stroke={CHART_COLORS.referenceLine} strokeWidth={1} />
+                  <Bar
+                    dataKey="rentalIncome"
+                    fill={CHART_COLORS.positive}
                     name="Rental Income"
                     radius={[2, 2, 0, 0]}
                   />
-                  <Bar 
-                    dataKey="expenses" 
-                    fill="#fca5a5" 
+                  <Bar
+                    dataKey="expenses"
+                    fill={CHART_COLORS.negative}
                     name="Expenses"
                     radius={[2, 2, 0, 0]}
                   />
-                  <Bar 
-                    dataKey="netCashflow" 
-                    fill="#87B5FA" 
+                  <Bar
+                    dataKey="netCashflow"
+                    fill={CHART_COLORS.primary}
                     name="Net Cashflow"
                     radius={[2, 2, 0, 0]}
                   />
@@ -382,7 +379,7 @@ export const PropertyPerformanceTabs: React.FC = () => {
               {isActive && (
                 <div
                   className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: '#87B5FA' }}
+                  style={{ backgroundColor: CHART_COLORS.primary }}
                 />
               )}
             </button>

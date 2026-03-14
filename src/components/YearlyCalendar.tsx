@@ -25,7 +25,7 @@ export const YearlyCalendar = () => {
     '2027 H2': [
       {
         id: 'JC',
-        color: 'bg-[#3b82f6] bg-opacity-60',
+        color: 'bg-[#2563EB] bg-opacity-60',
       },
     ],
     '2029 H1': [
