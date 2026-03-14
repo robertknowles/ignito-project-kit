@@ -7,8 +7,10 @@ import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { ScenarioCanvas } from './ScenarioCanvas';
 import { AddScenarioButton } from './AddScenarioButton';
 import { ComparisonInsights } from './ComparisonInsights';
-import { NetWorthChart } from './NetWorthChart';
+import { NetWorthChart, NW_COLORS } from './NetWorthChart';
 import { FinancialFreedomPanel } from './FinancialFreedomPanel';
+import { FinancialSummaryTable } from './FinancialSummaryTable';
+import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 
 export const Dashboard = () => {
@@ -85,9 +87,25 @@ export const Dashboard = () => {
         
         {/* Bottom Section: Net Worth (LHS) + Financial Freedom (RHS) */}
         <div className="grid grid-cols-2 gap-5">
-          <NetWorthChart />
-          <FinancialFreedomPanel />
+          <ChartCard
+            title="Net Worth Trajectory"
+            legend={[
+              { color: NW_COLORS.totalAssets, label: 'Total Assets' },
+              { color: NW_COLORS.netWorth, label: 'Net Worth' },
+              { color: NW_COLORS.totalDebt, label: 'Total Debt' },
+            ]}
+          >
+            <NetWorthChart />
+          </ChartCard>
+          <ChartCard title="Financial Freedom">
+            <FinancialFreedomPanel />
+          </ChartCard>
         </div>
+
+        {/* Financial Summary Table - Full width at bottom */}
+        <ChartCard title="Financial Summary" contentClassName="pl-12 pb-12 pt-5 pr-12">
+          <FinancialSummaryTable />
+        </ChartCard>
       </div>
       
       {/* Fixed Add Scenario Button - Only show if < 2 scenarios */}

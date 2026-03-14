@@ -5,10 +5,11 @@ import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { Button } from '@/components/ui/button';
+import { ChartCard } from '@/components/ui/ChartCard';
+import { CHART_COLORS } from '@/constants/chartColors';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
 import { CashflowChart } from './CashflowChart';
-import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ResetButton } from './ResetButton';
 
 interface ScenarioCanvasProps {
@@ -18,28 +19,34 @@ interface ScenarioCanvasProps {
 export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) => {
   const { scenarios, activeScenarioId, setActiveScenario, removeScenario, isMultiScenarioMode } = useMultiScenario();
   const { saveScenario } = useScenarioSave();
-  
+
   // Get live calculated timeline for the active scenario
   // This ensures the active scenario always shows fresh data, not stale stored data
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { profile: liveProfile } = useInvestmentProfile();
-  
+
   const scenario = scenarios.find(s => s.id === scenarioId);
   const isActive = scenarioId === activeScenarioId;
-  
+
   if (!scenario) return null;
-  
+
+  // Build scenarioData prop — live for active, stored for inactive
+  const scenarioData = isMultiScenarioMode ? {
+    timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
+    profile: isActive ? liveProfile : scenario.investmentProfile,
+  } : undefined;
+
   const handleCanvasClick = (e: React.MouseEvent) => {
     // Don't activate if clicking on remove button or other interactive elements
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
-    
+
     if (!isActive) {
       setActiveScenario(scenarioId);
     }
   };
-  
+
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     removeScenario(scenarioId);
@@ -50,13 +57,13 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
       saveScenario();
     }, 300);
   };
-  
+
   return (
     <div
       className={`scenario-canvas relative transition-all duration-200 ${
         isMultiScenarioMode
-          ? (isActive 
-              ? '' 
+          ? (isActive
+              ? ''
               : 'cursor-pointer')
           : ''
       }`}
@@ -73,7 +80,7 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
               </span>
             )}
           </div>
-          
+
           {/* Remove button - only show if more than 1 scenario */}
           {scenarios.length > 1 && (
             <Button
@@ -88,57 +95,36 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
           )}
         </div>
       )}
-      
-      {/* Spaced sections: KPI cards → Timeline chart → Financial table */}
+
+      {/* Spaced sections: KPI cards → Timeline chart → Cashflow → Financial table */}
       <div className="space-y-4">
         {/* KPI Summary Cards */}
-        <SummaryBar
-          scenarioData={isMultiScenarioMode ? {
-            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-            profile: isActive ? liveProfile : scenario.investmentProfile,
-          } : undefined}
-        />
+        <SummaryBar scenarioData={scenarioData} />
 
-        {/* Investment Timeline — header + chart */}
-        {/* CRITICAL: For the ACTIVE scenario, use live calculated data to ensure fresh values.
-            For inactive scenarios, use stored data from the scenario object. */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 pt-6 pb-1 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Investment Timeline</h3>
-            <ResetButton iconOnly />
-          </div>
-          <div className="pl-12 pr-4 pt-2 pb-6">
-          <TimelineColumn
-            scenarioData={isMultiScenarioMode ? {
-              timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-              profile: isActive ? liveProfile : scenario.investmentProfile,
-            } : undefined}
-          />
-          </div>
-        </div>
+        {/* Investment Timeline */}
+        <ChartCard
+          title="Investment Timeline"
+          action={<ResetButton iconOnly />}
+          legend={[
+            { color: CHART_COLORS.primary, label: 'Portfolio Value' },
+            { color: CHART_COLORS.tertiary, label: 'Total Equity' },
+            { color: CHART_COLORS.annotationText, label: 'Do Nothing' },
+          ]}
+        >
+          <TimelineColumn scenarioData={scenarioData} />
+        </ChartCard>
 
         {/* Cashflow Projection */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 pt-6 pb-1 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Cashflow Projection</h3>
-          </div>
-          <div className="pl-12 pr-4 pt-2 pb-6">
-            <CashflowChart
-              scenarioData={isMultiScenarioMode ? {
-                timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-                profile: isActive ? liveProfile : scenario.investmentProfile,
-              } : undefined}
-            />
-          </div>
-        </div>
+        <ChartCard
+          title="Cashflow Projection"
+          legend={[
+            { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
+            { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
+          ]}
+        >
+          <CashflowChart scenarioData={scenarioData} />
+        </ChartCard>
 
-        {/* Financial Summary Table */}
-        <FinancialSummaryTable
-          scenarioData={isMultiScenarioMode ? {
-            timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
-            profile: isActive ? liveProfile : scenario.investmentProfile,
-          } : undefined}
-        />
       </div>
     </div>
   );

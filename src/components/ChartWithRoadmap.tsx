@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import {
   ComposedChart,
-  Area,
   Line,
   XAxis,
   YAxis,
@@ -23,7 +22,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
 import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
-import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS } from '../constants/chartColors';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -952,26 +951,14 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
-              {/* Gradient Definitions */}
-              <defs>
-                <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
-                  <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
-                </linearGradient>
-                <linearGradient id="greyGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CHART_COLORS.axisText} stopOpacity={0.06} />
-                  <stop offset="100%" stopColor={CHART_COLORS.axisText} stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
-
-              {/* Phase backgrounds — subtle tinting only */}
+              {/* Phase labels — no background fill */}
               {phases.map((phase, i) => (
                 <ReferenceArea
                   key={`phase-${i}`}
                   x1={phase.startYear}
                   x2={phase.endYear}
-                  fill={phase.fill}
-                  fillOpacity={0.4}
+                  fill="transparent"
+                  fillOpacity={0}
                   stroke="none"
                   ifOverflow="extendDomain"
                   label={{ value: phase.label, position: 'insideTopLeft', fontSize: 9, fill: '#D1D5DB', fontWeight: 400 }}
@@ -1004,14 +991,13 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Area - Blue */}
-              <Area
+              {/* Portfolio Value Line - Blue */}
+              <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
                 stroke={CHART_COLORS.primary}
                 strokeWidth={2}
-                fill="url(#blueGradient)"
                 dot={false}
                 activeDot={{
                   r: 6,
@@ -1021,14 +1007,13 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 }}
               />
 
-              {/* Total Equity Area - Subtle grey */}
-              <Area
+              {/* Total Equity Line */}
+              <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
                 stroke={CHART_COLORS.tertiary}
                 strokeWidth={1.5}
-                fill="url(#greyGradient)"
                 dot={false}
               />
 
@@ -1078,22 +1063,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
           </div>
         </div>
 
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-6 mt-3 ml-[80px]">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.primary }} />
-          <span className="text-xs text-gray-500">Portfolio Value</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.tertiary }} />
-          <span className="text-xs text-gray-500">Total Equity</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.annotationText }} />
-          <span className="text-xs text-gray-500">Do Nothing</span>
         </div>
       </div>
 

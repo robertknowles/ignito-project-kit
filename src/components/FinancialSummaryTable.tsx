@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useRoadmapData, YearData } from '../hooks/useRoadmapData';
+import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
@@ -51,6 +52,21 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
 
   const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
+  const { cashflowData } = useChartDataGenerator(scenarioData);
+
+  // Build a map of cashflow data by year for O(1) lookup in table rows
+  const cashflowByYear = useMemo(() => {
+    const map = new Map<number, { rentalIncome: number; expenses: number; loanRepayments: number; cashflow: number }>();
+    cashflowData.forEach(d => {
+      map.set(parseInt(d.year), {
+        rentalIncome: d.rentalIncome,
+        expenses: d.expenses,
+        loanRepayments: d.loanRepayments,
+        cashflow: d.cashflow,
+      });
+    });
+    return map;
+  }, [cashflowData]);
 
   const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
   const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
@@ -85,13 +101,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="bg-white rounded-lg border border-gray-200/80 overflow-hidden">
-      {/* Title section — matches Investment Timeline card header */}
-      <div className="px-6 pt-6 pb-1">
-        <h3 className="text-sm font-semibold text-gray-900">Financial Summary</h3>
-      </div>
-
-      <div className="pl-12 pb-12 pt-2" style={{ paddingRight: '48px', minWidth: 'fit-content' }}>
+    <div ref={containerRef} className="overflow-hidden">
+      <div className="pb-6" style={{ minWidth: 'fit-content' }}>
       {/* YEAR Header Row */}
       <div
         style={gridStyle}
@@ -279,11 +290,11 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
         ))}
       </div>
 
-      {/* MONTHLY Row */}
+      {/* INCOME Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
           <span className="text-[11px] font-medium text-gray-400 tracking-wide">
-            Monthly
+            Income
           </span>
           <TooltipProvider>
             <UITooltip>
@@ -293,31 +304,149 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
-                <p className="text-[10px] font-medium text-gray-700 mb-1">Net monthly holding cost</p>
+                <p className="text-[10px] font-medium text-gray-700 mb-1">= (Rent/week × 52) − Vacancy</p>
                 <ul className="text-[9px] text-gray-500 space-y-0.5">
-                  <li>• = (Cashflow) ÷ 12</li>
-                  <li>• <span className="font-medium">Positive</span> = surplus income</li>
-                  <li>• <span className="font-medium">Negative</span> = out-of-pocket cost</li>
+                  <li>• Rent/week: From property settings</li>
+                  <li>• Vacancy: Rent × vacancy rate %</li>
+                  <li>• Growth: Increases with property value</li>
                 </ul>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
         </div>
         {years.map((yearData) => {
-          const monthlyCost = Math.round(yearData.annualCashflow / 12);
-          const hasValue = yearData.portfolioValueRaw > 0 || yearData.annualCashflow !== 0;
+          const cf = cashflowByYear.get(yearData.year);
           return (
             <div
-              key={`monthly-${yearData.year}`}
-              className="px-1 py-3.5 flex items-center justify-center"
+              key={`income-${yearData.year}`}
+              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
             >
               <span className="text-[12px] font-medium text-gray-700">
-                {hasValue ? formatCompactCurrency(monthlyCost) : '–'}
+                {cf && cf.rentalIncome > 0 ? formatCompactCurrency(cf.rentalIncome) : '–'}
               </span>
             </div>
           );
         })}
       </div>
+
+      {/* EXPENSES Row */}
+      <div style={gridStyle}>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+            Expenses
+          </span>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="inline-flex items-center justify-center">
+                  <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[220px] z-50 p-2">
+                <p className="text-[10px] font-medium text-gray-700 mb-1">= Mgmt + Insurance + Council + Strata + Maintenance + Land Tax − Deductions</p>
+                <ul className="text-[9px] text-gray-500 space-y-0.5">
+                  <li>• Management: % of rent (grows with rent)</li>
+                  <li>• Other costs: +3% inflation per year</li>
+                  <li>• Deductions: From Annual Expenses settings</li>
+                </ul>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+        {years.map((yearData) => {
+          const cf = cashflowByYear.get(yearData.year);
+          return (
+            <div
+              key={`expenses-${yearData.year}`}
+              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+            >
+              <span className="text-[12px] font-medium text-gray-700">
+                {cf && cf.expenses > 0 ? formatCompactCurrency(cf.expenses) : '–'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* LOANS Row */}
+      <div style={gridStyle}>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+            Loans
+          </span>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="inline-flex items-center justify-center">
+                  <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                <p className="text-[10px] font-medium text-gray-700 mb-1">= (Loan − Offset) × Interest Rate</p>
+                <ul className="text-[9px] text-gray-500 space-y-0.5">
+                  <li>• Loan: Purchase price × LVR %</li>
+                  <li>• Offset: Reduces interest (if set)</li>
+                  <li>• Rate: From property loan settings</li>
+                </ul>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+        {years.map((yearData) => {
+          const cf = cashflowByYear.get(yearData.year);
+          return (
+            <div
+              key={`loans-${yearData.year}`}
+              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+            >
+              <span className="text-[12px] font-medium text-gray-700">
+                {cf && cf.loanRepayments > 0 ? formatCompactCurrency(cf.loanRepayments) : '–'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* NET CASHFLOW Row */}
+      <div style={gridStyle}>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+            Net
+          </span>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="inline-flex items-center justify-center">
+                  <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[200px] z-50 p-2">
+                <p className="text-[10px] font-medium text-gray-700 mb-1">= Income − Expenses − Loans</p>
+                <ul className="text-[9px] text-gray-500 space-y-0.5">
+                  <li>• Positive: Cash in your pocket</li>
+                  <li>• Negative: Out-of-pocket cost</li>
+                </ul>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
+        {years.map((yearData) => {
+          const cf = cashflowByYear.get(yearData.year);
+          const cashflow = cf?.cashflow ?? 0;
+          const hasValue = cf && (cf.rentalIncome > 0 || cf.loanRepayments > 0);
+          return (
+            <div
+              key={`net-${yearData.year}`}
+              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+            >
+              <span className="text-[12px] font-medium text-gray-700">
+                {hasValue ? formatCompactCurrency(cashflow) : '–'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
       </div>
     </div>
   );

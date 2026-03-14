@@ -116,69 +116,55 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
   }
 
   return (
-    <div className="h-[260px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{
-            top: 30,
-            right: 120,
-            left: 0,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid {...CHART_STYLE.grid} />
-          <XAxis
-            dataKey="year"
-            {...CHART_STYLE.xAxis}
-          />
-          <YAxis
-            tickFormatter={formatYAxis}
-            {...CHART_STYLE.yAxis}
-            width={80}
-            domain={yAxisDomain}
-            ticks={yAxisTicks}
-          />
-          <Tooltip content={<CustomTooltip />} />
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart
+        data={data}
+        margin={{
+          top: 20,
+          right: 24,
+          left: 0,
+          bottom: 5,
+        }}
+      >
+        <CartesianGrid {...CHART_STYLE.grid} />
+        <XAxis
+          dataKey="year"
+          {...CHART_STYLE.xAxis}
+        />
+        <YAxis
+          tickFormatter={formatYAxis}
+          {...CHART_STYLE.yAxis}
+          width={80}
+          domain={yAxisDomain}
+          ticks={yAxisTicks}
+        />
+        <Tooltip content={<CustomTooltip />} />
 
-          <Bar dataKey="cashflow" fill={CHART_COLORS.barPositive} radius={[2, 2, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
-                fillOpacity={entry.highlight ? 0.7 : 1}
-              />
-            ))}
-          </Bar>
+        <Bar dataKey="cashflow" fill={CHART_COLORS.barPositive} radius={[2, 2, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
+              fillOpacity={entry.highlight ? 0.7 : 1}
+            />
+          ))}
+        </Bar>
 
-          {/* Income Goal Achievement Marker - Gold dot when cashflow goal is reached */}
-          {incomeGoalReached && (
-            <ReferenceDot
-              x={incomeGoalReached.year}
-              y={incomeGoalReached.cashflow}
-              r={8}
-              fill={CHART_COLORS.goalMarker}
-              stroke={CHART_COLORS.goal}
-              strokeWidth={2}
-            >
-              <Label content={<GoalAchievedLabel />} position="top" />
-            </ReferenceDot>
-          )}
+        {/* Income Goal Achievement Marker - Gold dot when cashflow goal is reached */}
+        {incomeGoalReached && (
+          <ReferenceDot
+            x={incomeGoalReached.year}
+            y={incomeGoalReached.cashflow}
+            r={8}
+            fill={CHART_COLORS.goalMarker}
+            stroke={CHART_COLORS.goal}
+            strokeWidth={2}
+          >
+            <Label content={<GoalAchievedLabel />} position="top" />
+          </ReferenceDot>
+        )}
 
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* Legend */}
-      <div className="flex items-center gap-6 mt-3">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.barPositive }} />
-          <span className="text-xs text-gray-500">Positive Cashflow</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.barNegative }} />
-          <span className="text-xs text-gray-500">Negative Cashflow</span>
-        </div>
-      </div>
-    </div>
+      </BarChart>
+    </ResponsiveContainer>
   )
 }
