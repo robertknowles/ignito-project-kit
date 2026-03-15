@@ -43,10 +43,10 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      {/* Main card */}
+    <div className="overflow-hidden">
+      {/* Main card — no inner border */}
       <button
-        className="w-full text-left px-4 py-2.5 cursor-pointer"
+        className="w-full text-left px-1 py-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {/* Top row: color chip + name + sparkline + net cost */}
@@ -55,14 +55,14 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-center">
               <div>
-                <div className="text-[13px] font-semibold text-gray-900">{title}</div>
-                <div className="text-[11px] text-gray-400">Bought {buyYear}</div>
+                <div className="text-[12px] font-semibold text-gray-900">{title}</div>
+                <div className="text-[10px] text-gray-400">Bought {buyYear}</div>
               </div>
               <div className="text-right">
-                <span className="text-base font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900">
                   {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
                 </span>
-                <span className="text-[11px] font-normal text-gray-400">/mo</span>
+                <span className="text-[10px] font-normal text-gray-400">/mo</span>
               </div>
             </div>
             {/* Sparkline */}
@@ -109,8 +109,8 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
 
       {/* Expanded breakdown */}
       {isExpanded && (
-        <div className="px-4 pb-3 pt-0 border-t border-gray-100">
-          <div className="pt-2.5 pl-4">
+        <div className="px-1 pb-3 pt-0">
+          <div className="pt-2.5 pl-5">
             {breakdownItems.map((item, idx) => {
               const pct = totalCosts > 0 ? (item.value / totalCosts) * 100 : 0;
               const itemColor = CHART_COLORS.series[idx % CHART_COLORS.series.length];
@@ -135,21 +135,21 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
             })}
 
             {/* Subtotals */}
-            <div className="flex justify-between border-t border-gray-100 mt-1.5 pt-1.5">
-              <span className="text-[11px] font-semibold text-gray-900">Total Costs</span>
+            <div className="flex justify-between mt-2 pt-1.5">
+              <span className="text-[11px] font-medium text-gray-500">Total Costs</span>
               <span className="text-[11px] font-medium text-gray-500">
                 {fmtMo(totalCosts)}/mo
               </span>
             </div>
             <div className="flex justify-between mt-0.5">
-              <span className="text-[11px] font-semibold text-gray-900">Rental Income</span>
+              <span className="text-[11px] font-medium text-gray-500">Rental Income</span>
               <span className="text-[11px] font-medium text-gray-500">
                 {fmtMo(snapshot.monthlyRent)}/mo
               </span>
             </div>
-            <div className="flex justify-between border-t border-gray-200 mt-1.5 pt-1.5">
-              <span className="text-xs font-semibold text-gray-900">Net Cost</span>
-              <span className="text-xs font-semibold text-gray-900">
+            <div className="flex justify-between mt-1.5 pt-1.5">
+              <span className="text-[11px] font-semibold text-gray-900">Net Cost</span>
+              <span className="text-[11px] font-semibold text-gray-900">
                 {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}/mo
               </span>
             </div>

@@ -17,13 +17,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({ title, action, legend, con
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Title */}
-      <div className="px-6 pt-5 flex items-center justify-between">
+      <div className="px-6 pt-6 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
         {action}
       </div>
 
       {/* Content */}
-      <div className={contentClassName ?? "pl-2 pr-2 pt-5 pb-4"}>
+      <div className={contentClassName ?? "pl-4 pr-4 pt-6 pb-6"}>
         {children}
       </div>
 

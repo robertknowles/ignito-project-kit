@@ -61,16 +61,16 @@ export const HoldingCostPanel: React.FC = () => {
   return (
     <div>
       {/* Header with portfolio total */}
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-4">
         <div className="text-[11px] text-gray-400">
           Per-property cost breakdown — drag the slider to see costs over time
         </div>
         <div className="text-right flex-shrink-0">
           <div>
-            <span className="stat-number text-gray-900">
+            <span className="text-xl font-semibold text-gray-900">
               {isPositive ? '+' : '-'}{fmtMo(totals.totalNet)}
             </span>
-            <span className="text-sm font-normal text-gray-400">/mo</span>
+            <span className="text-xs font-normal text-gray-400">/mo</span>
           </div>
           <div className="text-[11px] text-gray-400 mt-0.5">
             across {totals.activeCount} {totals.activeCount === 1 ? 'property' : 'properties'}
@@ -78,8 +78,8 @@ export const HoldingCostPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Year slider */}
-      <div className="flex items-center gap-3 mb-4 px-3.5 py-2.5 rounded-lg border border-gray-200">
+      {/* Year slider — no border, just content */}
+      <div className="flex items-center gap-3 mb-4">
         <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
           Snapshot Year
         </span>
@@ -92,7 +92,7 @@ export const HoldingCostPanel: React.FC = () => {
           className="flex-1 h-1 slider-blue"
           style={{ accentColor: CHART_COLORS.primary }}
         />
-        <span className="text-base font-bold text-gray-900 min-w-[40px] text-right">
+        <span className="text-sm font-semibold text-gray-900 min-w-[40px] text-right">
           {snapshotYear}
         </span>
       </div>
@@ -111,19 +111,19 @@ export const HoldingCostPanel: React.FC = () => {
         ))}
       </div>
 
-      {/* Portfolio total bar */}
-      <div className="flex justify-between items-center mt-3 px-4 py-2.5 border-t border-gray-200">
+      {/* Portfolio total */}
+      <div className="flex justify-between items-center mt-4 pt-3">
         <div>
-          <div className="text-sm font-semibold text-gray-900">Total Portfolio</div>
+          <div className="text-xs font-semibold text-gray-900">Total Portfolio</div>
           <div className="text-[11px] text-gray-400">
             Rent: {fmtMo(totals.totalRent)}/mo · Costs: {fmtMo(totals.totalCosts)}/mo · Coverage: {totals.coverage}%
           </div>
         </div>
         <div>
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-base font-semibold text-gray-900">
             {isPositive ? '+' : '-'}{fmtMo(totals.totalNet)}
           </span>
-          <span className="text-xs font-normal text-gray-400">/mo</span>
+          <span className="text-[10px] font-normal text-gray-400">/mo</span>
         </div>
       </div>
     </div>

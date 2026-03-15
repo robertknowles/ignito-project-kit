@@ -145,10 +145,10 @@
     color: #374151;
   }
 
-  /* 3. Stat Number — big KPI numbers in stat cards */
+  /* 3. Stat Number — KPI numbers in stat cards (restrained, Circle-style) */
   .stat-number {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 600;
     color: #111827;
     letter-spacing: -0.025em;
     line-height: 1;

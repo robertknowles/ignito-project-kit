@@ -123,15 +123,13 @@ export const FundingSourcesChart: React.FC = () => {
               <div className="flex-1 relative py-3 pr-4">
                 {/* Funding bar */}
                 <div
-                  className="relative flex h-8 rounded-md overflow-hidden"
+                  className="relative flex h-7 rounded overflow-hidden"
                   style={{
                     marginLeft: `${barLeftPct}%`,
                     width: `${barWidthPct}%`,
                   }}
                 >
                   {row.segments.map((seg, si) => {
-                    const isFirst = si === 0;
-                    const isLast = si === row.segments.length - 1;
                     return (
                       <div
                         key={seg.type}
@@ -139,11 +137,6 @@ export const FundingSourcesChart: React.FC = () => {
                         style={{
                           width: `${seg.pct * 100}%`,
                           backgroundColor: SEGMENT_COLORS[seg.type],
-                          opacity: 0.85,
-                          borderTopLeftRadius: isFirst ? 4 : 0,
-                          borderBottomLeftRadius: isFirst ? 4 : 0,
-                          borderTopRightRadius: isLast ? 4 : 0,
-                          borderBottomRightRadius: isLast ? 4 : 0,
                         }}
                         title={`${seg.type}: ${fmt(seg.value)} (${Math.round(seg.pct * 100)}%)`}
                       >

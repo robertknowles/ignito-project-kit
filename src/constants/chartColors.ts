@@ -13,28 +13,28 @@
 // =============================================================================
 
 export const CHART_COLORS = {
-  // ── Core line colors (softened with ~70% opacity feel) ──────────────
+  // ── Core line colors (softened to match bar opacity) ────────────────
   /** Primary line — portfolio value, main metric */
-  primary: 'rgba(59, 108, 244, 0.75)',
+  primary: 'rgba(59, 108, 244, 0.60)',
   /** Secondary line — equity, second series */
-  secondary: 'rgba(107, 156, 247, 0.75)',
+  secondary: 'rgba(107, 156, 247, 0.55)',
   /** Tertiary line — debt, background series (dashed) */
-  tertiary: 'rgba(163, 193, 250, 0.70)',
+  tertiary: 'rgba(163, 193, 250, 0.50)',
 
   // Semantic — same soft blue family
-  positive: 'rgba(59, 108, 244, 0.75)',
-  negative: 'rgba(163, 193, 250, 0.70)',
-  net: 'rgba(59, 108, 244, 0.75)',
+  positive: 'rgba(59, 108, 244, 0.60)',
+  negative: 'rgba(163, 193, 250, 0.50)',
+  net: 'rgba(59, 108, 244, 0.60)',
 
-  // ── Multi-line palette (blue / purple / aqua at ~70%) ──────────────
-  // Used by Net Worth + Equity Unlock for distinguishable multi-series
-  lineBlue: 'rgba(59, 130, 246, 0.75)',     // #3B82F6 at 75%
-  linePurple: 'rgba(139, 92, 246, 0.70)',    // #8B5CF6 at 70%
-  lineAqua: 'rgba(34, 211, 238, 0.65)',      // #22D3EE at 65%
+  // ── Multi-line palette (all-blue family, different weights) ────────
+  // Circle-style: same hue, differentiated by lightness/opacity
+  lineBlue: 'rgba(37, 99, 235, 0.65)',      // strong primary blue
+  linePurple: 'rgba(96, 165, 250, 0.55)',    // mid-blue
+  lineAqua: 'rgba(147, 197, 253, 0.50)',     // light blue
 
   // ── Goal & milestone markers ───────────────────────────────────────
-  goal: 'rgba(107, 156, 247, 0.60)',
-  goalMarker: 'rgba(59, 108, 244, 0.75)',
+  goal: 'rgba(107, 156, 247, 0.50)',
+  goalMarker: 'rgba(59, 108, 244, 0.60)',
   goalMarkerStroke: '#FFFFFF',
 
   // ── Area fills & gradients (very low opacity) ──────────────────────
@@ -56,25 +56,25 @@ export const CHART_COLORS = {
   annotationText: '#9CA3AF',
 
   // ── Comparison/overlay (two distinct blues, softened) ──────────────
-  scenarioA: 'rgba(59, 108, 244, 0.75)',
-  scenarioALight: 'rgba(107, 156, 247, 0.65)',
-  scenarioB: 'rgba(30, 79, 208, 0.75)',
-  scenarioBLight: 'rgba(80, 128, 232, 0.65)',
+  scenarioA: 'rgba(59, 108, 244, 0.60)',
+  scenarioALight: 'rgba(107, 156, 247, 0.50)',
+  scenarioB: 'rgba(30, 79, 208, 0.60)',
+  scenarioBLight: 'rgba(80, 128, 232, 0.50)',
 
-  // ── Multi-series categorical (softened blues for bars/fills) ───────
+  // ── Multi-series categorical (soft blues for bars/fills) ──────────
   series: [
-    'rgba(59, 108, 244, 0.65)',
-    'rgba(30, 79, 208, 0.65)',
-    'rgba(107, 156, 247, 0.60)',
-    'rgba(80, 128, 232, 0.60)',
-    'rgba(163, 193, 250, 0.55)',
-    'rgba(138, 176, 248, 0.55)',
+    'rgba(59, 108, 244, 0.50)',
+    'rgba(37, 99, 235, 0.45)',
+    'rgba(96, 165, 250, 0.50)',
+    'rgba(80, 128, 232, 0.45)',
+    'rgba(147, 197, 253, 0.50)',
+    'rgba(138, 176, 248, 0.45)',
   ] as const,
 
   // ── Bar chart fills (soft, matches cashflow benchmark) ─────────────
-  barPositive: 'rgba(59, 108, 244, 0.55)',
-  barNegative: 'rgba(163, 193, 250, 0.50)',
-  barPrimary: 'rgba(59, 108, 244, 0.55)',
+  barPositive: 'rgba(59, 108, 244, 0.50)',
+  barNegative: 'rgba(163, 193, 250, 0.45)',
+  barPrimary: 'rgba(59, 108, 244, 0.50)',
 } as const;
 
 // =============================================================================

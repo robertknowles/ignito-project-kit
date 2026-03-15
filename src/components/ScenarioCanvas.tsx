@@ -96,7 +96,7 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
       )}
 
       {/* Spaced sections: KPI cards → Timeline chart → Cashflow → Financial table */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* KPI Summary Cards */}
         <SummaryBar scenarioData={scenarioData} />
 

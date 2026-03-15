@@ -78,7 +78,7 @@ export const Dashboard = () => {
   // Using 'h-full' instead of 'h-screen' to respect parent container.
   return (
     <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
-      <div className="flex flex-col gap-4 px-12 pt-4 pb-5">
+      <div className="flex flex-col gap-6 px-12 pt-6 pb-8">
         {/* Render scenario canvases vertically with gap */}
         <div className="flex flex-col gap-6">
           {scenarios.map(scenario => (
@@ -122,12 +122,12 @@ export const Dashboard = () => {
         </ChartCard>
 
         {/* Retirement Scenario + Monthly Holding Cost — side by side */}
-        <div className="grid grid-cols-2 gap-4">
-          <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-5 pb-6">
+        <div className="grid grid-cols-2 gap-6">
+          <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
             <RetirementScenarioPanel />
           </ChartCard>
 
-          <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-5 pb-6">
+          <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
             <HoldingCostPanel />
           </ChartCard>
         </div>
