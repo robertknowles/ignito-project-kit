@@ -1,0 +1,176 @@
+import React, { useState } from 'react';
+import type { PropertyYearSnapshot } from '../../utils/metricsCalculator';
+import { HoldingCostSparkline } from './HoldingCostSparkline';
+import { CHART_COLORS } from '../../constants/chartColors';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+interface HoldingCostCardProps {
+  title: string;
+  buyYear: number;
+  color: string;
+  snapshots: PropertyYearSnapshot[];
+  snapshotYear: number;
+}
+
+const fmtMo = (v: number) => `$${Math.abs(Math.round(v)).toLocaleString()}`;
+
+export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
+  title,
+  buyYear,
+  color,
+  snapshots,
+  snapshotYear,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const snapshot = snapshots.find(s => s.year === snapshotYear);
+  if (!snapshot) return null;
+
+  const isPositive = snapshot.monthlyNetCost >= 0;
+  const totalCosts = snapshot.monthlyMortgage + snapshot.monthlyManagement +
+    snapshot.monthlyCouncil + snapshot.monthlyInsurance +
+    snapshot.monthlyMaintenance + snapshot.monthlyVacancy + snapshot.monthlyStrata;
+  const coveragePct = totalCosts > 0 ? Math.min(100, (snapshot.monthlyRent / totalCosts) * 100) : 0;
+
+  const breakdownItems = [
+    { label: 'Mortgage', value: snapshot.monthlyMortgage },
+    { label: 'Management', value: snapshot.monthlyManagement },
+    { label: 'Council Rates', value: snapshot.monthlyCouncil },
+    { label: 'Insurance', value: snapshot.monthlyInsurance },
+    { label: 'Maintenance', value: snapshot.monthlyMaintenance },
+    { label: 'Vacancy', value: snapshot.monthlyVacancy },
+    ...(snapshot.monthlyStrata > 0 ? [{ label: 'Strata', value: snapshot.monthlyStrata }] : []),
+  ];
+
+  return (
+    <div className="bg-[#F8FAFC] rounded-xl border border-[#F1F3F5] overflow-hidden">
+      {/* Main card */}
+      <button
+        className="w-full text-left px-4 py-3.5 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        {/* Top row: color chip + name + sparkline + net cost */}
+        <div className="flex items-center gap-3 mb-2.5">
+          <div className="w-1 h-11 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-[13px] font-semibold text-gray-900">{title}</div>
+                <div className="text-[11px] text-gray-500">Bought {buyYear}</div>
+              </div>
+              <div className="text-right">
+                <span
+                  className="text-xl font-bold"
+                  style={{ color: isPositive ? CHART_COLORS.primary : CHART_COLORS.tertiary }}
+                >
+                  {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
+                </span>
+                <span className="text-[11px] font-normal text-gray-500">/mo</span>
+              </div>
+            </div>
+            {/* Sparkline */}
+            <div className="mt-1.5">
+              <HoldingCostSparkline
+                data={snapshots}
+                color={color}
+                currentYear={snapshotYear}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Rent vs Costs bar */}
+        <div className="ml-4">
+          <div className="relative h-[26px] bg-gray-100 rounded-md overflow-hidden">
+            {/* Cost bar (background) */}
+            <div
+              className="absolute left-0 top-0 h-full rounded-md"
+              style={{
+                width: `${totalCosts > 0 ? 100 : 0}%`,
+                backgroundColor: CHART_COLORS.tertiary,
+                opacity: 0.25,
+              }}
+            />
+            {/* Rent overlay */}
+            <div
+              className="absolute left-0 top-0 h-full rounded-md"
+              style={{
+                width: `${coveragePct}%`,
+                backgroundColor: CHART_COLORS.primary,
+                opacity: 0.3,
+              }}
+            />
+            {/* Labels */}
+            <div className="relative flex justify-between items-center h-full px-2.5">
+              <span className="text-[10px] font-semibold z-10" style={{ color: CHART_COLORS.primary }}>
+                Rent: {fmtMo(snapshot.monthlyRent)}
+              </span>
+              <span className="text-[10px] font-medium text-gray-500 z-10">
+                Costs: {fmtMo(totalCosts)} · {Math.round(coveragePct)}% covered
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Expand hint */}
+        <div className="ml-4 mt-1.5 flex items-center gap-1 text-[10px] text-gray-400">
+          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {isExpanded ? 'Hide breakdown' : 'Show cost breakdown'}
+        </div>
+      </button>
+
+      {/* Expanded breakdown */}
+      {isExpanded && (
+        <div className="px-4 pb-3.5 pt-0 border-t border-[#F1F3F5]">
+          <div className="pt-3 pl-4">
+            {breakdownItems.map((item, idx) => {
+              const pct = totalCosts > 0 ? (item.value / totalCosts) * 100 : 0;
+              const itemColor = CHART_COLORS.series[idx % CHART_COLORS.series.length];
+              return (
+                <div key={item.label} className="flex items-center gap-2.5 py-1">
+                  <div
+                    className="w-2 h-2 rounded-sm flex-shrink-0"
+                    style={{ backgroundColor: itemColor, opacity: 0.7 }}
+                  />
+                  <div className="flex-1 text-xs text-gray-500">{item.label}</div>
+                  <div className="w-[100px] h-2 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${pct}%`, backgroundColor: itemColor, opacity: 0.5 }}
+                    />
+                  </div>
+                  <div className="w-14 text-right text-xs font-medium text-gray-900">
+                    {fmtMo(item.value)}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Subtotals */}
+            <div className="flex justify-between border-t border-[#F1F3F5] mt-1.5 pt-1.5">
+              <span className="text-xs font-semibold text-gray-900">Total Costs</span>
+              <span className="text-xs font-semibold" style={{ color: CHART_COLORS.tertiary }}>
+                {fmtMo(totalCosts)}/mo
+              </span>
+            </div>
+            <div className="flex justify-between mt-0.5">
+              <span className="text-xs font-semibold text-gray-900">Rental Income</span>
+              <span className="text-xs font-semibold" style={{ color: CHART_COLORS.primary }}>
+                -{fmtMo(snapshot.monthlyRent)}/mo
+              </span>
+            </div>
+            <div className="flex justify-between border-t-2 border-gray-200/30 mt-1.5 pt-1.5">
+              <span className="text-[13px] font-bold text-gray-900">Net Cost</span>
+              <span
+                className="text-[13px] font-bold"
+                style={{ color: isPositive ? CHART_COLORS.primary : CHART_COLORS.tertiary }}
+              >
+                {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}/mo
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

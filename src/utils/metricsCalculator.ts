@@ -385,6 +385,175 @@ export const calculateGrowthProjections = (
   return projections;
 };
 
+// =============================================================================
+// SHARED PROPERTY TIMELINE PROJECTION
+// =============================================================================
+// Used by useHoldingCostTimeline and useEquityUnlockTimeline.
+// Projects a single property forward year-by-year using the same growth/inflation
+// logic as the rest of the calculation engine. NO duplicate math.
+
+export interface PropertyYearSnapshot {
+  year: number;
+  // Value & debt
+  propertyValue: number;
+  loanBalance: number;
+  lvr: number;
+  extractableEquity: number; // max(0, value * 0.80 - loan)
+  // Monthly holding costs
+  monthlyRent: number;
+  monthlyMortgage: number;
+  monthlyManagement: number;
+  monthlyCouncil: number;
+  monthlyInsurance: number;
+  monthlyMaintenance: number;
+  monthlyVacancy: number;
+  monthlyStrata: number;
+  monthlyNetCost: number; // rent - all costs
+  // Annuals (for cross-referencing)
+  annualRent: number;
+  annualTotalCosts: number;
+}
+
+export interface ProjectedPropertyTimeline {
+  instanceId: string;
+  title: string;
+  buyYear: number;
+  purchasePrice: number;
+  loanAmount: number;
+  snapshots: PropertyYearSnapshot[];
+}
+
+/**
+ * Projects a single property's financials year-by-year from purchase to endYear.
+ * Uses calculatePropertyGrowth for value (tiered curve) and inflation for expenses.
+ * Loan balance stays constant for IO, amortises for PI.
+ */
+export const projectPropertyTimeline = (
+  property: {
+    instanceId: string;
+    title: string;
+    cost: number;
+    loanAmount: number;
+    affordableYear: number;
+    grossRentalIncome: number; // Annual at purchase
+    loanType?: 'IO' | 'PI';
+    expenseBreakdown?: {
+      councilRatesWater: number;
+      strataFees: number;
+      insurance: number;
+      managementFees: number;
+      repairsMaintenance: number;
+      landTax: number;
+      other: number;
+    };
+  },
+  endYear: number,
+  growthCurve: GrowthCurve,
+  interestRate: number = 0.065,
+): ProjectedPropertyTimeline => {
+  const buyYear = Math.floor(property.affordableYear);
+  const snapshots: PropertyYearSnapshot[] = [];
+
+  // Derive initial annual rent from the property data
+  // grossRentalIncome is per-period (semi-annual), so multiply by 2
+  const initialAnnualRent = property.grossRentalIncome * PERIODS_PER_YEAR;
+
+  // Derive expense base values from breakdown, or use defaults
+  const eb = property.expenseBreakdown;
+  // expenseBreakdown values are per-period, so multiply by 2 for annual
+  const baseAnnualCouncil = eb ? eb.councilRatesWater * PERIODS_PER_YEAR : 2500;
+  const baseAnnualInsurance = eb ? eb.insurance * PERIODS_PER_YEAR : 1200;
+  const baseAnnualStrata = eb ? eb.strataFees * PERIODS_PER_YEAR : 0;
+  // Management as a rate of rent (derive from initial values)
+  const managementRate = eb && initialAnnualRent > 0
+    ? (eb.managementFees * PERIODS_PER_YEAR) / initialAnnualRent
+    : 0.08;
+  // Maintenance as a rate of property value
+  const maintenanceRate = eb && property.cost > 0
+    ? (eb.repairsMaintenance * PERIODS_PER_YEAR) / property.cost
+    : 0.01;
+  // Vacancy as a rate of rent
+  const vacancyRate = eb && initialAnnualRent > 0
+    ? (eb.other * PERIODS_PER_YEAR) / initialAnnualRent
+    : 0.04;
+
+  let loanBalance = property.loanAmount;
+
+  for (let year = buyYear; year <= endYear; year++) {
+    const yearsOwned = year - buyYear;
+    const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+
+    // Property value via tiered growth (reuses calculatePropertyGrowth)
+    const propertyValue = calculatePropertyGrowth(property.cost, periodsOwned, growthCurve);
+
+    // Rent grows with property value (same yield maintained)
+    const rentGrowthFactor = propertyValue / property.cost;
+    const annualRent = initialAnnualRent * rentGrowthFactor;
+
+    // Expenses grow with inflation (fixed costs) or scale with rent/value
+    const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+    const annualCouncil = baseAnnualCouncil * inflationFactor;
+    const annualInsurance = baseAnnualInsurance * inflationFactor;
+    const annualStrata = baseAnnualStrata * inflationFactor;
+    const annualManagement = annualRent * managementRate;
+    const annualMaintenance = propertyValue * maintenanceRate;
+    const annualVacancy = annualRent * vacancyRate;
+
+    // Mortgage payment
+    let annualMortgage: number;
+    if (property.loanType === 'PI' && loanBalance > 0) {
+      // P&I amortisation — standard 30-year term
+      const monthlyRate = interestRate / 12;
+      const remainingMonths = Math.max(1, (30 - yearsOwned) * 12);
+      const monthlyPayment = loanBalance *
+        (monthlyRate * Math.pow(1 + monthlyRate, remainingMonths)) /
+        (Math.pow(1 + monthlyRate, remainingMonths) - 1);
+      annualMortgage = monthlyPayment * 12;
+      const interestPortion = loanBalance * interestRate;
+      const principalPortion = Math.min(annualMortgage - interestPortion, loanBalance);
+      loanBalance = Math.max(0, loanBalance - principalPortion);
+    } else {
+      // IO — interest only, balance constant
+      annualMortgage = loanBalance * interestRate;
+    }
+
+    const annualTotalCosts = annualMortgage + annualManagement + annualCouncil +
+      annualInsurance + annualMaintenance + annualVacancy + annualStrata;
+    const annualNet = annualRent - annualTotalCosts;
+
+    const lvr = propertyValue > 0 ? (loanBalance / propertyValue) * 100 : 0;
+    const extractableEquity = Math.max(0, propertyValue * 0.80 - loanBalance);
+
+    snapshots.push({
+      year,
+      propertyValue: Math.round(propertyValue),
+      loanBalance: Math.round(loanBalance),
+      lvr: Math.round(lvr * 10) / 10,
+      extractableEquity: Math.round(extractableEquity),
+      monthlyRent: Math.round(annualRent / 12),
+      monthlyMortgage: Math.round(annualMortgage / 12),
+      monthlyManagement: Math.round(annualManagement / 12),
+      monthlyCouncil: Math.round(annualCouncil / 12),
+      monthlyInsurance: Math.round(annualInsurance / 12),
+      monthlyMaintenance: Math.round(annualMaintenance / 12),
+      monthlyVacancy: Math.round(annualVacancy / 12),
+      monthlyStrata: Math.round(annualStrata / 12),
+      monthlyNetCost: Math.round(annualNet / 12),
+      annualRent: Math.round(annualRent),
+      annualTotalCosts: Math.round(annualTotalCosts),
+    });
+  }
+
+  return {
+    instanceId: property.instanceId,
+    title: property.title,
+    buyYear,
+    purchasePrice: property.cost,
+    loanAmount: property.loanAmount,
+    snapshots,
+  };
+};
+
 export const combineMetrics = (...metrics: PropertyMetrics[]): PropertyMetrics => {
   return metrics.reduce((combined, metric) => ({
     portfolioValue: combined.portfolioValue + metric.portfolioValue,

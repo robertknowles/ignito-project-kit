@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { Share2, Copy, RotateCcw, ExternalLink } from 'lucide-react'
+import { Share2, Copy, RotateCcw, ExternalLink, Plus } from 'lucide-react'
 import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useClient } from '@/contexts/ClientContext'
+import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,6 +25,7 @@ import { Label } from '@/components/ui/label'
 export const TopBar = () => {
   const { scenarioId, hasUnsavedChanges } = useScenarioSave()
   const { activeClient } = useClient()
+  const { addScenario, scenarios } = useMultiScenario()
   const { toast } = useToast()
   const { role } = useAuth()
   const isClient = role === 'client'
@@ -363,20 +365,39 @@ export const TopBar = () => {
 
   return (
     <div id="top-bar" className="sticky top-0 z-40 flex items-end justify-between w-full h-[52px] px-12 bg-transparent">
-      {/* Left side: Scenario Selector (hidden for clients) */}
-      <div className="flex items-center">
+      {/* Left side: Client Selector + Add Scenario (hidden for clients) */}
+      <div className="flex items-center gap-2">
         {!isClient && (
-          <TourStep
-            id="client-selector"
-            title="Client Selector"
-            content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
-            order={2}
-            position="bottom"
-          >
-            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
-              <ClientSelector />
-            </div>
-          </TourStep>
+          <>
+            <TourStep
+              id="client-selector"
+              title="Client Selector"
+              content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
+              order={2}
+              position="bottom"
+            >
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
+                <ClientSelector />
+              </div>
+            </TourStep>
+            {scenarios.length < 2 && (
+              <TourStep
+                id="scenario-comparison"
+                title="Compare Strategies"
+                content="Add a second scenario to compare different investment approaches side-by-side. The system analyzes both strategies and recommends which better achieves your client's equity and cashflow goals."
+                order={12}
+                position="bottom"
+              >
+                <button
+                  onClick={addScenario}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-white shadow-sm transition-all text-[13px] font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Scenario</span>
+                </button>
+              </TourStep>
+            )}
+          </>
         )}
       </div>
       

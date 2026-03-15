@@ -5,13 +5,17 @@ import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { ScenarioCanvas } from './ScenarioCanvas';
-import { AddScenarioButton } from './AddScenarioButton';
 import { ComparisonInsights } from './ComparisonInsights';
 import { NetWorthChart, NW_COLORS } from './NetWorthChart';
-import { FinancialFreedomPanel } from './FinancialFreedomPanel';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
+import { ExtendedCashflowChart } from './ExtendedCashflowChart';
+import { HoldingCostPanel } from './HoldingCostPanel/HoldingCostPanel';
+import { FundingSourcesChart } from './FundingSourcesChart/FundingSourcesChart';
+import { EquityUnlockChart } from './EquityUnlockChart/EquityUnlockChart';
+import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
+import { CHART_COLORS } from '@/constants/chartColors';
 
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
@@ -74,7 +78,7 @@ export const Dashboard = () => {
   // Using 'h-full' instead of 'h-screen' to respect parent container.
   return (
     <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
-      <div className={`flex flex-col gap-4 px-12 pt-4 ${scenarios.length < 2 ? 'pb-20' : 'pb-5'}`}>
+      <div className="flex flex-col gap-4 px-12 pt-4 pb-5">
         {/* Render scenario canvases vertically with gap */}
         <div className="flex flex-col gap-6">
           {scenarios.map(scenario => (
@@ -85,31 +89,70 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
         
-        {/* Bottom Section: Net Worth (LHS) + Financial Freedom (RHS) */}
-        <div className="grid grid-cols-2 gap-5">
-          <ChartCard
-            title="Net Worth Trajectory"
-            legend={[
-              { color: NW_COLORS.totalAssets, label: 'Total Assets' },
-              { color: NW_COLORS.netWorth, label: 'Net Worth' },
-              { color: NW_COLORS.totalDebt, label: 'Total Debt' },
-            ]}
-          >
-            <NetWorthChart />
-          </ChartCard>
-          <ChartCard title="Financial Freedom">
-            <FinancialFreedomPanel />
-          </ChartCard>
-        </div>
+        {/* Net Worth Trajectory — full width */}
+        <ChartCard
+          title="Net Worth Trajectory"
+          legend={[
+            { color: NW_COLORS.totalAssets, label: 'Total Assets' },
+            { color: NW_COLORS.netWorth, label: 'Net Worth' },
+            { color: NW_COLORS.totalDebt, label: 'Total Debt' },
+          ]}
+        >
+          <NetWorthChart />
+        </ChartCard>
 
         {/* Financial Summary Table - Full width at bottom */}
         <ChartCard title="Financial Summary" contentClassName="pl-12 pb-12 pt-5 pr-12">
           <FinancialSummaryTable />
         </ChartCard>
+
+        {/* ── Deep Dive Charts (below the table) ────────────────────── */}
+
+        {/* Extended Cashflow Projection — accumulation + 30yr projection with milestones */}
+        <ChartCard
+          title="Cashflow Projection"
+          legend={[
+            { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
+            { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
+            { color: CHART_COLORS.secondary, label: 'Milestone' },
+          ]}
+        >
+          <ExtendedCashflowChart />
+        </ChartCard>
+
+        {/* Holding Cost Panel — per-property monthly costs with year slider */}
+        <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-5 pb-6">
+          <HoldingCostPanel />
+        </ChartCard>
+
+        {/* Funding Sources — horizontal stacked bars showing deposit funding breakdown */}
+        <ChartCard
+          title="Funding Sources"
+          legend={[
+            { color: CHART_COLORS.series[0], label: 'Cash Deposit' },
+            { color: CHART_COLORS.series[1], label: 'Equity Extraction' },
+            { color: CHART_COLORS.series[2], label: 'Accumulated Savings' },
+          ]}
+        >
+          <FundingSourcesChart />
+        </ChartCard>
+
+        {/* Equity Unlock — per-property extractable equity with BA triggers */}
+        <ChartCard
+          title="Equity Unlock Timeline"
+          legend={[
+            { color: CHART_COLORS.primary, label: 'Refinance Ready' },
+            { color: CHART_COLORS.secondary, label: 'Min $50k Threshold' },
+          ]}
+        >
+          <EquityUnlockChart />
+        </ChartCard>
+
+        {/* Retirement Scenario — interactive sell/hold calculator */}
+        <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-5 pb-6">
+          <RetirementScenarioPanel />
+        </ChartCard>
       </div>
-      
-      {/* Fixed Add Scenario Button - Only show if < 2 scenarios */}
-      {scenarios.length < 2 && <AddScenarioButton />}
     </div>
   );
 };
