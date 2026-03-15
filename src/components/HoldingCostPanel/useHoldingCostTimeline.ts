@@ -32,7 +32,7 @@ export function useHoldingCostTimeline(
       return { properties: [], startYear: BASE_YEAR, endYear: BASE_YEAR };
     }
 
-    const endYear = BASE_YEAR + profile.timelineYears + 5; // Project 5 years beyond timeline
+    const endYear = BASE_YEAR + profile.timelineYears - 1;
 
     const properties: HoldingCostPropertyData[] = feasible.map((prop, i) => {
       const timeline = projectPropertyTimeline(

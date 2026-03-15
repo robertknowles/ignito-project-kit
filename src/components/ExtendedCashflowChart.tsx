@@ -15,13 +15,14 @@ import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { useFinancialFreedomProjection } from '../hooks/useFinancialFreedomProjection';
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
+import { BASE_YEAR } from '../constants/financialParams';
 
 /**
  * Extended Cashflow Projection
  *
  * Merges accumulation-phase cashflow bars with the 30-year freedom projection
- * into one continuous chart. Adds vertical dashed lines at milestones
- * (IO→P&I, cashflow positive, financial freedom, debt free).
+ * into one continuous chart, capped at the investment timeline end year.
+ * Milestones shown as text summary below the chart (not vertical lines).
  *
  * NO new calculations — purely consumes existing hook data.
  */
@@ -58,23 +59,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// Milestone label rendered inside the chart
-const MilestoneLabel = ({ viewBox, label }: any) => {
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x}
-      y={12}
-      textAnchor="middle"
-      fontSize={9}
-      fontWeight={600}
-      fill={CHART_COLORS.axisText}
-    >
-      {label}
-    </text>
-  );
-};
-
 export const ExtendedCashflowChart: React.FC = () => {
   const { portfolioGrowthData, cashflowData } = useChartDataGenerator();
   const { profile } = useInvestmentProfile();
@@ -87,20 +71,25 @@ export const ExtendedCashflowChart: React.FC = () => {
     timelineProperties,
   });
 
-  // Merge accumulation + projection data, deduplicating overlap years
+  // Cap at investment timeline end year
+  const endYear = BASE_YEAR + (profile.timelineYears || 15);
+
+  // Merge accumulation + projection data, deduplicating overlap years, capped at endYear
   const { mergedData, yAxisDomain, yAxisTicks } = useMemo(() => {
     const accumulationYears = new Set(cashflowData.map(d => d.year));
 
     // Accumulation phase
-    const accum: MergedDataPoint[] = cashflowData.map(d => ({
-      year: d.year,
-      cashflow: d.cashflow,
-      isProjection: false,
-    }));
+    const accum: MergedDataPoint[] = cashflowData
+      .filter(d => Number(d.year) <= endYear)
+      .map(d => ({
+        year: d.year,
+        cashflow: d.cashflow,
+        isProjection: false,
+      }));
 
-    // Projection phase — only years not already in accumulation
+    // Projection phase — only years not already in accumulation and within timeline
     const proj: MergedDataPoint[] = projection.yearlyData
-      .filter(d => !accumulationYears.has(String(d.year)))
+      .filter(d => !accumulationYears.has(String(d.year)) && d.year <= endYear)
       .map(d => ({
         year: String(d.year),
         cashflow: d.netCashflow,
@@ -132,78 +121,69 @@ export const ExtendedCashflowChart: React.FC = () => {
       yAxisDomain: [niceMin, niceMax],
       yAxisTicks: ticks,
     };
-  }, [cashflowData, projection.yearlyData, profile.targetPassiveIncome]);
+  }, [cashflowData, projection.yearlyData, profile.targetPassiveIncome, endYear]);
+
+  // Filter milestones to those within timeline
+  const milestones = useMemo(() =>
+    projection.milestones
+      .filter(m => m.year <= endYear)
+      .map(m => ({ year: m.year, label: m.label })),
+    [projection.milestones, endYear],
+  );
 
   if (mergedData.length === 0) return null;
 
-  // Show every Nth year label to avoid crowding
-  const labelInterval = mergedData.length > 20 ? 5 : mergedData.length > 10 ? 2 : 1;
-
-  // Milestone lines
-  const milestoneLines = projection.milestones.map(m => ({
-    year: String(m.year),
-    label: m.label,
-    type: m.type,
-  }));
-
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart
-        data={mergedData}
-        margin={{ top: 24, right: 24, left: 0, bottom: 5 }}
-      >
-        <CartesianGrid {...CHART_STYLE.grid} />
-        <XAxis
-          dataKey="year"
-          {...CHART_STYLE.xAxis}
-          interval={labelInterval - 1}
-        />
-        <YAxis
-          tickFormatter={formatK}
-          {...CHART_STYLE.yAxis}
-          width={70}
-          domain={yAxisDomain}
-          ticks={yAxisTicks}
-        />
-        <Tooltip content={<CustomTooltip />} />
-
-        {/* Target income reference line */}
-        {profile.targetPassiveIncome > 0 && (
-          <ReferenceLine
-            y={profile.targetPassiveIncome}
-            {...CHART_STYLE.goalLine}
-            label={{
-              value: `Target ${formatK(profile.targetPassiveIncome)}/yr`,
-              position: 'right',
-              fontSize: 9,
-              fill: CHART_COLORS.goal,
-              fontWeight: 600,
-            }}
+    <div>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart
+          data={mergedData}
+          margin={{ top: 20, right: 24, left: 0, bottom: 5 }}
+        >
+          <CartesianGrid {...CHART_STYLE.grid} />
+          <XAxis
+            dataKey="year"
+            {...CHART_STYLE.xAxis}
           />
-        )}
-
-        {/* Milestone vertical dashed lines */}
-        {milestoneLines.map(m => (
-          <ReferenceLine
-            key={m.year}
-            x={m.year}
-            stroke={CHART_COLORS.secondary}
-            strokeDasharray="4 4"
-            strokeWidth={1.5}
-            label={<MilestoneLabel label={m.label} />}
+          <YAxis
+            tickFormatter={formatK}
+            {...CHART_STYLE.yAxis}
+            width={80}
+            domain={yAxisDomain}
+            ticks={yAxisTicks}
           />
-        ))}
+          <Tooltip content={<CustomTooltip />} />
 
-        <Bar dataKey="cashflow" radius={[2, 2, 0, 0]}>
-          {mergedData.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
-              fillOpacity={entry.isProjection ? 0.65 : 1}
+          {/* Target income reference line */}
+          {profile.targetPassiveIncome > 0 && (
+            <ReferenceLine
+              y={profile.targetPassiveIncome}
+              {...CHART_STYLE.goalLine}
             />
+          )}
+
+          <Bar dataKey="cashflow" radius={[2, 2, 0, 0]}>
+            {mergedData.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
+                fillOpacity={entry.isProjection ? 0.65 : 1}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Milestones as text summary below chart */}
+      {milestones.length > 0 && (
+        <div className="mt-1 px-4 flex gap-x-5 gap-y-1 flex-wrap">
+          {milestones.map(m => (
+            <span key={m.label} className="text-[11px] text-gray-400">
+              <span className="font-medium text-gray-500">{m.year}</span>: {m.label}
+            </span>
           ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 };

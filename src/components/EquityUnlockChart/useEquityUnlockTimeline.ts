@@ -3,7 +3,12 @@ import type { TimelineProperty } from '../../types/property';
 import type { InvestmentProfileData } from '../../contexts/InvestmentProfileContext';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParams';
-import { CHART_COLORS } from '../../constants/chartColors';
+// Distinct colors per property line — blue, purple, aqua (same palette as Net Worth)
+const EQUITY_LINE_COLORS = [
+  '#3B82F6',  // Blue
+  '#8B5CF6',  // Purple
+  '#22D3EE',  // Aqua
+] as const;
 
 export interface EquityTimelinePoint {
   year: number;
@@ -38,7 +43,7 @@ export function useEquityUnlockTimeline(
 
     if (feasible.length === 0) return { propertyTimelines: [] };
 
-    const endYear = BASE_YEAR + profile.timelineYears + 5;
+    const endYear = BASE_YEAR + profile.timelineYears - 1;
 
     const propertyTimelines: PropertyEquityTimeline[] = feasible.map((prop, i) => {
       const projected = projectPropertyTimeline(
@@ -75,7 +80,7 @@ export function useEquityUnlockTimeline(
       return {
         instanceId: prop.instanceId,
         title: prop.title,
-        color: CHART_COLORS.series[i % CHART_COLORS.series.length],
+        color: EQUITY_LINE_COLORS[i % EQUITY_LINE_COLORS.length],
         buyYear: projected.buyYear,
         purchasePrice: prop.cost,
         timeline,

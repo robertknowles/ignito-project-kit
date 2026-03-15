@@ -8,11 +8,13 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceDot,
+  ReferenceLine,
   Cell,
-  Label,
 } from 'recharts'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { useFinancialFreedomProjection } from '../hooks/useFinancialFreedomProjection'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
@@ -25,9 +27,18 @@ interface CashflowChartProps {
 }
 
 export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) => {
-  const { cashflowData } = useChartDataGenerator(scenarioData)
+  const { cashflowData, portfolioGrowthData } = useChartDataGenerator(scenarioData)
   const { profile: contextProfile } = useInvestmentProfile()
+  const { timelineProperties } = useAffordabilityCalculator()
   const profile = scenarioData?.profile ?? contextProfile
+
+  // Get milestone data from financial freedom projection
+  const projection = useFinancialFreedomProjection({
+    portfolioGrowthData,
+    cashflowData,
+    profile,
+    timelineProperties: scenarioData?.timelineProperties ?? timelineProperties,
+  });
 
   // Use calculated data or show empty state
   const data = cashflowData.length > 0 ? cashflowData : [
@@ -110,61 +121,84 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     };
   }, [data, profile.cashflowGoal]);
 
-  // Custom label for income goal achievement (empty - we only show the yellow dot)
-  const GoalAchievedLabel = () => {
-    return null
-  }
-
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart
-        data={data}
-        margin={{
-          top: 20,
-          right: 24,
-          left: 0,
-          bottom: 5,
-        }}
-      >
-        <CartesianGrid {...CHART_STYLE.grid} />
-        <XAxis
-          dataKey="year"
-          {...CHART_STYLE.xAxis}
-        />
-        <YAxis
-          tickFormatter={formatYAxis}
-          {...CHART_STYLE.yAxis}
-          width={80}
-          domain={yAxisDomain}
-          ticks={yAxisTicks}
-        />
-        <Tooltip content={<CustomTooltip />} />
+    <div>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart
+          data={data}
+          margin={{
+            top: 20,
+            right: 24,
+            left: 0,
+            bottom: 5,
+          }}
+        >
+          <CartesianGrid {...CHART_STYLE.grid} />
+          <XAxis
+            dataKey="year"
+            {...CHART_STYLE.xAxis}
+          />
+          <YAxis
+            tickFormatter={formatYAxis}
+            {...CHART_STYLE.yAxis}
+            width={80}
+            domain={yAxisDomain}
+            ticks={yAxisTicks}
+          />
+          <Tooltip content={<CustomTooltip />} />
 
-        <Bar dataKey="cashflow" fill={CHART_COLORS.barPositive} radius={[2, 2, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
-              fillOpacity={entry.highlight ? 0.7 : 1}
+          {/* Target cashflow — dashed horizontal line */}
+          {profile.cashflowGoal > 0 && (
+            <ReferenceLine
+              y={profile.cashflowGoal}
+              {...CHART_STYLE.goalLine}
+            />
+          )}
+
+          {/* Milestone vertical markers — cashflow positive, financial freedom, debt free */}
+          {projection.milestones.map(m => (
+            <ReferenceLine
+              key={m.label}
+              x={String(m.year)}
+              {...CHART_STYLE.goalLine}
             />
           ))}
-        </Bar>
 
-        {/* Income Goal Achievement Marker - Gold dot when cashflow goal is reached */}
-        {incomeGoalReached && (
-          <ReferenceDot
-            x={incomeGoalReached.year}
-            y={incomeGoalReached.cashflow}
-            r={8}
-            fill={CHART_COLORS.goalMarker}
-            stroke={CHART_COLORS.goal}
-            strokeWidth={2}
-          >
-            <Label content={<GoalAchievedLabel />} position="top" />
-          </ReferenceDot>
-        )}
+          <Bar dataKey="cashflow" fill={CHART_COLORS.barPositive} radius={[2, 2, 0, 0]}>
+            {data.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
+                fillOpacity={entry.highlight ? 0.7 : 1}
+              />
+            ))}
+          </Bar>
 
-      </BarChart>
-    </ResponsiveContainer>
+          {/* Income Goal Achievement Marker - dot when cashflow goal is reached */}
+          {incomeGoalReached && (
+            <ReferenceDot
+              x={incomeGoalReached.year}
+              y={incomeGoalReached.cashflow}
+              r={5}
+              fill="white"
+              stroke={CHART_COLORS.goal}
+              strokeWidth={2}
+            />
+          )}
+
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Milestone labels below chart */}
+      {projection.milestones.length > 0 && (
+        <div className="mt-1 px-4 flex gap-x-5 gap-y-1 flex-wrap">
+          {projection.milestones.map(m => (
+            <span key={m.label} className="text-[11px] text-gray-400">
+              <span className="font-medium text-gray-500">{m.year}</span>: {m.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

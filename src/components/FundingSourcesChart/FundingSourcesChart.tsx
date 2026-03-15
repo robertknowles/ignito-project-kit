@@ -21,12 +21,6 @@ const SEGMENT_COLORS: Record<string, string> = {
   savings: CHART_COLORS.series[2],
 };
 
-const SEGMENT_LABELS: Record<string, string> = {
-  cash: 'Cash',
-  equity: 'Equity',
-  savings: 'Savings',
-};
-
 const fmt = (v: number) => {
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
   if (v >= 1000) return `$${Math.round(v / 1000)}k`;
@@ -97,8 +91,8 @@ export const FundingSourcesChart: React.FC = () => {
         {yearLabels.map(yr => (
           <span
             key={yr}
-            className="absolute text-[11px] text-gray-400 -translate-x-1/2"
-            style={{ left: `${yearToPct(yr)}%`, fontFamily: 'Inter, system-ui, sans-serif' }}
+            className="absolute text-[11px] -translate-x-1/2"
+            style={{ left: `${yearToPct(yr)}%`, color: CHART_COLORS.axisText, fontFamily: 'Inter, system-ui, sans-serif' }}
           >
             {yr}
           </span>
@@ -106,7 +100,7 @@ export const FundingSourcesChart: React.FC = () => {
       </div>
 
       {/* Property rows */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col">
         {rows.map((row, ri) => {
           const barLeftPct = yearToPct(row.startYear);
           const barWidthPct = Math.max(yearToPct(row.buyYear) - barLeftPct, 2); // min 2% for instant buys
@@ -114,32 +108,22 @@ export const FundingSourcesChart: React.FC = () => {
           return (
             <div
               key={`${row.title}-${ri}`}
-              className="flex items-center gap-0 rounded-lg"
-              style={{ backgroundColor: ri % 2 === 0 ? '#F8FAFC' : 'white' }}
+              className="flex items-center gap-0"
+              style={{
+                borderTop: ri > 0 ? `1px solid ${CHART_COLORS.grid}` : undefined,
+              }}
             >
               {/* Label */}
               <div className="w-[140px] flex-shrink-0 py-3 pl-4">
                 <div className="text-[12px] font-semibold text-gray-900 leading-tight">{row.title}</div>
-                <div className="text-[10px] text-gray-500">{fmt(row.deposit)} deposit</div>
+                <div className="text-[10px] text-gray-400">{fmt(row.deposit)} deposit</div>
               </div>
 
               {/* Timeline area */}
               <div className="flex-1 relative py-3 pr-4">
-                {/* Year grid lines */}
-                {yearLabels.map(yr => (
-                  <div
-                    key={yr}
-                    className="absolute top-0 bottom-0 border-l"
-                    style={{
-                      left: `${yearToPct(yr)}%`,
-                      borderColor: CHART_COLORS.grid,
-                    }}
-                  />
-                ))}
-
                 {/* Funding bar */}
                 <div
-                  className="relative flex h-9 rounded-md overflow-hidden"
+                  className="relative flex h-8 rounded-md overflow-hidden"
                   style={{
                     marginLeft: `${barLeftPct}%`,
                     width: `${barWidthPct}%`,
@@ -161,7 +145,7 @@ export const FundingSourcesChart: React.FC = () => {
                           borderTopRightRadius: isLast ? 4 : 0,
                           borderBottomRightRadius: isLast ? 4 : 0,
                         }}
-                        title={`${SEGMENT_LABELS[seg.type]}: ${fmt(seg.value)} (${Math.round(seg.pct * 100)}%)`}
+                        title={`${seg.type}: ${fmt(seg.value)} (${Math.round(seg.pct * 100)}%)`}
                       >
                         {/* Label inside segment — only show if wide enough */}
                         <span className="text-[9px] font-medium text-white whitespace-nowrap px-1 truncate">

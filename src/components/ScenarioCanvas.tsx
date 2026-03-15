@@ -9,7 +9,6 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { CHART_COLORS } from '@/constants/chartColors';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
-import { CashflowChart } from './CashflowChart';
 import { ResetButton } from './ResetButton';
 
 interface ScenarioCanvasProps {
@@ -114,16 +113,6 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
           <TimelineColumn scenarioData={scenarioData} />
         </ChartCard>
 
-        {/* Cashflow Projection */}
-        <ChartCard
-          title="Cashflow Projection"
-          legend={[
-            { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
-            { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
-          ]}
-        >
-          <CashflowChart scenarioData={scenarioData} />
-        </ChartCard>
 
       </div>
     </div>

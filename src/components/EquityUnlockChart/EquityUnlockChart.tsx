@@ -21,10 +21,9 @@ import { MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParam
 /**
  * Equity Unlock Chart — Per-property extractable equity over time
  *
- * Multi-line chart with subtle area fills per property. $50K threshold line.
- * Refinance-ready markers with year labels. Extraction event markers.
- * Property name labels at line endpoints for clarity.
- * BA triggers panel below.
+ * Multi-line chart (blue/purple/aqua) with subtle area fills.
+ * $50K threshold dashed line. Refinance-ready & extraction markers.
+ * Legend + trigger text below chart.
  */
 
 const fmt = (v: number) => {
@@ -33,13 +32,11 @@ const fmt = (v: number) => {
   return `$${v}`;
 };
 
-// Build a merged dataset keyed by year with one column per property
 interface MergedYearPoint {
   year: number;
-  [key: string]: number; // instanceId -> extractableEquity
+  [key: string]: number;
 }
 
-// Area fill opacity per series index (subtle, staggered to aid distinction)
 const AREA_OPACITIES = [0.08, 0.06, 0.10, 0.07, 0.05, 0.09];
 
 const EquityTooltip = ({ active, payload, label, propertyNames }: any) => {
@@ -65,56 +62,19 @@ const EquityTooltip = ({ active, payload, label, propertyNames }: any) => {
   );
 };
 
-// Custom label rendered at the last data point of each property line
-const EndLabel = ({ viewBox, value, color }: any) => {
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + 8}
-      y={viewBox.y + 4}
-      fill={color}
-      fontSize={10}
-      fontWeight={600}
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      {value}
-    </text>
-  );
-};
-
-// Custom label for refinance-ready markers
-const MarkerLabel = ({ viewBox, value }: any) => {
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.cx}
-      y={viewBox.cy - 12}
-      textAnchor="middle"
-      fill={CHART_COLORS.primary}
-      fontSize={9}
-      fontWeight={600}
-      fontFamily="Inter, system-ui, sans-serif"
-    >
-      {value}
-    </text>
-  );
-};
-
 export const EquityUnlockChart: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
   const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile);
 
   // Build merged data and property name map
-  const { chartData, propertyNames, maxLabelWidth } = useMemo(() => {
-    if (propertyTimelines.length === 0) return { chartData: [], propertyNames: {}, maxLabelWidth: 80 };
+  const { chartData, propertyNames } = useMemo(() => {
+    if (propertyTimelines.length === 0) return { chartData: [], propertyNames: {} };
 
-    // Collect all years
     const yearSet = new Set<number>();
     propertyTimelines.forEach(p => p.timeline.forEach(t => yearSet.add(t.year)));
     const years = Array.from(yearSet).sort((a, b) => a - b);
 
-    // Build lookup per property
     const lookups = propertyTimelines.map(p => {
       const map = new Map<number, number>();
       p.timeline.forEach(t => map.set(t.year, t.extractableEquity));
@@ -133,26 +93,27 @@ export const EquityUnlockChart: React.FC = () => {
       return point;
     });
 
-    // Estimate right margin needed for end labels
-    const longestName = Math.max(...propertyTimelines.map(p => p.title.length));
-    const labelW = Math.min(longestName * 6 + 16, 120);
-
-    return { chartData: data, propertyNames: names, maxLabelWidth: labelW };
+    return { chartData: data, propertyNames: names };
   }, [propertyTimelines]);
 
-  // BA triggers
-  const triggers = useMemo(() =>
-    propertyTimelines
+  // Deduplicated refinance triggers
+  const triggers = useMemo(() => {
+    const seen = new Set<string>();
+    return propertyTimelines
       .filter(p => p.refinanceReadyYear !== null)
       .map(p => ({
+        key: `${p.title}-${p.refinanceReadyYear}`,
         title: p.title,
         year: p.refinanceReadyYear!,
         extracted: p.extractionEvent,
-        color: p.color,
       }))
-      .sort((a, b) => a.year - b.year),
-    [propertyTimelines],
-  );
+      .filter(t => {
+        if (seen.has(t.key)) return false;
+        seen.add(t.key);
+        return true;
+      })
+      .sort((a, b) => a.year - b.year);
+  }, [propertyTimelines]);
 
   if (propertyTimelines.length === 0) {
     return (
@@ -164,10 +125,10 @@ export const EquityUnlockChart: React.FC = () => {
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={260}>
         <ComposedChart
           data={chartData}
-          margin={{ top: 16, right: maxLabelWidth, left: 0, bottom: 5 }}
+          margin={{ top: 16, right: 24, left: 0, bottom: 5 }}
         >
           {/* Gradient defs for area fills */}
           <defs>
@@ -194,25 +155,11 @@ export const EquityUnlockChart: React.FC = () => {
           />
           <Tooltip content={<EquityTooltip propertyNames={propertyNames} />} />
 
-          {/* $50K threshold */}
+          {/* $50K threshold — dashed line only, label is in legend */}
           <ReferenceLine
             y={MIN_EXTRACTABLE_EQUITY_THRESHOLD}
-            stroke={CHART_COLORS.secondary}
-            strokeDasharray="5 3"
-            strokeWidth={1.5}
-          >
-            <Label
-              value={`Min ${fmt(MIN_EXTRACTABLE_EQUITY_THRESHOLD)} to refinance`}
-              position="insideTopLeft"
-              offset={8}
-              style={{
-                fontSize: 10,
-                fill: CHART_COLORS.secondary,
-                fontWeight: 600,
-                fontFamily: 'Inter, system-ui, sans-serif',
-              }}
-            />
-          </ReferenceLine>
+            {...CHART_STYLE.goalLine}
+          />
 
           {/* Per-property area fills (render before lines so lines sit on top) */}
           {propertyTimelines.map(prop => (
@@ -236,33 +183,13 @@ export const EquityUnlockChart: React.FC = () => {
               type="monotone"
               dataKey={prop.instanceId}
               stroke={prop.color}
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={false}
               activeDot={{ r: 4, stroke: prop.color, fill: 'white', strokeWidth: 2 }}
               connectNulls={false}
               name={prop.title}
             />
           ))}
-
-          {/* Property name labels at last data point */}
-          {propertyTimelines.map(prop => {
-            const lastPoint = prop.timeline[prop.timeline.length - 1];
-            if (!lastPoint) return null;
-            return (
-              <ReferenceDot
-                key={`label-${prop.instanceId}`}
-                x={lastPoint.year}
-                y={lastPoint.extractableEquity}
-                r={0}
-                strokeWidth={0}
-                fillOpacity={0}
-              >
-                <Label
-                  content={<EndLabel value={prop.title} color={prop.color} />}
-                />
-              </ReferenceDot>
-            );
-          })}
 
           {/* Refinance-ready markers */}
           {propertyTimelines.map(prop => {
@@ -274,15 +201,11 @@ export const EquityUnlockChart: React.FC = () => {
                 key={`ready-${prop.instanceId}`}
                 x={prop.refinanceReadyYear}
                 y={pt.extractableEquity}
-                r={6}
+                r={5}
                 fill="white"
-                stroke={CHART_COLORS.primary}
-                strokeWidth={2.5}
-              >
-                <Label
-                  content={<MarkerLabel value={`${prop.refinanceReadyYear}`} />}
-                />
-              </ReferenceDot>
+                stroke={prop.color}
+                strokeWidth={2}
+              />
             );
           })}
 
@@ -296,7 +219,7 @@ export const EquityUnlockChart: React.FC = () => {
                 key={`extract-${prop.instanceId}`}
                 x={prop.extractionEvent.year}
                 y={pt.extractableEquity}
-                r={5}
+                r={4}
                 fill={prop.color}
                 stroke="white"
                 strokeWidth={2}
@@ -304,11 +227,11 @@ export const EquityUnlockChart: React.FC = () => {
                 <Label
                   value={fmt(prop.extractionEvent.amount)}
                   position="top"
-                  offset={14}
+                  offset={12}
                   style={{
                     fontSize: 9,
-                    fill: prop.color,
-                    fontWeight: 700,
+                    fill: CHART_COLORS.labelText,
+                    fontWeight: 500,
                     fontFamily: 'Inter, system-ui, sans-serif',
                   }}
                 />
@@ -318,32 +241,36 @@ export const EquityUnlockChart: React.FC = () => {
         </ComposedChart>
       </ResponsiveContainer>
 
-      {/* BA Triggers Panel */}
-      {triggers.length > 0 && (
-        <div
-          className="mt-3 mx-2 px-4 py-3 rounded-lg border"
-          style={{
-            backgroundColor: 'rgba(59, 108, 244, 0.04)',
-            borderColor: 'rgba(59, 108, 244, 0.15)',
-          }}
-        >
-          <div className="text-[11px] font-bold mb-2" style={{ color: CHART_COLORS.primary }}>
-            REFINANCE CONVERSATION TRIGGERS
-          </div>
-          <div className="flex gap-4 flex-wrap">
-            {triggers.map(t => (
-              <div key={`${t.title}-${t.year}`} className="text-[11px]" style={{ color: CHART_COLORS.primary }}>
-                <span className="font-semibold">{t.year}</span>: {t.title} — refinance ready
-                {t.extracted && (
-                  <span className="font-semibold" style={{ color: t.color }}>
-                    {' '}→ {fmt(t.extracted.amount)} extracted
-                  </span>
-                )}
-              </div>
-            ))}
+      {/* Per-property legend + trigger summary */}
+      <div className="mt-1 px-4">
+        {/* Legend */}
+        <div className="flex items-center gap-5 flex-wrap">
+          {propertyTimelines.map(prop => (
+            <div key={prop.instanceId} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: prop.color }} />
+              <span className="text-[11px] text-gray-400">{prop.title}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 border-t border-dashed" style={{ borderColor: CHART_COLORS.goal }} />
+            <span className="text-[11px] text-gray-400">Min $50k Threshold</span>
           </div>
         </div>
-      )}
+
+        {/* Triggers */}
+        {triggers.length > 0 && (
+          <div className="mt-1.5 flex gap-x-5 gap-y-1 flex-wrap">
+            {triggers.map(t => (
+              <span key={t.key} className="text-[11px] text-gray-400">
+                <span className="font-medium text-gray-500">{t.year}</span>: {t.title} — refinance ready
+                {t.extracted && (
+                  <span className="text-gray-500"> · {fmt(t.extracted.amount)} extracted</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
