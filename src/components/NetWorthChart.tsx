@@ -1,15 +1,15 @@
 import React from 'react';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
-import { CHART_STYLE } from '../constants/chartColors';
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
-// Net Worth chart uses a distinct 3-color palette: blue, purple, aqua
+// Net Worth chart uses the centralized tri-color line palette
 export const NW_COLORS = {
-  totalAssets: '#3B82F6',   // Blue
-  netWorth: '#8B5CF6',      // Purple
-  totalDebt: '#22D3EE',     // Light blue / aqua
+  totalAssets: CHART_COLORS.lineBlue,
+  netWorth: CHART_COLORS.linePurple,
+  totalDebt: CHART_COLORS.lineAqua,
 } as const;
 
 interface NetWorthChartProps {

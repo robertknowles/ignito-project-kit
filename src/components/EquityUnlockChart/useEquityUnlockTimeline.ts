@@ -3,11 +3,12 @@ import type { TimelineProperty } from '../../types/property';
 import type { InvestmentProfileData } from '../../contexts/InvestmentProfileContext';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParams';
-// Distinct colors per property line — blue, purple, aqua (same palette as Net Worth)
+import { CHART_COLORS } from '../../constants/chartColors';
+// Use centralized tri-color line palette (blue, purple, aqua)
 const EQUITY_LINE_COLORS = [
-  '#3B82F6',  // Blue
-  '#8B5CF6',  // Purple
-  '#22D3EE',  // Aqua
+  CHART_COLORS.lineBlue,
+  CHART_COLORS.linePurple,
+  CHART_COLORS.lineAqua,
 ] as const;
 
 export interface EquityTimelinePoint {
