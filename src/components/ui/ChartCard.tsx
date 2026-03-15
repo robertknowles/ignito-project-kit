@@ -18,7 +18,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ title, action, legend, con
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Title */}
       <div className="px-6 pt-6 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-600">{title}</h3>
         {action}
       </div>
 

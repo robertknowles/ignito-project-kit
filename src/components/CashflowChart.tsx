@@ -62,7 +62,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       })
       return (
         <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
-          <p className="text-xs font-medium text-gray-900">{`Year: ${label}`}</p>
+          <p className="text-xs font-medium text-gray-600">{`Year: ${label}`}</p>
           <p className="text-xs text-gray-600">
             {`Net Cashflow: ${value >= 0 ? '+' : '-'}${formattedValue}`}
           </p>

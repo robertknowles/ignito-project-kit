@@ -60,7 +60,7 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div>
           <span className="text-[11px] font-medium text-gray-400">Cash in Hand</span>
           <div className="mt-0.5">
-            <span className="text-lg font-semibold text-gray-900">{fmt(summary.cashInHand)}</span>
+            <span className="text-lg font-semibold text-gray-600">{fmt(summary.cashInHand)}</span>
           </div>
           <span className="text-[10px] text-gray-400 block">From {soldCount} sold</span>
         </div>
@@ -68,7 +68,7 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div>
           <span className="text-[11px] font-medium text-gray-400">Equity Retained</span>
           <div className="mt-0.5">
-            <span className="text-lg font-semibold text-gray-900">{fmt(summary.equityRetained)}</span>
+            <span className="text-lg font-semibold text-gray-600">{fmt(summary.equityRetained)}</span>
           </div>
           <span className="text-[10px] text-gray-400 block">In {totalCount - soldCount} held</span>
         </div>
@@ -76,7 +76,7 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div>
           <span className="text-[11px] font-medium text-gray-400">Debt Remaining</span>
           <div className="mt-0.5">
-            <span className="text-lg font-semibold text-gray-900">{fmt(summary.debtRemaining)}</span>
+            <span className="text-lg font-semibold text-gray-600">{fmt(summary.debtRemaining)}</span>
           </div>
           <span className="text-[10px] text-gray-400 block">{summary.debtRemaining > 0 ? 'On held properties' : 'Debt free'}</span>
         </div>
@@ -84,7 +84,7 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div>
           <span className="text-[11px] font-medium text-gray-400">Annual Cashflow</span>
           <div className="mt-0.5">
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-gray-600">
               {summary.annualCashflow >= 0 ? '+' : ''}{fmt(summary.annualCashflow)}
             </span>
             <span className="text-[10px] font-normal text-gray-400">/yr</span>
@@ -160,7 +160,7 @@ export const RetirementScenarioPanel: React.FC = () => {
             Time to Retirement
           </span>
           <div className="flex-1" />
-          <span className="text-sm font-semibold text-gray-900 min-w-[40px] text-right">
+          <span className="text-sm font-medium text-gray-600 min-w-[40px] text-right">
             {years}
           </span>
           <span className="text-[11px] text-gray-400">yrs</span>
@@ -200,7 +200,7 @@ export const RetirementScenarioPanel: React.FC = () => {
                 }`}
               >
                 <div className="text-left">
-                  <div className="text-[11px] font-medium text-gray-900 leading-tight">
+                  <div className="text-[11px] font-medium text-gray-600 leading-tight">
                     {prop.title}
                   </div>
                   <div className="text-[10px] text-gray-400">
@@ -210,7 +210,7 @@ export const RetirementScenarioPanel: React.FC = () => {
                 <span
                   className={`text-[10px] font-medium tracking-wide px-2 py-0.5 rounded ${
                     isSold
-                      ? 'bg-gray-900 text-white'
+                      ? 'bg-gray-500 text-white'
                       : 'border border-gray-200 text-gray-400'
                   }`}
                 >

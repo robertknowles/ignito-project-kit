@@ -55,11 +55,11 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-center">
               <div>
-                <div className="text-[12px] font-semibold text-gray-900">{title}</div>
+                <div className="text-[12px] font-medium text-gray-600">{title}</div>
                 <div className="text-[10px] text-gray-400">Bought {buyYear}</div>
               </div>
               <div className="text-right">
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-medium text-gray-600">
                   {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
                 </span>
                 <span className="text-[10px] font-normal text-gray-400">/mo</span>
@@ -127,7 +127,7 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
                       style={{ width: `${pct}%`, backgroundColor: itemColor, opacity: 0.5 }}
                     />
                   </div>
-                  <div className="w-12 text-right text-[11px] font-medium text-gray-900">
+                  <div className="w-12 text-right text-[11px] font-medium text-gray-600">
                     {fmtMo(item.value)}
                   </div>
                 </div>
@@ -148,8 +148,8 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
               </span>
             </div>
             <div className="flex justify-between mt-1.5 pt-1.5">
-              <span className="text-[11px] font-semibold text-gray-900">Net Cost</span>
-              <span className="text-[11px] font-semibold text-gray-900">
+              <span className="text-[11px] font-medium text-gray-600">Net Cost</span>
+              <span className="text-[11px] font-medium text-gray-600">
                 {isPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}/mo
               </span>
             </div>

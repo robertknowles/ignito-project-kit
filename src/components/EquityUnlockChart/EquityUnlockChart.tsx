@@ -49,7 +49,7 @@ const EquityTooltip = ({ active, payload, label, propertyNames }: any) => {
 
   return (
     <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
-      <p className="text-xs font-medium text-gray-900 mb-1.5">Year {label}</p>
+      <p className="text-xs font-medium text-gray-600 mb-1.5">Year {label}</p>
       {sorted.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center gap-1.5 mb-0.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.color }} />

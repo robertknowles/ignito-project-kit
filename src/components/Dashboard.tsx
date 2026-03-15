@@ -95,9 +95,9 @@ export const Dashboard = () => {
         <ChartCard
           title="Funding Sources"
           legend={[
-            { color: CHART_COLORS.series[0], label: 'Cash Deposit' },
-            { color: CHART_COLORS.series[1], label: 'Equity Extraction' },
-            { color: CHART_COLORS.series[2], label: 'Accumulated Savings' },
+            { color: CHART_COLORS.barPositive, label: 'Cash Deposit' },
+            { color: CHART_COLORS.barNegative, label: 'Equity Extraction' },
+            { color: 'rgba(156, 163, 175, 0.35)', label: 'Accumulated Savings' },
           ]}
         >
           <FundingSourcesChart />

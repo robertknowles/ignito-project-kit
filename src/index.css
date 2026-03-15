@@ -133,8 +133,8 @@
   /* 1. Page Title — main page headings */
   .page-title {
     font-size: 24px;
-    font-weight: 700;
-    color: #111827;
+    font-weight: 600;
+    color: #374151;
     line-height: 1.2;
   }
 
@@ -142,14 +142,14 @@
   .section-heading {
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: #4B5563;
   }
 
   /* 3. Stat Number — KPI numbers in stat cards (restrained, Circle-style) */
   .stat-number {
     font-size: 24px;
     font-weight: 600;
-    color: #111827;
+    color: #374151;
     letter-spacing: -0.025em;
     line-height: 1;
   }
@@ -165,7 +165,7 @@
   .body-dark {
     font-size: 14px;
     font-weight: 400;
-    color: #111827;
+    color: #374151;
   }
 
   /* 6. Body Secondary — supporting text, descriptions */
@@ -200,7 +200,7 @@
   .table-cell {
     padding: 18px 20px;
     font-size: 14px;
-    color: #111827;
+    color: #374151;
   }
 
   /* Table cell secondary — muted text for secondary columns */
@@ -212,15 +212,15 @@
 
   /* Legacy aliases (prefer canonical names above) */
   .metric-value {
-    font-size: 32px;
-    font-weight: 700;
-    color: #111827;
+    font-size: 28px;
+    font-weight: 600;
+    color: #374151;
     letter-spacing: -0.025em;
     line-height: 1;
   }
 
   .metric-value-sm {
-    @apply text-lg font-bold text-gray-900 tracking-tight leading-tight;
+    @apply text-lg font-semibold text-gray-600 tracking-tight leading-tight;
   }
 }
 

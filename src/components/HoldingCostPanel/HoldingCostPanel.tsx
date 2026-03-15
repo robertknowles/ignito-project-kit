@@ -67,7 +67,7 @@ export const HoldingCostPanel: React.FC = () => {
         </div>
         <div className="text-right flex-shrink-0">
           <div>
-            <span className="text-xl font-semibold text-gray-900">
+            <span className="text-xl font-semibold text-gray-600">
               {isPositive ? '+' : '-'}{fmtMo(totals.totalNet)}
             </span>
             <span className="text-xs font-normal text-gray-400">/mo</span>
@@ -92,7 +92,7 @@ export const HoldingCostPanel: React.FC = () => {
           className="flex-1 h-1 slider-blue"
           style={{ accentColor: CHART_COLORS.primary }}
         />
-        <span className="text-sm font-semibold text-gray-900 min-w-[40px] text-right">
+        <span className="text-sm font-medium text-gray-600 min-w-[40px] text-right">
           {snapshotYear}
         </span>
       </div>
@@ -114,13 +114,13 @@ export const HoldingCostPanel: React.FC = () => {
       {/* Portfolio total */}
       <div className="flex justify-between items-center mt-4 pt-3">
         <div>
-          <div className="text-xs font-semibold text-gray-900">Total Portfolio</div>
+          <div className="text-xs font-medium text-gray-600">Total Portfolio</div>
           <div className="text-[11px] text-gray-400">
             Rent: {fmtMo(totals.totalRent)}/mo · Costs: {fmtMo(totals.totalCosts)}/mo · Coverage: {totals.coverage}%
           </div>
         </div>
         <div>
-          <span className="text-base font-semibold text-gray-900">
+          <span className="text-base font-medium text-gray-600">
             {isPositive ? '+' : '-'}{fmtMo(totals.totalNet)}
           </span>
           <span className="text-[10px] font-normal text-gray-400">/mo</span>

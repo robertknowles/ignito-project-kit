@@ -31,7 +31,7 @@ const NetWorthTooltip = ({ active, payload, label }: any) => {
   };
   return (
     <div className="bg-white p-3 border border-gray-100 shadow-sm rounded-lg">
-      <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
+      <p className="text-xs font-medium text-gray-600 mb-2">Year: {label}</p>
       <p className="text-xs" style={{ color: NW_COLORS.totalAssets }}>Total Assets: {formatK(data?.totalAssets || 0)}</p>
       <p className="text-xs" style={{ color: NW_COLORS.totalDebt }}>Total Debt: {formatK(data?.totalDebt || 0)}</p>
       <p className="text-xs font-medium" style={{ color: NW_COLORS.netWorth }}>Net Worth: {formatK(data?.netWorth || 0)}</p>
