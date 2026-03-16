@@ -6,7 +6,6 @@ import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { ScenarioCanvas } from './ScenarioCanvas';
 import { ComparisonInsights } from './ComparisonInsights';
-import { NetWorthChart, NW_COLORS } from './NetWorthChart';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
@@ -16,7 +15,6 @@ import { EquityUnlockChart } from './EquityUnlockChart/EquityUnlockChart';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
-
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
   useChartDataSync();
@@ -89,65 +87,67 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
 
-        {/* ── Deep Dive Charts ────────────────────────────────────── */}
+        {/* ── Section 1: Investment Plan ──────────────────────────── */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-gray-600 mb-4">Investment Plan</h2>
+          <div className="flex flex-col gap-6">
+            <ChartCard
+              title="Funding Sources"
+              legend={[
+                { color: CHART_COLORS.barPositive, label: 'Cash Deposit' },
+                { color: CHART_COLORS.barNegative, label: 'Equity Extraction' },
+                { color: 'rgba(156, 163, 175, 0.35)', label: 'Accumulated Savings' },
+              ]}
+            >
+              <FundingSourcesChart />
+            </ChartCard>
 
-        {/* Funding Sources — full width */}
-        <ChartCard
-          title="Funding Sources"
-          legend={[
-            { color: CHART_COLORS.barPositive, label: 'Cash Deposit' },
-            { color: CHART_COLORS.barNegative, label: 'Equity Extraction' },
-            { color: 'rgba(156, 163, 175, 0.35)', label: 'Accumulated Savings' },
-          ]}
-        >
-          <FundingSourcesChart />
-        </ChartCard>
-
-        {/* Equity Unlock — per-property extractable equity with BA triggers */}
-        <ChartCard
-          title="Equity Unlock Timeline"
-        >
-          <EquityUnlockChart />
-        </ChartCard>
-
-        {/* Cashflow Projection — full width */}
-        <ChartCard
-          title="Cashflow Projection"
-          legend={[
-            { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
-            { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
-          ]}
-        >
-          <CashflowChart />
-        </ChartCard>
-
-        {/* Retirement Scenario + Monthly Holding Cost — side by side */}
-        <div className="grid grid-cols-2 gap-6">
-          <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
-            <RetirementScenarioPanel />
-          </ChartCard>
-
-          <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
-            <HoldingCostPanel />
-          </ChartCard>
+            <ChartCard
+              title="Equity Unlock Timeline"
+            >
+              <EquityUnlockChart />
+            </ChartCard>
+          </div>
         </div>
 
-        {/* Net Worth Trajectory — full width */}
-        <ChartCard
-          title="Net Worth Trajectory"
-          legend={[
-            { color: NW_COLORS.totalAssets, label: 'Total Assets' },
-            { color: NW_COLORS.netWorth, label: 'Net Worth' },
-            { color: NW_COLORS.totalDebt, label: 'Total Debt' },
-          ]}
-        >
-          <NetWorthChart />
-        </ChartCard>
+        {/* ── Section 2: Cashflow ────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-gray-600 mb-4">Cashflow</h2>
+          <div className="flex flex-col gap-6">
+            <ChartCard
+              title="Cashflow Projection"
+              legend={[
+                { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
+                { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
+              ]}
+            >
+              <CashflowChart />
+            </ChartCard>
 
-        {/* Financial Summary Table — full width at bottom */}
-        <ChartCard title="Financial Summary" contentClassName="pl-12 pb-12 pt-5 pr-12">
-          <FinancialSummaryTable />
-        </ChartCard>
+            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
+              <HoldingCostPanel />
+            </ChartCard>
+          </div>
+        </div>
+
+        {/* ── Section 3: Portfolio Growth ─────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-gray-600 mb-4">Portfolio Growth</h2>
+          <div className="flex flex-col gap-6">
+            <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
+              <RetirementScenarioPanel />
+            </ChartCard>
+
+            <ChartCard
+              title="Financial Summary"
+              contentClassName="pl-12 pb-12 pt-5 pr-12"
+              collapsible
+              defaultCollapsed
+            >
+              <FinancialSummaryTable />
+            </ChartCard>
+          </div>
+        </div>
       </div>
     </div>
   );
