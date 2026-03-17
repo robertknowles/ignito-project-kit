@@ -1,5 +1,9 @@
 import React, { useMemo } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
+import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
+import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
+import { projectPropertyTimeline } from '../../utils/metricsCalculator';
+import { DEFAULT_INTEREST_RATE, BASE_YEAR, getGrowthCurveForTier } from '../../constants/financialParams';
 import { CHART_COLORS } from '../../constants/chartColors';
 
 /**
@@ -35,10 +39,21 @@ interface FundingCard {
 
 export const FundingSourcesChart: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
+  const { getInstance } = usePropertyInstance();
 
   const cards: FundingCard[] = useMemo(() => {
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
     if (feasible.length === 0) return [];
+
+    const endYear = BASE_YEAR + profile.timelineYears - 1;
+
+    // Pre-compute timelines for all properties (same as Equity Unlock)
+    const donorTimelines = feasible.map(prop => {
+      const propInstance = getInstance(prop.instanceId);
+      const growthCurve = getGrowthCurveForTier(propInstance?.growthAssumption, profile.growthCurve);
+      return projectPropertyTimeline(prop, endYear, growthCurve, DEFAULT_INTEREST_RATE);
+    });
 
     return feasible.map((prop, idx) => {
       const fb = prop.fundingBreakdown;
@@ -50,16 +65,25 @@ export const FundingSourcesChart: React.FC = () => {
       const sources: FundingCard['sources'] = [];
       if (cash > 0) sources.push({ label: 'Cash Deposit', amount: cash, color: COLORS.cash });
 
-      // Build equity source labels showing which property the equity comes from
+      // Find donor properties and their extractable equity at this purchase year
+      const buyYear = Math.floor(prop.affordableYear);
+      const donorEquities: { title: string; extractable: number }[] = [];
+
       if (equity > 0) {
-        // Try to find which property the equity was extracted from
-        const equitySourceProps = feasible.filter(
-          (p, i) => i < idx && p.fundingBreakdown.equity >= 0
-        );
-        if (equitySourceProps.length > 0) {
-          // For simplicity, attribute equity to previous properties
+        // Look up each earlier property's extractable equity from pre-computed timelines
+        for (let di = 0; di < idx; di++) {
+          const snapshots = donorTimelines[di].snapshots;
+          const snap = snapshots.find(s => s.year === buyYear)
+            ?? snapshots.filter(s => s.year < buyYear).pop();
+          const extractable = snap?.extractableEquity ?? 0;
+          if (extractable > 0) {
+            donorEquities.push({ title: feasible[di].title, extractable });
+          }
+        }
+
+        if (donorEquities.length > 0) {
           sources.push({
-            label: `Equity from Property ${equitySourceProps.length > 1 ? 'Portfolio' : equitySourceProps.length}`,
+            label: `Equity from Property ${donorEquities.length > 1 ? 'Portfolio' : donorEquities[0].title}`,
             amount: equity,
             color: COLORS.equity,
           });
@@ -70,32 +94,30 @@ export const FundingSourcesChart: React.FC = () => {
 
       if (savings > 0) sources.push({ label: 'Accumulated Savings', amount: savings, color: COLORS.savings });
 
-      // Equity extraction notes
+      // Equity extraction notes — show per-donor proportional contribution
       const equityNotes: string[] = [];
-      if (equity > 0) {
-        const buyYear = Math.floor(prop.affordableYear);
-        // Find which earlier properties contributed equity
-        const donors = feasible.filter((p, i) => i < idx);
-        if (donors.length > 0) {
-          // Show each donor's contribution
-          donors.forEach(d => {
-            equityNotes.push(
-              `↑ ${fmt(equity)} from ${d.title} - refinanced ${buyYear}`
-            );
-          });
-        }
+      if (equity > 0 && donorEquities.length > 0) {
+        const totalExtractable = donorEquities.reduce((s, d) => s + d.extractable, 0);
+        donorEquities.forEach(d => {
+          const share = totalExtractable > 0
+            ? Math.round((d.extractable / totalExtractable) * equity)
+            : Math.round(equity / donorEquities.length);
+          equityNotes.push(
+            `↑ ${fmt(share)} from ${d.title} – refinanced ${buyYear}`
+          );
+        });
       }
 
       return {
         title: `Property ${idx + 1}`,
         propertyType: prop.title,
-        buyYear: Math.floor(prop.affordableYear),
+        buyYear,
         total,
         sources,
         equityNotes,
       };
     });
-  }, [timelineProperties]);
+  }, [timelineProperties, profile, getInstance]);
 
   if (cards.length === 0) {
     return (
@@ -107,7 +129,9 @@ export const FundingSourcesChart: React.FC = () => {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-4">Where each deposit comes from</p>
+      <div className="flex items-start justify-between mb-5">
+        <p className="text-xs text-gray-400">Where each deposit comes from</p>
+      </div>
 
       {/* Cards row — single line */}
       <div className="flex gap-4" style={{ minWidth: 0 }}>

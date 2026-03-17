@@ -50,6 +50,10 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     ? Math.min((kpis.totalEquity / profile.equityGoal) * 100, 100)
     : 0
 
+  const cashflowProgress = profile.cashflowGoal > 0
+    ? Math.min((annualCashflow / profile.cashflowGoal) * 100, 100)
+    : 0
+
   // Format currency values (always abbreviated with 1 decimal for k values)
   const formatCurrency = (value: number) => {
     const absValue = Math.abs(value)
@@ -99,8 +103,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="stat-number">
             {formatCurrency(Math.round(annualCashflow))}
           </span>
+          {cashflowProgress >= 100 && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
         </div>
-        <span className="meta mt-1 block">/yr</span>
+        <span className="meta mt-1 block">/ {formatCurrency(profile.cashflowGoal)}</span>
       </div>
     </div>
     </TourStep>

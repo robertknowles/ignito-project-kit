@@ -1043,22 +1043,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 </ReferenceDot>
               )}
 
-              {/* Refinance Trigger Dots - amber dots at years when equity extraction is possible */}
-              {refinanceTriggers.map((trigger) => {
-                const yearData = chartData.find(d => d.year === trigger.triggerYear);
-                if (!yearData) return null;
-                return (
-                  <ReferenceDot
-                    key={`refi-${trigger.instanceId}`}
-                    x={trigger.triggerYear}
-                    y={yearData.totalEquity}
-                    r={5}
-                    fill={CHART_COLORS.goalMarker}
-                    stroke={CHART_COLORS.goal}
-                    strokeWidth={1.5}
-                  />
-                );
-              })}
             </ComposedChart>
           </div>
         </div>

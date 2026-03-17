@@ -179,6 +179,35 @@ export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
 export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k
 
 // =============================================================================
+// GROWTH RATE TIERS (per property type's growthAssumption)
+// =============================================================================
+
+import type { GrowthCurve } from '../types/property';
+
+/**
+ * Maps growthAssumption tier (High/Medium/Low) to specific annual growth rates.
+ * Used by property templates to determine property-specific growth curves.
+ * Must stay in sync with DataAssumptionsContext's GROWTH_RATES.
+ */
+export const GROWTH_RATE_TIERS: Record<string, GrowthCurve> = {
+  High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
+  Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
+  Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
+};
+
+/**
+ * Get a property-specific growth curve from its instance's growthAssumption tier.
+ * Falls back to profile.growthCurve if no tier specified.
+ */
+export const getGrowthCurveForTier = (
+  tier: string | undefined,
+  fallback: GrowthCurve
+): GrowthCurve => {
+  if (tier && GROWTH_RATE_TIERS[tier]) return GROWTH_RATE_TIERS[tier];
+  return fallback;
+};
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 

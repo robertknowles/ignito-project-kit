@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
+import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useEquityUnlockTimeline } from './useEquityUnlockTimeline';
 import { MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParams';
 
@@ -28,7 +29,8 @@ const fmt = (v: number) => {
 export const EquityUnlockChart: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
-  const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile);
+  const { getInstance } = usePropertyInstance();
+  const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile, getInstance);
 
   const { years, rows, totalFinalEquity, lastYear } = useMemo(() => {
     if (propertyTimelines.length === 0) {

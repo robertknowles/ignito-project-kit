@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
+import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useHoldingCostTimeline } from './useHoldingCostTimeline';
 import { CHART_COLORS } from '../../constants/chartColors';
 import { ChevronDown } from 'lucide-react';
@@ -24,7 +25,8 @@ const FINAL_WIDTH = 80;
 export const HoldingCostPanel: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
-  const { properties, startYear, endYear } = useHoldingCostTimeline(timelineProperties, profile);
+  const { getInstance } = usePropertyInstance();
+  const { properties, startYear, endYear } = useHoldingCostTimeline(timelineProperties, profile, getInstance);
 
   const latestBuyYear = properties.length > 0
     ? Math.max(...properties.map(p => p.buyYear))
@@ -134,39 +136,48 @@ export const HoldingCostPanel: React.FC = () => {
                 className="w-full flex items-start cursor-pointer hover:bg-gray-50/50 rounded-md transition-colors py-1"
                 onClick={() => setExpandedIdx(isOpen ? null : idx)}
               >
-                {/* Label — same width as equity unlock */}
-                <div className="flex-shrink-0" style={{ width: LABEL_WIDTH }}>
+                {/* Label — same width as equity unlock, left-aligned */}
+                <div className="flex-shrink-0 text-left" style={{ width: LABEL_WIDTH }}>
                   <p className="text-xs font-semibold text-gray-600 leading-tight truncate">{prop.title}</p>
                   <p className="text-[11px] text-gray-400">Bought {prop.buyYear}</p>
                 </div>
 
-                {/* Rent vs Cost bar — same 20px height as Gantt bars */}
+                {/* Cost vs Rent bar — same 20px height as Gantt bars */}
                 <div className="flex-1 relative mt-0.5" style={{ height: 20 }}>
-                  {/* Full costs background */}
-                  <div
-                    className="absolute top-0 left-0 rounded-md"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      backgroundColor: COLORS.costs,
-                    }}
-                  />
-                  {/* Rent coverage overlay */}
-                  <div
-                    className="absolute top-0 left-0 rounded-md"
-                    style={{
-                      width: `${coveragePct}%`,
-                      height: '100%',
-                      backgroundColor: COLORS.rent,
-                    }}
-                  />
-                  {/* Labels inside bar */}
+                  {/* Costs bar from left (light blue) */}
+                  {(() => {
+                    const maxVal = Math.max(totalCosts, snapshot.monthlyRent, 1);
+                    const costsPct = (totalCosts / maxVal) * 100;
+                    const rentPct = (snapshot.monthlyRent / maxVal) * 100;
+                    return (
+                      <>
+                        <div
+                          className="absolute top-0 left-0 rounded-md"
+                          style={{
+                            width: `${costsPct}%`,
+                            height: '100%',
+                            backgroundColor: COLORS.costs,
+                          }}
+                        />
+                        {/* Rent bar from right (darker blue) */}
+                        <div
+                          className="absolute top-0 right-0 rounded-md"
+                          style={{
+                            width: `${rentPct}%`,
+                            height: '100%',
+                            backgroundColor: COLORS.rent,
+                          }}
+                        />
+                      </>
+                    );
+                  })()}
+                  {/* Labels inside bar — costs on left, rent on right */}
                   <div className="relative flex justify-between items-center h-full px-2">
-                    <span className="text-[10px] font-medium text-gray-600">
-                      Rent: {fmtMo(snapshot.monthlyRent)}
-                    </span>
                     <span className="text-[10px] text-gray-400">
                       Costs: {fmtMo(totalCosts)} · {Math.round(coveragePct)}%
+                    </span>
+                    <span className="text-[10px] font-medium text-gray-600">
+                      Rent: {fmtMo(snapshot.monthlyRent)}
                     </span>
                   </div>
                 </div>
