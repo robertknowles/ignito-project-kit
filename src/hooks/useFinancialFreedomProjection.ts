@@ -131,6 +131,24 @@ export function useFinancialFreedomProjection({
     let annualPiPayment = 0;
     let piYearsElapsed = 0;
 
+    const cashflowGoalTarget = profile.cashflowGoal || profile.targetPassiveIncome;
+
+    // Scan accumulation-phase cashflow data for early milestones
+    for (const point of cashflowData) {
+      const year = parseInt(point.year, 10);
+      if (isNaN(year)) continue;
+
+      if (cashflowPositiveYear === null && point.cashflow > 0) {
+        cashflowPositiveYear = year;
+        milestones.push({ year, label: 'Cashflow positive', type: 'positive' });
+      }
+
+      if (freedomYear === null && point.cashflow >= cashflowGoalTarget) {
+        freedomYear = year;
+        milestones.push({ year, label: 'Cashflow goal', type: 'freedom' });
+      }
+    }
+
     for (let i = 0; i < PROJECTION_YEARS; i++) {
       const year = accumulationEndYear + 1 + i;
       const yearsFromNow = year - BASE_YEAR;
@@ -167,6 +185,14 @@ export function useFinancialFreedomProjection({
 
       const netCashflow = currentRentalIncome - currentExpenses - currentLoanPayments;
 
+      // Surplus cashflow accelerates debt paydown — assume 30% of surplus
+      // goes to extra repayments (rest retained for living expenses, reserves, etc.)
+      const SURPLUS_REPAYMENT_RATE = 0.30;
+      if (netCashflow > 0 && currentDebt > 0) {
+        const extraRepayment = Math.min(netCashflow * SURPLUS_REPAYMENT_RATE, currentDebt);
+        currentDebt = Math.max(0, currentDebt - extraRepayment);
+      }
+
       yearlyData.push({
         year,
         netCashflow: Math.round(netCashflow),
@@ -188,9 +214,9 @@ export function useFinancialFreedomProjection({
         milestones.push({ year, label: 'Cashflow positive', type: 'positive' });
       }
 
-      if (freedomYear === null && netCashflow >= profile.targetPassiveIncome) {
+      if (freedomYear === null && netCashflow >= cashflowGoalTarget) {
         freedomYear = year;
-        milestones.push({ year, label: 'Financial freedom', type: 'freedom' });
+        milestones.push({ year, label: 'Cashflow goal', type: 'freedom' });
       }
 
       if (debtFreeYear === null && currentDebt <= 0 && piPaymentStartDebt > 0) {

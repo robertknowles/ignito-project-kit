@@ -87,7 +87,7 @@ export const HoldingCostPanel: React.FC = () => {
               max={endYear}
               value={snapshotYear}
               onChange={e => setSnapshotYear(Number(e.target.value))}
-              className="w-24 h-1 slider-blue"
+              className="w-[576px] h-1 slider-blue"
               style={{ accentColor: CHART_COLORS.primary }}
             />
             <span className="text-sm font-medium text-gray-600 min-w-[32px] text-right">

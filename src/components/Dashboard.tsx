@@ -105,18 +105,18 @@ export const Dashboard = () => {
         <div className="mt-10">
           <h2 className="text-lg font-semibold text-gray-600 mb-4">Cash Flow & Costs</h2>
           <div className="flex flex-col gap-6">
-            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
-              <HoldingCostPanel />
-            </ChartCard>
-
             <ChartCard
               title="Cashflow Projection"
               legend={[
-                { color: CHART_COLORS.barPositive, label: 'Positive Cashflow' },
-                { color: CHART_COLORS.barNegative, label: 'Negative Cashflow' },
+                { color: CHART_COLORS.barPositive, label: 'Positive' },
+                { color: CHART_COLORS.barNegative, label: 'Negative' },
               ]}
             >
               <CashflowChart />
+            </ChartCard>
+
+            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
+              <HoldingCostPanel />
             </ChartCard>
 
             <ChartCard

@@ -7,9 +7,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceDot,
   ReferenceLine,
   Cell,
+  Label,
 } from 'recharts'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -82,14 +82,11 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     return `${sign}$${absValue}`
   }
 
-  // Find when passive income goal is reached
-  const incomeGoalReached = data.find(d => d.cashflow >= profile.cashflowGoal)
-
   // Calculate Y-axis domain with nice round intervals
   const { yAxisDomain, yAxisTicks } = useMemo(() => {
     const values = data.map(d => d.cashflow);
     const dataMin = Math.min(...values, 0);
-    const dataMax = Math.max(...values, profile.cashflowGoal || 0);
+    const dataMax = Math.max(...values);
 
     // Determine a nice interval based on the range
     const range = dataMax - dataMin;
@@ -119,7 +116,25 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       yAxisDomain: [niceMin, niceMax],
       yAxisTicks: ticks,
     };
-  }, [data, profile.cashflowGoal]);
+  }, [data]);
+
+  // Group milestones by year and only include years within chart range
+  const chartYears = new Set(data.map(d => String(d.year)));
+  const groupedMilestones = useMemo(() => {
+    const visible = projection.milestones.filter(
+      m => m.type !== 'transition' && chartYears.has(String(m.year))
+    );
+    const byYear = new Map<number, string[]>();
+    for (const m of visible) {
+      const labels = byYear.get(m.year) || [];
+      labels.push(m.label);
+      byYear.set(m.year, labels);
+    }
+    return Array.from(byYear.entries()).map(([year, labels]) => ({
+      year,
+      label: labels.join(' · '),
+    }));
+  }, [projection.milestones, chartYears]);
 
   return (
     <div>
@@ -127,7 +142,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         <BarChart
           data={data}
           margin={{
-            top: 20,
+            top: 30,
             right: 24,
             left: 0,
             bottom: 5,
@@ -147,21 +162,22 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Target cashflow — dashed horizontal line */}
-          {profile.cashflowGoal > 0 && (
+          {/* Milestone vertical markers — grouped by year */}
+          {groupedMilestones.map(m => (
             <ReferenceLine
-              y={profile.cashflowGoal}
-              {...CHART_STYLE.goalLine}
-            />
-          )}
-
-          {/* Milestone vertical markers — cashflow positive, financial freedom, debt free */}
-          {projection.milestones.map(m => (
-            <ReferenceLine
-              key={m.label}
+              key={m.year}
               x={String(m.year)}
-              {...CHART_STYLE.goalLine}
-            />
+              {...CHART_STYLE.milestoneLine}
+            >
+              <Label
+                value={m.label}
+                position="top"
+                fill={CHART_COLORS.labelText}
+                fontSize={10}
+                fontFamily="Inter, system-ui, sans-serif"
+                offset={8}
+              />
+            </ReferenceLine>
           ))}
 
           <Bar dataKey="cashflow" fill={CHART_COLORS.barPositive} radius={[2, 2, 0, 0]}>
@@ -174,25 +190,15 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             ))}
           </Bar>
 
-          {/* Income Goal Achievement Marker - dot when cashflow goal is reached */}
-          {incomeGoalReached && (
-            <ReferenceDot
-              x={incomeGoalReached.year}
-              y={incomeGoalReached.cashflow}
-              r={5}
-              fill="white"
-              stroke={CHART_COLORS.goal}
-              strokeWidth={2}
-            />
-          )}
-
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Milestone labels below chart */}
+      {/* Milestone labels below chart — shows all including off-chart ones */}
       {projection.milestones.length > 0 && (
         <div className="mt-1 px-4 flex gap-x-5 gap-y-1 flex-wrap">
-          {projection.milestones.map(m => (
+          {projection.milestones
+            .filter(m => m.type !== 'transition')
+            .map(m => (
             <span key={m.label} className="text-[11px] text-gray-400">
               <span className="font-medium text-gray-500">{m.year}</span>: {m.label}
             </span>

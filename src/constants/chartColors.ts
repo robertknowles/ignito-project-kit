@@ -125,6 +125,12 @@ export const CHART_STYLE = {
     strokeDasharray: '5 5',
     strokeWidth: 1.5,
   },
+
+  milestoneLine: {
+    stroke: 'rgba(59, 108, 244, 0.35)',
+    strokeDasharray: '4 4',
+    strokeWidth: 1.2,
+  },
 } as const;
 
 // =============================================================================

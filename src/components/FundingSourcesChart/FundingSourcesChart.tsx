@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
@@ -7,13 +8,13 @@ import { DEFAULT_INTEREST_RATE, BASE_YEAR, getGrowthCurveForTier } from '../../c
 import { CHART_COLORS } from '../../constants/chartColors';
 
 /**
- * Funding Sources — Property Cards
+ * Funding Sources — Property Cards with "Next Purchase" hero treatment.
  *
- * Each property gets a card showing its total deposit cost,
- * a stacked progress bar of funding sources (cash/equity/savings),
- * and a breakdown list. Equity extraction notes shown at bottom.
- *
- * Cards stay in a single horizontal row.
+ * Every card shares the same structure/size. The first future property
+ * is distinguished by a blue border highlight and "BUY NEXT" badge,
+ * plus a readiness progress bar showing how much of the deposit is
+ * fundable TODAY (current year). All other future properties show as
+ * "AFTER THAT" with slightly muted tones but the same layout.
  */
 
 const COLORS = {
@@ -35,6 +36,9 @@ interface FundingCard {
   total: number;
   sources: { label: string; amount: number; color: string }[];
   equityNotes: string[];
+  readinessPct: number;
+  yearsAway: number;
+  isOwned: boolean;
 }
 
 export const FundingSourcesChart: React.FC = () => {
@@ -42,13 +46,14 @@ export const FundingSourcesChart: React.FC = () => {
   const { profile } = useInvestmentProfile();
   const { getInstance } = usePropertyInstance();
 
+  const currentYear = new Date().getFullYear();
+
   const cards: FundingCard[] = useMemo(() => {
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
     if (feasible.length === 0) return [];
 
     const endYear = BASE_YEAR + profile.timelineYears - 1;
 
-    // Pre-compute timelines for all properties (same as Equity Unlock)
     const donorTimelines = feasible.map(prop => {
       const propInstance = getInstance(prop.instanceId);
       const growthCurve = getGrowthCurveForTier(propInstance?.growthAssumption, profile.growthCurve);
@@ -65,25 +70,27 @@ export const FundingSourcesChart: React.FC = () => {
       const sources: FundingCard['sources'] = [];
       if (cash > 0) sources.push({ label: 'Cash Deposit', amount: cash, color: COLORS.cash });
 
-      // Find donor properties and their extractable equity at this purchase year
       const buyYear = Math.floor(prop.affordableYear);
-      const donorEquities: { title: string; extractable: number }[] = [];
+      const donorEquities: { title: string; extractable: number; currentExtractable: number }[] = [];
 
       if (equity > 0) {
-        // Look up each earlier property's extractable equity from pre-computed timelines
         for (let di = 0; di < idx; di++) {
           const snapshots = donorTimelines[di].snapshots;
           const snap = snapshots.find(s => s.year === buyYear)
             ?? snapshots.filter(s => s.year < buyYear).pop();
           const extractable = snap?.extractableEquity ?? 0;
+          const currentSnap = snapshots.find(s => s.year === currentYear)
+            ?? snapshots.filter(s => s.year <= currentYear).pop();
+          const currentExtractable = currentSnap?.extractableEquity ?? 0;
+
           if (extractable > 0) {
-            donorEquities.push({ title: feasible[di].title, extractable });
+            donorEquities.push({ title: feasible[di].title, extractable, currentExtractable });
           }
         }
 
         if (donorEquities.length > 0) {
           sources.push({
-            label: `Equity from Property ${donorEquities.length > 1 ? 'Portfolio' : donorEquities[0].title}`,
+            label: `Equity from ${donorEquities.length > 1 ? 'Portfolio' : donorEquities[0].title}`,
             amount: equity,
             color: COLORS.equity,
           });
@@ -94,7 +101,6 @@ export const FundingSourcesChart: React.FC = () => {
 
       if (savings > 0) sources.push({ label: 'Accumulated Savings', amount: savings, color: COLORS.savings });
 
-      // Equity extraction notes — show per-donor proportional contribution
       const equityNotes: string[] = [];
       if (equity > 0 && donorEquities.length > 0) {
         const totalExtractable = donorEquities.reduce((s, d) => s + d.extractable, 0);
@@ -108,6 +114,20 @@ export const FundingSourcesChart: React.FC = () => {
         });
       }
 
+      let readyNow = cash;
+      if (equity > 0 && donorEquities.length > 0) {
+        const currentTotalExtractable = donorEquities.reduce((s, d) => s + d.currentExtractable, 0);
+        readyNow += Math.min(equity, currentTotalExtractable);
+      }
+      if (savings > 0 && buyYear > BASE_YEAR) {
+        const elapsed = Math.max(0, currentYear - BASE_YEAR);
+        const totalSpan = buyYear - BASE_YEAR;
+        readyNow += Math.min(savings, savings * (elapsed / totalSpan));
+      }
+      const readinessPct = total > 0 ? Math.min(100, Math.round((readyNow / total) * 100)) : 0;
+
+      const isOwned = buyYear <= currentYear;
+
       return {
         title: `Property ${idx + 1}`,
         propertyType: prop.title,
@@ -115,9 +135,12 @@ export const FundingSourcesChart: React.FC = () => {
         total,
         sources,
         equityNotes,
+        readinessPct,
+        yearsAway: Math.max(0, buyYear - currentYear),
+        isOwned,
       };
     });
-  }, [timelineProperties, profile, getInstance]);
+  }, [timelineProperties, profile, getInstance, currentYear]);
 
   if (cards.length === 0) {
     return (
@@ -127,76 +150,131 @@ export const FundingSourcesChart: React.FC = () => {
     );
   }
 
+  const heroIdx = cards.findIndex(c => !c.isOwned);
+
   return (
     <div>
       <div className="flex items-start justify-between mb-5">
         <p className="text-xs text-gray-400">Where each deposit comes from</p>
       </div>
 
-      {/* Cards row — single line */}
-      <div className="flex gap-4" style={{ minWidth: 0 }}>
-        {cards.map((card, idx) => (
-          <div
-            key={idx}
-            className="flex-1 min-w-0 border border-gray-100 rounded-lg px-4 py-4"
-          >
-            {/* Header: title + total */}
-            <div className="flex items-start justify-between mb-1">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-600 truncate">{card.title}</p>
-                <p className="text-[10px] text-gray-400 truncate">
-                  {card.propertyType} · {card.buyYear}
-                </p>
-              </div>
-              <span className="text-sm font-semibold text-gray-600 flex-shrink-0 ml-2">
-                {fmt(card.total)}
-              </span>
-            </div>
+      {/* Cards row */}
+      <div className="flex items-stretch gap-0">
+        {cards.map((card, idx) => {
+          const isHero = idx === heroIdx;
+          const isAfter = idx > heroIdx && heroIdx >= 0;
+          const isFuture = !card.isOwned;
+          const showArrow = idx > 0;
+          const muted = isAfter; // muted styling for "after that" cards
 
-            {/* Stacked progress bar */}
-            <div className="flex rounded-full overflow-hidden h-2 mt-2 mb-3">
-              {card.sources.map((src, si) => {
-                const pct = card.total > 0 ? (src.amount / card.total) * 100 : 0;
-                return (
-                  <div
-                    key={si}
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: src.color,
-                    }}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Source breakdown */}
-            <div className="flex flex-col gap-1.5">
-              {card.sources.map((src, si) => (
-                <div key={si} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <div
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: src.color }}
-                    />
-                    <span className="text-[11px] text-gray-400 truncate">{src.label}</span>
-                  </div>
-                  <span className="text-[11px] font-medium text-gray-500 flex-shrink-0">
-                    {fmt(src.amount)}
-                  </span>
+          return (
+            <React.Fragment key={idx}>
+              {/* Arrow connector */}
+              {showArrow && (
+                <div className="flex flex-col items-center justify-center px-2 flex-shrink-0">
+                  <span className="text-[9px] font-medium text-gray-300 uppercase tracking-wider mb-1">Then</span>
+                  <ArrowRight size={14} className="text-gray-300" />
                 </div>
-              ))}
-            </div>
+              )}
 
-            {/* Equity extraction notes */}
-            {card.equityNotes.length > 0 && (
-              <div className="mt-3 pt-2 border-t border-gray-50">
-                {card.equityNotes.map((note, ni) => (
-                  <p key={ni} className="text-[10px] text-gray-400 leading-relaxed">{note}</p>
-                ))}
+              {/* Unified card — same structure for all */}
+              <div
+                className={`flex-1 min-w-0 rounded-xl px-4 py-4 flex flex-col ${
+                  isHero
+                    ? 'border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-white'
+                    : isAfter
+                      ? 'border border-gray-100 bg-gray-50/40'
+                      : 'border border-gray-100 bg-white'
+                }`}
+              >
+                {/* Badge */}
+                {isHero && (
+                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-2">
+                    Buy Next
+                  </span>
+                )}
+                {isAfter && (
+                  <span className="inline-block text-[9px] font-medium uppercase tracking-wider text-gray-300 mb-2">
+                    After that
+                  </span>
+                )}
+
+                {/* Title row */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold truncate ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {card.title}
+                    </p>
+                    <p className={`text-[10px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                      {card.propertyType} · {isFuture ? `Target ${card.buyYear}` : card.buyYear}
+                    </p>
+                  </div>
+                  {isFuture && (
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <p className={`text-lg font-bold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {card.yearsAway}
+                      </p>
+                      <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>yrs away</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Source breakdown */}
+                <div className="flex flex-col gap-1.5">
+                  {card.sources.map((src, si) => (
+                    <div key={si} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: src.color, opacity: muted ? 0.5 : 1 }}
+                        />
+                        <span className={`text-[11px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                          {src.label}
+                        </span>
+                      </div>
+                      <span className={`text-[11px] font-medium flex-shrink-0 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
+                        {fmt(src.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Readiness bar — hero card only */}
+                {isHero && (
+                  <div className="mt-3 pt-3 border-t border-blue-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-gray-400">Equity building toward deposit</span>
+                      <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
+                        {card.readinessPct}% ready
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden bg-gray-100">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${card.readinessPct}%`,
+                          backgroundColor: CHART_COLORS.barPositive,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+
+                {/* Equity extraction notes */}
+                {card.equityNotes.length > 0 && (
+                  <div className={`mt-auto pt-2 border-t ${isHero ? 'border-blue-50' : 'border-gray-50'}`}>
+                    {card.equityNotes.map((note, ni) => (
+                      <p key={ni} className={`text-[10px] leading-relaxed ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Legend */}

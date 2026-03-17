@@ -1001,11 +1001,6 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
               {isProperty ? (
                 <>
                   {priceDisplay || '$0'}
-                  {monthlyCostDisplay && (
-                    <span className={`ml-1.5 ${monthlyCostDisplay.startsWith('+') ? 'text-green-500' : 'text-rose-400'}`}>
-                      {monthlyCostDisplay}
-                    </span>
-                  )}
                 </>
               ) : (subtitleText || '')}
             </p>
