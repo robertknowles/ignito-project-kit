@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { PropertyYearSnapshot } from '../../utils/metricsCalculator';
-import { HoldingCostSparkline } from './HoldingCostSparkline';
 import { CHART_COLORS } from '../../constants/chartColors';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -64,14 +63,6 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
                 </span>
                 <span className="text-[10px] font-normal text-gray-400">/mo</span>
               </div>
-            </div>
-            {/* Sparkline */}
-            <div className="mt-1">
-              <HoldingCostSparkline
-                data={snapshots}
-                color={color}
-                currentYear={snapshotYear}
-              />
             </div>
           </div>
         </div>

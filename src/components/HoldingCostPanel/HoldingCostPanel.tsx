@@ -61,8 +61,8 @@ export const HoldingCostPanel: React.FC = () => {
   return (
     <div>
       {/* Header with portfolio total */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="text-[11px] text-gray-400">
+      <div className="flex justify-between items-start mb-2">
+        <div className="text-xs text-gray-400">
           Per-property cost breakdown — drag the slider to see costs over time
         </div>
         <div className="text-right flex-shrink-0">
@@ -79,7 +79,7 @@ export const HoldingCostPanel: React.FC = () => {
       </div>
 
       {/* Year slider — no border, just content */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-3">
         <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
           Snapshot Year
         </span>
