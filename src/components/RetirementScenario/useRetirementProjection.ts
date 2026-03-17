@@ -119,10 +119,14 @@ export function useRetirementProjection(
     const sold = properties.filter(p => soldIds.has(p.instanceId));
     const held = properties.filter(p => !soldIds.has(p.instanceId));
 
-    const cashInHand = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
+    const rawSaleProceeds = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const equityRetained = held.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
-    const debtRemaining = held.reduce((sum, p) => sum + p.futureDebt, 0);
+    const rawHeldDebt = held.reduce((sum, p) => sum + p.futureDebt, 0);
     const annualCashflow = held.reduce((sum, p) => sum + p.annualCashflow, 0);
+
+    // Apply sale proceeds against held property debt first, surplus becomes free cash
+    const debtRemaining = Math.max(0, rawHeldDebt - rawSaleProceeds);
+    const cashInHand = Math.max(0, rawSaleProceeds - rawHeldDebt);
 
     // Determine zone
     const soldCount = soldIds.size;
