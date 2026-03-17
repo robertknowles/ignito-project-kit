@@ -412,6 +412,8 @@ export interface PropertyYearSnapshot {
   // Annuals (for cross-referencing)
   annualRent: number;
   annualTotalCosts: number;
+  annualLandTax: number;
+  annualDeductions: number;
 }
 
 export interface ProjectedPropertyTimeline {
@@ -477,6 +479,11 @@ export const projectPropertyTimeline = (
     ? (eb.other * PERIODS_PER_YEAR) / initialAnnualRent
     : 0.04;
 
+  // Land tax (from expense breakdown, grows with inflation)
+  const baseAnnualLandTax = eb ? eb.landTax * PERIODS_PER_YEAR : 0;
+  // Deductions (depreciation benefits — stays roughly constant)
+  const baseAnnualDeductions = (property as any).potentialDeductions ?? 0;
+
   let loanBalance = property.loanAmount;
 
   for (let year = buyYear; year <= endYear; year++) {
@@ -541,6 +548,8 @@ export const projectPropertyTimeline = (
       monthlyNetCost: Math.round(annualNet / 12),
       annualRent: Math.round(annualRent),
       annualTotalCosts: Math.round(annualTotalCosts),
+      annualLandTax: Math.round(baseAnnualLandTax * inflationFactor),
+      annualDeductions: Math.round(baseAnnualDeductions),
     });
   }
 

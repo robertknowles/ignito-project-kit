@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import type { TimelineProperty } from '../../types/property';
 import type { InvestmentProfileData } from '../../contexts/InvestmentProfileContext';
+import type { PropertyInstanceDetails } from '../../types/propertyInstance';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
-import { DEFAULT_INTEREST_RATE, BASE_YEAR } from '../../constants/financialParams';
+import { calculateDetailedCashflow } from '../../utils/detailedCashflowCalculator';
+import { DEFAULT_INTEREST_RATE, BASE_YEAR, PERIODS_PER_YEAR, ANNUAL_INFLATION_RATE } from '../../constants/financialParams';
 
 export interface RetirementPropertyProjection {
   instanceId: string;
@@ -61,6 +63,7 @@ export function useRetirementProjection(
   profile: InvestmentProfileData,
   retirementYears: number,
   soldIds: Set<string>,
+  getInstance?: (instanceId: string) => PropertyInstanceDetails | undefined,
 ): RetirementSummary {
   return useMemo(() => {
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
@@ -113,6 +116,47 @@ export function useRetirementProjection(
         };
       }
 
+      // Calculate cashflow matching the main chart's methodology:
+      // Main chart uses: adjustedIncome - totalExpenses - loanInterest + deductions
+      // metricsCalculator's annualTotalCosts already includes mortgage + operating expenses
+      // We need to ADD deductions and SUBTRACT land tax to align
+      let annualCashflow = lastSnapshot.annualRent - lastSnapshot.annualTotalCosts;
+      const annualLandTax = lastSnapshot.annualLandTax || 0;
+      const annualDeductions = lastSnapshot.annualDeductions || 0;
+
+      // If we have access to the property instance, use its detailed cashflow
+      // grown to the retirement year for more accurate alignment
+      if (getInstance) {
+        const instance = getInstance(prop.instanceId);
+        if (instance) {
+          const detailedCashflow = calculateDetailedCashflow(instance, prop.loanAmount);
+          const yearsOwned = retirementYear - propPurchaseYear;
+          const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+          const growthFactor = lastSnapshot.propertyValue / prop.cost;
+          const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+
+          // Grow the detailed cashflow to the retirement year
+          const adjustedIncome = detailedCashflow.adjustedIncome * growthFactor;
+          const adjustedLoanInterest = lastSnapshot.loanBalance > 0
+            ? lastSnapshot.loanBalance * DEFAULT_INTEREST_RATE
+            : 0;
+          const adjustedOperatingExpenses = (
+            detailedCashflow.propertyManagementFee * growthFactor +
+            detailedCashflow.buildingInsurance * inflationFactor +
+            detailedCashflow.councilRatesWater * inflationFactor +
+            detailedCashflow.strata * inflationFactor +
+            detailedCashflow.maintenance * inflationFactor
+          );
+          const adjustedNonDeductible = detailedCashflow.totalNonDeductibleExpenses * inflationFactor;
+          const adjustedDeductions = detailedCashflow.potentialDeductions;
+
+          annualCashflow = adjustedIncome - adjustedOperatingExpenses - adjustedNonDeductible - adjustedLoanInterest + adjustedDeductions;
+        }
+      } else {
+        // Fallback: adjust with land tax and deductions from snapshot
+        annualCashflow = annualCashflow - annualLandTax + annualDeductions;
+      }
+
       return {
         instanceId: prop.instanceId,
         title: prop.title,
@@ -123,7 +167,7 @@ export function useRetirementProjection(
         futureValue: lastSnapshot.propertyValue,
         futureDebt: lastSnapshot.loanBalance,
         futureEquity: lastSnapshot.propertyValue - lastSnapshot.loanBalance,
-        annualCashflow: lastSnapshot.annualRent - lastSnapshot.annualTotalCosts,
+        annualCashflow: Math.round(annualCashflow),
         annualRent: lastSnapshot.annualRent,
         annualCosts: lastSnapshot.annualTotalCosts,
       };
@@ -135,13 +179,16 @@ export function useRetirementProjection(
 
     const rawSaleProceeds = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const portfolioValue = held.reduce((sum, p) => sum + p.futureValue, 0);
-    const totalEquity = held.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const rawHeldDebt = held.reduce((sum, p) => sum + p.futureDebt, 0);
     const annualCashflow = held.reduce((sum, p) => sum + p.annualCashflow, 0);
 
     // Apply sale proceeds against held property debt first, surplus becomes free cash
     const debtRemaining = Math.max(0, rawHeldDebt - rawSaleProceeds);
     const cashInHand = Math.max(0, rawSaleProceeds - rawHeldDebt);
+
+    // Total equity reflects the ADJUSTED debt after applying sale proceeds
+    // When debt = 0, totalEquity = portfolioValue (they should match)
+    const totalEquity = portfolioValue - debtRemaining;
 
     // Determine zone
     const soldCount = soldIds.size;
@@ -176,5 +223,5 @@ export function useRetirementProjection(
       zoneName,
       chipLabel,
     };
-  }, [timelineProperties, profile, retirementYears, soldIds]);
+  }, [timelineProperties, profile, retirementYears, soldIds, getInstance]);
 }

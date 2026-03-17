@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
+import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useRetirementProjection } from './useRetirementProjection';
 import { CHART_COLORS } from '../../constants/chartColors';
 
@@ -24,11 +25,12 @@ const fmt = (v: number) => {
 export const RetirementScenarioPanel: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
+  const { getInstance } = usePropertyInstance();
 
   const [years, setYears] = useState(profile.timelineYears || 20);
   const [soldIds, setSoldIds] = useState<Set<string>>(new Set());
 
-  const summary = useRetirementProjection(timelineProperties, profile, years, soldIds);
+  const summary = useRetirementProjection(timelineProperties, profile, years, soldIds, getInstance);
 
   const toggleSold = useCallback((instanceId: string) => {
     setSoldIds(prev => {
