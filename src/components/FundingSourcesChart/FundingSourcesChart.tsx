@@ -154,10 +154,6 @@ export const FundingSourcesChart: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-5">
-        <p className="text-xs text-gray-400">Where each deposit comes from</p>
-      </div>
-
       {/* Cards row */}
       <div className="flex items-stretch gap-0">
         {cards.map((card, idx) => {

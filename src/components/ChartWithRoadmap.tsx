@@ -150,10 +150,10 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
       return (
         <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-md">
           <p className="text-xs font-medium text-gray-900 mb-2">Year: {label}</p>
-          <p className="text-xs text-teal-600">
+          <p className="text-xs text-gray-500">
             Portfolio: {formatCurrency(data?.portfolioValue || 0)}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-blue-600 font-medium">
             Equity: {formatCurrency(data?.totalEquity || 0)}
           </p>
           {data?.doNothingBalance > 0 && (
@@ -991,29 +991,29 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line - Blue */}
+              {/* Portfolio Value Line - lighter blue */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke={CHART_COLORS.primary}
-                strokeWidth={5}
+                stroke={CHART_COLORS.tertiary}
+                strokeWidth={4}
                 dot={false}
                 activeDot={{
                   r: 6,
-                  stroke: CHART_COLORS.primary,
+                  stroke: CHART_COLORS.tertiary,
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
 
-              {/* Total Equity Line */}
+              {/* Total Equity Line - darker, more prominent */}
               <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke={CHART_COLORS.tertiary}
-                strokeWidth={4}
+                stroke={CHART_COLORS.primary}
+                strokeWidth={5}
                 dot={false}
               />
 

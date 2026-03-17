@@ -109,12 +109,9 @@ export const EquityUnlockChart: React.FC = () => {
 
   return (
     <div>
-      {/* Header with subtitle + total */}
-      <div className="flex items-start justify-between mb-5">
-        <p className="text-xs text-gray-400">
-          When each property crosses the $50K refinance threshold
-        </p>
-        <div className="text-right flex-shrink-0 ml-4">
+      {/* Header — total extractable, pulled up into title row */}
+      <div className="flex items-start justify-end -mt-6 mb-2">
+        <div className="text-right flex-shrink-0">
           <p className="text-[10px] text-gray-400 uppercase tracking-wider leading-tight">
             Total extractable by {lastYear}
           </p>
@@ -144,7 +141,7 @@ export const EquityUnlockChart: React.FC = () => {
       </div>
 
       {/* Property rows */}
-      <div className="flex flex-col gap-3 mt-6">
+      <div className="flex flex-col gap-3 mt-10">
         {rows.map((row, idx) => (
           <div key={idx} className="flex items-center">
             {/* Label */}

@@ -70,11 +70,8 @@ export const HoldingCostPanel: React.FC = () => {
 
   return (
     <div>
-      {/* Header row — subtitle left, controls pulled up to title area right */}
-      <div className="flex items-start justify-between mb-5">
-        <p className="text-xs text-gray-400 -mt-4">
-          Per-property cost breakdown — drag the slider to see costs over time
-        </p>
+      {/* Header row — controls pulled up to title area */}
+      <div className="flex items-start justify-end mb-5">
         <div className="flex items-center gap-4 flex-shrink-0 ml-4 -mt-8">
           {/* Slider */}
           <div className="flex items-center gap-2">
