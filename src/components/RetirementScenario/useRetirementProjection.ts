@@ -9,6 +9,10 @@ export interface RetirementPropertyProjection {
   title: string;
   propertyType: string | null;
   purchasePrice: number;
+  /** Year the property is purchased (from affordableYear) */
+  purchaseYear: number;
+  /** Whether the property has been purchased by the retirement year */
+  purchasedByRetirement: boolean;
   /** Projected property value at retirement year */
   futureValue: number;
   /** Projected remaining loan at retirement year */
@@ -30,8 +34,10 @@ export interface RetirementSummary {
   soldIds: Set<string>;
   /** Cash from selling (sum of sold equity) */
   cashInHand: number;
-  /** Equity still in held properties */
-  equityRetained: number;
+  /** Total value of held properties */
+  portfolioValue: number;
+  /** Total equity across held properties */
+  totalEquity: number;
   /** Remaining debt on held properties */
   debtRemaining: number;
   /** Annual cashflow from held properties */
@@ -64,7 +70,8 @@ export function useRetirementProjection(
         properties: [],
         soldIds,
         cashInHand: 0,
-        equityRetained: 0,
+        portfolioValue: 0,
+        totalEquity: 0,
         debtRemaining: 0,
         annualCashflow: 0,
         zone: 'hold',
@@ -76,6 +83,9 @@ export function useRetirementProjection(
     const retirementYear = BASE_YEAR + retirementYears;
 
     const properties: RetirementPropertyProjection[] = feasible.map(prop => {
+      const propPurchaseYear = Math.ceil(prop.affordableYear);
+      const purchasedByRetirement = propPurchaseYear <= retirementYear;
+
       const projected = projectPropertyTimeline(
         prop,
         retirementYear,
@@ -92,6 +102,8 @@ export function useRetirementProjection(
           title: prop.title,
           propertyType: prop.propertyType ?? null,
           purchasePrice: prop.cost,
+          purchaseYear: propPurchaseYear,
+          purchasedByRetirement,
           futureValue: prop.cost,
           futureDebt: prop.loanAmount,
           futureEquity: prop.cost - prop.loanAmount,
@@ -106,6 +118,8 @@ export function useRetirementProjection(
         title: prop.title,
         propertyType: prop.propertyType ?? null,
         purchasePrice: prop.cost,
+        purchaseYear: propPurchaseYear,
+        purchasedByRetirement,
         futureValue: lastSnapshot.propertyValue,
         futureDebt: lastSnapshot.loanBalance,
         futureEquity: lastSnapshot.propertyValue - lastSnapshot.loanBalance,
@@ -120,7 +134,8 @@ export function useRetirementProjection(
     const held = properties.filter(p => !soldIds.has(p.instanceId));
 
     const rawSaleProceeds = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
-    const equityRetained = held.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
+    const portfolioValue = held.reduce((sum, p) => sum + p.futureValue, 0);
+    const totalEquity = held.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const rawHeldDebt = held.reduce((sum, p) => sum + p.futureDebt, 0);
     const annualCashflow = held.reduce((sum, p) => sum + p.annualCashflow, 0);
 
@@ -153,7 +168,8 @@ export function useRetirementProjection(
       properties,
       soldIds,
       cashInHand,
-      equityRetained,
+      portfolioValue,
+      totalEquity,
       debtRemaining,
       annualCashflow,
       zone,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { useRetirementProjection } from './useRetirementProjection';
@@ -39,6 +39,21 @@ export const RetirementScenarioPanel: React.FC = () => {
     });
   }, []);
 
+  // Auto-clear sold status for properties not yet purchased at current retirement year
+  useEffect(() => {
+    if (summary.properties.length === 0) return;
+    const unpurchased = summary.properties
+      .filter(p => !p.purchasedByRetirement && soldIds.has(p.instanceId))
+      .map(p => p.instanceId);
+    if (unpurchased.length > 0) {
+      setSoldIds(prev => {
+        const next = new Set(prev);
+        unpurchased.forEach(id => next.delete(id));
+        return next;
+      });
+    }
+  }, [summary.properties, soldIds]);
+
   if (summary.properties.length === 0) {
     return (
       <p className="text-sm text-gray-400 py-8 text-center">
@@ -47,33 +62,26 @@ export const RetirementScenarioPanel: React.FC = () => {
     );
   }
 
-  const totalWealth = summary.equityRetained + summary.cashInHand;
-  const equityPct = totalWealth > 0 ? (summary.equityRetained / totalWealth) * 100 : 0;
+  const totalWealth = summary.totalEquity + summary.cashInHand;
+  const equityPct = totalWealth > 0 ? (summary.totalEquity / totalWealth) * 100 : 0;
   const cashPct = totalWealth > 0 ? (summary.cashInHand / totalWealth) * 100 : 0;
   const soldCount = summary.soldIds.size;
   const totalCount = summary.properties.length;
 
   return (
-    <div className="space-y-5">
-      {/* ── Strategy Header ──────────────────────────────────────── */}
-      <div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-[15px] font-semibold text-gray-700">
-              {summary.zoneName} — {years} year snapshot
-            </h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              {soldCount} of {totalCount} properties sold at retirement
-            </p>
-          </div>
-          <span className="text-[11px] font-medium text-gray-500 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
-            {summary.chipLabel}
-          </span>
-        </div>
+    <div className="relative space-y-5">
+      {/* ── Strategy Chip — pinned top-right ─────────────────────── */}
+      <div className="absolute right-0 text-right" style={{ top: '-4.5rem' }}>
+        <span className="text-[11px] font-medium text-gray-500 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+          {summary.chipLabel}
+        </span>
+        <p className="text-[11px] text-gray-400 mt-1.5">
+          {soldCount} of {totalCount} properties sold at retirement
+        </p>
       </div>
 
-      {/* ── KPI Cards — 4 across ─────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* ── KPI Cards — 5 across ─────────────────────────────────── */}
+      <div className="grid grid-cols-5 gap-3">
         <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Cash in Hand</span>
           <div className="mt-1">
@@ -82,9 +90,16 @@ export const RetirementScenarioPanel: React.FC = () => {
         </div>
 
         <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Equity Retained</span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Portfolio Value</span>
           <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">{fmt(summary.equityRetained)}</span>
+            <span className="text-lg font-semibold text-gray-600">{fmt(summary.portfolioValue)}</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Total Equity</span>
+          <div className="mt-1">
+            <span className="text-lg font-semibold text-gray-600">{fmt(summary.totalEquity)}</span>
           </div>
         </div>
 
@@ -123,7 +138,7 @@ export const RetirementScenarioPanel: React.FC = () => {
                   }}
                 >
                   {equityPct > 12 && (
-                    <span className="text-[11px] font-semibold text-white">{fmt(summary.equityRetained)}</span>
+                    <span className="text-[11px] font-semibold text-white">{fmt(summary.totalEquity)}</span>
                   )}
                 </div>
               )}
@@ -198,14 +213,18 @@ export const RetirementScenarioPanel: React.FC = () => {
           <div className="flex flex-col gap-2">
             {summary.properties.map(prop => {
               const isSold = soldIds.has(prop.instanceId);
+              const canSell = prop.purchasedByRetirement;
               return (
                 <button
                   key={prop.instanceId}
-                  onClick={() => toggleSold(prop.instanceId)}
+                  onClick={() => canSell && toggleSold(prop.instanceId)}
+                  disabled={!canSell}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all duration-150 ${
-                    isSold
-                      ? 'border-blue-200 bg-blue-50/50'
-                      : 'border-gray-100 bg-white hover:bg-gray-50'
+                    !canSell
+                      ? 'border-gray-50 bg-gray-50/50 opacity-50 cursor-not-allowed'
+                      : isSold
+                        ? 'border-blue-200 bg-blue-50/50'
+                        : 'border-gray-100 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <div className="text-left">
@@ -214,14 +233,19 @@ export const RetirementScenarioPanel: React.FC = () => {
                       {prop.title}
                     </div>
                     <div className="text-[10px] text-gray-400 mt-0.5">
-                      {prop.propertyType || 'Property'} · {fmt(prop.futureEquity)} equity
+                      {!canSell
+                        ? `Not yet purchased (buys ${prop.purchaseYear})`
+                        : `${prop.propertyType || 'Property'} · ${fmt(prop.futureEquity)} equity`
+                      }
                     </div>
                   </div>
                   <span
                     className={`text-[10px] font-medium tracking-wide px-2.5 py-1 rounded ${
-                      isSold
-                        ? 'bg-gray-500 text-white'
-                        : 'border border-gray-200 text-gray-400'
+                      !canSell
+                        ? 'border border-gray-100 text-gray-300'
+                        : isSold
+                          ? 'bg-gray-500 text-white'
+                          : 'border border-gray-200 text-gray-400'
                     }`}
                   >
                     {isSold ? 'SOLD' : 'SELL'}
