@@ -148,7 +148,7 @@ export const EquityUnlockChart: React.FC = () => {
             </div>
 
             {/* Gantt bar area */}
-            <div className="flex-1 relative" style={{ height: 28 }}>
+            <div className="flex-1 relative" style={{ height: 20 }}>
               {/* The bar */}
               <div
                 className="absolute top-0 rounded-md"
@@ -183,7 +183,7 @@ export const EquityUnlockChart: React.FC = () => {
                   <div
                     className="w-px"
                     style={{
-                      height: 38,
+                      height: 30,
                       backgroundColor: COLORS.extraction,
                     }}
                   />

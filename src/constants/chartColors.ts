@@ -19,7 +19,7 @@ export const CHART_COLORS = {
   /** Secondary line — equity, second series */
   secondary: 'rgba(107, 156, 247, 0.55)',
   /** Tertiary line — debt, background series (dashed) */
-  tertiary: 'rgba(163, 193, 250, 0.50)',
+  tertiary: 'rgba(120, 160, 240, 0.70)',
 
   // Semantic — same soft blue family
   positive: 'rgba(59, 108, 244, 0.60)',

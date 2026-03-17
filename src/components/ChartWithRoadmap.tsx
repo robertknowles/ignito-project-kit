@@ -997,7 +997,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 dataKey="portfolioValue"
                 name="Portfolio Value"
                 stroke={CHART_COLORS.primary}
-                strokeWidth={2}
+                strokeWidth={5}
                 dot={false}
                 activeDot={{
                   r: 6,
@@ -1013,7 +1013,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 dataKey="totalEquity"
                 name="Total Equity"
                 stroke={CHART_COLORS.tertiary}
-                strokeWidth={1.5}
+                strokeWidth={4}
                 dot={false}
               />
 
