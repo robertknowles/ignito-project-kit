@@ -46,15 +46,19 @@ export const EquityUnlockChart: React.FC = () => {
     const totalSpan = lastYear - firstYear;
 
     const rows = propertyTimelines.map((prop, idx) => {
-      // Find first year with equity > 0
-      const firstEquityPoint = prop.timeline.find(t => t.extractableEquity > 0);
-      const barStart = firstEquityPoint ? firstEquityPoint.year : prop.buyYear;
+      // Bar starts at purchase year — equity builds from day 1
+      const barStart = prop.buyYear;
 
-      // Find the year it crosses $50K threshold
+      // Refinanceable = whichever comes first: $50K threshold OR actual extraction
       const thresholdPoint = prop.timeline.find(
         t => t.extractableEquity >= MIN_EXTRACTABLE_EQUITY_THRESHOLD
       );
-      const thresholdYear = thresholdPoint ? thresholdPoint.year : null;
+      const firstExtractionYear = prop.extractionEvents.length > 0
+        ? prop.extractionEvents[0].year
+        : null;
+      const thresholdYear = thresholdPoint
+        ? (firstExtractionYear ? Math.min(thresholdPoint.year, firstExtractionYear) : thresholdPoint.year)
+        : firstExtractionYear;
 
       const finalEquity = prop.timeline.length > 0
         ? prop.timeline[prop.timeline.length - 1].extractableEquity
@@ -80,7 +84,7 @@ export const EquityUnlockChart: React.FC = () => {
         barWidthPct,
         gradientTransitionPct,
         finalEquity,
-        extractionEvent: prop.extractionEvent,
+        extractionEvents: prop.extractionEvents,
         firstYear,
         lastYear,
       };
@@ -164,12 +168,13 @@ export const EquityUnlockChart: React.FC = () => {
                 }}
               />
 
-              {/* Extraction event pin */}
-              {row.extractionEvent && totalSpan > 0 && (
+              {/* Extraction event pins */}
+              {row.extractionEvents.map((evt, ei) => totalSpan > 0 && (
                 <div
+                  key={ei}
                   className="absolute flex flex-col items-center"
                   style={{
-                    left: `${((row.extractionEvent.year - firstYear) / totalSpan) * 100}%`,
+                    left: `${((evt.year - firstYear) / totalSpan) * 100}%`,
                     top: -20,
                     transform: 'translateX(-50%)',
                   }}
@@ -179,7 +184,7 @@ export const EquityUnlockChart: React.FC = () => {
                     className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white whitespace-nowrap"
                     style={{ backgroundColor: COLORS.extraction }}
                   >
-                    {row.extractionEvent.year} · {fmt(row.extractionEvent.amount)} extracted
+                    {evt.year} · {fmt(evt.amount)} extracted
                   </div>
                   {/* Pin line */}
                   <div
@@ -190,7 +195,7 @@ export const EquityUnlockChart: React.FC = () => {
                     }}
                   />
                 </div>
-              )}
+              ))}
             </div>
 
             {/* Final equity amount */}

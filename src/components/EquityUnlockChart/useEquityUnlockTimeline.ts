@@ -28,7 +28,7 @@ export interface PropertyEquityTimeline {
   purchasePrice: number;
   timeline: EquityTimelinePoint[];
   refinanceReadyYear: number | null;
-  extractionEvent: { year: number; amount: number } | null;
+  extractionEvents: { year: number; amount: number }[];
 }
 
 /**
@@ -81,7 +81,7 @@ export function useEquityUnlockTimeline(
 
     // Second pass: for each property that used equity, attribute proportional shares
     // to donor properties using their pre-computed timeline extractable equity values
-    const extractionEvents = new Map<number, { year: number; amount: number }>();
+    const extractionEvents = new Map<number, { year: number; amount: number }[]>();
 
     feasible.forEach((buyer, buyerIdx) => {
       const equityUsed = buyer.fundingBreakdown.equity;
@@ -104,16 +104,15 @@ export function useEquityUnlockTimeline(
 
       const totalExtractable = donorContributions.reduce((s, d) => s + d.extractable, 0);
 
-      // Attribute proportional share to each donor
+      // Attribute proportional share to each donor — accumulate ALL events
       donorContributions.forEach(({ donorIdx, extractable }) => {
         const share = totalExtractable > 0
           ? Math.round((extractable / totalExtractable) * equityUsed)
           : Math.round(equityUsed / donorContributions.length);
 
-        // Only store the first (earliest) extraction event per donor property
-        if (!extractionEvents.has(donorIdx)) {
-          extractionEvents.set(donorIdx, { year: buyYear, amount: share });
-        }
+        const events = extractionEvents.get(donorIdx) ?? [];
+        events.push({ year: buyYear, amount: share });
+        extractionEvents.set(donorIdx, events);
       });
     });
 
@@ -126,7 +125,7 @@ export function useEquityUnlockTimeline(
       purchasePrice: prop.cost,
       timeline,
       refinanceReadyYear,
-      extractionEvent: extractionEvents.get(i) ?? null,
+      extractionEvents: extractionEvents.get(i) ?? [],
     }));
 
     return { propertyTimelines };
