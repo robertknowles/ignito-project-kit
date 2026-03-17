@@ -10,7 +10,7 @@ import { CHART_COLORS } from '../../constants/chartColors';
  * Interactive sell/hold calculator for retirement planning.
  * Wrapped externally by ChartCard in Dashboard.tsx — no custom header needed.
  *
- * Layout: Wealth bar (with legend on RHS) → Strategy label → 2-col (KPIs left | slider + sell right)
+ * Layout: Strategy header + chip → 4 KPI cards → wealth bar + legend → 2-col (slider | sell list)
  */
 
 const fmt = (v: number) => {
@@ -54,48 +54,64 @@ export const RetirementScenarioPanel: React.FC = () => {
   const totalCount = summary.properties.length;
 
   return (
-    <div className="space-y-4">
-      {/* ── KPIs — 2x2 grid, no inner borders (Circle-style) ──── */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-        <div>
-          <span className="text-[11px] font-medium text-gray-400">Cash in Hand</span>
-          <div className="mt-0.5">
+    <div className="space-y-5">
+      {/* ── Strategy Header ──────────────────────────────────────── */}
+      <div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-[15px] font-semibold text-gray-700">
+              {summary.zoneName} — {years} year snapshot
+            </h3>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              {soldCount} of {totalCount} properties sold at retirement
+            </p>
+          </div>
+          <span className="text-[11px] font-medium text-gray-500 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+            {summary.chipLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* ── KPI Cards — 4 across ─────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Cash in Hand</span>
+          <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.cashInHand)}</span>
           </div>
-          <span className="text-[10px] text-gray-400 block">From {soldCount} sold</span>
         </div>
 
-        <div>
-          <span className="text-[11px] font-medium text-gray-400">Equity Retained</span>
-          <div className="mt-0.5">
+        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Equity Retained</span>
+          <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.equityRetained)}</span>
           </div>
-          <span className="text-[10px] text-gray-400 block">In {totalCount - soldCount} held</span>
         </div>
 
-        <div>
-          <span className="text-[11px] font-medium text-gray-400">Debt Remaining</span>
-          <div className="mt-0.5">
+        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Debt Remaining</span>
+          <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.debtRemaining)}</span>
           </div>
-          <span className="text-[10px] text-gray-400 block">{summary.debtRemaining > 0 ? 'On held properties' : 'Debt free'}</span>
+          {summary.debtRemaining === 0 && (
+            <span className="text-[10px] text-gray-400 block mt-0.5">Debt free</span>
+          )}
         </div>
 
-        <div>
-          <span className="text-[11px] font-medium text-gray-400">Annual Cashflow</span>
-          <div className="mt-0.5">
+        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Annual Cashflow</span>
+          <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">
               {summary.annualCashflow >= 0 ? '+' : ''}{fmt(summary.annualCashflow)}
             </span>
             <span className="text-[10px] font-normal text-gray-400">/yr</span>
           </div>
-          <span className="text-[10px] text-gray-400 block">Net rental income</span>
         </div>
       </div>
 
       {/* ── Wealth Split Bar ───────────────────────────────────────── */}
       <div>
-        <div className="flex w-full overflow-hidden rounded" style={{ height: 24 }}>
+        <div className="flex w-full overflow-hidden rounded-lg" style={{ height: 32 }}>
           {totalWealth > 0 ? (
             <>
               {equityPct > 0 && (
@@ -132,99 +148,94 @@ export const RetirementScenarioPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Strategy label + legend */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[13px] font-medium text-gray-500">
-              {summary.zoneName}
+        {/* Legend */}
+        <div className="flex items-center gap-6 mt-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS.barPositive }} />
+            <span className="text-[11px] text-gray-400">Equity in property — grows, not liquid</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS.barNegative }} />
+            <span className="text-[11px] text-gray-400">Cash in hand — liquid after debt clearance</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bottom 2-col: Slider | Sell List ──────────────────────── */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Time to Retirement */}
+        <div className="rounded-lg border border-gray-100 px-4 py-4">
+          <div className="flex items-baseline justify-between mb-4">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+              Time to Retirement
             </span>
-            <span className="text-[11px] text-gray-400">· {years} yr · {soldCount} of {totalCount} sold</span>
-          </div>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS.barPositive }} />
-              <span className="text-[11px] text-gray-400">Equity</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS.barNegative }} />
-              <span className="text-[11px] text-gray-400">Cash</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-semibold text-gray-600">{years}</span>
+              <span className="text-[11px] text-gray-400">yrs</span>
             </div>
           </div>
+          <input
+            type="range"
+            min={5}
+            max={25}
+            step={1}
+            value={years}
+            onChange={e => setYears(Number(e.target.value))}
+            className="h-1.5 w-full slider-blue"
+            style={{ accentColor: CHART_COLORS.primary }}
+          />
+          <div className="flex justify-between mt-1.5">
+            <span className="text-[10px] text-gray-300">5 yrs</span>
+            <span className="text-[10px] text-gray-300">25 yrs</span>
+          </div>
         </div>
-      </div>
 
-      {/* ── Slider ─────────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
-            Time to Retirement
+        {/* Sell at Retirement */}
+        <div className="rounded-lg border border-gray-100 px-4 py-4">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 block mb-3">
+            Sell at Retirement
           </span>
-          <div className="flex-1" />
-          <span className="text-sm font-medium text-gray-600 min-w-[40px] text-right">
-            {years}
-          </span>
-          <span className="text-[11px] text-gray-400">yrs</span>
-        </div>
-        <input
-          type="range"
-          min={5}
-          max={25}
-          step={1}
-          value={years}
-          onChange={e => setYears(Number(e.target.value))}
-          className="flex-1 h-1 w-full slider-blue"
-          style={{ accentColor: CHART_COLORS.primary }}
-        />
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-gray-300">5 yrs</span>
-          <span className="text-[10px] text-gray-300">25 yrs</span>
-        </div>
-      </div>
-
-      {/* ── Sell at Retirement ──────────────────────────────────────── */}
-      <div>
-        <span className="text-[11px] font-medium text-gray-400 block mb-1.5">
-          Sell at Retirement
-        </span>
-        <div className="flex flex-col gap-1">
-          {summary.properties.map(prop => {
-            const isSold = soldIds.has(prop.instanceId);
-            return (
-              <button
-                key={prop.instanceId}
-                onClick={() => toggleSold(prop.instanceId)}
-                className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all duration-150 ${
-                  isSold
-                    ? 'bg-gray-50'
-                    : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-left">
-                  <div className="text-[11px] font-medium text-gray-600 leading-tight">
-                    {prop.title}
-                  </div>
-                  <div className="text-[10px] text-gray-400">
-                    {prop.propertyType || 'Property'} · {fmt(prop.futureEquity)} equity
-                  </div>
-                </div>
-                <span
-                  className={`text-[10px] font-medium tracking-wide px-2 py-0.5 rounded ${
+          <div className="flex flex-col gap-2">
+            {summary.properties.map(prop => {
+              const isSold = soldIds.has(prop.instanceId);
+              return (
+                <button
+                  key={prop.instanceId}
+                  onClick={() => toggleSold(prop.instanceId)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all duration-150 ${
                     isSold
-                      ? 'bg-gray-500 text-white'
-                      : 'border border-gray-200 text-gray-400'
+                      ? 'border-blue-200 bg-blue-50/50'
+                      : 'border-gray-100 bg-white hover:bg-gray-50'
                   }`}
                 >
-                  {isSold ? 'SOLD' : 'SELL'}
-                </span>
-              </button>
-            );
-          })}
+                  <div className="text-left">
+                    <div className="text-[12px] font-medium text-gray-600 leading-tight">
+                      {isSold && <span className="text-gray-400 mr-1">Selling —</span>}
+                      {prop.title}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
+                      {prop.propertyType || 'Property'} · {fmt(prop.futureEquity)} equity
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] font-medium tracking-wide px-2.5 py-1 rounded ${
+                      isSold
+                        ? 'bg-gray-500 text-white'
+                        : 'border border-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {isSold ? 'SOLD' : 'SELL'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* ── Cashflow Warning ──────────────────────────────────────── */}
       {summary.annualCashflow < 0 && soldCount < totalCount && (
-        <div className="px-4 py-2 pt-3">
+        <div className="px-1">
           <p className="text-[11px] font-medium text-gray-500">
             Negative cashflow of {fmt(summary.annualCashflow)}/yr — top-up from other income required to hold this portfolio through retirement.
           </p>
