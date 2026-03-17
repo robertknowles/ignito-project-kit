@@ -77,6 +77,9 @@ export const Dashboard = () => {
   return (
     <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
       <div className="flex flex-col gap-6 px-12 pt-6 pb-8">
+        {/* ── Section 1: Investment Plan ──────────────────────────── */}
+        <h2 className="text-lg font-semibold text-gray-600 mb-0">Investment Plan</h2>
+
         {/* Render scenario canvases vertically with gap */}
         <div className="flex flex-col gap-6">
           {scenarios.map(scenario => (
@@ -87,33 +90,25 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
 
-        {/* ── Section 1: Investment Plan ──────────────────────────── */}
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-gray-600 mb-4">Investment Plan</h2>
-          <div className="flex flex-col gap-6">
-            <ChartCard
-              title="Funding Sources"
-              legend={[
-                { color: CHART_COLORS.barPositive, label: 'Cash Deposit' },
-                { color: CHART_COLORS.barNegative, label: 'Equity Extraction' },
-                { color: 'rgba(156, 163, 175, 0.35)', label: 'Accumulated Savings' },
-              ]}
-            >
-              <FundingSourcesChart />
-            </ChartCard>
+        {/* Funding Sources + Equity Unlock (continuation of Investment Plan section) */}
+        <div className="flex flex-col gap-6">
+          <ChartCard title="Funding Sources" contentClassName="px-6 pt-4 pb-6">
+            <FundingSourcesChart />
+          </ChartCard>
 
-            <ChartCard
-              title="Equity Unlock Timeline"
-            >
-              <EquityUnlockChart />
-            </ChartCard>
-          </div>
+          <ChartCard title="Equity Unlock Timeline" contentClassName="px-6 pt-2 pb-6">
+            <EquityUnlockChart />
+          </ChartCard>
         </div>
 
-        {/* ── Section 2: Cashflow ────────────────────────────────── */}
+        {/* ── Section 2: Cash Flow & Costs ────────────────────────── */}
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-gray-600 mb-4">Cashflow</h2>
+          <h2 className="text-lg font-semibold text-gray-600 mb-4">Cash Flow & Costs</h2>
           <div className="flex flex-col gap-6">
+            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
+              <HoldingCostPanel />
+            </ChartCard>
+
             <ChartCard
               title="Cashflow Projection"
               legend={[
@@ -124,20 +119,6 @@ export const Dashboard = () => {
               <CashflowChart />
             </ChartCard>
 
-            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
-              <HoldingCostPanel />
-            </ChartCard>
-          </div>
-        </div>
-
-        {/* ── Section 3: Portfolio Growth ─────────────────────────── */}
-        <div className="mt-10">
-          <h2 className="text-lg font-semibold text-gray-600 mb-4">Portfolio Growth</h2>
-          <div className="flex flex-col gap-6">
-            <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
-              <RetirementScenarioPanel />
-            </ChartCard>
-
             <ChartCard
               title="Financial Summary"
               contentClassName="pl-12 pb-12 pt-5 pr-12"
@@ -145,6 +126,16 @@ export const Dashboard = () => {
               defaultCollapsed
             >
               <FinancialSummaryTable />
+            </ChartCard>
+          </div>
+        </div>
+
+        {/* ── Section 3: The Goal ─────────────────────────────────── */}
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-gray-600 mb-4">The Goal</h2>
+          <div className="flex flex-col gap-6">
+            <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
+              <RetirementScenarioPanel />
             </ChartCard>
           </div>
         </div>
