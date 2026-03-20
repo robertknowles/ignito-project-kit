@@ -185,8 +185,8 @@ export const FundingSourcesChart: React.FC = () => {
 
               {/* Card content */}
               <div className="flex-1 min-w-0 pb-1">
-                {/* Year label */}
-                <p className={`text-[10px] font-medium uppercase tracking-wider mb-1 ${
+                {/* Year label — outside the box */}
+                <p className={`text-[10px] font-medium uppercase tracking-wider mb-1.5 ${
                   isHero ? 'text-blue-500' : muted ? 'text-gray-300' : 'text-gray-400'
                 }`}>
                   {card.isOwned ? card.buyYear : `Target ${card.buyYear}`}
@@ -194,74 +194,81 @@ export const FundingSourcesChart: React.FC = () => {
                   {isAfter && ' · After that'}
                 </p>
 
-                {/* Title + years away */}
-                <div className="flex items-baseline justify-between mb-2">
-                  <div className="min-w-0">
-                    <p className={`text-xs font-semibold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {card.title}
-                    </p>
-                    <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                      {card.propertyType}
-                    </p>
+                {/* Bordered card */}
+                <div className={`rounded-lg px-4 py-3 ${
+                  isHero
+                    ? 'border border-blue-200 bg-blue-50/30'
+                    : 'border border-gray-100 bg-white'
+                }`}>
+                  {/* Title + years away */}
+                  <div className="flex items-baseline justify-between mb-2">
+                    <div className="min-w-0">
+                      <p className={`text-xs font-semibold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {card.title}
+                      </p>
+                      <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {card.propertyType}
+                      </p>
+                    </div>
+                    {isFuture && (
+                      <span className={`text-xs font-medium flex-shrink-0 ml-2 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
+                        {card.yearsAway} yrs
+                      </span>
+                    )}
                   </div>
-                  {isFuture && (
-                    <span className={`text-xs font-medium flex-shrink-0 ml-2 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {card.yearsAway} yrs
-                    </span>
-                  )}
-                </div>
 
-                {/* Source breakdown */}
-                <div className="flex flex-col gap-1">
-                  {card.sources.map((src, si) => (
-                    <div key={si} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: src.color, opacity: muted ? 0.5 : 1 }}
-                        />
-                        <span className={`text-[11px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                          {src.label}
+                  {/* Source breakdown */}
+                  <div className="flex flex-col gap-1">
+                    {card.sources.map((src, si) => (
+                      <div key={si} className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: src.color, opacity: muted ? 0.5 : 1 }}
+                          />
+                          <span className={`text-[11px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                            {src.label}
+                          </span>
+                        </div>
+                        <span className={`text-[11px] font-medium flex-shrink-0 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
+                          {fmt(src.amount)}
                         </span>
                       </div>
-                      <span className={`text-[11px] font-medium flex-shrink-0 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
-                        {fmt(src.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Readiness bar — hero card only */}
-                {isHero && (
-                  <div className="mt-2 pt-2 border-t border-blue-100">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-gray-400">Equity building toward deposit</span>
-                      <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
-                        {card.readinessPct}% ready
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${card.readinessPct}%`,
-                          backgroundColor: CHART_COLORS.barPositive,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Equity extraction notes */}
-                {card.equityNotes.length > 0 && (
-                  <div className="mt-1.5">
-                    {card.equityNotes.map((note, ni) => (
-                      <p key={ni} className={`text-[10px] leading-relaxed ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                        {note}
-                      </p>
                     ))}
                   </div>
-                )}
+
+                  {/* Readiness bar — hero card only */}
+                  {isHero && (
+                    <div className="mt-2 pt-2 border-t border-blue-100">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-gray-400">Equity building toward deposit</span>
+                        <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
+                          {card.readinessPct}% ready
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${card.readinessPct}%`,
+                            backgroundColor: CHART_COLORS.barPositive,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Equity extraction notes */}
+                  {card.equityNotes.length > 0 && (
+                    <div className="mt-1.5">
+                      {card.equityNotes.map((note, ni) => (
+                        <p key={ni} className={`text-[10px] leading-relaxed ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                          {note}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );
