@@ -103,7 +103,7 @@ export const EquityUnlockChart: React.FC = () => {
   }
 
   const LABEL_WIDTH = 100;
-  const FINAL_WIDTH = 55;
+  const FINAL_WIDTH = 80;
   const firstYear = years[0];
   const totalSpan = lastYear - firstYear;
 

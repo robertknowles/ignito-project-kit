@@ -12,11 +12,11 @@ import {
 } from '@/components/ui/tooltip'
 import { TourStep } from '@/components/TourManager'
 
-// Slider styles — white thumb with blue border, blue filled track, grey unfilled
-const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#3B82F6] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(209,213,219,0.5)] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#3B82F6] [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgba(209,213,219,0.5)] active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
+// Slider styles — white thumb with grey border, grey filled track
+const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all"
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${((value - min) / (max - min)) * 100}%, #E5E7EB ${((value - min) / (max - min)) * 100}%, #E5E7EB 100%)`,
+  background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((value - min) / (max - min)) * 100}%, #E5E7EB ${((value - min) / (max - min)) * 100}%, #E5E7EB 100%)`,
 })
 
 // Format value for display
@@ -263,7 +263,7 @@ export const ClientInputsPanel: React.FC = () => {
             <Switch
               checked={profile.useExistingEquity}
               onCheckedChange={(checked) => updateProfile({ useExistingEquity: checked })}
-              className="data-[state=checked]:bg-[#3B82F6]"
+              className="data-[state=checked]:bg-[#6B7280]"
             />
           </div>
 

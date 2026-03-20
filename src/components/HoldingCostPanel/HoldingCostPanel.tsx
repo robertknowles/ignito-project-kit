@@ -84,8 +84,8 @@ export const HoldingCostPanel: React.FC = () => {
               max={endYear}
               value={snapshotYear}
               onChange={e => setSnapshotYear(Number(e.target.value))}
-              className="w-[576px] appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#3B82F6] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(209,213,219,0.5)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#3B82F6] [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgba(209,213,219,0.5)]"
-              style={{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB 100%)` }}
+              className="w-[576px] appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+              style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB 100%)` }}
             />
             <span className="text-sm font-medium text-gray-600 min-w-[32px] text-right">
               {snapshotYear}
@@ -104,7 +104,7 @@ export const HoldingCostPanel: React.FC = () => {
       </div>
 
       {/* Property rows — matching equity unlock style */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-5">
         {properties.map((prop, idx) => {
           const snapshot = prop.snapshots.find(s => s.year === snapshotYear);
           if (!snapshot) return null;

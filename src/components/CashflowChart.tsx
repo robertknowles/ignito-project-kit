@@ -144,7 +144,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           barGap={2}
           margin={{
             top: 30,
-            right: 24,
+            right: 80,
             left: 0,
             bottom: 5,
           }}
@@ -157,7 +157,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           <YAxis
             tickFormatter={formatYAxis}
             {...CHART_STYLE.yAxis}
-            width={80}
+            width={100}
             domain={yAxisDomain}
             ticks={yAxisTicks}
           />
@@ -196,7 +196,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
       {/* Milestone labels below chart — shows all including off-chart ones */}
       {projection.milestones.length > 0 && (
-        <div className="mt-1 px-4 flex gap-x-5 gap-y-1 flex-wrap">
+        <div className="mt-1 flex gap-x-5 gap-y-1 flex-wrap" style={{ paddingLeft: 100 }}>
           {projection.milestones
             .filter(m => m.type !== 'transition')
             .map(m => (

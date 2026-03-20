@@ -121,7 +121,7 @@ export const Dashboard = () => {
 
             <ChartCard
               title="Financial Summary"
-              contentClassName="px-6 pt-4 pb-6"
+              contentClassName="px-10 pt-6 pb-10"
               collapsible
               defaultCollapsed
             >
