@@ -198,8 +198,8 @@ export const RetirementScenarioPanel: React.FC = () => {
             step={1}
             value={years}
             onChange={e => setYears(Number(e.target.value))}
-            className="h-1.5 w-full slider-blue"
-            style={{ accentColor: CHART_COLORS.primary }}
+            className="h-1.5 w-full appearance-none cursor-pointer bg-gray-200 rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#2563EB] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#2563EB]"
+            style={{ background: `linear-gradient(to right, #2563EB 0%, #2563EB ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB 100%)` }}
           />
           <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-gray-300">5 yrs</span>

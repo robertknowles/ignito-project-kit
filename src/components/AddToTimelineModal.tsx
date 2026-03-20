@@ -442,7 +442,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
           <div className="pt-3 border-t border-gray-100 mt-2">
             <button
               onClick={onClose}
-              className="w-full py-2.5 px-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
+              className="w-full py-2.5 px-4 bg-[#2563EB] text-white rounded-xl hover:bg-[#1d4ed8] transition-colors font-medium text-sm"
             >
               Done
             </button>
