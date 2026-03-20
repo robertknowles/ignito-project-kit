@@ -154,61 +154,65 @@ export const FundingSourcesChart: React.FC = () => {
 
   return (
     <div>
-      {/* Cards grid — 2×2 layout */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Vertical timeline */}
+      <div className="relative">
         {cards.map((card, idx) => {
           const isHero = idx === heroIdx;
           const isAfter = idx > heroIdx && heroIdx >= 0;
           const isFuture = !card.isOwned;
-          const muted = isAfter; // muted styling for "after that" cards
+          const muted = isAfter;
+          const isLast = idx === cards.length - 1;
 
           return (
-            <React.Fragment key={idx}>
-
-              {/* Unified card — same structure for all */}
-              <div
-                className={`min-w-0 rounded-xl px-4 py-4 flex flex-col ${
-                  isHero
-                    ? 'border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-white'
-                    : isAfter
-                      ? 'border border-gray-100 bg-gray-50/40'
-                      : 'border border-gray-100 bg-white'
-                }`}
-              >
-                {/* Badge */}
-                {isHero && (
-                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-2">
-                    Buy Next
-                  </span>
+            <div key={idx} className="flex gap-4" style={{ paddingBottom: isLast ? 0 : 20 }}>
+              {/* Timeline spine */}
+              <div className="flex flex-col items-center flex-shrink-0" style={{ width: 20 }}>
+                {/* Dot */}
+                <div
+                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${
+                    isHero
+                      ? 'bg-blue-400 ring-4 ring-blue-100'
+                      : card.isOwned
+                        ? 'bg-gray-400'
+                        : 'bg-gray-300'
+                  }`}
+                />
+                {/* Line */}
+                {!isLast && (
+                  <div className="w-px flex-1 bg-gray-200 mt-1" />
                 )}
-                {isAfter && (
-                  <span className="inline-block text-[9px] font-medium uppercase tracking-wider text-gray-300 mb-2">
-                    After that
-                  </span>
-                )}
+              </div>
 
-                {/* Title row */}
-                <div className="flex items-start justify-between mb-3">
+              {/* Card content */}
+              <div className="flex-1 min-w-0 pb-1">
+                {/* Year label */}
+                <p className={`text-[10px] font-medium uppercase tracking-wider mb-1 ${
+                  isHero ? 'text-blue-500' : muted ? 'text-gray-300' : 'text-gray-400'
+                }`}>
+                  {card.isOwned ? card.buyYear : `Target ${card.buyYear}`}
+                  {isHero && ' · Buy Next'}
+                  {isAfter && ' · After that'}
+                </p>
+
+                {/* Title + years away */}
+                <div className="flex items-baseline justify-between mb-2">
                   <div className="min-w-0">
-                    <p className={`text-xs font-semibold truncate ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className={`text-xs font-semibold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
                       {card.title}
                     </p>
-                    <p className={`text-[10px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                      {card.propertyType} · {isFuture ? `Target ${card.buyYear}` : card.buyYear}
+                    <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                      {card.propertyType}
                     </p>
                   </div>
                   {isFuture && (
-                    <div className="text-right flex-shrink-0 ml-3">
-                      <p className={`text-lg font-bold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {card.yearsAway}
-                      </p>
-                      <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>yrs away</p>
-                    </div>
+                    <span className={`text-xs font-medium flex-shrink-0 ml-2 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
+                      {card.yearsAway} yrs
+                    </span>
                   )}
                 </div>
 
                 {/* Source breakdown */}
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   {card.sources.map((src, si) => (
                     <div key={si} className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -229,14 +233,14 @@ export const FundingSourcesChart: React.FC = () => {
 
                 {/* Readiness bar — hero card only */}
                 {isHero && (
-                  <div className="mt-3 pt-3 border-t border-blue-100">
+                  <div className="mt-2 pt-2 border-t border-blue-100">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] text-gray-400">Equity building toward deposit</span>
                       <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
                         {card.readinessPct}% ready
                       </span>
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden bg-gray-100">
+                    <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -248,10 +252,9 @@ export const FundingSourcesChart: React.FC = () => {
                   </div>
                 )}
 
-
                 {/* Equity extraction notes */}
                 {card.equityNotes.length > 0 && (
-                  <div className={`mt-auto pt-2 border-t ${isHero ? 'border-blue-50' : 'border-gray-50'}`}>
+                  <div className="mt-1.5">
                     {card.equityNotes.map((note, ni) => (
                       <p key={ni} className={`text-[10px] leading-relaxed ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
                         {note}
@@ -260,7 +263,7 @@ export const FundingSourcesChart: React.FC = () => {
                   </div>
                 )}
               </div>
-            </React.Fragment>
+            </div>
           );
         })}
       </div>
