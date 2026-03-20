@@ -991,29 +991,29 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line - lighter blue */}
+              {/* Portfolio Value Line - stronger blue */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke={CHART_COLORS.tertiary}
-                strokeWidth={4}
+                stroke="#3B82F6"
+                strokeWidth={2.5}
                 dot={false}
                 activeDot={{
-                  r: 6,
-                  stroke: CHART_COLORS.tertiary,
+                  r: 5,
+                  stroke: '#3B82F6',
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
 
-              {/* Total Equity Line - darker, more prominent */}
+              {/* Total Equity Line - lighter blue, clearly distinct */}
               <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke={CHART_COLORS.primary}
-                strokeWidth={5}
+                stroke="#93C5FD"
+                strokeWidth={2}
                 dot={false}
               />
 

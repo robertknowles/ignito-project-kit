@@ -105,8 +105,8 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
           title="Investment Timeline"
           action={<ResetButton iconOnly />}
           legend={[
-            { color: CHART_COLORS.primary, label: 'Portfolio Value' },
-            { color: CHART_COLORS.tertiary, label: 'Total Equity' },
+            { color: '#3B82F6', label: 'Portfolio Value' },
+            { color: '#93C5FD', label: 'Total Equity' },
             { color: CHART_COLORS.annotationText, label: 'Do Nothing' },
           ]}
         >
