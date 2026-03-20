@@ -90,8 +90,8 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
 
-        {/* Funding Sources + Equity Unlock (continuation of Investment Plan section) */}
-        <div className="flex flex-col gap-6">
+        {/* Funding Sources + Equity Unlock — side by side */}
+        <div className="grid grid-cols-2 gap-6">
           <ChartCard title="Funding Sources">
             <FundingSourcesChart />
           </ChartCard>
@@ -105,23 +105,26 @@ export const Dashboard = () => {
         <div className="mt-10">
           <h2 className="text-lg font-semibold text-gray-600 mb-4">Cash Flow & Costs</h2>
           <div className="flex flex-col gap-6">
-            <ChartCard
-              title="Cashflow Projection"
-              legend={[
-                { color: CHART_COLORS.barPositive, label: 'Positive' },
-                { color: CHART_COLORS.barNegative, label: 'Negative' },
-              ]}
-            >
-              <CashflowChart />
-            </ChartCard>
+            {/* Cashflow + Holding Cost — side by side */}
+            <div className="grid grid-cols-2 gap-6">
+              <ChartCard
+                title="Cashflow Projection"
+                legend={[
+                  { color: CHART_COLORS.barPositive, label: 'Positive' },
+                  { color: CHART_COLORS.barNegative, label: 'Negative' },
+                ]}
+              >
+                <CashflowChart />
+              </ChartCard>
 
-            <ChartCard title="Monthly Holding Cost">
-              <HoldingCostPanel />
-            </ChartCard>
+              <ChartCard title="Monthly Holding Cost">
+                <HoldingCostPanel />
+              </ChartCard>
+            </div>
 
             <ChartCard
               title="Financial Summary"
-              contentClassName="px-10 pt-6 pb-10"
+              contentClassName="px-8 pt-6 pb-8"
               collapsible
               defaultCollapsed
             >

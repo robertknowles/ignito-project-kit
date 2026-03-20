@@ -13,8 +13,8 @@ const COLORS = {
   costs: 'rgba(163, 193, 250, 0.25)',     // costs bg — softened
 };
 
-const LABEL_WIDTH = 100;
-const FINAL_WIDTH = 80;
+const LABEL_WIDTH = 80;
+const FINAL_WIDTH = 60;
 
 /**
  * Monthly Holding Cost Panel — Gantt-style rows matching Equity Unlock
@@ -72,9 +72,9 @@ export const HoldingCostPanel: React.FC = () => {
     <div>
       {/* Header row — controls */}
       <div className="flex items-start justify-end mb-5">
-        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+        <div className="flex items-center gap-4 min-w-0 w-full">
           {/* Slider */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
               Snapshot
             </span>
@@ -84,7 +84,7 @@ export const HoldingCostPanel: React.FC = () => {
               max={endYear}
               value={snapshotYear}
               onChange={e => setSnapshotYear(Number(e.target.value))}
-              className="w-[576px] appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+              className="w-full min-w-[100px] appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
               style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB 100%)` }}
             />
             <span className="text-sm font-medium text-gray-600 min-w-[32px] text-right">

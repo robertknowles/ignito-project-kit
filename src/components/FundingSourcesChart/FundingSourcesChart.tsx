@@ -154,28 +154,20 @@ export const FundingSourcesChart: React.FC = () => {
 
   return (
     <div>
-      {/* Cards row */}
-      <div className="flex items-stretch gap-0">
+      {/* Cards grid — 2×2 layout */}
+      <div className="grid grid-cols-2 gap-3">
         {cards.map((card, idx) => {
           const isHero = idx === heroIdx;
           const isAfter = idx > heroIdx && heroIdx >= 0;
           const isFuture = !card.isOwned;
-          const showArrow = idx > 0;
           const muted = isAfter; // muted styling for "after that" cards
 
           return (
             <React.Fragment key={idx}>
-              {/* Arrow connector */}
-              {showArrow && (
-                <div className="flex flex-col items-center justify-center px-2 flex-shrink-0">
-                  <span className="text-[9px] font-medium text-gray-300 uppercase tracking-wider mb-1">Then</span>
-                  <ArrowRight size={14} className="text-gray-300" />
-                </div>
-              )}
 
               {/* Unified card — same structure for all */}
               <div
-                className={`flex-1 min-w-0 rounded-xl px-4 py-4 flex flex-col ${
+                className={`min-w-0 rounded-xl px-4 py-4 flex flex-col ${
                   isHero
                     ? 'border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-white'
                     : isAfter
