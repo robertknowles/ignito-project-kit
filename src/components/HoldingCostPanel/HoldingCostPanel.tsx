@@ -70,9 +70,9 @@ export const HoldingCostPanel: React.FC = () => {
 
   return (
     <div>
-      {/* Header row — controls pulled up to title area */}
+      {/* Header row — controls */}
       <div className="flex items-start justify-end mb-5">
-        <div className="flex items-center gap-4 flex-shrink-0 ml-4 -mt-8">
+        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
           {/* Slider */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
@@ -217,15 +217,15 @@ export const HoldingCostPanel: React.FC = () => {
         })}
       </div>
 
-      {/* Legend + portfolio total — matches equity unlock footer */}
+      {/* Legend + portfolio total */}
       <div className="flex items-center justify-between mt-4" style={{ paddingLeft: LABEL_WIDTH }}>
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: COLORS.rent }} />
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.rent }} />
             <span className="text-[11px] text-gray-400">Rental income</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: COLORS.costs }} />
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.costs }} />
             <span className="text-[11px] text-gray-400">Total costs</span>
           </div>
         </div>

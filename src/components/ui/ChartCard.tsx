@@ -25,7 +25,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Title */}
       <div
-        className={`px-6 pt-6 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? 'pb-6' : ''}`}
+        className={`px-6 pt-5 pb-1 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? 'pb-5' : ''}`}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div className="flex items-center gap-2">
@@ -42,13 +42,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       {/* Content */}
       {!collapsed && (
         <>
-          <div className={contentClassName ?? "pl-4 pr-4 pt-6 pb-6"}>
+          <div className={contentClassName ?? "px-6 pt-4 pb-6"}>
             {children}
           </div>
 
           {/* Legend */}
           {legend && legend.length > 0 && (
-            <div className="pl-12 pr-6 pb-6 pt-2 flex items-center gap-5">
+            <div className="px-6 pb-5 pt-1 flex items-center gap-5">
               {legend.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
                   <div

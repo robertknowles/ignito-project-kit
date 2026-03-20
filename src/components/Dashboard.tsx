@@ -92,11 +92,11 @@ export const Dashboard = () => {
 
         {/* Funding Sources + Equity Unlock (continuation of Investment Plan section) */}
         <div className="flex flex-col gap-6">
-          <ChartCard title="Funding Sources" contentClassName="px-6 pt-4 pb-6">
+          <ChartCard title="Funding Sources">
             <FundingSourcesChart />
           </ChartCard>
 
-          <ChartCard title="Equity Unlock Timeline" contentClassName="px-6 pt-2 pb-6">
+          <ChartCard title="Equity Unlock Timeline">
             <EquityUnlockChart />
           </ChartCard>
         </div>
@@ -115,13 +115,13 @@ export const Dashboard = () => {
               <CashflowChart />
             </ChartCard>
 
-            <ChartCard title="Monthly Holding Cost" contentClassName="px-6 pt-6 pb-6">
+            <ChartCard title="Monthly Holding Cost">
               <HoldingCostPanel />
             </ChartCard>
 
             <ChartCard
               title="Financial Summary"
-              contentClassName="pl-12 pb-12 pt-5 pr-12"
+              contentClassName="px-6 pt-4 pb-6"
               collapsible
               defaultCollapsed
             >
@@ -134,7 +134,7 @@ export const Dashboard = () => {
         <div className="mt-10">
           <h2 className="text-lg font-semibold text-gray-600 mb-4">The Goal</h2>
           <div className="flex flex-col gap-6">
-            <ChartCard title="Retirement Scenario" contentClassName="px-6 pt-6 pb-6">
+            <ChartCard title="Retirement Scenario">
               <RetirementScenarioPanel />
             </ChartCard>
           </div>

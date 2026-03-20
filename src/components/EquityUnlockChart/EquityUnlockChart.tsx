@@ -109,8 +109,8 @@ export const EquityUnlockChart: React.FC = () => {
 
   return (
     <div>
-      {/* Header — total extractable, pulled up into title row */}
-      <div className="flex items-start justify-end -mt-6 mb-2">
+      {/* Header — total extractable */}
+      <div className="flex items-start justify-end mb-3">
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] text-gray-400 uppercase tracking-wider leading-tight">
             Total extractable by {lastYear}
@@ -204,17 +204,17 @@ export const EquityUnlockChart: React.FC = () => {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-5 mt-5" style={{ paddingLeft: LABEL_WIDTH }}>
+      <div className="flex items-center gap-5 mt-4" style={{ paddingLeft: LABEL_WIDTH }}>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: COLORS.building }} />
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.building }} />
           <span className="text-[11px] text-gray-400">Building equity</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: COLORS.refinanceable }} />
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.refinanceable }} />
           <span className="text-[11px] text-gray-400">Refinanceable equity</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: COLORS.extraction }} />
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.extraction }} />
           <span className="text-[11px] text-gray-400">Refinance event</span>
         </div>
       </div>

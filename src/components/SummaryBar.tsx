@@ -75,7 +75,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     >
     <div id="summary-bar-container" className="grid grid-cols-3 gap-4">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
         <span className="metric-label">Portfolio Value</span>
         <div className="mt-1.5">
           <span className="stat-number">
@@ -85,7 +85,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Net Equity */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
         <span className="metric-label">Net Equity</span>
         <div className="mt-1.5">
           <span className="stat-number">
@@ -97,7 +97,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Annual Cashflow */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
         <span className="metric-label">Annual Cashflow</span>
         <div className="mt-1.5">
           <span className="stat-number">

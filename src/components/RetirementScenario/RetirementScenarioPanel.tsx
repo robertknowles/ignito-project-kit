@@ -84,28 +84,28 @@ export const RetirementScenarioPanel: React.FC = () => {
 
       {/* ── KPI Cards — 5 across ─────────────────────────────────── */}
       <div className="grid grid-cols-5 gap-3">
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Cash in Hand</span>
           <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.cashInHand)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Portfolio Value</span>
           <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.portfolioValue)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Total Equity</span>
           <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.totalEquity)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Debt Remaining</span>
           <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">{fmt(summary.debtRemaining)}</span>
@@ -115,7 +115,7 @@ export const RetirementScenarioPanel: React.FC = () => {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white px-3 py-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Annual Cashflow</span>
           <div className="mt-1">
             <span className="text-lg font-semibold text-gray-600">
@@ -166,13 +166,13 @@ export const RetirementScenarioPanel: React.FC = () => {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-6 mt-2">
+        <div className="flex items-center gap-5 mt-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS.barPositive }} />
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barPositive }} />
             <span className="text-[11px] text-gray-400">Equity in property — grows, not liquid</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS.barNegative }} />
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barNegative }} />
             <span className="text-[11px] text-gray-400">Cash in hand — liquid after debt clearance</span>
           </div>
         </div>
@@ -181,7 +181,7 @@ export const RetirementScenarioPanel: React.FC = () => {
       {/* ── Bottom 2-col: Slider | Sell List ──────────────────────── */}
       <div className="grid grid-cols-2 gap-4">
         {/* Time to Retirement */}
-        <div className="rounded-lg border border-gray-100 px-4 py-4">
+        <div className="rounded-lg border border-gray-200 px-4 py-4">
           <div className="flex items-baseline justify-between mb-4">
             <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
               Time to Retirement
@@ -208,7 +208,7 @@ export const RetirementScenarioPanel: React.FC = () => {
         </div>
 
         {/* Sell at Retirement */}
-        <div className="rounded-lg border border-gray-100 px-4 py-4">
+        <div className="rounded-lg border border-gray-200 px-4 py-4">
           <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 block mb-3">
             Sell at Retirement
           </span>
