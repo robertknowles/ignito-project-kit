@@ -102,8 +102,9 @@ export const EquityUnlockChart: React.FC = () => {
     );
   }
 
-  const LABEL_WIDTH = 80;
-  const FINAL_WIDTH = 60;
+  const LABEL_WIDTH = 60;
+  const FINAL_WIDTH = 50;
+  const ROW_MIN_HEIGHT = 88; // Match Funding Sources row height
   const firstYear = years[0];
   const totalSpan = lastYear - firstYear;
 
@@ -141,9 +142,9 @@ export const EquityUnlockChart: React.FC = () => {
       </div>
 
       {/* Property rows */}
-      <div className="flex flex-col gap-10 mt-10">
+      <div className="flex flex-col mt-10">
         {rows.map((row, idx) => (
-          <div key={idx} className="flex items-center">
+          <div key={idx} className="flex items-center" style={{ minHeight: ROW_MIN_HEIGHT }}>
             {/* Label */}
             <div className="flex-shrink-0" style={{ width: LABEL_WIDTH }}>
               <p className="text-xs font-semibold text-gray-600 leading-tight">{row.label}</p>

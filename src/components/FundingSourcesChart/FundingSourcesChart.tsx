@@ -152,6 +152,9 @@ export const FundingSourcesChart: React.FC = () => {
 
   const heroIdx = cards.findIndex(c => !c.isOwned);
 
+  // Min row height so Equity Unlock bars can roughly align
+  const ROW_MIN_HEIGHT = 88;
+
   return (
     <div>
       {/* Vertical timeline */}
@@ -164,12 +167,12 @@ export const FundingSourcesChart: React.FC = () => {
           const isLast = idx === cards.length - 1;
 
           return (
-            <div key={idx} className="flex gap-4" style={{ paddingBottom: isLast ? 0 : 20 }}>
+            <div key={idx} className="flex gap-3" style={{ minHeight: ROW_MIN_HEIGHT }}>
               {/* Timeline spine */}
               <div className="flex flex-col items-center flex-shrink-0" style={{ width: 20 }}>
                 {/* Dot */}
                 <div
-                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${
+                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-3 ${
                     isHero
                       ? 'bg-blue-400 ring-4 ring-blue-100'
                       : card.isOwned
@@ -184,30 +187,27 @@ export const FundingSourcesChart: React.FC = () => {
               </div>
 
               {/* Card content */}
-              <div className="flex-1 min-w-0 pb-1">
-                {/* Year label — outside the box */}
-                <p className={`text-[10px] font-medium uppercase tracking-wider mb-1.5 ${
-                  isHero ? 'text-blue-500' : muted ? 'text-gray-300' : 'text-gray-400'
-                }`}>
-                  {card.isOwned ? card.buyYear : `Target ${card.buyYear}`}
-                  {isHero && ' · Buy Next'}
-                  {isAfter && ' · After that'}
-                </p>
-
-                {/* Bordered card */}
-                <div className={`rounded-lg px-4 py-3 ${
+              <div className="flex-1 min-w-0 flex flex-col">
+                {/* Bordered card — fixed height fills the row */}
+                <div className={`rounded-lg px-4 py-2.5 flex-1 flex flex-col ${
                   isHero
                     ? 'border border-blue-200 bg-blue-50/30'
                     : 'border border-gray-100 bg-white'
                 }`}>
-                  {/* Title + years away */}
-                  <div className="flex items-baseline justify-between mb-2">
+                  {/* Title row */}
+                  <div className="flex items-start justify-between mb-1.5">
                     <div className="min-w-0">
-                      <p className={`text-xs font-semibold ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <p className={`text-xs font-semibold leading-tight ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
                         {card.title}
+                        <span className={`font-normal ml-1 ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                          · {card.propertyType}
+                        </span>
                       </p>
-                      <p className={`text-[10px] ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                        {card.propertyType}
+                      <p className={`text-[10px] ${
+                        isHero ? 'text-blue-500 font-medium' : muted ? 'text-gray-300' : 'text-gray-400'
+                      }`}>
+                        {card.isOwned ? `Bought ${card.buyYear}` : `Target ${card.buyYear}`}
+                        {isHero && ' · Buy Next'}
                       </p>
                     </div>
                     {isFuture && (
@@ -217,8 +217,8 @@ export const FundingSourcesChart: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Source breakdown */}
-                  <div className="flex flex-col gap-1">
+                  {/* Source breakdown — compact */}
+                  <div className="flex flex-col gap-0.5">
                     {card.sources.map((src, si) => (
                       <div key={si} className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -239,14 +239,14 @@ export const FundingSourcesChart: React.FC = () => {
 
                   {/* Readiness bar — hero card only */}
                   {isHero && (
-                    <div className="mt-2 pt-2 border-t border-blue-100">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-gray-400">Equity building toward deposit</span>
+                    <div className="mt-1.5 pt-1.5 border-t border-blue-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-400">Deposit readiness</span>
                         <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
-                          {card.readinessPct}% ready
+                          {card.readinessPct}%
                         </span>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
+                      <div className="h-1 rounded-full overflow-hidden bg-gray-100 mt-0.5">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -258,11 +258,11 @@ export const FundingSourcesChart: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Equity extraction notes */}
+                  {/* Equity notes — compact */}
                   {card.equityNotes.length > 0 && (
-                    <div className="mt-1.5">
+                    <div className="mt-1">
                       {card.equityNotes.map((note, ni) => (
-                        <p key={ni} className={`text-[10px] leading-relaxed ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
+                        <p key={ni} className={`text-[9px] leading-snug ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
                           {note}
                         </p>
                       ))}
