@@ -141,7 +141,7 @@ export const EquityUnlockChart: React.FC = () => {
       </div>
 
       {/* Property rows */}
-      <div className="flex flex-col gap-5 mt-10">
+      <div className="flex flex-col gap-10 mt-10">
         {rows.map((row, idx) => (
           <div key={idx} className="flex items-center">
             {/* Label */}
@@ -151,7 +151,7 @@ export const EquityUnlockChart: React.FC = () => {
             </div>
 
             {/* Gantt bar area */}
-            <div className="flex-1 relative" style={{ height: 20 }}>
+            <div className="flex-1 relative" style={{ height: 28 }}>
               {/* The bar */}
               <div
                 className="absolute top-0 rounded-md"
@@ -172,7 +172,7 @@ export const EquityUnlockChart: React.FC = () => {
                   className="absolute flex flex-col items-center"
                   style={{
                     left: `${((evt.year - firstYear) / totalSpan) * 100}%`,
-                    top: -20,
+                    top: -24,
                     transform: 'translateX(-50%)',
                   }}
                 >
@@ -187,7 +187,7 @@ export const EquityUnlockChart: React.FC = () => {
                   <div
                     className="w-px"
                     style={{
-                      height: 30,
+                      height: 36,
                       backgroundColor: COLORS.extraction,
                     }}
                   />
