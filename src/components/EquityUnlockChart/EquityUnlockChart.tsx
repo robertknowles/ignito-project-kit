@@ -16,7 +16,7 @@ import { MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParam
 
 const COLORS = {
   building: 'rgba(163, 193, 250, 0.35)',  // below threshold — soft light blue
-  refinanceable: 'rgba(59, 108, 244, 0.50)', // above threshold — medium blue
+  refinanceable: 'rgba(59, 108, 244, 0.35)', // above threshold — medium blue, reduced weight
   extraction: 'rgba(59, 108, 244, 0.70)',  // extraction event pin
 };
 
@@ -141,7 +141,7 @@ export const EquityUnlockChart: React.FC = () => {
       </div>
 
       {/* Property rows */}
-      <div className="flex flex-col gap-3 mt-10">
+      <div className="flex flex-col gap-5 mt-10">
         {rows.map((row, idx) => (
           <div key={idx} className="flex items-center">
             {/* Label */}

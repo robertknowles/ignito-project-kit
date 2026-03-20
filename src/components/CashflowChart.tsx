@@ -141,6 +141,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart
           data={data}
+          barGap={2}
           margin={{
             top: 30,
             right: 24,
@@ -185,7 +186,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
               <Cell
                 key={`cell-${index}`}
                 fill={entry.cashflow >= 0 ? CHART_COLORS.barPositive : CHART_COLORS.barNegative}
-                fillOpacity={entry.highlight ? 0.7 : 1}
+                fillOpacity={0.7}
               />
             ))}
           </Bar>

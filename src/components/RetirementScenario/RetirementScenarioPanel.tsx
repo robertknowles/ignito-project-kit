@@ -128,40 +128,30 @@ export const RetirementScenarioPanel: React.FC = () => {
 
       {/* ── Wealth Split Bar ───────────────────────────────────────── */}
       <div>
-        <div className="flex w-full overflow-hidden rounded-lg" style={{ height: 32 }}>
+        <div className="flex w-full overflow-hidden rounded-full" style={{ height: 12 }}>
           {totalWealth > 0 ? (
             <>
               {equityPct > 0 && (
                 <div
-                  className="flex items-center justify-center transition-all duration-300"
+                  className="transition-all duration-300"
                   style={{
                     width: `${equityPct}%`,
                     backgroundColor: CHART_COLORS.barPositive,
                   }}
-                >
-                  {equityPct > 12 && (
-                    <span className="text-[11px] font-semibold text-white">{fmt(summary.totalEquity)}</span>
-                  )}
-                </div>
+                />
               )}
               {cashPct > 0 && (
                 <div
-                  className="flex items-center justify-center transition-all duration-300"
+                  className="transition-all duration-300"
                   style={{
                     width: `${cashPct}%`,
                     backgroundColor: CHART_COLORS.barNegative,
                   }}
-                >
-                  {cashPct > 12 && (
-                    <span className="text-[11px] font-semibold text-white">{fmt(summary.cashInHand)}</span>
-                  )}
-                </div>
+                />
               )}
             </>
           ) : (
-            <div className="flex items-center justify-center w-full bg-gray-100 text-[11px] text-gray-400">
-              Portfolio fully liquidated
-            </div>
+            <div className="w-full bg-gray-100" />
           )}
         </div>
 
@@ -169,11 +159,11 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div className="flex items-center gap-5 mt-2">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barPositive }} />
-            <span className="text-[11px] text-gray-400">Equity in property — grows, not liquid</span>
+            <span className="text-[11px] text-gray-400">Equity in property {fmt(summary.totalEquity)} — grows, not liquid</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barNegative }} />
-            <span className="text-[11px] text-gray-400">Cash in hand — liquid after debt clearance</span>
+            <span className="text-[11px] text-gray-400">Cash in hand {fmt(summary.cashInHand)} — liquid after debt clearance</span>
           </div>
         </div>
       </div>

@@ -9,8 +9,8 @@ import { ChevronDown } from 'lucide-react';
 const fmtMo = (v: number) => `$${Math.abs(Math.round(v)).toLocaleString()}`;
 
 const COLORS = {
-  rent: 'rgba(59, 108, 244, 0.40)',      // rent coverage — matches refinanceable
-  costs: 'rgba(163, 193, 250, 0.30)',     // costs bg — matches building equity
+  rent: 'rgba(59, 108, 244, 0.30)',      // rent coverage — softened
+  costs: 'rgba(163, 193, 250, 0.25)',     // costs bg — softened
 };
 
 const LABEL_WIDTH = 100;
