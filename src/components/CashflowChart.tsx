@@ -41,7 +41,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
   });
 
   // Use calculated data or show empty state
-  const data = cashflowData.length > 0 ? cashflowData : [
+  const rawData = cashflowData.length > 0 ? cashflowData : [
     {
       year: '2025',
       cashflow: 0,
@@ -50,6 +50,12 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       loanRepayments: 0,
     }
   ]
+
+  // Cap data at debt-free milestone year (+ 2 year buffer)
+  const debtFreeYear = projection.milestones.find(m => m.label === 'Debt free')?.year;
+  const data = debtFreeYear
+    ? rawData.filter(d => Number(d.year) <= debtFreeYear + 2)
+    : rawData;
   // Custom tooltip to show the values
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -144,8 +150,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           barGap={2}
           margin={{
             top: 30,
-            right: 20,
-            left: 0,
+            right: 10,
+            left: -15,
             bottom: 5,
           }}
         >
@@ -157,7 +163,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           <YAxis
             tickFormatter={formatYAxis}
             {...CHART_STYLE.yAxis}
-            width={70}
+            width={55}
             domain={yAxisDomain}
             ticks={yAxisTicks}
           />
@@ -194,18 +200,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Milestone labels below chart — shows all including off-chart ones */}
-      {projection.milestones.length > 0 && (
-        <div className="mt-1 flex gap-x-5 gap-y-1 flex-wrap" style={{ paddingLeft: 70 }}>
-          {projection.milestones
-            .filter(m => m.type !== 'transition')
-            .map(m => (
-            <span key={m.label} className="text-[11px] text-gray-400">
-              <span className="font-medium text-gray-500">{m.year}</span>: {m.label}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
+
