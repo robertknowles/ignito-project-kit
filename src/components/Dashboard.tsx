@@ -11,7 +11,7 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { HoldingCostPanel } from './HoldingCostPanel/HoldingCostPanel';
 import { FundingSourcesChart } from './FundingSourcesChart/FundingSourcesChart';
-import { EquityUnlockChart } from './EquityUnlockChart/EquityUnlockChart';
+import { EquityUnlockChart, EquityUnlockSummary } from './EquityUnlockChart/EquityUnlockChart';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
@@ -96,7 +96,7 @@ export const Dashboard = () => {
             <FundingSourcesChart />
           </ChartCard>
 
-          <ChartCard title="Equity Unlock Timeline">
+          <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />}>
             <EquityUnlockChart />
           </ChartCard>
         </div>

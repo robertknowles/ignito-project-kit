@@ -110,16 +110,6 @@ export const EquityUnlockChart: React.FC = () => {
 
   return (
     <div>
-      {/* Header — total extractable */}
-      <div className="flex items-start justify-end mb-3">
-        <div className="text-right flex-shrink-0">
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider leading-tight">
-            Total extractable by {lastYear}
-          </p>
-          <p className="text-lg font-semibold text-gray-600">{fmt(totalFinalEquity)}</p>
-        </div>
-      </div>
-
       {/* Year axis */}
       <div className="relative" style={{ marginLeft: LABEL_WIDTH, marginRight: FINAL_WIDTH }}>
         <div className="flex justify-between">
@@ -219,6 +209,37 @@ export const EquityUnlockChart: React.FC = () => {
           <span className="text-[11px] text-gray-400">Refinance event</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+/** Small component for ChartCard action slot — shows total extractable */
+export const EquityUnlockSummary: React.FC = () => {
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
+  const { getInstance } = usePropertyInstance();
+  const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile, getInstance);
+
+  const { totalFinalEquity, lastYear } = useMemo(() => {
+    if (propertyTimelines.length === 0) return { totalFinalEquity: 0, lastYear: 0 };
+    const yearSet = new Set<number>();
+    propertyTimelines.forEach(p => p.timeline.forEach(t => yearSet.add(t.year)));
+    const lastYear = Math.max(...Array.from(yearSet));
+    const totalFinalEquity = propertyTimelines.reduce((s, p) => {
+      const last = p.timeline[p.timeline.length - 1];
+      return s + (last?.equity ?? 0);
+    }, 0);
+    return { totalFinalEquity, lastYear };
+  }, [propertyTimelines]);
+
+  if (totalFinalEquity === 0) return null;
+
+  return (
+    <div className="text-right">
+      <p className="text-[10px] text-gray-400 uppercase tracking-wider leading-tight">
+        Extractable by {lastYear}
+      </p>
+      <p className="text-sm font-semibold text-gray-600">{fmt(totalFinalEquity)}</p>
     </div>
   );
 };
