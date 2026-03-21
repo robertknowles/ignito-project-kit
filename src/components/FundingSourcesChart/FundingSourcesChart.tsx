@@ -167,7 +167,7 @@ export const FundingSourcesChart: React.FC = () => {
           const isLast = idx === cards.length - 1;
 
           return (
-            <div key={idx} className="flex gap-3" style={{ minHeight: ROW_MIN_HEIGHT }}>
+            <div key={idx} className="flex gap-3 pb-2" style={{ minHeight: ROW_MIN_HEIGHT }}>
               {/* Timeline spine */}
               <div className="flex flex-col items-center flex-shrink-0" style={{ width: 20 }}>
                 {/* Dot */}
@@ -210,11 +210,28 @@ export const FundingSourcesChart: React.FC = () => {
                         {isHero && ' · Buy Next'}
                       </p>
                     </div>
-                    {isFuture && (
+                    {isFuture && isHero ? (
+                      <div className="flex-shrink-0 ml-2 text-right" style={{ minWidth: 80 }}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
+                            {card.readinessPct}% ready
+                          </span>
+                        </div>
+                        <div className="h-1 rounded-full overflow-hidden bg-gray-100 mt-0.5">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${card.readinessPct}%`,
+                              backgroundColor: CHART_COLORS.barPositive,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : isFuture ? (
                       <span className={`text-xs font-medium flex-shrink-0 ml-2 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
                         {card.yearsAway} yrs
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Source breakdown — compact */}
@@ -237,26 +254,6 @@ export const FundingSourcesChart: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Readiness bar — hero card only */}
-                  {isHero && (
-                    <div className="mt-1.5 pt-1.5 border-t border-blue-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-400">Deposit readiness</span>
-                        <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
-                          {card.readinessPct}%
-                        </span>
-                      </div>
-                      <div className="h-1 rounded-full overflow-hidden bg-gray-100 mt-0.5">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${card.readinessPct}%`,
-                            backgroundColor: CHART_COLORS.barPositive,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {/* Equity notes — compact */}
                   {card.equityNotes.length > 0 && (
