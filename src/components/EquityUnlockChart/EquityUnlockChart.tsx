@@ -77,7 +77,7 @@ export const EquityUnlockChart: React.FC = () => {
       }
 
       return {
-        label: `P${idx + 1}`,
+        label: `Property ${idx + 1}`,
         subtitle: prop.title,
         readyYear: prop.refinanceReadyYear,
         barStartPct,
@@ -102,7 +102,7 @@ export const EquityUnlockChart: React.FC = () => {
     );
   }
 
-  const LABEL_WIDTH = 80;
+  const LABEL_WIDTH = 100;
   const FINAL_WIDTH = 50;
   const ROW_MIN_HEIGHT = 88; // Match Funding Sources row height
   const firstYear = years[0];
