@@ -169,10 +169,10 @@ export const EquityUnlockChart: React.FC = () => {
                 >
                   {/* Pin label */}
                   <div
-                    className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white whitespace-nowrap"
+                    className="rounded-full px-1.5 py-px text-[9px] font-medium text-white whitespace-nowrap"
                     style={{ backgroundColor: COLORS.extraction }}
                   >
-                    {evt.year} · {fmt(evt.amount)} extracted
+                    {fmt(evt.amount)}
                   </div>
                   {/* Pin line */}
                   <div
