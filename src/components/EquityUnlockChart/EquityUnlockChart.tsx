@@ -138,7 +138,7 @@ export const EquityUnlockChart: React.FC = () => {
             {/* Label */}
             <div className="flex-shrink-0" style={{ width: LABEL_WIDTH }}>
               <p className="text-xs font-semibold text-gray-600 leading-tight">{row.label}</p>
-              <p className="text-[11px] text-gray-400 truncate">{row.subtitle}</p>
+              <p className="text-[11px] text-gray-400 leading-tight">{row.subtitle}</p>
             </div>
 
             {/* Gantt bar area */}
