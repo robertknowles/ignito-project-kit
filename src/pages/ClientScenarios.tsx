@@ -1254,43 +1254,7 @@ toast.error('Failed to create client invite');
                   </div>
                 </div>
               </div>
-              {/* Upcoming Purchases */}
-              <TourStep
-                id="clients-upcoming-purchases"
-                title="Upcoming Purchases Chart"
-                content="Visualize all your clients' planned property purchases on a timeline. See who's buying when, track purchase dates across your entire portfolio, and identify busy periods."
-                order={7}
-                position="top"
-              >
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <h2 className="page-title">
-                      Upcoming Purchases
-                    </h2>
-                  </div>
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    {timelineLoading ? (
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-sm text-gray-500">Loading timeline data...</div>
-                      </div>
-                    ) : timelineData.length === 0 ? (
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-center">
-                          <CalendarIcon size={48} className="text-gray-300 mx-auto mb-3" />
-                          <p className="text-sm text-gray-500">No client scenarios to display</p>
-                          <p className="text-xs text-gray-400 mt-1">Create scenarios for clients to see them here</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <PropertyTimeline
-                        clients={timelineData}
-                        startYear={2025}
-                        endYear={2040}
-                      />
-                    )}
-                  </div>
-                </div>
-              </TourStep>
+              {/* Upcoming Purchases section removed */}
             </div>
           </div>
         </div>
