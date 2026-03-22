@@ -5,6 +5,7 @@ import {
   FileTextIcon,
   BarChart3Icon,
   DatabaseIcon,
+  BookOpenIcon,
   UserIcon,
   LogOutIcon,
   SettingsIcon,
@@ -75,7 +76,7 @@ export const LeftRail = () => {
   const topNavItems = [
     { path: '/home', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
     { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard', roles: ['owner', 'agent', 'client'] },
-    { path: '/settings', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
+    { path: '/settings', icon: BookOpenIcon, label: 'Library', roles: ['owner', 'agent'] },
   ]
 
   // Bottom navigation items (above user menu)

@@ -118,6 +118,9 @@ export const ClientScenarios = () => {
   
   // Track client status for CRM display
   const [clientStatuses, setClientStatuses] = useState<Record<number, ClientStatus>>({});
+
+  // Form submission statuses per client
+  const [formStatuses, setFormStatuses] = useState<Record<number, { input_form: string | null; profile_update: string | null }>>({});
   
   // State for profile modal
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -140,6 +143,35 @@ export const ClientScenarios = () => {
   const [emailPromptOpen, setEmailPromptOpen] = useState(false);
   const [emailPromptClient, setEmailPromptClient] = useState<Client | null>(null);
   const [pendingEmail, setPendingEmail] = useState('');
+
+  // Fetch form submission statuses for all clients
+  useEffect(() => {
+    const fetchFormStatuses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('form_submissions')
+          .select('client_id, form_type, status, sent_at')
+          .order('sent_at', { ascending: false })
+
+        if (!error && data) {
+          const map: Record<number, { input_form: string | null; profile_update: string | null }> = {}
+          clients.forEach(c => {
+            const clientForms = (data as any[]).filter(f => f.client_id === c.id)
+            const inputForm = clientForms.find(f => f.form_type === 'input_form')
+            const profileUpdate = clientForms.find(f => f.form_type === 'profile_update')
+            map[c.id] = {
+              input_form: inputForm?.status || null,
+              profile_update: profileUpdate?.status || null,
+            }
+          })
+          setFormStatuses(map)
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+    if (clients.length > 0) fetchFormStatuses()
+  }, [clients])
 
   // Fetch comprehensive client status for all clients
   useEffect(() => {
@@ -337,9 +369,28 @@ export const ClientScenarios = () => {
 
   // --- CRM helpers ---
 
+  // Count awaiting and ready clients for header badges
+  const awaitingCount = useMemo(() => {
+    return Object.values(formStatuses).filter(fs =>
+      fs.input_form === 'awaiting' || fs.input_form === 'not_opened' ||
+      fs.profile_update === 'awaiting' || fs.profile_update === 'not_opened'
+    ).length
+  }, [formStatuses])
+
+  const readyCount = useMemo(() => {
+    return clients.filter(c => c.roadmap_status === 'finalised').length
+  }, [clients])
+
   // Format relative time for "Last Active" column
-  const formatRelativeTime = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '--';
+  const formatRelativeTime = (client: Client) => {
+    const dateStr = client.last_active_at;
+    const status = clientStatuses[client.id];
+    const portalStatus = client.portal_status || 'not_invited';
+
+    if (portalStatus === 'not_invited') return 'Invite not sent';
+    if (portalStatus === 'invited' && !status?.clientHasLoggedIn) return 'Portal not used';
+    if (!dateStr) return 'Never';
+
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -347,25 +398,26 @@ export const ClientScenarios = () => {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
     if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    if (hours < 1) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
     return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   };
 
   // Format review date with countdown
   const formatReviewDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return { text: '--', badge: null, color: 'text-[#6b7280]' };
+    if (!dateStr) return { text: 'Not set', badge: null, color: 'text-[#6b7280]' };
     const date = new Date(dateStr);
     const now = new Date();
     const diff = date.getTime() - now.getTime();
     const days = Math.ceil(diff / 86400000);
-    const formatted = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (days < 0) return { text: formatted, badge: 'Overdue', color: 'text-red-600' };
-    if (days <= 14) return { text: formatted, badge: `${days}d`, color: 'text-amber-600' };
-    if (days <= 30) return { text: formatted, badge: `${days}d`, color: 'text-[#374151]' };
-    return { text: formatted, badge: null, color: 'text-[#374151]' };
+    const formatted = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    if (days < 0) return { text: formatted, badge: 'Overdue', color: 'text-red-600', badgeColor: 'bg-red-50 text-red-600' };
+    if (days <= 7) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-orange-50 text-orange-600' };
+    if (days <= 14) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-amber-50 text-amber-600' };
+    if (days <= 60) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-gray-100 text-gray-500' };
+    return { text: formatted, badge: null, color: 'text-[#374151]', badgeColor: '' };
   };
 
   // Status badge configs
@@ -940,21 +992,29 @@ toast.error('Failed to create client invite');
               </div>
 
               {/* Filter Tabs */}
-              <div className="mb-4">
+              <div className="flex items-center justify-between mb-4">
                 <UnderlineTabBar
                   tabs={filterTabs}
                   activeKey={activeFilter}
                   onChange={(key) => setActiveFilter(key as typeof activeFilter)}
                 />
+                {(awaitingCount > 0 || readyCount > 0) && (
+                  <div className="flex items-center gap-2">
+                    {awaitingCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        {awaitingCount} awaiting
+                      </span>
+                    )}
+                    {readyCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                        ✓ {readyCount} ready
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="mb-8">
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <StatCard label="Seat Usage" value={activeSeats} subtitle={`/ ${seatLimit}`} />
-                  <StatCard label="Scenario Coverage" value={stats.activeScenarios} subtitle={`/ ${stats.totalClients}`} />
-                  <StatCard label="Purchasing Soon" value={stats.purchasingSoon} subtitle={`/ ${stats.totalClients}`} />
-                </div>
-
                 {/* Client Portfolio Table */}
                 <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
                   <table className="w-full">
@@ -965,8 +1025,8 @@ toast.error('Failed to create client invite');
                         <th className="table-header">Portal</th>
                         <th className="table-header">Roadmap</th>
                         <th className="table-header">Last Active</th>
+                        <th className="table-header">Forms</th>
                         <th className="table-header">Review Date</th>
-                        <th className="table-header"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -986,6 +1046,14 @@ toast.error('Failed to create client invite');
                           .toUpperCase()
                           .slice(0, 2);
 
+                        const AVATAR_COLORS = ['#2563EB', '#D97706', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#EA580C', '#4F46E5'];
+                        const getAvatarColor = (name: string) => {
+                          let hash = 0;
+                          for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                          return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+                        };
+                        const avatarColor = getAvatarColor(client.name);
+
                         const status = clientStatuses[client.id];
                         const isOnboarded = status?.isQuestionnaireCompleted || false;
                         const hasPlan = status?.hasScenario || false;
@@ -993,15 +1061,24 @@ toast.error('Failed to create client invite');
                         const hasLoggedIn = status?.clientHasLoggedIn || false;
                         const isFirstRow = clientIndex === 0;
                         const reviewInfo = formatReviewDate(client.next_review_date);
+                        const fs = formStatuses[client.id];
+
+                        // Strategy type display
+                        const strategyLabel = client.strategy_type
+                          ? client.strategy_type.split(' · ').length > 1
+                            ? client.strategy_type
+                            : client.strategy_type
+                          : null;
 
                         return (
                           <tr key={client.id} className="border-b border-gray-100/70 hover:bg-gray-50/40 transition-colors">
-                            {/* Client name + email */}
+                            {/* Client name + strategy type */}
                             <td className="table-cell">
                               <div className="flex items-center">
                                 <button
                                   onClick={() => handleOpenProfile(client)}
-                                  className="w-8 h-8 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-sm mr-3 hover:bg-opacity-80 transition-colors flex-shrink-0"
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium mr-3 hover:opacity-80 transition-opacity flex-shrink-0"
+                                  style={{ backgroundColor: avatarColor }}
                                 >
                                   {initials}
                                 </button>
@@ -1009,181 +1086,158 @@ toast.error('Failed to create client invite');
                                   <div className="body-dark font-medium truncate">
                                     {client.name}
                                   </div>
-                                  {client.email && (
-                                    <div className="meta truncate">
-                                      {client.email}
-                                    </div>
-                                  )}
+                                  {strategyLabel ? (
+                                    <div className="meta truncate">{strategyLabel}</div>
+                                  ) : client.email ? (
+                                    <div className="meta truncate">{client.email}</div>
+                                  ) : null}
                                 </div>
                               </div>
                             </td>
 
                             {/* Stage */}
                             <td className="table-cell">
-                              <StatusBadgePill
-                                label={stageBadgeConfig[client.stage || 'onboarding']?.label || 'Onboarding'}
-                                variant={stageVariantMap[client.stage || 'onboarding'] || 'blue'}
-                              />
+                              <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase rounded ${
+                                (client.stage || 'onboarding') === 'review'
+                                  ? 'text-blue-700 bg-blue-50 border border-blue-200'
+                                  : 'text-gray-600 bg-gray-50 border border-gray-200'
+                              }`}>
+                                {(client.stage || 'onboarding') === 'review' ? 'REVIEW' : 'ONBOARDING'}
+                              </span>
                             </td>
 
                             {/* Portal Status */}
                             <td className="table-cell">
-                              <StatusBadgePill
-                                label={portalBadgeConfig[client.portal_status || 'not_invited']?.label || 'Not invited'}
-                                variant={portalVariantMap[client.portal_status || 'not_invited'] || 'gray'}
-                              />
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  (client.portal_status || 'not_invited') === 'active' ? 'bg-green-500' :
+                                  (client.portal_status || 'not_invited') === 'invited' ? 'bg-orange-500' :
+                                  'bg-gray-400'
+                                }`} />
+                                <span className="text-sm text-[#374151]">
+                                  {(client.portal_status || 'not_invited') === 'active' ? 'Active' :
+                                   (client.portal_status || 'not_invited') === 'invited' ? 'Invited' :
+                                   'Not invited'}
+                                </span>
+                              </div>
                             </td>
 
                             {/* Roadmap Status */}
                             <td className="table-cell">
-                              <StatusBadgePill
-                                label={roadmapBadgeConfig[client.roadmap_status || 'not_started']?.label || 'Not started'}
-                                variant={roadmapVariantMap[client.roadmap_status || 'not_started'] || 'gray'}
-                              />
+                              <span className={`text-sm ${
+                                (client.roadmap_status || 'not_started') === 'finalised' ? 'text-green-700' :
+                                (client.roadmap_status || 'not_started') === 'draft' ? 'text-blue-700' :
+                                (client.roadmap_status || 'not_started') === 'in_review' ? 'text-amber-700' :
+                                'text-gray-500'
+                              }`}>
+                                {roadmapBadgeConfig[client.roadmap_status || 'not_started']?.label || 'Not started'}
+                              </span>
                             </td>
 
                             {/* Last Active */}
                             <td className="table-cell">
-                              <div className="flex items-center gap-1.5">
-                                {client.last_active_at && (
-                                  <Activity size={12} className="text-[#9ca3af]" />
-                                )}
-                                <span className="body-dark">
-                                  {formatRelativeTime(client.last_active_at)}
-                                </span>
+                              <span className="text-sm text-[#374151]">
+                                {formatRelativeTime(client)}
+                              </span>
+                            </td>
+
+                            {/* Forms */}
+                            <td className="table-cell">
+                              <div className="space-y-1.5">
+                                {/* Input Form */}
+                                <div className="flex items-center gap-2">
+                                  <span className="meta whitespace-nowrap w-16">Input Form</span>
+                                  {fs?.input_form === 'completed' ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
+                                      ✓ Completed
+                                    </span>
+                                  ) : fs?.input_form === 'awaiting' ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                        Awaiting
+                                      </span>
+                                      <button
+                                        onClick={() => navigate('/forms')}
+                                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                                      >
+                                        Resend
+                                      </button>
+                                    </div>
+                                  ) : fs?.input_form === 'not_opened' ? (
+                                    <span className="text-[11px] text-gray-400">Not sent</span>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[11px] text-gray-400">Not sent</span>
+                                      <button
+                                        onClick={() => navigate('/forms')}
+                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
+                                      >
+                                        Send
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Profile Update */}
+                                <div className="flex items-center gap-2">
+                                  <span className="meta whitespace-nowrap w-16">Profile Upd.</span>
+                                  {client.stage === 'onboarding' ? (
+                                    <span className="text-[11px] text-gray-300 italic">Profile update — not yet</span>
+                                  ) : fs?.profile_update === 'completed' ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
+                                      ✓ Completed
+                                    </span>
+                                  ) : fs?.profile_update === 'awaiting' ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                        Awaiting
+                                      </span>
+                                      <button
+                                        onClick={() => navigate('/forms')}
+                                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                                      >
+                                        Resend
+                                      </button>
+                                    </div>
+                                  ) : fs?.profile_update === 'not_opened' ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[11px] text-gray-400">Not sent</span>
+                                      <button
+                                        onClick={() => navigate('/forms')}
+                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
+                                      >
+                                        Send
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[11px] text-gray-400">Not sent</span>
+                                      <button
+                                        onClick={() => navigate('/forms')}
+                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
+                                      >
+                                        Send
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
 
                             {/* Review Date */}
                             <td className="table-cell">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm ${reviewInfo.color}`}>
+                              <div>
+                                <span className={`text-sm font-medium ${reviewInfo.color}`}>
                                   {reviewInfo.text}
                                 </span>
                                 {reviewInfo.badge && (
-                                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                                    reviewInfo.badge === 'Overdue'
-                                      ? 'bg-red-50 text-red-600'
-                                      : 'bg-amber-50 text-amber-600'
-                                  }`}>
-                                    {reviewInfo.badge}
-                                  </span>
+                                  <div className="mt-0.5">
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${reviewInfo.badgeColor}`}>
+                                      {reviewInfo.badge}
+                                    </span>
+                                  </div>
                                 )}
-                              </div>
-                            </td>
-
-                            {/* Actions */}
-                            <td className="table-cell">
-                              <div className="flex items-center gap-1">
-                                {/* Profile Button */}
-                                {isFirstRow ? (
-                                  <TourStep
-                                    id="clients-view-profile"
-                                    title="View Client Profile"
-                                    content="Access detailed client information including financial details, goals, and questionnaire responses. Keep client data organized and up-to-date."
-                                    order={6}
-                                    position="left"
-                                  >
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <button
-                                          onClick={() => handleOpenProfile(client)}
-                                          className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
-                                        >
-                                          <User size={16} />
-                                        </button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>View Profile</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TourStep>
-                                ) : (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        onClick={() => handleOpenProfile(client)}
-                                        className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
-                                      >
-                                        <User size={16} />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>View Profile</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-
-                                {/* Download PDF */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      onClick={() => handleGeneratePDF(client)}
-                                      disabled={pdfGenerating}
-                                      className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <Download size={16} />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{pdfGenerating ? 'Generating...' : 'Download PDF'}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                {/* More Options Dropdown */}
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button className="p-1.5 text-[#6b7280] hover:text-[#374151] hover:bg-gray-100 rounded transition-colors">
-                                      <MoreHorizontalIcon size={16} />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-52">
-                                    <DropdownMenuItem
-                                      onClick={() => handleViewClient(client.id)}
-                                      className="cursor-pointer"
-                                    >
-                                      <Target size={14} className="mr-2" />
-                                      {hasPlan ? 'View Plan' : 'Create Plan'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleCopyOnboardingLink(client)}
-                                      className="cursor-pointer"
-                                    >
-                                      <UserPlus size={14} className="mr-2" />
-                                      {isOnboarded ? 'Copy Questionnaire Link' : 'Send Questionnaire'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleInviteClient(client)}
-                                      className="cursor-pointer"
-                                    >
-                                      <Send size={14} className="mr-2" />
-                                      {hasLoggedIn ? 'View Credentials' : hasClientUser ? 'Resend Invite' : 'Invite to Portal'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => handleOpenProfile(client)}
-                                      className="cursor-pointer"
-                                    >
-                                      <User size={14} className="mr-2" />
-                                      View Profile
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleRenameClick(client)}
-                                      className="cursor-pointer"
-                                    >
-                                      <Edit2Icon size={14} className="mr-2" />
-                                      Rename Client
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => handleDeleteClick(client)}
-                                      className="cursor-pointer text-red-700 focus:text-red-700"
-                                    >
-                                      <Trash2Icon size={14} className="mr-2" />
-                                      Delete Client
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
                               </div>
                             </td>
                           </tr>
@@ -1191,6 +1245,16 @@ toast.error('Failed to create client invite');
                       })}
                     </tbody>
                   </table>
+                  {/* Footer */}
+                  <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="meta">{filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} shown</span>
+                    <button
+                      onClick={handleExportCSV}
+                      className="text-xs text-[#2563EB] hover:underline font-medium"
+                    >
+                      Export to CSV →
+                    </button>
+                  </div>
                 </div>
               </div>
               {/* Upcoming Purchases */}

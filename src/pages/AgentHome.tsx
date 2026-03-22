@@ -13,6 +13,11 @@ import {
   ArrowRight,
   FileText,
   Building2,
+  CheckCircle2,
+  Eye,
+  Info,
+  Filter,
+  ArrowUpDown,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { LeftRail } from '@/components/LeftRail'
@@ -38,17 +43,45 @@ interface ActivityEntry {
   created_at: string
 }
 
+// Form submission record for meeting prep
+interface FormSubmissionStatus {
+  client_id: number
+  form_type: string
+  status: string
+  sent_at: string
+}
+
+// Avatar colour palette for client initials
+const AVATAR_COLORS = [
+  '#2563EB', // blue
+  '#D97706', // amber
+  '#059669', // emerald
+  '#DC2626', // red
+  '#7C3AED', // violet
+  '#0891B2', // cyan
+  '#EA580C', // orange
+  '#4F46E5', // indigo
+]
+
+const getAvatarColor = (name: string) => {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
 export const AgentHome = () => {
   const navigate = useNavigate()
-  const { clients } = useClient()
+  const { clients, activeSeats, seatLimit } = useClient()
   const { user, role } = useAuth()
   const { branding } = useBranding()
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
+  const [formStatuses, setFormStatuses] = useState<FormSubmissionStatus[]>([])
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [drawerOpen, setDrawerOpen] = useState(true)
 
-  const firstName = user?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'
   const today = new Date()
   const dateString = today.toLocaleDateString('en-AU', {
     weekday: 'long',
@@ -83,26 +116,75 @@ export const AgentHome = () => {
     fetchActivity()
   }, [])
 
+  // Fetch form submission statuses for all clients
+  useEffect(() => {
+    const fetchFormStatuses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('form_submissions')
+          .select('client_id, form_type, status, sent_at')
+          .order('sent_at', { ascending: false })
+
+        if (!error && data) {
+          setFormStatuses(data as FormSubmissionStatus[])
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
+    fetchFormStatuses()
+  }, [])
+
   // --- Stats ---
   const stats = useMemo(() => {
-    const total = clients.length
-    const onboarding = clients.filter(c => c.stage === 'onboarding').length
-    const finalised = clients.filter(c => c.roadmap_status === 'finalised').length
+    const activeClients = clients.filter(c => c.roadmap_status && c.roadmap_status !== 'not_started').length || clients.length
 
     // Upcoming reviews: clients with review date within next 30 days
     const thirtyDaysFromNow = new Date()
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
-    const upcomingReviews = clients.filter(c => {
+    const reviewsDueThisMonth = clients.filter(c => {
       if (!c.next_review_date) return false
       const d = new Date(c.next_review_date)
       return d <= thirtyDaysFromNow
+    })
+
+    // Find the next upcoming review date
+    const nextReviewClient = [...clients]
+      .filter(c => c.next_review_date && new Date(c.next_review_date) >= today)
+      .sort((a, b) => new Date(a.next_review_date!).getTime() - new Date(b.next_review_date!).getTime())[0]
+
+    const nextReviewStr = nextReviewClient
+      ? new Date(nextReviewClient.next_review_date!).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+      : null
+
+    // Awaiting client input: clients with outstanding form submissions
+    const awaitingInput = clients.filter(c => {
+      const clientForms = formStatuses.filter(f => f.client_id === c.id)
+      return clientForms.some(f => f.status === 'not_opened' || f.status === 'awaiting')
     }).length
 
-    return { total, onboarding, finalised, upcomingReviews }
-  }, [clients])
+    return { activeClients, reviewsDueThisMonth: reviewsDueThisMonth.length, awaitingInput, nextReviewStr }
+  }, [clients, formStatuses, today])
 
-  // --- Review cards: clients sorted by next review date ---
-  const reviewClients = useMemo(() => {
+  // --- Per-client form status lookup ---
+  const clientFormStatusMap = useMemo(() => {
+    const map: Record<number, { input_form: string | null; profile_update: string | null }> = {}
+    clients.forEach(c => {
+      const clientForms = formStatuses.filter(f => f.client_id === c.id)
+      // Get latest status per form type
+      const inputForm = clientForms.find(f => f.form_type === 'input_form')
+      const profileUpdate = clientForms.find(f => f.form_type === 'profile_update')
+      map[c.id] = {
+        input_form: inputForm?.status || null,
+        profile_update: profileUpdate?.status || null,
+      }
+    })
+    return map
+  }, [clients, formStatuses])
+
+  // --- Meeting prep: clients sorted by next review date ---
+  const meetingPrepClients = useMemo(() => {
     return [...clients]
       .filter(c => c.next_review_date)
       .sort((a, b) => {
@@ -110,7 +192,6 @@ export const AgentHome = () => {
         const db = new Date(b.next_review_date!).getTime()
         return da - db
       })
-      .slice(0, 8)
   }, [clients])
 
   // Overdue clients (review date in the past)
@@ -133,7 +214,7 @@ export const AgentHome = () => {
     const map: Record<string, Client[]> = {}
     clients.forEach(c => {
       if (!c.next_review_date) return
-      const key = c.next_review_date.split('T')[0] // YYYY-MM-DD
+      const key = c.next_review_date.split('T')[0]
       if (!map[key]) map[key] = []
       map[key].push(c)
     })
@@ -152,16 +233,38 @@ export const AgentHome = () => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   }
 
-  const getReviewDaysUntil = (dateStr: string) => {
+  const getInitials = (name: string) => {
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const getDaysUntil = (dateStr: string) => {
     const d = new Date(dateStr)
     const diff = d.getTime() - today.getTime()
-    const days = Math.ceil(diff / 86400000)
+    return Math.ceil(diff / 86400000)
+  }
+
+  const getCountdownLabel = (dateStr: string) => {
+    const days = getDaysUntil(dateStr)
     if (days < 0) return 'Overdue'
     if (days === 0) return 'Today'
     if (days === 1) return 'Tomorrow'
-    if (days <= 7) return `${days} days`
-    if (days <= 30) return `${Math.ceil(days / 7)} weeks`
-    return `${Math.ceil(days / 30)} months`
+    return `In ${days} days`
+  }
+
+  const getCountdownColor = (dateStr: string) => {
+    const days = getDaysUntil(dateStr)
+    if (days < 0) return 'bg-red-50 text-red-600 border-red-200'
+    if (days <= 7) return 'bg-orange-50 text-orange-600 border-orange-200'
+    if (days <= 14) return 'bg-amber-50 text-amber-600 border-amber-200'
+    return 'bg-gray-100 text-gray-500 border-gray-200'
+  }
+
+  const getCountdownBarColor = (dateStr: string) => {
+    const days = getDaysUntil(dateStr)
+    if (days < 0) return 'bg-red-500'
+    if (days <= 7) return 'bg-orange-400'
+    if (days <= 14) return 'bg-amber-400'
+    return 'bg-gray-300'
   }
 
   // Format relative time for activity feed
@@ -172,25 +275,112 @@ export const AgentHome = () => {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
     if (minutes < 1) return 'Just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return `${days}d ago`
+    if (minutes < 60) return `${minutes} minutes ago`
+    if (hours === 1) return '1 hour ago'
+    if (hours < 24) return `${hours} hours ago`
+    if (days === 1) return 'Yesterday'
+    return `${days} days ago`
   }
 
-  // Get client name by ID
-  const getClientName = (clientId: number) => {
-    return clients.find(c => c.id === clientId)?.name || 'Unknown'
+  // Get client by ID
+  const getClient = (clientId: number) => {
+    return clients.find(c => c.id === clientId)
   }
 
   // Event type display config
-  const eventConfig: Record<string, { label: string; color: string }> = {
-    form_sent: { label: 'Form sent', color: 'text-blue-600' },
-    form_completed: { label: 'Form completed', color: 'text-green-600' },
-    profile_updated: { label: 'Profile updated', color: 'text-purple-600' },
-    portal_login: { label: 'Portal login', color: 'text-teal-600' },
-    scenario_created: { label: 'Scenario created', color: 'text-blue-600' },
-    client_created: { label: 'Client added', color: 'text-gray-600' },
-    review_completed: { label: 'Review completed', color: 'text-green-600' },
+  const getActivityDescription = (entry: ActivityEntry) => {
+    const client = getClient(entry.client_id)
+    const name = client?.name || 'Unknown'
+    const meta = entry.metadata || {}
+    switch (entry.event_type) {
+      case 'form_completed':
+        return { text: `${name} completed ${meta.form_name === 'Profile Update' ? 'their profile update' : 'his input form'}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+      case 'form_sent':
+        return { text: `${name} — ${meta.form_name || 'form'} request sent`, icon: <Send size={14} className="text-blue-500" /> }
+      case 'portal_login':
+        return { text: `${name} viewed their roadmap`, icon: <Eye size={14} className="text-gray-400" /> }
+      case 'profile_updated':
+        return { text: `${name} completed their profile update`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+      case 'client_created':
+        return { text: `${name} was added as a new client`, icon: <UserPlus size={14} className="text-blue-500" /> }
+      case 'scenario_created':
+        return { text: `Scenario created for ${name}`, icon: <Target size={14} className="text-blue-500" /> }
+      case 'review_completed':
+        return { text: `Review completed for ${name}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+      default: {
+        const label = entry.event_type.replace(/_/g, ' ')
+        return { text: `${label} for ${name}`, icon: <Clock size={14} className="text-gray-400" /> }
+      }
+    }
+  }
+
+  // Readiness: how many of 2 forms (input_form + profile_update) are completed
+  const getReadiness = (clientId: number) => {
+    const statuses = clientFormStatusMap[clientId]
+    if (!statuses) return { done: 0, total: 2 }
+    let done = 0
+    if (statuses.input_form === 'completed') done++
+    if (statuses.profile_update === 'completed') done++
+    return { done, total: 2 }
+  }
+
+  // Form status badge renderer
+  const renderFormStatus = (status: string | null, formLabel: string) => {
+    if (!status) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="meta">{formLabel}</span>
+          <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
+          <button
+            className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
+            onClick={() => navigate('/forms')}
+          >
+            Send
+          </button>
+        </div>
+      )
+    }
+    if (status === 'completed') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="meta">{formLabel}</span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded">
+            <CheckCircle2 size={10} />
+            Completed
+          </span>
+        </div>
+      )
+    }
+    if (status === 'awaiting') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="meta">{formLabel}</span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Awaiting
+          </span>
+          <button
+            className="text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+            onClick={() => navigate('/forms')}
+          >
+            Resend
+          </button>
+        </div>
+      )
+    }
+    // not_opened
+    return (
+      <div className="flex items-center gap-2">
+        <span className="meta">{formLabel}</span>
+        <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
+        <button
+          className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
+          onClick={() => navigate('/forms')}
+        >
+          Send
+        </button>
+      </div>
+    )
   }
 
   // Render a single calendar month
@@ -212,33 +402,32 @@ export const AgentHome = () => {
     // Day cells
     for (let day = 1; day <= daysInMonth; day++) {
       const dayKey = formatDayKey(year, month, day)
-      const reviewClients = reviewDateMap[dayKey]
+      const dayClients = reviewDateMap[dayKey]
       const isToday = dayKey === todayKey
-      const hasReviews = reviewClients && reviewClients.length > 0
+      const hasReviews = dayClients && dayClients.length > 0
 
       cells.push(
-        <div key={day} className="relative">
+        <div key={day} className="relative flex items-center justify-center">
           {hasReviews ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div
-                  className={`h-8 w-8 flex items-center justify-center text-xs rounded-full mx-auto cursor-default ${
-                    isToday
-                      ? 'bg-[#2563EB] text-white font-semibold'
-                      : 'text-[#374151]'
-                  }`}
-                >
-                  {day}
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                    {reviewClients.slice(0, 3).map((_, i) => (
-                      <span key={i} className="w-1 h-1 rounded-full bg-[#2563EB]" />
-                    ))}
-                  </span>
+                <div className="relative">
+                  <div
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white cursor-default"
+                    style={{ backgroundColor: getAvatarColor(dayClients[0].name) }}
+                  >
+                    {getInitials(dayClients[0].name)}
+                  </div>
+                  {dayClients.length > 1 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      {dayClients.length}
+                    </span>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
                 <div className="text-xs">
-                  {reviewClients.map(c => (
+                  {dayClients.map(c => (
                     <div key={c.id}>{c.name}</div>
                   ))}
                 </div>
@@ -246,7 +435,7 @@ export const AgentHome = () => {
             </Tooltip>
           ) : (
             <div
-              className={`h-8 w-8 flex items-center justify-center text-xs rounded-full mx-auto ${
+              className={`h-7 w-7 flex items-center justify-center text-xs rounded-full ${
                 isToday
                   ? 'bg-[#2563EB] text-white font-semibold'
                   : 'text-[#374151]'
@@ -263,7 +452,7 @@ export const AgentHome = () => {
       <div>
         <div className="section-heading mb-3">{monthName}</div>
         <div className="grid grid-cols-7 gap-y-1">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, i) => (
             <div key={i} className="h-6 text-[10px] font-medium text-[#9ca3af] text-center">
               {d}
             </div>
@@ -273,6 +462,34 @@ export const AgentHome = () => {
       </div>
     )
   }
+
+  // Reviews list for below calendar
+  const upcomingReviewsList = useMemo(() => {
+    return [...clients]
+      .filter(c => c.next_review_date && new Date(c.next_review_date) >= today)
+      .sort((a, b) => new Date(a.next_review_date!).getTime() - new Date(b.next_review_date!).getTime())
+      .slice(0, 6)
+  }, [clients])
+
+  // Period label for calendar header
+  const calendarPeriodLabel = useMemo(() => {
+    const m1 = calendarMonths[0]
+    const m2 = calendarMonths[1]
+    const fmt = (d: Date) => d.toLocaleDateString('en-AU', { month: 'short' })
+    const yearLabel = m1.getFullYear() === m2.getFullYear() ? m2.getFullYear() : `${m1.getFullYear()}–${m2.getFullYear()}`
+    return `${fmt(m1)} – ${fmt(m2)} ${yearLabel}`
+  }, [calendarMonths])
+
+  // Count reviews in next 90 days
+  const reviewsIn90Days = useMemo(() => {
+    const ninetyDays = new Date()
+    ninetyDays.setDate(ninetyDays.getDate() + 90)
+    return clients.filter(c => {
+      if (!c.next_review_date) return false
+      const d = new Date(c.next_review_date)
+      return d >= today && d <= ninetyDays
+    }).length
+  }, [clients])
 
   return (
     <TooltipProvider>
@@ -285,9 +502,36 @@ export const AgentHome = () => {
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
-              <div className="mb-6">
-                <h2 className="page-title">Good morning, {firstName}</h2>
-                <p className="body-secondary mt-0.5">{dateString}</p>
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="page-title">Home</h2>
+                  <p className="body-secondary mt-0.5">
+                    {dateString} · {stats.reviewsDueThisMonth} review{stats.reviewsDueThisMonth !== 1 ? 's' : ''} due this month
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate('/forms')}
+                    className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                  >
+                    <FileText size={14} className="text-[#6b7280]" />
+                    Send Input Request
+                  </button>
+                  <button
+                    onClick={() => navigate('/forms')}
+                    className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                  >
+                    <Send size={14} className="text-[#6b7280]" />
+                    Send Profile Update
+                  </button>
+                  <button
+                    onClick={() => navigate('/clients')}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-[#2563EB] text-white rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
+                  >
+                    <UserPlus size={14} />
+                    New Client
+                  </button>
+                </div>
               </div>
 
               {/* Overdue alert */}
@@ -302,7 +546,7 @@ export const AgentHome = () => {
                     </span>
                   </p>
                   <button
-                    onClick={() => navigate('/home')}
+                    onClick={() => navigate('/clients')}
                     className="ml-auto text-sm font-medium text-red-700 hover:text-red-800 whitespace-nowrap"
                   >
                     View all
@@ -312,122 +556,195 @@ export const AgentHome = () => {
 
               {/* Stats cards */}
               <div className="grid grid-cols-4 gap-4 mb-8">
-                <StatCard label="Total Clients" value={stats.total} />
-                <StatCard label="Upcoming Reviews" value={stats.upcomingReviews} />
-                <StatCard label="Onboarding" value={stats.onboarding} />
-                <StatCard label="Plans Finalised" value={stats.finalised} />
+                <StatCard
+                  label="Total Active Clients"
+                  value={stats.activeClients}
+                  subtitle="with a live roadmap"
+                  info="Clients who have an active roadmap or scenario in progress"
+                  badge={
+                    stats.activeClients > 0
+                      ? { label: `+1 this month`, variant: 'green' }
+                      : undefined
+                  }
+                />
+                <StatCard
+                  label="Plans Used This Month"
+                  value={`${activeSeats} / ${seatLimit}`}
+                  info="Number of client plans used against your subscription limit this billing cycle"
+                  progress={{ current: activeSeats, max: seatLimit }}
+                />
+                <StatCard
+                  label="Awaiting Client Input"
+                  value={stats.awaitingInput}
+                  subtitle="clients with outstanding forms"
+                  info="Clients who have been sent a form that hasn't been completed yet"
+                  badge={
+                    stats.awaitingInput > 0
+                      ? { label: 'Needs attention', variant: 'amber' }
+                      : undefined
+                  }
+                />
+                <StatCard
+                  label="Reviews Due This Month"
+                  value={stats.reviewsDueThisMonth}
+                  subtitle={`6-month check-ups in next 30 days`}
+                  info="Clients whose 6-month review is coming up within the next 30 days"
+                  badge={
+                    stats.nextReviewStr
+                      ? { label: `Next: ${stats.nextReviewStr}`, variant: 'gray' }
+                      : undefined
+                  }
+                />
               </div>
 
-              {/* Main content: Review cards + Calendar/Activity */}
-              <div className="grid grid-cols-3 gap-6">
-                {/* Left column: Upcoming Reviews */}
-                <div className="col-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="section-heading">Upcoming Reviews</h3>
-                    <button
-                      onClick={() => navigate('/home')}
-                      className="text-xs text-[#2563EB] hover:text-[#2563eb] font-medium flex items-center gap-1"
-                    >
-                      View all clients
-                      <ArrowRight size={12} />
+              {/* Meeting Prep Table */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="section-heading">Meeting prep</h3>
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] text-xs font-medium">
+                      {meetingPrepClients.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-[#6b7280] hover:bg-gray-50 transition-colors">
+                      <Filter size={12} />
+                      Filter
+                    </button>
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-[#6b7280] hover:bg-gray-50 transition-colors">
+                      <ArrowUpDown size={12} />
+                      Sort
                     </button>
                   </div>
-
-                  {reviewClients.length === 0 ? (
-                    <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                      <CalendarIcon size={32} className="text-gray-300 mx-auto mb-3" />
-                      <p className="body-secondary">No upcoming reviews scheduled</p>
-                      <p className="meta mt-1">
-                        Set review dates on client profiles to see them here
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {reviewClients.map(client => {
-                        const initials = client.name
-                          .split(' ')
-                          .map(w => w[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2)
-                        const countdown = getReviewDaysUntil(client.next_review_date!)
-                        const isOverdue = countdown === 'Overdue'
-                        const isUrgent = !isOverdue && (countdown === 'Today' || countdown === 'Tomorrow')
-                        const reviewDate = new Date(client.next_review_date!).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-
-                        return (
-                          <div
-                            key={client.id}
-                            className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-5 py-4 hover:border-gray-300 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-sm flex-shrink-0">
-                                {initials}
-                              </div>
-                              <div>
-                                <div className="body-dark font-medium">{client.name}</div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="meta">{reviewDate}</span>
-                                  <span
-                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                                      isOverdue
-                                        ? 'bg-red-50 text-red-600'
-                                        : isUrgent
-                                        ? 'bg-amber-50 text-amber-600'
-                                        : 'bg-gray-100 text-[#6b7280]'
-                                    }`}
-                                  >
-                                    {countdown}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => navigate('/home')}
-                                    className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
-                                  >
-                                    <Send size={14} />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Send review form</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => navigate('/home')}
-                                    className="p-1.5 text-[#6b7280] hover:text-[#2563EB] hover:bg-blue-50 rounded transition-colors"
-                                  >
-                                    <Target size={14} />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>View plan</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
                 </div>
 
-                {/* Right column: Calendar + Activity Feed */}
-                <div className="space-y-6">
-                  {/* Review Calendar */}
+                {meetingPrepClients.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                    <CalendarIcon size={32} className="text-gray-300 mx-auto mb-3" />
+                    <p className="body-secondary">No upcoming reviews scheduled</p>
+                    <p className="meta mt-1">Set review dates on client profiles to see them here</p>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 text-left">
+                          <th className="table-header">Client</th>
+                          <th className="table-header">Review Due</th>
+                          <th className="table-header">Input Form</th>
+                          <th className="table-header">Profile Update</th>
+                          <th className="table-header text-right">Readiness</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {meetingPrepClients.map(client => {
+                          const initials = getInitials(client.name)
+                          const avatarColor = getAvatarColor(client.name)
+                          const reviewDate = new Date(client.next_review_date!).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                          const countdownLabel = getCountdownLabel(client.next_review_date!)
+                          const countdownColor = getCountdownBarColor(client.next_review_date!)
+                          const formStatus = clientFormStatusMap[client.id]
+                          const readiness = getReadiness(client.id)
+
+                          return (
+                            <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors">
+                              {/* Client */}
+                              <td className="table-cell">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                                    style={{ backgroundColor: avatarColor }}
+                                  >
+                                    {initials}
+                                  </div>
+                                  <div>
+                                    <div className="body-dark font-medium">{client.name}</div>
+                                    <button
+                                      onClick={() => {
+                                        navigate('/clients')
+                                      }}
+                                      className="text-[11px] text-[#2563EB] hover:underline"
+                                    >
+                                      Open workspace →
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Review Due */}
+                              <td className="table-cell">
+                                <div className="flex flex-col gap-1">
+                                  <span className="body-dark font-medium">{reviewDate}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`h-1 w-16 rounded-full ${countdownColor}`} />
+                                    <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${getCountdownColor(client.next_review_date!)}`}>
+                                      {countdownLabel}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Input Form */}
+                              <td className="table-cell">
+                                {renderFormStatus(formStatus?.input_form, 'Input form')}
+                              </td>
+
+                              {/* Profile Update */}
+                              <td className="table-cell">
+                                {renderFormStatus(formStatus?.profile_update, 'Profile update')}
+                              </td>
+
+                              {/* Readiness */}
+                              <td className="table-cell text-right">
+                                {readiness.done === readiness.total ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                                    <CheckCircle2 size={12} />
+                                    Ready
+                                  </span>
+                                ) : (
+                                  <div className="inline-flex flex-col items-end gap-1">
+                                    <span className="meta">{readiness.done} of {readiness.total} done</span>
+                                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-[#2563EB] rounded-full transition-all"
+                                        style={{ width: `${(readiness.done / readiness.total) * 100}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                    <div className="px-5 py-3 border-t border-gray-100 text-right">
+                      <span className="meta">Sorted by review date · soonest first</span>
+                      <button
+                        onClick={() => navigate('/clients')}
+                        className="ml-4 text-xs text-[#2563EB] hover:underline font-medium"
+                      >
+                        View all clients →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom section: Calendar + Activity */}
+              <div className="grid grid-cols-3 gap-6">
+                {/* Left: Upcoming Reviews Calendar */}
+                <div className="col-span-2">
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="section-heading">Review Calendar</h3>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="section-heading">Upcoming reviews</h3>
+                        <span className="text-xs text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                          {reviewsIn90Days} in next 90 days
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="meta">{calendarPeriodLabel}</span>
                         <button
                           onClick={() => {
                             const prev = new Date(calendarMonth)
@@ -450,29 +767,50 @@ export const AgentHome = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="space-y-5">
+
+                    {/* Dual month calendars */}
+                    <div className="grid grid-cols-2 gap-8">
                       {calendarMonths.map((m, i) => (
                         <div key={i}>{renderMonth(m)}</div>
                       ))}
                     </div>
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#6b7280]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                        Client review
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#6b7280]">
-                        <span className="w-5 h-5 rounded-full bg-[#2563EB] inline-flex items-center justify-center text-white text-[9px]">
-                          {today.getDate()}
-                        </span>
-                        Today
+
+                    {/* Review summary list below calendar */}
+                    <div className="mt-5 pt-4 border-t border-gray-100">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="meta">Reviews:</span>
+                        {upcomingReviewsList.map(client => {
+                          const avatarColor = getAvatarColor(client.name)
+                          const initials = getInitials(client.name)
+                          const countdownLabel = getCountdownLabel(client.next_review_date!)
+                          const days = getDaysUntil(client.next_review_date!)
+                          const badgeColor = days <= 7 ? 'text-orange-600' : days <= 14 ? 'text-amber-600' : 'text-gray-500'
+
+                          return (
+                            <div key={client.id} className="flex items-center gap-1.5">
+                              <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-medium"
+                                style={{ backgroundColor: avatarColor }}
+                              >
+                                {initials}
+                              </div>
+                              <span className="text-xs text-[#374151] font-medium">{client.name}</span>
+                              <span className={`text-[10px] font-medium ${badgeColor}`}>{countdownLabel}</span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Activity Feed */}
+                {/* Right: Activity Feed */}
+                <div>
                   <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h3 className="section-heading mb-4">Recent Activity</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="section-heading">Recent activity</h3>
+                      <span className="meta">Last 7 days</span>
+                    </div>
                     {activityLoading ? (
                       <div className="body-secondary text-center py-6">Loading...</div>
                     ) : activityLog.length === 0 ? (
@@ -482,26 +820,31 @@ export const AgentHome = () => {
                         <p className="meta mt-0.5">Activity will appear here as you and your clients interact</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {activityLog.map(entry => {
-                          const config = eventConfig[entry.event_type] || {
-                            label: entry.event_type.replace(/_/g, ' '),
-                            color: 'text-gray-600',
-                          }
+                      <div className="space-y-4">
+                        {activityLog.slice(0, 8).map(entry => {
+                          const client = getClient(entry.client_id)
+                          const initials = client ? getInitials(client.name) : '??'
+                          const avatarColor = client ? getAvatarColor(client.name) : '#6b7280'
+                          const activity = getActivityDescription(entry)
+
                           return (
                             <div key={entry.id} className="flex items-start gap-3">
-                              <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2 flex-shrink-0" />
+                              <div
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0 mt-0.5"
+                                style={{ backgroundColor: avatarColor }}
+                              >
+                                {initials}
+                              </div>
                               <div className="min-w-0 flex-1">
-                                <div className="body-dark">
-                                  <span className={`font-medium ${config.color}`}>{config.label}</span>
-                                  {' for '}
-                                  <span className="font-medium">
-                                    {getClientName(entry.client_id)}
-                                  </span>
-                                </div>
-                                <div className="meta mt-0.5">
+                                <p className="text-sm text-[#374151] leading-snug">
+                                  {activity.text}
+                                </p>
+                                <p className="meta mt-0.5">
                                   {formatRelativeTime(entry.created_at)}
-                                </div>
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0 mt-1">
+                                {activity.icon}
                               </div>
                             </div>
                           )
