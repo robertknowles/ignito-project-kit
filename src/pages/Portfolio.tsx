@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Plus,
   Home,
@@ -12,6 +12,7 @@ import {
   BarChart3,
   Wallet,
   Briefcase,
+  ChevronDownIcon,
 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
@@ -397,60 +398,87 @@ export const Portfolio = () => {
     }
   }
 
+  // Client selector dropdown
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
+  const clientDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+        setClientDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
-      <div className="flex-1 ml-16 flex h-full overflow-hidden">
-        {/* Client sidebar */}
-        <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
-          <div className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
-            <h2 className="section-heading">Clients</h2>
-          </div>
-          <div className="flex-1 overflow-y-auto py-1">
-            {sidebarClients.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                <p className="meta">No clients found</p>
-              </div>
-            ) : (
-              sidebarClients.map(client => {
-                const isActive = activeClientId === client.id
-                const avatarColor = getAvatarColor(client.name)
-                const initials = getInitials(client.name)
+      <div className="flex-1 ml-16 overflow-hidden flex flex-col">
+        {/* Top bar with client selector */}
+        <div className="sticky top-0 z-40 flex items-end justify-between w-full h-[52px] px-8 bg-transparent">
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={clientDropdownRef}>
+              <button
+                onClick={() => setClientDropdownOpen(!clientDropdownOpen)}
+                className="flex items-center px-4 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/60 hover:bg-white transition-colors"
+              >
+                <div className="w-2.5 h-2.5 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-[13px] text-gray-700 font-medium">
+                  {activeClient ? `${activeClient.name}'s Portfolio` : 'Select Client'}
+                </span>
+                <ChevronDownIcon
+                  size={15}
+                  className={`ml-1.5 text-gray-400 transition-transform duration-200 ${clientDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
 
-                return (
-                  <button
-                    key={client.id}
-                    onClick={() => setActiveClientId(client.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      isActive
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                  >
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
-                      style={{ backgroundColor: avatarColor }}
-                    >
-                      {initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={`text-sm truncate ${isActive ? 'font-medium' : ''}`}>
-                        {client.name}
+              {clientDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-[9999] border border-gray-200">
+                  <div className="py-2">
+                    {sidebarClients.length > 0 ? (
+                      sidebarClients.map(client => {
+                        const avatarColor = getAvatarColor(client.name)
+                        const initials = getInitials(client.name)
+                        return (
+                          <button
+                            key={client.id}
+                            onClick={() => { setActiveClientId(client.id); setClientDropdownOpen(false) }}
+                            className={`flex items-center w-full px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
+                              activeClientId === client.id ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                            }`}
+                          >
+                            <div
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0 mr-3"
+                              style={{ backgroundColor: avatarColor }}
+                            >
+                              {initials}
+                            </div>
+                            <div className="text-left flex-1 min-w-0">
+                              <div className="font-medium truncate">{client.name}</div>
+                              <div className="text-[10px] text-gray-400">
+                                {client.purchasedCount > 0
+                                  ? `${client.purchasedCount} of ${client.propertyCount} purchased`
+                                  : `${client.propertyCount} propert${client.propertyCount !== 1 ? 'ies' : 'y'}`
+                                }
+                              </div>
+                            </div>
+                            {client.purchasedCount > 0 && (
+                              <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 ml-2" />
+                            )}
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-500">
+                        No clients found. Create a client to get started.
                       </div>
-                      <div className="text-[10px] text-gray-400">
-                        {client.purchasedCount > 0
-                          ? `${client.purchasedCount} of ${client.propertyCount} purchased`
-                          : `${client.propertyCount} propert${client.propertyCount !== 1 ? 'ies' : 'y'}`
-                        }
-                      </div>
-                    </div>
-                    {client.purchasedCount > 0 && (
-                      <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                     )}
-                  </button>
-                )
-              })
-            )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -468,7 +496,7 @@ export const Portfolio = () => {
                 <p className="body-secondary mt-1">
                   {clients.length === 0
                     ? 'No clients yet. Add a client to get started.'
-                    : 'Select a client from the sidebar to view their portfolio.'
+                    : 'Select a client to view their portfolio.'
                   }
                 </p>
               </div>
@@ -593,19 +621,18 @@ export const Portfolio = () => {
                                 )}
                                 <span className="absolute top-3 left-3 bg-green-500 text-white text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded">Owned</span>
                                 {property.growthSincePurchase > 0 && (
-                                  <span className="absolute top-3 right-3 bg-green-50 text-green-700 border border-green-200 text-[10px] font-medium px-2 py-0.5 rounded-full">+{Math.round(property.growthSincePurchase)}% growth</span>
+                                  <span className="absolute top-3 right-14 bg-green-50 text-green-700 border border-green-200 text-[10px] font-medium px-2 py-0.5 rounded-full">+{Math.round(property.growthSincePurchase)}% growth</span>
                                 )}
+                                {/* Toggle — top-right of image */}
+                                <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="absolute top-3 right-3 w-9 h-5 rounded-full bg-green-500 transition-colors" title="Mark as not purchased">
+                                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform translate-x-4" />
+                                </button>
                               </div>
 
                               <div className="bg-white px-4 py-3">
-                                <div className="flex items-start justify-between">
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="text-sm font-semibold text-gray-900 truncate">{trackingState?.address || property.title}</h4>
-                                    {trackingState?.address && <p className="text-[10px] font-medium text-gray-500 mt-0.5">{property.state}</p>}
-                                  </div>
-                                  <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="w-8 h-4 rounded-full bg-green-500 transition-colors flex-shrink-0 ml-2 relative" title="Mark as not purchased">
-                                    <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform translate-x-4" />
-                                  </button>
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-900 truncate">{trackingState?.address || property.title}</h4>
+                                  {trackingState?.address && <p className="text-[10px] font-medium text-gray-500 mt-0.5">{property.state}</p>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-100">
                                   <div>
@@ -646,18 +673,17 @@ export const Portfolio = () => {
                                   <Home size={40} className="text-gray-300" />
                                 )}
                                 <span className="absolute top-3 left-3 bg-[#374151] text-white text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded">Planned</span>
-                                <span className="absolute top-3 right-3 bg-white border border-gray-200 text-[#374151] text-[10px] font-medium px-2 py-0.5 rounded-full">Buy {property.affordableYear}</span>
+                                <span className="absolute top-3 right-14 bg-white border border-gray-200 text-[#374151] text-[10px] font-medium px-2 py-0.5 rounded-full">Buy {property.affordableYear}</span>
+                                {/* Toggle — top-right of image */}
+                                <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="absolute top-3 right-3 w-9 h-5 rounded-full bg-gray-300 transition-colors" title="Mark as purchased">
+                                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform translate-x-0" />
+                                </button>
                               </div>
 
                               <div className="bg-white px-4 py-3">
-                                <div className="flex items-start justify-between">
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="text-sm font-semibold text-gray-900 truncate">{property.title}</h4>
-                                    <p className="text-[10px] font-medium text-gray-500 mt-0.5">Template · {property.growthAssumption} Growth Zone</p>
-                                  </div>
-                                  <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="w-8 h-4 rounded-full bg-gray-300 transition-colors flex-shrink-0 ml-2 mt-0.5 relative" title="Mark as purchased">
-                                    <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform translate-x-0.5" />
-                                  </button>
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-900 truncate">{property.title}</h4>
+                                  <p className="text-[10px] font-medium text-gray-500 mt-0.5">Template · {property.growthAssumption} Growth Zone</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-100">
                                   <div>
