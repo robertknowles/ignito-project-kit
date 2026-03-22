@@ -9,7 +9,7 @@ import {
   Loader2Icon,
 } from 'lucide-react';
 import { LeftRail } from '../components/LeftRail';
-import { HomeDrawer } from '../components/HomeDrawer';
+// HomeDrawer removed — navigation restructured
 import { useCompany, TeamMember } from '@/contexts/CompanyContext';
 import { useBranding } from '@/contexts/BrandingContext';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +37,7 @@ export const CompanyManagement = () => {
   const { branding, updateBranding, loading: brandingLoading } = useBranding();
   const { toast } = useToast();
 
-  const [homeDrawerOpen, setHomeDrawerOpen] = useState(true);
+  // Drawer removed
 
   // Role update state
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
@@ -167,10 +167,7 @@ export const CompanyManagement = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
-      <HomeDrawer isOpen={homeDrawerOpen} onToggle={() => setHomeDrawerOpen(o => !o)} />
-      <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
-        homeDrawerOpen ? 'ml-[calc(4rem+14rem)]' : 'ml-16'
-      }`}>
+      <div className="flex-1 overflow-hidden ml-16">
         <div className="h-full overflow-auto">
           <div className="flex-1 overflow-auto p-8">
             {/* Header */}

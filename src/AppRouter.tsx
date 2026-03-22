@@ -5,7 +5,8 @@ import { Landing } from './landing/Landing'
 import { AgentHome } from './pages/AgentHome'
 import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
-import { DataAssumptions } from './pages/DataAssumptions'
+import { Portfolio } from './pages/Portfolio'
+import { SettingsHub } from './pages/SettingsHub'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { EmailConfirmed } from './pages/EmailConfirmed'
@@ -137,10 +138,18 @@ export function AppRouter() {
                               }
                             />
                             <Route
+                              path="/portfolio"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <Portfolio />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
                               path="/settings"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <DataAssumptions />
+                                  <SettingsHub />
                                 </ProtectedRoute>
                               }
                             />

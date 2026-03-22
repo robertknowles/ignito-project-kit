@@ -1,0 +1,130 @@
+import React, { useState } from 'react'
+import {
+  FileTextIcon,
+  PaletteIcon,
+  CreditCardIcon,
+  BookOpenIcon,
+} from 'lucide-react'
+import { LeftRail } from '../components/LeftRail'
+import { useNavigate } from 'react-router-dom'
+
+type SettingsTab = 'forms' | 'white-label' | 'plans' | 'help'
+
+const settingsTabs: { id: SettingsTab; label: string; icon: React.ElementType; description: string }[] = [
+  { id: 'forms', label: 'Forms', icon: FileTextIcon, description: 'Create and manage client form templates' },
+  { id: 'white-label', label: 'White Label', icon: PaletteIcon, description: 'Company branding and team management' },
+  { id: 'plans', label: 'Plans & Pricing', icon: CreditCardIcon, description: 'Manage your subscription' },
+  { id: 'help', label: 'Help & Resources', icon: BookOpenIcon, description: 'Documentation and support' },
+]
+
+export const SettingsHub = () => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('forms')
+  const navigate = useNavigate()
+
+  return (
+    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <LeftRail />
+      <div className="flex-1 ml-16 flex h-full overflow-hidden">
+        {/* Settings sidebar */}
+        <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
+          <div className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
+            <h2 className="section-heading">Settings</h2>
+          </div>
+          <div className="py-1">
+            {settingsTabs.map(tab => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? 'text-gray-900 bg-gray-100 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-8">
+            {activeTab === 'forms' && (
+              <>
+                <div className="mb-6">
+                  <h1 className="page-title">Forms</h1>
+                  <p className="body-secondary mt-1">Create, edit and send form templates to your clients</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                  <FileTextIcon size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="body-secondary">Form management is available at the dedicated Forms page.</p>
+                  <button
+                    onClick={() => navigate('/forms')}
+                    className="mt-3 text-sm font-medium hover:underline"
+                    style={{ color: '#4A7BF7' }}
+                  >
+                    Go to Forms →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'white-label' && (
+              <>
+                <div className="mb-6">
+                  <h1 className="page-title">White Label</h1>
+                  <p className="body-secondary mt-1">Company branding, team management and client settings</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                  <PaletteIcon size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="body-secondary">White label settings are available at the Company page.</p>
+                  <button
+                    onClick={() => navigate('/company')}
+                    className="mt-3 text-sm font-medium hover:underline"
+                    style={{ color: '#4A7BF7' }}
+                  >
+                    Go to Company Settings →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'plans' && (
+              <>
+                <div className="mb-6">
+                  <h1 className="page-title">Plans & Pricing</h1>
+                  <p className="body-secondary mt-1">Manage your subscription and billing</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                  <CreditCardIcon size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="body-dark font-medium">Coming Soon</p>
+                  <p className="body-secondary mt-1">Subscription management will be available here.</p>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'help' && (
+              <>
+                <div className="mb-6">
+                  <h1 className="page-title">Help & Resources</h1>
+                  <p className="body-secondary mt-1">Documentation, guides and support</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                  <BookOpenIcon size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="body-dark font-medium">Coming Soon</p>
+                  <p className="body-secondary mt-1">Help documentation and resources will be available here.</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

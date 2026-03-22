@@ -2,15 +2,13 @@ import React, { useEffect, useState, useRef } from 'react'
 import {
   HomeIcon,
   UsersIcon,
-  FileTextIcon,
   BarChart3Icon,
-  DatabaseIcon,
-  BookOpenIcon,
   UserIcon,
   LogOutIcon,
   SettingsIcon,
-  Building2Icon,
-  HelpCircleIcon,
+  BellIcon,
+  LineChartIcon,
+  BriefcaseIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -36,20 +34,28 @@ export const LeftRail = () => {
   const { signOut, role } = useAuth()
   const { branding } = useBranding()
   const { startManualTour } = useTourManager()
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [simulateDropdownOpen, setSimulateDropdownOpen] = useState(false)
+  const profileDropdownRef = useRef<HTMLDivElement>(null)
+  const simulateDropdownRef = useRef<HTMLDivElement>(null)
+
   // Get primary color from branding (defaults handled in BrandingContext)
   const primaryColor = branding.primaryColor
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(event.target as Node)
       ) {
-        setDropdownOpen(false)
+        setProfileDropdownOpen(false)
+      }
+      if (
+        simulateDropdownRef.current &&
+        !simulateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setSimulateDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -60,7 +66,7 @@ export const LeftRail = () => {
 
   const handleLogout = async () => {
     try {
-      setDropdownOpen(false)
+      setProfileDropdownOpen(false)
       await signOut()
       navigate('/')
     } catch (error) {
@@ -69,34 +75,19 @@ export const LeftRail = () => {
   }
 
   const handleSettings = () => {
-    setDropdownOpen(false)
+    setProfileDropdownOpen(false)
+    navigate('/settings')
   }
 
-  // Top navigation items
-  const topNavItems = [
-    { path: '/home', icon: HomeIcon, label: 'Home', roles: ['owner', 'agent'] },
-    { path: '/dashboard', icon: BarChart3Icon, label: 'Dashboard', roles: ['owner', 'agent', 'client'] },
-    { path: '/settings', icon: BookOpenIcon, label: 'Library', roles: ['owner', 'agent'] },
-  ]
-
-  // Bottom navigation items (above user menu)
-  const bottomNavItems: typeof topNavItems = []
-
-  // Filter nav items based on role
-  const filteredTopNavItems = topNavItems.filter(item => 
-    role ? item.roles.includes(role) : false
-  )
-  
-  const filteredBottomNavItems = bottomNavItems.filter(item =>
-    role ? item.roles.includes(role) : false
-  )
+  // Check if simulate section is active
+  const isSimulateActive = location.pathname === '/dashboard' || location.pathname === '/portfolio'
 
   return (
     <TooltipProvider>
       <TourStep
         id="nav-sidebar"
         title="Navigation Sidebar"
-        content="Welcome to your investment dashboard! This sidebar is your home base. Navigate between Home (client list), Dashboard (strategy builder), and Settings (data assumptions). Click the Help icon anytime to restart this tour."
+        content="Welcome to your investment dashboard! This sidebar is your home base. Navigate between Home (overview), Simulate (dashboard & portfolio), and Clients. Click the Help icon anytime to restart this tour."
         order={1}
         position="right"
       >
@@ -128,124 +119,170 @@ export const LeftRail = () => {
 
         {/* Top Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {filteredTopNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
-            return (
-              <Tooltip key={item.path}>
-                <TooltipTrigger asChild>
-                  <button
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                      isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
-                    }`}
-                    style={{ color: primaryColor }}
-                    onClick={() => navigate(item.path)}
-                  >
-                    <Icon size={20} />
-                  </button>
-                </TooltipTrigger>
+          {/* Home */}
+          {(role === 'owner' || role === 'agent') && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                    location.pathname === '/home' ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ color: primaryColor }}
+                  onClick={() => navigate('/home')}
+                >
+                  <HomeIcon size={20} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Home</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Simulate — with popover */}
+          <div className="relative" ref={simulateDropdownRef}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                    isSimulateActive || simulateDropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ color: primaryColor }}
+                  onClick={() => setSimulateDropdownOpen(!simulateDropdownOpen)}
+                >
+                  <BarChart3Icon size={20} />
+                </button>
+              </TooltipTrigger>
+              {!simulateDropdownOpen && (
                 <TooltipContent side="right">
-                  <p>{item.label}</p>
+                  <p>Simulate</p>
                 </TooltipContent>
-              </Tooltip>
-            )
-          })}
+              )}
+            </Tooltip>
+
+            {/* Simulate dropdown */}
+            {simulateDropdownOpen && (
+              <div className="absolute left-full top-0 ml-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                <button
+                  className={`flex items-center w-full px-4 py-2.5 text-sm transition-colors ${
+                    location.pathname === '/dashboard'
+                      ? 'text-gray-900 bg-gray-50 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    setSimulateDropdownOpen(false)
+                    navigate('/dashboard')
+                  }}
+                >
+                  <LineChartIcon size={16} className="mr-3 text-gray-400" />
+                  Dashboard
+                </button>
+                <button
+                  className={`flex items-center w-full px-4 py-2.5 text-sm transition-colors ${
+                    location.pathname === '/portfolio'
+                      ? 'text-gray-900 bg-gray-50 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => {
+                    setSimulateDropdownOpen(false)
+                    navigate('/portfolio')
+                  }}
+                >
+                  <BriefcaseIcon size={16} className="mr-3 text-gray-400" />
+                  Portfolio
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Clients */}
+          {(role === 'owner' || role === 'agent') && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                    location.pathname === '/clients' ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ color: primaryColor }}
+                  onClick={() => navigate('/clients')}
+                >
+                  <UsersIcon size={20} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Clients</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Spacer to push bottom items down */}
         <div className="flex-1" />
 
-        {/* Bottom Navigation Items (Company, Help, User) */}
+        {/* Bottom Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {filteredBottomNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
-            return (
-              <Tooltip key={item.path}>
-                <TooltipTrigger asChild>
-                  <button
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                      isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
-                    }`}
-                    style={{ color: primaryColor }}
-                    onClick={() => navigate(item.path)}
-                  >
-                    <Icon size={20} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{item.label}</p>
-                </TooltipContent>
-              </Tooltip>
-            )
-          })}
-
-          {/* Help / Restart Tour Button - only show on pages with tours (dashboard/clients) */}
-          {(location.pathname === '/home' || location.pathname === '/dashboard') && (
-            <TourStep
-              id="tour-complete"
-              title="You're All Set! 🎉"
-              content="That's the tour! Remember: click the Help icon (?) in the sidebar anytime to restart this tour. Now go build some amazing investment strategies for your clients!"
-              order={13}
-              position="right"
-            >
+          {/* Notifications */}
+          {(role === 'owner' || role === 'agent') && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
                   style={{ color: primaryColor }}
-                  onClick={startManualTour}
+                  onClick={() => {
+                    // Placeholder — notifications coming soon
+                  }}
                 >
-                  <HelpCircleIcon size={20} />
+                  <BellIcon size={20} />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                <p>Help / Restart Tour</p>
+                <p>Notifications</p>
               </TooltipContent>
             </Tooltip>
-            </TourStep>
           )}
 
           {/* User Profile Menu */}
-          <div className="relative" ref={dropdownRef}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                  dropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-100'
-                }`}
-                style={{ color: primaryColor }}
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-              >
-                <UserIcon size={20} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>User Menu</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="relative" ref={profileDropdownRef}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                    profileDropdownOpen || location.pathname === '/settings' ? 'bg-gray-100' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ color: primaryColor }}
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                >
+                  <UserIcon size={20} />
+                </button>
+              </TooltipTrigger>
+              {!profileDropdownOpen && (
+                <TooltipContent side="right">
+                  <p>Profile</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
 
-          {/* Dropdown Menu - positioned to the right of the rail */}
-          {dropdownOpen && (
-            <div className="absolute left-full bottom-0 ml-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200">
-              <div className="py-1">
-                <button
-                  className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={handleSettings}
-                >
-                  <SettingsIcon size={16} className="mr-3 text-gray-400" />
-                  Settings
-                </button>
-                <button
-                  className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={handleLogout}
-                >
-                  <LogOutIcon size={16} className="mr-3 text-gray-400" />
-                  Logout
-                </button>
+            {/* Profile dropdown */}
+            {profileDropdownOpen && (
+              <div className="absolute left-full bottom-0 ml-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200">
+                <div className="py-1">
+                  <button
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={handleSettings}
+                  >
+                    <SettingsIcon size={16} className="mr-3 text-gray-400" />
+                    Settings
+                  </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={handleLogout}
+                  >
+                    <LogOutIcon size={16} className="mr-3 text-gray-400" />
+                    Logout
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </div>
@@ -253,4 +290,3 @@ export const LeftRail = () => {
     </TooltipProvider>
   )
 }
-

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { LeftRail } from '@/components/LeftRail'
-import { HomeDrawer } from '@/components/HomeDrawer'
+// HomeDrawer removed — navigation restructured to LeftRail only
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -80,7 +80,7 @@ export const AgentHome = () => {
   const [activityLoading, setActivityLoading] = useState(true)
   const [formStatuses, setFormStatuses] = useState<FormSubmissionStatus[]>([])
   const [calendarMonth, setCalendarMonth] = useState(new Date())
-  const [drawerOpen, setDrawerOpen] = useState(true)
+  // Drawer removed — using LeftRail only navigation
 
   const today = new Date()
   const dateString = today.toLocaleDateString('en-AU', {
@@ -495,10 +495,7 @@ export const AgentHome = () => {
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <HomeDrawer isOpen={drawerOpen} onToggle={() => setDrawerOpen(o => !o)} />
-        <div className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${
-          drawerOpen ? 'ml-[calc(4rem+14rem)]' : 'ml-16'
-        }`}>
+        <div className="flex-1 overflow-hidden flex flex-col ml-16">
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
