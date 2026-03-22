@@ -20,6 +20,7 @@ import {
 import { TourStep } from '@/components/TourManager'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { LeftRail } from '../components/LeftRail'
+import { HomeDrawer } from '../components/HomeDrawer'
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { ClientProfileModal } from '../components/ClientProfileModal'
@@ -92,6 +93,7 @@ const ONBOARDING_BANNER_DISMISSED_KEY = 'ignito_property_onboarding_banner_dismi
 
 export const ClientScenarios = () => {
   const navigate = useNavigate();
+  const [homeDrawerOpen, setHomeDrawerOpen] = useState(true);
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPDFRenderer, setShowPDFRenderer] = useState(false);
@@ -873,7 +875,10 @@ toast.error('Failed to create client invite');
       
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 ml-16 overflow-hidden flex flex-col">
+        <HomeDrawer isOpen={homeDrawerOpen} onToggle={() => setHomeDrawerOpen(o => !o)} />
+        <div className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${
+          homeDrawerOpen ? 'ml-[calc(4rem+14rem)]' : 'ml-16'
+        }`}>
           {/* Warning Banner - shows if user hasn't completed property onboarding */}
           {showWarningBanner && (
             <PropertyOnboardingWarningBanner

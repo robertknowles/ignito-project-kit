@@ -1,11 +1,12 @@
 import React from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, Users, FileText, Building2 } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, LayoutDashboard, Users, FileText, Building2 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
-type ManageTab = 'clients' | 'forms' | 'company'
+type ManageTab = 'overview' | 'clients' | 'forms' | 'company'
 
 const tabs: { id: ManageTab; path: string; label: string; icon: React.ReactNode; roles: string[] }[] = [
+  { id: 'overview', path: '/home', label: 'Overview', icon: <LayoutDashboard size={16} />, roles: ['owner', 'agent'] },
   { id: 'clients', path: '/clients', label: 'Clients', icon: <Users size={16} />, roles: ['owner', 'agent'] },
   { id: 'forms', path: '/forms', label: 'Forms', icon: <FileText size={16} />, roles: ['owner', 'agent'] },
   { id: 'company', path: '/company', label: 'Company', icon: <Building2 size={16} />, roles: ['owner'] },

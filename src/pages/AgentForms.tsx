@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { LeftRail } from '@/components/LeftRail'
+import { HomeDrawer } from '@/components/HomeDrawer'
 import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -139,6 +140,7 @@ export const AgentForms = () => {
   const { clients } = useClient()
   const { user, companyId } = useAuth()
 
+  const [homeDrawerOpen, setHomeDrawerOpen] = useState(true)
   const [submissions, setSubmissions] = useState<FormSubmission[]>([])
   const [submissionsLoading, setSubmissionsLoading] = useState(true)
   const [sendModalOpen, setSendModalOpen] = useState(false)
@@ -333,7 +335,10 @@ export const AgentForms = () => {
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <div className="flex-1 ml-16 overflow-hidden flex flex-col">
+        <HomeDrawer isOpen={homeDrawerOpen} onToggle={() => setHomeDrawerOpen(o => !o)} />
+        <div className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${
+          homeDrawerOpen ? 'ml-[calc(4rem+14rem)]' : 'ml-16'
+        }`}>
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
