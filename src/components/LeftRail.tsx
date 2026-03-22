@@ -78,13 +78,6 @@ export const LeftRail = () => {
     { path: '/settings', icon: DatabaseIcon, label: 'Settings', roles: ['owner', 'agent'] },
   ]
 
-  // Manage navigation items
-  const manageNavItems = [
-    { path: '/clients', icon: UsersIcon, label: 'Clients', roles: ['owner', 'agent'] },
-    { path: '/forms', icon: FileTextIcon, label: 'Forms', roles: ['owner', 'agent'] },
-    { path: '/company', icon: Building2Icon, label: 'Company', roles: ['owner'] },
-  ]
-
   // Bottom navigation items (above user menu)
   const bottomNavItems: typeof topNavItems = []
 
@@ -94,10 +87,6 @@ export const LeftRail = () => {
   )
   
   const filteredBottomNavItems = bottomNavItems.filter(item =>
-    role ? item.roles.includes(role) : false
-  )
-
-  const filteredManageNavItems = manageNavItems.filter(item =>
     role ? item.roles.includes(role) : false
   )
 
@@ -161,37 +150,6 @@ export const LeftRail = () => {
             )
           })}
         </div>
-
-        {/* Manage section separator + items */}
-        {filteredManageNavItems.length > 0 && (
-          <>
-            <div className="w-8 border-t border-gray-200 my-2" />
-            <div className="flex flex-col items-center gap-2">
-              {filteredManageNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = location.pathname === item.path
-                return (
-                  <Tooltip key={item.path}>
-                    <TooltipTrigger asChild>
-                      <button
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                          isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
-                        }`}
-                        style={{ color: primaryColor }}
-                        onClick={() => navigate(item.path)}
-                      >
-                        <Icon size={20} />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{item.label}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              })}
-            </div>
-          </>
-        )}
 
         {/* Spacer to push bottom items down */}
         <div className="flex-1" />
