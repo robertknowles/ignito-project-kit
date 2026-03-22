@@ -52,7 +52,7 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'text-gray-900 border-b-2 border-gray-900 bg-white'
                     : 'text-gray-400 hover:text-gray-600'
