@@ -507,47 +507,6 @@ export const AgentHome = () => {
                 </div>
               </div>
 
-              {/* Quick Access - Hub Navigation */}
-              <div className="mt-8">
-                <h3 className="section-heading mb-4">Manage</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <button
-                    onClick={() => navigate('/clients')}
-                    className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
-                  >
-                    <Users size={20} className="text-[#2563EB] mb-3" />
-                    <h4 className="body-dark font-medium">Clients</h4>
-                    <p className="meta mt-1">Manage client profiles, roadmaps, and portal access</p>
-                    <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Open <ArrowRight size={12} />
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/forms')}
-                    className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
-                  >
-                    <FileText size={20} className="text-[#2563EB] mb-3" />
-                    <h4 className="body-dark font-medium">Forms</h4>
-                    <p className="meta mt-1">Send intake forms and track client responses</p>
-                    <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Open <ArrowRight size={12} />
-                    </span>
-                  </button>
-                  {role === 'owner' && (
-                    <button
-                      onClick={() => navigate('/company')}
-                      className="bg-white border border-gray-200 rounded-lg p-5 text-left hover:border-gray-300 transition-colors group"
-                    >
-                      <Building2 size={20} className="text-[#2563EB] mb-3" />
-                      <h4 className="body-dark font-medium">Company</h4>
-                      <p className="meta mt-1">Team management, branding, and portal settings</p>
-                      <span className="text-xs text-[#2563EB] mt-3 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Open <ArrowRight size={12} />
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </div>
