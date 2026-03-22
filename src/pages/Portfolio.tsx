@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
   Home,
@@ -12,9 +12,9 @@ import {
   BarChart3,
   Wallet,
   Briefcase,
-  ChevronDownIcon,
 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
+import { TopBar } from '../components/TopBar'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useClient, Client } from '../contexts/ClientContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -106,11 +106,11 @@ const getPortfolioPropertyImage = (title: string): string | undefined => {
 
 export const Portfolio = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
-  const { clients } = useClient()
+  const { clients, activeClient: globalActiveClient } = useClient()
   const { companyId } = useAuth()
 
-  // State
-  const [activeClientId, setActiveClientId] = useState<number | null>(null)
+  // Use the global active client from ClientContext
+  const activeClientId = globalActiveClient?.id || null
   const [scenarioData, setScenarioData] = useState<Record<number, ClientScenarioData[]>>({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [purchaseStates, setPurchaseStates] = useState<Record<string, { isPurchased: boolean; address: string; photo: string }>>({})
@@ -279,12 +279,6 @@ export const Portfolio = () => {
 
         setScenarioData(dataMap)
         setPurchaseStates(prev => ({ ...prev, ...purchaseMap }))
-
-        // Auto-select first client with data
-        if (!activeClientId) {
-          const firstClient = clients.find(c => dataMap[c.id]?.some(s => s.properties.length > 0))
-          if (firstClient) setActiveClientId(firstClient.id)
-        }
       } catch {
         // Silently fail
       }
@@ -294,27 +288,8 @@ export const Portfolio = () => {
     fetchScenarios()
   }, [clients])
 
-  // Client list for sidebar
-  const sidebarClients = useMemo(() => {
-    return clients.map(c => {
-      const scenarios = scenarioData[c.id] || []
-      const allProps = scenarios.flatMap(s => s.properties)
-      const purchasedCount = allProps.filter(p => {
-        const scenarioId = scenarios.find(s => s.properties.includes(p))?.scenarioId
-        const key = `${scenarioId}_${p.instanceId}`
-        return purchaseStates[key]?.isPurchased
-      }).length
-      return {
-        id: c.id,
-        name: c.name,
-        propertyCount: allProps.length,
-        purchasedCount,
-      }
-    })
-  }, [clients, scenarioData, purchaseStates])
-
   // Active client data
-  const activeClient = clients.find(c => c.id === activeClientId)
+  const activeClient = globalActiveClient
   const activeScenarios = activeClientId ? scenarioData[activeClientId] || [] : []
 
   // Portfolio summary
@@ -398,93 +373,15 @@ export const Portfolio = () => {
     }
   }
 
-  // Client selector dropdown
-  const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
-  const clientDropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
-        setClientDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
       <div className="flex-1 ml-16 overflow-hidden flex flex-col">
-        {/* Top bar with client selector */}
-        <div className="sticky top-0 z-40 flex items-end justify-between w-full h-[52px] px-8 bg-transparent">
-          <div className="flex items-center gap-2">
-            <div className="relative" ref={clientDropdownRef}>
-              <button
-                onClick={() => setClientDropdownOpen(!clientDropdownOpen)}
-                className="flex items-center px-4 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/60 hover:bg-white transition-colors"
-              >
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-[13px] text-gray-700 font-medium">
-                  {activeClient ? `${activeClient.name}'s Portfolio` : 'Select Client'}
-                </span>
-                <ChevronDownIcon
-                  size={15}
-                  className={`ml-1.5 text-gray-400 transition-transform duration-200 ${clientDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {clientDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-[9999] border border-gray-200">
-                  <div className="py-2">
-                    {sidebarClients.length > 0 ? (
-                      sidebarClients.map(client => {
-                        const avatarColor = getAvatarColor(client.name)
-                        const initials = getInitials(client.name)
-                        return (
-                          <button
-                            key={client.id}
-                            onClick={() => { setActiveClientId(client.id); setClientDropdownOpen(false) }}
-                            className={`flex items-center w-full px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                              activeClientId === client.id ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                            }`}
-                          >
-                            <div
-                              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0 mr-3"
-                              style={{ backgroundColor: avatarColor }}
-                            >
-                              {initials}
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                              <div className="font-medium truncate">{client.name}</div>
-                              <div className="text-[10px] text-gray-400">
-                                {client.purchasedCount > 0
-                                  ? `${client.purchasedCount} of ${client.propertyCount} purchased`
-                                  : `${client.propertyCount} propert${client.propertyCount !== 1 ? 'ies' : 'y'}`
-                                }
-                              </div>
-                            </div>
-                            {client.purchasedCount > 0 && (
-                              <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 ml-2" />
-                            )}
-                          </button>
-                        )
-                      })
-                    ) : (
-                      <div className="px-4 py-3 text-sm text-gray-500">
-                        No clients found. Create a client to get started.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <TopBar />
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
-          <div className="p-8">
+          <div className="px-12 py-6">
             {portfolioLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -496,7 +393,7 @@ export const Portfolio = () => {
                 <p className="body-secondary mt-1">
                   {clients.length === 0
                     ? 'No clients yet. Add a client to get started.'
-                    : 'Select a client to view their portfolio.'
+                    : 'Select a client from the dropdown above to view their portfolio.'
                   }
                 </p>
               </div>

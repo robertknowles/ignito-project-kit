@@ -7,8 +7,6 @@ import {
   LogOutIcon,
   SettingsIcon,
   BellIcon,
-  LineChartIcon,
-  BriefcaseIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -35,9 +33,7 @@ export const LeftRail = () => {
   const { branding } = useBranding()
   const { startManualTour } = useTourManager()
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
-  const [simulateDropdownOpen, setSimulateDropdownOpen] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
-  const simulateDropdownRef = useRef<HTMLDivElement>(null)
 
   // Get primary color from branding (defaults handled in BrandingContext)
   const primaryColor = branding.primaryColor
@@ -50,12 +46,6 @@ export const LeftRail = () => {
         !profileDropdownRef.current.contains(event.target as Node)
       ) {
         setProfileDropdownOpen(false)
-      }
-      if (
-        simulateDropdownRef.current &&
-        !simulateDropdownRef.current.contains(event.target as Node)
-      ) {
-        setSimulateDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -139,61 +129,23 @@ export const LeftRail = () => {
             </Tooltip>
           )}
 
-          {/* Simulate — with popover */}
-          <div className="relative" ref={simulateDropdownRef}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                    isSimulateActive || simulateDropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-                  style={{ color: primaryColor }}
-                  onClick={() => setSimulateDropdownOpen(!simulateDropdownOpen)}
-                >
-                  <BarChart3Icon size={20} />
-                </button>
-              </TooltipTrigger>
-              {!simulateDropdownOpen && (
-                <TooltipContent side="right">
-                  <p>Simulate</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-
-            {/* Simulate dropdown */}
-            {simulateDropdownOpen && (
-              <div className="absolute left-full top-0 ml-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                <button
-                  className={`flex items-center w-full px-4 py-2.5 text-sm transition-colors ${
-                    location.pathname === '/dashboard'
-                      ? 'text-gray-900 bg-gray-50 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                  onClick={() => {
-                    setSimulateDropdownOpen(false)
-                    navigate('/dashboard')
-                  }}
-                >
-                  <LineChartIcon size={16} className="mr-3 text-gray-400" />
-                  Dashboard
-                </button>
-                <button
-                  className={`flex items-center w-full px-4 py-2.5 text-sm transition-colors ${
-                    location.pathname === '/portfolio'
-                      ? 'text-gray-900 bg-gray-50 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                  onClick={() => {
-                    setSimulateDropdownOpen(false)
-                    navigate('/portfolio')
-                  }}
-                >
-                  <BriefcaseIcon size={16} className="mr-3 text-gray-400" />
-                  Portfolio
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Simulate */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                  isSimulateActive ? 'bg-gray-100' : 'hover:bg-gray-100'
+                }`}
+                style={{ color: primaryColor }}
+                onClick={() => navigate('/dashboard')}
+              >
+                <BarChart3Icon size={20} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Simulate</p>
+            </TooltipContent>
+          </Tooltip>
 
           {/* Clients */}
           {(role === 'owner' || role === 'agent') && (

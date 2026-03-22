@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { TourStep } from '@/components/TourManager'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,17 @@ export const TopBar = () => {
   const { addScenario, scenarios } = useMultiScenario()
   const { toast } = useToast()
   const { role } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const isClient = role === 'client'
+
+  // Tab navigation items
+  const tabs = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Portfolio', path: '/portfolio' },
+    { label: 'Timeline', path: '/dashboard', disabled: true },
+  ]
+  const activeTab = location.pathname
   
   // State for share dashboard modal
   const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -364,44 +375,50 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-end justify-between w-full h-[52px] px-12 bg-transparent">
-      {/* Left side: Client Selector + Add Scenario (hidden for clients) */}
-      <div className="flex items-center gap-2">
+    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-between w-full h-[52px] px-8 bg-transparent">
+      {/* Left side: Client Selector */}
+      <div className="flex items-center gap-3">
         {!isClient && (
-          <>
-            <TourStep
-              id="client-selector"
-              title="Client Selector"
-              content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
-              order={2}
-              position="bottom"
-            >
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
-                <ClientSelector />
-              </div>
-            </TourStep>
-            {scenarios.length < 2 && (
-              <TourStep
-                id="scenario-comparison"
-                title="Compare Strategies"
-                content="Add a second scenario to compare different investment approaches side-by-side. The system analyzes both strategies and recommends which better achieves your client's equity and cashflow goals."
-                order={12}
-                position="bottom"
-              >
-                <button
-                  onClick={addScenario}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-white shadow-sm transition-all text-[13px] font-medium"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Scenario</span>
-                </button>
-              </TourStep>
-            )}
-          </>
+          <TourStep
+            id="client-selector"
+            title="Client Selector"
+            content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
+            order={2}
+            position="bottom"
+          >
+            <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border border-gray-200/60">
+              <ClientSelector />
+            </div>
+          </TourStep>
         )}
       </div>
-      
-      {/* Right side: Primary Actions (hidden for clients) */}
+
+      {/* Center: Tab Navigation */}
+      {!isClient && (
+        <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.path && !tab.disabled
+            return (
+              <button
+                key={tab.label}
+                onClick={() => !tab.disabled && navigate(tab.path)}
+                className={`px-5 py-2 text-[13px] font-medium transition-colors rounded-lg ${
+                  isActive
+                    ? 'text-gray-900 bg-gray-100'
+                    : tab.disabled
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+                disabled={tab.disabled}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Right side: Actions (hidden for clients) */}
       {!isClient && (
         <TourStep
           id="topbar-actions"
@@ -411,15 +428,31 @@ export const TopBar = () => {
           position="bottom"
         >
         <div className="flex items-center gap-2">
-          <SaveButton />
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}
             className="flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-200/60 text-gray-700 rounded-lg hover:bg-white shadow-sm transition-colors font-medium text-[13px]"
           >
-            <ExternalLink size={15} />
             <span>Client Report</span>
           </button>
+          <SaveButton />
+          {scenarios.length < 2 && (
+            <TourStep
+              id="scenario-comparison"
+              title="Compare Strategies"
+              content="Add a second scenario to compare different investment approaches side-by-side."
+              order={12}
+              position="bottom"
+            >
+              <button
+                onClick={addScenario}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-white shadow-sm transition-all text-[13px] font-medium"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Scenario</span>
+              </button>
+            </TourStep>
+          )}
         </div>
         </TourStep>
       )}
