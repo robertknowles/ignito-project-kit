@@ -411,9 +411,6 @@ export const Portfolio = () => {
                 {/* Page header */}
                 <div className="mb-6">
                   <h1 className="page-title">Portfolio</h1>
-                  <p className="body-secondary mt-1">
-                    {activeClient.name}'s real properties and planned purchases — everything in one place.
-                  </p>
                 </div>
 
                 {/* Summary stat cards */}
