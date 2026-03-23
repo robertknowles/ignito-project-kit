@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
-import { ClientSelector } from '../components/ClientSelector'
+import { InputDrawer } from '../components/InputDrawer'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useClient, Client } from '../contexts/ClientContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -112,6 +112,7 @@ export const Portfolio = () => {
 
   // Use the global active client from ClientContext
   const activeClientId = globalActiveClient?.id || null
+  const [drawerOpen, setDrawerOpen] = useState(true)
   const [scenarioData, setScenarioData] = useState<Record<number, ClientScenarioData[]>>({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [purchaseStates, setPurchaseStates] = useState<Record<string, { isPurchased: boolean; address: string; photo: string }>>({})
@@ -377,7 +378,14 @@ export const Portfolio = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
-      <div className="flex-1 ml-16 overflow-hidden flex flex-col">
+      <InputDrawer
+        isOpen={drawerOpen}
+        onToggle={() => setDrawerOpen(o => !o)}
+      />
+
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+        drawerOpen ? 'ml-[352px]' : 'ml-16'
+      }`}>
         <TopBar />
 
         {/* Main content */}
@@ -400,11 +408,12 @@ export const Portfolio = () => {
               </div>
             ) : (
               <>
-                {/* Page header with client selector */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="rounded-full border border-gray-200">
-                    <ClientSelector />
-                  </div>
+                {/* Page header */}
+                <div className="mb-6">
+                  <h1 className="page-title">Portfolio</h1>
+                  <p className="body-secondary mt-1">
+                    {activeClient.name}'s real properties and planned purchases — everything in one place.
+                  </p>
                 </div>
 
                 {/* Summary stat cards */}
