@@ -375,9 +375,9 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-between w-full h-[52px] px-8 bg-transparent">
+    <div id="top-bar" className="sticky top-0 z-40 flex items-center w-full h-[52px] px-8 bg-white border-b border-gray-200">
       {/* Left side: Client Selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         {!isClient && (
           <TourStep
             id="client-selector"
@@ -386,37 +386,59 @@ export const TopBar = () => {
             order={2}
             position="bottom"
           >
-            <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-sm border border-gray-200/60">
+            <div className="rounded-full border border-gray-200">
               <ClientSelector />
             </div>
           </TourStep>
         )}
       </div>
 
-      {/* Center: Tab Navigation */}
+      {/* Center: Tab Navigation + Add Scenario */}
       {!isClient && (
-        <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/60">
+        <div className="flex items-center h-full ml-6">
           {tabs.map(tab => {
             const isActive = activeTab === tab.path && !tab.disabled
             return (
               <button
                 key={tab.label}
                 onClick={() => !tab.disabled && navigate(tab.path)}
-                className={`px-5 py-2 text-[13px] font-medium transition-colors rounded-lg ${
+                className={`relative h-full px-5 text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'text-gray-900 bg-gray-100'
+                    ? 'text-[#2563EB]'
                     : tab.disabled
                       ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      : 'text-gray-500 hover:text-gray-700'
                 }`}
                 disabled={tab.disabled}
               >
                 {tab.label}
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2563EB]" />
+                )}
               </button>
             )
           })}
+          {scenarios.length < 2 && (
+            <TourStep
+              id="scenario-comparison"
+              title="Compare Strategies"
+              content="Add a second scenario to compare different investment approaches side-by-side."
+              order={12}
+              position="bottom"
+            >
+              <button
+                onClick={addScenario}
+                className="h-full px-5 text-[13px] font-medium text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                + Add Scenario
+              </button>
+            </TourStep>
+          )}
         </div>
       )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Right side: Actions (hidden for clients) */}
       {!isClient && (
@@ -431,28 +453,11 @@ export const TopBar = () => {
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-200/60 text-gray-700 rounded-lg hover:bg-white shadow-sm transition-colors font-medium text-[13px]"
+            className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
           >
             <span>Client Report</span>
           </button>
           <SaveButton />
-          {scenarios.length < 2 && (
-            <TourStep
-              id="scenario-comparison"
-              title="Compare Strategies"
-              content="Add a second scenario to compare different investment approaches side-by-side."
-              order={12}
-              position="bottom"
-            >
-              <button
-                onClick={addScenario}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-white shadow-sm transition-all text-[13px] font-medium"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Scenario</span>
-              </button>
-            </TourStep>
-          )}
         </div>
         </TourStep>
       )}
