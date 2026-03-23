@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, Home, User } from 'lucide-react'
 import { TimelinePanel } from './TimelinePanel'
 import { ClientInputsPanel } from './ClientInputsPanel'
+import { ClientSelector } from './ClientSelector'
 import { TourStep } from '@/components/TourManager'
 
 type DrawerTab = 'properties' | 'client'
@@ -39,10 +40,8 @@ export const InputDrawer: React.FC<InputDrawerProps> = ({ isOpen, onToggle, defa
             order={5}
             position="bottom"
           >
-            <div id="drawer-header" className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
-              <h2 className="section-heading">
-                {activeTab === 'properties' ? 'Property Timeline' : 'Client Profile'}
-              </h2>
+            <div id="drawer-header" className="flex items-center border-b border-gray-200 h-[52px] px-2">
+              <ClientSelector />
             </div>
           </TourStep>
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Share2, Copy, RotateCcw, ExternalLink, Plus } from 'lucide-react'
-import { ClientSelector } from './ClientSelector'
 import { SaveButton } from './SaveButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
@@ -376,26 +375,12 @@ export const TopBar = () => {
 
   return (
     <div id="top-bar" className="sticky top-0 z-40 flex items-center w-full h-[52px] px-8 bg-white border-b border-gray-200">
-      {/* Left side: Client Selector */}
-      <div className="flex items-center">
-        {!isClient && (
-          <TourStep
-            id="client-selector"
-            title="Client Selector"
-            content="Switch between clients here. Each client has their own saved scenario with unique goals, inputs, and property strategies. Select a client to load their investment plan."
-            order={2}
-            position="bottom"
-          >
-            <div className="rounded-full border border-gray-200">
-              <ClientSelector />
-            </div>
-          </TourStep>
-        )}
-      </div>
+      {/* Spacer left */}
+      <div className="flex-1" />
 
-      {/* Center: Tab Navigation + Add Scenario */}
+      {/* Center: Tab Navigation */}
       {!isClient && (
-        <div className="flex items-center h-full ml-6">
+        <div className="flex items-center h-full">
           {tabs.map(tab => {
             const isActive = activeTab === tab.path && !tab.disabled
             return (
@@ -418,26 +403,10 @@ export const TopBar = () => {
               </button>
             )
           })}
-          {scenarios.length < 2 && (
-            <TourStep
-              id="scenario-comparison"
-              title="Compare Strategies"
-              content="Add a second scenario to compare different investment approaches side-by-side."
-              order={12}
-              position="bottom"
-            >
-              <button
-                onClick={addScenario}
-                className="h-full px-5 text-[13px] font-medium text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                + Add Scenario
-              </button>
-            </TourStep>
-          )}
         </div>
       )}
 
-      {/* Spacer */}
+      {/* Spacer right */}
       <div className="flex-1" />
 
       {/* Right side: Actions (hidden for clients) */}
@@ -450,6 +419,23 @@ export const TopBar = () => {
           position="bottom"
         >
         <div className="flex items-center gap-2">
+          {scenarios.length < 2 && (
+            <TourStep
+              id="scenario-comparison"
+              title="Compare Strategies"
+              content="Add a second scenario to compare different investment approaches side-by-side."
+              order={12}
+              position="bottom"
+            >
+              <button
+                onClick={addScenario}
+                className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all text-[13px] font-medium"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Scenario</span>
+              </button>
+            </TourStep>
+          )}
           <button
             id="view-client-report-button"
             onClick={handleViewClientReport}

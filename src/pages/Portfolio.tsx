@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
+import { ClientSelector } from '../components/ClientSelector'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useClient, Client } from '../contexts/ClientContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -393,19 +394,16 @@ export const Portfolio = () => {
                 <p className="body-secondary mt-1">
                   {clients.length === 0
                     ? 'No clients yet. Add a client to get started.'
-                    : 'Select a client from the dropdown above to view their portfolio.'
+                    : 'Select a client to view their portfolio.'
                   }
                 </p>
               </div>
             ) : (
               <>
-                {/* Page header */}
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h1 className="page-title">Portfolio</h1>
-                    <p className="body-secondary mt-1">
-                      {activeClient.name}'s real properties and planned purchases — everything in one place.
-                    </p>
+                {/* Page header with client selector */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="rounded-full border border-gray-200">
+                    <ClientSelector />
                   </div>
                 </div>
 
