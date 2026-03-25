@@ -42,6 +42,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
+import { calculatePerPropertyProjection, type TimelinePropertyData, type ProjectionConfig, type YearRow } from '../utils/perPropertyProjections'
+import type { PropertyInstanceDetails } from '../types/propertyInstance'
+import type { GrowthCurve } from '../types/property'
 
 // --- Portfolio Types ---
 
@@ -70,12 +73,16 @@ interface PortfolioProperty {
   projectedEquity10Y: number
   growthSincePurchase: number
   propertyTypeKey: string
+  // Raw data for projection engine
+  rawPropertyInstance: PropertyInstanceDetails | null
+  rawTimelineItem: TimelinePropertyData | null
 }
 
 interface ClientScenarioData {
   scenarioId: number
   scenarioName: string
   properties: PortfolioProperty[]
+  growthCurve: GrowthCurve | null
 }
 
 // Shared avatar helpers
@@ -96,104 +103,7 @@ const formatCurrency = (value: number) => {
   return `${sign}$${abs.toFixed(0)}`
 }
 
-// --- Per-property projection engine ---
-
-interface YearProjection {
-  year: number
-  yearLabel: string
-  propertyValue: number
-  loanBalance: number
-  equity: number
-  grossIncome: number
-  grossYieldPct: number
-  interestExpense: number
-  operatingExpenses: number
-  netCashflow: number
-  netCashflowCumulative: number
-  monthlyCost: number
-  capitalGrowthAnnual: number
-  capitalGrowthCumulative: number
-  totalPerformance: number
-  cocReturnCumulative: number
-  roic: number
-}
-
-interface PropertyProjections {
-  years: YearProjection[]
-  cashInvested: number
-  capitalReturnedInYears: number
-  annualRent: number
-  annualInterest: number
-  annualOperating: number
-  annualTotalExpenses: number
-}
-
-const INFLATION_RATE = 0.03
-
-const computeProjections = (property: PortfolioProperty): PropertyProjections => {
-  const growthRate = (property.growthAssumption === 'High' ? 7 : property.growthAssumption === 'Low' ? 4 : 5.5) / 100
-  const cashInvested = property.deposit + (property.purchasePrice * 0.04) // deposit + ~4% acquisition costs
-  const baseRent = property.rentPerWeek * 52
-  const baseOperating = property.purchasePrice * 0.005 // ~0.5% of purchase price for operating costs
-  const years: YearProjection[] = []
-  let netCashflowCumulative = 0
-  let capitalGrowthCumulative = 0
-  let capitalReturnedInYears = 30
-  let prevValue = property.purchasePrice
-
-  for (let y = 1; y <= 10; y++) {
-    const propertyValue = property.purchasePrice * Math.pow(1 + growthRate, y)
-    const loanBalance = property.loanProduct === 'IO' ? property.loanAmount : property.loanAmount * Math.max(0, 1 - y / 30)
-    const equity = propertyValue - loanBalance
-    const grossIncome = baseRent * Math.pow(1 + INFLATION_RATE, y - 1)
-    const grossYieldPct = (grossIncome / propertyValue) * 100
-    const interestExpense = loanBalance * (property.interestRate / 100)
-    const operatingExpenses = baseOperating * Math.pow(1 + INFLATION_RATE, y - 1)
-    const netCashflow = grossIncome - interestExpense - operatingExpenses
-    netCashflowCumulative += netCashflow
-    const capitalGrowthAnnual = propertyValue - prevValue
-    capitalGrowthCumulative += capitalGrowthAnnual
-    const totalPerformance = capitalGrowthCumulative + netCashflowCumulative
-    const cocReturnCumulative = cashInvested > 0 ? (netCashflowCumulative / cashInvested) * 100 : 0
-    const roic = cashInvested > 0 ? (totalPerformance / cashInvested) * 100 : 0
-
-    if (capitalReturnedInYears === 30 && totalPerformance >= cashInvested) {
-      capitalReturnedInYears = y
-    }
-
-    years.push({
-      year: y,
-      yearLabel: (property.affordableYear + y).toString(),
-      propertyValue: Math.round(propertyValue),
-      loanBalance: Math.round(loanBalance),
-      equity: Math.round(equity),
-      grossIncome: Math.round(grossIncome),
-      grossYieldPct,
-      interestExpense: Math.round(interestExpense),
-      operatingExpenses: Math.round(operatingExpenses),
-      netCashflow: Math.round(netCashflow),
-      netCashflowCumulative: Math.round(netCashflowCumulative),
-      monthlyCost: Math.round(netCashflow / 12),
-      capitalGrowthAnnual: Math.round(capitalGrowthAnnual),
-      capitalGrowthCumulative: Math.round(capitalGrowthCumulative),
-      totalPerformance: Math.round(totalPerformance),
-      cocReturnCumulative,
-      roic,
-    })
-    prevValue = propertyValue
-  }
-
-  const yr1 = years[0]
-  return {
-    years,
-    cashInvested: Math.round(cashInvested),
-    capitalReturnedInYears,
-    annualRent: Math.round(baseRent),
-    annualInterest: Math.round(property.loanAmount * (property.interestRate / 100)),
-    annualOperating: Math.round(baseOperating),
-    annualTotalExpenses: Math.round(property.loanAmount * (property.interestRate / 100) + baseOperating),
-  }
-}
+// Formatting helpers for projections
 
 const formatExact = (value: number) => {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)
@@ -284,6 +194,10 @@ export const Portfolio = () => {
           const propertySelections = sd.propertySelections || {}
           const propertyOrder = sd.propertyOrder || []
 
+          // Extract growth curve from scenario profile
+          const scenarioProfile = sd.investmentProfile || {}
+          const scenarioGrowthCurve: GrowthCurve | null = scenarioProfile.growthCurve || null
+
           // Helper to build a PortfolioProperty from instance data
           const buildProperty = (
             instanceId: string,
@@ -292,13 +206,14 @@ export const Portfolio = () => {
             tracking: any,
             affordableYear: number,
             idx: number,
-            cost?: number
+            cost?: number,
+            timelineItem?: any,
           ) => {
             const purchasePrice = instance.purchasePrice || cost || 0
             const rentPerWeek = instance.rentPerWeek || 0
             const lvr = instance.lvr || 80
-            const loanAmount = purchasePrice * (lvr / 100)
-            const deposit = purchasePrice * ((100 - lvr) / 100)
+            const loanAmount = timelineItem?.loanAmount || purchasePrice * (lvr / 100)
+            const deposit = timelineItem?.depositRequired || purchasePrice * ((100 - lvr) / 100)
             const interestRate = instance.interestRate || 6.5
             const annualInterest = loanAmount * (interestRate / 100)
             const annualRent = rentPerWeek * 52
@@ -311,6 +226,59 @@ export const Portfolio = () => {
             const netCashflow = annualRent - annualExpenses
             const growthSincePurchase = purchasePrice > 0 ? ((estimatedValue - purchasePrice) / purchasePrice) * 100 : 0
             const projectedEquity10Y = (purchasePrice * Math.pow(1 + growthRate / 100, 10)) - loanAmount
+
+            // Build raw timeline item data for projection engine
+            const rawTimelineItem: TimelinePropertyData | null = timelineItem ? {
+              title: timelineItem.title || title,
+              cost: timelineItem.cost || purchasePrice,
+              loanAmount: timelineItem.loanAmount || loanAmount,
+              depositRequired: timelineItem.depositRequired || deposit,
+              period: timelineItem.period || 1,
+              affordableYear: timelineItem.affordableYear || affordableYear,
+              displayPeriod: timelineItem.displayPeriod || `${affordableYear}`,
+              loanType: timelineItem.loanType || instance.loanProduct || 'IO',
+              acquisitionCosts: timelineItem.acquisitionCosts || undefined,
+              upfrontCosts: timelineItem.upfrontCosts || undefined,
+            } : null
+
+            // Build raw property instance — use stored instance if it has required fields
+            const hasFullInstance = instance.rentPerWeek !== undefined && instance.interestRate !== undefined
+            const rawPropertyInstance: PropertyInstanceDetails | null = hasFullInstance ? {
+              state: instance.state || 'NSW',
+              purchasePrice: instance.purchasePrice || purchasePrice,
+              valuationAtPurchase: instance.valuationAtPurchase || instance.purchasePrice || purchasePrice,
+              rentPerWeek: instance.rentPerWeek || 0,
+              growthAssumption: instance.growthAssumption || 'Medium',
+              minimumYield: instance.minimumYield || 5,
+              daysToUnconditional: instance.daysToUnconditional || 21,
+              daysForSettlement: instance.daysForSettlement || 42,
+              lvr: instance.lvr || 80,
+              lmiWaiver: instance.lmiWaiver || false,
+              loanProduct: instance.loanProduct || 'IO',
+              interestRate: instance.interestRate || 6.5,
+              loanTerm: instance.loanTerm || 30,
+              loanOffsetAccount: instance.loanOffsetAccount || 0,
+              engagementFee: instance.engagementFee || 0,
+              conditionalHoldingDeposit: instance.conditionalHoldingDeposit || 0,
+              buildingInsuranceUpfront: instance.buildingInsuranceUpfront || 0,
+              buildingPestInspection: instance.buildingPestInspection || 0,
+              plumbingElectricalInspections: instance.plumbingElectricalInspections || 0,
+              independentValuation: instance.independentValuation || 0,
+              unconditionalHoldingDeposit: instance.unconditionalHoldingDeposit || 0,
+              mortgageFees: instance.mortgageFees || 0,
+              conveyancing: instance.conveyancing || 0,
+              ratesAdjustment: instance.ratesAdjustment || 0,
+              maintenanceAllowancePostSettlement: instance.maintenanceAllowancePostSettlement || 0,
+              stampDutyOverride: instance.stampDutyOverride ?? null,
+              vacancyRate: instance.vacancyRate ?? 2,
+              propertyManagementPercent: instance.propertyManagementPercent ?? 6.6,
+              buildingInsuranceAnnual: instance.buildingInsuranceAnnual ?? 350,
+              councilRatesWater: instance.councilRatesWater ?? 2000,
+              strata: instance.strata ?? 0,
+              maintenanceAllowanceAnnual: instance.maintenanceAllowanceAnnual ?? 0,
+              landTaxOverride: instance.landTaxOverride ?? null,
+              potentialDeductionsRebates: instance.potentialDeductionsRebates ?? 0,
+            } : null
 
             return {
               instanceId,
@@ -337,6 +305,8 @@ export const Portfolio = () => {
               projectedEquity10Y,
               growthSincePurchase,
               propertyTypeKey: title,
+              rawPropertyInstance,
+              rawTimelineItem,
             } as PortfolioProperty
           }
 
@@ -352,7 +322,7 @@ export const Portfolio = () => {
                 const instanceId = item.instanceId || item.id || `prop_${idx}`
                 const instance = propertyInstances[instanceId] || {}
                 const tracking = portfolioTracking[instanceId] || {}
-                const prop = buildProperty(instanceId, item.title || `Property ${idx + 1}`, instance, tracking, Math.round(item.affordableYear || 2025), idx, item.cost)
+                const prop = buildProperty(instanceId, item.title || `Property ${idx + 1}`, instance, tracking, Math.round(item.affordableYear || 2025), idx, item.cost, item)
                 properties.push(prop)
                 purchaseMap[`${scenario.id}_${instanceId}`] = {
                   isPurchased: tracking.isPurchased || false,
@@ -400,6 +370,7 @@ export const Portfolio = () => {
             scenarioId: scenario.id,
             scenarioName: scenario.name || 'Scenario',
             properties,
+            growthCurve: scenarioGrowthCurve,
           })
         })
 
@@ -637,7 +608,74 @@ export const Portfolio = () => {
                           {portfolioFilter === 'all' && <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Properties</h3>}
                           {ownedCards.map(({ scenario, property, key, trackingState }) => {
                             const propertyImage = getPortfolioPropertyImage(property.propertyTypeKey || property.title)
-                            const proj = computeProjections(property)
+
+                            // Use real calculation engine if we have the raw data, otherwise skip
+                            const scenarioData = activeScenarios.find(s => s.scenarioId === scenario.scenarioId)
+                            const defaultGrowthCurve: GrowthCurve = { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 }
+                            const growthCurve = scenarioData?.growthCurve || defaultGrowthCurve
+
+                            // Build timeline data from raw or reconstructed
+                            const timelineData: TimelinePropertyData = property.rawTimelineItem || {
+                              title: property.title,
+                              cost: property.purchasePrice,
+                              loanAmount: property.loanAmount,
+                              depositRequired: property.deposit,
+                              period: 1,
+                              affordableYear: property.affordableYear,
+                              displayPeriod: `${property.affordableYear}`,
+                              loanType: (property.loanProduct as 'IO' | 'PI') || 'IO',
+                            }
+
+                            // Build property instance from raw or reconstructed
+                            const propInstance: PropertyInstanceDetails = property.rawPropertyInstance || {
+                              state: property.state || 'NSW',
+                              purchasePrice: property.purchasePrice,
+                              valuationAtPurchase: property.purchasePrice,
+                              rentPerWeek: property.rentPerWeek,
+                              growthAssumption: (property.growthAssumption as 'High' | 'Medium' | 'Low') || 'Medium',
+                              minimumYield: 5,
+                              daysToUnconditional: 21,
+                              daysForSettlement: 42,
+                              lvr: property.lvr,
+                              lmiWaiver: false,
+                              loanProduct: (property.loanProduct as 'IO' | 'PI') || 'IO',
+                              interestRate: property.interestRate,
+                              loanTerm: 30,
+                              loanOffsetAccount: 0,
+                              engagementFee: 0,
+                              conditionalHoldingDeposit: 0,
+                              buildingInsuranceUpfront: 0,
+                              buildingPestInspection: 0,
+                              plumbingElectricalInspections: 0,
+                              independentValuation: 0,
+                              unconditionalHoldingDeposit: 0,
+                              mortgageFees: 0,
+                              conveyancing: 0,
+                              ratesAdjustment: 0,
+                              maintenanceAllowancePostSettlement: 0,
+                              stampDutyOverride: null,
+                              vacancyRate: 2,
+                              propertyManagementPercent: 6.6,
+                              buildingInsuranceAnnual: 350,
+                              councilRatesWater: 2000,
+                              strata: 0,
+                              maintenanceAllowanceAnnual: 0,
+                              landTaxOverride: null,
+                              potentialDeductionsRebates: 0,
+                            }
+
+                            const projection = calculatePerPropertyProjection(timelineData, propInstance, { growthCurve, projectionYears: 10 })
+
+                            // Aliases for template compatibility
+                            const proj = {
+                              years: projection.yearRows,
+                              cashInvested: projection.totalCashInvested,
+                              capitalReturnedInYears: projection.capitalReturnedInYears,
+                              annualRent: projection.cashflowOverTime[0]?.grossIncome || 0,
+                              annualInterest: projection.cashflowOverTime[0]?.loanInterest || 0,
+                              annualOperating: projection.cashflowOverTime[0]?.totalExpenses || 0,
+                              annualTotalExpenses: (projection.cashflowOverTime[0]?.loanInterest || 0) + (projection.cashflowOverTime[0]?.totalExpenses || 0),
+                            }
                             const yr1 = proj.years[0]
                             const yr5 = proj.years[4]
                             const yr10 = proj.years[9]
@@ -827,7 +865,7 @@ export const Portfolio = () => {
                                           <tr key={row.label} className={`border-b border-gray-100 ${row.highlight ? 'bg-gray-50/50' : ''}`}>
                                             <td className={`py-2 pr-4 sticky left-0 whitespace-nowrap ${row.highlight ? 'font-semibold text-gray-800 bg-gray-50/50' : 'font-medium text-gray-600 bg-white'}`}>{row.label}</td>
                                             {proj.years.map(y => {
-                                              const val = y[row.key as keyof YearProjection] as number
+                                              const val = y[row.key as keyof YearRow] as number
                                               const isNeg = val < 0
                                               return (
                                                 <td key={y.year} className={`text-right py-2 px-2 font-medium tabular-nums ${
