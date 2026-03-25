@@ -105,6 +105,12 @@ export const ClientScenarios = () => {
   const { clients, setActiveClient, updateClient, deleteClient, activeSeats, seatLimit, canAddClient } = useClient();
   const { companyId, user } = useAuth();
   
+  // Send form modal state
+  const [sendFormOpen, setSendFormOpen] = useState(false);
+  const [sendFormType, setSendFormType] = useState<'input_form' | 'profile_update'>('input_form');
+  const [sendFormClientId, setSendFormClientId] = useState<number | null>(null);
+  const [sendingForm, setSendingForm] = useState(false);
+
   // Property onboarding state
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [hasCompletedPropertyOnboarding, setHasCompletedPropertyOnboarding] = useState<boolean | null>(null);
@@ -494,6 +500,66 @@ export const ClientScenarios = () => {
   }, [clients, activeFilter, searchQuery]);
 
   // CSV export
+  // Send form handler
+  const handleSendForm = async () => {
+    if (!sendFormClientId || !user) return;
+    setSendingForm(true);
+    try {
+      const { error } = await supabase
+        .from('form_submissions')
+        .insert({
+          client_id: sendFormClientId,
+          company_id: companyId,
+          sent_by: user.id,
+          form_type: sendFormType,
+          status: 'not_opened',
+          sent_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      await supabase.from('activity_log').insert({
+        client_id: sendFormClientId,
+        company_id: companyId,
+        actor_id: user.id,
+        event_type: 'form_sent',
+        metadata: {
+          form_type: sendFormType,
+          form_name: sendFormType === 'input_form' ? 'Client Details Form' : 'Client Details Update',
+        },
+      });
+
+      const clientName = clients.find(c => c.id === sendFormClientId)?.name || 'client';
+      toast.success(`Client details ${sendFormType === 'input_form' ? 'form' : 'update'} sent to ${clientName}`);
+
+      // Refresh form statuses
+      const clientIds = clients.map(c => c.id);
+      const { data: freshStatuses } = await supabase
+        .from('form_submissions')
+        .select('client_id, form_type, status')
+        .in('client_id', clientIds)
+        .order('sent_at', { ascending: false });
+
+      if (freshStatuses) {
+        const map: Record<number, { input_form: string | null; profile_update: string | null }> = {};
+        clients.forEach(c => {
+          const cf = freshStatuses.filter((f: any) => f.client_id === c.id);
+          map[c.id] = {
+            input_form: cf.find((f: any) => f.form_type === 'input_form')?.status || null,
+            profile_update: cf.find((f: any) => f.form_type === 'profile_update')?.status || null,
+          };
+        });
+        setFormStatuses(map);
+      }
+
+      setSendFormOpen(false);
+      setSendFormClientId(null);
+    } catch {
+      toast.error('Failed to send form');
+    }
+    setSendingForm(false);
+  };
+
   const handleExportCSV = () => {
     const headers = ['Name', 'Email', 'Phone', 'Stage', 'Portal Status', 'Roadmap Status', 'Last Active', 'Review Date'];
     const rows = filteredClients.map(client => [
@@ -1106,17 +1172,23 @@ toast.error('Failed to create client invite');
                                   )
                                 } else if (cs?.hasScenario) {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+                                    <button
+                                      onClick={() => handleOpenProfile(client)}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+                                    >
                                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                                       In progress
-                                    </span>
+                                    </button>
                                   )
                                 } else {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
+                                    <button
+                                      onClick={() => handleOpenProfile(client)}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-2.5 py-1 rounded-full transition-colors"
+                                    >
                                       <Target size={12} />
                                       Not started
-                                    </span>
+                                    </button>
                                   )
                                 }
                               })()}
@@ -1159,7 +1231,7 @@ toast.error('Failed to create client invite');
                                         Awaiting
                                       </span>
                                       <button
-                                        onClick={() => navigate(`/forms?type=${formType}&client=${client.id}`)}
+                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
                                         className="text-[11px] text-gray-400 hover:text-gray-600"
                                       >
                                         Resend
@@ -1171,7 +1243,7 @@ toast.error('Failed to create client invite');
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-[11px] text-gray-400">Not sent</span>
                                       <button
-                                        onClick={() => navigate(`/forms?type=${formType}&client=${client.id}`)}
+                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
                                         className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
                                       >
                                         Send
@@ -1508,6 +1580,52 @@ toast.error('Failed to create client invite');
           </DialogContent>
         </Dialog>
       </div>
+      {/* Send Form Modal */}
+      <Dialog open={sendFormOpen} onOpenChange={setSendFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {sendFormType === 'input_form' ? 'Send Client Details Form' : 'Send Client Details Update'}
+            </DialogTitle>
+            <DialogDescription>
+              {sendFormType === 'input_form'
+                ? 'Request financial details from a new client to build their investment roadmap.'
+                : 'Request updated financial details during a client\'s review cycle.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm font-medium text-[#374151] mb-1.5 block">Select client</label>
+              <select
+                value={sendFormClientId || ''}
+                onChange={(e) => setSendFormClientId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Choose a client...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setSendFormOpen(false)}
+                className="px-4 py-2 text-sm text-[#374151] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendForm}
+                disabled={!sendFormClientId || sendingForm}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Send size={14} />
+                {sendingForm ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   )
 }
