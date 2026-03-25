@@ -36,7 +36,6 @@ export const TopBar = () => {
   const tabs = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Portfolio', path: '/portfolio' },
-    { label: 'Timeline', path: '/dashboard', disabled: true },
   ]
   const activeTab = location.pathname
   
@@ -382,19 +381,16 @@ export const TopBar = () => {
       {!isClient && (
         <div className="flex items-center h-full">
           {tabs.map(tab => {
-            const isActive = activeTab === tab.path && !tab.disabled
+            const isActive = activeTab === tab.path
             return (
               <button
                 key={tab.label}
-                onClick={() => !tab.disabled && navigate(tab.path)}
+                onClick={() => navigate(tab.path)}
                 className={`relative h-full px-5 text-[13px] font-medium transition-colors ${
                   isActive
                     ? 'text-[#2563EB]'
-                    : tab.disabled
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-gray-700'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`}
-                disabled={tab.disabled}
               >
                 {tab.label}
                 {isActive && (
