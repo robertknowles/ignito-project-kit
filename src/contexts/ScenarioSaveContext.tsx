@@ -96,7 +96,7 @@ export const useScenarioSave = () => {
 };
 
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeClient } = useClient();
+  const { activeClient, updateClient } = useClient();
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
   const { profile, updateProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
@@ -255,7 +255,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLastSavedData(scenarioData);
       setLastSaved(scenarioData.lastSaved);
       setHasUnsavedChanges(false);
-      
+
+      // Update roadmap_status to 'draft' if currently 'not_started'
+      if (activeClient.roadmap_status === 'not_started' || !activeClient.roadmap_status) {
+        await updateClient(activeClient.id, { roadmap_status: 'draft' });
+      }
+
       // Different toast message for comparison mode
       if (scenarioData.comparisonMode && scenarioData.scenarios) {
         toast({

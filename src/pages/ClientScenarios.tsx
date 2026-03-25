@@ -14,6 +14,7 @@ import {
   Send,
   UserPlus,
   Target,
+  CheckCircle2,
   FileSpreadsheet,
   Activity,
 } from 'lucide-react'
@@ -1018,12 +1019,12 @@ toast.error('Failed to create client invite');
                     <thead>
                       <tr className="border-b border-gray-200/70 text-left">
                         <th className="table-header">Client</th>
-                        <th className="table-header">Stage</th>
+                        <th className="table-header">Dashboard</th>
+                        <th className="table-header">Review</th>
+                        <th className="table-header">Client Details</th>
                         <th className="table-header">Portal</th>
-                        <th className="table-header">Roadmap</th>
                         <th className="table-header">Last Active</th>
-                        <th className="table-header">Forms</th>
-                        <th className="table-header">Review Date</th>
+                        <th className="table-header">Last Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1092,15 +1093,93 @@ toast.error('Failed to create client invite');
                               </div>
                             </td>
 
-                            {/* Stage */}
+                            {/* Dashboard */}
                             <td className="table-cell">
-                              <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase rounded ${
-                                (client.stage || 'onboarding') === 'review'
-                                  ? 'text-blue-700 bg-blue-50 border border-blue-200'
-                                  : 'text-gray-600 bg-gray-50 border border-gray-200'
-                              }`}>
-                                {(client.stage || 'onboarding') === 'review' ? 'REVIEW' : 'ONBOARDING'}
-                              </span>
+                              {(() => {
+                                const cs = clientStatuses[client.id]
+                                if (cs?.shareId) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                                      <CheckCircle2 size={12} />
+                                      Sent to client
+                                    </span>
+                                  )
+                                } else if (cs?.hasScenario) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                      In progress
+                                    </span>
+                                  )
+                                } else {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-full">
+                                      <Target size={12} />
+                                      Not started
+                                    </span>
+                                  )
+                                }
+                              })()}
+                            </td>
+
+                            {/* Review */}
+                            <td className="table-cell">
+                              <div>
+                                <span className={`text-sm font-medium ${reviewInfo.color}`}>
+                                  {reviewInfo.text}
+                                </span>
+                                {reviewInfo.badge && (
+                                  <div className="mt-0.5">
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${reviewInfo.badgeColor}`}>
+                                      {reviewInfo.badge}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Details Request */}
+                            <td className="table-cell">
+                              {(() => {
+                                const showUpdate = fs?.input_form === 'completed'
+                                const currentStatus = showUpdate ? fs?.profile_update : fs?.input_form
+                                const formType = showUpdate ? 'profile_update' : 'input_form'
+
+                                if (currentStatus === 'completed') {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
+                                      ✓ Completed
+                                    </span>
+                                  )
+                                } else if (currentStatus === 'awaiting') {
+                                  return (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                        Awaiting
+                                      </span>
+                                      <button
+                                        onClick={() => navigate(`/forms?type=${formType}&client=${client.id}`)}
+                                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                                      >
+                                        Resend
+                                      </button>
+                                    </div>
+                                  )
+                                } else {
+                                  return (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[11px] text-gray-400">Not sent</span>
+                                      <button
+                                        onClick={() => navigate(`/forms?type=${formType}&client=${client.id}`)}
+                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
+                                      >
+                                        Send
+                                      </button>
+                                    </div>
+                                  )
+                                }
+                              })()}
                             </td>
 
                             {/* Portal Status */}
@@ -1119,18 +1198,6 @@ toast.error('Failed to create client invite');
                               </div>
                             </td>
 
-                            {/* Roadmap Status */}
-                            <td className="table-cell">
-                              <span className={`text-sm ${
-                                (client.roadmap_status || 'not_started') === 'finalised' ? 'text-green-700' :
-                                (client.roadmap_status || 'not_started') === 'draft' ? 'text-blue-700' :
-                                (client.roadmap_status || 'not_started') === 'in_review' ? 'text-amber-700' :
-                                'text-gray-500'
-                              }`}>
-                                {roadmapBadgeConfig[client.roadmap_status || 'not_started']?.label || 'Not started'}
-                              </span>
-                            </td>
-
                             {/* Last Active */}
                             <td className="table-cell">
                               <span className="text-sm text-[#374151]">
@@ -1138,104 +1205,13 @@ toast.error('Failed to create client invite');
                               </span>
                             </td>
 
-                            {/* Forms */}
+                            {/* Last Action */}
                             <td className="table-cell">
-                              <div className="space-y-1.5">
-                                {/* Input Form */}
-                                <div className="flex items-center gap-2">
-                                  <span className="meta whitespace-nowrap w-16">Input Form</span>
-                                  {fs?.input_form === 'completed' ? (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
-                                      ✓ Completed
-                                    </span>
-                                  ) : fs?.input_form === 'awaiting' ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                        Awaiting
-                                      </span>
-                                      <button
-                                        onClick={() => navigate('/forms')}
-                                        className="text-[11px] text-gray-400 hover:text-gray-600"
-                                      >
-                                        Resend
-                                      </button>
-                                    </div>
-                                  ) : fs?.input_form === 'not_opened' ? (
-                                    <span className="text-[11px] text-gray-400">Not sent</span>
-                                  ) : (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[11px] text-gray-400">Not sent</span>
-                                      <button
-                                        onClick={() => navigate('/forms')}
-                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
-                                      >
-                                        Send
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                                {/* Profile Update */}
-                                <div className="flex items-center gap-2">
-                                  <span className="meta whitespace-nowrap w-16">Profile Upd.</span>
-                                  {client.stage === 'onboarding' ? (
-                                    <span className="text-[11px] text-gray-300 italic">Profile update — not yet</span>
-                                  ) : fs?.profile_update === 'completed' ? (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
-                                      ✓ Completed
-                                    </span>
-                                  ) : fs?.profile_update === 'awaiting' ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                        Awaiting
-                                      </span>
-                                      <button
-                                        onClick={() => navigate('/forms')}
-                                        className="text-[11px] text-gray-400 hover:text-gray-600"
-                                      >
-                                        Resend
-                                      </button>
-                                    </div>
-                                  ) : fs?.profile_update === 'not_opened' ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[11px] text-gray-400">Not sent</span>
-                                      <button
-                                        onClick={() => navigate('/forms')}
-                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
-                                      >
-                                        Send
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[11px] text-gray-400">Not sent</span>
-                                      <button
-                                        onClick={() => navigate('/forms')}
-                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
-                                      >
-                                        Send
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Review Date */}
-                            <td className="table-cell">
-                              <div>
-                                <span className={`text-sm font-medium ${reviewInfo.color}`}>
-                                  {reviewInfo.text}
-                                </span>
-                                {reviewInfo.badge && (
-                                  <div className="mt-0.5">
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${reviewInfo.badgeColor}`}>
-                                      {reviewInfo.badge}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              <span className="text-sm text-[#374151]">
+                                {client.updated_at
+                                  ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                                  : '—'}
+                              </span>
                             </td>
                           </tr>
                         );

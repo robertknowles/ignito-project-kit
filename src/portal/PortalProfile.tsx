@@ -249,7 +249,7 @@ export const PortalProfile = () => {
         <p>
           Any changes you save here are automatically shared with your Buyers Agent and update
           your investment profile. For significant financial changes, your agent may recommend
-          sending a Profile Update form.
+          sending a Client Details Update form.
         </p>
       </div>
     </div>

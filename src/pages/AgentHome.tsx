@@ -10,14 +10,9 @@ import {
   AlertTriangle,
   UserPlus,
   Send,
-  ArrowRight,
   FileText,
-  Building2,
   CheckCircle2,
   Eye,
-  Info,
-  Filter,
-  ArrowUpDown,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { LeftRail } from '@/components/LeftRail'
@@ -33,6 +28,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
 
 // Activity log entry from database
 interface ActivityEntry {
@@ -73,14 +76,19 @@ const getAvatarColor = (name: string) => {
 
 export const AgentHome = () => {
   const navigate = useNavigate()
-  const { clients, activeSeats, seatLimit } = useClient()
+  const { clients, activeSeats, seatLimit, updateClient } = useClient()
   const { user, role } = useAuth()
   const { branding } = useBranding()
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
   const [activityLoading, setActivityLoading] = useState(true)
   const [formStatuses, setFormStatuses] = useState<FormSubmissionStatus[]>([])
+  const [dashboardStatuses, setDashboardStatuses] = useState<Record<number, { hasProperties: boolean; shareId: string | null }>>({})
   const [calendarMonth, setCalendarMonth] = useState(new Date())
-  // Drawer removed — using LeftRail only navigation
+  const [editingReviewClientId, setEditingReviewClientId] = useState<number | null>(null)
+  const [sendFormOpen, setSendFormOpen] = useState(false)
+  const [sendFormType, setSendFormType] = useState<'input_form' | 'profile_update'>('input_form')
+  const [sendFormClientId, setSendFormClientId] = useState<number | null>(null)
+  const [sendingForm, setSendingForm] = useState(false)
 
   const today = new Date()
   const dateString = today.toLocaleDateString('en-AU', {
@@ -136,6 +144,36 @@ export const AgentHome = () => {
     fetchFormStatuses()
   }, [])
 
+  // Fetch dashboard/scenario statuses for all clients
+  useEffect(() => {
+    const fetchDashboardStatuses = async () => {
+      if (clients.length === 0) return
+      try {
+        const { data, error } = await supabase
+          .from('scenarios')
+          .select('client_id, share_id, data')
+          .in('client_id', clients.map(c => c.id))
+
+        if (!error && data) {
+          const map: Record<number, { hasProperties: boolean; shareId: string | null }> = {}
+          data.forEach((s: any) => {
+            const d = s.data as any
+            const hasProps = d?.propertySelections && Object.keys(d.propertySelections).length > 0
+            // Keep the most complete scenario per client
+            if (!map[s.client_id] || hasProps) {
+              map[s.client_id] = { hasProperties: hasProps, shareId: s.share_id }
+            }
+          })
+          setDashboardStatuses(map)
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
+    fetchDashboardStatuses()
+  }, [clients])
+
   // --- Stats ---
   const stats = useMemo(() => {
     const activeClients = clients.filter(c => c.roadmap_status && c.roadmap_status !== 'not_started').length || clients.length
@@ -183,16 +221,40 @@ export const AgentHome = () => {
     return map
   }, [clients, formStatuses])
 
-  // --- Meeting prep: clients sorted by next review date ---
-  const meetingPrepClients = useMemo(() => {
+  // --- Action required: clients needing attention ---
+  const actionRequiredClients = useMemo(() => {
+    const now = new Date()
+    const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+
     return [...clients]
-      .filter(c => c.next_review_date)
-      .sort((a, b) => {
-        const da = new Date(a.next_review_date!).getTime()
-        const db = new Date(b.next_review_date!).getTime()
-        return da - db
+      .filter(c => {
+        const ds = dashboardStatuses[c.id]
+        // Dashboard not started or in progress (not sent yet)
+        if (!ds?.shareId) return true
+        // Review date overdue or due within 14 days
+        if (c.next_review_date) {
+          const reviewDate = new Date(c.next_review_date)
+          if (reviewDate <= in14Days) return true
+        }
+        // Details request awaiting
+        const fs = clientFormStatusMap[c.id]
+        if (fs?.input_form === 'awaiting' || fs?.input_form === 'not_opened') return true
+        if (fs?.profile_update === 'awaiting' || fs?.profile_update === 'not_opened') return true
+        return false
       })
-  }, [clients])
+      .sort((a, b) => {
+        // Priority: overdue reviews first, then dashboard not started, then by name
+        const aOverdue = a.next_review_date && new Date(a.next_review_date) < now ? 0 : 1
+        const bOverdue = b.next_review_date && new Date(b.next_review_date) < now ? 0 : 1
+        if (aOverdue !== bOverdue) return aOverdue - bOverdue
+        const aDs = dashboardStatuses[a.id]
+        const bDs = dashboardStatuses[b.id]
+        const aDash = !aDs?.hasProperties ? 0 : !aDs?.shareId ? 1 : 2
+        const bDash = !bDs?.hasProperties ? 0 : !bDs?.shareId ? 1 : 2
+        if (aDash !== bDash) return aDash - bDash
+        return a.name.localeCompare(b.name)
+      })
+  }, [clients, clientFormStatusMap, dashboardStatuses])
 
   // Overdue clients (review date in the past)
   const overdueClients = useMemo(() => {
@@ -294,7 +356,7 @@ export const AgentHome = () => {
     const meta = entry.metadata || {}
     switch (entry.event_type) {
       case 'form_completed':
-        return { text: `${name} completed ${meta.form_name === 'Profile Update' ? 'their profile update' : 'his input form'}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+        return { text: `${name} completed ${meta.form_name === 'Profile Update' ? 'their details update' : 'their details form'}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
       case 'form_sent':
         return { text: `${name} — ${meta.form_name || 'form'} request sent`, icon: <Send size={14} className="text-blue-500" /> }
       case 'portal_login':
@@ -314,18 +376,71 @@ export const AgentHome = () => {
     }
   }
 
-  // Readiness: how many of 2 forms (input_form + profile_update) are completed
-  const getReadiness = (clientId: number) => {
-    const statuses = clientFormStatusMap[clientId]
-    if (!statuses) return { done: 0, total: 2 }
-    let done = 0
-    if (statuses.input_form === 'completed') done++
-    if (statuses.profile_update === 'completed') done++
-    return { done, total: 2 }
+  // --- Send form handler ---
+  const handleSendForm = async () => {
+    if (!sendFormClientId || !user) return
+    setSendingForm(true)
+    try {
+      // Get company_id from profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
+      const { error } = await supabase
+        .from('form_submissions')
+        .insert({
+          client_id: sendFormClientId,
+          company_id: profileData?.company_id || null,
+          sent_by: user.id,
+          form_type: sendFormType,
+          status: 'not_opened',
+          sent_at: new Date().toISOString(),
+        })
+
+      if (error) throw error
+
+      // Log activity
+      await supabase.from('activity_log').insert({
+        client_id: sendFormClientId,
+        company_id: profileData?.company_id || null,
+        actor_id: user.id,
+        event_type: 'form_sent',
+        metadata: {
+          form_type: sendFormType,
+          form_name: sendFormType === 'input_form' ? 'Client Details Form' : 'Client Details Update',
+        },
+      })
+
+      const clientName = clients.find(c => c.id === sendFormClientId)?.name || 'client'
+      toast.success(`Client details ${sendFormType === 'input_form' ? 'form' : 'update'} sent to ${clientName}`)
+
+      // Refresh form statuses
+      const { data: freshStatuses } = await supabase
+        .from('form_submissions')
+        .select('client_id, form_type, status, sent_at')
+        .order('sent_at', { ascending: false })
+      if (freshStatuses) setFormStatuses(freshStatuses as FormSubmissionStatus[])
+
+      setSendFormOpen(false)
+      setSendFormClientId(null)
+    } catch {
+      toast.error('Failed to send form')
+    }
+    setSendingForm(false)
   }
 
   // Form status badge renderer
-  const renderFormStatus = (status: string | null, formLabel: string) => {
+  const openSendModal = (formType: 'input_form' | 'profile_update', clientId?: number) => {
+    setSendFormType(formType)
+    setSendFormClientId(clientId || null)
+    setSendFormOpen(true)
+  }
+
+  const renderFormStatus = (status: string | null, formLabel: string, clientId?: number, formTypeKey?: string) => {
+    const fType = (formTypeKey || 'input_form') as 'input_form' | 'profile_update'
+
     if (!status) {
       return (
         <div className="flex items-center gap-2">
@@ -333,7 +448,7 @@ export const AgentHome = () => {
           <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
           <button
             className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
-            onClick={() => navigate('/forms')}
+            onClick={() => openSendModal(fType, clientId)}
           >
             Send
           </button>
@@ -361,7 +476,7 @@ export const AgentHome = () => {
           </span>
           <button
             className="text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
-            onClick={() => navigate('/forms')}
+            onClick={() => openSendModal(fType, clientId)}
           >
             Resend
           </button>
@@ -375,7 +490,7 @@ export const AgentHome = () => {
         <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
         <button
           className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
-          onClick={() => navigate('/forms')}
+          onClick={() => openSendModal(fType, clientId)}
         >
           Send
         </button>
@@ -508,18 +623,18 @@ export const AgentHome = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate('/forms')}
+                    onClick={() => { setSendFormType('input_form'); setSendFormClientId(null); setSendFormOpen(true) }}
                     className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
                   >
                     <FileText size={14} className="text-[#6b7280]" />
-                    Send Input Request
+                    Send Client Details
                   </button>
                   <button
-                    onClick={() => navigate('/forms')}
+                    onClick={() => { setSendFormType('profile_update'); setSendFormClientId(null); setSendFormOpen(true) }}
                     className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
                   >
                     <Send size={14} className="text-[#6b7280]" />
-                    Send Profile Update
+                    Send Client Details Update
                   </button>
                   <button
                     onClick={() => navigate('/clients')}
@@ -594,32 +709,37 @@ export const AgentHome = () => {
                 />
               </div>
 
-              {/* Meeting Prep Table */}
+              {/* Action Required */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <h3 className="section-heading">Meeting prep</h3>
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] text-xs font-medium">
-                      {meetingPrepClients.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-[#6b7280] hover:bg-gray-50 transition-colors">
-                      <Filter size={12} />
-                      Filter
-                    </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-[#6b7280] hover:bg-gray-50 transition-colors">
-                      <ArrowUpDown size={12} />
-                      Sort
-                    </button>
+                    <h3 className="section-heading">Action required</h3>
+                    {clients.length > 0 && (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] text-xs font-medium">
+                        {actionRequiredClients.length}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {meetingPrepClients.length === 0 ? (
+                {clients.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                    <CalendarIcon size={32} className="text-gray-300 mx-auto mb-3" />
-                    <p className="body-secondary">No upcoming reviews scheduled</p>
-                    <p className="meta mt-1">Set review dates on client profiles to see them here</p>
+                    <UserPlus size={32} className="text-gray-300 mx-auto mb-3" />
+                    <p className="body-dark font-medium mb-1">Create your first client</p>
+                    <p className="meta mb-4">Add a client to get started with their investment roadmap</p>
+                    <button
+                      onClick={() => navigate('/clients')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
+                    >
+                      <UserPlus size={14} />
+                      New Client
+                    </button>
+                  </div>
+                ) : actionRequiredClients.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                    <CheckCircle2 size={32} className="text-green-400 mx-auto mb-3" />
+                    <p className="body-dark font-medium mb-1">You're all caught up</p>
+                    <p className="meta">All clients are up to date. Nice work.</p>
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -627,21 +747,17 @@ export const AgentHome = () => {
                       <thead>
                         <tr className="border-b border-gray-200 text-left">
                           <th className="table-header">Client</th>
-                          <th className="table-header">Review Due</th>
-                          <th className="table-header">Input Form</th>
-                          <th className="table-header">Profile Update</th>
-                          <th className="table-header text-right">Readiness</th>
+                          <th className="table-header">Dashboard</th>
+                          <th className="table-header">Review</th>
+                          <th className="table-header">Client Details</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {meetingPrepClients.map(client => {
+                        {actionRequiredClients.map(client => {
                           const initials = getInitials(client.name)
                           const avatarColor = getAvatarColor(client.name)
-                          const reviewDate = new Date(client.next_review_date!).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-                          const countdownLabel = getCountdownLabel(client.next_review_date!)
-                          const countdownColor = getCountdownBarColor(client.next_review_date!)
                           const formStatus = clientFormStatusMap[client.id]
-                          const readiness = getReadiness(client.id)
+                          const ds = dashboardStatuses[client.id]
 
                           return (
                             <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors">
@@ -654,60 +770,98 @@ export const AgentHome = () => {
                                   >
                                     {initials}
                                   </div>
-                                  <div>
-                                    <div className="body-dark font-medium">{client.name}</div>
-                                    <button
-                                      onClick={() => {
-                                        navigate('/clients')
-                                      }}
-                                      className="text-[11px] text-[#2563EB] hover:underline"
-                                    >
-                                      Open workspace →
-                                    </button>
-                                  </div>
+                                  <div className="body-dark font-medium">{client.name}</div>
                                 </div>
                               </td>
 
-                              {/* Review Due */}
+                              {/* Dashboard */}
                               <td className="table-cell">
-                                <div className="flex flex-col gap-1">
-                                  <span className="body-dark font-medium">{reviewDate}</span>
-                                  <div className="flex items-center gap-2">
-                                    <div className={`h-1 w-16 rounded-full ${countdownColor}`} />
-                                    <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${getCountdownColor(client.next_review_date!)}`}>
-                                      {countdownLabel}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-
-                              {/* Input Form */}
-                              <td className="table-cell">
-                                {renderFormStatus(formStatus?.input_form, 'Input form')}
-                              </td>
-
-                              {/* Profile Update */}
-                              <td className="table-cell">
-                                {renderFormStatus(formStatus?.profile_update, 'Profile update')}
-                              </td>
-
-                              {/* Readiness */}
-                              <td className="table-cell text-right">
-                                {readiness.done === readiness.total ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                                {ds?.shareId ? (
+                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
                                     <CheckCircle2 size={12} />
-                                    Ready
+                                    Sent to client
                                   </span>
+                                ) : ds?.hasProperties ? (
+                                  <button
+                                    onClick={() => navigate('/clients')}
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    In progress
+                                  </button>
                                 ) : (
-                                  <div className="inline-flex flex-col items-end gap-1">
-                                    <span className="meta">{readiness.done} of {readiness.total} done</span>
-                                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full bg-[#2563EB] rounded-full transition-all"
-                                        style={{ width: `${(readiness.done / readiness.total) * 100}%` }}
-                                      />
+                                  <button
+                                    onClick={() => navigate('/clients')}
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-2.5 py-1 rounded-full transition-colors"
+                                  >
+                                    <Target size={12} />
+                                    Not started
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* Review */}
+                              <td className="table-cell">
+                                {editingReviewClientId === client.id ? (
+                                  <input
+                                    type="date"
+                                    autoFocus
+                                    defaultValue={client.next_review_date?.split('T')[0] || ''}
+                                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    onBlur={async (e) => {
+                                      const val = e.target.value
+                                      if (val) {
+                                        await updateClient(client.id, { next_review_date: val })
+                                      }
+                                      setEditingReviewClientId(null)
+                                    }}
+                                    onKeyDown={async (e) => {
+                                      if (e.key === 'Enter') {
+                                        const val = (e.target as HTMLInputElement).value
+                                        if (val) {
+                                          await updateClient(client.id, { next_review_date: val })
+                                        }
+                                        setEditingReviewClientId(null)
+                                      } else if (e.key === 'Escape') {
+                                        setEditingReviewClientId(null)
+                                      }
+                                    }}
+                                  />
+                                ) : client.next_review_date ? (
+                                  <button
+                                    onClick={() => setEditingReviewClientId(client.id)}
+                                    className="text-left group"
+                                  >
+                                    <div className="flex flex-col gap-1">
+                                      <span className="body-dark font-medium group-hover:text-[#2563EB] transition-colors">
+                                        {new Date(client.next_review_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <div className={`h-1 w-16 rounded-full ${getCountdownBarColor(client.next_review_date)}`} />
+                                        <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${getCountdownColor(client.next_review_date)}`}>
+                                          {getCountdownLabel(client.next_review_date)}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setEditingReviewClientId(client.id)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#2563EB] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                  >
+                                    <CalendarCheck size={12} />
+                                    Set catchup
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* Details Request */}
+                              <td className="table-cell">
+                                {renderFormStatus(
+                                  formStatus?.input_form === 'completed' ? (formStatus?.profile_update || null) : (formStatus?.input_form || null),
+                                  formStatus?.input_form === 'completed' ? 'Client details update' : 'Client details update',
+                                  client.id,
+                                  formStatus?.input_form === 'completed' ? 'profile_update' : 'input_form'
                                 )}
                               </td>
                             </tr>
@@ -716,7 +870,7 @@ export const AgentHome = () => {
                       </tbody>
                     </table>
                     <div className="px-5 py-3 border-t border-gray-100 text-right">
-                      <span className="meta">Sorted by review date · soonest first</span>
+                      <span className="meta">Showing clients that need attention</span>
                       <button
                         onClick={() => navigate('/clients')}
                         className="ml-4 text-xs text-[#2563EB] hover:underline font-medium"
@@ -856,6 +1010,52 @@ export const AgentHome = () => {
           </div>
         </div>
       </div>
+      {/* Send Form Modal */}
+      <Dialog open={sendFormOpen} onOpenChange={setSendFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {sendFormType === 'input_form' ? 'Send Client Details Form' : 'Send Client Details Update'}
+            </DialogTitle>
+            <DialogDescription>
+              {sendFormType === 'input_form'
+                ? 'Request financial details from a new client to build their investment roadmap.'
+                : 'Request updated financial details during a client\'s review cycle.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm font-medium text-[#374151] mb-1.5 block">Select client</label>
+              <select
+                value={sendFormClientId || ''}
+                onChange={(e) => setSendFormClientId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Choose a client...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setSendFormOpen(false)}
+                className="px-4 py-2 text-sm text-[#374151] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendForm}
+                disabled={!sendFormClientId || sendingForm}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Send size={14} />
+                {sendingForm ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   )
 }

@@ -1,48 +1,55 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   FileText,
-  Send,
   Clock,
   CheckCircle2,
   Eye,
-  RotateCcw,
-  SearchIcon,
   UserPlus,
   RefreshCw,
-  ChevronDown,
-  X,
 } from 'lucide-react'
 import { LeftRail } from '@/components/LeftRail'
-// HomeDrawer removed — navigation restructured
-import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 
-// ------ Predefined form templates ------
+// ------ Standardised fields (what the calculation engine actually uses) ------
+
+interface StandardField {
+  key: string
+  label: string
+  updateLabel: string
+  type: 'currency' | 'years' | 'toggle'
+  min?: number
+  max?: number
+  step?: number
+  section: string
+}
+
+const STANDARD_FIELDS: StandardField[] = [
+  { key: 'depositPool', label: 'Available deposit', updateLabel: 'Current available deposit', type: 'currency', min: 10000, max: 500000, step: 5000, section: 'Financial details' },
+  { key: 'borrowingCapacity', label: 'Borrowing capacity', updateLabel: 'Updated borrowing capacity', type: 'currency', min: 100000, max: 2000000, step: 25000, section: 'Financial details' },
+  { key: 'annualSavings', label: 'Annual savings', updateLabel: 'Current annual savings', type: 'currency', min: 0, max: 100000, step: 2000, section: 'Financial details' },
+  { key: 'portfolioValue', label: 'Current property value', updateLabel: 'Current property value', type: 'currency', min: 0, max: 5000000, step: 25000, section: 'Financial details' },
+  { key: 'currentDebt', label: 'Current investment debt', updateLabel: 'Current investment debt', type: 'currency', min: 0, max: 4000000, step: 25000, section: 'Financial details' },
+  { key: 'timelineYears', label: 'Investment horizon', updateLabel: 'Updated investment horizon', type: 'years', min: 5, max: 20, step: 1, section: 'Investment goals' },
+  { key: 'equityGoal', label: 'Equity goal', updateLabel: 'Updated equity goal', type: 'currency', min: 0, max: 5000000, step: 50000, section: 'Investment goals' },
+  { key: 'cashflowGoal', label: 'Annual cashflow goal', updateLabel: 'Updated cashflow goal', type: 'currency', min: 0, max: 200000, step: 5000, section: 'Investment goals' },
+  { key: 'useExistingEquity', label: 'Use existing equity', updateLabel: 'Use existing equity', type: 'toggle', section: 'Investment goals' },
+]
 
 interface FormQuestion {
   id: string
   label: string
-  field: string // maps to clients table column
-  type: 'text' | 'number' | 'date' | 'select'
-  options?: string[]
+  field: string
+  type: 'currency' | 'years' | 'toggle'
+  min?: number
+  max?: number
+  step?: number
   section: string
 }
 
@@ -51,73 +58,35 @@ interface FormTemplate {
   name: string
   description: string
   icon: React.ReactNode
-  color: string
-  bgColor: string
   questions: FormQuestion[]
 }
 
-const INPUT_FORM_QUESTIONS: FormQuestion[] = [
-  // Personal details
-  { id: 'name', label: 'Full name', field: 'name', type: 'text', section: 'Personal details' },
-  { id: 'email', label: 'Email address', field: 'email', type: 'text', section: 'Personal details' },
-  { id: 'phone', label: 'Phone number', field: 'phone', type: 'text', section: 'Personal details' },
-  { id: 'date_of_birth', label: 'Date of birth', field: 'date_of_birth', type: 'date', section: 'Personal details' },
-  { id: 'address', label: 'Current address', field: 'address', type: 'text', section: 'Personal details' },
-  { id: 'marital_status', label: 'Marital status', field: 'marital_status', type: 'select', options: ['Single', 'Married', 'De facto', 'Divorced', 'Widowed'], section: 'Personal details' },
-  { id: 'dependants', label: 'Number of dependants', field: 'dependants', type: 'number', section: 'Personal details' },
-  // Financial snapshot
-  { id: 'employment', label: 'Employment type', field: 'employment', type: 'select', options: ['Full-time', 'Part-time', 'Casual', 'Self-employed', 'Contractor', 'Not employed'], section: 'Financial snapshot' },
-  { id: 'annual_income', label: 'Annual income ($)', field: 'annual_income', type: 'number', section: 'Financial snapshot' },
-  { id: 'partner_income', label: 'Partner annual income ($)', field: 'partner_income', type: 'number', section: 'Financial snapshot' },
-  { id: 'available_savings', label: 'Available savings ($)', field: 'available_savings', type: 'number', section: 'Financial snapshot' },
-  { id: 'borrowing_capacity', label: 'Borrowing capacity ($)', field: 'borrowing_capacity', type: 'number', section: 'Financial snapshot' },
-  { id: 'pre_approval_status', label: 'Pre-approval status', field: 'pre_approval_status', type: 'select', options: ['Not started', 'In progress', 'Approved', 'Expired'], section: 'Financial snapshot' },
-  // Investment preferences
-  { id: 'risk_tolerance', label: 'Risk tolerance', field: 'risk_tolerance', type: 'select', options: ['Conservative', 'Moderate', 'Aggressive'], section: 'Investment preferences' },
-  { id: 'primary_goal', label: 'Primary investment goal', field: 'primary_goal', type: 'select', options: ['Capital growth', 'Cash flow', 'Balanced', 'First home', 'Retirement planning'], section: 'Investment preferences' },
-  { id: 'preferred_property_type', label: 'Preferred property type', field: 'preferred_property_type', type: 'select', options: ['House', 'Unit/Apartment', 'Townhouse', 'Land', 'Any'], section: 'Investment preferences' },
-  { id: 'preferred_locations', label: 'Preferred locations', field: 'preferred_locations', type: 'text', section: 'Investment preferences' },
-  { id: 'purchase_timeline', label: 'Purchase timeline', field: 'purchase_timeline', type: 'select', options: ['0-3 months', '3-6 months', '6-12 months', '12+ months', 'Not sure'], section: 'Investment preferences' },
-]
-
-const PROFILE_UPDATE_QUESTIONS: FormQuestion[] = [
-  // Financial snapshot (most likely to change)
-  { id: 'annual_income', label: 'Annual income ($)', field: 'annual_income', type: 'number', section: 'Financial snapshot' },
-  { id: 'partner_income', label: 'Partner annual income ($)', field: 'partner_income', type: 'number', section: 'Financial snapshot' },
-  { id: 'available_savings', label: 'Available savings ($)', field: 'available_savings', type: 'number', section: 'Financial snapshot' },
-  { id: 'borrowing_capacity', label: 'Borrowing capacity ($)', field: 'borrowing_capacity', type: 'number', section: 'Financial snapshot' },
-  { id: 'pre_approval_status', label: 'Pre-approval status', field: 'pre_approval_status', type: 'select', options: ['Not started', 'In progress', 'Approved', 'Expired'], section: 'Financial snapshot' },
-  { id: 'pre_approval_expiry', label: 'Pre-approval expiry date', field: 'pre_approval_expiry', type: 'date', section: 'Financial snapshot' },
-  // Personal changes
-  { id: 'address', label: 'Current address', field: 'address', type: 'text', section: 'Personal details' },
-  { id: 'marital_status', label: 'Marital status', field: 'marital_status', type: 'select', options: ['Single', 'Married', 'De facto', 'Divorced', 'Widowed'], section: 'Personal details' },
-  { id: 'dependants', label: 'Number of dependants', field: 'dependants', type: 'number', section: 'Personal details' },
-  // Preference updates
-  { id: 'risk_tolerance', label: 'Risk tolerance', field: 'risk_tolerance', type: 'select', options: ['Conservative', 'Moderate', 'Aggressive'], section: 'Investment preferences' },
-  { id: 'primary_goal', label: 'Primary investment goal', field: 'primary_goal', type: 'select', options: ['Capital growth', 'Cash flow', 'Balanced', 'First home', 'Retirement planning'], section: 'Investment preferences' },
-  { id: 'preferred_property_type', label: 'Preferred property type', field: 'preferred_property_type', type: 'select', options: ['House', 'Unit/Apartment', 'Townhouse', 'Land', 'Any'], section: 'Investment preferences' },
-  { id: 'preferred_locations', label: 'Preferred locations', field: 'preferred_locations', type: 'text', section: 'Investment preferences' },
-  { id: 'purchase_timeline', label: 'Purchase timeline', field: 'purchase_timeline', type: 'select', options: ['0-3 months', '3-6 months', '6-12 months', '12+ months', 'Not sure'], section: 'Investment preferences' },
-]
+const buildQuestions = (isUpdate: boolean): FormQuestion[] =>
+  STANDARD_FIELDS.map(f => ({
+    id: f.key,
+    field: f.key,
+    label: isUpdate ? f.updateLabel : f.label,
+    type: f.type,
+    min: f.min,
+    max: f.max,
+    step: f.step,
+    section: f.section,
+  }))
 
 const FORM_TEMPLATES: FormTemplate[] = [
   {
     key: 'input_form',
-    name: 'Input Form',
-    description: 'Collect financial details and preferences from new clients during onboarding. Responses feed directly into the property plan.',
+    name: 'Client Details Form',
+    description: 'Collect financial details from new clients to build their investment roadmap.',
     icon: <UserPlus size={20} />,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    questions: INPUT_FORM_QUESTIONS,
+    questions: buildQuestions(false),
   },
   {
     key: 'profile_update',
-    name: 'Profile Update',
-    description: 'Request updated financial details from existing clients during their 6-month review cycle.',
+    name: 'Client Details Update',
+    description: 'Request updated financial details during a client\'s 6-month review cycle.',
     icon: <RefreshCw size={20} />,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    questions: PROFILE_UPDATE_QUESTIONS,
+    questions: buildQuestions(true),
   },
 ]
 
@@ -139,16 +108,34 @@ interface FormSubmission {
 export const AgentForms = () => {
   const { clients } = useClient()
   const { user, companyId } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Drawer removed
   const [submissions, setSubmissions] = useState<FormSubmission[]>([])
   const [submissionsLoading, setSubmissionsLoading] = useState(true)
-  const [sendModalOpen, setSendModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null)
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'input_form' | 'profile_update'>('all')
+
+  // Read URL params and pre-select template/client
+  useEffect(() => {
+    const typeParam = searchParams.get('type')
+    const clientParam = searchParams.get('client')
+
+    if (typeParam) {
+      const template = FORM_TEMPLATES.find(t => t.key === typeParam)
+      if (template) setSelectedTemplate(template)
+    }
+    if (clientParam) {
+      const clientId = Number(clientParam)
+      if (!isNaN(clientId)) setSelectedClientId(clientId)
+    }
+
+    // Clear URL params after reading so they don't persist on refresh
+    if (typeParam || clientParam) {
+      setSearchParams({}, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch sent forms
   useEffect(() => {
@@ -186,16 +173,8 @@ export const AgentForms = () => {
       result = result.filter(s => s.form_type === filterType)
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(s => {
-        const client = clientMap[s.client_id]
-        return client?.name.toLowerCase().includes(q) || client?.email?.toLowerCase().includes(q)
-      })
-    }
-
     return result
-  }, [submissions, filterType, searchQuery, clientMap])
+  }, [submissions, filterType])
 
   // Send form to client
   const handleSendForm = async () => {
@@ -238,7 +217,6 @@ export const AgentForms = () => {
       if (data) setSubmissions(data as FormSubmission[])
 
       toast.success(`${selectedTemplate.name} sent to ${clientMap[selectedClientId]?.name || 'client'}!`)
-      setSendModalOpen(false)
       setSelectedTemplate(null)
       setSelectedClientId(null)
     } catch {
@@ -301,39 +279,6 @@ export const AgentForms = () => {
     },
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-AU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-AU', {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
-
-  // Open send modal for a specific template
-  const openSendModal = (template: FormTemplate) => {
-    setSelectedTemplate(template)
-    setSelectedClientId(null)
-    setSendModalOpen(true)
-  }
-
-  // Expanded question view per template
-  const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null)
-
-  // Stats
-  const formStats = useMemo(() => {
-    const total = submissions.length
-    const pending = submissions.filter(s => s.status === 'not_opened' || s.status === 'awaiting').length
-    const completed = submissions.filter(s => s.status === 'completed').length
-    return { total, pending, completed }
-  }, [submissions])
-
   // Awaiting counts per template
   const awaitingCounts = useMemo(() => {
     const counts: Record<string, number> = { input_form: 0, profile_update: 0 }
@@ -345,17 +290,6 @@ export const AgentForms = () => {
     return counts
   }, [submissions])
 
-  // Last modified dates (most recent sent_at per template)
-  const lastModifiedDates = useMemo(() => {
-    const dates: Record<string, string> = {}
-    submissions.forEach(s => {
-      if (!dates[s.form_type] || new Date(s.sent_at) > new Date(dates[s.form_type])) {
-        dates[s.form_type] = s.sent_at
-      }
-    })
-    return dates
-  }, [submissions])
-
   return (
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
@@ -364,15 +298,9 @@ export const AgentForms = () => {
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
-              <div className="flex justify-between items-center mb-2">
-                <div>
-                  <h2 className="page-title">Forms</h2>
-                  <p className="body-secondary mt-0.5">Create, edit and send form templates to your clients</p>
-                </div>
-                <button className="flex items-center gap-2 px-3.5 py-2 bg-[#2563EB] text-white rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors">
-                  <FileText size={14} />
-                  + New template
-                </button>
+              <div className="mb-2">
+                <h2 className="page-title">Forms</h2>
+                <p className="body-secondary mt-0.5">Send client details forms or updates to your clients</p>
               </div>
 
               {/* Form Template Cards */}
@@ -381,24 +309,26 @@ export const AgentForms = () => {
                   const isInputForm = template.key === 'input_form'
                   const badgeLabel = isInputForm ? 'Onboarding' : '6-month review'
                   const badgeColor = isInputForm ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-blue-100 text-blue-700 border-blue-200'
-                  const borderColor = isInputForm ? 'border-orange-300' : 'border-blue-300'
+                  const isSelected = selectedTemplate?.key === template.key
+                  const borderColor = isSelected
+                    ? 'border-[#2563EB] ring-1 ring-[#2563EB]/20'
+                    : isInputForm ? 'border-orange-300' : 'border-blue-300'
                   const awaiting = awaitingCounts[template.key] || 0
-                  const lastModified = lastModifiedDates[template.key]
-                  const isExpanded = expandedTemplate === template.key
+                  const questionCount = template.questions.filter(q => q.type !== 'toggle').length
 
                   return (
                     <div
                       key={template.key}
-                      className={`bg-white border rounded-lg p-5 hover:border-gray-300 transition-colors ${borderColor}`}
+                      className={`bg-white border rounded-lg p-5 transition-all ${borderColor}`}
                     >
-                      {/* Top row: name + badge + awaiting */}
+                      {/* Top: name + badge + count */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <h3 className="section-heading">{template.name}</h3>
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeColor}`}>
                             {badgeLabel}
                           </span>
-                          <span className="meta">{template.questions.length} questions</span>
+                          <span className="meta">{questionCount} questions</span>
                         </div>
                         {awaiting > 0 && (
                           <span className="text-[11px] font-medium text-amber-700">
@@ -407,54 +337,16 @@ export const AgentForms = () => {
                         )}
                       </div>
 
-                      <p className="meta leading-relaxed mb-3">
+                      <p className="meta leading-relaxed mb-4">
                         {template.description}
                       </p>
 
-                      {/* Last modified + action buttons */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="meta">
-                          Last modified {lastModified
-                            ? new Date(lastModified).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-                            : '—'
-                          }
-                        </span>
-                        <button className="text-xs text-[#374151] border border-gray-200 px-2.5 py-1 rounded hover:bg-gray-50 transition-colors">
-                          Edit questions
-                        </button>
-                        <button className="text-xs text-[#374151] border border-gray-200 px-2.5 py-1 rounded hover:bg-gray-50 transition-colors">
-                          Preview
-                        </button>
-                        <button
-                          onClick={() => setExpandedTemplate(isExpanded ? null : template.key)}
-                          className="text-xs text-[#2563EB] font-medium flex items-center gap-1"
-                        >
-                          View questions {isExpanded ? '▲' : '▼'}
-                        </button>
-                      </div>
-
-                      {/* Expandable question list */}
-                      {isExpanded && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          {Array.from(new Set(template.questions.map(q => q.section))).map(section => (
-                            <div key={section} className="mb-2 last:mb-0">
-                              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{section}</div>
-                              <div className="space-y-0.5">
-                                {template.questions.filter(q => q.section === section).map(q => (
-                                  <div key={q.id} className="text-xs text-[#374151]">• {q.label}</div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Inline send-to */}
+                      {/* Send section */}
                       <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                         <span className="meta whitespace-nowrap">Send to:</span>
                         <select
                           className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
-                          value={selectedTemplate?.key === template.key && selectedClientId ? selectedClientId : ''}
+                          value={isSelected && selectedClientId ? selectedClientId : ''}
                           onChange={(e) => {
                             setSelectedTemplate(template)
                             setSelectedClientId(e.target.value ? Number(e.target.value) : null)
@@ -467,11 +359,11 @@ export const AgentForms = () => {
                         </select>
                         <button
                           onClick={() => {
-                            if (selectedTemplate?.key === template.key && selectedClientId) {
+                            if (isSelected && selectedClientId) {
                               handleSendForm()
                             }
                           }}
-                          disabled={!selectedClientId || selectedTemplate?.key !== template.key || sending}
+                          disabled={!selectedClientId || !isSelected || sending}
                           className="text-sm text-[#6b7280] hover:text-[#374151] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Send {template.name} →
@@ -494,7 +386,7 @@ export const AgentForms = () => {
                   <div className="flex items-center gap-2">
                     {/* Filter pills */}
                     {(['all', 'input_form', 'profile_update'] as const).map(key => {
-                      const label = key === 'all' ? 'All' : key === 'input_form' ? 'Input Form' : 'Profile Update'
+                      const label = key === 'all' ? 'All' : key === 'input_form' ? 'Details Form' : 'Details Update'
                       const isActive = filterType === key
                       return (
                         <button
@@ -561,8 +453,7 @@ export const AgentForms = () => {
                           ? client.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
                           : '??'
                         const avatarColor = client ? getAvatarColor(client.name) : '#6b7280'
-                        const formType = submission.form_type === 'input_form' ? 'Input Form' : 'Profile Update'
-                        const status = statusConfig[submission.status] || statusConfig.not_opened
+                        const formType = submission.form_type === 'input_form' ? 'Client Details Form' : 'Client Details Update'
 
                         return (
                           <tr key={submission.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
@@ -647,108 +538,6 @@ export const AgentForms = () => {
           </div>
         </div>
       </div>
-
-      {/* Send Form Modal */}
-      <Dialog open={sendModalOpen} onOpenChange={setSendModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              Send {selectedTemplate?.name || 'Form'}
-            </DialogTitle>
-            <DialogDescription>
-              Select a client to send this form to. They will receive a notification to complete it.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            {/* Template info */}
-            {selectedTemplate && (
-              <div className={`flex items-center gap-3 p-3 rounded-lg ${selectedTemplate.bgColor} mb-4`}>
-                <div className={selectedTemplate.color}>{selectedTemplate.icon}</div>
-                <div>
-                  <div className={`body-dark font-medium ${selectedTemplate.color}`}>
-                    {selectedTemplate.name}
-                  </div>
-                  <div className="meta">
-                    {selectedTemplate.questions.length} questions
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Client selector */}
-            <label className="block body-dark font-medium mb-2">
-              Select client
-            </label>
-            <div className="space-y-1.5 max-h-60 overflow-auto border border-gray-200 rounded-lg p-1.5">
-              {clients.length === 0 ? (
-                <div className="body-secondary text-center py-4">
-                  No clients found
-                </div>
-              ) : (
-                clients.map(client => {
-                  const initials = client.name
-                    .split(' ')
-                    .map(w => w[0])
-                    .join('')
-                    .toUpperCase()
-                    .slice(0, 2)
-                  const isSelected = selectedClientId === client.id
-
-                  return (
-                    <button
-                      key={client.id}
-                      onClick={() => setSelectedClientId(client.id)}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-colors ${
-                        isSelected
-                          ? 'bg-[#2563EB] bg-opacity-10 border border-[#2563EB] border-opacity-30'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="w-7 h-7 rounded-full bg-[#2563EB] bg-opacity-60 flex items-center justify-center text-white text-xs flex-shrink-0">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="body-dark font-medium truncate">
-                          {client.name}
-                        </div>
-                        {client.email && (
-                          <div className="meta truncate">
-                            {client.email}
-                          </div>
-                        )}
-                      </div>
-                      {isSelected && (
-                        <CheckCircle2 size={16} className="text-[#2563EB] flex-shrink-0" />
-                      )}
-                    </button>
-                  )
-                })
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSendModalOpen(false)
-                setSelectedTemplate(null)
-                setSelectedClientId(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSendForm}
-              disabled={!selectedClientId || sending}
-              className="bg-[#2563EB] hover:bg-[#1d4ed8]"
-            >
-              {sending ? 'Sending...' : 'Send Form'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </TooltipProvider>
   )
 }
