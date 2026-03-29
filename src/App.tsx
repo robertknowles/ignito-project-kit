@@ -2,12 +2,13 @@ import React from 'react';
 import { Dashboard } from './components/Dashboard';
 import { LeftRail } from './components/LeftRail';
 import { TopBar } from './components/TopBar';
-import { InputDrawer } from './components/InputDrawer';
+// InputDrawer hidden for NL pivot — component preserved in codebase for future use
+// import { InputDrawer } from './components/InputDrawer';
+import { ChatPanel } from './components/ChatPanel';
 import { useClient } from './contexts/ClientContext';
 import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
 import { useBranding } from './contexts/BrandingContext';
-import { useAffordabilityCalculator } from './hooks/useAffordabilityCalculator';
 import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
 import { LayoutProvider, useLayout } from './contexts/LayoutContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
@@ -17,15 +18,10 @@ function AppContent() {
   const { role } = useAuth();
   const { clientScenarioLoading, noScenarioForClient } = useScenarioSave();
   const { branding } = useBranding();
-  const { timelineProperties } = useAffordabilityCalculator();
   const { drawerOpen, toggleDrawer } = useLayout();
   
   const isClient = role === 'client';
   const showInputDrawer = !isClient || branding.isClientInteractiveEnabled;
-  
-  // Check if this is a saved scenario with properties
-  // Used to determine if first property should be expanded in timeline panel
-  const hasSavedProperties = timelineProperties.length > 0;
   
   // Client empty state - no scenario shared yet
   if (isClient && noScenarioForClient) {
@@ -94,11 +90,8 @@ function AppContent() {
     <PropertyDragDropProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
         <LeftRail />
-        <InputDrawer 
-          isOpen={drawerOpen} 
-          onToggle={toggleDrawer} 
-          defaultFirstPropertyExpanded={hasSavedProperties}
-        />
+        {/* NL Chat Panel — replaces InputDrawer */}
+        <ChatPanel isOpen={drawerOpen} />
         
         {/* Main Content Area - margin adjusts based on drawer state */}
         <div 

@@ -24,7 +24,9 @@ import {
 } from 'recharts'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
-import { InputDrawer } from '../components/InputDrawer'
+// InputDrawer hidden for NL pivot — component preserved in codebase for future use
+// import { InputDrawer } from '../components/InputDrawer'
+import { ChatPanel } from '../components/ChatPanel'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useClient, Client } from '../contexts/ClientContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -473,10 +475,8 @@ export const Portfolio = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <LeftRail />
-      <InputDrawer
-        isOpen={drawerOpen}
-        onToggle={() => setDrawerOpen(o => !o)}
-      />
+      {/* NL Chat Panel — replaces InputDrawer */}
+      <ChatPanel isOpen={drawerOpen} />
 
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
         drawerOpen ? 'ml-[352px]' : 'ml-16'

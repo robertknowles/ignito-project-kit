@@ -15,6 +15,43 @@ import { EquityUnlockChart, EquityUnlockSummary } from './EquityUnlockChart/Equi
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
+import { useLayout } from '@/contexts/LayoutContext';
+import { Skeleton } from '@/components/ui/skeleton';
+const DashboardSkeleton = () => (
+  <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
+    <div className="flex flex-col gap-6 px-12 pt-6 pb-8">
+      {/* Section 1 heading */}
+      <Skeleton className="h-6 w-40" />
+
+      {/* ScenarioCanvas skeleton — summary cards row */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          ))}
+        </div>
+        {/* Chart area */}
+        <Skeleton className="h-[300px] w-full rounded-lg" />
+      </div>
+
+      {/* Funding + Equity row */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <Skeleton className="h-5 w-32 mb-4" />
+          <Skeleton className="h-[200px] w-full rounded-lg" />
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <Skeleton className="h-5 w-40 mb-4" />
+          <Skeleton className="h-[200px] w-full rounded-lg" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const Dashboard = () => {
   // Sync chart data to scenario save context for Client Report consistency
   useChartDataSync();
@@ -22,7 +59,13 @@ export const Dashboard = () => {
   const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
-  
+  const { planGenerating } = useLayout();
+
+  // Show skeleton while first plan is generating and no data exists yet
+  if (planGenerating && liveTimelineProperties.length === 0) {
+    return <DashboardSkeleton />;
+  }
+
   // Helper to get scenario data - use live data for active scenario, stored for inactive
   // This matches the pattern in ScenarioCanvas to ensure consistency
   const getScenarioData = (scenario: typeof scenarios[0]) => {
