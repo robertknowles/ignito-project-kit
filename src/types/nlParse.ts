@@ -72,12 +72,19 @@ export interface NLParseResponse {
     targetPeriod?: number; // Preferred timing (period number, semi-annual)
   }>;
 
-  // For modification — what to change
+  // For modification — what to change (single or multiple)
   modification?: {
     target: string; // e.g. "property-2", "savings", "interest-rate"
     action: string; // e.g. "move", "change", "add", "remove"
     params: Record<string, unknown>;
   };
+
+  // For compound modifications — multiple changes at once
+  modifications?: Array<{
+    target: string;
+    action: string;
+    params: Record<string, unknown>;
+  }>;
 
   // For explanation — what to look up
   explanation?: {

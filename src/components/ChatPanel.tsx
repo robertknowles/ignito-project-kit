@@ -99,38 +99,69 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [updateProfile, setAllSelections, setInstances]
   )
 
-  // Handle modifications
+  // Handle modifications — supports single modification or compound modifications array
   const handleModification = useCallback(
     (response: NLParseResponse) => {
-      const updates = mapModificationToUpdates(response, instances, propertyOrder)
+      // If compound modifications array exists, process each one
+      const modList = response.modifications
+        ? response.modifications
+        : response.modification
+          ? [response.modification]
+          : []
 
-      if (updates.profileUpdates) {
-        updateProfile(updates.profileUpdates)
-      }
+      let mergedProfileUpdates: Record<string, unknown> = {}
+      let currentInstances = { ...instances }
+      let currentOrder = [...propertyOrder]
+      let currentSelections = { ...selections }
 
-      if (updates.instanceUpdates) {
-        // Apply instance-level updates individually
-        for (const { instanceId, updates: instUpdates } of updates.instanceUpdates) {
-          const current = instances[instanceId]
-          if (current) {
-            setInstances({
-              ...instances,
-              [instanceId]: { ...current, ...instUpdates },
-            })
+      for (const mod of modList) {
+        // Create a temporary response with just this modification
+        const singleResponse = { ...response, modification: mod, modifications: undefined }
+        const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder)
+
+        if (updates.profileUpdates) {
+          mergedProfileUpdates = { ...mergedProfileUpdates, ...updates.profileUpdates }
+        }
+
+        if (updates.instanceUpdates) {
+          for (const { instanceId, updates: instUpdates } of updates.instanceUpdates) {
+            const current = currentInstances[instanceId]
+            if (current) {
+              currentInstances = {
+                ...currentInstances,
+                [instanceId]: { ...current, ...instUpdates },
+              }
+            }
           }
+        }
+
+        if (updates.selectionChanges) {
+          currentOrder = updates.selectionChanges.propertyOrder
+          currentSelections = updates.selectionChanges.selections
+          currentInstances = updates.selectionChanges.instances
         }
       }
 
-      if (updates.selectionChanges) {
-        setAllSelections(updates.selectionChanges.selections, updates.selectionChanges.propertyOrder)
-        setInstances(updates.selectionChanges.instances)
+      // Apply all accumulated updates
+      if (Object.keys(mergedProfileUpdates).length > 0) {
+        updateProfile(mergedProfileUpdates)
+      }
+
+      // Apply instance and selection changes
+      if (modList.some(m => m.target.startsWith('property-') || m.target === 'lvr')) {
+        setInstances(currentInstances)
+      }
+
+      if (modList.some(m => ['add', 'remove'].includes(m.action))) {
+        setAllSelections(currentSelections, currentOrder)
+        setInstances(currentInstances)
       }
     },
-    [instances, propertyOrder, updateProfile, setAllSelections, setInstances]
+    [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances]
   )
 
   // Chat conversation hook
-  const { messages, isLoading, sendMessage, showOptionCards } = useChatConversation({
+  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
     getCurrentPlan,
@@ -177,14 +208,55 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }, [])
 
-  // Handle option card click
+  // Handle option card click — apply the fix directly to contexts
   const handleOptionSelect = useCallback(
     (card: ChatOptionCardData) => {
-      // The card's actionPayload contains the modification to apply
-      // For now, send it as a message describing the action
-      sendMessage(card.label + ' — ' + card.description)
+      const payload = card.actionPayload
+
+      if (payload.type === 'instance-update') {
+        const instanceId = payload.instanceId as string
+        const updates = payload.updates as Record<string, unknown>
+        const current = instances[instanceId]
+        if (current) {
+          setInstances({
+            ...instances,
+            [instanceId]: { ...current, ...updates },
+          })
+        }
+        // Confirm in chat
+        addSystemMessage(`Applied — ${card.description}`)
+      } else if (payload.type === 'remove-property') {
+        const instanceId = payload.instanceId as string
+        const newOrder = propertyOrder.filter((id) => id !== instanceId)
+        const newInstances = { ...instances }
+        delete newInstances[instanceId]
+
+        // Rebuild selections
+        const newSelections: Record<string, number> = {}
+        for (const id of newOrder) {
+          const type = id.replace(/_instance_\d+$/, '')
+          newSelections[type] = (newSelections[type] ?? 0) + 1
+        }
+
+        setAllSelections(newSelections, newOrder)
+        setInstances(newInstances)
+        addSystemMessage(`Removed ${card.label.replace('Remove ', '')} from the plan`)
+      } else {
+        // Fallback — send as message
+        sendMessage(card.label + ' — ' + card.description)
+      }
     },
-    [sendMessage]
+    [instances, propertyOrder, setInstances, setAllSelections, sendMessage, addSystemMessage]
+  )
+
+  // Handle follow-up suggestion click — send as a new message
+  const handleFollowUpClick = useCallback(
+    (suggestion: string) => {
+      if (!isLoading) {
+        sendMessage(suggestion)
+      }
+    },
+    [isLoading, sendMessage]
   )
 
   return (
@@ -224,6 +296,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                 key={msg.id}
                 message={msg}
                 onOptionSelect={handleOptionSelect}
+                onFollowUpClick={handleFollowUpClick}
               />
             ))}
           </AnimatePresence>

@@ -276,6 +276,28 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   )
 
   /**
+   * Add a simple text message from the assistant (e.g. fix confirmations)
+   */
+  const addAssistantMessage = useCallback(
+    (text: string) => {
+      const msg = createMessage('assistant', 'text', text)
+      setMessages((prev) => [...prev, msg])
+    },
+    [createMessage]
+  )
+
+  /**
+   * Add a system pill message (e.g. "Plan updated")
+   */
+  const addSystemMessage = useCallback(
+    (text: string) => {
+      const msg = createMessage('system', 'text', text)
+      setMessages((prev) => [...prev, msg])
+    },
+    [createMessage]
+  )
+
+  /**
    * Clear all messages (e.g. when starting a new scenario)
    */
   const clearMessages = useCallback(() => {
@@ -296,6 +318,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
     isLoading,
     sendMessage,
     showOptionCards,
+    addAssistantMessage,
+    addSystemMessage,
     clearMessages,
     loadMessages,
   }

@@ -147,6 +147,7 @@ You MUST respond with valid JSON only. No markdown, no explanation outside the J
 
 ### For modification (changing an existing plan):
 
+For a single change:
 {
   "type": "modification",
   "modification": {
@@ -155,6 +156,17 @@ You MUST respond with valid JSON only. No markdown, no explanation outside the J
     "params": { "targetPeriod": 3 }
   },
   "message": "Moving property 2 to early 2026.",
+  "assumptions": []
+}
+
+For multiple changes in one message (e.g. "change savings to 5k and make property 1 cheaper"):
+{
+  "type": "modification",
+  "modifications": [
+    { "target": "savings", "action": "change", "params": { "monthlySavings": 5000 } },
+    { "target": "property-1", "action": "change", "params": { "purchasePrice": 400000 } }
+  ],
+  "message": "Updated savings to $5k/month and dropped property 1 to $400k.",
   "assumptions": []
 }
 
@@ -404,7 +416,7 @@ Output:
   "followUpSuggestions": ["Correct the income split if it's not 50/50", "Mix in some QLD properties?", "What about a shorter timeline?"]
 }
 
-### Example 5: Modification request
+### Example 5: Single modification request
 Input: "Can we move property 2 to 2026 instead of 2028?"
 
 Output:
@@ -418,6 +430,21 @@ Output:
   "message": "Moving property 2 to early 2026. The engine will check if there's enough deposit and serviceability capacity at that point.",
   "assumptions": [],
   "followUpSuggestions": []
+}
+
+### Example 5b: Compound modification request
+Input: "Actually she saves 3k a month. And make property 1 around 450k."
+
+Output:
+{
+  "type": "modification",
+  "modifications": [
+    { "target": "savings", "action": "change", "params": { "monthlySavings": 3000 } },
+    { "target": "property-1", "action": "change", "params": { "purchasePrice": 450000 } }
+  ],
+  "message": "Updated savings to $3k/month and property 1 to $450k. The higher savings rate will improve serviceability and potentially speed up the timeline.",
+  "assumptions": [],
+  "followUpSuggestions": ["Add a third property?", "Change the location mix?"]
 }
 
 ### Example 6: Explanation request

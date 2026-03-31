@@ -19,9 +19,10 @@ import { MicroConfirmationCard } from './MicroConfirmationCard'
 interface ChatMessageProps {
   message: ChatMessageType
   onOptionSelect?: (card: ChatOptionCardData) => void
+  onFollowUpClick?: (suggestion: string) => void
 }
 
-export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect }, ref) => {
+export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick }, ref) => {
   // Loading indicator
   if (message.type === 'loading') {
     return (
@@ -133,6 +134,21 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
           {message.assumptions && message.assumptions.length > 0 && (
             <div className="text-xs text-gray-400 italic">
               Assumed: {message.assumptions.join(' · ')}
+            </div>
+          )}
+
+          {/* Follow-up suggestions */}
+          {message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {message.followUpSuggestions.map((suggestion, i) => (
+                <button
+                  key={i}
+                  onClick={() => onFollowUpClick?.(suggestion)}
+                  className="text-xs px-2.5 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors leading-tight"
+                >
+                  {suggestion}
+                </button>
+              ))}
             </div>
           )}
         </div>
