@@ -21,11 +21,11 @@ interface ChatMessageProps {
   onOptionSelect?: (card: ChatOptionCardData) => void
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onOptionSelect }) => {
+export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect }, ref) => {
   // Loading indicator
   if (message.type === 'loading') {
     return (
-      <div className="flex items-start gap-2.5">
+      <div ref={ref} className="flex items-start gap-2.5">
         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
           <BotIcon size={13} className="text-white" />
         </div>
@@ -53,84 +53,92 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onOptionSelec
   // System message — centered green pill
   if (message.role === 'system') {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex justify-center py-1"
-      >
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-medium">
-          <span className="text-emerald-500">&#10003;</span>
-          {message.content}
-        </div>
-      </motion.div>
+      <div ref={ref}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex justify-center py-1"
+        >
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-medium">
+            <span className="text-emerald-500">&#10003;</span>
+            {message.content}
+          </div>
+        </motion.div>
+      </div>
     )
   }
 
   // User message — dark bubble, right-aligned
   if (message.role === 'user') {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex justify-end"
-      >
-        <div className="max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-br-md bg-gray-800 text-white text-sm leading-relaxed">
-          {message.content}
-        </div>
-      </motion.div>
+      <div ref={ref}>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex justify-end"
+        >
+          <div className="max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-br-md bg-gray-800 text-white text-sm leading-relaxed">
+            {message.content}
+          </div>
+        </motion.div>
+      </div>
     )
   }
 
   // Assistant message — left-aligned with avatar
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="flex items-start gap-2.5"
-    >
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center mt-0.5">
-        <BotIcon size={13} className="text-white" />
-      </div>
-      <div className="flex-1 min-w-0 space-y-2.5">
-        {/* Text content */}
-        {message.content && (
-          <div className="text-sm text-gray-700 leading-relaxed">
-            {message.content}
-          </div>
-        )}
+    <div ref={ref}>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="flex items-start gap-2.5"
+      >
+        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center mt-0.5">
+          <BotIcon size={13} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0 space-y-2.5">
+          {/* Text content */}
+          {message.content && (
+            <div className="text-sm text-gray-700 leading-relaxed">
+              {message.content}
+            </div>
+          )}
 
-        {/* Micro confirmation card */}
-        {message.type === 'micro-confirmation' && message.microConfirmation && (
-          <MicroConfirmationCard data={message.microConfirmation} />
-        )}
+          {/* Micro confirmation card */}
+          {message.type === 'micro-confirmation' && message.microConfirmation && (
+            <MicroConfirmationCard data={message.microConfirmation} />
+          )}
 
-        {/* Summary card */}
-        {message.type === 'summary-card' && message.summaryCard && (
-          <ChatSummaryCard data={message.summaryCard} />
-        )}
+          {/* Summary card */}
+          {message.type === 'summary-card' && message.summaryCard && (
+            <ChatSummaryCard data={message.summaryCard} />
+          )}
 
-        {/* Option cards */}
-        {message.type === 'option-cards' && message.optionCards && (
-          <div className="space-y-2">
-            {message.optionCards.map((card) => (
-              <ChatOptionCard
-                key={card.id}
-                card={card}
-                onSelect={onOptionSelect || (() => {})}
-              />
-            ))}
-          </div>
-        )}
+          {/* Option cards */}
+          {message.type === 'option-cards' && message.optionCards && (
+            <div className="space-y-2">
+              {message.optionCards.map((card) => (
+                <ChatOptionCard
+                  key={card.id}
+                  card={card}
+                  onSelect={onOptionSelect || (() => {})}
+                />
+              ))}
+            </div>
+          )}
 
-        {/* Assumptions */}
-        {message.assumptions && message.assumptions.length > 0 && (
-          <div className="text-xs text-gray-400 italic">
-            Assumed: {message.assumptions.join(' · ')}
-          </div>
-        )}
-      </div>
-    </motion.div>
+          {/* Assumptions */}
+          {message.assumptions && message.assumptions.length > 0 && (
+            <div className="text-xs text-gray-400 italic">
+              Assumed: {message.assumptions.join(' · ')}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   )
-}
+})
+
+ChatMessage.displayName = 'ChatMessage'

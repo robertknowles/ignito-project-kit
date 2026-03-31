@@ -61,11 +61,6 @@ export const Dashboard = () => {
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { planGenerating } = useLayout();
 
-  // Show skeleton while first plan is generating and no data exists yet
-  if (planGenerating && liveTimelineProperties.length === 0) {
-    return <DashboardSkeleton />;
-  }
-
   // Helper to get scenario data - use live data for active scenario, stored for inactive
   // This matches the pattern in ScenarioCanvas to ensure consistency
   const getScenarioData = (scenario: typeof scenarios[0]) => {
@@ -81,7 +76,7 @@ export const Dashboard = () => {
   // These hooks must be called unconditionally (React hooks rules)
   const scenarioAData = scenarios.length >= 1 ? getScenarioData(scenarios[0]) : undefined;
   const scenarioBData = scenarios.length >= 2 ? getScenarioData(scenarios[1]) : undefined;
-  
+
   const chartDataA = useChartDataGenerator(scenarioAData);
   const chartDataB = useChartDataGenerator(scenarioBData);
 
@@ -114,6 +109,12 @@ export const Dashboard = () => {
     }
     return null;
   }, [scenarios, scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB]);
+
+  // Show skeleton while first plan is generating and no data exists yet
+  // IMPORTANT: This check must come AFTER all hooks to avoid "rendered fewer hooks" error
+  if (planGenerating && liveTimelineProperties.length === 0) {
+    return <DashboardSkeleton />;
+  }
 
   // Root: Fills the App.tsx container exactly.
   // Using 'h-full' instead of 'h-screen' to respect parent container.

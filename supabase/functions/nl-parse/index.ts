@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
     messages.push({ role: 'user', content: message });
 
     const response = await client.messages.create({
-      model: 'claude-opus-4-6-20250616',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: systemPrompt,
       messages,

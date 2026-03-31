@@ -132,19 +132,30 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           .map((m) => ({ role: m.role, content: m.content }))
 
         // Call the edge function
-        const { data, error } = await supabase.functions.invoke('nl-parse', {
-          body: {
-            message: userText.trim(),
-            conversationHistory,
-            currentPlan,
-          },
-        })
+        let data: NLParseResponse
+        try {
+          const result = await supabase.functions.invoke('nl-parse', {
+            body: {
+              message: userText.trim(),
+              conversationHistory,
+              currentPlan,
+            },
+          })
 
-        if (error) {
-          throw new Error(error.message || 'Failed to reach PropPath AI')
+          if (result.error) {
+            throw new Error(result.error.message || 'Failed to reach PropPath AI')
+          }
+
+          if (!result.data || result.data.error) {
+            throw new Error(result.data?.error || 'Invalid response from PropPath AI')
+          }
+
+          data = result.data as NLParseResponse
+        } catch (fetchErr) {
+          throw new Error(fetchErr instanceof Error ? fetchErr.message : 'Network error — check your connection')
         }
 
-        const response = data as NLParseResponse
+        const response = data
 
         // Remove loading indicator
         setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))

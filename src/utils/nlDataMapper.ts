@@ -13,6 +13,19 @@ import type { InvestmentProfileData } from '@/contexts/InvestmentProfileContext'
 import type { PropertySelection } from '@/contexts/PropertySelectionContext';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
+import propertyDefaults from '@/data/property-defaults.json';
+
+// ── Property Type Key → Engine ID Mapping ─────────────────────────
+// The engine (PropertySelectionContext) uses index-based IDs like "property_0".
+// The NL system uses descriptive keys like "units-apartments".
+// This map bridges the two worlds.
+const propertyDefaultKeys = Object.keys(propertyDefaults);
+const nlKeyToEngineId: Record<string, string> = {};
+const engineIdToNlKey: Record<string, string> = {};
+propertyDefaultKeys.forEach((key, index) => {
+  nlKeyToEngineId[key] = `property_${index}`;
+  engineIdToNlKey[`property_${index}`] = key;
+});
 
 // ── Step 1.6: Map to Investment Profile ────────────────────────────
 
@@ -89,17 +102,20 @@ export function mapToPropertySelections(
   const typeCounts: Record<string, number> = {};
 
   for (const prop of response.properties) {
-    const propertyType = prop.type; // Already in key format (e.g. "units-apartments")
+    const nlKey = prop.type; // Descriptive key from Claude (e.g. "units-apartments")
+    // Convert to engine ID (e.g. "property_0") — fall back to nlKey for custom types
+    const engineId = nlKeyToEngineId[nlKey] ?? nlKey;
 
     // Count this type
-    const currentCount = typeCounts[propertyType] ?? 0;
-    typeCounts[propertyType] = currentCount + 1;
+    const currentCount = typeCounts[engineId] ?? 0;
+    typeCounts[engineId] = currentCount + 1;
 
-    // Generate instance ID matching PropPath's convention: {type}_instance_{index}
-    const instanceId = `${propertyType}_instance_${currentCount}`;
+    // Generate instance ID matching PropPath's convention: {engineId}_instance_{index}
+    const instanceId = `${engineId}_instance_${currentCount}`;
 
     // Get the full 36-field template from property-defaults.json
-    const defaults = getPropertyInstanceDefaults(propertyType);
+    // Use the NL key (descriptive name) since getPropertyInstanceDefaults expects that format
+    const defaults = getPropertyInstanceDefaults(nlKey);
 
     // Overlay Claude's extracted values onto the defaults
     const instance: PropertyInstanceDetails = {
@@ -127,9 +143,9 @@ export function mapToPropertySelections(
     propertyOrder.push(instanceId);
   }
 
-  // Build selections: { propertyType: count }
-  for (const [type, count] of Object.entries(typeCounts)) {
-    selections[type] = count;
+  // Build selections: { engineId: count } (e.g. { "property_0": 2 })
+  for (const [engineId, count] of Object.entries(typeCounts)) {
+    selections[engineId] = count;
   }
 
   return { selections, propertyOrder, instances };
