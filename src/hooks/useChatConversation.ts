@@ -22,6 +22,8 @@ interface UseChatConversationOptions {
   onModification?: (response: NLParseResponse) => void
   onExplanation?: (response: NLParseResponse) => void
   getCurrentPlan?: () => CurrentPlanState | null
+  /** Returns chart data context string for explanation requests */
+  getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -211,6 +213,50 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
 
           case 'explanation': {
+            // Get chart data context for a data-grounded explanation
+            const chartContext = options.getChartContext?.(
+              response.explanation?.question ?? userText,
+              response.explanation?.relevantPeriods,
+              response.explanation?.relevantProperties
+            )
+
+            if (chartContext) {
+              // Make a follow-up call with chart data so Claude references real numbers
+              try {
+                const explResult = await supabase.functions.invoke('nl-parse', {
+                  body: {
+                    message: `[EXPLANATION REQUEST]\nOriginal question: "${userText}"\n\nHere is the actual calculated data from the engine. Reference ONLY these numbers in your explanation — never make up figures.\n\n${chartContext}\n\nNow explain in plain English, referencing the specific numbers above. Keep it concise (2-4 sentences). No hedging.`,
+                    conversationHistory: [
+                      ...conversationHistory,
+                      { role: 'user', content: userText },
+                    ],
+                    currentPlan,
+                  },
+                })
+
+                if (explResult.data && !explResult.data.error) {
+                  const explResponse = explResult.data as NLParseResponse
+                  const explMsg = createMessage('assistant', 'text', explResponse.message, {
+                    assumptions: explResponse.assumptions,
+                  })
+                  setMessages((prev) => [...prev, explMsg])
+
+                  if (explResponse.followUpSuggestions?.length) {
+                    setMessages((prev) => {
+                      const updated = [...prev]
+                      const last = [...updated].reverse().find((m) => m.role === 'assistant')
+                      if (last) last.followUpSuggestions = explResponse.followUpSuggestions
+                      return updated
+                    })
+                  }
+                  break
+                }
+              } catch {
+                // Fall through to basic response if follow-up call fails
+              }
+            }
+
+            // Fallback: show Claude's initial classification message
             const explMsg = createMessage('assistant', 'text', response.message, {
               assumptions: response.assumptions,
             })

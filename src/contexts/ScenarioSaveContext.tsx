@@ -8,6 +8,7 @@ import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import type { ChatMessage } from '../types/nlParse';
 
 // Communication log entry for CRM features
 export interface CommunicationLogEntry {
@@ -65,6 +66,8 @@ export interface ScenarioData {
   onboardingCompleted?: boolean;
   onboardingCompletedAt?: string;
   lastSaved: string;
+  // NL Chat history — persists conversation with scenario
+  chatHistory?: ChatMessage[];
   // Multi-scenario comparison data
   comparisonMode?: boolean;
   scenarios?: Scenario[];
@@ -80,6 +83,9 @@ interface ScenarioSaveContextType {
   loadClientScenario: (clientId: number) => ScenarioData | null;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
+  // NL Chat history persistence
+  chatMessages: ChatMessage[];
+  setChatMessages: (messages: ChatMessage[]) => void;
   // Client sandbox mode
   clientScenarioLoading: boolean;
   noScenarioForClient: boolean;
@@ -114,6 +120,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [lastSavedData, setLastSavedData] = useState<ScenarioData | null>(null);
   const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ScenarioData['chartData'] | undefined>(undefined);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const loadedClientRef = useRef<number | null>(null);
   const saveInProgressRef = useRef<boolean>(false);
   const loadInProgressRef = useRef<boolean>(false);
@@ -139,6 +146,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       propertyInstances: propertyInstanceContext.instances,
       timelineSnapshot: timelineSnapshot,
       chartData: chartData,
+      chatHistory: chatMessages.length > 0 ? chatMessages : undefined,
       lastSaved: new Date().toISOString(),
       comparisonMode: false,  // Explicitly set to false by default
       scenarios: undefined,    // Explicitly clear old scenarios array
@@ -358,10 +366,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setPropertyOrder(reconstructedOrder);
         }
         
+        // Restore NL chat history if present
+        if (scenarioData.chatHistory && scenarioData.chatHistory.length > 0) {
+          setChatMessages(scenarioData.chatHistory);
+        } else {
+          setChatMessages([]);
+        }
+
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
-        
+
         return scenarioData;
       } else {
         setLastSavedData(null);
@@ -589,6 +604,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     loadClientScenario,
     setTimelineSnapshot,
     setChartData,
+    // NL Chat history persistence
+    chatMessages,
+    setChatMessages,
     // Client sandbox mode
     clientScenarioLoading,
     noScenarioForClient,

@@ -23,6 +23,10 @@ import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/ty
 import { useBranding } from '@/contexts/BrandingContext'
 import { useLayout } from '@/contexts/LayoutContext'
 import { ClientSelector } from './ClientSelector'
+import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
+import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
+import { buildExplanationContext } from '@/utils/explanationGenerator'
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -40,6 +44,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { updateProfile, profile } = useInvestmentProfile()
   const { setAllSelections, selections, propertyOrder } = usePropertySelection()
   const { setInstances, instances } = usePropertyInstance()
+
+  // Chart data for explanations
+  const { timelineProperties } = useAffordabilityCalculator()
+  const chartData = useChartDataGenerator()
+
+  // Scenario persistence — sync chat messages
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages } = useScenarioSave()
 
   // Track client names for plan state
   const clientNamesRef = useRef<string[]>([])
@@ -160,12 +171,48 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances]
   )
 
+  // Build chart data context for explanation requests
+  const getChartContext = useCallback(
+    (question: string, relevantPeriods?: number[], relevantProperties?: string[]): string | null => {
+      if (!chartData || timelineProperties.length === 0) return null
+      const ctx = buildExplanationContext(
+        question,
+        chartData.portfolioGrowthData,
+        chartData.cashflowData,
+        timelineProperties,
+        relevantPeriods,
+        relevantProperties
+      )
+      return ctx.dataContext
+    },
+    [chartData, timelineProperties]
+  )
+
   // Chat conversation hook
-  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage } = useChatConversation({
+  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
     getCurrentPlan,
+    getChartContext,
   })
+
+  // Load saved chat messages when they change (scenario load)
+  const loadedRef = useRef(false)
+  useEffect(() => {
+    if (savedChatMessages.length > 0 && messages.length === 0 && !loadedRef.current) {
+      loadMessages(savedChatMessages)
+      loadedRef.current = true
+    }
+  }, [savedChatMessages, messages.length, loadMessages])
+
+  // Sync current messages to scenario save context (for persistence)
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Filter out loading messages before saving
+      const persistableMessages = messages.filter((m) => m.type !== 'loading')
+      saveChatMessages(persistableMessages)
+    }
+  }, [messages, saveChatMessages])
 
   // Sync loading state to layout context for Dashboard skeleton UI
   useEffect(() => {
