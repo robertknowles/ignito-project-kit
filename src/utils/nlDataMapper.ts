@@ -261,6 +261,28 @@ export function mapModificationToUpdates(
     }
   }
 
+  // Add property — target is "portfolio", new property details are in response.properties
+  if (action === 'add' && response.properties && response.properties.length > 0) {
+    const newMapping = mapToPropertySelections(response)
+
+    // Merge new properties into existing plan
+    const mergedInstances = { ...currentInstances, ...newMapping.instances }
+    const mergedOrder = [...currentOrder, ...newMapping.propertyOrder]
+
+    // Rebuild selections from merged order
+    const mergedSelections: PropertySelection = {}
+    for (const id of mergedOrder) {
+      const type = id.replace(/_instance_\d+$/, '')
+      mergedSelections[type] = (mergedSelections[type] ?? 0) + 1
+    }
+
+    updates.selectionChanges = {
+      selections: mergedSelections,
+      propertyOrder: mergedOrder,
+      instances: mergedInstances,
+    }
+  }
+
   // Profile-level modifications (savings, income, etc.)
   if (target === 'savings' && params.monthlySavings !== undefined) {
     updates.profileUpdates = {

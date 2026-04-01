@@ -104,6 +104,15 @@ Default to High for residential in growth corridors (QLD, regional NSW). Medium 
 - Growth assumption: High for most residential
 - Number of properties: 4 if "a few", scale based on deposit and income
 
+## Edge Cases — Handle Gracefully
+- **Zero savings**: Still generate a plan. Note the assumption: "No ongoing savings — plan relies entirely on equity growth." Use 0 for monthlySavings. The engine will figure out what's feasible.
+- **Very low deposit** ($5k-$20k): Generate a plan with cheaper properties ($300-400k range). Note: "Limited deposit — starting small and building through equity." Don't refuse to plan.
+- **Very high income** ($300k+): Scale up property quality and count. Use small blocks and duplexes earlier. Don't cap artificially.
+- **PPOR mentioned** ("they have a home worth 800k with 400k owing"): Treat as existing equity source. Set existingDebt to the mortgage amount. Note assumption about usable equity. Generate the plan — the engine handles serviceability.
+- **Existing investment properties**: If the BA mentions properties they already own, note it in assumptions but still generate new properties for the portfolio. The engine handles existing debt serviceability.
+- **"Start from scratch" / "new plan"**: When an existing plan is active and the BA wants to start over, respond with type "initial_plan" (not modification). This replaces the entire plan.
+- **Unrealistic expectations**: If someone earning 60k wants 10 properties at 800k each, still generate a plan — but scale down to 2-3 affordable properties and note the assumption. The engine will flag what's infeasible. Never refuse.
+
 ## Timeline Periods
 PropPath uses semi-annual periods. Period 1 = first half of 2025, Period 2 = second half of 2025, etc.
 - "In 2 years" = period 4-5
@@ -182,6 +191,25 @@ For multiple changes in one message (e.g. "change savings to 5k and make propert
   "message": "I'll look at the data for that period and explain.",
   "assumptions": []
 }
+
+### For comparison ("what if" scenario fork):
+
+When the BA asks "what about X instead of Y" or "what if we did Z", create a comparison response. This tells the engine to fork the current plan, apply the changes, and show both side by side.
+
+{
+  "type": "comparison",
+  "comparison": {
+    "description": "Brisbane instead of Melbourne for property 3",
+    "changes": [
+      { "target": "property-3", "field": "state", "from": "VIC", "to": "QLD" },
+      { "target": "property-3", "field": "purchasePrice", "from": 700000, "to": 550000 }
+    ]
+  },
+  "message": "Comparing the current plan with property 3 in QLD instead of VIC. The engine will run both scenarios.",
+  "assumptions": ["QLD property repriced to $550k to match local market"]
+}
+
+Only use comparison when the BA is clearly asking to see an alternative side-by-side. If they just want to change something ("make property 3 QLD"), use modification instead. Comparison keywords: "what if", "what about", "compare", "instead", "alternatively", "which is better".
 
 ## Examples
 
@@ -471,6 +499,65 @@ Output:
   "message": "Happy to build a plan. Just need two things to get started: roughly what do they earn, and how much do they have saved for a deposit?",
   "assumptions": [],
   "followUpSuggestions": []
+}
+
+### Example 8: Comparison request ("what if")
+Input: "What if we put property 3 in Brisbane instead of Melbourne?"
+
+Output:
+{
+  "type": "comparison",
+  "comparison": {
+    "description": "Property 3 in QLD instead of VIC",
+    "changes": [
+      { "target": "property-3", "field": "state", "from": "VIC", "to": "QLD" },
+      { "target": "property-3", "field": "purchasePrice", "from": 700000, "to": 520000 }
+    ]
+  },
+  "message": "Running both scenarios — current plan vs property 3 in QLD at $520k. The engine will compare equity, cashflow, and timing side by side.",
+  "assumptions": ["QLD price adjusted to $520k for comparable property quality"],
+  "followUpSuggestions": ["Go with the QLD option", "Keep the original plan", "Try SA instead"]
+}
+
+### Example 9: Edge case — zero savings
+Input: "Client Tom, 95k income, 30k saved, no ongoing savings capacity right now."
+
+Output:
+{
+  "type": "initial_plan",
+  "clientProfile": {
+    "members": [{ "name": "Tom", "annualIncome": 95000 }],
+    "monthlySavings": 0,
+    "currentDeposit": 30000,
+    "existingDebt": 0
+  },
+  "investmentProfile": {
+    "depositPool": 30000,
+    "annualSavings": 0,
+    "baseSalary": 95000,
+    "timelineYears": 15
+  },
+  "properties": [
+    {
+      "type": "units-apartments",
+      "purchasePrice": 320000,
+      "state": "QLD",
+      "growthAssumption": "High",
+      "loanProduct": "IO",
+      "lvr": 88
+    },
+    {
+      "type": "villas-townhouses",
+      "purchasePrice": 380000,
+      "state": "QLD",
+      "growthAssumption": "High",
+      "loanProduct": "IO",
+      "lvr": 88
+    }
+  ],
+  "message": "Set up two properties for Tom. With no ongoing savings, the plan relies entirely on equity growth from the first property to fund the second. Starting with a cheaper unit in QLD to maximise growth potential.",
+  "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "88% LVR", "High-growth QLD areas", "15-year timeline"],
+  "followUpSuggestions": ["What if he can save even $500/month?", "Try a single property instead?", "What about a regional house?"]
 }`;
 
   // If there's a current plan, add context so Claude can handle modifications
@@ -498,7 +585,7 @@ For modifications, classify the intent:
 - Moving timing: "earlier", "later", "to 2026", "push back" → action: "move"
 - Changing price: "cheaper", "drop to 400k", "increase budget" → action: "change", target includes price
 - Changing state: "VIC instead", "what about QLD" → action: "change", target includes state
-- Adding property: "add another", "one more", "5 properties instead" → action: "add"
+- Adding property: "add another", "one more", "5 properties instead" → action: "add", target: "portfolio". IMPORTANT: when adding, include the new properties in the top-level "properties" array (same format as initial_plan properties)
 - Removing property: "drop the last one", "remove property 3" → action: "remove"
 - Changing profile: "actually saving 5k", "income is 150k" → target: "savings" or "income"`;
 

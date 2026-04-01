@@ -27,6 +27,8 @@ import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -39,11 +41,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
   const { setPlanGenerating } = useLayout()
+  const { user } = useAuth()
 
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
   const { setAllSelections, selections, propertyOrder } = usePropertySelection()
   const { setInstances, instances } = usePropertyInstance()
+  const { addScenario, syncCurrentScenarioFromContext, scenarios } = useMultiScenario()
 
   // Chart data for explanations
   const { timelineProperties } = useAffordabilityCalculator()
@@ -171,6 +175,58 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances]
   )
 
+  // Handle comparison — fork scenario and apply changes
+  const handleComparison = useCallback(
+    (response: NLParseResponse) => {
+      if (!response.comparison?.changes) return
+
+      // Save current scenario state first
+      syncCurrentScenarioFromContext()
+
+      // Create new scenario (this adds and activates it)
+      addScenario()
+
+      // Apply the comparison changes as modifications to the new scenario
+      const changes = response.comparison.changes
+      const updatedInstances = { ...instances }
+
+      for (const change of changes) {
+        // Resolve property-N to instance ID
+        const propMatch = change.target.match(/^property-(\d+)$/)
+        if (propMatch) {
+          const idx = parseInt(propMatch[1], 10) - 1
+          const instanceId = propertyOrder[idx]
+          if (instanceId && updatedInstances[instanceId]) {
+            const inst = { ...updatedInstances[instanceId] }
+            switch (change.field) {
+              case 'state':
+                inst.state = change.to as string
+                break
+              case 'purchasePrice':
+                inst.purchasePrice = change.to as number
+                inst.valuationAtPurchase = change.to as number
+                break
+              case 'growthAssumption':
+                inst.growthAssumption = change.to as string
+                break
+              case 'loanProduct':
+                inst.loanProduct = change.to as string
+                break
+              case 'lvr':
+                inst.lvr = change.to as number
+                break
+            }
+            updatedInstances[instanceId] = inst
+          }
+        }
+      }
+
+      // Apply changes to the new (now active) scenario
+      setInstances(updatedInstances)
+    },
+    [instances, propertyOrder, syncCurrentScenarioFromContext, addScenario, setInstances]
+  )
+
   // Build chart data context for explanation requests
   const getChartContext = useCallback(
     (question: string, relevantPeriods?: number[], relevantProperties?: string[]): string | null => {
@@ -192,8 +248,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
+    onComparison: handleComparison,
     getCurrentPlan,
     getChartContext,
+    userId: user?.id,
   })
 
   // Load saved chat messages when they change (scenario load)

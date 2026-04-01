@@ -93,6 +93,17 @@ export interface NLParseResponse {
     relevantProperties: string[];
   };
 
+  // For comparison — "what if" scenario fork
+  comparison?: {
+    description: string; // e.g. "Brisbane instead of Melbourne for property 3"
+    changes: Array<{
+      target: string;
+      field: string;
+      from: string | number;
+      to: string | number;
+    }>;
+  };
+
   // Always present
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)

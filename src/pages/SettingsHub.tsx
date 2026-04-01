@@ -4,22 +4,39 @@ import {
   PaletteIcon,
   CreditCardIcon,
   BookOpenIcon,
+  BarChart3Icon,
+  Loader2Icon,
 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { useNavigate } from 'react-router-dom'
+import { useAIUsage } from '@/hooks/useAIUsage'
 
-type SettingsTab = 'forms' | 'white-label' | 'plans' | 'help'
+type SettingsTab = 'forms' | 'white-label' | 'plans' | 'usage' | 'help'
 
 const settingsTabs: { id: SettingsTab; label: string; icon: React.ElementType; description: string }[] = [
   { id: 'forms', label: 'Forms', icon: FileTextIcon, description: 'Create and manage client form templates' },
   { id: 'white-label', label: 'White Label', icon: PaletteIcon, description: 'Company branding and team management' },
   { id: 'plans', label: 'Plans & Pricing', icon: CreditCardIcon, description: 'Manage your subscription' },
+  { id: 'usage', label: 'AI Usage', icon: BarChart3Icon, description: 'View your AI usage this month' },
   { id: 'help', label: 'Help & Resources', icon: BookOpenIcon, description: 'Documentation and support' },
 ]
+
+/** Format large numbers with commas */
+function formatNumber(n: number): string {
+  return n.toLocaleString()
+}
+
+/** Get month name from YYYY-MM string */
+function formatMonth(month: string): string {
+  const [year, m] = month.split('-')
+  const date = new Date(parseInt(year), parseInt(m) - 1)
+  return date.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+}
 
 export const SettingsHub = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('forms')
   const navigate = useNavigate()
+  const { usage, isLoading: usageLoading } = useAIUsage()
 
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
@@ -106,6 +123,69 @@ export const SettingsHub = () => {
                   <p className="body-dark font-medium">Coming Soon</p>
                   <p className="body-secondary mt-1">Subscription management will be available here.</p>
                 </div>
+              </>
+            )}
+
+            {activeTab === 'usage' && (
+              <>
+                <div className="mb-6">
+                  <h1 className="page-title">AI Usage</h1>
+                  <p className="body-secondary mt-1">
+                    Track your PropPath AI usage this month
+                  </p>
+                </div>
+
+                {usageLoading ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                    <Loader2Icon size={24} className="text-gray-400 animate-spin mx-auto" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Current month header */}
+                    <p className="text-sm text-gray-500 font-medium">
+                      {usage?.month ? formatMonth(usage.month) : 'This Month'}
+                    </p>
+
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-5">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Requests</p>
+                        <p className="text-2xl font-semibold text-gray-900">
+                          {formatNumber(usage?.requestCount ?? 0)}
+                        </p>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-5">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Input Tokens</p>
+                        <p className="text-2xl font-semibold text-gray-900">
+                          {formatNumber(usage?.inputTokens ?? 0)}
+                        </p>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-5">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Output Tokens</p>
+                        <p className="text-2xl font-semibold text-gray-900">
+                          {formatNumber(usage?.outputTokens ?? 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Total tokens */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Tokens</p>
+                          <p className="text-2xl font-semibold text-gray-900">
+                            {formatNumber(usage?.totalTokens ?? 0)}
+                          </p>
+                        </div>
+                        <BarChart3Icon size={32} className="text-gray-200" />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-400">
+                      Usage resets at the start of each calendar month. Each chat message uses approximately 2,000-6,000 tokens depending on plan complexity.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 

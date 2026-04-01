@@ -21,9 +21,12 @@ interface UseChatConversationOptions {
   onPlanGenerated?: (response: NLParseResponse) => void
   onModification?: (response: NLParseResponse) => void
   onExplanation?: (response: NLParseResponse) => void
+  onComparison?: (response: NLParseResponse) => void
   getCurrentPlan?: () => CurrentPlanState | null
   /** Returns chart data context string for explanation requests */
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
+  /** User ID for usage tracking */
+  userId?: string
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -133,28 +136,61 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           .filter((m) => m.role !== 'system' && m.type === 'text')
           .map((m) => ({ role: m.role, content: m.content }))
 
-        // Call the edge function
+        // Call the edge function (with single retry for transient failures)
         let data: NLParseResponse
-        try {
+        const callEdgeFunction = async () => {
           const result = await supabase.functions.invoke('nl-parse', {
             body: {
               message: userText.trim(),
               conversationHistory,
               currentPlan,
+              userId: options.userId,
             },
           })
 
           if (result.error) {
-            throw new Error(result.error.message || 'Failed to reach PropPath AI')
+            const msg = result.error.message || ''
+            // Detect specific error types
+            if (msg.includes('timeout') || msg.includes('TIMEOUT') || msg.includes('504')) {
+              throw new Error('TIMEOUT')
+            }
+            if (msg.includes('rate') || msg.includes('429') || msg.includes('too many')) {
+              throw new Error('RATE_LIMIT')
+            }
+            throw new Error(msg || 'Failed to reach PropPath AI')
           }
 
           if (!result.data || result.data.error) {
-            throw new Error(result.data?.error || 'Invalid response from PropPath AI')
+            const errMsg = result.data?.error || ''
+            if (errMsg.includes('parse') || errMsg.includes('JSON')) {
+              throw new Error('MALFORMED')
+            }
+            throw new Error(errMsg || 'Invalid response from PropPath AI')
           }
 
-          data = result.data as NLParseResponse
-        } catch (fetchErr) {
-          throw new Error(fetchErr instanceof Error ? fetchErr.message : 'Network error — check your connection')
+          return result.data as NLParseResponse
+        }
+
+        try {
+          data = await callEdgeFunction()
+        } catch (firstErr) {
+          const errMsg = firstErr instanceof Error ? firstErr.message : ''
+          // Retry once for malformed responses (Claude occasionally returns bad JSON)
+          if (errMsg === 'MALFORMED') {
+            try {
+              data = await callEdgeFunction()
+            } catch {
+              throw new Error('MALFORMED')
+            }
+          } else if (errMsg === 'TIMEOUT') {
+            throw new Error('TIMEOUT')
+          } else if (errMsg === 'RATE_LIMIT') {
+            throw new Error('RATE_LIMIT')
+          } else if (!navigator.onLine) {
+            throw new Error('OFFLINE')
+          } else {
+            throw firstErr
+          }
         }
 
         const response = data
@@ -231,6 +267,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                       { role: 'user', content: userText },
                     ],
                     currentPlan,
+                    userId: options.userId,
                   },
                 })
 
@@ -265,6 +302,15 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             break
           }
 
+          case 'comparison': {
+            const compMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, compMsg])
+            options.onComparison?.(response)
+            break
+          }
+
           default: {
             // Fallback — just show the message
             const fallbackMsg = createMessage('assistant', 'text', response.message)
@@ -289,12 +335,27 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Remove loading indicator
         setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
 
-        // Show friendly error
-        const errorMsg = createMessage(
-          'assistant',
-          'text',
-          'Something went wrong — try rephrasing that.'
-        )
+        // Map error types to friendly messages
+        const errCode = err instanceof Error ? err.message : ''
+        let friendlyMessage: string
+        switch (errCode) {
+          case 'TIMEOUT':
+            friendlyMessage = 'That took too long — the AI is under heavy load. Try again in a moment.'
+            break
+          case 'RATE_LIMIT':
+            friendlyMessage = 'Too many requests right now. Wait a few seconds and try again.'
+            break
+          case 'MALFORMED':
+            friendlyMessage = 'Got a garbled response — try rephrasing that slightly differently.'
+            break
+          case 'OFFLINE':
+            friendlyMessage = 'You appear to be offline. Check your connection and try again.'
+            break
+          default:
+            friendlyMessage = 'Something went wrong — try rephrasing that.'
+        }
+
+        const errorMsg = createMessage('assistant', 'text', friendlyMessage)
         setMessages((prev) => [...prev, errorMsg])
 
         console.error('nl-parse error:', err)
