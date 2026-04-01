@@ -30,6 +30,10 @@ import { ChatPanel } from '../components/ChatPanel'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { useClient, Client } from '../contexts/ClientContext'
 import { useAuth } from '../contexts/AuthContext'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
+import { useInvestmentProfile } from '../contexts/InvestmentProfileContext'
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import {
@@ -145,6 +149,12 @@ export const Portfolio = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
   const { clients, activeClient: globalActiveClient } = useClient()
   const { companyId } = useAuth()
+
+  // Live context data — used to show unsaved plan data for active client
+  const { propertyOrder: livePropertyOrder } = usePropertySelection()
+  const { instances: liveInstances } = usePropertyInstance()
+  const { profile: liveProfile } = useInvestmentProfile()
+  const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator()
 
   // Use the global active client from ClientContext
   const activeClientId = globalActiveClient?.id || null
@@ -389,7 +399,115 @@ export const Portfolio = () => {
 
   // Active client data
   const activeClient = globalActiveClient
-  const activeScenarios = activeClientId ? scenarioData[activeClientId] || [] : []
+
+  // Build live scenario from React contexts for the active client
+  // This ensures the Portfolio shows current plan data without requiring a save first
+  const liveScenario = useMemo((): ClientScenarioData | null => {
+    if (!activeClientId || livePropertyOrder.length === 0) return null
+
+    const feasibleTimeline = liveTimelineProperties.filter(
+      (tp) => tp.status === 'feasible' && tp.affordableYear !== Infinity
+    )
+
+    const properties: PortfolioProperty[] = livePropertyOrder.map((instanceId, idx) => {
+      const instance = liveInstances[instanceId] || {} as any
+      const timelineItem = feasibleTimeline.find((tp) => tp.instanceId === instanceId)
+
+      const purchasePrice = instance.purchasePrice || timelineItem?.cost || 0
+      const rentPerWeek = instance.rentPerWeek || 0
+      const lvr = instance.lvr || 80
+      const loanAmount = timelineItem?.loanAmount || purchasePrice * (lvr / 100)
+      const deposit = timelineItem?.depositRequired || purchasePrice * ((100 - lvr) / 100)
+      const interestRate = instance.interestRate || 6.5
+      const annualInterest = loanAmount * (interestRate / 100)
+      const annualRent = rentPerWeek * 52
+      const grossYield = purchasePrice > 0 ? (annualRent / purchasePrice) * 100 : 0
+      const growthRate = instance.growthAssumption === 'High' ? 7 : instance.growthAssumption === 'Low' ? 4 : 5.5
+      const affordableYear = timelineItem ? Math.round(timelineItem.affordableYear) : 2025 + idx + 1
+      const yearsHeld = Math.max(0, new Date().getFullYear() - affordableYear)
+      const estimatedValue = purchasePrice * Math.pow(1 + growthRate / 100, yearsHeld)
+      const equity = estimatedValue - loanAmount
+      const annualExpenses = annualInterest + (purchasePrice * 0.005)
+      const netCashflow = annualRent - annualExpenses
+      const growthSincePurchase = purchasePrice > 0 ? ((estimatedValue - purchasePrice) / purchasePrice) * 100 : 0
+      const projectedEquity10Y = (purchasePrice * Math.pow(1 + growthRate / 100, 10)) - loanAmount
+
+      // Determine title from template or instance
+      const propTypeMatch = instanceId.match(/^(property_\d+)_instance_\d+$/)
+      const propTypeId = propTypeMatch ? propTypeMatch[1] : instanceId
+      const propIndex = propTypeId.match(/property_(\d+)/)
+      const templateIndex = propIndex ? parseInt(propIndex[1], 10) : -1
+      const template = templateIndex >= 0 ? propertyTypeTemplates[templateIndex] : null
+      const title = timelineItem?.title || (template ? template.propertyType : (instance as any).title || `Property ${idx + 1}`)
+
+      // Build raw timeline item for projection engine
+      const rawTimelineItem: TimelinePropertyData | null = timelineItem ? {
+        title: timelineItem.title,
+        cost: timelineItem.cost,
+        loanAmount: timelineItem.loanAmount,
+        depositRequired: timelineItem.depositRequired,
+        period: timelineItem.period,
+        affordableYear: timelineItem.affordableYear,
+        displayPeriod: timelineItem.displayPeriod,
+        loanType: timelineItem.loanType || instance.loanProduct || 'IO',
+      } : null
+
+      // Build raw property instance
+      const hasFullInstance = instance.rentPerWeek !== undefined && instance.interestRate !== undefined
+      const rawPropertyInstance: PropertyInstanceDetails | null = hasFullInstance ? instance : null
+
+      return {
+        instanceId,
+        title,
+        state: instance.state || 'NSW',
+        purchasePrice,
+        rentPerWeek,
+        growthAssumption: instance.growthAssumption || 'Medium',
+        affordableYear,
+        propertyNumber: idx + 1,
+        loanProduct: instance.loanProduct || 'IO',
+        interestRate,
+        lvr,
+        grossYield,
+        weeklyRent: rentPerWeek,
+        estimatedValue,
+        loanAmount,
+        equity,
+        netCashflow,
+        isPurchased: false,
+        purchaseAddress: '',
+        purchasePhoto: '',
+        deposit,
+        projectedEquity10Y,
+        growthSincePurchase,
+        propertyTypeKey: title,
+        rawPropertyInstance,
+        rawTimelineItem,
+      } as PortfolioProperty
+    })
+
+    if (properties.length === 0) return null
+
+    const scenarioGrowthCurve: GrowthCurve | null = liveProfile.growthCurve || null
+
+    return {
+      scenarioId: -1, // Sentinel for live/unsaved scenario
+      scenarioName: 'Current Plan',
+      properties,
+      growthCurve: scenarioGrowthCurve,
+    }
+  }, [activeClientId, livePropertyOrder, liveInstances, liveTimelineProperties, liveProfile, propertyTypeTemplates])
+
+  // Merge live scenario with saved scenarios — live data takes priority for active client
+  const activeScenarios = useMemo(() => {
+    const saved = activeClientId ? scenarioData[activeClientId] || [] : []
+    if (!liveScenario) return saved
+    // If there's a saved scenario, replace it with live data; otherwise add the live scenario
+    if (saved.length > 0) {
+      return [{ ...liveScenario, scenarioId: saved[0].scenarioId, scenarioName: saved[0].scenarioName }, ...saved.slice(1)]
+    }
+    return [liveScenario]
+  }, [activeClientId, scenarioData, liveScenario])
 
   // Portfolio summary
   const portfolioSummary = useMemo(() => {

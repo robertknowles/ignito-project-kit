@@ -23,6 +23,7 @@ import { CompanyProvider } from './contexts/CompanyContext'
 import { BrandingProvider } from './contexts/BrandingContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
 import { MultiScenarioProvider } from './contexts/MultiScenarioContext'
+import { LayoutProvider } from './contexts/LayoutContext'
 import { CompanyManagement } from './pages/CompanyManagement'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicRoute } from './components/PublicRoute'
@@ -141,7 +142,9 @@ export function AppRouter() {
                               path="/portfolio"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <Portfolio />
+                                  <LayoutProvider>
+                                    <Portfolio />
+                                  </LayoutProvider>
                                 </ProtectedRoute>
                               }
                             />

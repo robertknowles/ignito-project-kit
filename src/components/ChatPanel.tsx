@@ -390,7 +390,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                 Describe a client scenario to generate an investment roadmap.
               </p>
               <p className="text-xs text-gray-400 mt-2">
-                e.g. "Jane and John, both earning 120k, 80k deposit, want to buy around 650k in VIC"
+                e.g. "John. 120k annual income. 80k deposit. Want to hit $2M in equity across 4 properties over 15 years."
               </p>
             </div>
           )}
