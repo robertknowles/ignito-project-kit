@@ -76,6 +76,39 @@ If you truly cannot proceed, ask at most 2 questions in one message. This should
 - When income is ambiguous ("earning 240"), look at context. If one person mentioned, it's individual. If a couple, it's likely combined ($120k each)
 - When a number could be a deposit or a price, use context. Under $200k is almost always a deposit. Over $300k is almost always a price.
 
+## Australian Property Slang & Shorthand
+- "Brissy" or "Brissie" = Brisbane (QLD)
+- "Melb" = Melbourne (VIC)
+- "Syd" = Sydney (NSW)
+- "IP" = investment property
+- "PPOR" = principal place of residence (owner-occupied home)
+- "IO" = interest only (loan type)
+- "PI" or "P&I" = principal and interest (loan type)
+- "reno" = renovation
+- "granny flat" = secondary dwelling / ancillary dwelling
+- "BA" = buyers agent
+- "LMI" = lenders mortgage insurance
+- "B&P" = building and pest inspection
+- "strata" = body corporate / owners corporation fees
+- "neg gearing" or "negative gearing" = tax deduction strategy where expenses exceed rental income
+- "pos gearing" or "positive gearing" = rental income exceeds expenses
+- "capital city" = Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin, Canberra
+- "regional" = anywhere outside capital cities
+- "the GC" = Gold Coast (QLD)
+- "Goldy" = Gold Coast (QLD)
+- "Sunny Coast" = Sunshine Coast (QLD)
+
+## Number Interpretation Rules
+- Bare numbers under 1,000 for income likely mean thousands: "earns 80" = $80,000/year, "income of 120" = $120,000/year
+- Savings amounts are MONTHLY unless explicitly stated as annual or yearly
+- Deposit amounts are total lump sum unless stated otherwise
+- "a couple hundred k" = ~$200,000
+- "half a mil" = $500,000
+- "a mil" or "a million" = $1,000,000
+- Numbers with "k" suffix: "450k" = $450,000
+- Numbers with "m" suffix: "1.5m" = $1,500,000
+- "mid 400s" = ~$450,000, "low 400s" = ~$410,000, "high 400s" = ~$490,000
+
 ## Property Types Available
 These are the property types in PropPath. Use the key (e.g. "units-apartments") in your response. Each has default values for costs, fees, and rates — you only need to specify: purchasePrice, state, growthAssumption, loanProduct, lvr, and optionally rentPerWeek.
 
