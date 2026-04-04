@@ -45,6 +45,23 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     return finalCashflow?.cashflow ?? 0
   }, [cashflowData])
 
+  // Find the target year — the year each goal is met (or final year if not met)
+  const finalYear = portfolioGrowthData.length > 0
+    ? portfolioGrowthData[portfolioGrowthData.length - 1].year
+    : ''
+
+  const equityGoalYear = useMemo(() => {
+    if (profile.equityGoal <= 0 || portfolioGrowthData.length === 0) return finalYear
+    const metPoint = portfolioGrowthData.find(d => d.equity >= profile.equityGoal)
+    return metPoint?.year ?? finalYear
+  }, [portfolioGrowthData, profile.equityGoal, finalYear])
+
+  const cashflowGoalYear = useMemo(() => {
+    if (profile.cashflowGoal <= 0 || cashflowData.length === 0) return finalYear
+    const metPoint = cashflowData.find(d => d.cashflow >= profile.cashflowGoal)
+    return metPoint?.year ?? finalYear
+  }, [cashflowData, profile.cashflowGoal, finalYear])
+
   // Calculate progress towards goals
   const equityProgress = profile.equityGoal > 0
     ? Math.min((kpis.totalEquity / profile.equityGoal) * 100, 100)
@@ -53,6 +70,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
   const cashflowProgress = profile.cashflowGoal > 0
     ? Math.min((annualCashflow / profile.cashflowGoal) * 100, 100)
     : 0
+
+  const equityGoalMet = equityProgress >= 100
+  const cashflowGoalMet = cashflowProgress >= 100
 
   // Format currency values (always abbreviated with 1 decimal for k values)
   const formatCurrency = (value: number) => {
@@ -81,6 +101,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="stat-number">
             {formatCurrency(kpis.finalPortfolioValue)}
           </span>
+          {finalYear && <span className="ml-1.5 text-gray-400 text-sm font-normal">by {finalYear}</span>}
         </div>
       </div>
 
@@ -91,7 +112,12 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="stat-number">
             {formatCurrency(kpis.totalEquity)}
           </span>
-          {equityProgress >= 100 && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
+          {equityGoalMet && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
+          {equityGoalYear && (
+            <span className="ml-1.5 text-gray-400 text-sm font-normal">
+              by {equityGoalYear}{!equityGoalMet && '*'}
+            </span>
+          )}
         </div>
         <span className="meta mt-1 block">/ {formatCurrency(profile.equityGoal)}</span>
       </div>
@@ -103,7 +129,12 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="stat-number">
             {formatCurrency(Math.round(annualCashflow))}
           </span>
-          {cashflowProgress >= 100 && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
+          {cashflowGoalMet && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
+          {cashflowGoalYear && (
+            <span className="ml-1.5 text-gray-400 text-sm font-normal">
+              by {cashflowGoalYear}{!cashflowGoalMet && '*'}
+            </span>
+          )}
         </div>
         <span className="meta mt-1 block">/ {formatCurrency(profile.cashflowGoal)}</span>
       </div>
