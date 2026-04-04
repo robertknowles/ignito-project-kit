@@ -11,6 +11,7 @@ import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIco
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
+import { PacingToggle } from './PacingToggle'
 import { PlanningDefaultsModal } from './PlanningDefaultsModal'
 import { AddToTimelineModal } from './AddToTimelineModal'
 import { extractTextFromPdf } from '@/utils/pdfExtractor'
@@ -313,6 +314,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     getChartContext,
     userId: user?.id,
     clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
+    pacingMode: profile.pacingMode || 'balanced',
   })
 
   // Reset chat state when the active client changes
@@ -608,9 +610,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               <p className="text-sm text-gray-500 leading-relaxed">
                 Describe a client scenario to generate an investment roadmap.
               </p>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-400 mt-2 mb-6">
                 e.g. "John. 120k annual income. 80k deposit. Want to hit $2M in equity across 4 properties over 15 years."
               </p>
+              <PacingToggle />
             </div>
           )}
 

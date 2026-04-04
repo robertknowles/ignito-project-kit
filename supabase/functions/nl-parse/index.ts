@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const { message, conversationHistory, currentPlan, userId } = await req.json();
+    const { message, conversationHistory, currentPlan, userId, pacingMode } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -63,8 +63,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build the system prompt with current plan context if it exists
-    const systemPrompt = buildSystemPrompt(currentPlan);
+    // Build the system prompt with current plan context and pacing preference
+    const systemPrompt = buildSystemPrompt(currentPlan, pacingMode);
 
     // Build message history for multi-turn conversation
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];

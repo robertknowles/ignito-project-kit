@@ -30,6 +30,8 @@ interface UseChatConversationOptions {
   userId?: string
   /** Client name for personalised loading text */
   clientName?: string
+  /** Acquisition pacing mode — controls property spacing and growth assumptions */
+  pacingMode?: 'aggressive' | 'balanced' | 'conservative'
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -151,6 +153,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               conversationHistory,
               currentPlan,
               userId: options.userId,
+              pacingMode: options.pacingMode || 'balanced',
             },
           })
 

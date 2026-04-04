@@ -15,8 +15,8 @@ import { EquityUnlockChart, EquityUnlockSummary } from './EquityUnlockChart/Equi
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
-import { useLayout } from '@/contexts/LayoutContext';
 import { PacingToggle } from './PacingToggle';
+import { useLayout } from '@/contexts/LayoutContext';
 import { Skeleton } from '@/components/ui/skeleton';
 const DashboardSkeleton = () => (
   <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
@@ -125,7 +125,7 @@ export const Dashboard = () => {
         {/* ── Section 1: Investment Plan ──────────────────────────── */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-600 mb-0">Investment Plan</h2>
-          <PacingToggle />
+          <PacingToggle compact />
         </div>
 
         {/* Render scenario canvases vertically with gap */}
