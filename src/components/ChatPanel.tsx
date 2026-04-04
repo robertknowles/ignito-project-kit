@@ -10,6 +10,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { SendIcon, Loader2Icon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
+import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -303,9 +304,31 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }
   }, [messages, saveChatMessages])
 
-  // Sync loading state to layout context for Dashboard skeleton UI
+  // Loading step progression for ChatLoadingSteps
+  const [loadingStep, setLoadingStep] = useState(0)
+  const perfStartRef = useRef<number>(0)
+
+  // Sync loading state to layout context for Dashboard skeleton UI + step progression
   useEffect(() => {
     setPlanGenerating(isLoading)
+    if (isLoading) {
+      perfStartRef.current = performance.now()
+      setLoadingStep(0)
+      // Step 1 → 2 after API responds (approximate with timer, actual would need hook into response)
+      const step1Timer = setTimeout(() => setLoadingStep(1), 1500)
+      const step2Timer = setTimeout(() => setLoadingStep(2), 2500)
+      return () => {
+        clearTimeout(step1Timer)
+        clearTimeout(step2Timer)
+      }
+    } else if (perfStartRef.current > 0) {
+      const totalMs = Math.round(performance.now() - perfStartRef.current)
+      if (process.env.NODE_ENV === 'development' || totalMs > 0) {
+        console.log(`[PropPath Perf] Total: ${totalMs}ms`)
+      }
+      perfStartRef.current = 0
+      setLoadingStep(0)
+    }
   }, [isLoading, setPlanGenerating])
 
   // Auto-scroll to bottom when messages change
@@ -429,14 +452,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           )}
 
           <AnimatePresence mode="popLayout">
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                onOptionSelect={handleOptionSelect}
-                onFollowUpClick={handleFollowUpClick}
-              />
-            ))}
+            {messages.map((msg) =>
+              msg.type === 'loading' ? (
+                <ChatLoadingSteps
+                  key={msg.id}
+                  clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                  activeStep={loadingStep}
+                  isComplete={false}
+                />
+              ) : (
+                <ChatMessage
+                  key={msg.id}
+                  message={msg}
+                  onOptionSelect={handleOptionSelect}
+                  onFollowUpClick={handleFollowUpClick}
+                />
+              )
+            )}
           </AnimatePresence>
 
           <div ref={messagesEndRef} />
