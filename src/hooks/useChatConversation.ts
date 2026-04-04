@@ -27,6 +27,8 @@ interface UseChatConversationOptions {
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
   /** User ID for usage tracking */
   userId?: string
+  /** Client name for personalised loading text */
+  clientName?: string
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -123,8 +125,11 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
 
-      // Add loading indicator
-      const loadingMsg = createMessage('assistant', 'loading', '')
+      // Add loading indicator with personalised text
+      const loadingText = options.clientName
+        ? `Mapping ${options.clientName}'s portfolio path...`
+        : 'Running the numbers...'
+      const loadingMsg = createMessage('assistant', 'loading', loadingText)
       setMessages((prev) => [...prev, loadingMsg])
 
       try {

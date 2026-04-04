@@ -256,6 +256,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     getCurrentPlan,
     getChartContext,
     userId: user?.id,
+    clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
   })
 
   // Reset chat state when the active client changes
