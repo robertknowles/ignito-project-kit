@@ -10,6 +10,7 @@ import {
   DEFAULT_PROPERTY_EXPENSES 
 } from '../../utils/metricsCalculator';
 import type { PropertyPurchase, GrowthCurve } from '../../types/property';
+import { BASE_YEAR } from '../../constants/financialParams';
 
 interface ChartData {
   portfolioGrowthData: Array<{
@@ -52,7 +53,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   const targetYear = investmentProfile?.targetYear || 2040;
 
   // Default assumptions
-  const startYear = 2025;
+  const startYear = BASE_YEAR;
   const timelineYears = investmentProfile?.timelineYears || 15;
   const endYear = startYear + timelineYears - 1;
   const defaultGrowthRate = 0.06; // 6% annual growth

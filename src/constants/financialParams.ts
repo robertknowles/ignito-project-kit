@@ -15,8 +15,8 @@
 /** Number of calculation periods per year (H1/H2 = semi-annual) */
 export const PERIODS_PER_YEAR = 2;
 
-/** Base year for all timeline calculations */
-export const BASE_YEAR = 2025;
+/** Base year for all timeline calculations (current calendar year) */
+export const BASE_YEAR = new Date().getFullYear();
 
 // =============================================================================
 // SERVICEABILITY CONSTANTS

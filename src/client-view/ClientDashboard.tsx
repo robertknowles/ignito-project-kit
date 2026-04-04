@@ -9,6 +9,7 @@ import { OverlayCashflowChart } from './components/OverlayCashflowChart';
 import { ComparisonKPICards } from './components/ComparisonKPICards';
 import { TabbedTimeline } from './components/TabbedTimeline';
 import { generateTimelineData, generateSummaryData, TimelineItem } from './utils/timelineGenerator';
+import { BASE_YEAR } from '../constants/financialParams';
 import { 
   calculateExistingPortfolioMetrics, 
   calculatePortfolioMetrics, 
@@ -252,7 +253,7 @@ export function ClientDashboard({
   const targetYear = investmentProfile?.targetYear || 2040;
 
   // Default assumptions
-  const startYear = 2025;
+  const startYear = BASE_YEAR;
   const timelineYears = investmentProfile?.timelineYears || 15;
   const endYear = startYear + timelineYears - 1;
   const defaultGrowthRate = 0.06;

@@ -1,0 +1,593 @@
+================================================================================
+PROPPATH CALCULATION DEPENDENCY MAP
+================================================================================
+
+KEY SYMBOL LEGEND:
+  [H] = Hook (React component state management)
+  [C] = Calculator/Utility function
+  [D] = Data/Context
+  ⚠️  = Duplication risk
+  ❌ = Multiple paths to same data
+  ✓ = Single source of truth
+
+================================================================================
+1. CONTEXT LAYER (Data Sources)
+================================================================================
+
+[D] useInvestmentProfile
+    ├─ profile: { timelineYears, depositPool, growthCurve, borrowingCapacity, ... }
+    └─ calculatedValues: { availableDeposit, ... }
+
+[D] usePropertySelection
+    ├─ selections: { [propertyId]: quantity }
+    ├─ eventBlocks: [ market corrections, refinances, renovations ]
+    └─ propertyOrder: string[]
+
+[D] useDataAssumptions
+    ├─ propertyData: { title → { growthYear1, growthYears2to3, yield, ... } }
+    └─ globalFactors: { interestRate, ... }
+
+[D] usePropertyInstance
+    ├─ instances: { [instanceId] → { rentPerWeek, purchasePrice, growth, ... } }
+    └─ createInstance, getInstance()
+
+================================================================================
+2. CORE CALCULATION LAYER
+================================================================================
+
+✓ [H] useAffordabilityCalculator ◄──── PRIMARY: Single source of truth
+        Input:  profile, selections, propertyData, instances, eventBlocks
+        Calc:   validateEachProperty(affordability) → timelineProperties
+        Output: timelineProperties[] (feasible properties with timing & costs)
+        Trigger: profile, selections, instances, eventBlocks changes
+        Lines:  1580-1604 (dependency array)
+
+        Returns: {
+          timelineProperties,
+          calculateAffordabilityForPeriod(),
+          updateTimelinePropertyLoanType()
+        }
+
+================================================================================
+3. PRIMARY OUTPUT CALCULATION HOOKS
+================================================================================
+
+⚠️  [H] useChartDataGenerator ◄──── MAIN CHART DATA SOURCE
+        Input:  timelineProperties (from useAffordabilityCalculator)
+        Calc:
+          - portfolioGrowthData: useMemo (lines 104-278)
+            ├─ for year in timeline:
+            │  ├─ calculateExistingPortfolioMetrics()
+            │  ├─ calculatePortfolioMetrics() [calls calculatePropertyGrowth()]
+            │  ├─ combineMetrics()
+            │  └─ getRenovationValueIncrease()
+            └─ [~170 lines of logic]
+
+          - cashflowData: useMemo (lines 280-494)
+            ├─ for year in timeline:
+            │  ├─ calculateDetailedCashflow() [property-level]
+            │  ├─ getPropertyEffectiveRate()
+            │  └─ getRenovationValueIncrease()
+            └─ [~200 lines of logic]
+
+          - enrichedPortfolioData: useMemo (lines 497-506)
+            └─ portfolioGrowthData.map(...) + monthlyHoldingCost injection
+
+          - monthlyHoldingCost: useMemo (lines 509-530) ⚠️ RECALCULATES
+            ├─ for property in feasibleProperties:
+            │  └─ calculateDetailedCashflow() [DUPLICATE from cashflowData!]
+            └─ [~20 lines of logic]
+
+          - netWorthData: useMemo (lines 533-540)
+            └─ enrichedPortfolioData.map(...) [derived]
+
+        Output: {
+          portfolioGrowthData,
+          cashflowData,
+          monthlyHoldingCost,
+          netWorthData
+        }
+
+        Dependencies (lines 278, 494, 506, 530):
+          [portfolioGrowthData]
+            timelineProperties, profile, globalFactors, getPropertyData,
+            eventBlocks, getInstance
+
+          [cashflowData]
+            timelineProperties, profile, globalFactors, getPropertyData,
+            getInstance, eventBlocks
+
+          [monthlyHoldingCost]
+            timelineProperties, cashflowData, getInstance
+
+        Trigger: Changes to ANY of above dependencies
+
+❌ [H] useRoadmapData ◄──── DUPLICATE CALCULATION SOURCE
+        Input:  timelineProperties (from useAffordabilityCalculator)
+                [SAME INPUT as useChartDataGenerator]
+
+        Calc:
+          - calculatePropertyGrowthWithEvents() (lines 41-95) ⚠️ DUPLICATE
+            ├─ [IDENTICAL logic to metricsCalculator.calculatePropertyGrowth]
+            └─ + event adjustment logic
+
+          - for year in timeline:
+            ├─ calculatePropertyGrowthWithEvents() [FOR EACH PROPERTY!]
+            │  └─ This recalculates what useChartDataGenerator already calculated
+            ├─ calculateExistingPortfolioGrowthByPeriod()
+            ├─ Event and funding breakdown assembly
+            └─ Year-by-year detail structure building
+
+        Output: {
+          years[],
+          events[],
+          fundingBreakdown
+        }
+
+        Dependencies: timelineProperties (same as useChartDataGenerator!)
+
+        Trigger: Changes to timelineProperties
+
+    CRITICAL ISSUE:
+      useChartDataGenerator + useRoadmapData both take timelineProperties
+      and INDEPENDENTLY calculate property growth metrics.
+      If both are mounted (e.g., Dashboard + RetirementSnapshot),
+      property growth calculation runs TWICE for identical input.
+
+❌ [H] usePerPropertyTracking
+        Input:  timelineProperties
+        Calc:
+          - for property in timelineProperties:
+            ├─ calculateDetailedCashflow() [DIFFERENT from useChartDataGenerator]
+            └─ per-property breakdowns
+
+        Output: Per-property cashflow metrics
+
+        ISSUE: Different algorithm than useChartDataGenerator cashflow aggregation
+
+================================================================================
+4. SECONDARY CALCULATION HOOKS
+================================================================================
+
+[H] useFinancialFreedomProjection
+    Input:  portfolioGrowthData, cashflowData (from useChartDataGenerator)
+            + profile, timelineProperties
+
+    Calc:
+      - Uses END-OF-TIMELINE snapshot from portfolioGrowthData
+      - Extends projection beyond timeline (30 years)
+      - Models: IO loans → P&I transition → debt-free year
+      - Finds: freedomYear (when passive income >= target)
+
+    Output: {
+      freedomYear, piTransitionYear, debtFreeYear,
+      yearlyData[], milestones[]
+    }
+
+    Dependencies: portfolioGrowthData, cashflowData
+
+    NOTE: This hook is DEPENDENT on useChartDataGenerator output.
+          If useChartDataGenerator changes, this cascades.
+
+[H] useChartDataSync
+    Input:  portfolioGrowthData, cashflowData (from useChartDataGenerator)
+    Calc:   Minimal - just goal-year detection
+    Output: Syncs to ScenarioSaveContext
+    Purpose: Ensure saved scenarios match dashboard display
+
+[H] useGrowthProjections (minimal)
+    Input:  timelineProperties
+    Output: Likely projection-related metrics
+
+================================================================================
+5. UTILITY CALCULATORS (Called by Multiple Hooks)
+================================================================================
+
+[C] calculatePropertyGrowth() ◄──── DUPLICATION ISSUE #1
+    Location: /src/utils/metricsCalculator.ts (lines 10-44)
+
+    Logic:
+      for period = 1 to periods:
+        if period <= 2: use year1Rate
+        else if period <= 6: use years2to3Rate
+        else if period <= 8: use year4Rate
+        else: use year5plusRate
+        currentValue *= (1 + rate)
+
+    Called by:
+      ✓ useChartDataGenerator (via calculatePortfolioMetrics)
+      ✓ useRoadmapData (directly) ⚠️ BUT ALSO has duplicate implementation!
+      ✓ usePerPropertyTracking (indirectly)
+
+    DUPLICATE FOUND IN: useRoadmapData.calculatePropertyGrowthWithEvents()
+      - Same logic
+      - + event adjustment wrapper
+      - NOT CALLED from metricsCalculator version
+
+    Risk: Growth rate changes must update BOTH functions
+
+[C] calculatePropertyGrowthWithEvents() ◄──── DUPLICATION ISSUE #1B
+    Location: /src/utils/useRoadmapData.ts (lines 41-95)
+
+    Called by: useRoadmapData (for year-by-year growth in roadmap)
+
+    Duplication: Same tiered growth logic as calculatePropertyGrowth
+                 but with event adjustment built-in
+
+    Why separate?
+      - metricsCalculator version used by multiple places
+      - useRoadmapData has its own version for event support
+      - Old comment says this was for "event-adjusted growth"
+
+    Result: If growth curve logic changes, must update BOTH
+
+[C] calculatePortfolioMetrics() ◄──── PRIMARY AGGREGATOR
+    Location: /src/utils/metricsCalculator.ts
+
+    Purpose: Calculate portfolio value, debt, equity for a year
+    Called by: useChartDataGenerator (in portfolioGrowthData useMemo)
+    Input: PropertyPurchase[] (with calculatePropertyGrowth for each)
+
+    Process:
+      for purchase in purchases:
+        value = calculatePropertyGrowth(cost, periods, growthCurve)
+        debt = calculateMortgagePayments(...)
+        equity += (value - debt)
+      return { portfolioValue, totalDebt, totalEquity }
+
+[C] calculateExistingPortfolioMetrics()
+    Location: /src/utils/metricsCalculator.ts
+
+    Purpose: Calculate existing portfolio growth (separate from new purchases)
+    Called by: useChartDataGenerator
+    Logic: Flat 3% annual growth (vs. tiered for new purchases)
+
+[C] combineMetrics()
+    Location: /src/utils/metricsCalculator.ts
+
+    Purpose: Merge existing + new purchase metrics
+    Called by: useChartDataGenerator
+    Result: totalPortfolioValue = existing + new
+
+[C] calculateDetailedCashflow() ◄──── DUPLICATION ISSUE #2
+    Location: /src/utils/detailedCashflowCalculator.ts
+
+    Called by:
+      ✓ useChartDataGenerator.cashflowData (line 377, once per property per year)
+      ✓ useChartDataGenerator.monthlyHoldingCost (line 518, AGAIN for same property!)
+      ✓ usePerPropertyTracking (different algorithm for same output)
+
+    Issue: useChartDataGenerator calls this TWICE for same property:
+      1. In cashflowData calculation loop
+      2. In monthlyHoldingCost calculation loop
+
+    Recalculation: If 10 properties, this runs 20 times per year (200 times for 10-year timeline)
+
+[C] getGrowthRateAdjustment()
+    Location: /src/utils/eventProcessing.ts
+    Purpose: Get market correction adjustment for a period
+    Called by: useChartDataGenerator, useRoadmapData
+    Input: period, eventBlocks[]
+
+[C] getEffectiveInterestRate()
+    Location: /src/utils/eventProcessing.ts
+    Purpose: Apply interest rate change events
+    Called by: useChartDataGenerator (for cashflow), useRoadmapData
+    Input: period, eventBlocks[]
+
+[C] getPropertyEffectiveRate()
+    Location: /src/utils/eventProcessing.ts
+    Purpose: Property-specific interest rate (handles refinance)
+    Called by: useChartDataGenerator (per property, per year)
+    Input: period, eventBlocks[], propertyInstanceId
+
+[C] getRenovationValueIncrease()
+    Location: /src/utils/eventProcessing.ts
+    Purpose: Get renovation-caused value increase for property
+    Called by:
+      ✓ useChartDataGenerator (line 221, per property)
+      ✓ useChartDataGenerator (line 344, again per property!)
+    Issue: Called TWICE in useChartDataGenerator
+
+================================================================================
+6. COMPONENT CONSUMPTION LAYER
+================================================================================
+
+[C] Dashboard
+    Consumes:
+      ✓ useChartDataGenerator(scenarioAData)
+      ✓ useChartDataGenerator(scenarioBData)
+      ✓ useAffordabilityCalculator (for liveTimelineProperties)
+
+    Calc:
+      generateComparisonChartData(chartDataA, chartDataB)
+
+    Render: PortfolioChart, CashflowChart, ComparisonTables
+
+[C] ClientDashboard
+    Consumes:
+      ✓ generateComparisonChartData() (utility, not hook-based)
+
+    Purpose: Client report generation with static comparison data
+
+[C] RetirementSnapshot ❌ USES TWO SOURCES
+    Consumes:
+      ✓ useRoadmapData() → years[]
+      ✓ useChartDataGenerator() → cashflowData
+
+    Comment (line 138): "Use cashflow from useChartDataGenerator for consistency"
+
+    Issue: If useRoadmapData and useChartDataGenerator calculate differently,
+           they WILL diverge. This is a synchronization point.
+
+[C] FinancialFreedomPanel
+    Consumes:
+      ✓ useChartDataGenerator(scenarioData)
+      ✓ useAffordabilityCalculator
+      ✓ useFinancialFreedomProjection({
+          portfolioGrowthData,
+          cashflowData,
+          profile,
+          timelineProperties
+        })
+
+    Render: Freedom projection chart
+
+[C] PropertyPerformanceTabs
+    Consumes:
+      ✓ usePerPropertyTracking
+      ✓ useAffordabilityCalculator
+
+    Purpose: Property-level performance breakdown
+
+[C] NetWorthChart
+    Consumes:
+      ✓ useChartDataGenerator(scenarioData)
+
+    Render: Net worth (assets - debt) over time
+
+[C] PortfolioBreakdown
+    Consumes:
+      ✓ useChartDataGenerator
+
+    Render: Portfolio composition (by property, by year)
+
+================================================================================
+7. DUPLICATION SUMMARY TABLE
+================================================================================
+
+DUPLICATION #1: Property Growth Calculation
+────────────────────────────────────────────────
+Function A: metricsCalculator.calculatePropertyGrowth()
+  Location: /src/utils/metricsCalculator.ts:10-44
+  Called by: useChartDataGenerator (via calculatePortfolioMetrics)
+  Logic: Tiered growth (Y1, Y2-3, Y4, Y5+)
+
+Function B: useRoadmapData.calculatePropertyGrowthWithEvents()
+  Location: /src/hooks/useRoadmapData.ts:41-95
+  Called by: useRoadmapData (directly)
+  Logic: IDENTICAL tiered growth + event adjustment
+
+Status: ⚠️ DUPLICATE CODE
+  - Same algorithm, slightly different wrapper
+  - If growth curve logic changes, must update BOTH
+  - useRoadmapData doesn't call metricsCalculator version
+
+
+DUPLICATION #2: Detailed Cashflow Calculation
+────────────────────────────────────────────────
+Called in: useChartDataGenerator
+
+Location A: Line 377 (in cashflowData useMemo)
+  Context: for (year in timeline) { for (property in properties) {
+             calculateDetailedCashflow(propertyInstance)
+           } }
+  Frequency: 1 per property per year
+
+Location B: Line 518 (in monthlyHoldingCost useMemo)
+  Context: for (property in feasibleProperties) {
+             calculateDetailedCashflow(propertyInstance)
+           }
+  Frequency: 1 per property (at END OF TIMELINE only)
+
+Status: ⚠️ REDUNDANT RECALCULATION
+  - monthlyHoldingCost depends on entire timeline but only needs end-of-year value
+  - Could calculate once and reuse
+
+
+DUPLICATION #3: Portfolio Value Calculation
+────────────────────────────────────────────────
+Hook A: useChartDataGenerator
+  Calculates: portfolioGrowthData (full year-by-year)
+  Output: { year, portfolioValue, equity, ... }
+
+Hook B: useRoadmapData
+  Calculates: years[].portfolioValue (year-by-year, same calculation)
+  Output: { year, portfolioValue, equity, ... }
+
+Status: ❌ MULTIPLE INDEPENDENT CALCULATIONS
+  - Both consume timelineProperties
+  - Both independently call property growth calculations
+  - If mounted together (Dashboard + RetirementSnapshot), both run
+  - No data sharing between them
+
+
+DUPLICATION #4: Cashflow Aggregation
+────────────────────────────────────────────────
+Approach A: useChartDataGenerator.cashflowData
+  Logic: Aggregate detailed cashflow per property → annual total
+  Algorithm: calculateDetailedCashflow() per property, then sum
+  Output: Single annual cashflow figure per year
+
+Approach B: usePerPropertyTracking
+  Logic: Detailed cashflow per property
+  Algorithm: Different breakdown than useChartDataGenerator
+  Output: Per-property cashflow metrics
+
+Status: ⚠️ DIFFERENT ALGORITHMS FOR SAME DATA
+  - usePerPropertyTracking may diverge from useChartDataGenerator
+  - No shared calculation logic
+
+
+DUPLICATION #5: Goal Achievement Year Detection
+────────────────────────────────────────────────
+Location A: useChartDataSync (lines 22-31)
+  Logic: Find year where equity >= equityGoal
+         Find year where cashflow >= cashflowGoal
+
+Location B: Dashboard/ClientDashboard comparison logic
+  Logic: Same goal detection in comparison context
+
+Status: ⚠️ SIMILAR LOGIC IN MULTIPLE PLACES
+  - If goal detection logic changes, must update multiple places
+  - Potential for inconsistency
+
+================================================================================
+8. RECALCULATION CASCADE EXAMPLE
+================================================================================
+
+Scenario: User changes property rent override in PropertyInstanceContext
+─────────────────────────────────────────────────────────────────────────
+
+CHANGE: instances[propertyId].rentPerWeek = 500
+
+PROPAGATION:
+  1. PropertyInstanceContext updates
+
+  2. useChartDataGenerator re-runs:
+     ✓ portfolioGrowthData useMemo (depends on getInstance) → FULL RECALC
+       ├─ calculateExistingPortfolioMetrics() [10 times for 10-year timeline]
+       ├─ calculatePortfolioMetrics() × properties × years
+       ├─ calculatePropertyGrowth() × properties × years [~100 calls]
+       ├─ getRenovationValueIncrease() × properties × years
+       └─ calculateDetailedCashflow() × properties × years [~100 calls]
+
+     ✓ cashflowData useMemo (depends on getInstance) → FULL RECALC
+       ├─ getPropertyEffectiveRate() × properties × years
+       ├─ calculateDetailedCashflow() × properties × years [AGAIN! ~100 calls]
+       └─ More event processing
+
+     ✓ enrichedPortfolioData useMemo → FULL RECALC (depends on both above)
+
+     ✓ monthlyHoldingCost useMemo → FULL RECALC
+       └─ calculateDetailedCashflow() × properties [~5 more calls]
+
+  3. useRoadmapData re-runs:
+     ✓ Full year-by-year recalculation
+       ├─ calculatePropertyGrowthWithEvents() × properties × years [~100 calls]
+       └─ Portfolio assembly from scratch
+
+  4. useAffordabilityCalculator re-runs:
+     ✓ timelineProperties useMemo (depends on instances) → FULL RECALC
+
+  5. Components using these hooks re-render:
+     ✓ Dashboard
+     ✓ RetirementSnapshot
+     ✓ FinancialFreedomPanel (depends on portfolioGrowthData + cashflowData)
+     ✓ PropertyPerformanceTabs (depends on timelineProperties)
+     ✓ NetWorthChart
+     ✓ PortfolioBreakdown
+
+REDUNDANCY ANALYSIS:
+  ❌ calculateDetailedCashflow() called ~205 times
+     - ~100 times in useChartDataGenerator.cashflowData
+     - ~100 times in useChartDataGenerator.monthlyHoldingCost (DUPLICATE!)
+     - ~5 times in usePerPropertyTracking
+
+  ❌ calculatePropertyGrowth() called ~200 times
+     - ~100 times in useChartDataGenerator
+     - ~100 times in useRoadmapData (DUPLICATE!)
+
+  ✓ Actual unique work: ~50-100 calculations
+  ❌ Redundant work: ~150-200 calculations
+
+  EFFICIENCY: ~25-30% efficiency (70% redundant)
+
+================================================================================
+9. DATA PURITY ISSUES
+================================================================================
+
+Issue: Some calculations have side effects or rely on shared state
+
+[H] useAffordabilityCalculator
+    Side effects:
+      - localStorage.setItem() for timelineLoanTypes (lines 61-83)
+      - useState updates trigger re-renders
+
+    State mutations:
+      - timelineLoanTypes state
+      - cascadeState in calculateCascadeEffect()
+
+[H] useChartDataGenerator
+    Dependencies on function references:
+      - getPropertyData() [changes if DataAssumptionsContext changes]
+      - getInstance() [changes if PropertyInstanceContext updates]
+
+    Result: Even if timelineProperties doesn't change,
+            getInstance change triggers full recalculation
+
+Recommendation: Use useCallback() to stabilize function references
+                or restructure to avoid passing function dependencies
+
+================================================================================
+10. CRITICAL SYNCHRONIZATION POINTS
+================================================================================
+
+Point 1: RetirementSnapshot (lines 102-138)
+────────────────────────────────────────────
+  const { years } = useRoadmapData()  // From useRoadmapData
+  const { cashflowData } = useChartDataGenerator()  // From useChartDataGenerator
+
+  If both calculate year structures differently, they WILL DIVERGE
+
+  Example: useRoadmapData calculates purchase timing slightly differently
+           than useChartDataGenerator's purchase schedule assembly
+
+Point 2: Dashboard Scenario Comparison
+──────────────────────────────────────
+  const chartDataA = useChartDataGenerator(scenarioAData)
+  const chartDataB = useChartDataGenerator(scenarioBData)
+
+  Both run independently. No validation that they use same calculation logic.
+
+Point 3: Scenario Saving (useChartDataSync)
+────────────────────────────────────────────
+  Syncs portfolioGrowthData + cashflowData to saved scenarios
+
+  If useChartDataGenerator logic changes, old saved scenarios become inconsistent
+  with current calculations
+
+================================================================================
+11. RECOMMENDATION PRIORITY
+================================================================================
+
+PRIORITY 1 - CRITICAL (Prevents bugs):
+  □ Eliminate duplicate growth calculation (metricsCalculator vs useRoadmapData)
+    → Merge into single calculatePropertyGrowthWithEvents()
+    → Both hooks call same function
+
+  □ Fix monthlyHoldingCost redundancy (calls calculateDetailedCashflow twice)
+    → Calculate once, reuse result
+    → Reduces redundant work by ~100 calls per render
+
+PRIORITY 2 - HIGH (Improves consistency):
+  □ Consolidate portfolio metrics assembly
+    → Single calculateYearMetrics(year, timelineProperties) → PortfolioSnapshot
+    → Both useChartDataGenerator and useRoadmapData call same function
+
+  □ Stabilize dependency references
+    → useCallback(getPropertyData)
+    → useCallback(getInstance)
+    → Prevents full recalc on context updates
+
+PRIORITY 3 - MEDIUM (Improves architecture):
+  □ Extract shared calculation layer
+    → Create "CalculationEngine" hook
+    → Single point for all portfolio/growth calculations
+    → Hooks consume output from this engine
+
+  □ Consolidate cashflow algorithms
+    → Ensure usePerPropertyTracking uses same logic as useChartDataGenerator
+    → Validate per-property sum equals aggregate
+
+================================================================================

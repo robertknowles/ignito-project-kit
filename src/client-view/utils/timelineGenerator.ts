@@ -3,6 +3,8 @@
  * This is a simplified version that works without the full context providers
  */
 
+import { BASE_YEAR } from '../../constants/financialParams';
+
 // Base interface for all timeline items
 interface BaseTimelineItem {
   year: number;
@@ -258,7 +260,7 @@ const calculateCommitmentBreakdown = (
   purchasedProperties: PropertySelection[],
   investmentProfile: any
 ): { savedAmount: string; equityReleased: string; totalDeposit: string; monthsToSave: number } => {
-  const startYear = 2025;
+  const startYear = BASE_YEAR;
   const purchaseYear = Math.round(property.affordableYear || property.purchaseYear || startYear);
   const purchasePrice = property.cost || 0;
   
@@ -384,7 +386,7 @@ export const generateTimelineData = (
   // Generate timeline entries with gap detection
   purchasedProperties.forEach((property, index) => {
     const propertyNumber = index + 1;
-    const year = Math.round(property.affordableYear || property.purchaseYear || 2025);
+    const year = Math.round(property.affordableYear || property.purchaseYear || BASE_YEAR);
     const purchasePrice = formatCurrency(property.cost || 0);
     const equity = formatCurrency(calculateEquity(purchasedProperties, index, investmentProfile));
     const yieldValue = property.yield || '4.0%';

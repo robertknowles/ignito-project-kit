@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Building2, Home, Building } from 'lucide-react';
+import { BASE_YEAR } from '../constants/financialParams';
 
 export interface Purchase {
   year: number;
@@ -41,7 +42,7 @@ const PropertyIcon = ({ type }: { type: Purchase['propertyType'] }) => {
 
 export function PropertyTimeline({
   clients,
-  startYear = 2025,
+  startYear = BASE_YEAR,
   endYear = 2040,
   'data-id': dataId,
 }: PropertyTimelineProps) {

@@ -17,6 +17,7 @@ import {
 import type { PropertyPurchase } from '../types/property';
 import {
   PERIODS_PER_YEAR,
+  BASE_YEAR,
   DEFAULT_INTEREST_RATE,
   DEFAULT_RENTAL_YIELD,
   DEFAULT_EXPENSE_RATIO,
@@ -103,7 +104,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
 
   const portfolioGrowthData = useMemo((): PortfolioGrowthDataPoint[] => {
     const data: PortfolioGrowthDataPoint[] = [];
-    const startYear = 2025;
+    const startYear = BASE_YEAR;
     const endYear = startYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
@@ -279,7 +280,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
 
   const cashflowData = useMemo((): CashflowDataPoint[] => {
     const data: CashflowDataPoint[] = [];
-    const startYear = 2025;
+    const startYear = BASE_YEAR;
     const endYear = startYear + Math.max(profile.timelineYears, 30) - 1;
 
     // Get feasible properties with their detailed cashflow data

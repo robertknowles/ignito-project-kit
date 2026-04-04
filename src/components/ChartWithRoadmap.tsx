@@ -38,6 +38,7 @@ import type { TimelineProperty } from '../types/property';
 import type { GuardrailViolation } from '../utils/guardrailValidator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+import { BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 
 // Column dimension constants
 // IMPORTANT: LABEL_COLUMN_WIDTH and Y_AXIS_WIDTH must stay equal for chart/table alignment
@@ -48,8 +49,6 @@ const Y_AXIS_WIDTH = 80; // Width for the chart Y-axis - must match LABEL_COLUMN
 const CHART_HEIGHT = 276; // Height of the chart area (matches Financial Summary table height)
 
 // Period conversion constants (matching useAffordabilityCalculator)
-const PERIODS_PER_YEAR = 2;
-const BASE_YEAR = 2025;
 
 // Convert year to period (for drag-and-drop targeting)
 const yearToPeriod = (year: number): number => {

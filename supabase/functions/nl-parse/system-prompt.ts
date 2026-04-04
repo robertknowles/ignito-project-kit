@@ -32,6 +32,7 @@ interface CurrentPlanState {
 }
 
 export function buildSystemPrompt(currentPlan: CurrentPlanState | null): string {
+  const currentYear = new Date().getFullYear();
   const base = `You are PropPath AI, a property investment planning assistant for Australian buyers' agents (BAs). Your job is to extract structured data from natural language and return it as JSON. You NEVER do financial calculations — the PropPath engine handles all maths.
 
 ## Your Role
@@ -114,7 +115,7 @@ Default to High for residential in growth corridors (QLD, regional NSW). Medium 
 - **Unrealistic expectations**: If someone earning 60k wants 10 properties at 800k each, still generate a plan — but scale down to 2-3 affordable properties and note the assumption. The engine will flag what's infeasible. Never refuse.
 
 ## Timeline Periods
-PropPath uses semi-annual periods. Period 1 = first half of 2025, Period 2 = second half of 2025, etc.
+PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Period 2 = second half of ${currentYear}, etc.
 - "In 2 years" = period 4-5
 - "Next year" = period 2-3
 - If the BA doesn't specify timing, space properties roughly 2-4 years apart depending on price and savings rate. The engine will determine exact feasibility.
