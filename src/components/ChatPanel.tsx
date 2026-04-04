@@ -7,12 +7,13 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { PlanningDefaultsModal } from './PlanningDefaultsModal'
 import { AddToTimelineModal } from './AddToTimelineModal'
+import { extractTextFromPdf } from '@/utils/pdfExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -47,6 +48,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
   const [showPreferences, setShowPreferences] = useState(false)
   const [showPropertyLibrary, setShowPropertyLibrary] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const isResizingRef = useRef(false)
   const { user } = useAuth()
 
@@ -377,18 +381,39 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   }, [messages])
 
   // Handle send
-  const handleSend = useCallback(() => {
-    if (inputValue.trim() && !isLoading) {
-      // Clear any active chart highlight on new message
-      setHighlightPeriod(null)
-      sendMessage(inputValue)
-      setInputValue('')
-      // Reset textarea height
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
+  const handleSend = useCallback(async () => {
+    const hasText = inputValue.trim()
+    const hasFile = selectedFile !== null
+    if ((!hasText && !hasFile) || isLoading) return
+
+    // Clear any active chart highlight on new message
+    setHighlightPeriod(null)
+
+    let messageText = inputValue.trim()
+
+    // If a file is attached, extract text and prepend to message
+    if (selectedFile) {
+      try {
+        const pdfText = await extractTextFromPdf(selectedFile)
+        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded PDF document. Extract any relevant financial data from it — look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${pdfText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
+      } catch (err) {
+        const errMsg = err instanceof Error && err.message === 'SCAN_PDF'
+          ? "Couldn't read that document clearly. Try uploading a text-based PDF — scanned documents aren't supported yet."
+          : 'Upload failed. Please try again.'
+        // Show error as system message — don't send to AI
+        addSystemMessage(errMsg)
+        setSelectedFile(null)
+        return
       }
+      setSelectedFile(null)
     }
-  }, [inputValue, isLoading, sendMessage, setHighlightPeriod])
+
+    sendMessage(messageText)
+    setInputValue('')
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
+  }, [inputValue, isLoading, sendMessage, setHighlightPeriod, selectedFile, addSystemMessage])
 
   // Handle keyboard
   const handleKeyDown = useCallback(
@@ -400,6 +425,46 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     },
     [handleSend]
   )
+
+  // File upload handlers
+  const handleFileSelect = useCallback((file: File) => {
+    if (file.type !== 'application/pdf') {
+      return // Only accept PDFs
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return // 10MB limit
+    }
+    setSelectedFile(file)
+  }, [])
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelect(file)
+    // Reset input so same file can be selected again
+    e.target.value = ''
+  }, [handleFileSelect])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
+  }, [handleFileSelect])
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  }
 
   // Auto-resize textarea
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -510,7 +575,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         </div>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div
+          className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div
@@ -553,6 +623,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
         {/* Input area */}
         <div className="border-t border-gray-200 p-3">
+          {/* File preview */}
+          {selectedFile && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-100 rounded-lg">
+              <FileTextIcon size={14} className="text-gray-500 flex-shrink-0" />
+              <span className="text-xs text-gray-600 truncate flex-1">{selectedFile.name}</span>
+              <span className="text-xs text-gray-400">{formatFileSize(selectedFile.size)}</span>
+              <button
+                onClick={() => setSelectedFile(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XIcon size={12} />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-gray-300 transition-colors">
             <button
               onClick={() => setShowPropertyLibrary(true)}
@@ -561,6 +645,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             >
               <BuildingIcon size={14} />
             </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Upload PDF"
+            >
+              <PaperclipIcon size={14} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -573,11 +671,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={(!inputValue.trim() && !selectedFile) || isLoading}
               className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30"
               style={{
-                backgroundColor: inputValue.trim() && !isLoading ? primaryColor : undefined,
-                color: inputValue.trim() && !isLoading ? 'white' : undefined,
+                backgroundColor: (inputValue.trim() || selectedFile) && !isLoading ? primaryColor : undefined,
+                color: (inputValue.trim() || selectedFile) && !isLoading ? 'white' : undefined,
               }}
             >
               {isLoading ? (
