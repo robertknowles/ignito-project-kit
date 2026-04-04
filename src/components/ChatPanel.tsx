@@ -7,10 +7,11 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
+import { PlanningDefaultsModal } from './PlanningDefaultsModal'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -43,6 +44,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
   const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
+  const [showPreferences, setShowPreferences] = useState(false)
   const isResizingRef = useRef(false)
   const { user } = useAuth()
 
@@ -458,9 +460,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       style={{ width: isOpen ? chatPanelWidth : 0 }}
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Header — Client Selector (matches original InputDrawer header) */}
+        {/* Header — Client Selector + settings gear */}
         <div className="flex items-center border-b border-gray-200 h-[52px] px-2">
           <ClientSelector />
+          <button
+            onClick={() => setShowPreferences(true)}
+            className="ml-auto flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            title="Planning Defaults"
+          >
+            <Settings2Icon size={14} />
+          </button>
         </div>
 
         {/* Messages area */}
@@ -547,6 +556,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       )}
+
+      {/* Planning Defaults Modal */}
+      <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
     </div>
   )
 }
