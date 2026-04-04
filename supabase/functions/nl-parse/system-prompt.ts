@@ -181,6 +181,12 @@ When a modification makes the plan infeasible (the engine returns a constraint f
   - Format: { "label": "Lower purchase price", "description": "Drop to $380k — affordable by mid-${currentYear + 1}", "prompt": "Lower property 2 purchase price to $380k" }
 - Tone: matter-of-fact, not apologetic. The engine is doing its job. This is information, not an error.
 
+## Pacing / Speed Recognition
+- "Aggressive", "fast", "as quick as possible", "rapid" → pacing: "aggressive"
+- "Balanced", "comfortable", "steady", "medium" → pacing: "balanced"
+- "Conservative", "slow", "careful", "safe", "low risk" → pacing: "conservative"
+Include a "pacing" field in initial_plan responses if the BA mentions speed/strategy preference.
+
 ## Timeline Periods
 PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Period 2 = second half of ${currentYear}, etc.
 - "In 2 years" = period 4-5

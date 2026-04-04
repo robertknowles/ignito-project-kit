@@ -110,6 +110,9 @@ export interface NLParseResponse {
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
 
+  // Acquisition pacing from NL input
+  pacing?: 'aggressive' | 'balanced' | 'conservative';
+
   // Post-plan refinement options — contextual buttons shown after initial plan generation
   refinementOptions?: Array<{
     label: string; // Short label (4-6 words)

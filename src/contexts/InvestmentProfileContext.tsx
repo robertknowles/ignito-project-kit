@@ -29,6 +29,8 @@ export interface InvestmentProfileData {
   // NEW: Financial Freedom projection
   targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
   ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
+  // Acquisition pacing mode
+  pacingMode: 'aggressive' | 'balanced' | 'conservative';
 }
 
 export interface CalculatedValues {
@@ -86,6 +88,7 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     // NEW: Financial Freedom projection
     targetPassiveIncome: 80000, // $80k annual passive income target
     ioToPiTransitionYears: 5, // 5 years after last purchase, switch IO→P&I
+    pacingMode: 'balanced',
   });
 
   // Background calculations - not displayed in UI but available for simulation engine
