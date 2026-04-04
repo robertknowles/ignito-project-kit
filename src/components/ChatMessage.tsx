@@ -15,14 +15,16 @@ import type { ChatMessage as ChatMessageType, ChatOptionCardData } from '@/types
 import { ChatOptionCard } from './ChatOptionCard'
 import { ChatSummaryCard } from './ChatSummaryCard'
 import { MicroConfirmationCard } from './MicroConfirmationCard'
+import { PostPlanRefinement } from './PostPlanRefinement'
 
 interface ChatMessageProps {
   message: ChatMessageType
   onOptionSelect?: (card: ChatOptionCardData) => void
   onFollowUpClick?: (suggestion: string) => void
+  propertyCount?: number
 }
 
-export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick }, ref) => {
+export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick, propertyCount }, ref) => {
   // Loading indicator with personalised text
   if (message.type === 'loading') {
     return (
@@ -142,24 +144,12 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
             </div>
           )}
 
-          {/* Refinement options — contextual action buttons after plan generation */}
-          {message.refinementOptions && message.refinementOptions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="flex flex-wrap gap-1.5 pt-1"
-            >
-              {message.refinementOptions.map((option, i) => (
-                <button
-                  key={i}
-                  onClick={() => onFollowUpClick?.(option.prompt)}
-                  className="text-xs px-3 py-2 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors leading-tight font-medium"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </motion.div>
+          {/* Post-plan refinement — 2-step flow: category → sub-options */}
+          {message.showRefinement && (
+            <PostPlanRefinement
+              propertyCount={propertyCount ?? 0}
+              onSelect={(prompt) => onFollowUpClick?.(prompt)}
+            />
           )}
 
           {/* Follow-up suggestions */}

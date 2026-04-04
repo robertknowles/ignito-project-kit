@@ -162,6 +162,7 @@ export interface ChatMessage {
   assumptions?: string[];
   followUpSuggestions?: string[];
   refinementOptions?: Array<{ label: string; prompt: string }>;
+  showRefinement?: boolean;
 }
 
 export interface SummaryCardData {

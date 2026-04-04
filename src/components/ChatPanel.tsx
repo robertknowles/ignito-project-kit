@@ -629,6 +629,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                   message={msg}
                   onOptionSelect={handleOptionSelect}
                   onFollowUpClick={handleFollowUpClick}
+                  propertyCount={propertyOrder.length}
                 />
               )
             )}
