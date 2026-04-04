@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
 import {
-  HomeIcon,
   UsersIcon,
   BarChart3Icon,
   UserIcon,
@@ -35,7 +34,6 @@ export const LeftRail = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Get primary color from branding (defaults handled in BrandingContext)
   const primaryColor = branding.primaryColor
 
   // Close dropdowns when clicking outside
@@ -87,7 +85,9 @@ export const LeftRail = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                  location.pathname === '/home' ? 'bg-gray-100' : 'hover:bg-gray-100'
+                }`}
                 onClick={() => navigate('/home')}
               >
                 {branding.logoUrl ? (
@@ -109,26 +109,6 @@ export const LeftRail = () => {
 
         {/* Top Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {/* Home */}
-          {(role === 'owner' || role === 'agent') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                    location.pathname === '/home' ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-                  style={{ color: primaryColor }}
-                  onClick={() => navigate('/home')}
-                >
-                  <HomeIcon size={20} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Home</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
           {/* Simulate */}
           <Tooltip>
             <TooltipTrigger asChild>

@@ -18,7 +18,7 @@ function AppContent() {
   const { role } = useAuth();
   const { clientScenarioLoading, noScenarioForClient } = useScenarioSave();
   const { branding } = useBranding();
-  const { drawerOpen, toggleDrawer } = useLayout();
+  const { drawerOpen, toggleDrawer, chatPanelWidth } = useLayout();
   
   const isClient = role === 'client';
   const showInputDrawer = !isClient || branding.isClientInteractiveEnabled;
@@ -96,9 +96,8 @@ function AppContent() {
         {/* Main Content Area - margin adjusts based on drawer state */}
         <div 
           id="main-content"
-          className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-            drawerOpen ? 'ml-[352px]' : 'ml-16'
-          }`}
+          className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ marginLeft: drawerOpen ? 64 + chatPanelWidth : 64 }}
         >
           <TopBar />
           <div className="flex-1 overflow-hidden">

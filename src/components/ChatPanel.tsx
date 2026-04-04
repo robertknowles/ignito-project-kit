@@ -7,9 +7,13 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
+import { ChatLoadingSteps } from './ChatLoadingSteps'
+import { PlanningDefaultsModal } from './PlanningDefaultsModal'
+import { AddToTimelineModal } from './AddToTimelineModal'
+import { extractTextFromPdf } from '@/utils/pdfExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -28,6 +32,7 @@ import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 
 interface ChatPanelProps {
@@ -40,18 +45,27 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
-  const { setPlanGenerating } = useLayout()
+  const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
+  const [showPreferences, setShowPreferences] = useState(false)
+  const [showPropertyLibrary, setShowPropertyLibrary] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const isResizingRef = useRef(false)
   const { user } = useAuth()
 
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
-  const { setAllSelections, selections, propertyOrder } = usePropertySelection()
+  const { setAllSelections, selections, propertyOrder, addEvent } = usePropertySelection()
   const { setInstances, instances } = usePropertyInstance()
   const { addScenario, syncCurrentScenarioFromContext, scenarios } = useMultiScenario()
 
   // Chart data for explanations
   const { timelineProperties } = useAffordabilityCalculator()
   const chartData = useChartDataGenerator()
+
+  // Client context — for resetting chat on client switch
+  const { activeClient } = useClient()
 
   // Scenario persistence — sync chat messages
   const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages } = useScenarioSave()
@@ -244,24 +258,86 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [chartData, timelineProperties]
   )
 
+  // Handle add_event — add timeline events from NL
+  const handleAddEvent = useCallback(
+    (response: NLParseResponse) => {
+      if (!response.event) return
+      const { eventType, targetYear, parameters } = response.event
+      const BASE_YEAR = new Date().getFullYear()
+      const period = Math.max(1, Math.round((targetYear - BASE_YEAR) * 2) + 1)
+
+      // Map NL event types to the existing event system
+      const eventTypeMap: Record<string, string> = {
+        refinance: 'refinance',
+        salary_change: 'income-change',
+        sell_property: 'sell-property',
+        interest_rate_change: 'interest-rate-change',
+      }
+      const categoryMap: Record<string, string> = {
+        refinance: 'portfolio',
+        salary_change: 'income',
+        sell_property: 'portfolio',
+        interest_rate_change: 'market',
+      }
+
+      addEvent({
+        type: 'event',
+        eventType: eventTypeMap[eventType] || eventType,
+        category: categoryMap[eventType] || 'portfolio',
+        period,
+        order: 0,
+        payload: parameters as Record<string, unknown>,
+      })
+    },
+    [addEvent]
+  )
+
+  // Handle explanation — highlight relevant period on the chart
+  const handleExplanation = useCallback(
+    (response: NLParseResponse) => {
+      if (response.explanation?.relevantPeriod) {
+        setHighlightPeriod(response.explanation.relevantPeriod)
+      }
+    },
+    [setHighlightPeriod]
+  )
+
   // Chat conversation hook
-  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages } = useChatConversation({
+  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
+    onExplanation: handleExplanation,
     onComparison: handleComparison,
+    onAddEvent: handleAddEvent,
     getCurrentPlan,
     getChartContext,
     userId: user?.id,
+    clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
   })
 
-  // Load saved chat messages when they change (scenario load)
+  // Reset chat state when the active client changes
   const loadedRef = useRef(false)
+  const prevClientRef = useRef<number | null>(null)
   useEffect(() => {
-    if (savedChatMessages.length > 0 && messages.length === 0 && !loadedRef.current) {
-      loadMessages(savedChatMessages)
+    if (activeClient?.id !== prevClientRef.current) {
+      prevClientRef.current = activeClient?.id ?? null
+      // On client switch (not initial load), clear messages and allow reload
+      if (loadedRef.current) {
+        clearMessages()
+        loadedRef.current = false
+      }
+    }
+  }, [activeClient?.id, clearMessages])
+
+  // Load saved chat messages when they change (scenario load or client switch)
+  useEffect(() => {
+    if (!loadedRef.current) {
+      if (savedChatMessages.length > 0) {
+        loadMessages(savedChatMessages)
+      }
       loadedRef.current = true
     }
-  }, [savedChatMessages, messages.length, loadMessages])
+  }, [savedChatMessages, loadMessages])
 
   // Sync current messages to scenario save context (for persistence)
   useEffect(() => {
@@ -272,9 +348,31 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }
   }, [messages, saveChatMessages])
 
-  // Sync loading state to layout context for Dashboard skeleton UI
+  // Loading step progression for ChatLoadingSteps
+  const [loadingStep, setLoadingStep] = useState(0)
+  const perfStartRef = useRef<number>(0)
+
+  // Sync loading state to layout context for Dashboard skeleton UI + step progression
   useEffect(() => {
     setPlanGenerating(isLoading)
+    if (isLoading) {
+      perfStartRef.current = performance.now()
+      setLoadingStep(0)
+      // Step 1 → 2 after API responds (approximate with timer, actual would need hook into response)
+      const step1Timer = setTimeout(() => setLoadingStep(1), 1500)
+      const step2Timer = setTimeout(() => setLoadingStep(2), 2500)
+      return () => {
+        clearTimeout(step1Timer)
+        clearTimeout(step2Timer)
+      }
+    } else if (perfStartRef.current > 0) {
+      const totalMs = Math.round(performance.now() - perfStartRef.current)
+      if (process.env.NODE_ENV === 'development' || totalMs > 0) {
+        console.log(`[PropPath Perf] Total: ${totalMs}ms`)
+      }
+      perfStartRef.current = 0
+      setLoadingStep(0)
+    }
   }, [isLoading, setPlanGenerating])
 
   // Auto-scroll to bottom when messages change
@@ -283,16 +381,39 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   }, [messages])
 
   // Handle send
-  const handleSend = useCallback(() => {
-    if (inputValue.trim() && !isLoading) {
-      sendMessage(inputValue)
-      setInputValue('')
-      // Reset textarea height
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
+  const handleSend = useCallback(async () => {
+    const hasText = inputValue.trim()
+    const hasFile = selectedFile !== null
+    if ((!hasText && !hasFile) || isLoading) return
+
+    // Clear any active chart highlight on new message
+    setHighlightPeriod(null)
+
+    let messageText = inputValue.trim()
+
+    // If a file is attached, extract text and prepend to message
+    if (selectedFile) {
+      try {
+        const pdfText = await extractTextFromPdf(selectedFile)
+        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded PDF document. Extract any relevant financial data from it — look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${pdfText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
+      } catch (err) {
+        const errMsg = err instanceof Error && err.message === 'SCAN_PDF'
+          ? "Couldn't read that document clearly. Try uploading a text-based PDF — scanned documents aren't supported yet."
+          : 'Upload failed. Please try again.'
+        // Show error as system message — don't send to AI
+        addSystemMessage(errMsg)
+        setSelectedFile(null)
+        return
       }
+      setSelectedFile(null)
     }
-  }, [inputValue, isLoading, sendMessage])
+
+    sendMessage(messageText)
+    setInputValue('')
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
+  }, [inputValue, isLoading, sendMessage, setHighlightPeriod, selectedFile, addSystemMessage])
 
   // Handle keyboard
   const handleKeyDown = useCallback(
@@ -304,6 +425,46 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     },
     [handleSend]
   )
+
+  // File upload handlers
+  const handleFileSelect = useCallback((file: File) => {
+    if (file.type !== 'application/pdf') {
+      return // Only accept PDFs
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return // 10MB limit
+    }
+    setSelectedFile(file)
+  }, [])
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelect(file)
+    // Reset input so same file can be selected again
+    e.target.value = ''
+  }, [handleFileSelect])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
+  }, [handleFileSelect])
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  }
 
   // Auto-resize textarea
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -364,20 +525,62 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [isLoading, sendMessage]
   )
 
+  // Drag handle for resizing
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizingRef.current = true
+    const startX = e.clientX
+    const startWidth = chatPanelWidth
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingRef.current) return
+      const delta = moveEvent.clientX - startX
+      setChatPanelWidth(startWidth + delta)
+    }
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [chatPanelWidth, setChatPanelWidth])
+
+  const handleResizeDoubleClick = useCallback(() => {
+    setChatPanelWidth(288) // Reset to default w-72
+  }, [setChatPanelWidth])
+
   return (
     <div
-      className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
-        isOpen ? 'w-72' : 'w-0'
-      }`}
+      className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out`}
+      style={{ width: isOpen ? chatPanelWidth : 0 }}
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Header — Client Selector (matches original InputDrawer header) */}
+        {/* Header — Client Selector + settings gear */}
         <div className="flex items-center border-b border-gray-200 h-[52px] px-2">
           <ClientSelector />
+          <button
+            onClick={() => setShowPreferences(true)}
+            className="ml-auto flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            title="Planning Defaults"
+          >
+            <Settings2Icon size={14} />
+          </button>
         </div>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div
+          className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div
@@ -396,14 +599,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           )}
 
           <AnimatePresence mode="popLayout">
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                onOptionSelect={handleOptionSelect}
-                onFollowUpClick={handleFollowUpClick}
-              />
-            ))}
+            {messages.map((msg) =>
+              msg.type === 'loading' ? (
+                <ChatLoadingSteps
+                  key={msg.id}
+                  clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                  activeStep={loadingStep}
+                  isComplete={false}
+                />
+              ) : (
+                <ChatMessage
+                  key={msg.id}
+                  message={msg}
+                  onOptionSelect={handleOptionSelect}
+                  onFollowUpClick={handleFollowUpClick}
+                />
+              )
+            )}
           </AnimatePresence>
 
           <div ref={messagesEndRef} />
@@ -411,7 +623,42 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
         {/* Input area */}
         <div className="border-t border-gray-200 p-3">
+          {/* File preview */}
+          {selectedFile && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-100 rounded-lg">
+              <FileTextIcon size={14} className="text-gray-500 flex-shrink-0" />
+              <span className="text-xs text-gray-600 truncate flex-1">{selectedFile.name}</span>
+              <span className="text-xs text-gray-400">{formatFileSize(selectedFile.size)}</span>
+              <button
+                onClick={() => setSelectedFile(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XIcon size={12} />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-gray-300 transition-colors">
+            <button
+              onClick={() => setShowPropertyLibrary(true)}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Browse Properties"
+            >
+              <BuildingIcon size={14} />
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Upload PDF"
+            >
+              <PaperclipIcon size={14} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -424,11 +671,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={(!inputValue.trim() && !selectedFile) || isLoading}
               className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30"
               style={{
-                backgroundColor: inputValue.trim() && !isLoading ? primaryColor : undefined,
-                color: inputValue.trim() && !isLoading ? 'white' : undefined,
+                backgroundColor: (inputValue.trim() || selectedFile) && !isLoading ? primaryColor : undefined,
+                color: (inputValue.trim() || selectedFile) && !isLoading ? 'white' : undefined,
               }}
             >
               {isLoading ? (
@@ -440,6 +687,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           </div>
         </div>
       </div>
+
+      {/* Resize handle */}
+      {isOpen && (
+        <div
+          className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors group z-40"
+          onMouseDown={handleResizeStart}
+          onDoubleClick={handleResizeDoubleClick}
+        >
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      )}
+
+      {/* Planning Defaults Modal */}
+      <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
+
+      {/* Property Library Modal */}
+      {showPropertyLibrary && (
+        <AddToTimelineModal onClose={() => setShowPropertyLibrary(false)} />
+      )}
     </div>
   )
 }

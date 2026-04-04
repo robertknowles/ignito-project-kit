@@ -124,6 +124,11 @@ const config: Config = {
             opacity: "1",
           },
         },
+        shimmer: {
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -131,6 +136,7 @@ const config: Config = {
         "slide-in": "slideIn 0.3s ease-out forwards",
         "pulse-once": "pulse-once 1s ease-in-out",
         "fade-in": "fade-in 0.3s ease-out",
+        shimmer: "shimmer 1.5s infinite",
       },
     },
   },

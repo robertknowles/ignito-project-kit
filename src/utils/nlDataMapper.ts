@@ -67,6 +67,11 @@ export function mapToInvestmentProfile(
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
   }
 
+  // Pacing mode from NL input
+  if (response.pacing) {
+    updates.pacingMode = response.pacing;
+  }
+
   return updates;
 }
 

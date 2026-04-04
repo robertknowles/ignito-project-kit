@@ -1,0 +1,246 @@
+===============================================================================
+PROPPATH FUNDING ALLOCATION SYSTEM - TECHNICAL SUMMARY
+===============================================================================
+
+ANALYST: Claude (Bertie)
+DATE: 2026-03-14
+STATUS: Complete Analysis - Ready for Implementation
+
+===============================================================================
+FINDINGS
+===============================================================================
+
+1. COMPREHENSIVE DATA ALREADY EXISTS
+
+   The system tracks per-property funding allocation with complete granularity:
+   
+   ✅ Funding source breakdown (cash | savings | equity)
+   ✅ Running balances after each purchase
+   ✅ Chronological funding sequence
+   ✅ Custom event integration (inheritance, bonuses, expenses)
+   ✅ Available funds calculation (start of year)
+
+2. EQUITY-FIRST ALLOCATION STRATEGY
+
+   The engine prioritizes:
+   1st → Equity extraction (at 80% LVR from existing properties)
+   2nd → Remaining cash pool (depletes permanently)
+   3rd → Accumulated savings (25% of annual salary)
+
+3. DATA STORAGE LOCATIONS
+
+   Per-Property Breakdown:
+   - TimelineProperty.fundingBreakdown { cash, savings, equity, total }
+   - TimelineProperty.balancesAfterPurchase { cash, savings, equityUsed }
+   
+   Annual Summaries:
+   - YearBreakdownData.baseDeposit
+   - YearBreakdownData.cumulativeSavings
+   - YearBreakdownData.equityRelease
+
+4. CALCULATION LOGIC
+
+   File: /src/hooks/useAffordabilityCalculator.ts (lines 327-504)
+   
+   For each purchase:
+     1. Calculate available equity from previous purchases
+     2. Allocate from equity first (up to availability)
+     3. Then allocate from cash (depletes permanently)
+     4. Finally allocate from savings (from 25% usable rate)
+     5. Store funding breakdown and remaining balances
+
+5. RUNNING BALANCE TRACKING
+
+   File: /src/hooks/useRoadmapData.ts (lines 214-443)
+   
+   Maintains chronological state:
+   - runningCashBalance: depletes with each purchase
+   - runningSavingsBalance: accumulates over time
+   - cumulativeEquityUsed: tracks total equity extracted
+
+===============================================================================
+WHAT'S BUILT VS WHAT'S NEEDED
+===============================================================================
+
+ALREADY BUILT (No changes needed):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Funding allocation engine
+✅ Per-property breakdown storage
+✅ Running balance calculations
+✅ Custom event processing
+✅ Available funds display (in Financial Summary Table)
+✅ Data structure (TimelineProperty, YearBreakdownData)
+✅ Chronological processing
+
+NEEDS IMPLEMENTATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ Stacked funding-source chart visualization
+   - Absolute stacked bars (recommended)
+   - 100% stacked bars (proportional view)
+   - Running balance timeline (optional)
+
+===============================================================================
+IMPLEMENTATION ROADMAP
+===============================================================================
+
+Phase 1: Understand (30 min)
+  □ Read FUNDING_ALLOCATION_ANALYSIS.md
+  □ Review source files referenced in section 9
+  □ Examine existing FinancialSummaryTable for pattern
+
+Phase 2: Design (30 min)
+  □ Choose chart variant (Option 1: Absolute stacked bars recommended)
+  □ Define integration point (new tab, section, or component)
+  □ Plan color palette and tooltip behavior
+
+Phase 3: Implement (1-2 hours)
+  □ Create FundingSourceChart.tsx component
+  □ Connect to useAffordabilityCalculator
+  □ Implement Recharts stacked bar
+  □ Add custom tooltips
+  □ Style with Tailwind
+
+Phase 4: Test (30 min)
+  □ Use test data from STACKED_FUNDING_CHART_BLUEPRINT.md
+  □ Verify funding allocations match engine output
+  □ Test with custom events (inheritance, etc.)
+  □ Responsive design check
+
+Total Estimated Time: 2.5-3.5 hours
+
+===============================================================================
+DATA READY FOR VISUALIZATION
+===============================================================================
+
+Property-level data structure (ready to use):
+
+{
+  propertyTitle: "House A",
+  displayPeriod: "2025 H1",
+  cost: 550000,
+  fundingBreakdown: {
+    cash: 0,
+    savings: 0,
+    equity: 82500,
+    total: 82500
+  },
+  balancesAfterPurchase: {
+    cash: 118500,
+    savings: 0,
+    equityUsed: 82500
+  }
+}
+
+Access via:
+  const { timelineProperties } = useAffordabilityCalculator();
+  const purchased = timelineProperties.filter(p => p.affordableYear !== Infinity);
+
+===============================================================================
+KEY INSIGHTS FROM ANALYSIS
+===============================================================================
+
+1. EQUITY-FIRST BIAS
+   Early properties are almost always funded primarily from equity extraction.
+   This allows rapid portfolio growth while preserving cash reserves.
+
+2. CASH DEPLETION PATTERN
+   Initial cash pool depletes quickly (usually by property 2-3).
+   Later purchases rely on equity + accumulated savings.
+
+3. SAVINGS ACCUMULATION
+   Savings grow incrementally but represent a small funding source in early years.
+   More significant by year 3-4 when accumulated.
+
+4. EVENT INTEGRATION
+   Custom events (inheritance, bonuses) increase cash availability for that period.
+   Impact visible in funding breakdown for purchases in affected period.
+
+5. SEQUENTIAL DEPENDENCY
+   Later purchases depend on balances from earlier purchases.
+   Chart should show this chronological dependency clearly.
+
+===============================================================================
+RECOMMENDED CHART DESIGN
+===============================================================================
+
+Type: Absolute Stacked Horizontal Bar Chart
+X-Axis: Property purchases (Property A, B, C...) OR Time periods
+Y-Axis: Funding amount ($)
+Segments: Cash (gray) | Savings (blue) | Equity (green)
+
+Benefits:
+  ✅ Shows actual funding amounts (not just proportions)
+  ✅ Easy to see when each source depletes
+  ✅ Clear visualization of equity-first strategy
+  ✅ Intuitive for BA users (familiar with stacked budgets)
+
+Alternative: 100% Stacked Bar (if preferred)
+Benefits:
+  ✅ Shows funding mix composition
+  ✅ Easier to compare proportions across properties
+  ✅ Works well for many properties (doesn't overflow)
+
+===============================================================================
+CRITICAL IMPLEMENTATION DETAILS
+===============================================================================
+
+1. USE CORRECT DATA SOURCES
+   ✓ fundingBreakdown - actual amounts used
+   ✓ balancesAfterPurchase - not usable for chart (use for balance tooltip)
+   ✓ baseDeposit/cumulativeSavings/equityRelease - for annual view
+
+2. FILTER FOR PURCHASED PROPERTIES
+   const purchased = properties.filter(p => p.affordableYear !== Infinity);
+   
+3. HANDLE MULTIPLE PURCHASES PER YEAR
+   Use displayPeriod as grouping key if stacking
+   
+4. REACTIVE UPDATES
+   Component should re-render when:
+   - Profile changes (salary, deposit pool)
+   - Properties added/removed
+   - Custom events added/modified
+   
+5. EDGE CASES
+   - Handle when equity = 0 (later properties)
+   - Handle when all from one source
+   - Handle when property purchase fails (affordableYear = Infinity)
+
+===============================================================================
+DELIVERABLES
+===============================================================================
+
+Included in this analysis:
+
+1. FUNDING_ALLOCATION_ANALYSIS.md (11 KB)
+   - Complete technical breakdown
+   - Source code references
+   - Design principles
+   - Example walkthroughs
+
+2. STACKED_FUNDING_CHART_BLUEPRINT.md (8 KB)
+   - Quick start guide
+   - Code snippets ready to use
+   - Three chart variants with implementations
+   - Testing data
+   - Integration points
+
+3. FUNDING_SYSTEM_SUMMARY.txt (this file)
+   - Executive summary
+   - Implementation roadmap
+   - Critical details
+   - Data reference
+
+===============================================================================
+NEXT STEPS FOR ROB
+===============================================================================
+
+1. Review the analysis documents (20 min read)
+2. Decide on chart variant (absolute vs 100% stacked)
+3. Choose integration point (new component, tab, or section)
+4. Assign to developer with Recharts experience (2-3 hour task)
+5. Test with sample scenarios
+
+Questions? Review the detailed analysis documents above.
+
+===============================================================================

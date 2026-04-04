@@ -7,12 +7,10 @@ import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
 import { calculatePropertyGrowth } from '../utils/metricsCalculator';
-import { ANNUAL_INFLATION_RATE } from '../constants/financialParams';
+import { ANNUAL_INFLATION_RATE, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { GrowthCurve } from '../types/property';
 
 // Period conversion constants (aligned with calculator)
-const PERIODS_PER_YEAR = 2;
-const BASE_YEAR = 2025;
 
 interface EquityDataPoint {
   year: number;

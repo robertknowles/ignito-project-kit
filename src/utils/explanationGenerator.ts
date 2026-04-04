@@ -11,6 +11,7 @@
 
 import type { PortfolioGrowthDataPoint, CashflowDataPoint } from '@/hooks/useChartDataGenerator'
 import type { TimelineProperty } from '@/types/property'
+import { BASE_YEAR } from '@/constants/financialParams'
 
 export interface ExplanationContext {
   /** Summary of what data was found for the question */
@@ -39,7 +40,7 @@ export function buildExplanationContext(
   // If no years found but we have relevantPeriods, convert them
   if (relevantYears.length === 0 && relevantPeriods && relevantPeriods.length > 0) {
     for (const period of relevantPeriods) {
-      const year = String(2025 + Math.floor((period - 1) / 2))
+      const year = String(BASE_YEAR + Math.floor((period - 1) / 2))
       if (!relevantYears.includes(year)) {
         relevantYears.push(year)
       }

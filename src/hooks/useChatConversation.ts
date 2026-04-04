@@ -22,11 +22,14 @@ interface UseChatConversationOptions {
   onModification?: (response: NLParseResponse) => void
   onExplanation?: (response: NLParseResponse) => void
   onComparison?: (response: NLParseResponse) => void
+  onAddEvent?: (response: NLParseResponse) => void
   getCurrentPlan?: () => CurrentPlanState | null
   /** Returns chart data context string for explanation requests */
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
   /** User ID for usage tracking */
   userId?: string
+  /** Client name for personalised loading text */
+  clientName?: string
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -123,8 +126,11 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
 
-      // Add loading indicator
-      const loadingMsg = createMessage('assistant', 'loading', '')
+      // Add loading indicator with personalised text
+      const loadingText = options.clientName
+        ? `Mapping ${options.clientName}'s portfolio path...`
+        : 'Running the numbers...'
+      const loadingMsg = createMessage('assistant', 'loading', loadingText)
       setMessages((prev) => [...prev, loadingMsg])
 
       try {
@@ -286,6 +292,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                       return updated
                     })
                   }
+                  options.onExplanation?.(explResponse)
                   break
                 }
               } catch {
@@ -311,6 +318,38 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             break
           }
 
+          case 'add_event': {
+            const eventMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, eventMsg])
+            options.onAddEvent?.(response)
+            break
+          }
+
+          case 'property_suggestions': {
+            // Show message + property suggestion cards as refinement options
+            const suggestMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, suggestMsg])
+            // Map property suggestions to refinement options format
+            if (response.propertySuggestions?.length) {
+              setMessages((prev) => {
+                const updated = [...prev]
+                const last = [...updated].reverse().find((m) => m.role === 'assistant')
+                if (last) {
+                  last.refinementOptions = response.propertySuggestions!.map(s => ({
+                    label: `${s.label} — ${s.price}`,
+                    prompt: s.prompt,
+                  }))
+                }
+                return updated
+              })
+            }
+            break
+          }
+
           default: {
             // Fallback — just show the message
             const fallbackMsg = createMessage('assistant', 'text', response.message)
@@ -318,15 +357,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
         }
 
-        // Add follow-up suggestions if present
-        if (response.followUpSuggestions && response.followUpSuggestions.length > 0) {
-          // These could be rendered as suggestion chips in the UI
-          // For now, store them on the last message
+        // Add follow-up suggestions and refinement options if present
+        if (response.followUpSuggestions?.length || response.refinementOptions?.length) {
           setMessages((prev) => {
             const updated = [...prev]
             const lastAssistant = [...updated].reverse().find((m) => m.role === 'assistant')
             if (lastAssistant) {
-              lastAssistant.followUpSuggestions = response.followUpSuggestions
+              if (response.followUpSuggestions?.length) {
+                lastAssistant.followUpSuggestions = response.followUpSuggestions
+              }
+              if (response.refinementOptions?.length) {
+                lastAssistant.refinementOptions = response.refinementOptions
+              }
             }
             return updated
           })

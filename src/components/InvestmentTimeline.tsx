@@ -166,7 +166,6 @@ export const useTimelineData = () => {
   const { profile } = useInvestmentProfile()
   const { timelineProperties } = useAffordabilityCalculator()
   
-  const BASE_YEAR = 2025;
   const startYear = BASE_YEAR;
   const endYear = startYear + (profile.timelineYears || 15) - 1;
   
@@ -1172,7 +1171,7 @@ function interpolateYearData(
   let propertyCost = 0;
   let status: 'initial' | 'purchased' | 'blocked' | 'waiting' = 'waiting';
   
-  if (year === 2025) {
+  if (year === BASE_YEAR) {
     status = 'initial';
   } else {
     // Find the next property that should be purchased

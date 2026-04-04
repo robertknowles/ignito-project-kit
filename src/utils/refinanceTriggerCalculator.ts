@@ -1,5 +1,5 @@
 import { calculatePropertyGrowth } from './metricsCalculator';
-import { EQUITY_EXTRACTION_LVR_CAP, MIN_EXTRACTABLE_EQUITY_THRESHOLD, PERIODS_PER_YEAR } from '../constants/financialParams';
+import { BASE_YEAR, EQUITY_EXTRACTION_LVR_CAP, MIN_EXTRACTABLE_EQUITY_THRESHOLD, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { TimelineProperty } from '../types/property';
 
 export interface RefinanceTrigger {
@@ -25,7 +25,7 @@ export function calculateRefinanceTriggers(
   minExtractableEquity: number = MIN_EXTRACTABLE_EQUITY_THRESHOLD
 ): RefinanceTrigger[] {
   const triggers: RefinanceTrigger[] = [];
-  const startYear = 2025;
+  const startYear = BASE_YEAR;
 
   const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible');
 

@@ -23,29 +23,34 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick }, ref) => {
-  // Loading indicator
+  // Loading indicator with personalised text
   if (message.type === 'loading') {
     return (
       <div ref={ref} className="flex items-start gap-2.5">
         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
           <BotIcon size={13} className="text-white" />
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-gray-100 text-sm text-gray-500">
-          <motion.span
-            className="w-1.5 h-1.5 bg-gray-400 rounded-full"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
-          />
-          <motion.span
-            className="w-1.5 h-1.5 bg-gray-400 rounded-full"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-          />
-          <motion.span
-            className="w-1.5 h-1.5 bg-gray-400 rounded-full"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-          />
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-gray-100 text-sm text-gray-500">
+          <div className="flex items-center gap-1">
+            <motion.span
+              className="w-1.5 h-1.5 bg-gray-400 rounded-full"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
+            />
+            <motion.span
+              className="w-1.5 h-1.5 bg-gray-400 rounded-full"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+            />
+            <motion.span
+              className="w-1.5 h-1.5 bg-gray-400 rounded-full"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+            />
+          </div>
+          {message.content && (
+            <span className="text-gray-400 text-xs">{message.content}</span>
+          )}
         </div>
       </div>
     )
@@ -135,6 +140,26 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
             <div className="text-xs text-gray-400 italic">
               Assumed: {message.assumptions.join(' · ')}
             </div>
+          )}
+
+          {/* Refinement options — contextual action buttons after plan generation */}
+          {message.refinementOptions && message.refinementOptions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="flex flex-wrap gap-1.5 pt-1"
+            >
+              {message.refinementOptions.map((option, i) => (
+                <button
+                  key={i}
+                  onClick={() => onFollowUpClick?.(option.prompt)}
+                  className="text-xs px-3 py-2 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors leading-tight font-medium"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </motion.div>
           )}
 
           {/* Follow-up suggestions */}

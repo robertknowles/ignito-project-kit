@@ -16,6 +16,7 @@ import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenario
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
 import { useLayout } from '@/contexts/LayoutContext';
+import { PacingToggle } from './PacingToggle';
 import { Skeleton } from '@/components/ui/skeleton';
 const DashboardSkeleton = () => (
   <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
@@ -122,7 +123,10 @@ export const Dashboard = () => {
     <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
       <div className="flex flex-col gap-6 px-12 pt-6 pb-8">
         {/* ── Section 1: Investment Plan ──────────────────────────── */}
-        <h2 className="text-lg font-semibold text-gray-600 mb-0">Investment Plan</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-600 mb-0">Investment Plan</h2>
+          <PacingToggle />
+        </div>
 
         {/* Render scenario canvases vertically with gap */}
         <div className="flex flex-col gap-6">

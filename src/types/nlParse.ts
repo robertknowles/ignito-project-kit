@@ -39,7 +39,7 @@ export interface CurrentPlanState {
 // ── Edge Function Response ─────────────────────────────────────────
 
 export interface NLParseResponse {
-  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison';
+  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions';
 
   // For initial_plan — client financial details
   clientProfile?: {
@@ -91,6 +91,7 @@ export interface NLParseResponse {
     question: string;
     relevantPeriods: number[];
     relevantProperties: string[];
+    relevantPeriod?: { startYear: number; endYear: number };
   };
 
   // For comparison — "what if" scenario fork
@@ -108,6 +109,32 @@ export interface NLParseResponse {
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
+
+  // For property_suggestions — AI-suggested property cards
+  propertySuggestions?: Array<{
+    propertyType: string;
+    label: string;
+    price: string;
+    yield: string;
+    reason: string;
+    prompt: string;
+  }>;
+
+  // For add_event — timeline events (refinance, salary change, sell, rate change)
+  event?: {
+    eventType: 'refinance' | 'salary_change' | 'sell_property' | 'interest_rate_change';
+    targetYear: number;
+    parameters: Record<string, unknown>;
+  };
+
+  // Acquisition pacing from NL input
+  pacing?: 'aggressive' | 'balanced' | 'conservative';
+
+  // Post-plan refinement options — contextual buttons shown after initial plan generation
+  refinementOptions?: Array<{
+    label: string; // Short label (4-6 words)
+    prompt: string; // Full message to send when clicked
+  }>;
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────
@@ -134,6 +161,7 @@ export interface ChatMessage {
   optionCards?: ChatOptionCardData[];
   assumptions?: string[];
   followUpSuggestions?: string[];
+  refinementOptions?: Array<{ label: string; prompt: string }>;
 }
 
 export interface SummaryCardData {
