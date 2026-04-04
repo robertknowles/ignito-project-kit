@@ -433,6 +433,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartPlotArea, setChartPlotArea] = useState<{ top: number; bottom: number; left: number; right: number } | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   
   // Modal state for single test funnel
@@ -697,6 +698,28 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Read the actual Recharts SVG plotting area after each render/resize
+  // This syncs the overlay icons with the real chart coordinate system
+  useEffect(() => {
+    const readPlotArea = () => {
+      if (!chartContainerRef.current) return;
+      // Recharts renders a <clipPath> rect that defines the exact plotting area
+      const clipRect = chartContainerRef.current.querySelector('.recharts-surface clipPath rect');
+      if (clipRect) {
+        const rect = {
+          top: parseFloat(clipRect.getAttribute('y') || '0'),
+          left: parseFloat(clipRect.getAttribute('x') || '0'),
+          bottom: parseFloat(clipRect.getAttribute('y') || '0') + parseFloat(clipRect.getAttribute('height') || '0'),
+          right: parseFloat(clipRect.getAttribute('x') || '0') + parseFloat(clipRect.getAttribute('width') || '0'),
+        };
+        setChartPlotArea(rect);
+      }
+    };
+    // Slight delay to ensure Recharts has rendered the SVG
+    const timer = setTimeout(readPlotArea, 50);
+    return () => clearTimeout(timer);
+  }, [containerWidth, chartData, yearColumnWidth]);
+
   // Calculate dynamic column widths based on container size
   const yearCount = years.length;
   const availableWidth = containerWidth - LABEL_COLUMN_WIDTH;
@@ -795,30 +818,23 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   // Calculate positions for draggable property icons on the chart overlay
   const propertyPositions = useMemo(() => {
-    if (!chartData.length) return [];
-    
+    if (!chartData.length || !chartPlotArea) return [];
+
+    // Use real Recharts plotting area bounds read from the rendered SVG
+    const plotTop = chartPlotArea.top;
+    const plotBottom = chartPlotArea.bottom;
+    const plottingAreaHeight = plotBottom - plotTop;
+
     // Match Recharts' Y-axis domain calculation
-    // Recharts auto-calculates domain with "nice" values - we need to approximate this
     const dataMax = Math.max(...chartData.map(d => d.portfolioValue));
     const equityGoalValue = profile.equityGoal || 0;
     const rawMax = Math.max(dataMax, equityGoalValue);
-    
+
     // Recharts adds padding and rounds to nice values
-    // Approximate by adding ~10% padding and rounding up to a nice number
     const magnitude = Math.pow(10, Math.floor(Math.log10(rawMax)));
     const maxValue = Math.ceil(rawMax / magnitude * 1.1) * magnitude;
     const minValue = 0;
-    
-    // Chart dimensions - FIXED based on actual Recharts SVG path analysis
-    // The AreaChart has margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
-    // BUT Recharts also reserves space for the X-axis at the bottom (~30px)
-    // From debug logs: first point at Y=190 for low value, SVG height=220
-    // This means plotting area is from Y=20 (top margin) to Y=190 (above X-axis)
-    const chartTopMargin = 20;
-    const chartBottomMargin = 30; // Space for X-axis labels
-    const chartTotalHeight = CHART_HEIGHT; // 220px
-    const plottingAreaHeight = chartTotalHeight - chartTopMargin - chartBottomMargin; // 170px
-    
+
     // Collect all property positions, handling multiple properties per year (stacking)
     const positions: Array<{
       year: number;
@@ -827,24 +843,22 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
       instanceId: string;
       property: typeof timelineProperties[0] | undefined;
     }> = [];
-    
+
     chartData
       .filter(d => d.purchaseInYear && d.purchaseDetails && d.purchaseDetails.length > 0)
       .forEach(d => {
         const yearIndex = chartData.findIndex(cd => cd.year === d.year);
         // X position: center of the year column (accounting for Y-axis width)
         const x = Y_AXIS_WIDTH + (yearIndex * yearColumnWidth) + (yearColumnWidth / 2);
-        
-        // Base Y position: scaled based on portfolio value (snaps to equity line area)
-        // In SVG/screen coordinates, y=0 is at the top, so we invert
+
+        // Base Y position: scaled using actual plotting area bounds
         const valueRatio = (d.portfolioValue - minValue) / (maxValue - minValue);
-        const baseY = chartTopMargin + plottingAreaHeight * (1 - valueRatio);
-        
+        const baseY = plotTop + plottingAreaHeight * (1 - valueRatio);
+
         // Add position for each property in this year, stacking vertically
         d.purchaseDetails!.forEach((purchase, stackIndex) => {
-          // First property at base Y, subsequent properties stacked above with gap
           const y = baseY - (stackIndex * STACKED_PROPERTY_GAP);
-          
+
           positions.push({
             year: d.year,
             x,
@@ -854,9 +868,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
           });
         });
       });
-    
+
     return positions.filter(pos => pos.property !== undefined);
-  }, [chartData, yearColumnWidth, profile.equityGoal, timelineProperties]);
+  }, [chartData, yearColumnWidth, profile.equityGoal, timelineProperties, chartPlotArea]);
 
   // Generate periods array for droppable columns (one per year in the chart)
   const periodsForDroppables = useMemo(() => {
