@@ -327,6 +327,29 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             break
           }
 
+          case 'property_suggestions': {
+            // Show message + property suggestion cards as refinement options
+            const suggestMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, suggestMsg])
+            // Map property suggestions to refinement options format
+            if (response.propertySuggestions?.length) {
+              setMessages((prev) => {
+                const updated = [...prev]
+                const last = [...updated].reverse().find((m) => m.role === 'assistant')
+                if (last) {
+                  last.refinementOptions = response.propertySuggestions!.map(s => ({
+                    label: `${s.label} — ${s.price}`,
+                    prompt: s.prompt,
+                  }))
+                }
+                return updated
+              })
+            }
+            break
+          }
+
           default: {
             // Fallback — just show the message
             const fallbackMsg = createMessage('assistant', 'text', response.message)

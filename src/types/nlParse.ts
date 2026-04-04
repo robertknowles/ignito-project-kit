@@ -39,7 +39,7 @@ export interface CurrentPlanState {
 // ── Edge Function Response ─────────────────────────────────────────
 
 export interface NLParseResponse {
-  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event';
+  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions';
 
   // For initial_plan — client financial details
   clientProfile?: {
@@ -109,6 +109,16 @@ export interface NLParseResponse {
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
+
+  // For property_suggestions — AI-suggested property cards
+  propertySuggestions?: Array<{
+    propertyType: string;
+    label: string;
+    price: string;
+    yield: string;
+    reason: string;
+    prompt: string;
+  }>;
 
   // For add_event — timeline events (refinance, salary change, sell, rate change)
   event?: {

@@ -7,11 +7,12 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { PlanningDefaultsModal } from './PlanningDefaultsModal'
+import { AddToTimelineModal } from './AddToTimelineModal'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -45,6 +46,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const primaryColor = branding.primaryColor
   const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
   const [showPreferences, setShowPreferences] = useState(false)
+  const [showPropertyLibrary, setShowPropertyLibrary] = useState(false)
   const isResizingRef = useRef(false)
   const { user } = useAuth()
 
@@ -552,6 +554,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         {/* Input area */}
         <div className="border-t border-gray-200 p-3">
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-gray-300 transition-colors">
+            <button
+              onClick={() => setShowPropertyLibrary(true)}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Browse Properties"
+            >
+              <BuildingIcon size={14} />
+            </button>
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -594,6 +603,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
       {/* Planning Defaults Modal */}
       <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
+
+      {/* Property Library Modal */}
+      {showPropertyLibrary && (
+        <AddToTimelineModal onClose={() => setShowPropertyLibrary(false)} />
+      )}
     </div>
   )
 }

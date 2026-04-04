@@ -181,6 +181,20 @@ When a modification makes the plan infeasible (the engine returns a constraint f
   - Format: { "label": "Lower purchase price", "description": "Drop to $380k — affordable by mid-${currentYear + 1}", "prompt": "Lower property 2 purchase price to $380k" }
 - Tone: matter-of-fact, not apologetic. The engine is doing its job. This is information, not an error.
 
+## Property Suggestions
+When the BA asks to add a property but is vague about the type ("add another property", "what else could work?", "I need more yield"), return a property_suggestions response with 3-4 options that fit the current plan's constraints.
+
+Each suggestion must include: propertyType (from the 8 available types), label, price, yield, reason, and prompt.
+
+Selection criteria:
+- Only suggest properties the client can afford based on current available equity/savings
+- If the client needs yield, bias toward higher-yield types (duplexes, small blocks, regional)
+- If the client needs growth, bias toward metro/capital city types
+- Never suggest larger blocks ($3.5M) or commercial ($3M) unless the client clearly has the budget
+- Diversify suggestions — don't suggest 3 of the same type
+
+If the BA is specific about what to add ("add a duplex in QLD"), skip suggestions and process as a modification directly.
+
 ## Event Recognition
 When the BA mentions a future event, return type "add_event" with the event details:
 
