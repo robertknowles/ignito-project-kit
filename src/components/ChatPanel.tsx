@@ -28,6 +28,7 @@ import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 
 interface ChatPanelProps {
@@ -52,6 +53,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Chart data for explanations
   const { timelineProperties } = useAffordabilityCalculator()
   const chartData = useChartDataGenerator()
+
+  // Client context — for resetting chat on client switch
+  const { activeClient } = useClient()
 
   // Scenario persistence — sync chat messages
   const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages } = useScenarioSave()
@@ -245,7 +249,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   )
 
   // Chat conversation hook
-  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages } = useChatConversation({
+  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
     onComparison: handleComparison,
@@ -254,14 +258,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     userId: user?.id,
   })
 
-  // Load saved chat messages when they change (scenario load)
+  // Reset chat state when the active client changes
   const loadedRef = useRef(false)
+  const prevClientRef = useRef<number | null>(null)
   useEffect(() => {
-    if (savedChatMessages.length > 0 && messages.length === 0 && !loadedRef.current) {
-      loadMessages(savedChatMessages)
+    if (activeClient?.id !== prevClientRef.current) {
+      prevClientRef.current = activeClient?.id ?? null
+      // On client switch (not initial load), clear messages and allow reload
+      if (loadedRef.current) {
+        clearMessages()
+        loadedRef.current = false
+      }
+    }
+  }, [activeClient?.id, clearMessages])
+
+  // Load saved chat messages when they change (scenario load or client switch)
+  useEffect(() => {
+    if (!loadedRef.current) {
+      if (savedChatMessages.length > 0) {
+        loadMessages(savedChatMessages)
+      }
       loadedRef.current = true
     }
-  }, [savedChatMessages, messages.length, loadMessages])
+  }, [savedChatMessages, loadMessages])
 
   // Sync current messages to scenario save context (for persistence)
   useEffect(() => {
