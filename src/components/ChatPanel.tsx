@@ -42,7 +42,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
-  const { setPlanGenerating, setHighlightPeriod } = useLayout()
+  const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
+  const isResizingRef = useRef(false)
   const { user } = useAuth()
 
   // Contexts we write into
@@ -420,11 +421,41 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [isLoading, sendMessage]
   )
 
+  // Drag handle for resizing
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizingRef.current = true
+    const startX = e.clientX
+    const startWidth = chatPanelWidth
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingRef.current) return
+      const delta = moveEvent.clientX - startX
+      setChatPanelWidth(startWidth + delta)
+    }
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [chatPanelWidth, setChatPanelWidth])
+
+  const handleResizeDoubleClick = useCallback(() => {
+    setChatPanelWidth(288) // Reset to default w-72
+  }, [setChatPanelWidth])
+
   return (
     <div
-      className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
-        isOpen ? 'w-72' : 'w-0'
-      }`}
+      className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out`}
+      style={{ width: isOpen ? chatPanelWidth : 0 }}
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Header — Client Selector (matches original InputDrawer header) */}
@@ -505,6 +536,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           </div>
         </div>
       </div>
+
+      {/* Resize handle */}
+      {isOpen && (
+        <div
+          className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors group z-40"
+          onMouseDown={handleResizeStart}
+          onDoubleClick={handleResizeDoubleClick}
+        >
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      )}
     </div>
   )
 }

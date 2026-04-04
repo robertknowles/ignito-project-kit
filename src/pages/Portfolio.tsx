@@ -33,6 +33,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../contexts/InvestmentProfileContext'
+import { useLayout } from '../contexts/LayoutContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -159,6 +160,7 @@ export const Portfolio = () => {
   // Use the global active client from ClientContext
   const activeClientId = globalActiveClient?.id || null
   const [drawerOpen, setDrawerOpen] = useState(true)
+  const { chatPanelWidth } = useLayout()
   const [scenarioData, setScenarioData] = useState<Record<number, ClientScenarioData[]>>({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [purchaseStates, setPurchaseStates] = useState<Record<string, { isPurchased: boolean; address: string; photo: string }>>({})
@@ -596,9 +598,10 @@ export const Portfolio = () => {
       {/* NL Chat Panel — replaces InputDrawer */}
       <ChatPanel isOpen={drawerOpen} />
 
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-        drawerOpen ? 'ml-[352px]' : 'ml-16'
-      }`}>
+      <div
+        className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ marginLeft: drawerOpen ? 64 + chatPanelWidth : 64 }}
+      >
         <TopBar />
 
         {/* Main content */}
