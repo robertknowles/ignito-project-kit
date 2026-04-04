@@ -683,7 +683,15 @@ For modifications, classify the intent:
 - Changing state: "VIC instead", "what about QLD" → action: "change", target includes state
 - Adding property: "add another", "one more", "5 properties instead" → action: "add", target: "portfolio". IMPORTANT: when adding, include the new properties in the top-level "properties" array (same format as initial_plan properties)
 - Removing property: "drop the last one", "remove property 3" → action: "remove"
-- Changing profile: "actually saving 5k", "income is 150k" → target: "savings" or "income"`;
+- Changing profile: "actually saving 5k", "income is 150k" → target: "savings" or "income"
+
+Property Field Modifications:
+When the BA asks to change a specific property field, return a modification with the exact field and value:
+- "Change property 2 to PI loan" → modify property-2, action: "change", params: { "loanProduct": "PI" }
+- "Set LVR to 90% on property 3" → modify property-3, action: "change", params: { "lvr": 90 }
+- "Bump rent to $500/week on the duplex" → modify matching property, action: "change", params: { "rentPerWeek": 500 }
+- "Move property 1 to NSW" → modify property-1, action: "change", params: { "state": "NSW" }
+- "Add a $50k offset to property 2" → modify property-2, action: "change", params: { "offsetAccount": 50000 }`;
 
     return base + planContext;
   }
