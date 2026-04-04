@@ -266,16 +266,21 @@ For multiple changes in one message (e.g. "change savings to 5k and make propert
 
 ### For explanation (BA asking about the dashboard):
 
+Distinguish between calculation explanations (reference engine data, include relevantPeriod) and assumption explanations ("why QLD?" — explain the reasoning behind the choice, no relevantPeriod). Always use specific numbers from the plan when explaining calculations.
+
 {
   "type": "explanation",
   "explanation": {
     "question": "Why is cashflow negative in 2029?",
     "relevantPeriods": [8, 9, 10],
-    "relevantProperties": ["property-2", "property-3"]
+    "relevantProperties": ["property-2", "property-3"],
+    "relevantPeriod": { "startYear": 2029, "endYear": 2030 }
   },
   "message": "I'll look at the data for that period and explain.",
   "assumptions": []
 }
+
+When explaining a specific time period on the dashboard, always include a relevantPeriod object with startYear and endYear. If the question is not about a specific time period (e.g. "why did you pick QLD?"), omit relevantPeriod.
 
 ### For comparison ("what if" scenario fork):
 

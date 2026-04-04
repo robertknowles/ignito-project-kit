@@ -41,7 +41,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
-  const { setPlanGenerating } = useLayout()
+  const { setPlanGenerating, setHighlightPeriod } = useLayout()
   const { user } = useAuth()
 
   // Contexts we write into
@@ -248,10 +248,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [chartData, timelineProperties]
   )
 
+  // Handle explanation — highlight relevant period on the chart
+  const handleExplanation = useCallback(
+    (response: NLParseResponse) => {
+      if (response.explanation?.relevantPeriod) {
+        setHighlightPeriod(response.explanation.relevantPeriod)
+      }
+    },
+    [setHighlightPeriod]
+  )
+
   // Chat conversation hook
   const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
+    onExplanation: handleExplanation,
     onComparison: handleComparison,
     getCurrentPlan,
     getChartContext,
@@ -305,6 +316,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Handle send
   const handleSend = useCallback(() => {
     if (inputValue.trim() && !isLoading) {
+      // Clear any active chart highlight on new message
+      setHighlightPeriod(null)
       sendMessage(inputValue)
       setInputValue('')
       // Reset textarea height
@@ -312,7 +325,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         inputRef.current.style.height = 'auto'
       }
     }
-  }, [inputValue, isLoading, sendMessage])
+  }, [inputValue, isLoading, sendMessage, setHighlightPeriod])
 
   // Handle keyboard
   const handleKeyDown = useCallback(

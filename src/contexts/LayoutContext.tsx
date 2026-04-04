@@ -1,4 +1,9 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+
+export interface HighlightPeriod {
+  startYear: number;
+  endYear: number;
+}
 
 interface LayoutContextType {
   drawerOpen: boolean;
@@ -7,6 +12,9 @@ interface LayoutContextType {
   // NL pivot: signals that a plan is being generated (shows skeleton UI on Dashboard)
   planGenerating: boolean;
   setPlanGenerating: (generating: boolean) => void;
+  // Chart highlight for explanation flow
+  highlightPeriod: HighlightPeriod | null;
+  setHighlightPeriod: (period: HighlightPeriod | null) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -18,11 +26,23 @@ interface LayoutProviderProps {
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [planGenerating, setPlanGenerating] = useState(false);
+  const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const setHighlightPeriod = useCallback((period: HighlightPeriod | null) => {
+    // Clear any existing auto-clear timer
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightPeriodState(period);
+    // Auto-clear after 8 seconds
+    if (period) {
+      highlightTimerRef.current = setTimeout(() => setHighlightPeriodState(null), 8000);
+    }
+  }, []);
 
   const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod }}>
       {children}
     </LayoutContext.Provider>
   );

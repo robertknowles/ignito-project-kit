@@ -291,6 +291,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                       return updated
                     })
                   }
+                  options.onExplanation?.(explResponse)
                   break
                 }
               } catch {

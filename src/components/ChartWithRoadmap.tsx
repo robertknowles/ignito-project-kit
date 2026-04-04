@@ -34,6 +34,7 @@ import { SingleTestModal, TestType } from './SingleTestModal';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
 import { GuardrailFixModal } from './GuardrailFixModal';
 import { TourStep } from '@/components/TourManager';
+import { useLayout } from '@/contexts/LayoutContext';
 import type { TimelineProperty } from '../types/property';
 import type { GuardrailViolation } from '../utils/guardrailValidator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -430,6 +431,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     isDragging,
     setPlacementValidator,
   } = usePropertyDragDropContext();
+  const { highlightPeriod } = useLayout();
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -977,6 +979,19 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                   label={{ value: phase.label, position: 'insideTopLeft', fontSize: 9, fill: '#D1D5DB', fontWeight: 400 }}
                 />
               ))}
+
+              {/* Explanation highlight — translucent overlay for relevant time period */}
+              {highlightPeriod && (
+                <ReferenceArea
+                  x1={highlightPeriod.startYear}
+                  x2={highlightPeriod.endYear}
+                  fill="#3B82F6"
+                  fillOpacity={0.12}
+                  stroke="#3B82F6"
+                  strokeOpacity={0.25}
+                  strokeDasharray="4 2"
+                />
+              )}
 
               <CartesianGrid
                 {...CHART_STYLE.grid}

@@ -91,6 +91,7 @@ export interface NLParseResponse {
     question: string;
     relevantPeriods: number[];
     relevantProperties: string[];
+    relevantPeriod?: { startYear: number; endYear: number };
   };
 
   // For comparison — "what if" scenario fork
