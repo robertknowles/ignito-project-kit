@@ -562,16 +562,32 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       style={{ width: isOpen ? chatPanelWidth : 0 }}
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Header — Client Selector + settings gear */}
+        {/* Header — Client Selector + action icons */}
         <div className="flex items-center border-b border-gray-200 h-[52px] px-2">
           <ClientSelector />
-          <button
-            onClick={() => setShowPreferences(true)}
-            className="ml-auto flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            title="Planning Defaults"
-          >
-            <Settings2Icon size={14} />
-          </button>
+          <div className="ml-auto flex items-center gap-0.5">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Upload PDF"
+            >
+              <PaperclipIcon size={14} />
+            </button>
+            <button
+              onClick={() => setShowPropertyLibrary(true)}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Browse Properties"
+            >
+              <BuildingIcon size={14} />
+            </button>
+            <button
+              onClick={() => setShowPreferences(true)}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title="Planning Defaults"
+            >
+              <Settings2Icon size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Messages area */}
@@ -637,28 +653,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               </button>
             </div>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
           <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-gray-300 transition-colors">
-            <button
-              onClick={() => setShowPropertyLibrary(true)}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              title="Browse Properties"
-            >
-              <BuildingIcon size={14} />
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              title="Upload PDF"
-            >
-              <PaperclipIcon size={14} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleFileInputChange}
-              className="hidden"
-            />
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -703,9 +705,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
 
       {/* Property Library Modal */}
-      {showPropertyLibrary && (
-        <AddToTimelineModal onClose={() => setShowPropertyLibrary(false)} />
-      )}
+      <AddToTimelineModal isOpen={showPropertyLibrary} onClose={() => setShowPropertyLibrary(false)} />
     </div>
   )
 }

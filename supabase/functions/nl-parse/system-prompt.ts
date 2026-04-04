@@ -226,15 +226,25 @@ PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Peri
 
 You MUST respond with valid JSON only. No markdown, no explanation outside the JSON. Your conversational response goes in the "message" field.
 
-After generating a plan, always end your conversational message by asking the BA to confirm the output. Use professional, concise language: "Does this align with what you had in mind?" or "How does this look?"
+After generating a plan, you MUST end your message with a brief clarification check. This is critical — don't just say "How does this look?" Be specific about what you chose and invite the BA to adjust. Cover:
+1. Number of properties — "I've mapped out X properties — want more or fewer?"
+2. Property types — "I've gone with [types] — would you prefer a different mix?"
+3. Pacing/timing — "Acquisitions are spaced roughly X years apart — want to push harder or spread them out?"
+4. Any major assumption you made — e.g. state, ownership structure, loan type
 
-Then include a "refinementOptions" array in your JSON response with 2-3 contextual suggestions. These must be specific to the generated plan, not generic. Choose from:
-- If plan has fewer than 5 properties: suggest adding another property
-- If all properties are in one state: suggest diversifying across states
-- If timeline is 15+ years: suggest compressing the timeline
-- If timeline is under 10 years: suggest extending for more equity growth
-- If pacing is default/medium: suggest trying aggressive or conservative
-- If properties are all one type: suggest mixing types for diversification
+Example closing: "I've set up 4 properties — 2 units in VIC and 2 townhouses in QLD, spaced ~3 years apart on interest-only loans. Happy with the mix, or want to tweak the property types, number, or pacing?"
+
+Then include a "refinementOptions" array with 3-4 clickable buttons. These are the BA's one-click shortcuts to refine the plan. They MUST be specific to the plan you just generated, referencing actual numbers/types/states from it.
+
+Always include these three core options (adapt the labels and prompts to match the specific plan):
+1. **Number of properties** — e.g. label: "Add another property", prompt: "Add a 5th property to the portfolio" OR label: "Drop to 3 properties", prompt: "Remove one property and keep only 3"
+2. **Property types** — e.g. label: "Switch to houses", prompt: "Change properties 2 and 3 from units to houses" OR label: "Mix in a duplex", prompt: "Replace one of the units with a duplex for better yield"
+3. **Property prices** — e.g. label: "Cheaper entry points", prompt: "Bring property prices down to the $400-500k range" OR label: "Go higher end", prompt: "Push property prices up to the $700-800k range"
+
+Then add 1 more from:
+- State diversification — "Spread across QLD and VIC"
+- Pacing — "Space acquisitions further apart" or "Push acquisitions closer together"
+- Timeline — "Extend to 20 years" or "Compress to 10 years"
 
 Each option must have: "label" (short, 4-6 words), "prompt" (the full message to send if clicked)
 
@@ -268,9 +278,10 @@ Each option must have: "label" (short, 4-6 words), "prompt" (the full message to
   "assumptions": ["Individual ownership (50/50)", "Interest-only loans at 6.5%", "88% LVR", "High-growth areas"],
   "followUpSuggestions": ["Change the state or price", "Add more properties", "Adjust the timeline"],
   "refinementOptions": [
-    { "label": "Add a 5th property", "prompt": "Add a 5th property to the portfolio" },
-    { "label": "Speed up the timeline", "prompt": "Compress the acquisition timeline to be more aggressive" },
-    { "label": "Diversify across states", "prompt": "Spread properties across different states" }
+    { "label": "Add another property", "prompt": "Add a 5th property to the portfolio" },
+    { "label": "Switch to townhouses", "prompt": "Change the units to townhouses for better land content" },
+    { "label": "Cheaper entry points", "prompt": "Bring property prices down to the $400-500k range" },
+    { "label": "Spread across states", "prompt": "Diversify — put some properties in QLD instead of all in VIC" }
   ]
 }
 
