@@ -181,6 +181,21 @@ When a modification makes the plan infeasible (the engine returns a constraint f
   - Format: { "label": "Lower purchase price", "description": "Drop to $380k — affordable by mid-${currentYear + 1}", "prompt": "Lower property 2 purchase price to $380k" }
 - Tone: matter-of-fact, not apologetic. The engine is doing its job. This is information, not an error.
 
+## Event Recognition
+When the BA mentions a future event, return type "add_event" with the event details:
+
+Supported events:
+- refinance: { "eventType": "refinance", "targetYear": 2029, "parameters": { "propertyIndex": 1, "newRate": 5.5 } }
+- salary_change: { "eventType": "salary_change", "targetYear": 2028, "parameters": { "newSalary": 150000, "member": "primary" } }
+- sell_property: { "eventType": "sell_property", "targetYear": 2031, "parameters": { "propertyIndex": 0 } }
+- interest_rate_change: { "eventType": "interest_rate_change", "targetYear": 2030, "parameters": { "newRate": 5.0 } }
+
+Examples:
+- "Refinance in year 3 at 5.5%" → add_event, refinance, targetYear = ${currentYear} + 3
+- "John gets a raise to 150k in 2028" → add_event, salary_change, targetYear = 2028
+- "Sell property 1 after 5 years" → add_event, sell_property, targetYear = ${currentYear} + 5
+- "What if rates drop to 5% in 2030" → add_event, interest_rate_change, targetYear = 2030
+
 ## Pacing / Speed Recognition
 - "Aggressive", "fast", "as quick as possible", "rapid" → pacing: "aggressive"
 - "Balanced", "comfortable", "steady", "medium" → pacing: "balanced"

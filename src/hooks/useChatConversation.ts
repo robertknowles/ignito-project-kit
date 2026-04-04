@@ -22,6 +22,7 @@ interface UseChatConversationOptions {
   onModification?: (response: NLParseResponse) => void
   onExplanation?: (response: NLParseResponse) => void
   onComparison?: (response: NLParseResponse) => void
+  onAddEvent?: (response: NLParseResponse) => void
   getCurrentPlan?: () => CurrentPlanState | null
   /** Returns chart data context string for explanation requests */
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
@@ -314,6 +315,15 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             })
             setMessages((prev) => [...prev, compMsg])
             options.onComparison?.(response)
+            break
+          }
+
+          case 'add_event': {
+            const eventMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, eventMsg])
+            options.onAddEvent?.(response)
             break
           }
 

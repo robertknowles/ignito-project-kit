@@ -39,7 +39,7 @@ export interface CurrentPlanState {
 // ── Edge Function Response ─────────────────────────────────────────
 
 export interface NLParseResponse {
-  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison';
+  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event';
 
   // For initial_plan — client financial details
   clientProfile?: {
@@ -109,6 +109,13 @@ export interface NLParseResponse {
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
+
+  // For add_event — timeline events (refinance, salary change, sell, rate change)
+  event?: {
+    eventType: 'refinance' | 'salary_change' | 'sell_property' | 'interest_rate_change';
+    targetYear: number;
+    parameters: Record<string, unknown>;
+  };
 
   // Acquisition pacing from NL input
   pacing?: 'aggressive' | 'balanced' | 'conservative';

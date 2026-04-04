@@ -50,7 +50,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
-  const { setAllSelections, selections, propertyOrder } = usePropertySelection()
+  const { setAllSelections, selections, propertyOrder, addEvent } = usePropertySelection()
   const { setInstances, instances } = usePropertyInstance()
   const { addScenario, syncCurrentScenarioFromContext, scenarios } = useMultiScenario()
 
@@ -252,6 +252,40 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [chartData, timelineProperties]
   )
 
+  // Handle add_event — add timeline events from NL
+  const handleAddEvent = useCallback(
+    (response: NLParseResponse) => {
+      if (!response.event) return
+      const { eventType, targetYear, parameters } = response.event
+      const BASE_YEAR = new Date().getFullYear()
+      const period = Math.max(1, Math.round((targetYear - BASE_YEAR) * 2) + 1)
+
+      // Map NL event types to the existing event system
+      const eventTypeMap: Record<string, string> = {
+        refinance: 'refinance',
+        salary_change: 'income-change',
+        sell_property: 'sell-property',
+        interest_rate_change: 'interest-rate-change',
+      }
+      const categoryMap: Record<string, string> = {
+        refinance: 'portfolio',
+        salary_change: 'income',
+        sell_property: 'portfolio',
+        interest_rate_change: 'market',
+      }
+
+      addEvent({
+        type: 'event',
+        eventType: eventTypeMap[eventType] || eventType,
+        category: categoryMap[eventType] || 'portfolio',
+        period,
+        order: 0,
+        payload: parameters as Record<string, unknown>,
+      })
+    },
+    [addEvent]
+  )
+
   // Handle explanation — highlight relevant period on the chart
   const handleExplanation = useCallback(
     (response: NLParseResponse) => {
@@ -268,6 +302,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     onModification: handleModification,
     onExplanation: handleExplanation,
     onComparison: handleComparison,
+    onAddEvent: handleAddEvent,
     getCurrentPlan,
     getChartContext,
     userId: user?.id,
