@@ -700,28 +700,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Read the actual Recharts SVG plotting area after each render/resize
-  // This syncs the overlay icons with the real chart coordinate system
-  useEffect(() => {
-    const readPlotArea = () => {
-      if (!chartContainerRef.current) return;
-      // Recharts renders a <clipPath> rect that defines the exact plotting area
-      const clipRect = chartContainerRef.current.querySelector('.recharts-surface clipPath rect');
-      if (clipRect) {
-        const rect = {
-          top: parseFloat(clipRect.getAttribute('y') || '0'),
-          left: parseFloat(clipRect.getAttribute('x') || '0'),
-          bottom: parseFloat(clipRect.getAttribute('y') || '0') + parseFloat(clipRect.getAttribute('height') || '0'),
-          right: parseFloat(clipRect.getAttribute('x') || '0') + parseFloat(clipRect.getAttribute('width') || '0'),
-        };
-        setChartPlotArea(rect);
-      }
-    };
-    // Slight delay to ensure Recharts has rendered the SVG
-    const timer = setTimeout(readPlotArea, 50);
-    return () => clearTimeout(timer);
-  }, [containerWidth, chartData, yearColumnWidth]);
-
   // Calculate dynamic column widths based on container size
   const yearCount = years.length;
   const availableWidth = containerWidth - LABEL_COLUMN_WIDTH;
@@ -761,6 +739,26 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     purchaseDetails: yearData.purchaseDetails,
     doNothingBalance: yearData.doNothingBalance ?? 0,
   })), [years]);
+
+  // Read the actual Recharts SVG plotting area after each render/resize
+  // This syncs the overlay icons with the real chart coordinate system
+  useEffect(() => {
+    const readPlotArea = () => {
+      if (!chartContainerRef.current) return;
+      const clipRect = chartContainerRef.current.querySelector('.recharts-surface clipPath rect');
+      if (clipRect) {
+        const rect = {
+          top: parseFloat(clipRect.getAttribute('y') || '0'),
+          left: parseFloat(clipRect.getAttribute('x') || '0'),
+          bottom: parseFloat(clipRect.getAttribute('y') || '0') + parseFloat(clipRect.getAttribute('height') || '0'),
+          right: parseFloat(clipRect.getAttribute('x') || '0') + parseFloat(clipRect.getAttribute('width') || '0'),
+        };
+        setChartPlotArea(rect);
+      }
+    };
+    const timer = setTimeout(readPlotArea, 50);
+    return () => clearTimeout(timer);
+  }, [containerWidth, chartData, yearColumnWidth]);
 
   // Find the year when equity goal is first reached
   const equityGoalReached = useMemo(() => {
