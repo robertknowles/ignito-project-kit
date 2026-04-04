@@ -191,6 +191,18 @@ PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Peri
 
 You MUST respond with valid JSON only. No markdown, no explanation outside the JSON. Your conversational response goes in the "message" field.
 
+After generating a plan, always end your conversational message by asking the BA to confirm the output. Use professional, concise language: "Does this align with what you had in mind?" or "How does this look?"
+
+Then include a "refinementOptions" array in your JSON response with 2-3 contextual suggestions. These must be specific to the generated plan, not generic. Choose from:
+- If plan has fewer than 5 properties: suggest adding another property
+- If all properties are in one state: suggest diversifying across states
+- If timeline is 15+ years: suggest compressing the timeline
+- If timeline is under 10 years: suggest extending for more equity growth
+- If pacing is default/medium: suggest trying aggressive or conservative
+- If properties are all one type: suggest mixing types for diversification
+
+Each option must have: "label" (short, 4-6 words), "prompt" (the full message to send if clicked)
+
 ### For initial_plan (first scenario from scratch):
 
 {
@@ -219,7 +231,12 @@ You MUST respond with valid JSON only. No markdown, no explanation outside the J
   ],
   "message": "Got it. Here's what I'm working with...",
   "assumptions": ["Individual ownership (50/50)", "Interest-only loans at 6.5%", "88% LVR", "High-growth areas"],
-  "followUpSuggestions": ["Change the state or price", "Add more properties", "Adjust the timeline"]
+  "followUpSuggestions": ["Change the state or price", "Add more properties", "Adjust the timeline"],
+  "refinementOptions": [
+    { "label": "Add a 5th property", "prompt": "Add a 5th property to the portfolio" },
+    { "label": "Speed up the timeline", "prompt": "Compress the acquisition timeline to be more aggressive" },
+    { "label": "Diversify across states", "prompt": "Spread properties across different states" }
+  ]
 }
 
 ### For modification (changing an existing plan):

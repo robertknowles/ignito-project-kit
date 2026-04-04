@@ -323,15 +323,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
         }
 
-        // Add follow-up suggestions if present
-        if (response.followUpSuggestions && response.followUpSuggestions.length > 0) {
-          // These could be rendered as suggestion chips in the UI
-          // For now, store them on the last message
+        // Add follow-up suggestions and refinement options if present
+        if (response.followUpSuggestions?.length || response.refinementOptions?.length) {
           setMessages((prev) => {
             const updated = [...prev]
             const lastAssistant = [...updated].reverse().find((m) => m.role === 'assistant')
             if (lastAssistant) {
-              lastAssistant.followUpSuggestions = response.followUpSuggestions
+              if (response.followUpSuggestions?.length) {
+                lastAssistant.followUpSuggestions = response.followUpSuggestions
+              }
+              if (response.refinementOptions?.length) {
+                lastAssistant.refinementOptions = response.refinementOptions
+              }
             }
             return updated
           })

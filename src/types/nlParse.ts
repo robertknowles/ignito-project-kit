@@ -108,6 +108,12 @@ export interface NLParseResponse {
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
+
+  // Post-plan refinement options — contextual buttons shown after initial plan generation
+  refinementOptions?: Array<{
+    label: string; // Short label (4-6 words)
+    prompt: string; // Full message to send when clicked
+  }>;
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────
@@ -134,6 +140,7 @@ export interface ChatMessage {
   optionCards?: ChatOptionCardData[];
   assumptions?: string[];
   followUpSuggestions?: string[];
+  refinementOptions?: Array<{ label: string; prompt: string }>;
 }
 
 export interface SummaryCardData {
