@@ -983,9 +983,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 <ReferenceArea
                   x1={highlightPeriod.startYear}
                   x2={highlightPeriod.endYear}
-                  fill="#3B82F6"
+                  fill="#2563EB"
                   fillOpacity={0.12}
-                  stroke="#3B82F6"
+                  stroke="#2563EB"
                   strokeOpacity={0.25}
                   strokeDasharray="4 2"
                 />
@@ -1017,28 +1017,28 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line - stronger blue */}
+              {/* Portfolio Value Line - primary blue */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke="#3B82F6"
+                stroke="#2563EB"
                 strokeWidth={2.5}
                 dot={false}
                 activeDot={{
                   r: 5,
-                  stroke: '#3B82F6',
+                  stroke: '#2563EB',
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
 
-              {/* Total Equity Line - lighter blue, clearly distinct */}
+              {/* Total Equity Line - purple, distinct from portfolio */}
               <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke="#93C5FD"
+                stroke="#8B5CF6"
                 strokeWidth={2}
                 dot={false}
               />

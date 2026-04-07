@@ -373,13 +373,10 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-center w-full h-[52px] px-8 bg-white border-b border-gray-200">
-      {/* Spacer left */}
-      <div className="flex-1" />
-
-      {/* Center: Tab Navigation */}
+    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-end w-full h-[52px] px-8 bg-white border-b border-gray-200 relative">
+      {/* Center: Tab Navigation — absolutely centered in the full bar */}
       {!isClient && (
-        <div className="flex items-center h-full">
+        <div className="absolute left-1/2 top-0 h-full -translate-x-1/2 flex items-center">
           {tabs.map(tab => {
             const isActive = activeTab === tab.path
             return (
@@ -388,7 +385,7 @@ export const TopBar = () => {
                 onClick={() => navigate(tab.path)}
                 className={`relative h-full px-5 text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'text-[#2563EB]'
+                    ? 'text-[#111827]'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -402,46 +399,11 @@ export const TopBar = () => {
         </div>
       )}
 
-      {/* Spacer right */}
-      <div className="flex-1" />
-
-      {/* Right side: Actions (hidden for clients) */}
+      {/* Right side: Save only (Add Scenario + Client Report hidden for redesign) */}
       {!isClient && (
-        <TourStep
-          id="topbar-actions"
-          title="Top Bar Actions"
-          content="Save your scenario, reset to start fresh, or view the Client Report to share with your clients."
-          order={3}
-          position="bottom"
-        >
         <div className="flex items-center gap-2">
-          {scenarios.length < 2 && (
-            <TourStep
-              id="scenario-comparison"
-              title="Compare Strategies"
-              content="Add a second scenario to compare different investment approaches side-by-side."
-              order={12}
-              position="bottom"
-            >
-              <button
-                onClick={addScenario}
-                className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all text-[13px] font-medium"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Scenario</span>
-              </button>
-            </TourStep>
-          )}
-          <button
-            id="view-client-report-button"
-            onClick={handleViewClientReport}
-            className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-[13px]"
-          >
-            <span>Client Report</span>
-          </button>
           <SaveButton />
         </div>
-        </TourStep>
       )}
 
       {/* Share Dashboard Credentials Modal */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 export interface LegendItem {
   color: string;
@@ -16,6 +16,13 @@ interface ChartCardProps {
   children: React.ReactNode;
 }
 
+/**
+ * ChartCard — Universal card wrapper for dashboard components
+ *
+ * Consistent anatomy: white bg, 1px #E5E7EB border, 8px radius, 24px padding.
+ * Title only in header (no subtitles). Optional action slot top-right.
+ * Optional collapsible mode with one-line preview.
+ */
 export const ChartCard: React.FC<ChartCardProps> = ({
   title, action, legend, contentClassName, collapsible, defaultCollapsed, children
 }) => {
@@ -23,32 +30,32 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      {/* Title */}
+      {/* Header */}
       <div
-        className={`px-8 pt-8 pb-2 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? 'pb-8' : ''}`}
+        className={`px-6 pt-6 pb-2 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? 'pb-6' : ''}`}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-600">{title}</h3>
           {collapsible && (
-            <ChevronDown
-              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
-            />
+            <div className="text-gray-400">
+              {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+            </div>
           )}
+          <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
         </div>
-        {action}
+        {action && !collapsed && action}
       </div>
 
       {/* Content */}
       {!collapsed && (
         <>
-          <div className={contentClassName ?? "px-8 pt-6 pb-8"}>
+          <div className={contentClassName ?? "px-6 pt-4 pb-6"}>
             {children}
           </div>
 
           {/* Legend */}
           {legend && legend.length > 0 && (
-            <div className="px-8 pb-6 pt-1 flex items-center gap-5">
+            <div className="px-6 pb-5 pt-1 flex items-center gap-5">
               {legend.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
                   <div

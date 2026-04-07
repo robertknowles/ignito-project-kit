@@ -1,24 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceDot,
+  ResponsiveContainer,
+} from 'recharts';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useEquityUnlockTimeline } from './useEquityUnlockTimeline';
-import { MIN_EXTRACTABLE_EQUITY_THRESHOLD } from '../../constants/financialParams';
-
-/**
- * Equity Unlock Timeline — Gantt-style horizontal bars
- *
- * Each property gets a continuous bar spanning from buy year to end of timeline.
- * Bar transitions from light blue (below $50K threshold) to darker blue
- * (refinanceable) via CSS gradient. Vertical pin markers show extraction events.
- * Final equity on the right. Total extractable in top-right header.
- */
-
-const COLORS = {
-  building: 'rgba(163, 193, 250, 0.35)',  // below threshold — soft light blue
-  refinanceable: 'rgba(59, 108, 244, 0.35)', // above threshold — medium blue, reduced weight
-  extraction: 'rgba(59, 108, 244, 0.70)',  // extraction event pin
-};
+import { PROPERTY_COLORS } from '../../constants/chartColors';
+import { CHART_STYLE } from '../../constants/chartColors';
+import { BASE_YEAR } from '../../constants/financialParams';
 
 const fmt = (v: number) => {
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
@@ -26,72 +23,95 @@ const fmt = (v: number) => {
   return `$${v}`;
 };
 
+/**
+ * Equity Unlock Timeline — Unstacked line chart
+ *
+ * Each property gets an independent line showing its extractable equity over time.
+ * Lines are NOT stacked — each reads at its true value.
+ * Refinance events shown as open circle dots on the source property's line.
+ * Full equity release narrative lives in the tooltip on hover.
+ */
 export const EquityUnlockChart: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
   const { getInstance } = usePropertyInstance();
   const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile, getInstance);
 
-  const { years, rows, totalFinalEquity, lastYear } = useMemo(() => {
+  // Build chart data: one row per year, with a key per property
+  const { chartData, refinanceEvents, propertyKeys, yAxisDomain, yTicks } = useMemo(() => {
     if (propertyTimelines.length === 0) {
-      return { years: [] as number[], rows: [] as any[], totalFinalEquity: 0, lastYear: 0 };
+      return { chartData: [], refinanceEvents: [], propertyKeys: [], yAxisDomain: [0, 100] as [number, number], yTicks: [0] };
     }
 
-    // Collect all years
+    // Collect all years across all properties, starting from BASE_YEAR to align with Investment Timeline
     const yearSet = new Set<number>();
+    yearSet.add(BASE_YEAR);
     propertyTimelines.forEach(p => p.timeline.forEach(t => yearSet.add(t.year)));
     const years = Array.from(yearSet).sort((a, b) => a - b);
-    const firstYear = years[0];
-    const lastYear = years[years.length - 1];
-    const totalSpan = lastYear - firstYear;
 
-    const rows = propertyTimelines.map((prop, idx) => {
-      // Bar starts at purchase year — equity builds from day 1
-      const barStart = prop.buyYear;
-
-      // Refinanceable = whichever comes first: $50K threshold OR actual extraction
-      const thresholdPoint = prop.timeline.find(
-        t => t.extractableEquity >= MIN_EXTRACTABLE_EQUITY_THRESHOLD
-      );
-      const firstExtractionYear = prop.extractionEvents.length > 0
-        ? prop.extractionEvents[0].year
-        : null;
-      const thresholdYear = thresholdPoint
-        ? (firstExtractionYear ? Math.min(thresholdPoint.year, firstExtractionYear) : thresholdPoint.year)
-        : firstExtractionYear;
-
-      const finalEquity = prop.timeline.length > 0
-        ? prop.timeline[prop.timeline.length - 1].extractableEquity
-        : 0;
-
-      // Bar positioning as percentages of the timeline
-      const barStartPct = totalSpan > 0 ? ((barStart - firstYear) / totalSpan) * 100 : 0;
-      const barEndPct = 100; // bars go to end of timeline
-      const barWidthPct = barEndPct - barStartPct;
-
-      // Threshold position within the bar (for gradient transition)
-      let gradientTransitionPct: number | null = null;
-      if (thresholdYear && totalSpan > 0) {
-        const thresholdPosInBar = (thresholdYear - barStart) / (lastYear - barStart);
-        gradientTransitionPct = Math.max(0, Math.min(100, thresholdPosInBar * 100));
-      }
-
-      return {
-        label: `Property ${idx + 1}`,
-        subtitle: prop.title,
-        readyYear: prop.refinanceReadyYear,
-        barStartPct,
-        barWidthPct,
-        gradientTransitionPct,
-        finalEquity,
-        extractionEvents: prop.extractionEvents,
-        firstYear,
-        lastYear,
-      };
+    // Build data points: { year, p0: equity, p1: equity, ... }
+    const chartData = years.map(year => {
+      const point: Record<string, number> = { year };
+      propertyTimelines.forEach((prop, idx) => {
+        const snap = prop.timeline.find(t => t.year === year);
+        point[`p${idx}`] = snap?.extractableEquity ?? 0;
+      });
+      return point;
     });
 
-    const totalFinalEquity = rows.reduce((s, r) => s + r.finalEquity, 0);
-    return { years, rows, totalFinalEquity, lastYear };
+    // Build refinance events for ReferenceDot rendering
+    const refinanceEvents: {
+      year: number;
+      sourceIdx: number;
+      sourceColor: string;
+      amount: number;
+      sourceTitle: string;
+      destinationTitle: string | null;
+    }[] = [];
+
+    propertyTimelines.forEach((prop, propIdx) => {
+      prop.extractionEvents.forEach(evt => {
+        // Find which property was bought with this equity
+        const buyer = propertyTimelines.find(p => Math.floor(p.buyYear) === evt.year && p !== prop);
+        refinanceEvents.push({
+          year: evt.year,
+          sourceIdx: propIdx,
+          sourceColor: prop.color,
+          amount: evt.amount,
+          sourceTitle: prop.title,
+          destinationTitle: buyer?.title ?? null,
+        });
+      });
+    });
+
+    const propertyKeys = propertyTimelines.map((_, idx) => `p${idx}`);
+
+    // Calculate y-axis domain with clean even tick intervals
+    let maxVal = 0;
+    chartData.forEach(d => {
+      propertyKeys.forEach(key => {
+        if ((d[key] as number) > maxVal) maxVal = d[key] as number;
+      });
+    });
+
+    // Pick a clean step size that produces round labels ($100K, $200K, etc.)
+    // Then compute how many ticks fit. Max should be just above the data.
+    const cleanSteps = [25000, 50000, 100000, 200000, 250000, 500000, 1000000];
+    // Find smallest step where we need <= 6 ticks to cover maxVal
+    const step = cleanSteps.find(s => Math.ceil(maxVal / s) <= 6) ?? 1000000;
+    const tickCount = Math.ceil(maxVal / step);
+    const niceMax = step * tickCount;
+
+    const yTicks: number[] = [];
+    for (let i = 0; i <= tickCount; i++) yTicks.push(i * step);
+
+    return {
+      chartData,
+      refinanceEvents,
+      propertyKeys,
+      yAxisDomain: [0, niceMax || 100000] as [number, number],
+      yTicks,
+    };
   }, [propertyTimelines]);
 
   if (propertyTimelines.length === 0) {
@@ -102,110 +122,177 @@ export const EquityUnlockChart: React.FC = () => {
     );
   }
 
-  const LABEL_WIDTH = 80;
-  const FINAL_WIDTH = 50;
-  const ROW_MIN_HEIGHT = 88; // Match Funding Sources row height
-  const firstYear = years[0];
-  const totalSpan = lastYear - firstYear;
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    const year = label as number;
+    const eventsThisYear = refinanceEvents.filter(e => e.year === year);
+
+    return (
+      <div
+        className="bg-white border rounded-lg shadow-sm"
+        style={{
+          borderColor: '#E5E7EB',
+          padding: '12px 16px',
+          fontSize: 13,
+          maxWidth: 260,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        }}
+      >
+        <p className="font-semibold text-gray-900 mb-2">{year}</p>
+
+        {/* Per-property equity values */}
+        {propertyTimelines.map((prop, idx) => {
+          const dataKey = `p${idx}`;
+          const entry = payload.find((p: any) => p.dataKey === dataKey);
+          const value = entry?.value ?? 0;
+          if (value <= 0) return null;
+
+          return (
+            <div key={idx} className="flex items-center gap-2 mb-1">
+              <div
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: prop.color }}
+              />
+              <span className="text-gray-500">{prop.title}</span>
+              <span className="ml-auto font-medium text-gray-700">{fmt(value)}</span>
+            </div>
+          );
+        })}
+
+        {/* Total */}
+        {propertyTimelines.length > 1 && (
+          <div
+            className="flex justify-between mt-2 pt-2 font-semibold text-gray-900"
+            style={{ borderTop: '1px solid #F3F4F6' }}
+          >
+            <span>Total</span>
+            <span>
+              {fmt(
+                propertyTimelines.reduce((sum, _, idx) => {
+                  const entry = payload.find((p: any) => p.dataKey === `p${idx}`);
+                  return sum + (entry?.value ?? 0);
+                }, 0)
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Equity released events */}
+        {eventsThisYear.length > 0 && (
+          <div className="mt-2 pt-2" style={{ borderTop: '1px solid #F3F4F6' }}>
+            <p
+              className="text-gray-400 mb-1"
+              style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}
+            >
+              Equity released
+            </p>
+            {eventsThisYear.map((evt, ei) => (
+              <p key={ei} className="text-sm mb-0.5">
+                <span className="font-medium text-gray-700">{fmt(evt.amount)}</span>
+                <span className="text-gray-500"> from {evt.sourceTitle}</span>
+                {evt.destinationTitle && (
+                  <>
+                    <span className="text-gray-400"> → </span>
+                    <span className="font-medium text-blue-600">{evt.destinationTitle}</span>
+                  </>
+                )}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const formatYAxis = (v: number) => {
+    if (v === 0) return '$0';
+    if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+    return `$${Math.round(v / 1000)}K`;
+  };
 
   return (
     <div>
-      {/* Year axis */}
-      <div className="relative" style={{ marginLeft: LABEL_WIDTH, marginRight: FINAL_WIDTH }}>
-        <div className="flex justify-between">
-          {years.filter((_, i) => {
-            // Show every year if <= 10, otherwise every 2nd
-            return years.length <= 12 || i % 2 === 0 || i === years.length - 1;
-          }).map(y => {
-            const leftPct = totalSpan > 0 ? ((y - firstYear) / totalSpan) * 100 : 0;
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart
+          data={chartData}
+          margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+        >
+          <defs>
+            {/* Only P1 gets a gradient fill */}
+            <linearGradient id="equityFillP0" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={PROPERTY_COLORS[0]} stopOpacity={0.08} />
+              <stop offset="100%" stopColor={PROPERTY_COLORS[0]} stopOpacity={0.01} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid {...CHART_STYLE.grid} />
+          <XAxis dataKey="year" {...CHART_STYLE.xAxis} />
+          <YAxis
+            tickFormatter={formatYAxis}
+            {...CHART_STYLE.yAxis}
+            domain={yAxisDomain}
+            ticks={yTicks}
+          />
+          <Tooltip content={<CustomTooltip />} />
+
+          {/* Property lines — NOT stacked */}
+          {propertyTimelines.map((prop, idx) => (
+            <Area
+              key={prop.instanceId}
+              type="monotone"
+              dataKey={`p${idx}`}
+              name={prop.title}
+              stroke={prop.color}
+              strokeWidth={2}
+              fill={idx === 0 ? 'url(#equityFillP0)' : 'none'}
+              dot={false}
+            />
+          ))}
+
+          {/* Refinance event dots — open circles on the source property's line */}
+          {refinanceEvents.map((evt, ei) => {
+            const dataPoint = chartData.find(d => d.year === evt.year);
+            if (!dataPoint) return null;
+            const yValue = dataPoint[`p${evt.sourceIdx}`] as number;
+
             return (
-              <span
-                key={y}
-                className="text-[11px] text-gray-400 absolute"
-                style={{ left: `${leftPct}%`, transform: 'translateX(-50%)' }}
-              >
-                {y}
-              </span>
+              <ReferenceDot
+                key={`refi-${ei}`}
+                x={evt.year}
+                y={yValue}
+                r={6}
+                fill="white"
+                stroke={evt.sourceColor}
+                strokeWidth={2.5}
+              />
             );
           })}
-        </div>
-      </div>
+        </AreaChart>
+      </ResponsiveContainer>
 
-      {/* Property rows */}
-      <div className="flex flex-col mt-10">
-        {rows.map((row, idx) => (
-          <div key={idx} className="flex items-center" style={{ minHeight: ROW_MIN_HEIGHT }}>
-            {/* Label */}
-            <div className="flex-shrink-0" style={{ width: LABEL_WIDTH }}>
-              <p className="text-xs font-semibold text-gray-600 leading-tight">{row.label}</p>
-              <p className="text-[11px] text-gray-400 leading-tight">{row.subtitle}</p>
-            </div>
-
-            {/* Gantt bar area */}
-            <div className="flex-1 relative" style={{ height: 28 }}>
-              {/* The bar */}
-              <div
-                className="absolute top-0 rounded-md"
-                style={{
-                  left: `${row.barStartPct}%`,
-                  width: `${row.barWidthPct}%`,
-                  height: '100%',
-                  background: row.gradientTransitionPct != null
-                    ? `linear-gradient(to right, ${COLORS.building} 0%, ${COLORS.building} ${row.gradientTransitionPct}%, ${COLORS.refinanceable} ${row.gradientTransitionPct}%, ${COLORS.refinanceable} 100%)`
-                    : COLORS.building,
-                }}
-              />
-
-              {/* Extraction event pins */}
-              {row.extractionEvents.map((evt, ei) => totalSpan > 0 && (
-                <div
-                  key={ei}
-                  className="absolute flex flex-col items-center"
-                  style={{
-                    left: `${((evt.year - firstYear) / totalSpan) * 100}%`,
-                    top: -24,
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  {/* Pin label */}
-                  <div
-                    className="rounded-full px-1.5 py-px text-[9px] font-medium text-white whitespace-nowrap"
-                    style={{ backgroundColor: COLORS.extraction }}
-                  >
-                    {fmt(evt.amount)}
-                  </div>
-                  {/* Pin line */}
-                  <div
-                    className="w-px"
-                    style={{
-                      height: 36,
-                      backgroundColor: COLORS.extraction,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Final equity amount */}
-            <div className="flex-shrink-0 text-right" style={{ width: FINAL_WIDTH }}>
-              <span className="text-xs font-medium text-gray-500">{fmt(row.finalEquity)}</span>
-            </div>
+      {/* Legend — matches ChartCard legend spacing */}
+      <div className="flex items-center gap-5 flex-wrap pt-1 pb-0">
+        {propertyTimelines.map((prop, idx) => (
+          <div key={idx} className="flex items-center gap-1.5">
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: prop.color }}
+            />
+            <span className="text-[11px] text-gray-400">{prop.title}</span>
           </div>
         ))}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-5 mt-4" style={{ paddingLeft: LABEL_WIDTH }}>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.building }} />
-          <span className="text-[11px] text-gray-400">Building equity</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.refinanceable }} />
-          <span className="text-[11px] text-gray-400">Refinanceable equity</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.extraction }} />
+          <div
+            className="flex-shrink-0 rounded-full"
+            style={{
+              width: 8,
+              height: 8,
+              backgroundColor: 'white',
+              border: `2px solid #2563EB`,
+            }}
+          />
           <span className="text-[11px] text-gray-400">Refinance event</span>
         </div>
       </div>

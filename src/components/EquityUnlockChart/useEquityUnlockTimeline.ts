@@ -4,13 +4,7 @@ import type { InvestmentProfileData } from '../../contexts/InvestmentProfileCont
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, MIN_EXTRACTABLE_EQUITY_THRESHOLD, getGrowthCurveForTier } from '../../constants/financialParams';
 import type { PropertyInstanceDetails } from '../../types/propertyInstance';
-import { CHART_COLORS } from '../../constants/chartColors';
-// Use centralized tri-color line palette (blue, purple, aqua)
-const EQUITY_LINE_COLORS = [
-  CHART_COLORS.lineBlue,
-  CHART_COLORS.linePurple,
-  CHART_COLORS.lineAqua,
-] as const;
+import { PROPERTY_COLORS } from '../../constants/chartColors';
 
 export interface EquityTimelinePoint {
   year: number;
@@ -120,7 +114,7 @@ export function useEquityUnlockTimeline(
     const propertyTimelines: PropertyEquityTimeline[] = timelines.map(({ prop, projected, timeline, refinanceReadyYear }, i) => ({
       instanceId: prop.instanceId,
       title: prop.title,
-      color: EQUITY_LINE_COLORS[i % EQUITY_LINE_COLORS.length],
+      color: PROPERTY_COLORS[i % PROPERTY_COLORS.length],
       buyYear: projected.buyYear,
       purchasePrice: prop.cost,
       timeline,

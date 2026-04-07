@@ -1,27 +1,19 @@
-import React, { useMemo } from 'react';
-import { ArrowRight } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, getGrowthCurveForTier } from '../../constants/financialParams';
-import { CHART_COLORS } from '../../constants/chartColors';
+import { PROPERTY_COLORS } from '../../constants/chartColors';
 
 /**
- * Funding Sources — Property Cards with "Next Purchase" hero treatment.
+ * Funding Sources — Expandable table rows
  *
- * Every card shares the same structure/size. The first future property
- * is distinguished by a blue border highlight and "BUY NEXT" badge,
- * plus a readiness progress bar showing how much of the deposit is
- * fundable TODAY (current year). All other future properties show as
- * "AFTER THAT" with slightly muted tones but the same layout.
+ * Each property is a collapsible row showing: colour dot, property name,
+ * readiness indicator, and total funding needed. Expanded state shows
+ * funding source breakdown (cash, equity extraction with donor details).
  */
-
-const COLORS = {
-  cash: CHART_COLORS.barPositive,       // primary blue
-  equity: CHART_COLORS.barNegative,     // lighter blue
-  savings: 'rgba(156, 163, 175, 0.40)', // soft grey
-};
 
 const fmt = (v: number) => {
   if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
@@ -29,16 +21,16 @@ const fmt = (v: number) => {
   return `$${Math.round(v)}`;
 };
 
-interface FundingCard {
+interface FundingRow {
   title: string;
-  propertyType: string;
   buyYear: number;
   total: number;
-  sources: { label: string; amount: number; color: string }[];
-  equityNotes: string[];
+  isOwned: boolean;
+  isBuyNext: boolean;
   readinessPct: number;
   yearsAway: number;
-  isOwned: boolean;
+  color: string;
+  sources: { type: string; amount: number; from: string | null; refinanceYear: number | null }[];
 }
 
 export const FundingSourcesChart: React.FC = () => {
@@ -48,7 +40,7 @@ export const FundingSourcesChart: React.FC = () => {
 
   const currentYear = new Date().getFullYear();
 
-  const cards: FundingCard[] = useMemo(() => {
+  const rows: FundingRow[] = useMemo(() => {
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
     if (feasible.length === 0) return [];
 
@@ -60,6 +52,8 @@ export const FundingSourcesChart: React.FC = () => {
       return projectPropertyTimeline(prop, endYear, growthCurve, DEFAULT_INTEREST_RATE);
     });
 
+    let foundBuyNext = false;
+
     return feasible.map((prop, idx) => {
       const fb = prop.fundingBreakdown;
       const cash = fb.cash || 0;
@@ -67,13 +61,20 @@ export const FundingSourcesChart: React.FC = () => {
       const savings = fb.savings || 0;
       const total = cash + equity + savings;
 
-      const sources: FundingCard['sources'] = [];
-      if (cash > 0) sources.push({ label: 'Cash Deposit', amount: cash, color: COLORS.cash });
-
       const buyYear = Math.floor(prop.affordableYear);
-      const donorEquities: { title: string; extractable: number; currentExtractable: number }[] = [];
+      const isOwned = buyYear <= currentYear;
+      const isBuyNext = !isOwned && !foundBuyNext;
+      if (isBuyNext) foundBuyNext = true;
+
+      // Build funding sources with donor details
+      const sources: FundingRow['sources'] = [];
+      if (cash > 0) {
+        sources.push({ type: 'Cash Deposit', amount: cash, from: null, refinanceYear: null });
+      }
 
       if (equity > 0) {
+        // Find donor properties
+        const donorEquities: { title: string; extractable: number; currentExtractable: number }[] = [];
         for (let di = 0; di < idx; di++) {
           const snapshots = donorTimelines[di].snapshots;
           const snap = snapshots.find(s => s.year === buyYear)
@@ -89,60 +90,58 @@ export const FundingSourcesChart: React.FC = () => {
         }
 
         if (donorEquities.length > 0) {
-          sources.push({
-            label: `Equity from ${donorEquities.length > 1 ? 'Portfolio' : donorEquities[0].title}`,
-            amount: equity,
-            color: COLORS.equity,
+          const totalExtractable = donorEquities.reduce((s, d) => s + d.extractable, 0);
+          donorEquities.forEach(d => {
+            const share = totalExtractable > 0
+              ? Math.round((d.extractable / totalExtractable) * equity)
+              : Math.round(equity / donorEquities.length);
+            sources.push({
+              type: 'Equity Extraction',
+              amount: share,
+              from: d.title,
+              refinanceYear: buyYear,
+            });
           });
         } else {
-          sources.push({ label: 'Equity Extraction', amount: equity, color: COLORS.equity });
+          sources.push({ type: 'Equity Extraction', amount: equity, from: null, refinanceYear: buyYear });
         }
       }
 
-      if (savings > 0) sources.push({ label: 'Accumulated Savings', amount: savings, color: COLORS.savings });
-
-      const equityNotes: string[] = [];
-      if (equity > 0 && donorEquities.length > 0) {
-        const totalExtractable = donorEquities.reduce((s, d) => s + d.extractable, 0);
-        donorEquities.forEach(d => {
-          const share = totalExtractable > 0
-            ? Math.round((d.extractable / totalExtractable) * equity)
-            : Math.round(equity / donorEquities.length);
-          equityNotes.push(
-            `↑ ${fmt(share)} from ${d.title} – refinanced ${buyYear}`
-          );
-        });
+      if (savings > 0) {
+        sources.push({ type: 'Accumulated Savings', amount: savings, from: null, refinanceYear: null });
       }
 
+      // Calculate readiness
       let readyNow = cash;
-      if (equity > 0 && donorEquities.length > 0) {
-        const currentTotalExtractable = donorEquities.reduce((s, d) => s + d.currentExtractable, 0);
-        readyNow += Math.min(equity, currentTotalExtractable);
-      }
-      if (savings > 0 && buyYear > BASE_YEAR) {
-        const elapsed = Math.max(0, currentYear - BASE_YEAR);
-        const totalSpan = buyYear - BASE_YEAR;
-        readyNow += Math.min(savings, savings * (elapsed / totalSpan));
+      if (equity > 0) {
+        for (let di = 0; di < idx; di++) {
+          const snapshots = donorTimelines[di].snapshots;
+          const currentSnap = snapshots.find(s => s.year === currentYear)
+            ?? snapshots.filter(s => s.year <= currentYear).pop();
+          readyNow += Math.min(equity, currentSnap?.extractableEquity ?? 0);
+        }
       }
       const readinessPct = total > 0 ? Math.min(100, Math.round((readyNow / total) * 100)) : 0;
 
-      const isOwned = buyYear <= currentYear;
-
       return {
-        title: `Property ${idx + 1}`,
-        propertyType: prop.title,
+        title: prop.title,
         buyYear,
         total,
-        sources,
-        equityNotes,
+        isOwned,
+        isBuyNext,
         readinessPct,
         yearsAway: Math.max(0, buyYear - currentYear),
-        isOwned,
+        color: PROPERTY_COLORS[idx % PROPERTY_COLORS.length],
+        sources,
       };
     });
   }, [timelineProperties, profile, getInstance, currentYear]);
 
-  if (cards.length === 0) {
+  // Default expanded: first "Buy Next" property
+  const buyNextIdx = rows.findIndex(r => r.isBuyNext);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(buyNextIdx >= 0 ? buyNextIdx : null);
+
+  if (rows.length === 0) {
     return (
       <p className="text-sm text-gray-400 py-8 text-center">
         Add properties to see funding sources
@@ -150,143 +149,119 @@ export const FundingSourcesChart: React.FC = () => {
     );
   }
 
-  const heroIdx = cards.findIndex(c => !c.isOwned);
-
-  // Min row height so Equity Unlock bars can roughly align
-  const ROW_MIN_HEIGHT = 88;
+  const toggleRow = (idx: number) => {
+    setExpandedIdx(prev => prev === idx ? null : idx);
+  };
 
   return (
     <div>
-      {/* Vertical timeline */}
-      <div className="relative">
-        {cards.map((card, idx) => {
-          const isHero = idx === heroIdx;
-          const isAfter = idx > heroIdx && heroIdx >= 0;
-          const isFuture = !card.isOwned;
-          const muted = isAfter;
-          const isLast = idx === cards.length - 1;
+      {rows.map((row, idx) => {
+        const isOpen = expandedIdx === idx;
+        const isLast = idx === rows.length - 1;
 
-          return (
-            <div key={idx} className="flex gap-3 pb-2" style={{ minHeight: ROW_MIN_HEIGHT }}>
-              {/* Timeline spine */}
-              <div className="flex flex-col items-center flex-shrink-0" style={{ width: 20 }}>
-                {/* Dot */}
-                <div
-                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-3 ${
-                    isHero
-                      ? 'bg-blue-400 ring-4 ring-blue-100'
-                      : card.isOwned
-                        ? 'bg-gray-400'
-                        : 'bg-gray-300'
-                  }`}
-                />
-                {/* Line */}
-                {!isLast && (
-                  <div className="w-px flex-1 bg-gray-200 mt-1" />
+        return (
+          <div key={idx}>
+            {/* Collapsed row */}
+            <button
+              className="w-full flex items-center gap-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
+              style={{
+                padding: '14px 0',
+                borderBottom: !isLast ? '1px solid #F3F4F6' : undefined,
+              }}
+              onClick={() => toggleRow(idx)}
+            >
+              {/* Chevron */}
+              <div className="flex-shrink-0 w-4 text-gray-400">
+                {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </div>
+
+              {/* Colour dot */}
+              <div
+                className="flex-shrink-0 w-2 h-2 rounded-full"
+                style={{ backgroundColor: row.color }}
+              />
+
+              {/* Property name + status */}
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900">{row.title}</span>
+                  {row.isBuyNext && (
+                    <span
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                      style={{ color: '#2563EB', backgroundColor: '#EFF6FF' }}
+                    >
+                      Buy Next
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-400" style={{ marginTop: 1 }}>
+                  {row.isOwned ? `Bought ${row.buyYear}` : `Target ${row.buyYear}`}
+                </span>
+              </div>
+
+              {/* Readiness */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
+                {row.isOwned ? (
+                  <span className="text-xs text-gray-400">Owned</span>
+                ) : row.isBuyNext ? (
+                  <div>
+                    <span className="text-[13px] font-semibold text-blue-600">{row.readinessPct}% ready</span>
+                    <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 60, backgroundColor: '#E5E7EB' }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${row.readinessPct}%`, backgroundColor: '#2563EB' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-[13px] text-gray-400">{row.yearsAway} yrs away</span>
                 )}
               </div>
 
-              {/* Card content */}
-              <div className="flex-1 min-w-0 flex flex-col">
-                {/* Bordered card — fixed height fills the row */}
-                <div className={`rounded-lg px-4 py-2.5 flex-1 flex flex-col ${
-                  isHero
-                    ? 'border border-blue-200 bg-blue-50/30'
-                    : 'border border-gray-100 bg-white'
-                }`}>
-                  {/* Title row */}
-                  <div className="flex items-start justify-between mb-1.5">
-                    <div className="min-w-0">
-                      <p className={`text-xs font-semibold leading-tight ${muted ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {card.title}
-                        <span className={`font-normal ml-1 ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                          · {card.propertyType}
-                        </span>
-                      </p>
-                      <p className={`text-[10px] ${
-                        isHero ? 'text-blue-500 font-medium' : muted ? 'text-gray-300' : 'text-gray-400'
-                      }`}>
-                        {card.isOwned ? `Bought ${card.buyYear}` : `Target ${card.buyYear}`}
-                        {isHero && ' · Buy Next'}
-                      </p>
-                    </div>
-                    {isFuture && isHero ? (
-                      <div className="flex-shrink-0 ml-2 text-right" style={{ minWidth: 80 }}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className="text-[10px] font-semibold" style={{ color: CHART_COLORS.primary }}>
-                            {card.readinessPct}% ready
-                          </span>
-                        </div>
-                        <div className="h-1 rounded-full overflow-hidden bg-gray-100 mt-0.5">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${card.readinessPct}%`,
-                              backgroundColor: CHART_COLORS.barPositive,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : isFuture ? (
-                      <span className={`text-xs font-medium flex-shrink-0 ml-2 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
-                        {card.yearsAway} yrs
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {/* Source breakdown — compact */}
-                  <div className="flex flex-col gap-0.5">
-                    {card.sources.map((src, si) => (
-                      <div key={si} className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div
-                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: src.color, opacity: muted ? 0.5 : 1 }}
-                          />
-                          <span className={`text-[11px] truncate ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                            {src.label}
-                          </span>
-                        </div>
-                        <span className={`text-[11px] font-medium flex-shrink-0 ${muted ? 'text-gray-300' : 'text-gray-500'}`}>
-                          {fmt(src.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-
-                  {/* Equity notes — compact */}
-                  {card.equityNotes.length > 0 && (
-                    <div className="mt-1">
-                      {card.equityNotes.map((note, ni) => (
-                        <p key={ni} className={`text-[9px] leading-snug ${muted ? 'text-gray-300' : 'text-gray-400'}`}>
-                          {note}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Funding needed */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 70 }}>
+                <span className="text-sm font-medium text-gray-500">{fmt(row.total)}</span>
+                <div className="text-[11px] text-gray-400">to fund</div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            </button>
 
-      {/* Legend */}
-      <div className="flex items-center gap-5 mt-4">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.cash }} />
-          <span className="text-[11px] text-gray-400">Cash Deposit</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.equity }} />
-          <span className="text-[11px] text-gray-400">Equity Extraction</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.savings }} />
-          <span className="text-[11px] text-gray-400">Accumulated Savings</span>
-        </div>
-      </div>
+            {/* Expanded detail */}
+            {isOpen && (
+              <div style={{ paddingLeft: 36, paddingBottom: 12 }}>
+                <p
+                  className="text-gray-400 mb-2"
+                  style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                >
+                  Funding sources
+                </p>
+                {row.sources.map((src, si) => (
+                  <div key={si}>
+                    <div
+                      className="flex items-center justify-between"
+                      style={{
+                        padding: '8px 0',
+                        fontSize: 13,
+                        borderBottom: si < row.sources.length - 1 ? '1px solid #F9FAFB' : undefined,
+                      }}
+                    >
+                      <span className="text-gray-700" style={{ fontWeight: 450 }}>{src.type}</span>
+                      <span className="font-semibold text-gray-900">{fmt(src.amount)}</span>
+                    </div>
+                    {src.from && (
+                      <p
+                        className="text-gray-400"
+                        style={{ fontSize: 12, marginLeft: 14, marginTop: 3, marginBottom: 4 }}
+                      >
+                        from {src.from} · refinanced {src.refinanceYear}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

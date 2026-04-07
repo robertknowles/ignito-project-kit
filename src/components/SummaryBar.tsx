@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
+import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 import { TourStep } from '@/components/TourManager'
@@ -14,129 +15,138 @@ interface SummaryBarProps {
 
 export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
   const { profile: contextProfile } = useInvestmentProfile()
+  const { timelineProperties: contextTimelineProps } = useAffordabilityCalculator()
 
-  // Use scenarioData if provided (multi-scenario mode), otherwise use context
   const profile = scenarioData?.profile ?? contextProfile
+  const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProps
 
-  // Use the same data source as the charts for consistency
-  // This ensures the summary bar shows the exact same values as the final year on the charts
   const { portfolioGrowthData, cashflowData } = useChartDataGenerator(scenarioData)
 
-  // Get the final year's data from the charts (same source the charts display)
+  // Final year values from charts
   const kpis = useMemo(() => {
     const finalPortfolioData = portfolioGrowthData[portfolioGrowthData.length - 1]
 
     if (!finalPortfolioData) {
       return {
-        finalPortfolioValue: 0,
+        portfolioValue: 0,
         totalEquity: 0,
       }
     }
 
     return {
-      finalPortfolioValue: finalPortfolioData.portfolioValue,
+      portfolioValue: finalPortfolioData.portfolioValue,
       totalEquity: finalPortfolioData.equity,
     }
   }, [portfolioGrowthData])
 
-  // Get the final year's annual cashflow
-  const annualCashflow = useMemo(() => {
+  // Monthly net cashflow from the most recent year's data
+  const monthlyCashflow = useMemo(() => {
     const finalCashflow = cashflowData[cashflowData.length - 1]
-    return finalCashflow?.cashflow ?? 0
+    const annual = finalCashflow?.cashflow ?? 0
+    return Math.round(annual / 12)
   }, [cashflowData])
 
-  // Find the target year — the year each goal is met (or final year if not met)
-  const finalYear = portfolioGrowthData.length > 0
-    ? portfolioGrowthData[portfolioGrowthData.length - 1].year
-    : ''
+  // Next purchase info
+  const nextPurchase = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const feasible = timelineProperties.filter(p => p.status === 'feasible')
+    const future = feasible.filter(p => Math.floor(p.affordableYear) > currentYear)
 
-  const equityGoalYear = useMemo(() => {
-    if (profile.equityGoal <= 0 || portfolioGrowthData.length === 0) return finalYear
-    const metPoint = portfolioGrowthData.find(d => d.equity >= profile.equityGoal)
-    return metPoint?.year ?? finalYear
-  }, [portfolioGrowthData, profile.equityGoal, finalYear])
+    if (future.length === 0) return null
 
-  const cashflowGoalYear = useMemo(() => {
-    if (profile.cashflowGoal <= 0 || cashflowData.length === 0) return finalYear
-    const metPoint = cashflowData.find(d => d.cashflow >= profile.cashflowGoal)
-    return metPoint?.year ?? finalYear
-  }, [cashflowData, profile.cashflowGoal, finalYear])
+    // Sort by affordable year to find the next one
+    future.sort((a, b) => a.affordableYear - b.affordableYear)
+    const next = future[0]
+    const buyYear = Math.floor(next.affordableYear)
 
-  // Calculate progress towards goals
-  const equityProgress = profile.equityGoal > 0
-    ? Math.min((kpis.totalEquity / profile.equityGoal) * 100, 100)
-    : 0
+    // Calculate readiness — how much of deposit is funded now
+    const fb = next.fundingBreakdown
+    const total = (fb.cash || 0) + (fb.equity || 0) + (fb.savings || 0)
+    // Simple readiness: cash portion is ready now, rest is future
+    const readyNow = fb.cash || 0
+    const readinessPct = total > 0 ? Math.min(100, Math.round((readyNow / total) * 100)) : 0
 
-  const cashflowProgress = profile.cashflowGoal > 0
-    ? Math.min((annualCashflow / profile.cashflowGoal) * 100, 100)
-    : 0
+    return {
+      year: buyYear,
+      title: next.title,
+      readinessPct,
+    }
+  }, [timelineProperties])
 
-  const equityGoalMet = equityProgress >= 100
-  const cashflowGoalMet = cashflowProgress >= 100
-
-  // Format currency values (always abbreviated with 1 decimal for k values)
+  // Format currency values
   const formatCurrency = (value: number) => {
     const absValue = Math.abs(value)
     const sign = value < 0 ? '-' : ''
 
     if (absValue === 0) return '$0'
-    if (absValue >= 1000000) return `${sign}$${(absValue / 1000000).toFixed(1)}M`
-    if (absValue >= 1000) return `${sign}$${(absValue / 1000).toFixed(1)}k`
-    return `${sign}$${Math.round(absValue)}`
+    if (absValue >= 1000000) return `${sign}$${(absValue / 1000000).toFixed(2)}M`
+    if (absValue >= 1000) return `${sign}$${Math.round(absValue / 1000).toLocaleString()}K`
+    return `${sign}$${Math.round(absValue).toLocaleString()}`
+  }
+
+  const formatMonthlyCashflow = (value: number) => {
+    const absValue = Math.abs(value)
+    const sign = value < 0 ? '-' : ''
+    return `${sign}$${absValue.toLocaleString()}`
   }
 
   return (
     <TourStep
       id="summary-bar"
       title="Portfolio Scoreboard"
-      content="Your at-a-glance KPIs: Portfolio Value, Equity, and Monthly Holding Cost with progress towards goals. These update in real-time as you modify the strategy."
+      content="Your at-a-glance KPIs: Portfolio Value, Equity, Cashflow, and Next Purchase. These update in real-time as you modify the strategy."
       order={8}
       position="top"
     >
-    <div id="summary-bar-container" className="grid grid-cols-3 gap-4">
+    <div id="summary-bar-container" className="grid grid-cols-4 gap-3">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
-        <span className="metric-label">Portfolio Value</span>
+      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+        <span className="text-xs font-medium text-gray-400">Portfolio Value</span>
         <div className="mt-1.5">
-          <span className="stat-number">
-            {formatCurrency(kpis.finalPortfolioValue)}
+          <span className="text-2xl font-bold text-gray-900">
+            {formatCurrency(kpis.portfolioValue)}
           </span>
-          {finalYear && <span className="ml-1.5 text-gray-400 text-sm font-normal">by {finalYear}</span>}
         </div>
       </div>
 
-      {/* Net Equity */}
-      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
-        <span className="metric-label">Net Equity</span>
+      {/* Total Equity */}
+      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+        <span className="text-xs font-medium text-gray-400">Total Equity</span>
         <div className="mt-1.5">
-          <span className="stat-number">
+          <span className="text-2xl font-bold text-gray-900">
             {formatCurrency(kpis.totalEquity)}
           </span>
-          {equityGoalMet && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
-          {equityGoalYear && (
-            <span className="ml-1.5 text-gray-400 text-sm font-normal">
-              by {equityGoalYear}{!equityGoalMet && '*'}
-            </span>
-          )}
         </div>
-        <span className="meta mt-1 block">/ {formatCurrency(profile.equityGoal)}</span>
       </div>
 
-      {/* Annual Cashflow */}
-      <div className="bg-white rounded-lg border border-gray-200 px-6 py-5">
-        <span className="metric-label">Annual Cashflow</span>
+      {/* Net Cashflow */}
+      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+        <span className="text-xs font-medium text-gray-400">Net Cashflow</span>
         <div className="mt-1.5">
-          <span className="stat-number">
-            {formatCurrency(Math.round(annualCashflow))}
+          <span className="text-2xl font-bold text-gray-900">
+            {formatMonthlyCashflow(monthlyCashflow)}
           </span>
-          {cashflowGoalMet && <span className="ml-1.5 text-blue-600 text-sm">✓</span>}
-          {cashflowGoalYear && (
-            <span className="ml-1.5 text-gray-400 text-sm font-normal">
-              by {cashflowGoalYear}{!cashflowGoalMet && '*'}
-            </span>
+          <span className="text-sm font-normal text-gray-500 ml-1">/mo</span>
+        </div>
+      </div>
+
+      {/* Next Purchase */}
+      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+        <span className="text-xs font-medium text-gray-400">Next Purchase</span>
+        <div className="mt-1.5">
+          {nextPurchase ? (
+            <>
+              <span className="text-2xl font-bold text-gray-900">
+                {nextPurchase.year}
+              </span>
+              <div className="mt-1.5">
+                <span className="text-xs text-gray-500">{nextPurchase.title}</span>
+              </div>
+            </>
+          ) : (
+            <span className="text-2xl font-bold text-gray-900">—</span>
           )}
         </div>
-        <span className="meta mt-1 block">/ {formatCurrency(profile.cashflowGoal)}</span>
       </div>
     </div>
     </TourStep>

@@ -3,24 +3,17 @@ import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculat
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useHoldingCostTimeline } from './useHoldingCostTimeline';
-import { CHART_COLORS } from '../../constants/chartColors';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { PROPERTY_COLORS } from '../../constants/chartColors';
 
 const fmtMo = (v: number) => `$${Math.abs(Math.round(v)).toLocaleString()}`;
 
-const COLORS = {
-  rent: 'rgba(59, 108, 244, 0.30)',      // rent coverage — softened
-  costs: 'rgba(163, 193, 250, 0.25)',     // costs bg — softened
-};
-
-const LABEL_WIDTH = 80;
-const FINAL_WIDTH = 60;
-
 /**
- * Monthly Holding Cost Panel — Gantt-style rows matching Equity Unlock
+ * Monthly Holding Costs — Expandable table with year dropdown
  *
- * Each property gets a row with label on left, rent-vs-cost bar in middle,
- * and net cost on right. Expandable breakdown on click.
+ * Summary hero number at top, then expandable rows per property showing
+ * costs, rent, coverage mini-bar, and net cashflow. Expanded state shows
+ * full cost breakdown with subtotals.
  */
 export const HoldingCostPanel: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
@@ -34,19 +27,25 @@ export const HoldingCostPanel: React.FC = () => {
   const [snapshotYear, setSnapshotYear] = useState(() =>
     Math.min(latestBuyYear, endYear)
   );
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  // Default expanded: first property (Property 1)
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
+
+  // Year options for dropdown
+  const yearOptions = useMemo(() => {
+    const years: number[] = [];
+    for (let y = startYear; y <= endYear; y++) years.push(y);
+    return years;
+  }, [startYear, endYear]);
 
   // Portfolio totals
   const totals = useMemo(() => {
     let totalNet = 0;
     let totalRent = 0;
     let totalCosts = 0;
-    let activeCount = 0;
 
     properties.forEach(prop => {
       const snap = prop.snapshots.find(s => s.year === snapshotYear);
       if (!snap) return;
-      activeCount++;
       totalNet += snap.monthlyNetCost;
       totalRent += snap.monthlyRent;
       const costs = snap.monthlyMortgage + snap.monthlyManagement + snap.monthlyCouncil +
@@ -55,7 +54,7 @@ export const HoldingCostPanel: React.FC = () => {
     });
 
     const coverage = totalCosts > 0 ? Math.round((totalRent / totalCosts) * 100) : 0;
-    return { totalNet, totalRent, totalCosts, coverage, activeCount };
+    return { totalNet, totalRent, totalCosts, coverage };
   }, [properties, snapshotYear]);
 
   if (properties.length === 0) {
@@ -66,173 +65,170 @@ export const HoldingCostPanel: React.FC = () => {
     );
   }
 
-  const isPositive = totals.totalNet >= 0;
-
   return (
     <div>
-      {/* Header row — controls */}
-      <div className="flex items-start justify-end mb-5">
-        <div className="flex items-center gap-4 min-w-0 w-full">
-          {/* Slider */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">
-              Snapshot
+      {/* Year dropdown — positioned top-right */}
+      <div className="flex items-start justify-between mb-4">
+        <div />
+        <select
+          value={snapshotYear}
+          onChange={e => setSnapshotYear(Number(e.target.value))}
+          className="appearance-none cursor-pointer bg-white text-gray-700 font-medium"
+          style={{
+            padding: '6px 12px',
+            fontSize: 13,
+            border: '1px solid #E5E7EB',
+            borderRadius: 6,
+            outline: 'none',
+          }}
+        >
+          {yearOptions.map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Summary section */}
+      <div
+        className="pb-5 mb-6"
+        style={{ borderBottom: '1px solid #F3F4F6' }}
+      >
+        <div className="flex items-baseline gap-6">
+          <div>
+            <span className="text-[28px] font-bold text-gray-900">
+              {totals.totalNet >= 0 ? '+' : '-'}{fmtMo(totals.totalNet)}
             </span>
-            <input
-              type="range"
-              min={startYear}
-              max={endYear}
-              value={snapshotYear}
-              onChange={e => setSnapshotYear(Number(e.target.value))}
-              className="w-full min-w-[100px] appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
-              style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB ${((snapshotYear - startYear) / (endYear - startYear)) * 100}%, #E5E7EB 100%)` }}
-            />
-            <span className="text-sm font-medium text-gray-600 min-w-[32px] text-right">
-              {snapshotYear}
-            </span>
+            <span className="text-sm text-gray-500 ml-1.5">/mo net cashflow</span>
           </div>
-          {/* Net total */}
-          <div className="text-right">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider leading-tight">
-              Net cashflow
-            </p>
-            <p className="text-lg font-semibold text-gray-600">
-              {isPositive ? '+' : '-'}{fmtMo(totals.totalNet)}<span className="text-xs font-normal text-gray-400">/mo</span>
-            </p>
-          </div>
+          <span className="text-sm text-gray-500">{totals.coverage}% coverage</span>
         </div>
       </div>
 
-      {/* Property rows — matching equity unlock style */}
-      <div className="flex flex-col gap-5">
-        {properties.map((prop, idx) => {
-          const snapshot = prop.snapshots.find(s => s.year === snapshotYear);
-          if (!snapshot) return null;
+      {/* Property rows */}
+      {properties.map((prop, idx) => {
+        const snapshot = prop.snapshots.find(s => s.year === snapshotYear);
+        if (!snapshot) return null;
 
-          const propIsPositive = snapshot.monthlyNetCost >= 0;
-          const totalCosts = snapshot.monthlyMortgage + snapshot.monthlyManagement +
-            snapshot.monthlyCouncil + snapshot.monthlyInsurance +
-            snapshot.monthlyMaintenance + snapshot.monthlyVacancy + snapshot.monthlyStrata;
-          const coveragePct = totalCosts > 0 ? Math.min(100, (snapshot.monthlyRent / totalCosts) * 100) : 0;
-          const isOpen = expandedIdx === idx;
+        const totalCosts = snapshot.monthlyMortgage + snapshot.monthlyManagement +
+          snapshot.monthlyCouncil + snapshot.monthlyInsurance +
+          snapshot.monthlyMaintenance + snapshot.monthlyVacancy + snapshot.monthlyStrata;
+        const coveragePct = totalCosts > 0 ? Math.min(100, (snapshot.monthlyRent / totalCosts) * 100) : 0;
+        const isOpen = expandedIdx === idx;
+        const isLast = idx === properties.length - 1;
 
-          const breakdownItems = [
-            { label: 'Mortgage', value: snapshot.monthlyMortgage },
-            { label: 'Management', value: snapshot.monthlyManagement },
-            { label: 'Council Rates', value: snapshot.monthlyCouncil },
-            { label: 'Insurance', value: snapshot.monthlyInsurance },
-            { label: 'Maintenance', value: snapshot.monthlyMaintenance },
-            { label: 'Vacancy', value: snapshot.monthlyVacancy },
-            ...(snapshot.monthlyStrata > 0 ? [{ label: 'Strata', value: snapshot.monthlyStrata }] : []),
-          ];
+        const breakdownItems = [
+          { label: 'Mortgage', value: snapshot.monthlyMortgage },
+          { label: 'Management', value: snapshot.monthlyManagement },
+          { label: 'Council Rates', value: snapshot.monthlyCouncil },
+          { label: 'Insurance', value: snapshot.monthlyInsurance },
+          { label: 'Maintenance', value: snapshot.monthlyMaintenance },
+          { label: 'Vacancy', value: snapshot.monthlyVacancy },
+          ...(snapshot.monthlyStrata > 0 ? [{ label: 'Strata', value: snapshot.monthlyStrata }] : []),
+        ];
 
-          return (
-            <div key={prop.instanceId}>
-              {/* Main row */}
-              <button
-                className="w-full flex items-start cursor-pointer hover:bg-gray-50/50 rounded-md transition-colors py-1"
-                onClick={() => setExpandedIdx(isOpen ? null : idx)}
-              >
-                {/* Label — same width as equity unlock, left-aligned */}
-                <div className="flex-shrink-0 text-left" style={{ width: LABEL_WIDTH }}>
-                  <p className="text-xs font-semibold text-gray-600 leading-tight truncate">{prop.title}</p>
-                  <p className="text-[11px] text-gray-400">Bought {prop.buyYear}</p>
+        return (
+          <div key={prop.instanceId}>
+            {/* Collapsed row */}
+            <button
+              className="w-full flex items-center gap-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
+              style={{
+                padding: '14px 0',
+                borderBottom: !isLast || isOpen ? '1px solid #F3F4F6' : undefined,
+              }}
+              onClick={() => setExpandedIdx(isOpen ? null : idx)}
+            >
+              {/* Chevron */}
+              <div className="flex-shrink-0 w-4 text-gray-400">
+                {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </div>
+
+              {/* Colour dot */}
+              <div
+                className="flex-shrink-0 w-2 h-2 rounded-full"
+                style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }}
+              />
+
+              {/* Property name + bought year */}
+              <div className="flex-1 text-left min-w-0">
+                <span className="text-sm font-medium text-gray-900">{prop.title}</span>
+                <div className="text-xs text-gray-400">Bought {prop.buyYear}</div>
+              </div>
+
+              {/* Costs */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
+                <span className="text-[13px] text-gray-500">{fmtMo(totalCosts)}</span>
+                <div className="text-[11px] text-gray-400">costs</div>
+              </div>
+
+              {/* Rent */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
+                <span className="text-[13px] text-gray-500">{fmtMo(snapshot.monthlyRent)}</span>
+                <div className="text-[11px] text-gray-400">rent</div>
+              </div>
+
+              {/* Coverage mini-bar */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 50 }}>
+                <span className="text-xs text-gray-400">{Math.round(coveragePct)}%</span>
+                <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 50, backgroundColor: '#F3F4F6' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${coveragePct}%`, backgroundColor: 'rgba(37, 99, 235, 0.6)' }}
+                  />
                 </div>
+              </div>
 
-                {/* Cost vs Rent bar — same 20px height as Gantt bars */}
-                <div className="flex-1 relative mt-0.5" style={{ height: 20 }}>
-                  {/* Costs bar from left (light blue) */}
-                  {(() => {
-                    const maxVal = Math.max(totalCosts, snapshot.monthlyRent, 1);
-                    const costsPct = (totalCosts / maxVal) * 100;
-                    const rentPct = (snapshot.monthlyRent / maxVal) * 100;
-                    return (
-                      <>
-                        <div
-                          className="absolute top-0 left-0 rounded-md"
-                          style={{
-                            width: `${costsPct}%`,
-                            height: '100%',
-                            backgroundColor: COLORS.costs,
-                          }}
-                        />
-                        {/* Rent bar from right (darker blue) */}
-                        <div
-                          className="absolute top-0 right-0 rounded-md"
-                          style={{
-                            width: `${rentPct}%`,
-                            height: '100%',
-                            backgroundColor: COLORS.rent,
-                          }}
-                        />
-                      </>
-                    );
-                  })()}
-                  {/* Labels inside bar — costs on left, rent on right */}
-                  <div className="relative flex justify-between items-center h-full px-2">
-                    <span className="text-[10px] text-gray-400">
-                      Costs: {fmtMo(totalCosts)} · {Math.round(coveragePct)}%
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-600">
-                      Rent: {fmtMo(snapshot.monthlyRent)}
+              {/* Net cashflow */}
+              <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
+                <span className="text-sm font-semibold text-gray-500">
+                  {snapshot.monthlyNetCost >= 0 ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
+                </span>
+                <div className="text-[11px] text-gray-400">/mo</div>
+              </div>
+            </button>
+
+            {/* Expanded breakdown */}
+            {isOpen && (
+              <div style={{ paddingLeft: 36, paddingTop: 8, paddingBottom: 16 }}>
+                {breakdownItems.map((item, bi) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between"
+                    style={{
+                      padding: '7px 0',
+                      fontSize: 13,
+                      borderBottom: bi < breakdownItems.length - 1 ? '1px solid #F9FAFB' : undefined,
+                    }}
+                  >
+                    <span className="text-gray-500">{item.label}</span>
+                    <span className="font-medium text-gray-700">{fmtMo(item.value)}</span>
+                  </div>
+                ))}
+
+                {/* Subtotals */}
+                <div
+                  className="mt-2 pt-2"
+                  style={{ borderTop: '1px solid #E5E7EB' }}
+                >
+                  <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
+                    <span className="text-gray-500 font-medium">Total costs</span>
+                    <span className="font-semibold text-gray-900">{fmtMo(totalCosts)}</span>
+                  </div>
+                  <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
+                    <span className="text-gray-500">Rental income</span>
+                    <span className="font-medium text-gray-700">{fmtMo(snapshot.monthlyRent)}</span>
+                  </div>
+                  <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
+                    <span className="text-gray-500">Net cashflow</span>
+                    <span className="font-bold text-gray-900">
+                      {snapshot.monthlyNetCost >= 0 ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}/mo
                     </span>
                   </div>
                 </div>
-
-                {/* Net cost — right side */}
-                <div className="flex-shrink-0 text-right flex items-center gap-1 mt-0.5" style={{ width: FINAL_WIDTH }}>
-                  <span className="text-xs font-medium text-gray-500 flex-1">
-                    {propIsPositive ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
-                  </span>
-                  <ChevronDown
-                    className={`w-3 h-3 text-gray-300 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                  />
-                </div>
-              </button>
-
-              {/* Expanded breakdown */}
-              {isOpen && (
-                <div className="pt-1 pb-2" style={{ paddingLeft: LABEL_WIDTH }}>
-                  {breakdownItems.map((item, bi) => {
-                    const pct = totalCosts > 0 ? (item.value / totalCosts) * 100 : 0;
-                    return (
-                      <div key={item.label} className="flex items-center gap-2 py-0.5">
-                        <div className="flex-1 text-[11px] text-gray-400">{item.label}</div>
-                        <div className="w-[80px] h-1.5 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${pct}%`, backgroundColor: COLORS.rent }}
-                          />
-                        </div>
-                        <div className="w-14 text-right text-[11px] font-medium text-gray-500">
-                          {fmtMo(item.value)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Legend + portfolio total */}
-      <div className="flex items-center justify-between mt-4" style={{ paddingLeft: LABEL_WIDTH }}>
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.rent }} />
-            <span className="text-[11px] text-gray-400">Rental income</span>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS.costs }} />
-            <span className="text-[11px] text-gray-400">Total costs</span>
-          </div>
-        </div>
-        <div className="text-[11px] text-gray-400">
-          Coverage: {totals.coverage}%
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
