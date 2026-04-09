@@ -9,19 +9,7 @@ import {
   CheckCircle2,
   Loader2,
   Building2,
-  BarChart3,
-  Wallet,
-  Briefcase,
 } from 'lucide-react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
 // InputDrawer hidden for NL pivot — component preserved in codebase for future use
@@ -48,8 +36,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
-import { calculatePerPropertyProjection, type TimelinePropertyData, type ProjectionConfig, type YearRow } from '../utils/perPropertyProjections'
+import { OwnedPropertyCard } from '../components/OwnedPropertyCard'
+import { calculatePerPropertyProjection, type TimelinePropertyData } from '../utils/perPropertyProjections'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 import type { GrowthCurve } from '../types/property'
 
@@ -118,15 +106,6 @@ const formatExact = (value: number) => {
 
 const formatPct = (value: number) => `${value >= 0 ? '' : ''}${value.toFixed(1)}%`
 
-const formatYAxis = (value: number) => {
-  if (value === 0) return '$0'
-  const abs = Math.abs(value)
-  const sign = value < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}K`
-  return `${sign}$${abs}`
-}
-
 // Property images mapping
 const PORTFOLIO_PROPERTY_IMAGES: Record<string, string> = {
   'Metro Houses': '/images/properties/metro-house.png',
@@ -165,6 +144,7 @@ export const Portfolio = () => {
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [purchaseStates, setPurchaseStates] = useState<Record<string, { isPurchased: boolean; address: string; photo: string }>>({})
   const [portfolioFilter, setPortfolioFilter] = useState<'all' | 'owned' | 'planned'>('all')
+  const [selectedPropertyTab, setSelectedPropertyTab] = useState<string | null>(null)
   const [detailProperty, setDetailProperty] = useState<{ property: PortfolioProperty; scenarioId: number } | null>(null)
 
   // Activate property modal state
@@ -606,7 +586,7 @@ export const Portfolio = () => {
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
-          <div className="px-12 py-6">
+          <div className="flex flex-col mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
             {portfolioLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -699,7 +679,7 @@ export const Portfolio = () => {
                   </div>
                 )}
 
-                {/* Property cards */}
+                {/* Property cards — tabbed view */}
                 {activeScenarios.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
                     <Home size={48} className="text-gray-300 mx-auto mb-4" />
@@ -707,7 +687,7 @@ export const Portfolio = () => {
                     <p className="meta mt-1">Create a scenario in the Dashboard first</p>
                   </div>
                 ) : (() => {
-                  // Split into owned and planned
+                  // Build all property cards
                   const allCards = activeScenarios.flatMap(scenario =>
                     scenario.properties.map(property => {
                       const key = `${scenario.scenarioId}_${property.instanceId}`
@@ -716,350 +696,160 @@ export const Portfolio = () => {
                       return { scenario, property, key, trackingState, isPurchased }
                     })
                   )
-                  const ownedCards = allCards.filter(c => c.isPurchased)
-                  const plannedCards = allCards.filter(c => !c.isPurchased)
-                  const showOwned = portfolioFilter === 'all' || portfolioFilter === 'owned'
-                  const showPlanned = portfolioFilter === 'all' || portfolioFilter === 'planned'
+
+                  // Filter by portfolio filter
+                  const filteredCards = portfolioFilter === 'all'
+                    ? allCards
+                    : portfolioFilter === 'owned'
+                      ? allCards.filter(c => c.isPurchased)
+                      : allCards.filter(c => !c.isPurchased)
+
+                  if (filteredCards.length === 0) {
+                    return (
+                      <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                        <Home size={48} className="text-gray-300 mx-auto mb-4" />
+                        <p className="body-secondary">No {portfolioFilter === 'owned' ? 'owned' : 'planned'} properties</p>
+                      </div>
+                    )
+                  }
+
+                  // Auto-select first tab if none selected or selection not in filtered list
+                  const activeTab = filteredCards.find(c => c.key === selectedPropertyTab) ? selectedPropertyTab : filteredCards[0]?.key
+                  const activeCard = filteredCards.find(c => c.key === activeTab)
 
                   return (
-                    <div className="space-y-8">
-                      {/* OWNED PROPERTIES — compound calculator layout */}
-                      {showOwned && ownedCards.length > 0 && (
-                        <div className="space-y-8">
-                          {portfolioFilter === 'all' && <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Properties</h3>}
-                          {ownedCards.map(({ scenario, property, key, trackingState }) => {
-                            const propertyImage = getPortfolioPropertyImage(property.propertyTypeKey || property.title)
+                    <div>
+                      {/* Property heading */}
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Your Properties</h3>
 
-                            // Use real calculation engine if we have the raw data, otherwise skip
-                            const scenarioData = activeScenarios.find(s => s.scenarioId === scenario.scenarioId)
-                            const defaultGrowthCurve: GrowthCurve = { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 }
-                            const growthCurve = scenarioData?.growthCurve || defaultGrowthCurve
+                      {/* Tab bar */}
+                      <div className="flex items-center gap-1 overflow-x-auto pb-0 mb-0 border-b border-gray-200">
+                        {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }) => {
+                          const isActive = key === activeTab
+                          const label = isPurchased && trackingState?.address ? trackingState.address : property.title
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedPropertyTab(key)}
+                              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
+                                isActive
+                                  ? 'border-blue-600 text-gray-900'
+                                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              }`}
+                            >
+                              <span className="truncate max-w-[160px]">{label}</span>
+                              <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-gray-300'}`} />
+                              {/* Inline toggle */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }}
+                                className={`w-7 h-4 rounded-full transition-colors flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-gray-300'}`}
+                                title={isPurchased ? 'Mark as not purchased' : 'Mark as purchased'}
+                              >
+                                <div className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${isPurchased ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                              </button>
+                            </button>
+                          )
+                        })}
+                      </div>
 
-                            // Build timeline data from raw or reconstructed
-                            const timelineData: TimelinePropertyData = property.rawTimelineItem || {
-                              title: property.title,
-                              cost: property.purchasePrice,
-                              loanAmount: property.loanAmount,
-                              depositRequired: property.deposit,
-                              period: 1,
-                              affordableYear: property.affordableYear,
-                              displayPeriod: `${property.affordableYear}`,
-                              loanType: (property.loanProduct as 'IO' | 'PI') || 'IO',
-                            }
+                      {/* Active tab content */}
+                      <div className="mt-4">
+                        {activeCard && (() => {
+                          const { scenario, property, key, trackingState, isPurchased } = activeCard
+                          const propertyImage = getPortfolioPropertyImage(property.propertyTypeKey || property.title)
 
-                            // Build property instance from raw or reconstructed
-                            const propInstance: PropertyInstanceDetails = property.rawPropertyInstance || {
-                              state: property.state || 'NSW',
-                              purchasePrice: property.purchasePrice,
-                              valuationAtPurchase: property.purchasePrice,
-                              rentPerWeek: property.rentPerWeek,
-                              growthAssumption: (property.growthAssumption as 'High' | 'Medium' | 'Low') || 'Medium',
-                              minimumYield: 5,
-                              daysToUnconditional: 21,
-                              daysForSettlement: 42,
-                              lvr: property.lvr,
-                              lmiWaiver: false,
-                              loanProduct: (property.loanProduct as 'IO' | 'PI') || 'IO',
-                              interestRate: property.interestRate,
-                              loanTerm: 30,
-                              loanOffsetAccount: 0,
-                              engagementFee: 0,
-                              conditionalHoldingDeposit: 0,
-                              buildingInsuranceUpfront: 0,
-                              buildingPestInspection: 0,
-                              plumbingElectricalInspections: 0,
-                              independentValuation: 0,
-                              unconditionalHoldingDeposit: 0,
-                              mortgageFees: 0,
-                              conveyancing: 0,
-                              ratesAdjustment: 0,
-                              maintenanceAllowancePostSettlement: 0,
-                              stampDutyOverride: null,
-                              vacancyRate: 2,
-                              propertyManagementPercent: 6.6,
-                              buildingInsuranceAnnual: 350,
-                              councilRatesWater: 2000,
-                              strata: 0,
-                              maintenanceAllowanceAnnual: 0,
-                              landTaxOverride: null,
-                              potentialDeductionsRebates: 0,
-                            }
-
-                            const projection = calculatePerPropertyProjection(timelineData, propInstance, { growthCurve, projectionYears: 10 })
-
-                            // Aliases for template compatibility
-                            const proj = {
-                              years: projection.yearRows,
-                              cashInvested: projection.totalCashInvested,
-                              capitalReturnedInYears: projection.capitalReturnedInYears,
-                              annualRent: projection.cashflowOverTime[0]?.grossIncome || 0,
-                              annualInterest: projection.cashflowOverTime[0]?.loanInterest || 0,
-                              annualOperating: projection.cashflowOverTime[0]?.totalExpenses || 0,
-                              annualTotalExpenses: (projection.cashflowOverTime[0]?.loanInterest || 0) + (projection.cashflowOverTime[0]?.totalExpenses || 0),
-                            }
-                            const yr1 = proj.years[0]
-                            const yr5 = proj.years[4]
-                            const yr10 = proj.years[9]
-
-                            // Chart data from projections
-                            const chartData = [
-                              { year: property.affordableYear.toString(), capitalGrowthCum: 0, netCashflowCum: 0, totalPerformance: 0 },
-                              ...proj.years.map(y => ({
-                                year: y.yearLabel,
-                                capitalGrowthCum: y.capitalGrowthCumulative,
-                                netCashflowCum: y.netCashflowCumulative,
-                                totalPerformance: y.totalPerformance,
-                              }))
-                            ]
-
+                          if (!isPurchased) {
+                            // Unpurchased empty state
                             return (
-                              <div key={key} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                                {/* Property Header */}
-                                <div className="flex items-center gap-4 px-6 py-3 border-b border-gray-100 bg-gray-50/50">
-                                  <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                                    {trackingState?.photo ? (
-                                      <img src={trackingState.photo} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                                    ) : propertyImage ? (
-                                      <img src={propertyImage} alt="" className="w-full h-full object-cover" />
+                              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                                  <div className="w-24 h-24 mb-4 opacity-30">
+                                    {propertyImage ? (
+                                      <img src={propertyImage} alt={property.title} className="w-full h-full object-contain" />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center"><Home size={16} className="text-gray-300" /></div>
+                                      <Home size={48} className="text-gray-300 mx-auto mt-4" />
                                     )}
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-semibold text-gray-900 truncate">{trackingState?.address || property.title}</h4>
-                                    <p className="text-[11px] text-gray-500">{property.state} · Purchased {property.affordableYear} · {formatExact(property.purchasePrice)}</p>
-                                  </div>
-                                  <span className="bg-green-500 text-white text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded flex-shrink-0">Owned</span>
-                                  <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="w-9 h-5 rounded-full bg-green-500 transition-colors flex-shrink-0" title="Mark as not purchased">
-                                    <div className="relative top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow translate-x-4" />
-                                  </button>
-                                </div>
-
-                                {/* Top Section: Cash In/Out (left) + Chart & Performance Summary (right) */}
-                                <div className="flex flex-col lg:flex-row border-b border-gray-100">
-                                  {/* LEFT: Cash In / Cash Out */}
-                                  <div className="lg:w-[280px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100">
-                                    {/* Cash In */}
-                                    <div className="px-5 pt-4 pb-3">
-                                      <h5 className="text-[11px] font-semibold text-gray-900 uppercase tracking-wider mb-2">Cash In</h5>
-                                      <div className="space-y-1">
-                                        <div className="flex justify-between">
-                                          <span className="text-xs text-gray-500">Weekly Rental Income</span>
-                                          <span className="text-xs font-medium text-gray-900">${property.rentPerWeek}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-xs text-gray-500">Gross Annual Rental Income</span>
-                                          <span className="text-xs font-medium text-gray-900">{formatExact(proj.annualRent)}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100">
-                                        <span className="text-xs font-medium text-gray-700">Gross Annual Property Income</span>
-                                        <span className="text-xs font-semibold text-gray-900">{formatExact(proj.annualRent)}</span>
-                                      </div>
-                                    </div>
-
-                                    {/* Cash Out */}
-                                    <div className="px-5 pb-3 pt-2 border-t border-gray-100">
-                                      <h5 className="text-[11px] font-semibold text-gray-900 uppercase tracking-wider mb-2">Cash Out</h5>
-                                      <div className="space-y-1">
-                                        <div className="flex justify-between">
-                                          <span className="text-xs text-gray-500">Loan Interest</span>
-                                          <span className="text-xs font-medium text-gray-900">{formatExact(proj.annualInterest)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-xs text-gray-500">Operating Expenses</span>
-                                          <span className="text-xs font-medium text-gray-900">{formatExact(proj.annualOperating)}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100">
-                                        <span className="text-xs font-medium text-gray-700">Total Annual Cash Expenses</span>
-                                        <span className="text-xs font-semibold text-gray-900">{formatExact(proj.annualTotalExpenses)}</span>
-                                      </div>
-                                    </div>
-
-                                    {/* Net position */}
-                                    <div className="px-5 py-3 border-t border-gray-200 bg-gray-50/50">
-                                      <div className="flex justify-between">
-                                        <span className="text-xs font-semibold text-gray-700">Net Annual Cashflow</span>
-                                        <span className={`text-xs font-bold ${yr1.netCashflow >= 0 ? 'text-green-600' : 'text-red-500'}`}>{formatExact(yr1.netCashflow)}</span>
-                                      </div>
-                                      <div className="flex justify-between mt-1">
-                                        <span className="text-xs text-gray-500">Monthly</span>
-                                        <span className={`text-xs font-semibold ${yr1.monthlyCost >= 0 ? 'text-green-600' : 'text-red-500'}`}>{formatExact(yr1.monthlyCost)}/mo</span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* RIGHT: Chart + Performance Summary */}
-                                  <div className="flex-1 min-w-0 flex flex-col">
-                                    {/* Chart */}
-                                    <div className="p-4 flex-1">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="text-[11px] font-semibold text-gray-900 uppercase tracking-wider">Total Performance Projections</h5>
-                                        <div className="flex items-center gap-3">
-                                          <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded" style={{ backgroundColor: CHART_COLORS.primary }} /><span className="text-[10px] text-gray-400">Capital Growth</span></div>
-                                          <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded" style={{ backgroundColor: CHART_COLORS.secondary }} /><span className="text-[10px] text-gray-400">Net Cashflow</span></div>
-                                          <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded" style={{ backgroundColor: CHART_COLORS.lineBlue }} /><span className="text-[10px] text-gray-400">Total Performance</span></div>
-                                        </div>
-                                      </div>
-                                      <ResponsiveContainer width="100%" height={180}>
-                                        <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                                          <CartesianGrid {...CHART_STYLE.grid} />
-                                          <XAxis dataKey="year" {...CHART_STYLE.xAxis} />
-                                          <YAxis tickFormatter={formatYAxis} {...CHART_STYLE.yAxis} />
-                                          <Tooltip
-                                            contentStyle={{ backgroundColor: 'white', border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: '6px', fontSize: '11px' }}
-                                            formatter={(value: number) => formatExact(value)}
-                                          />
-                                          <Line type="monotone" dataKey="capitalGrowthCum" stroke={CHART_COLORS.primary} strokeWidth={2} name="Capital Growth" dot={false} />
-                                          <Line type="monotone" dataKey="netCashflowCum" stroke={CHART_COLORS.secondary} strokeWidth={2} name="Net Cashflow" dot={false} />
-                                          <Line type="monotone" dataKey="totalPerformance" stroke={CHART_COLORS.lineBlue} strokeWidth={2.5} name="Total Performance" dot={false} />
-                                        </LineChart>
-                                      </ResponsiveContainer>
-                                    </div>
-
-                                    {/* Performance Summary — right side below chart */}
-                                    <div className="px-4 pb-4 pt-0">
-                                      <div className="grid grid-cols-3 gap-4 border border-gray-200 rounded-lg overflow-hidden">
-                                        {/* Total Performance */}
-                                        <div className="p-3 border-r border-gray-200">
-                                          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Total Performance</div>
-                                          <div className="text-[10px] text-gray-400 mb-0.5">(Growth + Net Cashflow)</div>
-                                          <div className="space-y-0.5 mt-2">
-                                            {[{ l: 'Year 1', v: yr1.totalPerformance }, { l: 'Year 5', v: yr5.totalPerformance }, { l: 'Year 10', v: yr10.totalPerformance }].map(r => (
-                                              <div key={r.l} className="flex justify-between"><span className="text-[11px] text-gray-500">{r.l}</span><span className="text-[11px] font-semibold text-gray-900">{formatExact(r.v)}</span></div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        {/* Cash on Cash Return */}
-                                        <div className="p-3 border-r border-gray-200">
-                                          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Cash On Cash Return</div>
-                                          <div className="text-[10px] text-gray-400 mb-0.5">(COC)</div>
-                                          <div className="space-y-0.5 mt-2">
-                                            {[{ l: 'Year 1', v: yr1.cocReturnCumulative }, { l: 'Year 5', v: yr5.cocReturnCumulative }, { l: 'Year 10', v: yr10.cocReturnCumulative }].map(r => (
-                                              <div key={r.l} className="flex justify-between"><span className="text-[11px] text-gray-500">{r.l}</span><span className={`text-[11px] font-semibold ${r.v >= 0 ? 'text-gray-900' : 'text-red-500'}`}>{formatPct(r.v)}</span></div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        {/* ROIC + Capital Returned */}
-                                        <div className="p-3">
-                                          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Return on Invested Capital</div>
-                                          <div className="space-y-0.5 mt-2">
-                                            {[{ l: 'Year 1', v: yr1.roic }, { l: 'Year 5', v: yr5.roic }, { l: 'Year 10', v: yr10.roic }].map(r => (
-                                              <div key={r.l} className="flex justify-between"><span className="text-[11px] text-gray-500">{r.l}</span><span className="text-[11px] font-semibold text-gray-900">{formatPct(r.v)}</span></div>
-                                            ))}
-                                          </div>
-                                          <div className="mt-2 pt-2 border-t border-gray-100">
-                                            <div className="text-[10px] text-gray-500">Initial capital returned in:</div>
-                                            <div className="text-sm font-bold text-blue-600 mt-0.5">{proj.capitalReturnedInYears} {proj.capitalReturnedInYears === 1 ? 'year' : 'years'}</div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Year-by-Year Table */}
-                                <div className="px-5 py-4">
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="border-b-2 border-gray-200">
-                                          <th className="text-left py-2 pr-4 font-semibold text-gray-700 sticky left-0 bg-white min-w-[180px]"></th>
-                                          {proj.years.map(y => (
-                                            <th key={y.year} className="text-right py-2 px-2 font-semibold text-gray-700 min-w-[85px]">{y.year}</th>
-                                          ))}
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {[
-                                          { label: 'Property Value', key: 'propertyValue', format: formatExact },
-                                          { label: 'Equity', key: 'equity', format: formatExact, highlight: true },
-                                          { label: 'Gross Income', key: 'grossIncome', format: formatExact },
-                                          { label: 'Net Cashflow', key: 'netCashflow', format: formatExact, colorize: true },
-                                          { label: 'Income/(Cost) Per Month', key: 'monthlyCost', format: formatExact, colorize: true },
-                                          { label: 'Capital Growth (cumulative)', key: 'capitalGrowthCumulative', format: formatExact },
-                                          { label: 'Total Performance', key: 'totalPerformance', format: formatExact, highlight: true },
-                                          { label: 'Cash on Cash Return (cum.)', key: 'cocReturnCumulative', format: formatPct, colorize: true },
-                                          { label: 'Return on Invested Capital', key: 'roic', format: formatPct },
-                                        ].map(row => (
-                                          <tr key={row.label} className={`border-b border-gray-100 ${row.highlight ? 'bg-gray-50/50' : ''}`}>
-                                            <td className={`py-2 pr-4 sticky left-0 whitespace-nowrap ${row.highlight ? 'font-semibold text-gray-800 bg-gray-50/50' : 'font-medium text-gray-600 bg-white'}`}>{row.label}</td>
-                                            {proj.years.map(y => {
-                                              const val = y[row.key as keyof YearRow] as number
-                                              const isNeg = val < 0
-                                              return (
-                                                <td key={y.year} className={`text-right py-2 px-2 font-medium tabular-nums ${
-                                                  row.colorize ? (isNeg ? 'text-red-500' : 'text-green-600') : row.highlight ? 'text-gray-900 font-semibold' : 'text-gray-700'
-                                                }`}>
-                                                  {row.format(val)}
-                                                </td>
-                                              )
-                                            })}
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
+                                  <h4 className="text-sm font-semibold text-gray-700 mb-1">{property.title}</h4>
+                                  <p className="text-xs text-gray-400 mb-1">{property.state} · {formatCurrency(property.purchasePrice)} · {property.growthAssumption} Growth</p>
+                                  <p className="text-xs text-gray-400 mb-4">
+                                    Est. Cashflow: <span className={property.netCashflow >= 0 ? 'text-green-600' : 'text-red-500'}>{property.netCashflow >= 0 ? '+' : ''}{formatCurrency(property.netCashflow)}/yr</span>
+                                    {' · '}Proj. Equity (10Y): <span className="text-green-600">{formatCurrency(property.projectedEquity10Y)}</span>
+                                  </p>
+                                  <p className="text-xs text-gray-500">Toggle to purchased to view detailed projections</p>
                                 </div>
                               </div>
                             )
-                          })}
-                        </div>
-                      )}
+                          }
 
-                      {/* PLANNED PROPERTIES — compact grid */}
-                      {showPlanned && plannedCards.length > 0 && (
-                        <div className="space-y-4">
-                          {portfolioFilter === 'all' && <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Plan</h3>}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {plannedCards.map(({ scenario, property, key }) => {
-                              const propertyImage = getPortfolioPropertyImage(property.propertyTypeKey || property.title)
-                              return (
-                                <div
-                                  key={key}
-                                  className="flex flex-col rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:border-gray-300 transition-colors opacity-60"
-                                >
-                                  <div className="relative h-36 bg-[#f0f4f8] overflow-hidden flex items-center justify-center">
-                                    {propertyImage ? (
-                                      <img src={propertyImage} alt={property.title} className="h-24 object-contain opacity-60" />
-                                    ) : (
-                                      <Home size={36} className="text-gray-300" />
-                                    )}
-                                    <span className="absolute top-2.5 left-2.5 bg-[#374151] text-white text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded">Planned</span>
-                                    <span className="absolute top-2.5 right-12 bg-white border border-gray-200 text-[#374151] text-[10px] font-medium px-2 py-0.5 rounded-full">Buy {property.affordableYear}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }} className="absolute top-2.5 right-2.5 w-9 h-5 rounded-full bg-gray-300 transition-colors" title="Mark as purchased">
-                                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform translate-x-0" />
-                                    </button>
-                                  </div>
-                                  <div className="bg-white px-4 py-3">
-                                    <h4 className="text-sm font-semibold text-gray-900 truncate">{property.title}</h4>
-                                    <p className="text-[10px] font-medium text-gray-500 mt-0.5">Template · {property.growthAssumption} Growth Zone</p>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 pt-2.5 border-t border-gray-100">
-                                      <div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Purchase Price</div>
-                                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(property.purchasePrice)}</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Deposit ({100 - property.lvr}%)</div>
-                                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(property.deposit)}</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Est. Cashflow</div>
-                                        <div className={`text-sm font-semibold ${property.netCashflow >= 0 ? 'text-green-600' : 'text-red-500'}`}>{property.netCashflow >= 0 ? '+' : ''}{formatCurrency(property.netCashflow)}/yr</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Proj. Equity (10Y)</div>
-                                        <div className="text-sm font-semibold text-green-600">{formatCurrency(property.projectedEquity10Y)}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
+                          // Purchased — render full OwnedPropertyCard
+                          const scenarioDataItem = activeScenarios.find(s => s.scenarioId === scenario.scenarioId)
+                          const defaultGrowthCurve: GrowthCurve = { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 }
+                          const growthCurve = scenarioDataItem?.growthCurve || defaultGrowthCurve
+
+                          const timelineData: TimelinePropertyData = property.rawTimelineItem || {
+                            title: property.title,
+                            cost: property.purchasePrice,
+                            loanAmount: property.loanAmount,
+                            depositRequired: property.deposit,
+                            period: 1,
+                            affordableYear: property.affordableYear,
+                            displayPeriod: `${property.affordableYear}`,
+                            loanType: (property.loanProduct as 'IO' | 'PI') || 'IO',
+                          }
+
+                          const propInstance: PropertyInstanceDetails = property.rawPropertyInstance || {
+                            state: property.state || 'NSW',
+                            purchasePrice: property.purchasePrice,
+                            valuationAtPurchase: property.purchasePrice,
+                            rentPerWeek: property.rentPerWeek,
+                            growthAssumption: (property.growthAssumption as 'High' | 'Medium' | 'Low') || 'Medium',
+                            minimumYield: 5,
+                            daysToUnconditional: 21,
+                            daysForSettlement: 42,
+                            lvr: property.lvr,
+                            lmiWaiver: false,
+                            loanProduct: (property.loanProduct as 'IO' | 'PI') || 'IO',
+                            interestRate: property.interestRate,
+                            loanTerm: 30,
+                            loanOffsetAccount: 0,
+                            engagementFee: 0,
+                            conditionalHoldingDeposit: 0,
+                            buildingInsuranceUpfront: 0,
+                            buildingPestInspection: 0,
+                            plumbingElectricalInspections: 0,
+                            independentValuation: 0,
+                            unconditionalHoldingDeposit: 0,
+                            mortgageFees: 0,
+                            conveyancing: 0,
+                            ratesAdjustment: 0,
+                            maintenanceAllowancePostSettlement: 0,
+                            stampDutyOverride: null,
+                            vacancyRate: 2,
+                            propertyManagementPercent: 6.6,
+                            buildingInsuranceAnnual: 350,
+                            councilRatesWater: 2000,
+                            strata: 0,
+                            maintenanceAllowanceAnnual: 0,
+                            landTaxOverride: null,
+                            potentialDeductionsRebates: 0,
+                          }
+
+                          const projection = calculatePerPropertyProjection(timelineData, propInstance, { growthCurve, projectionYears: 10 })
+
+                          return (
+                            <OwnedPropertyCard
+                              key={key}
+                              property={property}
+                              projection={projection}
+                              propInstance={propInstance}
+                              timelineData={timelineData}
+                              trackingState={trackingState}
+                              propertyImage={propertyImage}
+                            />
+                          )
+                        })()}
+                      </div>
                     </div>
                   )
                 })()}
