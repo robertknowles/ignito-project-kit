@@ -104,7 +104,7 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         <ChartCard
           title="Investment Timeline"
           action={<ResetButton iconOnly />}
-          legend={[
+                   legend={[
             { color: '#2563EB', label: 'Portfolio Value' },
             { color: '#8B5CF6', label: 'Total Equity' },
             { color: CHART_COLORS.annotationText, label: 'Do Nothing' },

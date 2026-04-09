@@ -9,9 +9,9 @@ import { ComparisonInsights } from './ComparisonInsights';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
-import { HoldingCostPanel } from './HoldingCostPanel/HoldingCostPanel';
+import { HoldingCostPanel, HoldingCostSection } from './HoldingCostPanel/HoldingCostPanel';
 import { FundingSourcesChart } from './FundingSourcesChart/FundingSourcesChart';
-import { EquityUnlockChart, EquityUnlockSummary } from './EquityUnlockChart/EquityUnlockChart';
+import { EquityUnlockChart, EquityUnlockSummary, useEquityUnlockLegend } from './EquityUnlockChart/EquityUnlockChart';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
@@ -92,6 +92,8 @@ export const Dashboard = () => {
     return null;
   }, [scenarios, scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB]);
 
+  const equityLegend = useEquityUnlockLegend();
+
   if (planGenerating && liveTimelineProperties.length === 0) {
     return <DashboardSkeleton />;
   }
@@ -108,7 +110,7 @@ export const Dashboard = () => {
         {comparison && <ComparisonInsights comparison={comparison} />}
 
         {/* 2. Equity Unlock Timeline */}
-        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} contentClassName="px-6 pt-4 pb-5">
+        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend} contentClassName="px-6 pt-6 pb-6">
           <EquityUnlockChart />
         </ChartCard>
 
@@ -118,20 +120,29 @@ export const Dashboard = () => {
         </ChartCard>
 
         {/* 4. Cashflow Projection */}
-        <ChartCard title="Cashflow Projection" contentClassName="px-6 pt-4 pb-5">
+        <ChartCard
+          title="Cashflow Projection"
+          legend={[
+            { color: '#2563EB', label: 'Rental Income' },
+            { color: '#9CA3AF', label: 'Expenses' },
+          ]}
+                 >
           <CashflowChart />
         </ChartCard>
 
         {/* 5. Monthly Holding Costs */}
-        <ChartCard title="Monthly Holding Costs">
-          <HoldingCostPanel />
-        </ChartCard>
+        <HoldingCostSection>
+          {(dropdown, panel) => (
+            <ChartCard title="Monthly Holding Costs" action={dropdown}>
+              {panel}
+            </ChartCard>
+          )}
+        </HoldingCostSection>
 
         {/* 6. Financial Summary — collapsible */}
         <ChartCard
           title="Financial Summary"
-          contentClassName="px-6 pt-4 pb-6"
-          collapsible
+                   collapsible
           defaultCollapsed
         >
           <FinancialSummaryTable />

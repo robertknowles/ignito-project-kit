@@ -217,7 +217,7 @@ export const EquityUnlockChart: React.FC = () => {
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart
           data={chartData}
-          margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+          margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
         >
           <defs>
             {/* Only P1 gets a gradient fill */}
@@ -228,7 +228,7 @@ export const EquityUnlockChart: React.FC = () => {
           </defs>
 
           <CartesianGrid {...CHART_STYLE.grid} />
-          <XAxis dataKey="year" {...CHART_STYLE.xAxis} />
+          <XAxis dataKey="year" {...CHART_STYLE.xAxis} padding={{ left: 20, right: 10 }} />
           <YAxis
             tickFormatter={formatYAxis}
             {...CHART_STYLE.yAxis}
@@ -272,30 +272,6 @@ export const EquityUnlockChart: React.FC = () => {
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Legend — matches ChartCard legend spacing */}
-      <div className="flex items-center gap-5 flex-wrap pt-1 pb-0">
-        {propertyTimelines.map((prop, idx) => (
-          <div key={idx} className="flex items-center gap-1.5">
-            <div
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: prop.color }}
-            />
-            <span className="text-[11px] text-gray-400">{prop.title}</span>
-          </div>
-        ))}
-        <div className="flex items-center gap-1.5">
-          <div
-            className="flex-shrink-0 rounded-full"
-            style={{
-              width: 8,
-              height: 8,
-              backgroundColor: 'white',
-              border: `2px solid #2563EB`,
-            }}
-          />
-          <span className="text-[11px] text-gray-400">Refinance event</span>
-        </div>
-      </div>
     </div>
   );
 };
@@ -329,4 +305,21 @@ export const EquityUnlockSummary: React.FC = () => {
       <p className="text-sm font-semibold text-gray-600">{fmt(totalFinalEquity)}</p>
     </div>
   );
+};
+
+/** Returns legend items for ChartCard's legend prop */
+export const useEquityUnlockLegend = () => {
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
+  const { getInstance } = usePropertyInstance();
+  const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile, getInstance);
+
+  return useMemo(() => {
+    const items = propertyTimelines.map(p => ({
+      color: p.color,
+      label: p.title,
+    }));
+    items.push({ color: '#2563EB', label: 'Refinance event', variant: 'ring' as const });
+    return items;
+  }, [propertyTimelines]);
 };

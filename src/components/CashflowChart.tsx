@@ -105,7 +105,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart
           data={data}
-          margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+          margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
         >
           <defs>
             <linearGradient id="cashflowIncomeFill" x1="0" y1="0" x2="0" y2="1">
@@ -119,7 +119,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           </defs>
 
           <CartesianGrid {...CHART_STYLE.grid} />
-          <XAxis dataKey="year" {...CHART_STYLE.xAxis} />
+          <XAxis dataKey="year" {...CHART_STYLE.xAxis} padding={{ left: 20, right: 10 }} />
           <YAxis
             tickFormatter={formatYAxis}
             {...CHART_STYLE.yAxis}
@@ -151,23 +151,6 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Legend — matches ChartCard legend spacing */}
-      <div className="flex items-center gap-5 flex-wrap pt-1 pb-0">
-        <div className="flex items-center gap-1.5">
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: '#2563EB' }}
-          />
-          <span className="text-[11px] text-gray-400">Rental Income</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: '#9CA3AF' }}
-          />
-          <span className="text-[11px] text-gray-400">Expenses</span>
-        </div>
-      </div>
     </div>
   )
 }

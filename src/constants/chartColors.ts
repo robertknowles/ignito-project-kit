@@ -117,7 +117,7 @@ export const CHART_STYLE = {
     },
     axisLine: false as const,
     tickLine: false as const,
-    width: 80,
+    width: 60,
   },
 
   lineStrokeWidth: 2,

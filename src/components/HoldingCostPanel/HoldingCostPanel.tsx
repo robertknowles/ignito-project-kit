@@ -1,10 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, createContext, useContext } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useHoldingCostTimeline } from './useHoldingCostTimeline';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { PROPERTY_COLORS } from '../../constants/chartColors';
+
+// Shared state context so the year dropdown (in ChartCard action slot) and panel body stay in sync
+const HoldingCostYearContext = createContext<{
+  snapshotYear: number;
+  setSnapshotYear: (y: number) => void;
+  yearOptions: number[];
+} | null>(null);
 
 const fmtMo = (v: number) => `$${Math.abs(Math.round(v)).toLocaleString()}`;
 
@@ -24,18 +31,14 @@ export const HoldingCostPanel: React.FC = () => {
   const latestBuyYear = properties.length > 0
     ? Math.max(...properties.map(p => p.buyYear))
     : endYear;
-  const [snapshotYear, setSnapshotYear] = useState(() =>
-    Math.min(latestBuyYear, endYear)
-  );
+
+  // Use shared context if available (when wrapped by HoldingCostSection), else own state
+  const ctx = useContext(HoldingCostYearContext);
+  const [localYear, setLocalYear] = useState(() => Math.min(latestBuyYear, endYear));
+  const snapshotYear = ctx?.snapshotYear ?? localYear;
+
   // Default expanded: first property (Property 1)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
-
-  // Year options for dropdown
-  const yearOptions = useMemo(() => {
-    const years: number[] = [];
-    for (let y = startYear; y <= endYear; y++) years.push(y);
-    return years;
-  }, [startYear, endYear]);
 
   // Portfolio totals
   const totals = useMemo(() => {
@@ -67,27 +70,6 @@ export const HoldingCostPanel: React.FC = () => {
 
   return (
     <div>
-      {/* Year dropdown — positioned top-right */}
-      <div className="flex items-start justify-between mb-4">
-        <div />
-        <select
-          value={snapshotYear}
-          onChange={e => setSnapshotYear(Number(e.target.value))}
-          className="appearance-none cursor-pointer bg-white text-gray-700 font-medium"
-          style={{
-            padding: '6px 12px',
-            fontSize: 13,
-            border: '1px solid #E5E7EB',
-            borderRadius: 6,
-            outline: 'none',
-          }}
-        >
-          {yearOptions.map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-      </div>
-
       {/* Summary section */}
       <div
         className="pb-5 mb-6"
@@ -230,5 +212,61 @@ export const HoldingCostPanel: React.FC = () => {
         );
       })}
     </div>
+  );
+};
+
+/** Year dropdown for ChartCard action slot */
+export const HoldingCostYearDropdown: React.FC = () => {
+  const ctx = useContext(HoldingCostYearContext);
+  if (!ctx) return null;
+  const { snapshotYear, setSnapshotYear, yearOptions } = ctx;
+
+  return (
+    <select
+      value={snapshotYear}
+      onChange={e => setSnapshotYear(Number(e.target.value))}
+      className="appearance-none cursor-pointer bg-white text-gray-700 font-medium"
+      style={{
+        padding: '4px 10px',
+        fontSize: 13,
+        border: '1px solid #E5E7EB',
+        borderRadius: 6,
+        outline: 'none',
+      }}
+    >
+      {yearOptions.map(y => (
+        <option key={y} value={y}>{y}</option>
+      ))}
+    </select>
+  );
+};
+
+/** Wrapper that provides shared year state to both dropdown and panel */
+export const HoldingCostSection: React.FC<{ children: (dropdown: React.ReactNode, panel: React.ReactNode) => React.ReactNode }> = ({ children }) => {
+  const { timelineProperties } = useAffordabilityCalculator();
+  const { profile } = useInvestmentProfile();
+  const { getInstance } = usePropertyInstance();
+  const { properties, startYear, endYear } = useHoldingCostTimeline(timelineProperties, profile, getInstance);
+
+  const latestBuyYear = properties.length > 0
+    ? Math.max(...properties.map(p => p.buyYear))
+    : endYear;
+  const [snapshotYear, setSnapshotYear] = useState(() =>
+    Math.min(latestBuyYear, endYear)
+  );
+
+  const yearOptions = useMemo(() => {
+    const years: number[] = [];
+    for (let y = startYear; y <= endYear; y++) years.push(y);
+    return years;
+  }, [startYear, endYear]);
+
+  return (
+    <HoldingCostYearContext.Provider value={{ snapshotYear, setSnapshotYear, yearOptions }}>
+      {children(
+        <HoldingCostYearDropdown />,
+        <HoldingCostPanel />
+      )}
+    </HoldingCostYearContext.Provider>
   );
 };
