@@ -20,8 +20,8 @@ interface ChartCardProps {
 /**
  * ChartCard — Universal card wrapper for dashboard components
  *
- * Single consistent anatomy for ALL cards: charts, tables, summaries.
- * Header: px-6 pt-6 pb-3. Content: px-6 pb-5. Legend: px-6 pb-5.
+ * Matches the skeleton loading layout exactly:
+ * p-6 padding, title text, mb-4 gap, then content. No inner bordered boxes.
  */
 export const ChartCard: React.FC<ChartCardProps> = ({
   title, action, legend, collapsible, defaultCollapsed, children
@@ -29,10 +29,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
-      {/* Header */}
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      {/* Header — plain text, matches skeleton h-5 w-40 */}
       <div
-        className={`px-6 pt-6 pb-3 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? 'pb-6' : ''}`}
+        className={`flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? '' : 'mb-4'}`}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
             </div>
           )}
-          <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
         </div>
         {action && !collapsed && action}
       </div>
@@ -49,13 +49,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       {/* Content */}
       {!collapsed && (
         <>
-          <div className="px-6 pb-5">
+          <div>
             {children}
           </div>
 
           {/* Legend */}
           {legend && legend.length > 0 && (
-            <div className="px-6 pb-5 flex items-center gap-5 -mt-2">
+            <div className="flex items-center gap-5 mt-4">
               {legend.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
                   {item.variant === 'ring' ? (

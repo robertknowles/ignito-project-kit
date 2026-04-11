@@ -9,7 +9,7 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { CHART_COLORS } from '@/constants/chartColors';
 import { SummaryBar } from './SummaryBar';
 import { TimelineColumn } from './TimelineColumn';
-import { ResetButton } from './ResetButton';
+
 
 interface ScenarioCanvasProps {
   scenarioId: string;
@@ -96,15 +96,14 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
       )}
 
       {/* Spaced sections: KPI cards → Timeline chart → Cashflow → Financial table */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* KPI Summary Cards */}
         <SummaryBar scenarioData={scenarioData} />
 
         {/* Investment Timeline */}
         <ChartCard
           title="Investment Timeline"
-          action={<ResetButton iconOnly />}
-                   legend={[
+          legend={[
             { color: '#2563EB', label: 'Portfolio Value' },
             { color: '#8B5CF6', label: 'Total Equity' },
             { color: CHART_COLORS.annotationText, label: 'Do Nothing' },

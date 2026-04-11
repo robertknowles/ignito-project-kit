@@ -102,7 +102,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={220}>
         <AreaChart
           data={data}
           margin={{ top: 10, right: 0, left: -10, bottom: 0 }}

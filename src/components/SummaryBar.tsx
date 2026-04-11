@@ -98,9 +98,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       order={8}
       position="top"
     >
-    <div id="summary-bar-container" className="grid grid-cols-4 gap-3">
+    <div id="summary-bar-container" className="grid grid-cols-4 gap-4">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="text-xs font-medium text-gray-400">Portfolio Value</span>
         <div className="mt-1.5">
           <span className="text-2xl font-bold text-gray-900">
@@ -110,7 +110,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Total Equity */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="text-xs font-medium text-gray-400">Total Equity</span>
         <div className="mt-1.5">
           <span className="text-2xl font-bold text-gray-900">
@@ -120,7 +120,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Net Cashflow */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="text-xs font-medium text-gray-400">Net Cashflow</span>
         <div className="mt-1.5">
           <span className="text-2xl font-bold text-gray-900">
@@ -131,7 +131,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Next Purchase */}
-      <div className="bg-white rounded-lg border border-gray-200 px-5 py-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
         <span className="text-xs font-medium text-gray-400">Next Purchase</span>
         <div className="mt-1.5">
           {nextPurchase ? (
@@ -139,9 +139,6 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
               <span className="text-2xl font-bold text-gray-900">
                 {nextPurchase.year}
               </span>
-              <div className="mt-1.5">
-                <span className="text-xs text-gray-500">{nextPurchase.title}</span>
-              </div>
             </>
           ) : (
             <span className="text-2xl font-bold text-gray-900">—</span>

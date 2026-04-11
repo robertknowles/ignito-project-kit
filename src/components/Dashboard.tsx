@@ -19,23 +19,32 @@ import { PacingToggle } from './PacingToggle';
 import { useLayout } from '@/contexts/LayoutContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const DashboardSkeleton = () => (
+/** Static placeholder block — only shimmers when animating */
+const SkeletonBlock = ({ className, animate }: { className?: string; animate?: boolean }) => (
+  <div className={`rounded-md bg-gray-200 relative overflow-hidden ${className ?? ''}`}>
+    {animate && (
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+    )}
+  </div>
+);
+
+const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
   <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
       {/* KPI row skeleton */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-8 w-32" />
+          <div key={i} className="bg-[#f9fafb] rounded-lg border border-gray-200 p-5 space-y-2">
+            <SkeletonBlock className="h-4 w-24" animate={animate} />
+            <SkeletonBlock className="h-8 w-32" animate={animate} />
           </div>
         ))}
       </div>
       {/* Chart skeletons */}
       {[1, 2, 3].map(i => (
-        <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-          <Skeleton className="h-5 w-40 mb-4" />
-          <Skeleton className="h-[220px] w-full rounded-lg" />
+        <div key={i} className="bg-[#f9fafb] rounded-lg border border-gray-200 p-6">
+          <SkeletonBlock className="h-5 w-40 mb-4" animate={animate} />
+          <SkeletonBlock className="h-[220px] w-full rounded-lg" animate={animate} />
         </div>
       ))}
     </div>
@@ -94,8 +103,9 @@ export const Dashboard = () => {
 
   const equityLegend = useEquityUnlockLegend();
 
-  if (planGenerating && liveTimelineProperties.length === 0) {
-    return <DashboardSkeleton />;
+  // Show skeleton when no plan exists yet; shimmer only while generating
+  if (liveTimelineProperties.length === 0) {
+    return <DashboardSkeleton animate={planGenerating} />;
   }
 
   return (
@@ -110,7 +120,7 @@ export const Dashboard = () => {
         {comparison && <ComparisonInsights comparison={comparison} />}
 
         {/* 2. Equity Unlock Timeline */}
-        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend} contentClassName="px-6 pt-6 pb-6">
+        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
           <EquityUnlockChart />
         </ChartCard>
 

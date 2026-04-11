@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChartWithRoadmap } from './ChartWithRoadmap';
+import { InvestmentTimelineChart } from './InvestmentTimelineChart';
 import { TourStep } from '@/components/TourManager';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
@@ -22,7 +22,7 @@ export const TimelineColumn: React.FC<TimelineColumnProps> = ({ scenarioData, no
       position="top"
     >
       <div id="wealth-cashflow-chart-container" className="overflow-hidden relative">
-        <ChartWithRoadmap scenarioData={scenarioData} />
+        <InvestmentTimelineChart scenarioData={scenarioData} />
       </div>
     </TourStep>
   );
