@@ -5,6 +5,7 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 import { TourStep } from '@/components/TourManager'
+import { TrendUp01Icon, BarChartSquare02Icon, Wallet02Icon, CalendarCheck01Icon } from '@/components/icons/PropertyIcons'
 
 interface SummaryBarProps {
   scenarioData?: {
@@ -100,30 +101,45 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     >
     <div id="summary-bar-container" className="grid grid-cols-4 gap-4">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
-        <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
-        <div className="mt-2">
-          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+        <div className="flex items-start justify-between">
+          <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
+          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+            <TrendUp01Icon size={18} color="#535862" />
+          </div>
+        </div>
+        <div className="mt-1">
+          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.portfolioValue)}
           </span>
         </div>
       </div>
 
       {/* Total Equity */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
-        <span className="text-sm font-medium text-[#535862]">Total Equity</span>
-        <div className="mt-2">
-          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+        <div className="flex items-start justify-between">
+          <span className="text-sm font-medium text-[#535862]">Total Equity</span>
+          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+            <BarChartSquare02Icon size={18} color="#535862" />
+          </div>
+        </div>
+        <div className="mt-1">
+          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.totalEquity)}
           </span>
         </div>
       </div>
 
       {/* Net Cashflow */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
-        <span className="text-sm font-medium text-[#535862]">Net Cashflow</span>
-        <div className="mt-2 flex items-baseline gap-1">
-          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+        <div className="flex items-start justify-between">
+          <span className="text-sm font-medium text-[#535862]">Net Cashflow</span>
+          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+            <Wallet02Icon size={18} color="#535862" />
+          </div>
+        </div>
+        <div className="mt-1 flex items-baseline gap-1">
+          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatMonthlyCashflow(monthlyCashflow)}
           </span>
           <span className="text-sm text-[#717680]">/mo</span>
@@ -131,15 +147,20 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       </div>
 
       {/* Next Purchase */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
-        <span className="text-sm font-medium text-[#535862]">Next Purchase</span>
-        <div className="mt-2">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+        <div className="flex items-start justify-between">
+          <span className="text-sm font-medium text-[#535862]">Next Purchase</span>
+          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+            <CalendarCheck01Icon size={18} color="#535862" />
+          </div>
+        </div>
+        <div className="mt-1">
           {nextPurchase ? (
-            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
+            <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
               {nextPurchase.year}
             </span>
           ) : (
-            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">—</span>
+            <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">—</span>
           )}
         </div>
       </div>

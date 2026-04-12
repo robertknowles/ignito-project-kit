@@ -602,10 +602,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
-              <p className="text-[13px] text-[#181D27] leading-[1.65] font-medium">
+              <p className="text-[12px] text-[#181D27] leading-[1.6] font-medium">
                 Describe a client scenario to generate an investment roadmap.
               </p>
-              <p className="text-[12px] text-[#717680] mt-2 mb-6 leading-[1.5]">
+              <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
                 e.g. "John. 120k annual income. 80k deposit. Want to hit $2M in equity across 4 properties over 15 years."
               </p>
               <PacingToggle />
@@ -669,7 +669,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               onKeyDown={handleKeyDown}
               placeholder="Describe a client scenario..."
               rows={1}
-              className="flex-1 bg-transparent text-[13px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[120px]"
+              className="flex-1 bg-transparent text-[12px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[120px]"
               disabled={isLoading}
             />
             <button

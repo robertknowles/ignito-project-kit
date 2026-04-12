@@ -31,12 +31,12 @@ export const ChatSummaryCard: React.FC<ChatSummaryCardProps> = ({ data }) => {
       {rows.map((row, i) => (
         <div
           key={i}
-          className={`flex items-start justify-between px-3.5 py-2.5 text-sm ${
+          className={`flex items-start justify-between px-3 py-1.5 ${
             i < rows.length - 1 ? 'border-b border-gray-100' : ''
           }`}
         >
-          <span className="text-[#717680] text-xs min-w-[100px]">{row.label}</span>
-          <span className="text-[#181D27] text-xs font-medium text-right">{row.value}</span>
+          <span className="text-[#717680] text-[11px] min-w-[90px]">{row.label}</span>
+          <span className="text-[#181D27] text-[11px] font-medium text-right">{row.value}</span>
         </div>
       ))}
     </div>

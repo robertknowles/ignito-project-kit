@@ -29,7 +29,7 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
 );
 
 const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
-  <div className="h-full w-full overflow-y-auto bg-[#FAFAFA]">
+  <div className="h-full w-full overflow-y-auto bg-white">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
       {/* KPI row skeleton */}
       <div className="grid grid-cols-4 gap-4">
@@ -109,7 +109,7 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#FAFAFA]">
+    <div className="h-full w-full overflow-y-auto bg-white">
       <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
         {/* 1. KPI Row + Investment Timeline (inside ScenarioCanvas) */}
         {scenarios.map(scenario => (

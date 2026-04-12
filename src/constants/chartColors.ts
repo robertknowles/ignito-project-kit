@@ -101,7 +101,7 @@ export const CHART_STYLE = {
 
   xAxis: {
     tick: {
-      fontSize: 12,
+      fontSize: 11,
       fill: CHART_COLORS.axisText,
       fontFamily: 'Inter, system-ui, sans-serif',
     },
@@ -111,7 +111,7 @@ export const CHART_STYLE = {
 
   yAxis: {
     tick: {
-      fontSize: 12,
+      fontSize: 11,
       fill: CHART_COLORS.axisText,
       fontFamily: 'Inter, system-ui, sans-serif',
     },

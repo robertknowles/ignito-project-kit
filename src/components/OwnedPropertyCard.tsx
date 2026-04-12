@@ -62,7 +62,7 @@ const formatYAxis = (value: number) => {
   return `${sign}$${abs}`
 }
 
-const colorClass = (value: number) => (value >= 0 ? 'text-green-600' : 'text-red-500')
+const colorClass = (_value: number) => 'text-[#181D27]'
 
 // --- Component ---
 
@@ -142,7 +142,7 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
           <div className="space-y-1 mb-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">Gross rental income</span>
-              <span className="text-xs font-medium text-green-600">{formatExact(yr1Breakdown.grossAnnualIncome)}</span>
+              <span className="text-xs font-medium text-[#181D27]">{formatExact(yr1Breakdown.grossAnnualIncome)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">Vacancy ({propInstance.vacancyRate}%)</span>
@@ -165,7 +165,7 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
             ].map(item => (
               <div key={item.label} className="flex justify-between">
                 <span className="text-xs text-gray-500">{item.label}</span>
-                <span className={`text-xs font-medium ${item.value > 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                <span className="text-xs font-medium text-[#181D27]">
                   {item.value > 0 ? `-${formatExact(item.value)}` : formatExact(item.value)}
                 </span>
               </div>
@@ -320,33 +320,33 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
             ].map(r => (
               <div key={r.label} className="flex justify-between">
                 <span className="text-xs text-gray-500">{r.label}</span>
-                <span className={`text-xs font-semibold ${r.value < 0 ? 'text-red-500' : 'text-gray-900'}`}>{formatPct(r.value)}</span>
+                <span className="text-xs font-semibold text-[#181D27]">{formatPct(r.value)}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Portfolio Impact */}
-        <div className="border-2 border-blue-500 rounded-lg p-4">
-          <h5 className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mb-3">Portfolio Impact</h5>
+        <div className="border border-[#E9EAEB] rounded-lg p-4">
+          <h5 className="text-[10px] font-semibold text-[#535862] uppercase tracking-wider mb-3">Portfolio Impact</h5>
           <div className="space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-xs text-gray-500">Cash consumed</span>
-              <span className="text-xs font-semibold text-gray-900">{formatExact(projection.totalCashInvested)}</span>
+              <span className="text-xs text-[#717680]">Cash consumed</span>
+              <span className="text-xs font-semibold text-[#181D27]">{formatExact(projection.totalCashInvested)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-500">Equity at yr 5</span>
-              <span className="text-xs font-semibold text-green-600">{formatExact(yr5.equity)}</span>
+              <span className="text-xs text-[#717680]">Equity at yr 5</span>
+              <span className="text-xs font-semibold text-[#181D27]">{formatExact(yr5.equity)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-500">Releasable equity (80%)</span>
-              <span className="text-xs font-semibold text-green-600">{formatExact(releasableEquity)}</span>
+              <span className="text-xs text-[#717680]">Releasable equity (80%)</span>
+              <span className="text-xs font-semibold text-[#181D27]">{formatExact(releasableEquity)}</span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t-2 border-blue-500">
+          <div className="mt-3 pt-3 border-t border-[#E9EAEB]">
             <div className="flex justify-between">
-              <span className="text-xs font-semibold text-blue-600">Funds for next purchase</span>
-              <span className="text-sm font-bold text-green-600">{formatExact(releasableEquity)}</span>
+              <span className="text-xs font-semibold text-[#181D27]">Funds for next purchase</span>
+              <span className="text-sm font-bold text-[#181D27]">{formatExact(releasableEquity)}</span>
             </div>
           </div>
         </div>

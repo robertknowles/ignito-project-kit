@@ -23,6 +23,7 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../contexts/InvestmentProfileContext'
 import { useLayout } from '../contexts/LayoutContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { Building03Icon, TrendUp01Icon, BarChartSquare02Icon, Wallet02Icon } from '@/components/icons/PropertyIcons'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import {
@@ -573,7 +574,7 @@ export const Portfolio = () => {
   }
 
   return (
-    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+    <div className="main-app flex h-screen w-full bg-white">
       <LeftRail />
       {/* NL Chat Panel — replaces InputDrawer */}
       <ChatPanel isOpen={drawerOpen} />
@@ -604,80 +605,60 @@ export const Portfolio = () => {
               </div>
             ) : (
               <>
-                {/* Page header */}
-                <div className="mb-6">
-                  <h1 className="page-title">Portfolio</h1>
-                </div>
-
                 {/* Summary stat cards */}
                 {portfolioSummary && (
                   <div className="grid grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white border border-gray-200 rounded-lg p-5">
-                      <span className="metric-label">Properties</span>
+                    <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm font-medium text-[#535862]">Properties</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                          <Building03Icon size={18} color="#535862" />
+                        </div>
+                      </div>
                       <div className="mt-1">
-                        <span className="stat-number">{portfolioSummary.totalProperties}</span>
+                        <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">{portfolioSummary.totalProperties}</span>
+                      </div>
+                      <span className="text-xs text-[#717680] mt-0.5 block">{portfolioSummary.purchasedCount}/{portfolioSummary.totalProperties} owned</span>
+                    </div>
+                    <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm font-medium text-[#535862]">Combined Value</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                          <TrendUp01Icon size={18} color="#535862" />
+                        </div>
+                      </div>
+                      <div className="mt-1">
+                        <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">{formatCurrency(portfolioSummary.combinedValue)}</span>
                       </div>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-5">
-                      <span className="metric-label">Combined Value</span>
+                    <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm font-medium text-[#535862]">Total Equity (now)</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                          <BarChartSquare02Icon size={18} color="#535862" />
+                        </div>
+                      </div>
                       <div className="mt-1">
-                        <span className="stat-number">{formatCurrency(portfolioSummary.combinedValue)}</span>
+                        <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">{formatCurrency(portfolioSummary.totalEquity)}</span>
                       </div>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-5">
-                      <span className="metric-label">Total Equity (now)</span>
-                      <div className="mt-1">
-                        <span className="stat-number text-green-600">{formatCurrency(portfolioSummary.totalEquity)}</span>
+                    <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm font-medium text-[#535862]">Annual Cashflow</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                          <Wallet02Icon size={18} color="#535862" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-5">
-                      <span className="metric-label">Annual Cashflow</span>
                       <div className="mt-1">
-                        <span className={`stat-number ${portfolioSummary.totalCashflow >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                          {portfolioSummary.totalCashflow >= 0 ? '+' : ''}{formatCurrency(portfolioSummary.totalCashflow)}/yr
+                        <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
+                          {formatCurrency(portfolioSummary.totalCashflow)}/yr
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Filter tabs + legend */}
-                {portfolioSummary && portfolioSummary.totalProperties > 0 && (
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-1">
-                      {(['all', 'owned', 'planned'] as const).map(filter => {
-                        const count = filter === 'all'
-                          ? portfolioSummary.totalProperties
-                          : filter === 'owned'
-                            ? portfolioSummary.purchasedCount
-                            : portfolioSummary.plannedCount
-                        return (
-                          <button
-                            key={filter}
-                            onClick={() => setPortfolioFilter(filter)}
-                            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                              portfolioFilter === filter
-                                ? 'bg-[#374151] text-white'
-                                : 'bg-white border border-gray-200 text-[#6B7280] hover:border-gray-300'
-                            }`}
-                          >
-                            {filter.charAt(0).toUpperCase() + filter.slice(1)} ({count})
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                        <span className="meta">Owned</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#374151]" />
-                        <span className="meta">Planned</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Filter removed — ownership count shown in Properties KPI card */}
 
                 {/* Property cards — tabbed view */}
                 {activeScenarios.length === 0 ? (
@@ -719,41 +700,41 @@ export const Portfolio = () => {
 
                   return (
                     <div>
-                      {/* Property heading */}
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Your Properties</h3>
+                      {/* Tab bar wrapped in card-like container */}
+                      <div className="rounded-xl border border-[#E9EAEB] overflow-hidden">
+                        <div className="bg-[#FCFCFD] px-6 py-3.5 border-b border-[#E9EAEB]">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }) => {
+                              const isActive = key === activeTab
+                              const label = isPurchased && trackingState?.address ? trackingState.address : property.title
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedPropertyTab(key)}
+                                  className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-colors ${
+                                    isActive
+                                      ? 'bg-white text-[#181D27] border border-[#E9EAEB] shadow-sm'
+                                      : 'text-[#535862] hover:text-[#181D27] hover:bg-white/60'
+                                  }`}
+                                >
+                                  <span className="truncate max-w-[160px]">{label}</span>
+                                  <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-[#A4A7AE]'}`} />
+                                  {/* Inline toggle */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }}
+                                    className={`w-7 h-4 rounded-full transition-colors flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-[#D5D7DA]'}`}
+                                    title={isPurchased ? 'Mark as not purchased' : 'Mark as purchased'}
+                                  >
+                                    <div className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${isPurchased ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                  </button>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
 
-                      {/* Tab bar */}
-                      <div className="flex items-center gap-1 overflow-x-auto pb-0 mb-0 border-b border-gray-200">
-                        {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }) => {
-                          const isActive = key === activeTab
-                          const label = isPurchased && trackingState?.address ? trackingState.address : property.title
-                          return (
-                            <button
-                              key={key}
-                              onClick={() => setSelectedPropertyTab(key)}
-                              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
-                                isActive
-                                  ? 'border-blue-600 text-gray-900'
-                                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                              }`}
-                            >
-                              <span className="truncate max-w-[160px]">{label}</span>
-                              <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-gray-300'}`} />
-                              {/* Inline toggle */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleActivateProperty(scenario.scenarioId, property) }}
-                                className={`w-7 h-4 rounded-full transition-colors flex-shrink-0 ${isPurchased ? 'bg-green-500' : 'bg-gray-300'}`}
-                                title={isPurchased ? 'Mark as not purchased' : 'Mark as purchased'}
-                              >
-                                <div className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${isPurchased ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                              </button>
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      {/* Active tab content */}
-                      <div className="mt-4">
+                        {/* Active tab content — inside the card container */}
+                        <div className="bg-white p-6">
                         {activeCard && (() => {
                           const { scenario, property, key, trackingState, isPurchased } = activeCard
                           const propertyImage = getPortfolioPropertyImage(property.propertyTypeKey || property.title)
@@ -761,23 +742,21 @@ export const Portfolio = () => {
                           if (!isPurchased) {
                             // Unpurchased empty state
                             return (
-                              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                                <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-                                  <div className="w-24 h-24 mb-4 opacity-30">
-                                    {propertyImage ? (
-                                      <img src={propertyImage} alt={property.title} className="w-full h-full object-contain" />
-                                    ) : (
-                                      <Home size={48} className="text-gray-300 mx-auto mt-4" />
-                                    )}
-                                  </div>
-                                  <h4 className="text-sm font-semibold text-gray-700 mb-1">{property.title}</h4>
-                                  <p className="text-xs text-gray-400 mb-1">{property.state} · {formatCurrency(property.purchasePrice)} · {property.growthAssumption} Growth</p>
-                                  <p className="text-xs text-gray-400 mb-4">
-                                    Est. Cashflow: <span className={property.netCashflow >= 0 ? 'text-green-600' : 'text-red-500'}>{property.netCashflow >= 0 ? '+' : ''}{formatCurrency(property.netCashflow)}/yr</span>
-                                    {' · '}Proj. Equity (10Y): <span className="text-green-600">{formatCurrency(property.projectedEquity10Y)}</span>
-                                  </p>
-                                  <p className="text-xs text-gray-500">Toggle to purchased to view detailed projections</p>
+                              <div className="flex flex-col items-center justify-center py-12 px-8 text-center">
+                                <div className="w-20 h-20 mb-4 opacity-30">
+                                  {propertyImage ? (
+                                    <img src={propertyImage} alt={property.title} className="w-full h-full object-contain" />
+                                  ) : (
+                                    <Home size={40} className="text-[#A4A7AE] mx-auto mt-3" />
+                                  )}
                                 </div>
+                                <h4 className="text-sm font-semibold text-[#181D27] mb-1">{property.title}</h4>
+                                <p className="text-xs text-[#717680] mb-1">{property.state} · {formatCurrency(property.purchasePrice)} · {property.growthAssumption} Growth</p>
+                                <p className="text-xs text-[#717680] mb-4">
+                                  Est. Cashflow: <span className="text-[#181D27] font-medium">{formatCurrency(property.netCashflow)}/yr</span>
+                                  {' · '}Proj. Equity (10Y): <span className="text-[#181D27] font-medium">{formatCurrency(property.projectedEquity10Y)}</span>
+                                </p>
+                                <p className="text-xs text-[#535862]">Toggle to purchased to view detailed projections</p>
                               </div>
                             )
                           }
@@ -849,6 +828,7 @@ export const Portfolio = () => {
                             />
                           )
                         })()}
+                        </div>
                       </div>
                     </div>
                   )

@@ -35,7 +35,7 @@ const badgeStyles = {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, subtitle, trend, badge, progress, info }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5">
+    <div className="bg-[#FCFCFD] border border-[#E9EAEB] rounded-lg p-5">
       <div className="flex items-start justify-between">
         <span className="metric-label">{label}</span>
         {info && (
