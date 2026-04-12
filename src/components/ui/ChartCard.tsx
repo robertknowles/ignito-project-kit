@@ -29,10 +29,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 
   return (
-    <div className="rounded-xl border border-[#E9EAEB] overflow-hidden">
+    <div className="rounded-lg border border-[#E9EAEB] overflow-hidden">
       {/* Gray header band */}
       <div
-        className={`bg-[#FCFCFD] px-6 py-3.5 border-b border-[#E9EAEB] flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''}`}
+        className={`bg-[#FCFCFD] px-6 py-3.5 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''}`}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div className="flex items-center gap-2">
@@ -72,8 +72,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
       {/* White content area */}
       {!collapsed && (
-        <div className="bg-white p-6">
-          {children}
+        <div className="bg-[#FCFCFD]">
+          <div className="bg-white p-6 rounded-t-xl border-t border-[#E9EAEB]">
+            {children}
+          </div>
         </div>
       )}
     </div>
