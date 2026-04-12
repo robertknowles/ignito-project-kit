@@ -35,8 +35,8 @@ export const ChatSummaryCard: React.FC<ChatSummaryCardProps> = ({ data }) => {
             i < rows.length - 1 ? 'border-b border-gray-100' : ''
           }`}
         >
-          <span className="text-gray-500 text-xs font-medium min-w-[100px]">{row.label}</span>
-          <span className="text-gray-900 text-xs font-semibold text-right">{row.value}</span>
+          <span className="text-[#717680] text-xs min-w-[100px]">{row.label}</span>
+          <span className="text-[#181D27] text-xs font-medium text-right">{row.value}</span>
         </div>
       ))}
     </div>

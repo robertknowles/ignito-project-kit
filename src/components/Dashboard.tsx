@@ -29,12 +29,12 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
 );
 
 const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
-  <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
+  <div className="h-full w-full overflow-y-auto bg-[#FAFAFA]">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
       {/* KPI row skeleton */}
       <div className="grid grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-[#f9fafb] rounded-lg border border-gray-200 p-5 space-y-2">
+          <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 space-y-2">
             <SkeletonBlock className="h-4 w-24" animate={animate} />
             <SkeletonBlock className="h-8 w-32" animate={animate} />
           </div>
@@ -42,7 +42,7 @@ const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
       </div>
       {/* Chart skeletons */}
       {[1, 2, 3].map(i => (
-        <div key={i} className="bg-[#f9fafb] rounded-lg border border-gray-200 p-6">
+        <div key={i} className="bg-[#FAFAFA] rounded-lg border border-gray-200 p-6">
           <SkeletonBlock className="h-5 w-40 mb-4" animate={animate} />
           <SkeletonBlock className="h-[220px] w-full rounded-lg" animate={animate} />
         </div>
@@ -109,8 +109,8 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#f9fafb]">
-      <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
+    <div className="h-full w-full overflow-y-auto bg-[#FAFAFA]">
+      <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
         {/* 1. KPI Row + Investment Timeline (inside ScenarioCanvas) */}
         {scenarios.map(scenario => (
           <ScenarioCanvas key={scenario.id} scenarioId={scenario.id} />

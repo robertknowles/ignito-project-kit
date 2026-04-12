@@ -7,51 +7,52 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* #F9FAFB - very light gray */
-    --foreground: 222.2 84% 4.9%;
+    /* Untitled UI neutral gray scale */
+    --background: 0 0% 98%;        /* #FAFAFA — neutral-50 */
+    --foreground: 222 18% 12%;     /* #181D27 — neutral-900 */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 18% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 95%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 95%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 95%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --popover-foreground: 222 18% 12%;
+    --primary: 222 18% 12%;        /* neutral-900 for primary text/buttons */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;         /* neutral-100 */
+    --secondary-foreground: 222 18% 12%;
+    --muted: 0 0% 96%;             /* neutral-100 */
+    --muted-foreground: 220 6% 47%; /* neutral-500 */
+    --accent: 0 0% 96%;            /* neutral-100 */
+    --accent-foreground: 222 18% 12%;
+    --destructive: 4 82% 58%;      /* UUI error-500: #F04438 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 216 4% 89%;          /* #E9EAEB — neutral-200 */
+    --input: 216 4% 89%;           /* neutral-200 */
+    --ring: 222 18% 12%;           /* neutral-900 */
     --radius: 0.5rem;
-    
+
     /* Company branding colors - dynamically injected by BrandingContext */
     --brand-primary: #2563EB;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 220 22% 9%;      /* neutral-900 */
+    --foreground: 0 0% 97%;        /* neutral-50 */
+    --card: 218 19% 16%;           /* neutral-800 */
+    --card-foreground: 0 0% 97%;
+    --popover: 218 19% 16%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 0 0% 97%;
+    --primary-foreground: 220 22% 9%;
+    --secondary: 218 12% 24%;      /* neutral-700 */
+    --secondary-foreground: 0 0% 97%;
+    --muted: 218 12% 24%;
+    --muted-foreground: 216 4% 56%; /* neutral-400 */
+    --accent: 218 12% 24%;
+    --accent-foreground: 0 0% 97%;
+    --destructive: 4 82% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 12% 24%;         /* neutral-700 */
+    --input: 218 12% 24%;
+    --ring: 0 0% 97%;
   }
 }
 
@@ -96,10 +97,13 @@
     font-weight: 400;
   }
 
-  /* Main app scoped fonts - Inter for ElevenLabs aesthetic */
+  /* Main app scoped fonts - Inter with UUI rendering */
   .main-app {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv01', 'cv03', 'cv04';
   }
 
   .main-app h1,
@@ -130,56 +134,56 @@
      If text doesn't map to one of these, something is wrong.
      ============================================ */
 
-  /* 1. Page Title — main page headings */
+  /* 1. Page Title — main page headings (UUI display-xs) */
   .page-title {
     font-size: 24px;
     font-weight: 600;
-    color: #374151;
-    line-height: 1.2;
+    color: #181D27;
+    line-height: 1.33;
   }
 
   /* 2. Section Heading — card titles, panel headers */
   .section-heading {
     font-size: 14px;
     font-weight: 600;
-    color: #4B5563;
+    color: #414651;
   }
 
-  /* 3. Stat Number — KPI numbers in stat cards (restrained, Circle-style) */
+  /* 3. Stat Number — KPI numbers in stat cards (UUI display-sm style) */
   .stat-number {
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 600;
-    color: #374151;
+    color: #181D27;
     letter-spacing: -0.025em;
-    line-height: 1;
+    line-height: 1.27;
   }
 
   /* 4. Metric Label — labels above/below stat numbers */
   .metric-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
-    color: #6B7280;
+    color: #535862;
   }
 
   /* 5. Body Dark — primary table cell text, form labels */
   .body-dark {
     font-size: 14px;
     font-weight: 400;
-    color: #374151;
+    color: #414651;
   }
 
   /* 6. Body Secondary — supporting text, descriptions */
   .body-secondary {
     font-size: 14px;
     font-weight: 400;
-    color: #6B7280;
+    color: #535862;
   }
 
   /* 7. Meta — timestamps, axis labels, chart ticks, footnotes */
   .meta {
     font-size: 12px;
     font-weight: 400;
-    color: #9CA3AF;
+    color: #717680;
   }
 
   /* ============================================
@@ -188,11 +192,11 @@
 
   /* Table header — small uppercase column labels */
   .table-header {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
-    color: #9CA3AF;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #717680;
+    text-transform: none;
+    letter-spacing: normal;
     padding: 14px 20px;
   }
 
@@ -200,23 +204,23 @@
   .table-cell {
     padding: 18px 20px;
     font-size: 14px;
-    color: #374151;
+    color: #414651;
   }
 
   /* Table cell secondary — muted text for secondary columns */
   .table-cell-secondary {
     padding: 18px 20px;
     font-size: 14px;
-    color: #6B7280;
+    color: #535862;
   }
 
   /* Legacy aliases (prefer canonical names above) */
   .metric-value {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 600;
-    color: #374151;
+    color: #181D27;
     letter-spacing: -0.025em;
-    line-height: 1;
+    line-height: 1.27;
   }
 
   .metric-value-sm {
@@ -278,6 +282,10 @@
 
 .font-figtree {
   font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Minimal floating scrollbar with bottom padding to prevent content cut-off */

@@ -111,24 +111,24 @@ export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ property
       transition={{ duration: 0.3, delay: 0.3 }}
       className="space-y-2"
     >
-      <p className="text-xs text-gray-400 font-medium">Want to adjust?</p>
+      <p className="text-xs text-[#717680] font-medium">Want to adjust?</p>
 
       <AnimatePresence mode="wait">
         {!expandedCategory ? (
-          /* Step 1 — Category buttons */
+          /* Step 1 — Category buttons in 2-col grid */
           <motion.div
             key="categories"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex flex-wrap gap-1.5"
+            className="grid grid-cols-2 gap-1.5"
           >
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.id)}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors leading-tight font-medium"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-[#E9EAEB] text-[#535862] bg-white hover:bg-[#F5F5F5] hover:border-[#D5D7DA] transition-colors leading-tight font-medium"
               >
                 {cat.icon}
                 {cat.label}
@@ -147,17 +147,17 @@ export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ property
           >
             <button
               onClick={() => setExpandedCategory(null)}
-              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors mb-0.5"
+              className="inline-flex items-center gap-1 text-xs text-[#717680] hover:text-[#414651] transition-colors mb-0.5"
             >
               <ChevronLeftIcon size={12} />
               {activeCategory?.label}
             </button>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {activeCategory?.getOptions(propertyCount).map((opt, i) => (
                 <button
                   key={i}
                   onClick={() => handleOptionClick(opt.prompt)}
-                  className="text-xs px-3 py-2 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors leading-tight font-medium"
+                  className="text-xs px-3 py-2 rounded-lg border border-[#E9EAEB] text-[#535862] bg-white hover:bg-[#F5F5F5] hover:border-[#D5D7DA] transition-colors leading-tight font-medium"
                 >
                   {opt.label}
                 </button>

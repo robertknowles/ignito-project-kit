@@ -64,13 +64,13 @@ export const CHART_COLORS = {
   negativeFillStart: 'rgba(156, 163, 175, 0.06)',
   negativeFillEnd: 'rgba(156, 163, 175, 0.01)',
 
-  // ── Grid, axes, chrome ─────────────────────────────────────────────
-  grid: '#F3F4F6',
-  axisText: '#9CA3AF',
-  labelText: '#6B7280',
-  tooltipBorder: '#E5E7EB',
-  referenceLine: '#CBD5E1',
-  annotationText: '#9CA3AF',
+  // ── Grid, axes, chrome (UUI neutral scale) ─────────────────────────
+  grid: '#E9EAEB',
+  axisText: '#717680',
+  labelText: '#535862',
+  tooltipBorder: '#E9EAEB',
+  referenceLine: '#D5D7DA',
+  annotationText: '#717680',
 
   // ── Comparison/overlay ─────────────────────────────────────────────
   scenarioA: 'rgba(37, 99, 235, 0.60)',
@@ -120,8 +120,8 @@ export const CHART_STYLE = {
     width: 60,
   },
 
-  lineStrokeWidth: 2,
-  lineStrokeWidthLight: 1.5,
+  lineStrokeWidth: 1.5,
+  lineStrokeWidthLight: 1.2,
   dashedPattern: '6 3',
 
   referenceLine: {

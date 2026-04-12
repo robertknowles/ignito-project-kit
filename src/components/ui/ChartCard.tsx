@@ -29,19 +29,19 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      {/* Header — plain text, matches skeleton h-5 w-40 */}
+    <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
+      {/* Header */}
       <div
-        className={`flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? '' : 'mb-4'}`}
+        className={`flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''} ${collapsed ? '' : 'mb-5'}`}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div className="flex items-center gap-2">
           {collapsible && (
-            <div className="text-gray-400">
+            <div className="text-[#717680]">
               {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
             </div>
           )}
-          <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+          <h3 className="text-base font-semibold text-[#181D27]">{title}</h3>
         </div>
         {action && !collapsed && action}
       </div>
@@ -55,21 +55,21 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
           {/* Legend */}
           {legend && legend.length > 0 && (
-            <div className="flex items-center gap-5 mt-4">
+            <div className="flex items-center gap-4 mt-5">
               {legend.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
                   {item.variant === 'ring' ? (
                     <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: 'white', border: `2px solid ${item.color}` }}
                     />
                   ) : (
                     <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
                   )}
-                  <span className="text-[11px] text-gray-400">{item.label}</span>
+                  <span className="text-xs text-[#535862]">{item.label}</span>
                 </div>
               ))}
             </div>

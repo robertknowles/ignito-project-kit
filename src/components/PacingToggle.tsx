@@ -74,27 +74,27 @@ export const PacingToggle: React.FC<PacingToggleProps> = ({ compact = false }) =
 
   // Full mode — cards with growth context for chat panel empty state
   return (
-    <div className="w-full space-y-2">
-      <p className="text-xs text-gray-400 font-medium text-center">Acquisition strategy</p>
+    <div className="w-full space-y-2.5">
+      <p className="text-[11px] text-[#717680] font-medium text-center">Acquisition strategy</p>
       <div className="flex gap-1.5">
         {MODES.map(({ value, label, icon, spacing, growth }) => (
           <button
             key={value}
             onClick={() => updateProfile({ pacingMode: value })}
-            className={`flex-1 flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg border transition-all text-center ${
+            className={`flex-1 flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border transition-all text-center ${
               currentMode === value
-                ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? 'bg-[#181D27] text-white border-[#181D27]'
+                : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
             }`}
           >
             <div className="flex items-center gap-1">
               {icon}
-              <span className="text-xs font-medium">{label}</span>
+              <span className="text-[11px] font-medium">{label}</span>
             </div>
-            <span className={`text-[10px] leading-tight ${currentMode === value ? 'text-gray-300' : 'text-gray-400'}`}>
+            <span className={`text-[10px] leading-tight ${currentMode === value ? 'text-white/50' : 'text-[#717680]'}`}>
               {spacing}
             </span>
-            <span className={`text-[10px] leading-tight ${currentMode === value ? 'text-gray-400' : 'text-gray-400'}`}>
+            <span className={`text-[10px] leading-tight ${currentMode === value ? 'text-white/40' : 'text-[#A4A7AE]'}`}>
               {growth}
             </span>
           </button>

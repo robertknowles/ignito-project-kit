@@ -65,15 +65,15 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     return (
       <div
-        className="bg-white border rounded-lg"
+        className="bg-white border rounded-xl"
         style={{
-          borderColor: '#E5E7EB',
+          borderColor: '#E9EAEB',
           padding: '12px 16px',
           fontSize: 13,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          boxShadow: '0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03)',
         }}
       >
-        <p className="font-semibold text-gray-900 mb-2">{label}</p>
+        <p className="font-semibold text-[#181D27] mb-2">{label}</p>
         <div className="flex justify-between gap-6 mb-1">
           <span className="text-gray-500">Income</span>
           <span className="font-medium text-gray-700">${income.toLocaleString()}/mo</span>

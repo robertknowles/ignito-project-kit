@@ -113,7 +113,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             key={yearData.year}
             className="px-1 py-3.5 flex items-center justify-center border-b border-gray-200/60"
           >
-            <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+            <span className="text-xs font-medium text-[#717680]">
               {yearData.year}
             </span>
           </div>
@@ -126,7 +126,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
           onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
         >
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide flex items-center gap-0.5">
+          <span className="text-xs font-medium text-[#717680] flex items-center gap-0.5">
             <span className={`text-[8px] transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
             Buy
           </span>
@@ -178,7 +178,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
           onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
         >
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide flex items-center gap-0.5">
+          <span className="text-xs font-medium text-[#717680] flex items-center gap-0.5">
             <span className={`text-[8px] transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
             Funds
           </span>
@@ -222,7 +222,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* DEBT Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Debt
           </span>
           <TooltipProvider>
@@ -258,7 +258,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* EQUITY Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Equity
           </span>
           <TooltipProvider>
@@ -293,7 +293,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* INCOME Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Income
           </span>
           <TooltipProvider>
@@ -332,7 +332,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* EXPENSES Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Expenses
           </span>
           <TooltipProvider>
@@ -371,7 +371,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* LOANS Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Loans
           </span>
           <TooltipProvider>
@@ -410,7 +410,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
       {/* NET CASHFLOW Row */}
       <div style={gridStyle}>
         <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-[11px] font-medium text-gray-400 tracking-wide">
+          <span className="text-xs font-medium text-[#717680]">
             Net
           </span>
           <TooltipProvider>

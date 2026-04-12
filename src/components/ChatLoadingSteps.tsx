@@ -45,10 +45,7 @@ export const ChatLoadingSteps: React.FC<ChatLoadingStepsProps> = ({
   if (isComplete) return null
 
   return (
-    <div className="flex items-start gap-2.5">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
-        <BotIcon size={13} className="text-white" />
-      </div>
+    <div className="flex items-start">
       <div className="space-y-1.5 py-1">
         <AnimatePresence>
           {steps.map((step, i) => {

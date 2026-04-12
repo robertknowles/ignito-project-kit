@@ -236,15 +236,10 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // Fire callback to wire data into contexts
             options.onPlanGenerated?.(response)
 
-            // Show system message after plan generates + flag refinement on last assistant message
+            // Flag refinement on last assistant message (no system message)
             if (response.properties && response.properties.length > 0) {
-              const systemMsg = createMessage(
-                'system',
-                'text',
-                `Plan generated — ${response.properties.length} properties`
-              )
               setMessages((prev) => {
-                const updated = [...prev, systemMsg]
+                const updated = [...prev]
                 // Flag the last assistant message to show the 2-step refinement UI
                 const lastAssistant = [...updated].reverse().find((m) => m.role === 'assistant')
                 if (lastAssistant) {

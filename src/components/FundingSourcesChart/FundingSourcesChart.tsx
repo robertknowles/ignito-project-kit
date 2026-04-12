@@ -143,7 +143,7 @@ export const FundingSourcesChart: React.FC = () => {
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-gray-400 py-8 text-center">
+      <p className="text-sm text-[#717680] py-8 text-center">
         Add properties to see funding sources
       </p>
     );
@@ -166,12 +166,12 @@ export const FundingSourcesChart: React.FC = () => {
               className="w-full flex items-center gap-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
               style={{
                 padding: '14px 0',
-                borderBottom: !isLast ? '1px solid #F3F4F6' : undefined,
+                borderBottom: !isLast ? '1px solid #E9EAEB' : undefined,
               }}
               onClick={() => toggleRow(idx)}
             >
               {/* Chevron */}
-              <div className="flex-shrink-0 w-4 text-gray-400">
+              <div className="flex-shrink-0 w-4 text-[#717680]">
                 {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </div>
 
@@ -184,7 +184,7 @@ export const FundingSourcesChart: React.FC = () => {
               {/* Property name + status */}
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">{row.title}</span>
+                  <span className="text-sm font-medium text-[#181D27]">{row.title}</span>
                   {row.isBuyNext && (
                     <span
                       className="text-[11px] font-semibold px-2 py-0.5 rounded"
@@ -194,7 +194,7 @@ export const FundingSourcesChart: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-gray-400" style={{ marginTop: 1 }}>
+                <span className="text-xs text-[#717680]" style={{ marginTop: 1 }}>
                   {row.isOwned ? `Bought ${row.buyYear}` : `Target ${row.buyYear}`}
                 </span>
               </div>
@@ -202,11 +202,11 @@ export const FundingSourcesChart: React.FC = () => {
               {/* Readiness */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
                 {row.isOwned ? (
-                  <span className="text-xs text-gray-400">Owned</span>
+                  <span className="text-xs text-[#717680]">Owned</span>
                 ) : row.isBuyNext ? (
                   <div>
                     <span className="text-[13px] font-semibold text-blue-600">{row.readinessPct}% ready</span>
-                    <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 60, backgroundColor: '#E5E7EB' }}>
+                    <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 60, backgroundColor: '#E9EAEB' }}>
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${row.readinessPct}%`, backgroundColor: '#2563EB' }}
@@ -214,14 +214,14 @@ export const FundingSourcesChart: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <span className="text-[13px] text-gray-400">{row.yearsAway} yrs away</span>
+                  <span className="text-[13px] text-[#717680]">{row.yearsAway} yrs away</span>
                 )}
               </div>
 
               {/* Funding needed */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 70 }}>
-                <span className="text-sm font-medium text-gray-500">{fmt(row.total)}</span>
-                <div className="text-[11px] text-gray-400">to fund</div>
+                <span className="text-sm font-medium text-[#535862]">{fmt(row.total)}</span>
+                <div className="text-[11px] text-[#717680]">to fund</div>
               </div>
             </button>
 
@@ -229,7 +229,7 @@ export const FundingSourcesChart: React.FC = () => {
             {isOpen && (
               <div style={{ paddingLeft: 36, paddingBottom: 12 }}>
                 <p
-                  className="text-gray-400 mb-2"
+                  className="text-[#717680] mb-2"
                   style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}
                 >
                   Funding sources
@@ -244,12 +244,12 @@ export const FundingSourcesChart: React.FC = () => {
                         borderBottom: si < row.sources.length - 1 ? '1px solid #F9FAFB' : undefined,
                       }}
                     >
-                      <span className="text-gray-700" style={{ fontWeight: 450 }}>{src.type}</span>
-                      <span className="font-semibold text-gray-900">{fmt(src.amount)}</span>
+                      <span className="text-[#414651]" style={{ fontWeight: 450 }}>{src.type}</span>
+                      <span className="font-semibold text-[#181D27]">{fmt(src.amount)}</span>
                     </div>
                     {src.from && (
                       <p
-                        className="text-gray-400"
+                        className="text-[#717680]"
                         style={{ fontSize: 12, marginLeft: 14, marginTop: 3, marginBottom: 4 }}
                       >
                         from {src.from} · refinanced {src.refinanceYear}

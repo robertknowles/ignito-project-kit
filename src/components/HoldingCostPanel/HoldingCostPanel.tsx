@@ -62,7 +62,7 @@ export const HoldingCostPanel: React.FC = () => {
 
   if (properties.length === 0) {
     return (
-      <p className="text-sm text-gray-400 py-8 text-center">
+      <p className="text-sm text-[#717680] py-8 text-center">
         Add properties to see holding costs
       </p>
     );
@@ -73,16 +73,16 @@ export const HoldingCostPanel: React.FC = () => {
       {/* Summary section */}
       <div
         className="pb-5 mb-6"
-        style={{ borderBottom: '1px solid #F3F4F6' }}
+        style={{ borderBottom: '1px solid #E9EAEB' }}
       >
         <div className="flex items-baseline gap-6">
           <div>
-            <span className="text-[28px] font-bold text-gray-900">
+            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight">
               {totals.totalNet >= 0 ? '+' : '-'}{fmtMo(totals.totalNet)}
             </span>
-            <span className="text-sm text-gray-500 ml-1.5">/mo net cashflow</span>
+            <span className="text-sm text-[#535862] ml-1.5">/mo net cashflow</span>
           </div>
-          <span className="text-sm text-gray-500">{totals.coverage}% coverage</span>
+          <span className="text-sm text-[#535862]">{totals.coverage}% coverage</span>
         </div>
       </div>
 
@@ -115,12 +115,12 @@ export const HoldingCostPanel: React.FC = () => {
               className="w-full flex items-center gap-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
               style={{
                 padding: '14px 0',
-                borderBottom: !isLast || isOpen ? '1px solid #F3F4F6' : undefined,
+                borderBottom: !isLast || isOpen ? '1px solid #E9EAEB' : undefined,
               }}
               onClick={() => setExpandedIdx(isOpen ? null : idx)}
             >
               {/* Chevron */}
-              <div className="flex-shrink-0 w-4 text-gray-400">
+              <div className="flex-shrink-0 w-4 text-[#717680]">
                 {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </div>
 
@@ -132,25 +132,25 @@ export const HoldingCostPanel: React.FC = () => {
 
               {/* Property name + bought year */}
               <div className="flex-1 text-left min-w-0">
-                <span className="text-sm font-medium text-gray-900">{prop.title}</span>
-                <div className="text-xs text-gray-400">Bought {prop.buyYear}</div>
+                <span className="text-sm font-medium text-[#181D27]">{prop.title}</span>
+                <div className="text-xs text-[#717680]">Bought {prop.buyYear}</div>
               </div>
 
               {/* Costs */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
-                <span className="text-[13px] text-gray-500">{fmtMo(totalCosts)}</span>
-                <div className="text-[11px] text-gray-400">costs</div>
+                <span className="text-[13px] text-[#535862]">{fmtMo(totalCosts)}</span>
+                <div className="text-[11px] text-[#717680]">costs</div>
               </div>
 
               {/* Rent */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
-                <span className="text-[13px] text-gray-500">{fmtMo(snapshot.monthlyRent)}</span>
-                <div className="text-[11px] text-gray-400">rent</div>
+                <span className="text-[13px] text-[#535862]">{fmtMo(snapshot.monthlyRent)}</span>
+                <div className="text-[11px] text-[#717680]">rent</div>
               </div>
 
               {/* Coverage mini-bar */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 50 }}>
-                <span className="text-xs text-gray-400">{Math.round(coveragePct)}%</span>
+                <span className="text-xs text-[#717680]">{Math.round(coveragePct)}%</span>
                 <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 50, backgroundColor: '#F3F4F6' }}>
                   <div
                     className="h-full rounded-full"
@@ -161,10 +161,10 @@ export const HoldingCostPanel: React.FC = () => {
 
               {/* Net cashflow */}
               <div className="flex-shrink-0 text-right" style={{ minWidth: 80 }}>
-                <span className="text-sm font-semibold text-gray-500">
+                <span className="text-sm font-semibold text-[#535862]">
                   {snapshot.monthlyNetCost >= 0 ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}
                 </span>
-                <div className="text-[11px] text-gray-400">/mo</div>
+                <div className="text-[11px] text-[#717680]">/mo</div>
               </div>
             </button>
 
@@ -181,8 +181,8 @@ export const HoldingCostPanel: React.FC = () => {
                       borderBottom: bi < breakdownItems.length - 1 ? '1px solid #F9FAFB' : undefined,
                     }}
                   >
-                    <span className="text-gray-500">{item.label}</span>
-                    <span className="font-medium text-gray-700">{fmtMo(item.value)}</span>
+                    <span className="text-[#535862]">{item.label}</span>
+                    <span className="font-medium text-[#414651]">{fmtMo(item.value)}</span>
                   </div>
                 ))}
 
@@ -192,16 +192,16 @@ export const HoldingCostPanel: React.FC = () => {
                   style={{ borderTop: '1px solid #E5E7EB' }}
                 >
                   <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
-                    <span className="text-gray-500 font-medium">Total costs</span>
-                    <span className="font-semibold text-gray-900">{fmtMo(totalCosts)}</span>
+                    <span className="text-[#535862] font-medium">Total costs</span>
+                    <span className="font-semibold text-[#181D27]">{fmtMo(totalCosts)}</span>
                   </div>
                   <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
-                    <span className="text-gray-500">Rental income</span>
-                    <span className="font-medium text-gray-700">{fmtMo(snapshot.monthlyRent)}</span>
+                    <span className="text-[#535862]">Rental income</span>
+                    <span className="font-medium text-[#414651]">{fmtMo(snapshot.monthlyRent)}</span>
                   </div>
                   <div className="flex justify-between py-1" style={{ fontSize: 13 }}>
-                    <span className="text-gray-500">Net cashflow</span>
-                    <span className="font-bold text-gray-900">
+                    <span className="text-[#535862]">Net cashflow</span>
+                    <span className="font-bold text-[#181D27]">
                       {snapshot.monthlyNetCost >= 0 ? '+' : '-'}{fmtMo(snapshot.monthlyNetCost)}/mo
                     </span>
                   </div>
@@ -225,7 +225,7 @@ export const HoldingCostYearDropdown: React.FC = () => {
     <select
       value={snapshotYear}
       onChange={e => setSnapshotYear(Number(e.target.value))}
-      className="appearance-none cursor-pointer bg-white text-gray-700 font-medium"
+      className="appearance-none cursor-pointer bg-white text-[#414651] font-medium"
       style={{
         padding: '4px 10px',
         fontSize: 13,

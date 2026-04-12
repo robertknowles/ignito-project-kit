@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
@@ -570,21 +570,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           <div className="ml-auto flex items-center gap-0.5">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
               title="Upload PDF"
             >
               <PaperclipIcon size={14} />
             </button>
             <button
               onClick={() => setShowPropertyLibrary(true)}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
               title="Browse Properties"
             >
               <BuildingIcon size={14} />
             </button>
             <button
               onClick={() => setShowPreferences(true)}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
               title="Planning Defaults"
             >
               <Settings2Icon size={14} />
@@ -594,23 +594,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
         {/* Messages area */}
         <div
-          className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold mb-3"
-                style={{ backgroundColor: primaryColor }}
-              >
-                P
-              </div>
-              <p className="text-sm text-gray-500 leading-relaxed">
+            <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <p className="text-[13px] text-[#181D27] leading-[1.65] font-medium">
                 Describe a client scenario to generate an investment roadmap.
               </p>
-              <p className="text-xs text-gray-400 mt-2 mb-6">
+              <p className="text-[12px] text-[#717680] mt-2 mb-6 leading-[1.5]">
                 e.g. "John. 120k annual income. 80k deposit. Want to hit $2M in equity across 4 properties over 15 years."
               </p>
               <PacingToggle />
@@ -638,20 +633,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             )}
           </AnimatePresence>
 
+          {/* Input area — inside scroll container */}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
-        <div className="border-t border-gray-200 p-3">
+        {/* Input area — fixed at bottom */}
+        <div className="px-3 pb-3 pt-2">
           {/* File preview */}
           {selectedFile && (
-            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-100 rounded-lg">
-              <FileTextIcon size={14} className="text-gray-500 flex-shrink-0" />
-              <span className="text-xs text-gray-600 truncate flex-1">{selectedFile.name}</span>
-              <span className="text-xs text-gray-400">{formatFileSize(selectedFile.size)}</span>
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[#F5F5F5] rounded-lg">
+              <FileTextIcon size={14} className="text-[#535862] flex-shrink-0" />
+              <span className="text-xs text-[#535862] truncate flex-1">{selectedFile.name}</span>
+              <span className="text-xs text-[#717680]">{formatFileSize(selectedFile.size)}</span>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-[#717680] hover:text-[#414651]"
               >
                 <XIcon size={12} />
               </button>
@@ -664,7 +660,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             onChange={handleFileInputChange}
             className="hidden"
           />
-          <div className="flex items-end gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-gray-300 transition-colors">
+          <div className="flex items-center gap-2.5 bg-white rounded-xl px-3.5 py-2.5 border border-gray-200 focus-within:border-gray-300 transition-colors">
+            <SearchIcon size={14} className="text-[#717680] flex-shrink-0" />
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -672,22 +669,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               onKeyDown={handleKeyDown}
               placeholder="Describe a client scenario..."
               rows={1}
-              className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 resize-none outline-none leading-relaxed max-h-[120px]"
+              className="flex-1 bg-transparent text-[13px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[120px]"
               disabled={isLoading}
             />
             <button
               onClick={handleSend}
               disabled={(!inputValue.trim() && !selectedFile) || isLoading}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30"
+              className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
               style={{
                 backgroundColor: (inputValue.trim() || selectedFile) && !isLoading ? primaryColor : undefined,
                 color: (inputValue.trim() || selectedFile) && !isLoading ? 'white' : undefined,
               }}
             >
               {isLoading ? (
-                <Loader2Icon size={14} className="animate-spin text-gray-400" />
+                <Loader2Icon size={13} className="animate-spin text-[#717680]" />
               ) : (
-                <SendIcon size={14} />
+                <SendIcon size={13} className="text-[#717680]" />
               )}
             </button>
           </div>

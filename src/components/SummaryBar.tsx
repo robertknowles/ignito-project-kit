@@ -100,48 +100,46 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     >
     <div id="summary-bar-container" className="grid grid-cols-4 gap-4">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <span className="text-xs font-medium text-gray-400">Portfolio Value</span>
-        <div className="mt-1.5">
-          <span className="text-2xl font-bold text-gray-900">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
+        <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
+        <div className="mt-2">
+          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.portfolioValue)}
           </span>
         </div>
       </div>
 
       {/* Total Equity */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <span className="text-xs font-medium text-gray-400">Total Equity</span>
-        <div className="mt-1.5">
-          <span className="text-2xl font-bold text-gray-900">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
+        <span className="text-sm font-medium text-[#535862]">Total Equity</span>
+        <div className="mt-2">
+          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.totalEquity)}
           </span>
         </div>
       </div>
 
       {/* Net Cashflow */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <span className="text-xs font-medium text-gray-400">Net Cashflow</span>
-        <div className="mt-1.5">
-          <span className="text-2xl font-bold text-gray-900">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
+        <span className="text-sm font-medium text-[#535862]">Net Cashflow</span>
+        <div className="mt-2 flex items-baseline gap-1">
+          <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatMonthlyCashflow(monthlyCashflow)}
           </span>
-          <span className="text-sm font-normal text-gray-500 ml-1">/mo</span>
+          <span className="text-sm text-[#717680]">/mo</span>
         </div>
       </div>
 
       {/* Next Purchase */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <span className="text-xs font-medium text-gray-400">Next Purchase</span>
-        <div className="mt-1.5">
+      <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
+        <span className="text-sm font-medium text-[#535862]">Next Purchase</span>
+        <div className="mt-2">
           {nextPurchase ? (
-            <>
-              <span className="text-2xl font-bold text-gray-900">
-                {nextPurchase.year}
-              </span>
-            </>
+            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">
+              {nextPurchase.year}
+            </span>
           ) : (
-            <span className="text-2xl font-bold text-gray-900">—</span>
+            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight leading-tight">—</span>
           )}
         </div>
       </div>
