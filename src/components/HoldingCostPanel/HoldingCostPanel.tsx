@@ -77,7 +77,7 @@ export const HoldingCostPanel: React.FC = () => {
       >
         <div className="flex items-baseline gap-6">
           <div>
-            <span className="text-[30px] font-semibold text-[#181D27] tracking-tight">
+            <span className="text-xl font-semibold text-[#181D27]">
               {totals.totalNet >= 0 ? '+' : '-'}{fmtMo(totals.totalNet)}
             </span>
             <span className="text-sm text-[#535862] ml-1.5">/mo net cashflow</span>
@@ -98,14 +98,13 @@ export const HoldingCostPanel: React.FC = () => {
         const isOpen = expandedIdx === idx;
         const isLast = idx === properties.length - 1;
 
+        const operatingCosts = snapshot.monthlyManagement + snapshot.monthlyMaintenance + snapshot.monthlyVacancy;
+        const ownershipCosts = snapshot.monthlyCouncil + snapshot.monthlyInsurance + (snapshot.monthlyStrata || 0);
+
         const breakdownItems = [
           { label: 'Mortgage', value: snapshot.monthlyMortgage },
-          { label: 'Management', value: snapshot.monthlyManagement },
-          { label: 'Council Rates', value: snapshot.monthlyCouncil },
-          { label: 'Insurance', value: snapshot.monthlyInsurance },
-          { label: 'Maintenance', value: snapshot.monthlyMaintenance },
-          { label: 'Vacancy', value: snapshot.monthlyVacancy },
-          ...(snapshot.monthlyStrata > 0 ? [{ label: 'Strata', value: snapshot.monthlyStrata }] : []),
+          { label: 'Operating costs', value: operatingCosts },
+          { label: 'Ownership costs', value: ownershipCosts },
         ];
 
         return (

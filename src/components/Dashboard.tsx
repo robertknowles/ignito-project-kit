@@ -158,10 +158,7 @@ export const Dashboard = () => {
           <FinancialSummaryTable />
         </ChartCard>
 
-        {/* 7. Retirement Scenario — unchanged */}
-        <ChartCard title="Retirement Scenario">
-          <RetirementScenarioPanel />
-        </ChartCard>
+        {/* Retirement Scenario moved to /retirement tab */}
       </div>
     </div>
   );

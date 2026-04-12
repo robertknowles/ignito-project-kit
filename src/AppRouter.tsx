@@ -6,6 +6,7 @@ import { AgentHome } from './pages/AgentHome'
 import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { Portfolio } from './pages/Portfolio'
+import Retirement from './pages/Retirement'
 import { SettingsHub } from './pages/SettingsHub'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
@@ -144,6 +145,16 @@ export function AppRouter() {
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <LayoutProvider>
                                     <Portfolio />
+                                  </LayoutProvider>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/retirement"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <LayoutProvider>
+                                    <Retirement />
                                   </LayoutProvider>
                                 </ProtectedRoute>
                               }

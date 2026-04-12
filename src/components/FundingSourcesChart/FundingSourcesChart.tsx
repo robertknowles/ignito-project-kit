@@ -228,12 +228,6 @@ export const FundingSourcesChart: React.FC = () => {
             {/* Expanded detail */}
             {isOpen && (
               <div style={{ paddingLeft: 36, paddingBottom: 12 }}>
-                <p
-                  className="text-[#717680] mb-2"
-                  style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                >
-                  Funding sources
-                </p>
                 {row.sources.map((src, si) => (
                   <div key={si}>
                     <div
