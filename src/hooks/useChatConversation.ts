@@ -239,13 +239,10 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // Flag refinement on last assistant message (no system message)
             if (response.properties && response.properties.length > 0) {
               setMessages((prev) => {
-                const updated = [...prev]
-                // Flag the last assistant message to show the 2-step refinement UI
-                const lastAssistant = [...updated].reverse().find((m) => m.role === 'assistant')
-                if (lastAssistant) {
-                  lastAssistant.showRefinement = true
-                }
-                return updated
+                // Find the last assistant message index and create a new array with showRefinement set
+                const lastIdx = prev.map((m, i) => m.role === 'assistant' ? i : -1).filter(i => i >= 0).pop()
+                if (lastIdx === undefined) return prev
+                return prev.map((m, i) => i === lastIdx ? { ...m, showRefinement: true } : m)
               })
             }
             break

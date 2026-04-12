@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { Home } from 'lucide-react'
+import { getPropertyIcon } from './icons/PropertyIcons'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { EQUITY_EXTRACTION_LVR_CAP } from '../constants/financialParams'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
@@ -104,14 +105,8 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* ── Section 1: Property context bar ─────────────────────────────── */}
       <div className="flex items-center gap-3 px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
-        <div className="w-8 h-8 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-          {trackingState?.photo ? (
-            <img src={trackingState.photo} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          ) : propertyImage ? (
-            <img src={propertyImage} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center"><Home size={14} className="text-gray-300" /></div>
-          )}
+        <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center flex-shrink-0">
+          {React.createElement(getPropertyIcon(property.propertyTypeKey), { size: 16, className: 'text-[#535862]' })}
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-xs font-medium text-gray-700 truncate block">{trackingState?.address || property.title}</span>

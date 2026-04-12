@@ -586,7 +586,7 @@ export const Portfolio = () => {
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
-          <div className="flex flex-col mx-auto" style={{ padding: '32px 0 80px 0', width: '70%', minWidth: 500 }}>
+          <div className="flex flex-col mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
             {portfolioLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -871,7 +871,7 @@ export const Portfolio = () => {
                   return (
                     <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setDetailProperty(null)}>
                       <div className="absolute inset-0 bg-black/20" />
-                      <div className="relative w-full max-w-lg bg-[#f9fafb] h-full overflow-auto shadow-xl" onClick={e => e.stopPropagation()}>
+                      <div className="relative w-full max-w-lg bg-[#FAFAFA] h-full overflow-auto shadow-xl" onClick={e => e.stopPropagation()}>
                         <div className="relative h-48 bg-gray-200 overflow-hidden">
                           {dIsPurchased && dTracking?.photo ? (
                             <img src={dTracking.photo} alt="" className="w-full h-full object-cover" />

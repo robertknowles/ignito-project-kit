@@ -22,11 +22,11 @@ interface ChatLoadingStepsProps {
   isComplete: boolean
 }
 
-export const ChatLoadingSteps: React.FC<ChatLoadingStepsProps> = ({
+export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStepsProps>(({
   clientName,
   activeStep,
   isComplete,
-}) => {
+}, ref) => {
   const steps: LoadingStep[] = [
     {
       label: clientName ? `Reading ${clientName}'s profile` : 'Reading client profile',
@@ -45,7 +45,7 @@ export const ChatLoadingSteps: React.FC<ChatLoadingStepsProps> = ({
   if (isComplete) return null
 
   return (
-    <div className="flex items-start">
+    <div ref={ref} className="flex items-start">
       <div className="space-y-1.5 py-1">
         <AnimatePresence>
           {steps.map((step, i) => {
@@ -73,4 +73,6 @@ export const ChatLoadingSteps: React.FC<ChatLoadingStepsProps> = ({
       </div>
     </div>
   )
-}
+})
+
+ChatLoadingSteps.displayName = 'ChatLoadingSteps'

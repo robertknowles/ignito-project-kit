@@ -12,7 +12,8 @@ import {
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
+import { CHART_COLORS, CHART_STYLE, PROPERTY_COLORS } from '../constants/chartColors'
+import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 
@@ -49,6 +50,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
       doNothingBalance: y.doNothingBalance ?? 0,
       purchaseInYear: y.purchaseInYear,
       purchaseLabel: y.purchaseDetails?.map(p => p.propertyTitle).join(', ') ?? '',
+      purchasePropertyTypes: y.purchaseDetails?.map(p => p.propertyType) ?? [],
     }))
   }, [years])
 
@@ -172,16 +174,34 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             connectNulls
           />
 
-          {/* Purchase markers — dots on portfolio line where properties are bought */}
+          {/* Purchase markers — property type icons on portfolio line */}
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}
               x={pt.year}
               y={pt.portfolioValue}
-              r={6}
-              fill="#2563EB"
-              stroke="white"
-              strokeWidth={2}
+              r={0}
+              shape={(props: any) => {
+                const { cx, cy } = props
+                const iconPath = getPropertyIconPath(pt.purchasePropertyTypes?.[0] || '')
+                const iconSize = 14
+                const bgSize = 26
+                return (
+                  <g>
+                    <circle cx={cx} cy={cy} r={bgSize / 2} fill="white" stroke="#E9EAEB" strokeWidth={1} />
+                    <svg
+                      x={cx - iconSize / 2}
+                      y={cy - iconSize / 2}
+                      width={iconSize}
+                      height={iconSize}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </g>
+                )
+              }}
             />
           ))}
         </AreaChart>

@@ -13,6 +13,7 @@ import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculat
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useEquityUnlockTimeline } from './useEquityUnlockTimeline';
+import { PROPERTY_ICON_PATHS } from '../icons/PropertyIconPaths';
 import { PROPERTY_COLORS } from '../../constants/chartColors';
 import { CHART_STYLE } from '../../constants/chartColors';
 import { BASE_YEAR } from '../../constants/financialParams';
@@ -251,21 +252,39 @@ export const EquityUnlockChart: React.FC = () => {
             />
           ))}
 
-          {/* Refinance event dots — open circles on the source property's line */}
+          {/* Refinance event markers — currency dollar icon */}
           {refinanceEvents.map((evt, ei) => {
             const dataPoint = chartData.find(d => d.year === evt.year);
             if (!dataPoint) return null;
             const yValue = dataPoint[`p${evt.sourceIdx}`] as number;
+            const iconPath = PROPERTY_ICON_PATHS['refinance'];
+            const iconSize = 12;
+            const bgSize = 22;
 
             return (
               <ReferenceDot
                 key={`refi-${ei}`}
                 x={evt.year}
                 y={yValue}
-                r={6}
-                fill="white"
-                stroke={evt.sourceColor}
-                strokeWidth={2.5}
+                r={0}
+                shape={(props: any) => {
+                  const { cx, cy } = props;
+                  return (
+                    <g>
+                      <circle cx={cx} cy={cy} r={bgSize / 2} fill="white" stroke={evt.sourceColor} strokeWidth={1.5} />
+                      <svg
+                        x={cx - iconSize / 2}
+                        y={cy - iconSize / 2}
+                        width={iconSize}
+                        height={iconSize}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path d={iconPath} stroke={evt.sourceColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </g>
+                  );
+                }}
               />
             );
           })}
