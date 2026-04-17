@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, RotateCcwIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
@@ -69,7 +69,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { activeClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId } = useScenarioSave()
 
   // Track client names for plan state
   const clientNamesRef = useRef<string[]>([])
@@ -317,6 +317,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     pacingMode: profile.pacingMode || 'balanced',
   })
 
+  // Clear chat when scenario is reset (scenarioId goes from a value to null)
+  const prevScenarioIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (prevScenarioIdRef.current !== null && scenarioId === null) {
+      clearMessages()
+      loadedRef.current = false
+    }
+    prevScenarioIdRef.current = scenarioId
+  }, [scenarioId, clearMessages])
+
   // Reset chat state when the active client changes
   const loadedRef = useRef(false)
   const prevClientRef = useRef<number | null>(null)
@@ -377,10 +387,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }
   }, [isLoading, setPlanGenerating])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or loading steps progress
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, loadingStep])
 
   // Handle send
   const handleSend = useCallback(async () => {
@@ -589,21 +599,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             >
               <Settings2Icon size={14} />
             </button>
-            {messages.length > 0 && (
-              <button
-                onClick={clearMessages}
-                className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
-                title="Clear chat"
-              >
-                <RotateCcwIcon size={14} />
-              </button>
-            )}
           </div>
         </div>
 
         {/* Messages area */}
         <div
-          className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          className={`flex-1 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}

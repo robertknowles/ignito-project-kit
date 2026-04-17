@@ -454,6 +454,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
    */
   const clearMessages = useCallback(() => {
     setMessages([])
+    setIsLoading(false)
     messageIdCounter.current = 0
   }, [])
 
