@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, RotateCcwIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
@@ -589,6 +589,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             >
               <Settings2Icon size={14} />
             </button>
+            {messages.length > 0 && (
+              <button
+                onClick={clearMessages}
+                className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
+                title="Clear chat"
+              >
+                <RotateCcwIcon size={14} />
+              </button>
+            )}
           </div>
         </div>
 
