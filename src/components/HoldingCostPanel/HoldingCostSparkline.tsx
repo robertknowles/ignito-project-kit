@@ -4,6 +4,8 @@ import type { PropertyYearSnapshot } from '../../utils/metricsCalculator';
 interface HoldingCostSparklineProps {
   data: PropertyYearSnapshot[];
   color: string;
+  /** SVG strokeDasharray. '0' or undefined = solid. */
+  dashPattern?: string;
   currentYear: number;
   width?: number;
   height?: number;
@@ -16,6 +18,7 @@ interface HoldingCostSparklineProps {
 export const HoldingCostSparkline: React.FC<HoldingCostSparklineProps> = ({
   data,
   color,
+  dashPattern,
   currentYear,
   width = 200,
   height = 24,
@@ -49,7 +52,14 @@ export const HoldingCostSparkline: React.FC<HoldingCostSparklineProps> = ({
       {zeroY !== null && (
         <line x1={0} x2={width} y1={zeroY} y2={zeroY} stroke="#F1F3F5" strokeWidth={0.75} />
       )}
-      <path d={pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      <path
+        d={pathD}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeDasharray={!dashPattern || dashPattern === '0' ? undefined : dashPattern}
+      />
       {curPoint && (
         <circle
           cx={toX(curPoint.year)}

@@ -11,7 +11,7 @@ import {
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_STYLE } from '../constants/chartColors'
+import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS } from '../constants/chartColors'
 import { BASE_YEAR } from '../constants/financialParams'
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
@@ -109,12 +109,12 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         >
           <defs>
             <linearGradient id="cashflowIncomeFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
+              <stop offset="0%" stopColor={CHART_GRADIENTS.primary.startColor} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
+              <stop offset="100%" stopColor={CHART_GRADIENTS.primary.endColor} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
             </linearGradient>
             <linearGradient id="cashflowExpensesFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.01} />
+              <stop offset="0%" stopColor={CHART_GRADIENTS.negative.startColor} stopOpacity={CHART_GRADIENTS.negative.startOpacity} />
+              <stop offset="100%" stopColor={CHART_GRADIENTS.negative.endColor} stopOpacity={CHART_GRADIENTS.negative.endOpacity} />
             </linearGradient>
           </defs>
 
@@ -126,23 +126,23 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Income line — solid blue with gradient fill */}
+          {/* Income line — primary slate with gradient fill */}
           <Area
             type="monotone"
             dataKey="income"
             name="Rental income"
-            stroke="#2563EB"
+            stroke={CHART_COLORS.primary}
             strokeWidth={2}
             fill="url(#cashflowIncomeFill)"
             dot={false}
           />
 
-          {/* Expenses line — dashed grey with subtle fill */}
+          {/* Expenses line — dashed lighter slate with subtle fill */}
           <Area
             type="monotone"
             dataKey="expenses"
             name="Expenses"
-            stroke="#9CA3AF"
+            stroke={CHART_COLORS.tertiary}
             strokeWidth={2}
             strokeDasharray="6 3"
             fill="url(#cashflowExpensesFill)"

@@ -6,10 +6,11 @@ import type { ProjectedPropertyTimeline } from '../../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../../utils/detailedCashflowCalculator';
 import type { PropertyInstanceDetails } from '../../types/propertyInstance';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, PERIODS_PER_YEAR } from '../../constants/financialParams';
-import { PROPERTY_COLORS } from '../../constants/chartColors';
+import { PROPERTY_COLORS, PROPERTY_DASH_PATTERNS } from '../../constants/chartColors';
 
 export interface HoldingCostPropertyData extends ProjectedPropertyTimeline {
   color: string;
+  dashPattern: string;
 }
 
 export interface HoldingCostTimelineData {
@@ -75,6 +76,7 @@ export function useHoldingCostTimeline(
       return {
         ...timeline,
         color: PROPERTY_COLORS[i % PROPERTY_COLORS.length],
+        dashPattern: PROPERTY_DASH_PATTERNS[i % PROPERTY_DASH_PATTERNS.length],
       };
     });
 

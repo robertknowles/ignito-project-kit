@@ -784,7 +784,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
         label: 'Accumulation',
         startYear,
         endYear: lastPurchaseYear,
-        fill: 'rgba(59, 130, 246, 0.03)',
+        fill: CHART_COLORS.phaseAccumulation,
       });
     }
     if (lastPurchaseYear < endYear) {
@@ -792,7 +792,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
         label: 'Consolidation',
         startYear: lastPurchaseYear,
         endYear,
-        fill: 'rgba(34, 197, 94, 0.03)',
+        fill: CHART_COLORS.phaseConsolidation,
       });
     }
     return result;
@@ -983,10 +983,10 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 <ReferenceArea
                   x1={highlightPeriod.startYear}
                   x2={highlightPeriod.endYear}
-                  fill="#2563EB"
-                  fillOpacity={0.12}
-                  stroke="#2563EB"
-                  strokeOpacity={0.25}
+                  fill={CHART_COLORS.primary}
+                  fillOpacity={0.08}
+                  stroke={CHART_COLORS.primary}
+                  strokeOpacity={0.2}
                   strokeDasharray="4 2"
                 />
               )}
@@ -1017,38 +1017,38 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line - primary blue */}
+              {/* Portfolio Value Line — primary slate */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke="#2563EB"
-                strokeWidth={2.5}
+                stroke={CHART_COLORS.primary}
+                strokeWidth={2}
                 dot={false}
                 activeDot={{
                   r: 5,
-                  stroke: '#2563EB',
+                  stroke: CHART_COLORS.primary,
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
 
-              {/* Total Equity Line - purple, distinct from portfolio */}
+              {/* Total Equity Line — mid slate, distinguished from portfolio by shade */}
               <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke="#8B5CF6"
+                stroke={CHART_COLORS.secondary}
                 strokeWidth={2}
                 dot={false}
               />
 
-              {/* Do-Nothing Baseline - dashed grey line */}
+              {/* Do-Nothing Baseline - dashed light grey line */}
               <Line
                 type="monotone"
                 dataKey="doNothingBalance"
                 name="Savings Only"
-                stroke={CHART_COLORS.annotationText}
+                stroke={CHART_COLORS.baseline}
                 strokeDasharray="6 4"
                 strokeWidth={1.5}
                 dot={false}

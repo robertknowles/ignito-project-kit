@@ -12,7 +12,7 @@ import {
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_COLORS, CHART_STYLE, PROPERTY_COLORS } from '../constants/chartColors'
+import { CHART_COLORS, CHART_STYLE, CHART_GRADIENTS, PROPERTY_COLORS } from '../constants/chartColors'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
@@ -122,12 +122,12 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
         >
           <defs>
             <linearGradient id="timelinePortfolioFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
+              <stop offset="0%" stopColor={CHART_GRADIENTS.primary.startColor} stopOpacity={CHART_GRADIENTS.primary.startOpacity} />
+              <stop offset="100%" stopColor={CHART_GRADIENTS.primary.endColor} stopOpacity={CHART_GRADIENTS.primary.endOpacity} />
             </linearGradient>
             <linearGradient id="timelineEquityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.10} />
-              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.01} />
+              <stop offset="0%" stopColor={CHART_GRADIENTS.secondary.startColor} stopOpacity={CHART_GRADIENTS.secondary.startOpacity} />
+              <stop offset="100%" stopColor={CHART_GRADIENTS.secondary.endColor} stopOpacity={CHART_GRADIENTS.secondary.endOpacity} />
             </linearGradient>
           </defs>
 
@@ -139,23 +139,23 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Portfolio Value — solid blue with gradient fill */}
+          {/* Portfolio Value — primary slate with gradient fill */}
           <Area
             type="monotone"
             dataKey="portfolioValue"
             name="Portfolio Value"
-            stroke="#2563EB"
-            strokeWidth={2.5}
+            stroke={CHART_COLORS.primary}
+            strokeWidth={2}
             fill="url(#timelinePortfolioFill)"
             dot={false}
           />
 
-          {/* Total Equity — solid purple with gradient fill */}
+          {/* Total Equity — mid slate, distinguished from portfolio by shade */}
           <Area
             type="monotone"
             dataKey="totalEquity"
             name="Total Equity"
-            stroke="#8B5CF6"
+            stroke={CHART_COLORS.secondary}
             strokeWidth={2}
             fill="url(#timelineEquityFill)"
             dot={false}
