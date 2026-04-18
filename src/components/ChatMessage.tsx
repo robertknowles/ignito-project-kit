@@ -14,6 +14,7 @@ import { BotIcon } from 'lucide-react'
 import type { ChatMessage as ChatMessageType, ChatOptionCardData } from '@/types/nlParse'
 import { ChatOptionCard } from './ChatOptionCard'
 import { ChatSummaryCard } from './ChatSummaryCard'
+import { ChatPortfolioCard } from './ChatPortfolioCard'
 import { MicroConfirmationCard } from './MicroConfirmationCard'
 import { PostPlanRefinement } from './PostPlanRefinement'
 
@@ -23,6 +24,26 @@ interface ChatMessageProps {
   onFollowUpClick?: (suggestion: string) => void
   propertyCount?: number
 }
+
+const MISSING_INPUT_LABELS: Record<string, string> = {
+  borrowing_capacity: 'borrowing capacity',
+  existing_debt: 'existing property equity or debt',
+  income: 'income',
+  savings: 'actual savings',
+  deposit: 'current deposit',
+  goal: 'equity or cashflow goal',
+}
+
+// Render order for the accuracy nudge. Borrowing capacity leads because the
+// whole investment plan is anchored to it.
+const MISSING_INPUT_ORDER = [
+  'borrowing_capacity',
+  'existing_debt',
+  'income',
+  'savings',
+  'deposit',
+  'goal',
+]
 
 export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick, propertyCount }, ref) => {
   // Loading indicator with personalised text
@@ -120,6 +141,11 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
               <ChatSummaryCard data={message.summaryCard} />
             )}
 
+            {/* Portfolio card */}
+            {message.type === 'portfolio-card' && message.portfolioCard && (
+              <ChatPortfolioCard data={message.portfolioCard} />
+            )}
+
             {/* Option cards */}
             {message.type === 'option-cards' && message.optionCards && (
               <div className="space-y-2">
@@ -137,6 +163,21 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
             {message.assumptions && message.assumptions.length > 0 && (
               <div className="text-xs text-[#717680] italic">
                 Assumed: {message.assumptions.join(' · ')}
+              </div>
+            )}
+
+            {/* Accuracy nudge — material inputs the BA didn't provide */}
+            {message.missingInputs && message.missingInputs.length > 0 && (
+              <div className="text-xs text-amber-700 italic">
+                For greater accuracy, share:{' '}
+                {[...message.missingInputs]
+                  .sort(
+                    (a, b) =>
+                      MISSING_INPUT_ORDER.indexOf(a) -
+                      MISSING_INPUT_ORDER.indexOf(b)
+                  )
+                  .map((k) => MISSING_INPUT_LABELS[k] ?? k)
+                  .join(' · ')}
               </div>
             )}
           </div>

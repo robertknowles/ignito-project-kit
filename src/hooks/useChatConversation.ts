@@ -14,8 +14,30 @@ import type {
   NLParseResponse,
   CurrentPlanState,
   SummaryCardData,
-  MicroConfirmationData,
+  PortfolioCardData,
 } from '@/types/nlParse'
+
+// Canonical missingInputs keys → summary card row keys that should be
+// highlighted in amber. Keys not in this map (e.g. goal) only surface in the
+// accuracy nudge, not as a row highlight. One missing input may map to
+// multiple rows (existing_debt highlights both debt and equity rows).
+const MISSING_INPUT_TO_CARD_KEYS: Record<string, string[]> = {
+  income: ['income'],
+  savings: ['savings'],
+  deposit: ['availableDeposit'],
+  borrowing_capacity: ['borrowingCapacity'],
+  existing_debt: ['existingPropertyDebt', 'existingPropertyEquity'],
+}
+
+/** Format a dollar amount as a compact display string: $1M, $800k, $50k, $0. */
+function formatCompactAud(n: number): string {
+  if (n === 0) return '$0'
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000
+    return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
+  }
+  return `$${Math.round(n / 1000)}k`
+}
 
 interface UseChatConversationOptions {
   onPlanGenerated?: (response: NLParseResponse) => void
@@ -65,9 +87,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const buildSummaryCard = useCallback((response: NLParseResponse): SummaryCardData | undefined => {
     if (!response.clientProfile) return undefined
 
-    const { members, monthlySavings, currentDeposit } = response.clientProfile
-
-    const memberNames = members.map((m) => m.name).join(' & ')
+    const { members, monthlySavings, currentDeposit, borrowingCapacity, existingPropertyDebt, existingPropertyEquity } =
+      response.clientProfile
 
     const incomeStr =
       members.length === 1
@@ -79,40 +100,44 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
     const savingsStr = `$${monthlySavings.toLocaleString()}/mo ($${(monthlySavings * 12 / 1000).toFixed(0)}k/yr)`
     const depositStr = `$${currentDeposit.toLocaleString()}`
+    const borrowingCapacityStr =
+      typeof borrowingCapacity === 'number' && borrowingCapacity > 0
+        ? formatCompactAud(borrowingCapacity)
+        : 'Not provided'
+    const existingPropertyDebtStr =
+      typeof existingPropertyDebt === 'number'
+        ? formatCompactAud(existingPropertyDebt)
+        : 'Not provided'
+    const existingPropertyEquityStr =
+      typeof existingPropertyEquity === 'number'
+        ? formatCompactAud(existingPropertyEquity)
+        : 'Not provided'
 
-    const properties = (response.properties || []).map((p, i) => ({
-      label: `Property ${i + 1}`,
-      description: `~$${(p.purchasePrice / 1000).toFixed(0)}k in ${p.state}, ${p.growthAssumption.toLowerCase()}-growth, ${p.loanProduct}`,
-    }))
-
-    const ownership =
-      members.length > 1
-        ? 'Individual (50/50)'
-        : 'Individual'
+    const missingFields = (response.missingInputs ?? []).flatMap(
+      (k) => MISSING_INPUT_TO_CARD_KEYS[k] ?? []
+    )
 
     return {
-      clients: memberNames,
       income: incomeStr,
+      borrowingCapacity: borrowingCapacityStr,
       savings: savingsStr,
       availableDeposit: depositStr,
-      properties,
-      ownership,
+      existingPropertyDebt: existingPropertyDebtStr,
+      existingPropertyEquity: existingPropertyEquityStr,
+      missingFields: missingFields.length > 0 ? missingFields : undefined,
     }
   }, [])
 
   /**
-   * Build a MicroConfirmationData from an NLParseResponse
+   * Build a PortfolioCardData from an NLParseResponse for the portfolio card UI
    */
-  const buildMicroConfirmation = useCallback((response: NLParseResponse): MicroConfirmationData | undefined => {
-    if (!response.clientProfile) return undefined
-    const { members, monthlySavings } = response.clientProfile
-
+  const buildPortfolioCard = useCallback((response: NLParseResponse): PortfolioCardData | undefined => {
+    if (!response.properties || response.properties.length === 0) return undefined
     return {
-      members: members.map((m) => ({
-        name: m.name,
-        income: `$${(m.annualIncome / 1000).toFixed(0)}k`,
+      properties: response.properties.map((p, i) => ({
+        label: `Property ${i + 1}`,
+        description: `~$${(p.purchasePrice / 1000).toFixed(0)}k in ${p.state}, ${p.growthAssumption.toLowerCase()}-growth, ${p.loanProduct}`,
       })),
-      savings: `$${monthlySavings.toLocaleString()}/mo`,
     }
   }, [])
 
@@ -210,27 +235,37 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Process response based on type
         switch (response.type) {
           case 'initial_plan': {
-            // Show micro confirmation first (income + savings flash)
-            const microData = buildMicroConfirmation(response)
-            if (microData) {
-              const microMsg = createMessage('assistant', 'micro-confirmation', "Got it. Here's what I'm working with:", {
-                microConfirmation: microData,
-              })
-              setMessages((prev) => [...prev, microMsg])
-            }
-
-            // Show summary card with full details
+            // Two-message sequence:
+            // 1. Client summary — what was captured, plus accuracy nudge
+            // 2. Portfolio narrative + property table
             const summaryData = buildSummaryCard(response)
             if (summaryData) {
-              const summaryMsg = createMessage('assistant', 'summary-card', response.message, {
-                summaryCard: summaryData,
-                assumptions: response.assumptions,
-              })
+              const summaryMsg = createMessage(
+                'assistant',
+                'summary-card',
+                "Here's what I captured:",
+                {
+                  summaryCard: summaryData,
+                  assumptions: response.assumptions,
+                  missingInputs: response.missingInputs,
+                }
+              )
               setMessages((prev) => [...prev, summaryMsg])
             } else {
-              // No structured data — just show the message (e.g. asking for more info)
+              // No structured client data — just show the message (e.g. asking for more info)
               const textMsg = createMessage('assistant', 'text', response.message)
               setMessages((prev) => [...prev, textMsg])
+            }
+
+            const portfolioData = buildPortfolioCard(response)
+            if (portfolioData) {
+              const portfolioMsg = createMessage(
+                'assistant',
+                'portfolio-card',
+                response.message,
+                { portfolioCard: portfolioData }
+              )
+              setMessages((prev) => [...prev, portfolioMsg])
             }
 
             // Fire callback to wire data into contexts
@@ -408,7 +443,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         setIsLoading(false)
       }
     },
-    [messages, isLoading, options, createMessage, buildSummaryCard, buildMicroConfirmation]
+    [messages, isLoading, options, createMessage, buildSummaryCard, buildPortfolioCard]
   )
 
   /**

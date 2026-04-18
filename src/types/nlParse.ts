@@ -46,7 +46,14 @@ export interface NLParseResponse {
     members: Array<{ name: string; annualIncome: number }>;
     monthlySavings: number;
     currentDeposit: number;
-    existingDebt?: number;
+    // Borrowing capacity / max loan / pre-approval amount in AUD.
+    borrowingCapacity?: number;
+    // Existing property debt (e.g. PPOR mortgage + IP loans) in AUD.
+    // 0 = confirmed no existing debt. Undefined = BA didn't mention.
+    existingPropertyDebt?: number;
+    // Existing property equity (usable equity across PPOR + IPs) in AUD.
+    // 0 = confirmed no existing equity. Undefined = BA didn't mention.
+    existingPropertyEquity?: number;
   };
 
   // For initial_plan — mapped to InvestmentProfileData
@@ -110,6 +117,11 @@ export interface NLParseResponse {
   assumptions: string[]; // What was assumed (shown in confirmation)
   followUpSuggestions?: string[]; // Optional suggested next prompts
 
+  // Material inputs the BA did NOT provide — used to flag rows in amber and
+  // surface a "for greater accuracy, share X" nudge. Canonical keys:
+  // 'income' | 'savings' | 'deposit' | 'borrowing_capacity' | 'goal' | 'existing_debt'
+  missingInputs?: string[];
+
   // For property_suggestions — AI-suggested property cards
   propertySuggestions?: Array<{
     propertyType: string;
@@ -144,6 +156,7 @@ export type ChatMessageRole = 'user' | 'assistant' | 'system';
 export type ChatMessageType =
   | 'text'
   | 'summary-card'
+  | 'portfolio-card'
   | 'micro-confirmation'
   | 'option-cards'
   | 'loading';
@@ -157,24 +170,35 @@ export interface ChatMessage {
 
   // Structured content for non-text messages
   summaryCard?: SummaryCardData;
+  portfolioCard?: PortfolioCardData;
   microConfirmation?: MicroConfirmationData;
   optionCards?: ChatOptionCardData[];
   assumptions?: string[];
+  missingInputs?: string[];
   followUpSuggestions?: string[];
   refinementOptions?: Array<{ label: string; prompt: string }>;
   showRefinement?: boolean;
 }
 
 export interface SummaryCardData {
-  clients: string; // e.g. "Jane & John"
   income: string; // e.g. "$120k + $120k ($240k combined)"
+  borrowingCapacity: string; // e.g. "$1M" or "Not provided"
   savings: string; // e.g. "$3,500/mo ($42k/yr)"
   availableDeposit: string; // e.g. "$80,000"
+  existingPropertyDebt: string; // e.g. "$0", "$450k" or "Not provided"
+  existingPropertyEquity: string; // e.g. "$0", "$500k" or "Not provided"
+  // Card-row keys whose values were inferred or missing. Rows matching these
+  // keys render with an amber background. Valid keys: 'income' | 'savings' |
+  // 'availableDeposit' | 'borrowingCapacity' | 'existingPropertyDebt' |
+  // 'existingPropertyEquity'
+  missingFields?: string[];
+}
+
+export interface PortfolioCardData {
   properties: Array<{
     label: string; // e.g. "Property 1"
     description: string; // e.g. "~$650k in VIC, high-growth, IO"
   }>;
-  ownership: string; // e.g. "Individual (50/50)"
 }
 
 export interface MicroConfirmationData {

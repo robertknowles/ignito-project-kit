@@ -616,7 +616,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                 Describe a client scenario to generate an investment roadmap.
               </p>
               <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
-                e.g. "John. 120k annual income. 80k deposit. Want to hit $2M in equity across 4 properties over 15 years."
+                e.g. "1m borrowing capacity. 120k annual income. 80k deposit. Want to hit $2M in equity in 15 years. No existing properties."
               </p>
               <PacingToggle />
             </div>

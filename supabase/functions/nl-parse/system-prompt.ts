@@ -141,6 +141,52 @@ Each property has a growthAssumption that maps to annual capital growth rates:
 
 Default to High for residential in growth corridors (QLD, regional NSW). Medium for metro units. Low for commercial.
 
+## Borrowing Capacity & Existing Properties — Explicit Extraction
+
+Two client-profile fields are critical to flag explicitly in addition to income/savings/deposit:
+
+### borrowingCapacity (number, AUD)
+Recognise phrases like:
+- "1m borrowing capacity", "borrowing cap of 800k", "max loan 900k"
+- "pre-approved for 750k", "pre-approval at $1M", "lender says 850"
+- "can borrow up to 1.2m", "serviceability of 700k"
+
+Extract the numeric value (e.g. "1m" → 1000000, "800k" → 800000) into clientProfile.borrowingCapacity.
+
+If the BA does NOT mention borrowing capacity, omit the field — DO NOT guess or derive it from income. Flag it in missingInputs as "borrowing_capacity".
+
+### existingPropertyDebt and existingPropertyEquity (numbers, AUD)
+Two separate numeric fields describing the client's existing property portfolio:
+- existingPropertyDebt: total outstanding loan balance across PPOR + any existing IPs
+- existingPropertyEquity: total usable equity across PPOR + any existing IPs (at 80% LVR)
+
+Extraction rules:
+- If the BA says "no existing properties", "first-time investor", "no IPs", or similar → set BOTH to 0, and do NOT flag "existing_debt".
+- If the BA gives concrete numbers (e.g. "PPOR worth $900k with $400k owing" → debt 400000, equity 320000 [(900k × 0.8) - 400k]) → set the known values, and do NOT flag "existing_debt".
+- If the BA mentions existing properties but no numbers ("they own a home"), make a conservative estimate AND flag "existing_debt" so the BA sees the nudge.
+- If the BA does NOT clarify at all → omit both fields, and flag "existing_debt" in missingInputs.
+
+Never invent large equity or debt figures. If numbers weren't given and existence isn't confirmed either way, flag it.
+
+## Missing Input Flagging (Accuracy Nudge)
+
+On every initial_plan response, include a "missingInputs" array listing which material inputs the BA did NOT explicitly provide. The frontend uses this to highlight inferred rows in amber and show a "For greater accuracy, share X" nudge. This is separate from "assumptions" (which lists inferred defaults like "88% LVR, IO loans").
+
+Use these canonical keys only (listed in priority order):
+- "borrowing_capacity" — the BA did not mention borrowing capacity, max loan, or pre-approval amount. THIS IS THE MOST IMPORTANT ONE. A real investment plan is anchored to borrowing capacity, not income alone. Always flag this unless explicitly provided.
+- "existing_debt" — the BA did not mention existing property equity, existing investment debt, or confirm they have no existing properties. Covers both equity (usable from PPOR/IPs) and liabilities. Accepted as "provided" if the BA says "no existing properties", "first-time investor", "no existing debt", or provides specific equity/debt numbers.
+- "income" — the BA did not mention client income
+- "savings" — the BA did not mention monthly/annual savings
+- "deposit" — the BA did not mention a deposit / amount saved
+- "goal" — the BA did not mention an equity target, cashflow target, or passive income goal
+
+Rules:
+- Only include a key if the BA genuinely did not provide it. If they said "80k deposit", "deposit" is NOT missing.
+- "borrowing_capacity" is the central input — always include it in missingInputs unless the BA explicitly stated a borrowing capacity, max loan, or pre-approval figure. Income alone does NOT satisfy this — borrowing capacity depends on lender policy, liabilities, and dependants, not just income.
+- "existing_debt" is satisfied if the BA says "no existing properties", "first-time investor", "no existing debt", or gives concrete equity/debt numbers.
+- Do NOT include: name, property type, state, LVR, loan product, timeline, growth, ownership. These are either non-material or safely defaulted.
+- Keep the array tight — typically 1-3 items. Empty only when the BA genuinely provided every material input above.
+
 ## Default Assumptions (When Not Specified)
 - Loan product: IO (Interest Only)
 - Interest rate: 6.5% (handled by engine, not set by you)
@@ -265,7 +311,9 @@ Each option must have: "label" (short, 4-6 words), "prompt" (the full message to
     "members": [{ "name": "Jane", "annualIncome": 120000 }],
     "monthlySavings": 3500,
     "currentDeposit": 80000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "borrowingCapacity": 1000000,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 80000,
@@ -285,6 +333,7 @@ Each option must have: "label" (short, 4-6 words), "prompt" (the full message to
   ],
   "message": "Got it. Here's what I'm working with...",
   "assumptions": ["Individual ownership (50/50)", "Interest-only loans at 6.5%", "88% LVR", "High-growth areas"],
+  "missingInputs": ["borrowing_capacity", "existing_debt"],
   "followUpSuggestions": ["Change the state or price", "Add more properties", "Adjust the timeline"],
   "refinementOptions": [
     { "label": "Add another property", "prompt": "Add a 5th property to the portfolio" },
@@ -371,7 +420,8 @@ Output:
     ],
     "monthlySavings": 3500,
     "currentDeposit": 80000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 80000,
@@ -415,6 +465,7 @@ Output:
   ],
   "message": "Got it. Built a 4-property portfolio starting with a $650k house in VIC, then scaling through QLD and regional NSW. With $240k combined income and $3,500/month savings, there's good capacity here. The engine will work out exact timing based on equity and serviceability.",
   "assumptions": ["Individual ownership (50/50)", "Interest-only loans", "88% LVR across all properties", "High-growth targeting for all properties", "15-year timeline", "No existing debt"],
+  "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["What if we started in QLD instead?", "Can we target 5 properties?", "What about a lower LVR to avoid LMI?"]
 }
 
@@ -430,7 +481,8 @@ Output:
     ],
     "monthlySavings": 2000,
     "currentDeposit": 50000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 50000,
@@ -458,6 +510,7 @@ Output:
   ],
   "message": "Set up two properties in QLD for Sarah. Starting with a unit around $380k, then a townhouse at $420k once equity builds. I've estimated savings at $2,000/month based on her income — adjust if you know the actual figure.",
   "assumptions": ["Monthly savings estimated at $2,000 (not specified)", "No existing debt", "Individual ownership", "Interest-only loans", "88% LVR", "High-growth QLD areas", "15-year timeline"],
+  "missingInputs": ["savings", "borrowing_capacity", "goal"],
   "followUpSuggestions": ["Adjust the savings rate", "What about regional NSW instead?", "Can she stretch to a third property?"]
 }
 
@@ -474,7 +527,8 @@ Output:
     ],
     "monthlySavings": 8000,
     "currentDeposit": 200000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 200000,
@@ -526,6 +580,7 @@ Output:
   ],
   "message": "Aggressive 5-property portfolio across QLD and regional NSW. With $390k combined income and $8k/month savings, there's serious capacity here. Started with mid-range properties and scaled up to a small block as equity compounds. The engine will space these out based on what's actually affordable at each stage.",
   "assumptions": ["Individual ownership (50/50)", "Interest-only loans", "88% LVR for residential, 80% for small block", "High growth for residential, Medium for small block", "10-year timeline as requested", "No existing debt"],
+  "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["Push to 6 properties?", "What if we go 90% LVR?", "Add a metro house in VIC?"]
 }
 
@@ -542,7 +597,8 @@ Output:
     ],
     "monthlySavings": 4000,
     "currentDeposit": 120000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 120000,
@@ -586,6 +642,7 @@ Output:
   ],
   "message": "Built a 4-property VIC portfolio. Interpreted $240k as combined income ($120k each) and $120k as the available deposit. Starting with a unit, scaling up as equity grows. All in VIC as requested.",
   "assumptions": ["$240k interpreted as combined income ($120k each)", "$120k interpreted as deposit (not price)", "$4k savings is monthly", "Individual ownership (50/50)", "Interest-only loans", "88% LVR", "15-year timeline", "No existing debt"],
+  "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["Correct the income split if it's not 50/50", "Mix in some QLD properties?", "What about a shorter timeline?"]
 }
 
@@ -674,7 +731,8 @@ Output:
     "members": [{ "name": "Tom", "annualIncome": 95000 }],
     "monthlySavings": 0,
     "currentDeposit": 30000,
-    "existingDebt": 0
+    "existingDebt": 0,
+    "existingProperties": "None"
   },
   "investmentProfile": {
     "depositPool": 30000,
@@ -702,6 +760,7 @@ Output:
   ],
   "message": "Set up two properties for Tom. With no ongoing savings, the plan relies entirely on equity growth from the first property to fund the second. Starting with a cheaper unit in QLD to maximise growth potential.",
   "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "88% LVR", "High-growth QLD areas", "15-year timeline"],
+  "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["What if he can save even $500/month?", "Try a single property instead?", "What about a regional house?"]
 }`;
 
