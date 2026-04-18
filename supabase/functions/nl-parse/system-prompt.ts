@@ -311,7 +311,8 @@ Each option must have: "label" (short, 4-6 words), "prompt" (the full message to
     "members": [{ "name": "Jane", "annualIncome": 120000 }],
     "monthlySavings": 3500,
     "currentDeposit": 80000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "borrowingCapacity": 1000000,
     "existingProperties": "None"
   },
@@ -420,7 +421,8 @@ Output:
     ],
     "monthlySavings": 3500,
     "currentDeposit": 80000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "existingProperties": "None"
   },
   "investmentProfile": {
@@ -481,7 +483,8 @@ Output:
     ],
     "monthlySavings": 2000,
     "currentDeposit": 50000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "existingProperties": "None"
   },
   "investmentProfile": {
@@ -527,7 +530,8 @@ Output:
     ],
     "monthlySavings": 8000,
     "currentDeposit": 200000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "existingProperties": "None"
   },
   "investmentProfile": {
@@ -597,7 +601,8 @@ Output:
     ],
     "monthlySavings": 4000,
     "currentDeposit": 120000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "existingProperties": "None"
   },
   "investmentProfile": {
@@ -731,7 +736,8 @@ Output:
     "members": [{ "name": "Tom", "annualIncome": 95000 }],
     "monthlySavings": 0,
     "currentDeposit": 30000,
-    "existingDebt": 0,
+    "existingPropertyDebt": 0,
+    "existingPropertyEquity": 0,
     "existingProperties": "None"
   },
   "investmentProfile": {

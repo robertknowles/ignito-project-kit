@@ -42,11 +42,32 @@ export function mapToInvestmentProfile(
 
   // From clientProfile
   if (response.clientProfile) {
-    const { currentDeposit, monthlySavings, existingDebt, members } = response.clientProfile;
+    const {
+      currentDeposit,
+      monthlySavings,
+      existingDebt,
+      existingPropertyDebt,
+      existingPropertyEquity,
+      borrowingCapacity,
+      members,
+    } = response.clientProfile as typeof response.clientProfile & { existingDebt?: number };
 
     updates.depositPool = currentDeposit;
     updates.annualSavings = monthlySavings * 12;
-    updates.currentDebt = existingDebt ?? 0;
+
+    const resolvedDebt = existingPropertyDebt ?? existingDebt ?? 0;
+    updates.currentDebt = resolvedDebt;
+
+    // existingPropertyEquity → portfolioValue such that the context's
+    // usable-equity formula (portfolioValue * 0.8 − currentDebt) yields
+    // the stated equity figure.
+    if (typeof existingPropertyEquity === 'number') {
+      updates.portfolioValue = (existingPropertyEquity + resolvedDebt) / 0.8;
+    }
+
+    if (typeof borrowingCapacity === 'number' && borrowingCapacity > 0) {
+      updates.borrowingCapacity = borrowingCapacity;
+    }
 
     // baseSalary = highest individual earner (used for serviceability)
     if (members.length > 0) {
