@@ -52,56 +52,70 @@ export const PROPERTY_DASH_PATTERNS = [
 // =============================================================================
 // CHART COLORS
 // =============================================================================
+// Every token below draws from PROPERTY_COLORS (C1–C4). The only exception is
+// `baseline`, which is the dashed "do nothing" reference line and sits outside
+// the four-shade system by design. All primary series get C1, secondary series
+// get C2, and subordinate/overlay elements get C3 or C4 so they never compete
+// with the main series.
+
+const C1 = PROPERTY_COLORS[0]; // #94A3B8 — darkest: Portfolio Value, primary series
+const C2 = PROPERTY_COLORS[1]; // #B0BCCD — second-darkest: Total Equity, secondary series
+const C3 = PROPERTY_COLORS[2]; // #CBD5E1 — subordinate: overlays, tertiary
+const C4 = PROPERTY_COLORS[3]; // #A8A29E — subordinate warm tone
+
+// rgba equivalents for fills & tints
+const C1_RGBA = '148, 163, 184'; // #94A3B8
+const C2_RGBA = '176, 188, 205'; // #B0BCCD
+const C3_RGBA = '203, 213, 225'; // #CBD5E1
+const C4_RGBA = '168, 162, 158'; // #A8A29E — retained for parity with C4
 
 export const CHART_COLORS = {
   // ── Core line colors ───────────────────────────────────────────────
-  // Lightened to sit in the same tonal range as PROPERTY_COLORS so all
-  // charts read as a single palette family.
   /** Primary line — portfolio value, main metric. */
-  primary: SLATE[500],
+  primary: C1,
   /** Secondary line — equity, second series. */
-  secondary: SLATE[400],
-  /** Tertiary line — debt / baseline (dashed). */
-  tertiary: SLATE[300],
+  secondary: C2,
+  /** Tertiary line — debt / subordinate. */
+  tertiary: C3,
   /** Dedicated baseline colour for "do nothing" / "savings only" dashed
-   *  reference lines. Lighter than primary/secondary so it stays subordinate. */
+   *  reference lines. Kept on slate-300 — outside the four-shade palette
+   *  by design so it reads as a neutral reference, not a series. */
   baseline: SLATE[300],
 
-  // Semantic roles collapsed to neutral slate — signalling now done via
-  // +/- values, labels, and stroke pattern (solid vs dashed), not hue.
-  positive: SLATE[500],
-  negative: SLATE[400],
-  net: SLATE[500],
+  // Semantic roles: primary = C1, counterpart = C2.
+  positive: C1,
+  negative: C2,
+  net: C1,
 
-  // ── Property lines (equal-weight shade scale) ─────────────────────
-  property1: SLATE[900],
-  property2: SLATE[700],
-  property3: SLATE[500],
-  property4: SLATE[400],
+  // ── Property lines (the four-shade palette) ───────────────────────
+  property1: C1,
+  property2: C2,
+  property3: C3,
+  property4: C4,
 
-  // Legacy aliases — mapped to slate so old references don't break
-  lineBlue: SLATE[900],
-  linePurple: SLATE[700],
-  lineAqua: SLATE[500],
+  // Legacy aliases — map to the four-shade palette so old references don't break
+  lineBlue: C1,
+  linePurple: C2,
+  lineAqua: C3,
 
-  // ── Goal & milestone markers ───────────────────────────────────────
-  goal: SLATE[700],
-  goalMarker: SLATE[700],
+  // ── Goal & milestone markers — subordinate, do not compete ────────
+  goal: C3,
+  goalMarker: C3,
   goalMarkerStroke: '#FFFFFF',
 
-  // ── Area fills & gradients (very low opacity slate) ────────────────
-  primaryFillStart: 'rgba(100, 116, 139, 0.10)',
-  primaryFillEnd: 'rgba(100, 116, 139, 0.01)',
-  secondaryFillStart: 'rgba(148, 163, 184, 0.08)',
-  secondaryFillEnd: 'rgba(148, 163, 184, 0.01)',
-  positiveFillStart: 'rgba(100, 116, 139, 0.07)',
-  positiveFillEnd: 'rgba(100, 116, 139, 0.01)',
-  negativeFillStart: 'rgba(148, 163, 184, 0.06)',
-  negativeFillEnd: 'rgba(148, 163, 184, 0.01)',
+  // ── Area fills & gradients (very low opacity from C1/C2) ──────────
+  primaryFillStart: `rgba(${C1_RGBA}, 0.10)`,
+  primaryFillEnd: `rgba(${C1_RGBA}, 0.01)`,
+  secondaryFillStart: `rgba(${C2_RGBA}, 0.08)`,
+  secondaryFillEnd: `rgba(${C2_RGBA}, 0.01)`,
+  positiveFillStart: `rgba(${C1_RGBA}, 0.07)`,
+  positiveFillEnd: `rgba(${C1_RGBA}, 0.01)`,
+  negativeFillStart: `rgba(${C2_RGBA}, 0.06)`,
+  negativeFillEnd: `rgba(${C2_RGBA}, 0.01)`,
 
-  // ── Phase backgrounds (barely-there slate tints) ───────────────────
-  phaseAccumulation: 'rgba(100, 116, 139, 0.025)',
-  phaseConsolidation: 'rgba(148, 163, 184, 0.03)',
+  // ── Phase backgrounds (barely-there tints from C1/C2) ─────────────
+  phaseAccumulation: `rgba(${C1_RGBA}, 0.025)`,
+  phaseConsolidation: `rgba(${C2_RGBA}, 0.03)`,
 
   // ── Grid, axes, chrome ─────────────────────────────────────────────
   grid: '#E9EAEB',
@@ -113,19 +127,19 @@ export const CHART_COLORS = {
   referenceLine: '#D5D7DA',
   annotationText: '#717680',
 
-  // ── Comparison/overlay (two scenarios differentiated by shade) ─────
-  scenarioA: SLATE[500],
-  scenarioALight: 'rgba(100, 116, 139, 0.5)',
-  scenarioB: SLATE[400],
-  scenarioBLight: 'rgba(148, 163, 184, 0.5)',
+  // ── Comparison/overlay — subordinate so primary series stay dominant
+  scenarioA: C3,
+  scenarioALight: `rgba(${C3_RGBA}, 0.5)`,
+  scenarioB: C4,
+  scenarioBLight: `rgba(${C4_RGBA}, 0.5)`,
 
   // ── Multi-series categorical (property palette) ────────────────────
   series: PROPERTY_COLORS as unknown as readonly string[],
 
   // ── Bar chart fills ────────────────────────────────────────────────
-  barPositive: 'rgba(100, 116, 139, 0.70)',
-  barNegative: 'rgba(148, 163, 184, 0.50)',
-  barPrimary: 'rgba(100, 116, 139, 0.70)',
+  barPositive: `rgba(${C1_RGBA}, 0.70)`,
+  barNegative: `rgba(${C2_RGBA}, 0.50)`,
+  barPrimary: `rgba(${C1_RGBA}, 0.70)`,
 } as const;
 
 // =============================================================================
@@ -178,7 +192,7 @@ export const CHART_STYLE = {
   },
 
   milestoneLine: {
-    stroke: 'rgba(100, 116, 139, 0.45)',
+    stroke: `rgba(${C3_RGBA}, 0.9)`,
     strokeDasharray: '4 4',
     strokeWidth: 1.2,
   },
@@ -190,27 +204,27 @@ export const CHART_STYLE = {
 
 export const CHART_GRADIENTS = {
   primary: {
-    startColor: SLATE[500],
+    startColor: C1,
     startOpacity: 0.12,
-    endColor: SLATE[500],
+    endColor: C1,
     endOpacity: 0.01,
   },
   secondary: {
-    startColor: SLATE[400],
+    startColor: C2,
     startOpacity: 0.08,
-    endColor: SLATE[400],
+    endColor: C2,
     endOpacity: 0.01,
   },
   positive: {
-    startColor: SLATE[500],
+    startColor: C1,
     startOpacity: 0.08,
-    endColor: SLATE[500],
+    endColor: C1,
     endOpacity: 0.01,
   },
   negative: {
-    startColor: SLATE[400],
+    startColor: C2,
     startOpacity: 0.08,
-    endColor: SLATE[400],
+    endColor: C2,
     endOpacity: 0.01,
   },
 } as const;

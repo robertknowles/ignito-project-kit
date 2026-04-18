@@ -209,7 +209,7 @@ export const FundingSourcesChart: React.FC = () => {
                     <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 60, backgroundColor: '#E9EAEB' }}>
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${row.readinessPct}%`, backgroundColor: '#334155' }}
+                        style={{ width: `${row.readinessPct}%`, backgroundColor: PROPERTY_COLORS[0] }}
                       />
                     </div>
                   </div>

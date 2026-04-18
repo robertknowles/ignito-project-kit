@@ -4,8 +4,8 @@
     {
       "name": "vite-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "8090", "--strictPort"],
-      "port": 8090,
+      "runtimeArgs": ["run", "dev", "--", "--port", "8080", "--strictPort"],
+      "port": 8080,
       "autoPort": true
     }
   ]
