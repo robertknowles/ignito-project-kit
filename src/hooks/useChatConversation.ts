@@ -237,9 +237,16 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Guard: if a plan already exists but the model returned initial_plan,
         // the model misclassified a follow-up question as a rebuild. Downgrade
         // to a plain text message so the dashboard isn't destroyed.
+        // Also downgrade `comparison` responses — the scenario comparison
+        // fork is disabled by product decision; "what if" questions should
+        // get a written answer, not a forked scenario.
         let effectiveType: NLParseResponse['type'] = response.type
         if (options.hasExistingPlan && response.type === 'initial_plan') {
           console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
+          effectiveType = 'explanation'
+        }
+        if (response.type === 'comparison') {
+          console.warn('[nl-parse] comparison response intercepted — treating as explanation.')
           effectiveType = 'explanation'
         }
 
@@ -304,7 +311,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
 
           case 'explanation': {
-            const wasDowngraded = response.type === 'initial_plan'
+            const wasDowngraded = response.type === 'initial_plan' || response.type === 'comparison'
             // Get chart data context for a data-grounded explanation
             const chartContext = options.getChartContext?.(
               response.explanation?.question ?? userText,

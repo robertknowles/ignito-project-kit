@@ -783,10 +783,11 @@ When a current plan is present, you MUST choose one of these response types:
 - \`explanation\` — the BA is asking a question about the existing plan, including hypothetical/speculative questions. This is the DEFAULT for any question that doesn't explicitly mutate the plan.
 - \`modification\` — the BA is asking to change a specific thing in the plan (property, price, state, LVR, loan type, savings, income, timeline, pacing). Only use when the intent is clearly "change X to Y".
 - \`add_event\` — the BA is scheduling a future event (refinance in year N, sell property X in year N, interest rate change in year N, salary change in year N). Use for concrete dated events only.
-- \`comparison\` — the BA is asking to fork the plan and compare ("compare X vs Y", "side by side").
 - \`property_suggestions\` — the BA is asking to pick specific properties/locations.
 
 **Never return \`initial_plan\` when a current plan exists.** The plan has already been built. Rebuilding it drops the BA's refinements and is a bug.
+
+**Never return \`comparison\`.** The scenario-fork comparison tool has been removed from the product. If the BA says "compare X vs Y", "what about X instead", or "side by side", treat it as an \`explanation\` — describe in plain English how the two options would trade off using existing plan numbers. Do NOT return a \`comparison\` object.
 
 ### Hypothetical / "what if" questions — classify as \`explanation\`
 These are questions about plan sensitivity and should NEVER rebuild the plan. Respond with a 2-4 sentence plain-English explanation referencing the existing numbers. Do NOT return a \`properties\` array, a \`clientProfile\`, or an \`investmentProfile\`.
