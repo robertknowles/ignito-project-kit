@@ -18,17 +18,8 @@ interface LibraryDrawerProps {
   onSelectClient: (clientId: number) => void
 }
 
-const AVATAR_COLORS = [
-  '#2563EB', '#D97706', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#EA580C', '#4F46E5',
-]
-
-const getAvatarColor = (name: string) => {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
+const AVATAR_BG = '#535862'
+const AVATAR_TEXT_COLOR = '#FFFFFF'
 
 const getInitials = (name: string) => {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -94,7 +85,6 @@ export const LibraryDrawer: React.FC<LibraryDrawerProps> = ({
               ) : (
                 clients.map(client => {
                   const isActive = activeClientId === client.id
-                  const avatarColor = getAvatarColor(client.name)
                   const initials = getInitials(client.name)
 
                   return (
@@ -108,8 +98,8 @@ export const LibraryDrawer: React.FC<LibraryDrawerProps> = ({
                       }`}
                     >
                       <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
-                        style={{ backgroundColor: avatarColor }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 border border-[#E9EAEB]"
+                        style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT_COLOR }}
                       >
                         {initials}
                       </div>

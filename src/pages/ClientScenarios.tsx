@@ -414,36 +414,36 @@ export const ClientScenarios = () => {
 
   // Format review date with countdown
   const formatReviewDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return { text: 'Not set', badge: null, color: 'text-[#6b7280]' };
+    if (!dateStr) return { text: 'Not set', badge: null, color: 'text-[#717680]' };
     const date = new Date(dateStr);
     const now = new Date();
     const diff = date.getTime() - now.getTime();
     const days = Math.ceil(diff / 86400000);
     const formatted = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-    if (days < 0) return { text: formatted, badge: 'Overdue', color: 'text-red-600', badgeColor: 'bg-red-50 text-red-600' };
-    if (days <= 7) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-orange-50 text-orange-600' };
-    if (days <= 14) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-amber-50 text-amber-600' };
-    if (days <= 60) return { text: formatted, badge: `In ${days} days`, color: 'text-[#374151]', badgeColor: 'bg-gray-100 text-gray-500' };
-    return { text: formatted, badge: null, color: 'text-[#374151]', badgeColor: '' };
+    if (days < 0) return { text: formatted, badge: 'Overdue', color: 'text-[#414651]', badgeColor: 'bg-[#F5F5F6] text-[#414651] border border-[#E9EAEB]' };
+    if (days <= 7) return { text: formatted, badge: `In ${days} days`, color: 'text-[#414651]', badgeColor: 'bg-[#F5F5F6] text-[#535862] border border-[#E9EAEB]' };
+    if (days <= 14) return { text: formatted, badge: `In ${days} days`, color: 'text-[#414651]', badgeColor: 'bg-[#F5F5F6] text-[#535862] border border-[#E9EAEB]' };
+    if (days <= 60) return { text: formatted, badge: `In ${days} days`, color: 'text-[#414651]', badgeColor: 'bg-[#F5F5F6] text-[#717680] border border-[#E9EAEB]' };
+    return { text: formatted, badge: null, color: 'text-[#414651]', badgeColor: '' };
   };
 
   // Status badge configs
   const stageBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-    onboarding: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Onboarding' },
-    review: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Review' },
+    onboarding: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#535862]', label: 'Onboarding' },
+    review: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#717680]', label: 'Review' },
   };
 
   const portalBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-    not_invited: { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400', label: 'Not invited' },
-    invited: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Invited' },
-    active: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Active' },
+    not_invited: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#D5D7DA]', label: 'Not invited' },
+    invited: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#A4A7AE]', label: 'Invited' },
+    active: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#535862]', label: 'Active' },
   };
 
   const roadmapBadgeConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-    not_started: { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400', label: 'Not started' },
-    draft: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Draft' },
-    in_review: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'In review' },
-    finalised: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Finalised' },
+    not_started: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#D5D7DA]', label: 'Not started' },
+    draft: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#535862]', label: 'Draft' },
+    in_review: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#A4A7AE]', label: 'In review' },
+    finalised: { bg: 'bg-[#F5F5F6]', text: 'text-[#414651]', dot: 'bg-[#717680]', label: 'Finalised' },
   };
 
   // Map status values to StatusBadge variants
@@ -992,7 +992,7 @@ toast.error('Failed to create client invite');
         onSkip={handleOnboardingSkip}
       />
       
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <LeftRail />
         <div className="flex-1 overflow-hidden flex flex-col ml-16">
           {/* Warning Banner - shows if user hasn't completed property onboarding */}
@@ -1016,20 +1016,20 @@ toast.error('Failed to create client invite');
                       placeholder="Search clients..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-4 py-2 border border-[#f3f4f6] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] w-64"
+                      className="pl-9 pr-4 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent w-64"
                     />
                     <SearchIcon
                       size={16}
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6b7280]"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#717680]"
                     />
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-3 py-2 border border-[#f3f4f6] rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
                       >
-                        <FileSpreadsheet size={16} className="text-[#6b7280]" />
+                        <FileSpreadsheet size={16} className="text-[#717680]" />
                         <span>Export</span>
                       </button>
                     </TooltipTrigger>
@@ -1046,7 +1046,7 @@ toast.error('Failed to create client invite');
                   >
                     <button
                       onClick={() => setCreateFormOpen(true)}
-                      className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
+                      className="flex items-center gap-2 bg-[#535862] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#414651] transition-all duration-150"
                     >
                       <PlusIcon size={16} />
                       <span>New Client</span>
@@ -1065,14 +1065,15 @@ toast.error('Failed to create client invite');
                 {(awaitingCount > 0 || readyCount > 0) && (
                   <div className="flex items-center gap-2">
                     {awaitingCount > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#535862]" />
                         {awaitingCount} awaiting
                       </span>
                     )}
                     {readyCount > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
-                        ✓ {readyCount} ready
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#717680]" />
+                        {readyCount} ready
                       </span>
                     )}
                   </div>
@@ -1080,10 +1081,10 @@ toast.error('Failed to create client invite');
               </div>
               <div className="mb-8">
                 {/* Client Portfolio Table */}
-                <div className="bg-white border border-gray-200/80 rounded-lg overflow-hidden">
+                <div className="bg-white border border-[#E9EAEB] rounded-xl overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200/70 text-left">
+                      <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
                         <th className="table-header">Client</th>
                         <th className="table-header">Dashboard</th>
                         <th className="table-header">Review</th>
@@ -1110,13 +1111,8 @@ toast.error('Failed to create client invite');
                           .toUpperCase()
                           .slice(0, 2);
 
-                        const AVATAR_COLORS = ['#2563EB', '#D97706', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#EA580C', '#4F46E5'];
-                        const getAvatarColor = (name: string) => {
-                          let hash = 0;
-                          for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                          return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-                        };
-                        const avatarColor = getAvatarColor(client.name);
+                        const avatarBg = '#535862';
+                        const avatarText = '#FFFFFF';
 
                         const status = clientStatuses[client.id];
                         const isOnboarded = status?.isQuestionnaireCompleted || false;
@@ -1135,14 +1131,14 @@ toast.error('Failed to create client invite');
                           : null;
 
                         return (
-                          <tr key={client.id} className="border-b border-gray-100/70 hover:bg-gray-50/40 transition-colors">
+                          <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
                             {/* Client name + strategy type */}
                             <td className="table-cell">
                               <div className="flex items-center">
                                 <button
                                   onClick={() => handleOpenProfile(client)}
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium mr-3 hover:opacity-80 transition-opacity flex-shrink-0"
-                                  style={{ backgroundColor: avatarColor }}
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
+                                  style={{ backgroundColor: avatarBg, color: avatarText }}
                                 >
                                   {initials}
                                 </button>
@@ -1165,8 +1161,8 @@ toast.error('Failed to create client invite');
                                 const cs = clientStatuses[client.id]
                                 if (cs?.shareId) {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
-                                      <CheckCircle2 size={12} />
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#717680]" />
                                       Sent to client
                                     </span>
                                   )
@@ -1174,9 +1170,9 @@ toast.error('Failed to create client invite');
                                   return (
                                     <button
                                       onClick={() => handleOpenProfile(client)}
-                                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] hover:bg-[#ECECED] px-2.5 py-1 rounded-full transition-colors duration-150"
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#535862]" />
                                       In progress
                                     </button>
                                   )
@@ -1184,9 +1180,9 @@ toast.error('Failed to create client invite');
                                   return (
                                     <button
                                       onClick={() => handleOpenProfile(client)}
-                                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-2.5 py-1 rounded-full transition-colors"
+                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] hover:bg-[#ECECED] px-2.5 py-1 rounded-full transition-colors duration-150"
                                     >
-                                      <Target size={12} />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#A4A7AE]" />
                                       Not started
                                     </button>
                                   )
@@ -1219,20 +1215,21 @@ toast.error('Failed to create client invite');
 
                                 if (currentStatus === 'completed') {
                                   return (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700">
-                                      ✓ Completed
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+                                      <CheckCircle2 size={11} className="text-[#717680]" />
+                                      Completed
                                     </span>
                                   )
                                 } else if (currentStatus === 'awaiting') {
                                   return (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#A4A7AE]" />
                                         Awaiting
                                       </span>
                                       <button
                                         onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
-                                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
                                       >
                                         Resend
                                       </button>
@@ -1240,11 +1237,13 @@ toast.error('Failed to create client invite');
                                   )
                                 } else {
                                   return (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[11px] text-gray-400">Not sent</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+                                        Not sent
+                                      </span>
                                       <button
                                         onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
-                                        className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2 py-0.5 rounded transition-colors"
+                                        className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"
                                       >
                                         Send
                                       </button>
@@ -1258,11 +1257,11 @@ toast.error('Failed to create client invite');
                             <td className="table-cell">
                               <div className="flex items-center gap-1.5">
                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                  (client.portal_status || 'not_invited') === 'active' ? 'bg-green-500' :
-                                  (client.portal_status || 'not_invited') === 'invited' ? 'bg-orange-500' :
-                                  'bg-gray-400'
+                                  (client.portal_status || 'not_invited') === 'active' ? 'bg-[#535862]' :
+                                  (client.portal_status || 'not_invited') === 'invited' ? 'bg-[#A4A7AE]' :
+                                  'bg-[#D5D7DA]'
                                 }`} />
-                                <span className="text-sm text-[#374151]">
+                                <span className="text-sm text-[#414651]">
                                   {(client.portal_status || 'not_invited') === 'active' ? 'Active' :
                                    (client.portal_status || 'not_invited') === 'invited' ? 'Invited' :
                                    'Not invited'}
@@ -1272,14 +1271,14 @@ toast.error('Failed to create client invite');
 
                             {/* Last Active */}
                             <td className="table-cell">
-                              <span className="text-sm text-[#374151]">
+                              <span className="text-sm text-[#414651]">
                                 {formatRelativeTime(client)}
                               </span>
                             </td>
 
                             {/* Last Action */}
                             <td className="table-cell">
-                              <span className="text-sm text-[#374151]">
+                              <span className="text-sm text-[#414651]">
                                 {client.updated_at
                                   ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
                                   : '—'}
@@ -1291,13 +1290,13 @@ toast.error('Failed to create client invite');
                     </tbody>
                   </table>
                   {/* Footer */}
-                  <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="meta">{filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} shown</span>
+                  <div className="px-5 py-3.5 border-t border-[#E9EAEB] bg-white flex items-center justify-between">
+                    <span className="text-sm text-[#717680]">{filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} shown</span>
                     <button
                       onClick={handleExportCSV}
-                      className="text-xs text-[#2563EB] hover:underline font-medium"
+                      className="text-sm text-[#535862] hover:text-[#414651] font-semibold transition-colors duration-150"
                     >
-                      Export to CSV →
+                      Export to CSV &rarr;
                     </button>
                   </div>
                 </div>
@@ -1512,9 +1511,9 @@ toast.error('Failed to create client invite');
                   </Button>
                 </div>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <div className="bg-[#F5F5F6] border border-[#E9EAEB] rounded-lg p-3 text-sm text-[#414651]">
                 <p className="font-medium mb-1">Instructions for your client:</p>
-                <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                <ol className="list-decimal list-inside space-y-1 text-[#535862]">
                   <li>Go to the login URL above</li>
                   <li>Enter email and temporary password</li>
                   <li>View their personalized investment dashboard</li>
@@ -1593,13 +1592,13 @@ toast.error('Failed to create client invite');
                 : 'Request updated financial details during a client\'s review cycle.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+          <div className="space-y-5 pt-3">
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">Select client</label>
+              <label className="text-sm font-medium text-[#414651] mb-1.5 block">Select client</label>
               <select
                 value={sendFormClientId || ''}
                 onChange={(e) => setSendFormClientId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
               >
                 <option value="">Choose a client...</option>
                 {clients.map(c => (
@@ -1607,17 +1606,17 @@ toast.error('Failed to create client invite');
                 ))}
               </select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-1">
               <button
                 onClick={() => setSendFormOpen(false)}
-                className="px-4 py-2 text-sm text-[#374151] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2.5 text-sm font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-all duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendForm}
                 disabled={!sendFormClientId || sendingForm}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-[#535862] rounded-lg hover:bg-[#414651] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center gap-2"
               >
                 <Send size={14} />
                 {sendingForm ? 'Sending...' : 'Send'}

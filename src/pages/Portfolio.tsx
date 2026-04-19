@@ -81,15 +81,9 @@ interface ClientScenarioData {
   growthCurve: GrowthCurve | null
 }
 
-// Shared avatar helpers
-const AVATAR_COLORS = [
-  '#2563EB', '#D97706', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#EA580C', '#4F46E5',
-]
-const getAvatarColor = (name: string) => {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
+// Shared avatar constants
+const AVATAR_BG = '#535862'
+const AVATAR_TEXT_COLOR = '#FFFFFF'
 const getInitials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 const formatCurrency = (value: number) => {
   const abs = Math.abs(value)

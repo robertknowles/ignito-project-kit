@@ -443,16 +443,9 @@ export const AgentForms = () => {
                         </tr>
                       ) : filteredSubmissions.map(submission => {
                         const client = clientMap[submission.client_id]
-                        const AVATAR_COLORS = ['#2563EB', '#D97706', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#EA580C', '#4F46E5']
-                        const getAvatarColor = (name: string) => {
-                          let hash = 0
-                          for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-                          return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-                        }
                         const initials = client
                           ? client.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
                           : '??'
-                        const avatarColor = client ? getAvatarColor(client.name) : '#6b7280'
                         const formType = submission.form_type === 'input_form' ? 'Client Details Form' : 'Client Details Update'
 
                         return (
@@ -460,8 +453,8 @@ export const AgentForms = () => {
                             <td className="table-cell">
                               <div className="flex items-center gap-2.5">
                                 <div
-                                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
-                                  style={{ backgroundColor: avatarColor }}
+                                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 border border-[#E9EAEB]"
+                                  style={{ backgroundColor: '#535862', color: '#FFFFFF' }}
                                 >
                                   {initials}
                                 </div>

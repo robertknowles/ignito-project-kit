@@ -54,25 +54,8 @@ interface FormSubmissionStatus {
   sent_at: string
 }
 
-// Avatar colour palette for client initials
-const AVATAR_COLORS = [
-  '#2563EB', // blue
-  '#D97706', // amber
-  '#059669', // emerald
-  '#DC2626', // red
-  '#7C3AED', // violet
-  '#0891B2', // cyan
-  '#EA580C', // orange
-  '#4F46E5', // indigo
-]
-
-const getAvatarColor = (name: string) => {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
+const AVATAR_BG = '#535862'
+const AVATAR_TEXT = '#FFFFFF'
 
 export const AgentHome = () => {
   const navigate = useNavigate()
@@ -315,18 +298,18 @@ export const AgentHome = () => {
 
   const getCountdownColor = (dateStr: string) => {
     const days = getDaysUntil(dateStr)
-    if (days < 0) return 'bg-red-50 text-red-600 border-red-200'
-    if (days <= 7) return 'bg-orange-50 text-orange-600 border-orange-200'
-    if (days <= 14) return 'bg-amber-50 text-amber-600 border-amber-200'
-    return 'bg-gray-100 text-gray-500 border-gray-200'
+    if (days < 0) return 'bg-[#F5F5F6] text-[#414651] border border-[#E9EAEB]'
+    if (days <= 7) return 'bg-[#F5F5F6] text-[#414651] border border-[#E9EAEB]'
+    if (days <= 14) return 'bg-[#F5F5F6] text-[#535862] border border-[#E9EAEB]'
+    return 'bg-[#F5F5F6] text-[#535862] border border-[#E9EAEB]'
   }
 
   const getCountdownBarColor = (dateStr: string) => {
     const days = getDaysUntil(dateStr)
-    if (days < 0) return 'bg-red-500'
-    if (days <= 7) return 'bg-orange-400'
-    if (days <= 14) return 'bg-amber-400'
-    return 'bg-gray-300'
+    if (days < 0) return 'bg-[#414651]'
+    if (days <= 7) return 'bg-[#535862]'
+    if (days <= 14) return 'bg-[#535862]'
+    return 'bg-[#A4A7AE]'
   }
 
   // Format relative time for activity feed
@@ -356,19 +339,19 @@ export const AgentHome = () => {
     const meta = entry.metadata || {}
     switch (entry.event_type) {
       case 'form_completed':
-        return { text: `${name} completed ${meta.form_name === 'Profile Update' ? 'their details update' : 'their details form'}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+        return { text: `${name} completed ${meta.form_name === 'Profile Update' ? 'their details update' : 'their details form'}`, icon: <CheckCircle2 size={14} className="text-[#717680]" /> }
       case 'form_sent':
-        return { text: `${name} — ${meta.form_name || 'form'} request sent`, icon: <Send size={14} className="text-blue-500" /> }
+        return { text: `${name} — ${meta.form_name || 'form'} request sent`, icon: <Send size={14} className="text-[#717680]" /> }
       case 'portal_login':
         return { text: `${name} viewed their roadmap`, icon: <Eye size={14} className="text-gray-400" /> }
       case 'profile_updated':
-        return { text: `${name} completed their profile update`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+        return { text: `${name} completed their profile update`, icon: <CheckCircle2 size={14} className="text-[#717680]" /> }
       case 'client_created':
-        return { text: `${name} was added as a new client`, icon: <UserPlus size={14} className="text-blue-500" /> }
+        return { text: `${name} was added as a new client`, icon: <UserPlus size={14} className="text-[#717680]" /> }
       case 'scenario_created':
-        return { text: `Scenario created for ${name}`, icon: <Target size={14} className="text-blue-500" /> }
+        return { text: `Scenario created for ${name}`, icon: <Target size={14} className="text-[#717680]" /> }
       case 'review_completed':
-        return { text: `Review completed for ${name}`, icon: <CheckCircle2 size={14} className="text-green-500" /> }
+        return { text: `Review completed for ${name}`, icon: <CheckCircle2 size={14} className="text-[#717680]" /> }
       default: {
         const label = entry.event_type.replace(/_/g, ' ')
         return { text: `${label} for ${name}`, icon: <Clock size={14} className="text-gray-400" /> }
@@ -443,11 +426,13 @@ export const AgentHome = () => {
 
     if (!status) {
       return (
-        <div className="flex items-center gap-2">
-          <span className="meta">{formLabel}</span>
-          <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm text-[#717680]">{formLabel}</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+            Not sent
+          </span>
           <button
-            className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
+            className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg shadow-none transition-all duration-150"
             onClick={() => openSendModal(fType, clientId)}
           >
             Send
@@ -457,10 +442,10 @@ export const AgentHome = () => {
     }
     if (status === 'completed') {
       return (
-        <div className="flex items-center gap-2">
-          <span className="meta">{formLabel}</span>
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded">
-            <CheckCircle2 size={10} />
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm text-[#717680]">{formLabel}</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+            <CheckCircle2 size={11} className="text-[#717680]" />
             Completed
           </span>
         </div>
@@ -468,14 +453,14 @@ export const AgentHome = () => {
     }
     if (status === 'awaiting') {
       return (
-        <div className="flex items-center gap-2">
-          <span className="meta">{formLabel}</span>
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm text-[#717680]">{formLabel}</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#A4A7AE]" />
             Awaiting
           </span>
           <button
-            className="text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+            className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
             onClick={() => openSendModal(fType, clientId)}
           >
             Resend
@@ -485,11 +470,13 @@ export const AgentHome = () => {
     }
     // not_opened
     return (
-      <div className="flex items-center gap-2">
-        <span className="meta">{formLabel}</span>
-        <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Not sent</span>
+      <div className="flex items-center gap-2.5">
+        <span className="text-sm text-[#717680]">{formLabel}</span>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+          Not sent
+        </span>
         <button
-          className="text-[11px] font-medium text-white bg-[#2563EB] hover:bg-[#1d4ed8] px-2.5 py-0.5 rounded transition-colors"
+          className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg shadow-none transition-all duration-150"
           onClick={() => openSendModal(fType, clientId)}
         >
           Send
@@ -511,7 +498,7 @@ export const AgentHome = () => {
 
     // Empty cells before first day
     for (let i = 0; i < firstDay; i++) {
-      cells.push(<div key={`empty-${i}`} className="h-8" />)
+      cells.push(<div key={`empty-${i}`} className="h-9" />)
     }
 
     // Day cells
@@ -522,19 +509,19 @@ export const AgentHome = () => {
       const hasReviews = dayClients && dayClients.length > 0
 
       cells.push(
-        <div key={day} className="relative flex items-center justify-center">
+        <div key={day} className="relative flex items-center justify-center h-9">
           {hasReviews ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="relative">
+                <div className="relative cursor-default">
                   <div
-                    className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white cursor-default"
-                    style={{ backgroundColor: getAvatarColor(dayClients[0].name) }}
+                    className="h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-semibold border border-[#E9EAEB]"
+                    style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
                   >
                     {getInitials(dayClients[0].name)}
                   </div>
                   {dayClients.length > 1 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#535862] text-white text-[8px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
                       {dayClients.length}
                     </span>
                   )}
@@ -550,10 +537,10 @@ export const AgentHome = () => {
             </Tooltip>
           ) : (
             <div
-              className={`h-7 w-7 flex items-center justify-center text-xs rounded-full ${
+              className={`h-8 w-8 flex items-center justify-center text-sm rounded-full transition-colors duration-100 ${
                 isToday
-                  ? 'bg-[#2563EB] text-white font-semibold'
-                  : 'text-[#374151]'
+                  ? 'bg-[#535862] text-white font-semibold'
+                  : 'text-[#344054] hover:bg-[#F2F4F7]'
               }`}
             >
               {day}
@@ -565,10 +552,10 @@ export const AgentHome = () => {
 
     return (
       <div>
-        <div className="section-heading mb-3">{monthName}</div>
-        <div className="grid grid-cols-7 gap-y-1">
+        <div className="text-sm font-semibold text-[#101828] mb-3">{monthName}</div>
+        <div className="grid grid-cols-7 gap-y-1.5">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, i) => (
-            <div key={i} className="h-6 text-[10px] font-medium text-[#9ca3af] text-center">
+            <div key={i} className="h-7 text-xs font-medium text-[#667085] text-center flex items-center justify-center">
               {d}
             </div>
           ))}
@@ -608,39 +595,39 @@ export const AgentHome = () => {
 
   return (
     <TooltipProvider>
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <LeftRail />
         <div className="flex-1 overflow-hidden flex flex-col ml-16">
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-8">
                 <div>
                   <h2 className="page-title">Home</h2>
-                  <p className="body-secondary mt-0.5">
+                  <p className="body-secondary mt-1">
                     {dateString} · {stats.reviewsDueThisMonth} review{stats.reviewsDueThisMonth !== 1 ? 's' : ''} due this month
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => { setSendFormType('input_form'); setSendFormClientId(null); setSendFormOpen(true) }}
-                    className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D0D5DD] rounded-lg text-sm font-medium text-[#344054] shadow-none hover:bg-[#F9FAFB] transition-all duration-150"
                   >
-                    <FileText size={14} className="text-[#6b7280]" />
+                    <FileText size={16} className="text-[#667085]" />
                     Send Client Details
                   </button>
                   <button
                     onClick={() => { setSendFormType('profile_update'); setSendFormClientId(null); setSendFormOpen(true) }}
-                    className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-lg text-sm text-[#374151] hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D0D5DD] rounded-lg text-sm font-medium text-[#344054] shadow-none hover:bg-[#F9FAFB] transition-all duration-150"
                   >
-                    <Send size={14} className="text-[#6b7280]" />
+                    <Send size={16} className="text-[#667085]" />
                     Send Client Details Update
                   </button>
                   <button
                     onClick={() => navigate('/clients')}
-                    className="flex items-center gap-2 px-3.5 py-2 bg-[#2563EB] text-white rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
+                    className="flex items-center gap-2 px-3.5 py-2.5 bg-[#535862] text-white rounded-lg text-sm font-semibold hover:bg-[#414651] transition-all duration-150"
                   >
-                    <UserPlus size={14} />
+                    <UserPlus size={16} />
                     New Client
                   </button>
                 </div>
@@ -648,18 +635,20 @@ export const AgentHome = () => {
 
               {/* Overdue alert */}
               {overdueClients.length > 0 && (
-                <div className="flex items-center gap-3 p-3 mb-6 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
-                  <p className="text-sm text-red-700">
+                <div className="flex items-center gap-3 px-4 py-3.5 mb-8 bg-[#F5F5F6] border border-[#E9EAEB] rounded-xl">
+                  <div className="w-8 h-8 rounded-full bg-[#535862] flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle size={16} className="text-white" />
+                  </div>
+                  <p className="text-sm text-[#414651]">
                     {overdueClients.length} client{overdueClients.length > 1 ? 's have' : ' has'} an overdue review:{' '}
-                    <span className="font-medium">
+                    <span className="font-semibold">
                       {overdueClients.slice(0, 3).map(c => c.name).join(', ')}
                       {overdueClients.length > 3 ? ` +${overdueClients.length - 3} more` : ''}
                     </span>
                   </p>
                   <button
                     onClick={() => navigate('/clients')}
-                    className="ml-auto text-sm font-medium text-red-700 hover:text-red-800 whitespace-nowrap"
+                    className="ml-auto text-sm font-semibold text-[#414651] hover:text-[#181D27] whitespace-nowrap transition-colors duration-150"
                   >
                     View all
                   </button>
@@ -667,7 +656,7 @@ export const AgentHome = () => {
               )}
 
               {/* Stats cards */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-4 gap-5 mb-8">
                 <StatCard
                   label="Total Active Clients"
                   value={stats.activeClients}
@@ -711,11 +700,11 @@ export const AgentHome = () => {
 
               {/* Action Required */}
               <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-3">
                     <h3 className="section-heading">Action required</h3>
                     {clients.length > 0 && (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#2563EB] text-xs font-medium">
+                      <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-[#F5F5F6] text-[#414651] text-xs font-medium border border-[#E9EAEB]">
                         {actionRequiredClients.length}
                       </span>
                     )}
@@ -723,29 +712,37 @@ export const AgentHome = () => {
                 </div>
 
                 {clients.length === 0 ? (
-                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                    <UserPlus size={32} className="text-gray-300 mx-auto mb-3" />
-                    <p className="body-dark font-medium mb-1">Create your first client</p>
-                    <p className="meta mb-4">Add a client to get started with their investment roadmap</p>
+                  <div className="bg-white border border-[#E9EAEB] rounded-xl p-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-[#F5F5F6] border border-[#E9EAEB] flex items-center justify-center mx-auto mb-4">
+                      <div className="w-9 h-9 rounded-full bg-[#535862] flex items-center justify-center">
+                        <UserPlus size={18} className="text-white" />
+                      </div>
+                    </div>
+                    <p className="text-[#181D27] font-semibold text-base mb-1">Create your first client</p>
+                    <p className="text-sm text-[#717680] mb-5">Add a client to get started with their investment roadmap</p>
                     <button
                       onClick={() => navigate('/clients')}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-sm hover:bg-[#1d4ed8] transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#535862] text-white rounded-lg text-sm font-semibold hover:bg-[#414651] transition-all duration-150"
                     >
                       <UserPlus size={14} />
                       New Client
                     </button>
                   </div>
                 ) : actionRequiredClients.length === 0 ? (
-                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                    <CheckCircle2 size={32} className="text-green-400 mx-auto mb-3" />
-                    <p className="body-dark font-medium mb-1">You're all caught up</p>
-                    <p className="meta">All clients are up to date. Nice work.</p>
+                  <div className="bg-white border border-[#E9EAEB] rounded-xl p-10 text-center">
+                    <div className="w-12 h-12 rounded-full bg-[#F5F5F6] border border-[#E9EAEB] flex items-center justify-center mx-auto mb-4">
+                      <div className="w-9 h-9 rounded-full bg-[#535862] flex items-center justify-center">
+                        <CheckCircle2 size={18} className="text-white" />
+                      </div>
+                    </div>
+                    <p className="text-[#101828] font-semibold text-base mb-1">You're all caught up</p>
+                    <p className="text-sm text-[#667085]">All clients are up to date. Nice work.</p>
                   </div>
                 ) : (
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-white border border-[#EAECF0] rounded-xl overflow-hidden shadow-none">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-gray-200 text-left">
+                        <tr className="border-b border-[#EAECF0] bg-[#F9FAFB] text-left">
                           <th className="table-header">Client</th>
                           <th className="table-header">Dashboard</th>
                           <th className="table-header">Review</th>
@@ -755,46 +752,45 @@ export const AgentHome = () => {
                       <tbody>
                         {actionRequiredClients.map(client => {
                           const initials = getInitials(client.name)
-                          const avatarColor = getAvatarColor(client.name)
                           const formStatus = clientFormStatusMap[client.id]
                           const ds = dashboardStatuses[client.id]
 
                           return (
-                            <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors">
+                            <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
                               {/* Client */}
                               <td className="table-cell">
                                 <div className="flex items-center gap-3">
                                   <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
-                                    style={{ backgroundColor: avatarColor }}
+                                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 border border-[#E9EAEB]"
+                                    style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
                                   >
                                     {initials}
                                   </div>
-                                  <div className="body-dark font-medium">{client.name}</div>
+                                  <div className="text-sm font-medium text-[#101828]">{client.name}</div>
                                 </div>
                               </td>
 
                               {/* Dashboard */}
                               <td className="table-cell">
                                 {ds?.shareId ? (
-                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
-                                    <CheckCircle2 size={12} />
+                                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#717680]" />
                                     Sent to client
                                   </span>
                                 ) : ds?.hasProperties ? (
                                   <button
                                     onClick={() => navigate('/clients')}
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] hover:bg-[#ECECED] px-2.5 py-1 rounded-full transition-colors duration-150"
                                   >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#535862]" />
                                     In progress
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => navigate('/clients')}
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-2.5 py-1 rounded-full transition-colors"
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] hover:bg-[#ECECED] px-2.5 py-1 rounded-full transition-colors duration-150"
                                   >
-                                    <Target size={12} />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#A4A7AE]" />
                                     Not started
                                   </button>
                                 )}
@@ -807,7 +803,7 @@ export const AgentHome = () => {
                                     type="date"
                                     autoFocus
                                     defaultValue={client.next_review_date?.split('T')[0] || ''}
-                                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="text-sm border border-[#D0D5DD] rounded-lg px-2.5 py-1.5 shadow-none focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
                                     onBlur={async (e) => {
                                       const val = e.target.value
                                       if (val) {
@@ -832,13 +828,13 @@ export const AgentHome = () => {
                                     onClick={() => setEditingReviewClientId(client.id)}
                                     className="text-left group"
                                   >
-                                    <div className="flex flex-col gap-1">
-                                      <span className="body-dark font-medium group-hover:text-[#2563EB] transition-colors">
+                                    <div className="flex flex-col gap-1.5">
+                                      <span className="text-sm font-medium text-[#101828] group-hover:text-[#181D27] transition-colors duration-150">
                                         {new Date(client.next_review_date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                                       </span>
                                       <div className="flex items-center gap-2">
-                                        <div className={`h-1 w-16 rounded-full ${getCountdownBarColor(client.next_review_date)}`} />
-                                        <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${getCountdownColor(client.next_review_date)}`}>
+                                        <div className={`h-1.5 w-16 rounded-full ${getCountdownBarColor(client.next_review_date)}`} />
+                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${getCountdownColor(client.next_review_date)}`}>
                                           {getCountdownLabel(client.next_review_date)}
                                         </span>
                                       </div>
@@ -847,9 +843,9 @@ export const AgentHome = () => {
                                 ) : (
                                   <button
                                     onClick={() => setEditingReviewClientId(client.id)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#2563EB] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] hover:bg-[#ECECED] rounded-lg transition-colors duration-150"
                                   >
-                                    <CalendarCheck size={12} />
+                                    <CalendarCheck size={13} className="text-[#717680]" />
                                     Set catchup
                                   </button>
                                 )}
@@ -869,13 +865,13 @@ export const AgentHome = () => {
                         })}
                       </tbody>
                     </table>
-                    <div className="px-5 py-3 border-t border-gray-100 text-right">
-                      <span className="meta">Showing clients that need attention</span>
+                    <div className="px-5 py-3.5 border-t border-[#EAECF0] bg-white flex items-center justify-end gap-4">
+                      <span className="text-sm text-[#667085]">Showing clients that need attention</span>
                       <button
                         onClick={() => navigate('/clients')}
-                        className="ml-4 text-xs text-[#2563EB] hover:underline font-medium"
+                        className="text-sm text-[#535862] hover:text-[#414651] font-semibold transition-colors duration-150"
                       >
-                        View all clients →
+                        View all clients &rarr;
                       </button>
                     </div>
                   </div>
@@ -886,67 +882,68 @@ export const AgentHome = () => {
               <div className="grid grid-cols-3 gap-6">
                 {/* Left: Upcoming Reviews Calendar */}
                 <div className="col-span-2">
-                  <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="bg-white border border-[#EAECF0] rounded-xl p-6 shadow-none">
+                    <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
                         <h3 className="section-heading">Upcoming reviews</h3>
-                        <span className="text-xs text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                        <span className="inline-flex items-center text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
                           {reviewsIn90Days} in next 90 days
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="meta">{calendarPeriodLabel}</span>
-                        <button
-                          onClick={() => {
-                            const prev = new Date(calendarMonth)
-                            prev.setMonth(prev.getMonth() - 1)
-                            setCalendarMonth(prev)
-                          }}
-                          className="p-1 text-[#6b7280] hover:text-[#374151] hover:bg-gray-100 rounded transition-colors"
-                        >
-                          <ChevronLeft size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            const next = new Date(calendarMonth)
-                            next.setMonth(next.getMonth() + 1)
-                            setCalendarMonth(next)
-                          }}
-                          className="p-1 text-[#6b7280] hover:text-[#374151] hover:bg-gray-100 rounded transition-colors"
-                        >
-                          <ChevronRight size={14} />
-                        </button>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-[#667085]">{calendarPeriodLabel}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              const prev = new Date(calendarMonth)
+                              prev.setMonth(prev.getMonth() - 1)
+                              setCalendarMonth(prev)
+                            }}
+                            className="p-1.5 text-[#667085] hover:text-[#344054] hover:bg-[#F2F4F7] rounded-lg transition-all duration-150"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const next = new Date(calendarMonth)
+                              next.setMonth(next.getMonth() + 1)
+                              setCalendarMonth(next)
+                            }}
+                            className="p-1.5 text-[#667085] hover:text-[#344054] hover:bg-[#F2F4F7] rounded-lg transition-all duration-150"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Dual month calendars */}
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="grid grid-cols-2 gap-10">
                       {calendarMonths.map((m, i) => (
                         <div key={i}>{renderMonth(m)}</div>
                       ))}
                     </div>
 
                     {/* Review summary list below calendar */}
-                    <div className="mt-5 pt-4 border-t border-gray-100">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="meta">Reviews:</span>
+                    <div className="mt-6 pt-5 border-t border-[#F2F4F7]">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <span className="text-sm text-[#667085] font-medium">Reviews:</span>
                         {upcomingReviewsList.map(client => {
-                          const avatarColor = getAvatarColor(client.name)
                           const initials = getInitials(client.name)
                           const countdownLabel = getCountdownLabel(client.next_review_date!)
                           const days = getDaysUntil(client.next_review_date!)
-                          const badgeColor = days <= 7 ? 'text-orange-600' : days <= 14 ? 'text-amber-600' : 'text-gray-500'
+                          const badgeColor = days <= 7 ? 'text-[#535862]' : days <= 14 ? 'text-[#717680]' : 'text-[#A4A7AE]'
 
                           return (
-                            <div key={client.id} className="flex items-center gap-1.5">
+                            <div key={client.id} className="flex items-center gap-2">
                               <div
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-medium"
-                                style={{ backgroundColor: avatarColor }}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold border border-[#E9EAEB]"
+                                style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
                               >
                                 {initials}
                               </div>
-                              <span className="text-xs text-[#374151] font-medium">{client.name}</span>
-                              <span className={`text-[10px] font-medium ${badgeColor}`}>{countdownLabel}</span>
+                              <span className="text-sm text-[#344054] font-medium">{client.name}</span>
+                              <span className={`text-xs font-medium ${badgeColor}`}>{countdownLabel}</span>
                             </div>
                           )
                         })}
@@ -957,40 +954,43 @@ export const AgentHome = () => {
 
                 {/* Right: Activity Feed */}
                 <div>
-                  <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="bg-white border border-[#EAECF0] rounded-xl p-6 shadow-none">
+                    <div className="flex items-center justify-between mb-5">
                       <h3 className="section-heading">Recent activity</h3>
-                      <span className="meta">Last 7 days</span>
+                      <span className="text-sm text-[#667085]">Last 7 days</span>
                     </div>
                     {activityLoading ? (
-                      <div className="body-secondary text-center py-6">Loading...</div>
+                      <div className="text-sm text-[#667085] text-center py-8">Loading...</div>
                     ) : activityLog.length === 0 ? (
-                      <div className="text-center py-6">
-                        <Clock size={24} className="text-gray-300 mx-auto mb-2" />
-                        <p className="body-secondary">No recent activity</p>
-                        <p className="meta mt-0.5">Activity will appear here as you and your clients interact</p>
+                      <div className="text-center py-8">
+                        <div className="w-12 h-12 rounded-full bg-[#F5F5F6] border border-[#E9EAEB] flex items-center justify-center mx-auto mb-4">
+                          <div className="w-9 h-9 rounded-full bg-[#535862] flex items-center justify-center">
+                            <Clock size={18} className="text-white" />
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-[#101828]">No recent activity</p>
+                        <p className="text-sm text-[#667085] mt-1">Activity will appear here as you and your clients interact</p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="divide-y divide-[#F2F4F7]">
                         {activityLog.slice(0, 8).map(entry => {
                           const client = getClient(entry.client_id)
                           const initials = client ? getInitials(client.name) : '??'
-                          const avatarColor = client ? getAvatarColor(client.name) : '#6b7280'
                           const activity = getActivityDescription(entry)
 
                           return (
-                            <div key={entry.id} className="flex items-start gap-3">
+                            <div key={entry.id} className="flex items-start gap-3 py-3.5 first:pt-0 last:pb-0">
                               <div
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0 mt-0.5"
-                                style={{ backgroundColor: avatarColor }}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 mt-0.5 border border-[#E9EAEB]"
+                                style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
                               >
                                 {initials}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm text-[#374151] leading-snug">
+                                <p className="text-sm text-[#344054] leading-snug">
                                   {activity.text}
                                 </p>
-                                <p className="meta mt-0.5">
+                                <p className="text-xs text-[#667085] mt-1">
                                   {formatRelativeTime(entry.created_at)}
                                 </p>
                               </div>
@@ -1014,22 +1014,22 @@ export const AgentHome = () => {
       <Dialog open={sendFormOpen} onOpenChange={setSendFormOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-[#101828]">
               {sendFormType === 'input_form' ? 'Send Client Details Form' : 'Send Client Details Update'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm text-[#667085] mt-1">
               {sendFormType === 'input_form'
                 ? 'Request financial details from a new client to build their investment roadmap.'
                 : 'Request updated financial details during a client\'s review cycle.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+          <div className="space-y-5 pt-3">
             <div>
-              <label className="text-sm font-medium text-[#374151] mb-1.5 block">Select client</label>
+              <label className="text-sm font-medium text-[#344054] mb-1.5 block">Select client</label>
               <select
                 value={sendFormClientId || ''}
                 onChange={(e) => setSendFormClientId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 border border-[#D0D5DD] rounded-lg text-sm text-[#101828] shadow-none focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
               >
                 <option value="">Choose a client...</option>
                 {clients.map(c => (
@@ -1037,17 +1037,17 @@ export const AgentHome = () => {
                 ))}
               </select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-1">
               <button
                 onClick={() => setSendFormOpen(false)}
-                className="px-4 py-2 text-sm text-[#374151] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2.5 text-sm font-semibold text-[#344054] bg-white border border-[#D0D5DD] rounded-lg shadow-none hover:bg-[#F9FAFB] transition-all duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendForm}
                 disabled={!sendFormClientId || sendingForm}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-[#535862] rounded-lg hover:bg-[#414651] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center gap-2"
               >
                 <Send size={14} />
                 {sendingForm ? 'Sending...' : 'Send'}
