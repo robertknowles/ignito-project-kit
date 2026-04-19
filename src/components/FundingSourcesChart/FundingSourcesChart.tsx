@@ -188,7 +188,7 @@ export const FundingSourcesChart: React.FC = () => {
                   {row.isBuyNext && (
                     <span
                       className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                      style={{ color: '#0F172A', backgroundColor: '#F1F5F9' }}
+                      style={{ color: '#2563EB', backgroundColor: '#EFF6FF' }}
                     >
                       Buy Next
                     </span>
@@ -205,11 +205,11 @@ export const FundingSourcesChart: React.FC = () => {
                   <span className="text-xs text-[#717680]">Owned</span>
                 ) : row.isBuyNext ? (
                   <div>
-                    <span className="text-[13px] font-semibold text-slate-700">{row.readinessPct}% ready</span>
+                    <span className="text-[13px] font-semibold text-blue-600">{row.readinessPct}% ready</span>
                     <div className="h-[3px] rounded-full overflow-hidden mt-0.5" style={{ width: 60, backgroundColor: '#E9EAEB' }}>
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${row.readinessPct}%`, backgroundColor: PROPERTY_COLORS[0] }}
+                        style={{ width: `${row.readinessPct}%`, backgroundColor: '#2563EB' }}
                       />
                     </div>
                   </div>

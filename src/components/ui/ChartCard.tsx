@@ -6,9 +6,6 @@ export interface LegendItem {
   label: string;
   /** 'ring' renders an open circle outline instead of a filled dot */
   variant?: 'dot' | 'ring';
-  /** SVG strokeDasharray. '0' or undefined = solid. Renders a line segment
-   *  instead of a dot so the legend mirrors the line style on the chart. */
-  dashPattern?: string;
 }
 
 interface ChartCardProps {
@@ -53,19 +50,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             <div className="flex items-center gap-3">
               {legend.map((item) => (
                 <div key={item.label} className="flex items-center gap-1.5">
-                  {item.dashPattern !== undefined ? (
-                    <svg width="16" height="2" className="flex-shrink-0" style={{ overflow: 'visible' }}>
-                      <line
-                        x1="0"
-                        y1="1"
-                        x2="16"
-                        y2="1"
-                        stroke={item.color}
-                        strokeWidth="2"
-                        strokeDasharray={item.dashPattern === '0' ? undefined : item.dashPattern}
-                      />
-                    </svg>
-                  ) : item.variant === 'ring' ? (
+                  {item.variant === 'ring' ? (
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: 'white', border: `1.5px solid ${item.color}` }}

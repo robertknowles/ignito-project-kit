@@ -14,7 +14,7 @@ import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useEquityUnlockTimeline } from './useEquityUnlockTimeline';
 import { PROPERTY_ICON_PATHS } from '../icons/PropertyIconPaths';
-import { PROPERTY_COLORS, CHART_COLORS } from '../../constants/chartColors';
+import { PROPERTY_COLORS } from '../../constants/chartColors';
 import { CHART_STYLE } from '../../constants/chartColors';
 import { BASE_YEAR } from '../../constants/financialParams';
 
@@ -238,7 +238,7 @@ export const EquityUnlockChart: React.FC = () => {
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Property lines — NOT stacked. Shade + dash pattern per series. */}
+          {/* Property lines — NOT stacked */}
           {propertyTimelines.map((prop, idx) => (
             <Area
               key={prop.instanceId}
@@ -247,7 +247,6 @@ export const EquityUnlockChart: React.FC = () => {
               name={prop.title}
               stroke={prop.color}
               strokeWidth={2}
-              strokeDasharray={prop.dashPattern === '0' ? undefined : prop.dashPattern}
               fill={idx === 0 ? 'url(#equityFillP0)' : 'none'}
               dot={false}
             />
@@ -335,13 +334,11 @@ export const useEquityUnlockLegend = () => {
   const { propertyTimelines } = useEquityUnlockTimeline(timelineProperties, profile, getInstance);
 
   return useMemo(() => {
-    const items: Array<{ color: string; label: string; dashPattern?: string; variant?: 'dot' | 'ring' }> =
-      propertyTimelines.map(p => ({
-        color: p.color,
-        label: p.title,
-        dashPattern: p.dashPattern,
-      }));
-    items.push({ color: CHART_COLORS.primary, label: 'Refinance event', variant: 'ring' as const });
+    const items = propertyTimelines.map(p => ({
+      color: p.color,
+      label: p.title,
+    }));
+    items.push({ color: '#2563EB', label: 'Refinance event', variant: 'ring' as const });
     return items;
   }, [propertyTimelines]);
 };

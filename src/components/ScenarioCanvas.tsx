@@ -104,9 +104,9 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         <ChartCard
           title="Investment Timeline"
           legend={[
-            { color: CHART_COLORS.primary, label: 'Portfolio Value' },
-            { color: CHART_COLORS.secondary, label: 'Total Equity' },
-            { color: CHART_COLORS.baseline, label: 'Do Nothing' },
+            { color: '#2563EB', label: 'Portfolio Value' },
+            { color: '#8B5CF6', label: 'Total Equity' },
+            { color: CHART_COLORS.annotationText, label: 'Do Nothing' },
           ]}
         >
           <TimelineColumn scenarioData={scenarioData} />

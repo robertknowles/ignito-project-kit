@@ -4,7 +4,7 @@ import type { InvestmentProfileData } from '../../contexts/InvestmentProfileCont
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, MIN_EXTRACTABLE_EQUITY_THRESHOLD, getGrowthCurveForTier } from '../../constants/financialParams';
 import type { PropertyInstanceDetails } from '../../types/propertyInstance';
-import { PROPERTY_COLORS, PROPERTY_DASH_PATTERNS } from '../../constants/chartColors';
+import { PROPERTY_COLORS } from '../../constants/chartColors';
 
 export interface EquityTimelinePoint {
   year: number;
@@ -18,7 +18,6 @@ export interface PropertyEquityTimeline {
   instanceId: string;
   title: string;
   color: string;
-  dashPattern: string;
   buyYear: number;
   purchasePrice: number;
   timeline: EquityTimelinePoint[];
@@ -116,7 +115,6 @@ export function useEquityUnlockTimeline(
       instanceId: prop.instanceId,
       title: prop.title,
       color: PROPERTY_COLORS[i % PROPERTY_COLORS.length],
-      dashPattern: PROPERTY_DASH_PATTERNS[i % PROPERTY_DASH_PATTERNS.length],
       buyYear: projected.buyYear,
       purchasePrice: prop.cost,
       timeline,
