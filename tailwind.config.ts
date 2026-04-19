@@ -65,6 +65,14 @@ const config: Config = {
         },
         offwhite: '#fafafa',
         charcoal: '#1a1a1a',
+        linear: {
+          bg: '#ffffff',
+          text: '#000000',
+          muted: '#6b7280',
+          border: 'rgba(0, 0, 0, 0.08)',
+          primary: '#000000',
+          glow: 'rgba(0, 0, 0, 0.05)',
+        },
       },
       borderRadius: {
         '2xl': '1rem',

@@ -1,5 +1,5 @@
 /* Google Fonts - Landing Page Fonts + Inter for Main App */
-@import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -323,8 +323,43 @@
 
   .title-deed-card:hover {
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
       0 4px 12px -2px rgba(0, 0, 0, 0.08),
       0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* ============================================
+   LINEAR-STYLE LANDING PAGE UTILITIES
+   ============================================
+   Utility classes used by the redesigned PropPath
+   landing page (Linear.app-inspired aesthetic)
+*/
+@layer utilities {
+  .linear-border {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .linear-glow {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
+  }
+
+  .linear-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-black to-black/70;
+  }
+
+  .glass-card {
+    @apply bg-black/[0.01] border border-black/[0.05] rounded-xl;
+  }
+
+  .mask-reveal {
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    mask-size: 100% 200%;
+    mask-position: 0 100%;
+    transition: mask-position 0.8s ease-out;
+  }
+
+  .mask-reveal:hover {
+    mask-position: 0 0;
   }
 }
