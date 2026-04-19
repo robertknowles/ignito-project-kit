@@ -327,13 +327,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }
   }, [activeClient?.id, clearMessages])
 
-  // If a saved scenario populates the plan from the store, treat it as
-  // "already generated" so the next chat message uses the compact loader.
-  useEffect(() => {
-    if (propertyOrder.length > 0 && !hasGeneratedThisSession) {
-      setHasGeneratedThisSession(true)
-    }
-  }, [propertyOrder.length, hasGeneratedThisSession])
+  // NOTE: we deliberately do NOT flip hasGeneratedThisSession based on
+  // propertyOrder — it races with client switches (the previous client's
+  // plan can still be in context briefly) and wrongly demotes the loader
+  // to the compact variant on the first message for a new client.
+  // The flag only flips true inside handlePlanGenerated (below) after a
+  // fresh plan generation completes.
 
   // Load saved chat messages when they change (scenario load or client switch)
   useEffect(() => {
