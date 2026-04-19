@@ -279,7 +279,13 @@ export const getEventTypesForCategory = (category: EventCategory): EventTypeDefi
  */
 export const getEventLabel = (eventType: EventType, payload: EventPayload): string => {
   const typeDef = EVENT_TYPES[eventType];
-  
+  // Guard against unknown event types — an unknown eventType previously
+  // crashed the timeline render (typeDef.label on undefined).
+  if (!typeDef) {
+    console.warn('[eventTypes] unknown event type:', eventType);
+    return String(eventType);
+  }
+
   switch (eventType) {
     case 'salary_change':
       if (payload.newSalary !== undefined && payload.newSalary !== null) {

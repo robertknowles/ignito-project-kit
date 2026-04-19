@@ -267,12 +267,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       const BASE_YEAR = new Date().getFullYear()
       const period = Math.max(1, Math.round((targetYear - BASE_YEAR) * 2) + 1)
 
-      // Map NL event types to the existing event system
+      // Map NL event types to the existing event system. EVENT_TYPES uses
+      // underscore ids (salary_change, interest_rate_change, sell_property)
+      // so we preserve those — the previous dashed mapping produced ids that
+      // didn't exist in the registry and crashed the roadmap when it tried
+      // to look up .label on an undefined typeDef.
       const eventTypeMap: Record<string, string> = {
         refinance: 'refinance',
-        salary_change: 'income-change',
-        sell_property: 'sell-property',
-        interest_rate_change: 'interest-rate-change',
+        salary_change: 'salary_change',
+        sell_property: 'sell_property',
+        interest_rate_change: 'interest_rate_change',
       }
       const categoryMap: Record<string, string> = {
         refinance: 'portfolio',
@@ -281,9 +285,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         interest_rate_change: 'market',
       }
 
+      const mappedType = eventTypeMap[eventType]
+      if (!mappedType) {
+        console.warn('[nl-parse] unknown event type from add_event response:', eventType)
+        return
+      }
+
       addEvent({
         type: 'event',
-        eventType: eventTypeMap[eventType] || eventType,
+        eventType: mappedType,
         category: categoryMap[eventType] || 'portfolio',
         period,
         order: 0,
