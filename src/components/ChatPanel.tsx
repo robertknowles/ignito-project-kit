@@ -593,15 +593,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           )}
 
           <AnimatePresence mode="popLayout">
-            {messages.map((msg) =>
+            {messages.map((msg, idx) =>
               msg.type === 'loading' ? (
-                <ChatLoadingSteps
-                  key={msg.id}
-                  clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
-                  activeStep={loadingStep}
-                  isComplete={false}
-                  followUp={propertyOrder.length > 0}
-                />
+                // Follow-up mode is determined per-loader by what precedes it
+                // in the current chat session — not by context.propertyOrder,
+                // which can still hold a previous client's plan when switching.
+                (() => {
+                  const hasPriorAssistantReply = messages
+                    .slice(0, idx)
+                    .some((m) => m.role === 'assistant' && m.type !== 'loading')
+                  return (
+                    <ChatLoadingSteps
+                      key={msg.id}
+                      clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                      activeStep={loadingStep}
+                      isComplete={false}
+                      followUp={hasPriorAssistantReply}
+                    />
+                  )
+                })()
               ) : (
                 <ChatMessage
                   key={msg.id}
