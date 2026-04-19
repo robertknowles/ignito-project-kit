@@ -125,10 +125,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         setAllSelections(newSelections, newOrder)
         setInstances(newInstances)
       }
-
-      // Initial generation complete — flip the session flag so subsequent
-      // follow-up messages show the compact "Updating dashboard..." loader.
-      setHasGeneratedThisSession(true)
     },
     [updateProfile, setAllSelections, setInstances]
   )
@@ -291,21 +287,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     hasExistingPlan: propertyOrder.length > 0,
   })
 
-  // Session-scoped flag: has a plan been generated in this browser session
-  // for the CURRENT client? This drives whether the chat loader shows the
-  // 3-step initial-generation sequence or the compact "Updating dashboard..."
-  // indicator. propertyOrder.length is unreliable here — it can hold a
-  // previous client's plan briefly during a client switch, and loading a
-  // saved chat can seed prior assistant messages that look like history.
-  const [hasGeneratedThisSession, setHasGeneratedThisSession] = useState(false)
-
   // Clear chat when scenario is reset (scenarioId goes from a value to null)
   const prevScenarioIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (prevScenarioIdRef.current !== null && scenarioId === null) {
       clearMessages()
       loadedRef.current = false
-      setHasGeneratedThisSession(false)
     }
     prevScenarioIdRef.current = scenarioId
   }, [scenarioId, clearMessages])
@@ -316,9 +303,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   useEffect(() => {
     if (activeClient?.id !== prevClientRef.current) {
       prevClientRef.current = activeClient?.id ?? null
-      // Every client switch resets the "first generation" signal so the
-      // next plan generation triggers the 3-step loader again.
-      setHasGeneratedThisSession(false)
       // On client switch (not initial load), clear messages and allow reload
       if (loadedRef.current) {
         clearMessages()
@@ -326,13 +310,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       }
     }
   }, [activeClient?.id, clearMessages])
-
-  // NOTE: we deliberately do NOT flip hasGeneratedThisSession based on
-  // propertyOrder — it races with client switches (the previous client's
-  // plan can still be in context briefly) and wrongly demotes the loader
-  // to the compact variant on the first message for a new client.
-  // The flag only flips true inside handlePlanGenerated (below) after a
-  // fresh plan generation completes.
 
   // Load saved chat messages when they change (scenario load or client switch)
   useEffect(() => {
@@ -623,7 +600,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                   clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
                   activeStep={loadingStep}
                   isComplete={false}
-                  followUp={hasGeneratedThisSession}
                 />
               ) : (
                 <ChatMessage

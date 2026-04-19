@@ -68,6 +68,7 @@ export const AgentHome = () => {
   const [dashboardStatuses, setDashboardStatuses] = useState<Record<number, { hasProperties: boolean; shareId: string | null }>>({})
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [editingReviewClientId, setEditingReviewClientId] = useState<number | null>(null)
+  const [editingNameClientId, setEditingNameClientId] = useState<number | null>(null)
   const [sendFormOpen, setSendFormOpen] = useState(false)
   const [sendFormType, setSendFormType] = useState<'input_form' | 'profile_update'>('input_form')
   const [sendFormClientId, setSendFormClientId] = useState<number | null>(null)
@@ -766,7 +767,41 @@ export const AgentHome = () => {
                                   >
                                     {initials}
                                   </div>
-                                  <div className="text-sm font-medium text-[#101828]">{client.name}</div>
+                                  {editingNameClientId === client.id ? (
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      defaultValue={client.name}
+                                      className="text-sm font-medium text-[#101828] border border-[#D0D5DD] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
+                                      onBlur={async (e) => {
+                                        const val = e.target.value.trim()
+                                        if (val && val !== client.name) {
+                                          const ok = await updateClient(client.id, { name: val })
+                                          if (ok) {
+                                            toast.success('Client renamed')
+                                          } else {
+                                            toast.error('Failed to rename client')
+                                          }
+                                        }
+                                        setEditingNameClientId(null)
+                                      }}
+                                      onKeyDown={async (e) => {
+                                        if (e.key === 'Enter') {
+                                          ;(e.target as HTMLInputElement).blur()
+                                        } else if (e.key === 'Escape') {
+                                          setEditingNameClientId(null)
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={() => setEditingNameClientId(client.id)}
+                                      className="text-sm font-medium text-[#101828] text-left hover:underline decoration-[#D0D5DD] underline-offset-2"
+                                      title="Click to rename"
+                                    >
+                                      {client.name}
+                                    </button>
+                                  )}
                                 </div>
                               </td>
 
