@@ -54,6 +54,8 @@ interface UseChatConversationOptions {
   clientName?: string
   /** Acquisition pacing mode — controls property spacing and growth assumptions */
   pacingMode?: 'aggressive' | 'balanced' | 'conservative'
+  /** True when a plan already exists — used to reject misclassified initial_plan rebuilds. */
+  hasExistingPlan?: boolean
 }
 
 export function useChatConversation(options: UseChatConversationOptions = {}) {
@@ -232,8 +234,17 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Remove loading indicator
         setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
 
+        // Guard: if a plan already exists but the model returned initial_plan,
+        // the model misclassified a follow-up question as a rebuild. Downgrade
+        // to a plain text message so the dashboard isn't destroyed.
+        let effectiveType: NLParseResponse['type'] = response.type
+        if (options.hasExistingPlan && response.type === 'initial_plan') {
+          console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
+          effectiveType = 'explanation'
+        }
+
         // Process response based on type
-        switch (response.type) {
+        switch (effectiveType) {
           case 'initial_plan': {
             // Two-message sequence:
             // 1. Client summary — what was captured, plus accuracy nudge
@@ -293,6 +304,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
 
           case 'explanation': {
+            const wasDowngraded = response.type === 'initial_plan'
             // Get chart data context for a data-grounded explanation
             const chartContext = options.getChartContext?.(
               response.explanation?.question ?? userText,
@@ -305,7 +317,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               try {
                 const explResult = await supabase.functions.invoke('nl-parse', {
                   body: {
-                    message: `[EXPLANATION REQUEST]\nOriginal question: "${userText}"\n\nHere is the actual calculated data from the engine. Reference ONLY these numbers in your explanation — never make up figures.\n\n${chartContext}\n\nNow explain in plain English, referencing the specific numbers above. Keep it concise (2-4 sentences). No hedging.`,
+                    message: `[EXPLANATION REQUEST]\nOriginal question: "${userText}"\n\nHere is the actual calculated data from the engine. Reference ONLY these numbers in your explanation — never make up figures.\n\n${chartContext}\n\nNow explain in plain English, referencing the specific numbers above. Keep it concise (2-4 sentences). No hedging. Do not return a new plan or a properties array — respond only with the explanation message.`,
                     conversationHistory: [
                       ...conversationHistory,
                       { role: 'user', content: userText },
@@ -338,12 +350,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               }
             }
 
-            // Fallback: show Claude's initial classification message
-            const explMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
+            // Fallback: show Claude's initial classification message — but if we
+            // downgraded from a misclassified initial_plan, the message talks
+            // about "Built a 4-property portfolio..." which doesn't answer the
+            // question. Substitute a generic prompt to rephrase.
+            const fallbackText = wasDowngraded
+              ? "Sorry, I couldn't answer that one cleanly — try rephrasing the question and I'll explain without touching the plan."
+              : response.message
+            const explMsg = createMessage('assistant', 'text', fallbackText, {
+              assumptions: wasDowngraded ? undefined : response.assumptions,
             })
             setMessages((prev) => [...prev, explMsg])
-            options.onExplanation?.(response)
+            if (!wasDowngraded) options.onExplanation?.(response)
             break
           }
 

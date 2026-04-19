@@ -9,6 +9,7 @@ import {
   ReferenceDot,
   ResponsiveContainer,
 } from 'recharts'
+import { useNavigate } from 'react-router-dom'
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
@@ -31,6 +32,7 @@ interface InvestmentTimelineChartProps {
  * Uses identical Recharts config as CashflowChart for visual uniformity.
  */
 export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = ({ scenarioData }) => {
+  const navigate = useNavigate()
   const { profile: contextProfile } = useInvestmentProfile()
   const { timelineProperties: contextTimelineProps } = useAffordabilityCalculator()
 
@@ -51,6 +53,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
       purchaseInYear: y.purchaseInYear,
       purchaseLabel: y.purchaseDetails?.map(p => p.propertyTitle).join(', ') ?? '',
       purchasePropertyTypes: y.purchaseDetails?.map(p => p.propertyType) ?? [],
+      purchaseInstanceIds: y.purchaseDetails?.map(p => p.instanceId) ?? [],
     }))
   }, [years])
 
@@ -148,6 +151,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             strokeWidth={2.5}
             fill="url(#timelinePortfolioFill)"
             dot={false}
+            isAnimationActive={false}
           />
 
           {/* Total Equity — solid purple with gradient fill */}
@@ -159,6 +163,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             strokeWidth={2}
             fill="url(#timelineEquityFill)"
             dot={false}
+            isAnimationActive={false}
           />
 
           {/* Do Nothing Baseline — dashed grey, no fill */}
@@ -172,9 +177,10 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             fill="none"
             dot={false}
             connectNulls
+            isAnimationActive={false}
           />
 
-          {/* Purchase markers — property type icons on portfolio line */}
+          {/* Purchase markers — property type icons on portfolio line, click to open per-property */}
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}
@@ -186,8 +192,22 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                 const iconPath = getPropertyIconPath(pt.purchasePropertyTypes?.[0] || '')
                 const iconSize = 14
                 const bgSize = 26
+                const instanceId = pt.purchaseInstanceIds?.[0]
+                const handleClick = () => {
+                  if (instanceId) {
+                    navigate('/portfolio', { state: { propertyInstanceId: instanceId } })
+                  } else {
+                    navigate('/portfolio')
+                  }
+                }
                 return (
-                  <g>
+                  <g
+                    onClick={handleClick}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    aria-label={`Open ${pt.purchaseLabel || 'property'} in Per-Property view`}
+                  >
+                    <title>{`Open ${pt.purchaseLabel || 'property'}`}</title>
                     <circle cx={cx} cy={cy} r={bgSize / 2} fill="white" stroke="#E9EAEB" strokeWidth={1} />
                     <svg
                       x={cx - iconSize / 2}
@@ -196,6 +216,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                       height={iconSize}
                       viewBox="0 0 24 24"
                       fill="none"
+                      style={{ pointerEvents: 'none' }}
                     >
                       <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

@@ -315,6 +315,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     userId: user?.id,
     clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
     pacingMode: profile.pacingMode || 'balanced',
+    hasExistingPlan: propertyOrder.length > 0,
   })
 
   // Clear chat when scenario is reset (scenarioId goes from a value to null)
@@ -616,7 +617,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                 Describe a client scenario to generate an investment roadmap.
               </p>
               <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
-                e.g. "1m borrowing capacity. 120k annual income. 80k deposit. Want to hit $2M in equity in 15 years. No existing properties."
+                e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
               </p>
               <PacingToggle />
             </div>
@@ -630,6 +631,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                   clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
                   activeStep={loadingStep}
                   isComplete={false}
+                  followUp={propertyOrder.length > 0}
                 />
               ) : (
                 <ChatMessage
@@ -682,21 +684,28 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               className="flex-1 bg-transparent text-[12px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[120px]"
               disabled={isLoading}
             />
-            <button
-              onClick={handleSend}
-              disabled={(!inputValue.trim() && !selectedFile) || isLoading}
-              className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
-              style={{
-                backgroundColor: (inputValue.trim() || selectedFile) && !isLoading ? primaryColor : undefined,
-                color: (inputValue.trim() || selectedFile) && !isLoading ? 'white' : undefined,
-              }}
-            >
-              {isLoading ? (
-                <Loader2Icon size={13} className="animate-spin text-[#717680]" />
-              ) : (
-                <SendIcon size={13} className="text-[#717680]" />
-              )}
-            </button>
+            {(() => {
+              const isActive = Boolean(inputValue.trim() || selectedFile)
+              const showBrandBg = isActive || isLoading
+              return (
+                <button
+                  onClick={handleSend}
+                  disabled={!isActive || isLoading}
+                  className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: showBrandBg ? primaryColor : undefined,
+                    color: showBrandBg ? 'white' : undefined,
+                    opacity: !isActive && !isLoading ? 0.3 : 1,
+                  }}
+                >
+                  {isLoading ? (
+                    <Loader2Icon size={13} className="animate-spin" style={{ color: 'white' }} />
+                  ) : (
+                    <SendIcon size={13} style={{ color: isActive ? 'white' : '#717680' }} />
+                  )}
+                </button>
+              )
+            })()}
           </div>
         </div>
       </div>

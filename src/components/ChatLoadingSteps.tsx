@@ -20,13 +20,34 @@ interface ChatLoadingStepsProps {
   activeStep: number
   /** Whether the loading process is complete */
   isComplete: boolean
+  /** Follow-up mode — show a single "Updating dashboard" indicator instead of the 3-step sequence */
+  followUp?: boolean
 }
 
 export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStepsProps>(({
   clientName,
   activeStep,
   isComplete,
+  followUp = false,
 }, ref) => {
+  if (isComplete) return null
+
+  if (followUp) {
+    return (
+      <div ref={ref} className="flex items-start">
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex items-center gap-2 text-xs text-gray-500 py-1"
+        >
+          <Loader2Icon size={12} className="animate-spin text-gray-400" />
+          <span>Updating dashboard...</span>
+        </motion.div>
+      </div>
+    )
+  }
+
   const steps: LoadingStep[] = [
     {
       label: clientName ? `Reading ${clientName}'s profile` : 'Reading client profile',
@@ -41,8 +62,6 @@ export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStep
       status: activeStep > 2 ? 'complete' : activeStep === 2 ? 'active' : 'pending',
     },
   ]
-
-  if (isComplete) return null
 
   return (
     <div ref={ref} className="flex items-start">

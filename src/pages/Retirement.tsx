@@ -11,7 +11,7 @@ const Retirement: React.FC = () => {
   const drawerOpen = true
 
   return (
-    <div className="main-app flex h-screen w-full bg-[#FAFAFA]">
+    <div className="main-app flex h-screen w-full bg-white">
       <LeftRail />
       <ChatPanel isOpen={drawerOpen} />
 
@@ -21,7 +21,7 @@ const Retirement: React.FC = () => {
       >
         <TopBar />
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-white">
           <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
             <ChartCard title="Retirement Scenario">
               <RetirementScenarioPanel />

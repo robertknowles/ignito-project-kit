@@ -249,6 +249,7 @@ export const EquityUnlockChart: React.FC = () => {
               strokeWidth={2}
               fill={idx === 0 ? 'url(#equityFillP0)' : 'none'}
               dot={false}
+              isAnimationActive={false}
             />
           ))}
 

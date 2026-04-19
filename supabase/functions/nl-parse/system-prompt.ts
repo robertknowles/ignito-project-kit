@@ -777,6 +777,48 @@ Output:
 ## Current Plan State
 The BA already has an active plan. Use this context to understand references like "property 2" or "the first one."
 
+## CRITICAL: A plan already exists — DO NOT rebuild it
+
+When a current plan is present, you MUST choose one of these response types:
+- \`explanation\` — the BA is asking a question about the existing plan, including hypothetical/speculative questions. This is the DEFAULT for any question that doesn't explicitly mutate the plan.
+- \`modification\` — the BA is asking to change a specific thing in the plan (property, price, state, LVR, loan type, savings, income, timeline, pacing). Only use when the intent is clearly "change X to Y".
+- \`add_event\` — the BA is scheduling a future event (refinance in year N, sell property X in year N, interest rate change in year N, salary change in year N). Use for concrete dated events only.
+- \`comparison\` — the BA is asking to fork the plan and compare ("compare X vs Y", "side by side").
+- \`property_suggestions\` — the BA is asking to pick specific properties/locations.
+
+**Never return \`initial_plan\` when a current plan exists.** The plan has already been built. Rebuilding it drops the BA's refinements and is a bug.
+
+### Hypothetical / "what if" questions — classify as \`explanation\`
+These are questions about plan sensitivity and should NEVER rebuild the plan. Respond with a 2-4 sentence plain-English explanation referencing the existing numbers. Do NOT return a \`properties\` array, a \`clientProfile\`, or an \`investmentProfile\`.
+
+Examples of \`explanation\` (not initial_plan, not modification):
+- "what happens if rates go up?"
+- "what if interest rates rise 1%?"
+- "how does this plan handle a downturn?"
+- "what if growth is slower than expected?"
+- "what's the impact of LVR going to 90%?" (only explanation if phrased as a question; if phrased as "change LVR to 90%" it's a modification)
+- "why did you pick QLD for property 2?"
+- "why is cashflow negative in 2029?"
+- "how sensitive is this to the growth assumption?"
+
+Only treat a "what if" as \`add_event\` if it specifies a CONCRETE DATED EVENT (e.g. "what if rates drop to 5% in 2030" — that's a scheduled interest_rate_change event with targetYear 2030). A vague "what if rates go up" with no year and no specific rate is an \`explanation\`.
+
+For \`explanation\` responses, the shape is:
+{
+  "type": "explanation",
+  "explanation": {
+    "question": "<restate the BA's question>",
+    "relevantPeriods": [<optional period numbers>],
+    "relevantProperties": [<optional property ids>],
+    "relevantPeriod": { "startYear": <opt>, "endYear": <opt> }
+  },
+  "message": "<2-4 sentence plain-English answer referencing specific numbers from the existing plan>",
+  "assumptions": []
+}
+
+Do not include \`clientProfile\`, \`investmentProfile\`, or \`properties\` on an \`explanation\` response — those fields cause the dashboard to rebuild the plan.
+
+
 **Client:** ${currentPlan.clientNames.join(' & ') || 'Not named'}
 **Investment Profile:**
 - Deposit Pool: $${currentPlan.investmentProfile.depositPool.toLocaleString()}

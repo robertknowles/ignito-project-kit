@@ -10,6 +10,7 @@ import {
   Loader2,
   Building2,
 } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
 // InputDrawer hidden for NL pivot — component preserved in codebase for future use
@@ -124,6 +125,8 @@ export const Portfolio = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
   const { clients, activeClient: globalActiveClient } = useClient()
   const { companyId } = useAuth()
+  const location = useLocation()
+  const routedPropertyInstanceId = (location.state as { propertyInstanceId?: string } | null)?.propertyInstanceId ?? null
 
   // Live context data — used to show unsaved plan data for active client
   const { propertyOrder: livePropertyOrder } = usePropertySelection()
@@ -688,8 +691,15 @@ export const Portfolio = () => {
                     )
                   }
 
-                  // Auto-select first tab if none selected or selection not in filtered list
-                  const activeTab = filteredCards.find(c => c.key === selectedPropertyTab) ? selectedPropertyTab : filteredCards[0]?.key
+                  // Auto-select first tab if none selected or selection not in filtered list.
+                  // If the user navigated in from a dashboard icon with a property instanceId,
+                  // prefer the matching card (unless the user has already picked a different tab).
+                  const routedCard = routedPropertyInstanceId
+                    ? filteredCards.find(c => c.property.instanceId === routedPropertyInstanceId)
+                    : undefined
+                  const activeTab = filteredCards.find(c => c.key === selectedPropertyTab)
+                    ? selectedPropertyTab
+                    : (routedCard?.key ?? filteredCards[0]?.key)
                   const activeCard = filteredCards.find(c => c.key === activeTab)
 
                   return (

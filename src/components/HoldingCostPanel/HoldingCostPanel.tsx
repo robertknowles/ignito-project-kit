@@ -214,29 +214,50 @@ export const HoldingCostPanel: React.FC = () => {
   );
 };
 
-/** Year dropdown for ChartCard action slot */
+/** Year selector (slider + dropdown) for ChartCard action slot */
 export const HoldingCostYearDropdown: React.FC = () => {
   const ctx = useContext(HoldingCostYearContext);
   if (!ctx) return null;
   const { snapshotYear, setSnapshotYear, yearOptions } = ctx;
 
+  const minYear = yearOptions[0] ?? snapshotYear;
+  const maxYear = yearOptions[yearOptions.length - 1] ?? snapshotYear;
+  const range = Math.max(1, maxYear - minYear);
+  const pct = ((snapshotYear - minYear) / range) * 100;
+
   return (
-    <select
-      value={snapshotYear}
-      onChange={e => setSnapshotYear(Number(e.target.value))}
-      className="appearance-none cursor-pointer bg-white text-[#414651] font-medium"
-      style={{
-        padding: '4px 10px',
-        fontSize: 13,
-        border: '1px solid #E5E7EB',
-        borderRadius: 6,
-        outline: 'none',
-      }}
-    >
-      {yearOptions.map(y => (
-        <option key={y} value={y}>{y}</option>
-      ))}
-    </select>
+    <div className="flex items-center gap-3">
+      {/* Mid-size slider */}
+      <input
+        type="range"
+        min={minYear}
+        max={maxYear}
+        step={1}
+        value={snapshotYear}
+        onChange={e => setSnapshotYear(Number(e.target.value))}
+        className="h-1.5 w-36 appearance-none cursor-pointer rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+        style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${pct}%, #E5E7EB ${pct}%, #E5E7EB 100%)` }}
+        aria-label="Holding cost snapshot year"
+      />
+
+      {/* Dropdown with explicit chevron */}
+      <div className="relative">
+        <select
+          value={snapshotYear}
+          onChange={e => setSnapshotYear(Number(e.target.value))}
+          className="appearance-none cursor-pointer bg-white text-[#414651] font-medium pr-7 pl-3 py-1 text-[13px] rounded-md focus:outline-none focus:ring-1 focus:ring-[#9CA3AF]"
+          style={{ border: '1px solid #E5E7EB' }}
+        >
+          {yearOptions.map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <ChevronDown
+          size={14}
+          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#717680]"
+        />
+      </div>
+    </div>
   );
 };
 

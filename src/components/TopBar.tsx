@@ -35,8 +35,8 @@ export const TopBar = () => {
 
   // Tab navigation items
   const tabs = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Portfolio', path: '/portfolio' },
+    { label: 'Portfolio', path: '/dashboard' },
+    { label: 'Per-Property', path: '/portfolio' },
     { label: 'Retirement', path: '/retirement' },
   ]
   const activeTab = location.pathname

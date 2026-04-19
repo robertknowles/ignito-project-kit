@@ -83,7 +83,7 @@ export const PacingToggle: React.FC<PacingToggleProps> = ({ compact = false }) =
             onClick={() => updateProfile({ pacingMode: value })}
             className={`flex-1 flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border transition-all text-center ${
               currentMode === value
-                ? 'bg-[#181D27] text-white border-[#181D27]'
+                ? 'bg-gray-600 text-white border-gray-600 hover:bg-gray-700 hover:border-gray-700'
                 : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
             }`}
           >

@@ -135,6 +135,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             strokeWidth={2}
             fill="url(#cashflowIncomeFill)"
             dot={false}
+            isAnimationActive={false}
           />
 
           {/* Expenses line — dashed grey with subtle fill */}
@@ -147,6 +148,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             strokeDasharray="6 3"
             fill="url(#cashflowExpensesFill)"
             dot={false}
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -71,57 +71,57 @@ export const RetirementScenarioPanel: React.FC = () => {
   const totalCount = summary.properties.length;
 
   return (
-    <div className="relative space-y-5">
+    <div className="relative space-y-6">
       {/* ── Strategy Chip — pinned top-right ─────────────────────── */}
       <div className="absolute right-0 text-right" style={{ top: '-4.5rem' }}>
-        <span className="text-[11px] font-medium text-gray-500 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+        <span className="text-[11px] font-medium text-[#535862] border border-[#E9EAEB] rounded-full px-3 py-1 whitespace-nowrap">
           {summary.chipLabel}
         </span>
-        <p className="text-[11px] text-gray-400 mt-1.5">
+        <p className="text-[11px] text-[#717680] mt-1.5">
           {soldCount} of {totalCount} properties sold at retirement
         </p>
       </div>
 
-      {/* ── KPI Cards — 5 across ─────────────────────────────────── */}
-      <div className="grid grid-cols-5 gap-3">
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Cash in Hand</span>
+      {/* ── KPI Cards — match dashboard SummaryBar styling ──────── */}
+      <div className="grid grid-cols-5 gap-4">
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862]">Cash in Hand</span>
           <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">{fmt(summary.cashInHand)}</span>
+            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.cashInHand)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Portfolio Value</span>
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
           <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">{fmt(summary.portfolioValue)}</span>
+            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.portfolioValue)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Total Equity</span>
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862]">Total Equity</span>
           <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">{fmt(summary.totalEquity)}</span>
+            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.totalEquity)}</span>
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Debt Remaining</span>
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862]">Debt Remaining</span>
           <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">{fmt(summary.debtRemaining)}</span>
+            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.debtRemaining)}</span>
           </div>
           {summary.debtRemaining === 0 && (
-            <span className="text-[10px] text-gray-400 block mt-0.5">Debt free</span>
+            <span className="text-[11px] text-[#717680] block mt-0.5">Debt free</span>
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Annual Cashflow</span>
-          <div className="mt-1">
-            <span className="text-lg font-semibold text-gray-600">
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862]">Annual Cashflow</span>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">
               {summary.annualCashflow >= 0 ? '+' : ''}{fmt(summary.annualCashflow)}
             </span>
-            <span className="text-[10px] font-normal text-gray-400">/yr</span>
+            <span className="text-sm text-[#717680]">/yr</span>
           </div>
         </div>
       </div>
@@ -159,11 +159,11 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div className="flex items-center gap-5 mt-2">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barPositive }} />
-            <span className="text-[11px] text-gray-400">Equity in property {fmt(summary.totalEquity)} — grows, not liquid</span>
+            <span className="text-[11px] text-[#717680]">Equity in property {fmt(summary.totalEquity)} — grows, not liquid</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barNegative }} />
-            <span className="text-[11px] text-gray-400">Cash in hand {fmt(summary.cashInHand)} — liquid after debt clearance</span>
+            <span className="text-[11px] text-[#717680]">Cash in hand {fmt(summary.cashInHand)} — liquid after debt clearance</span>
           </div>
         </div>
       </div>
@@ -171,14 +171,14 @@ export const RetirementScenarioPanel: React.FC = () => {
       {/* ── Bottom 2-col: Slider | Sell List ──────────────────────── */}
       <div className="grid grid-cols-2 gap-4">
         {/* Time to Retirement */}
-        <div className="rounded-lg border border-gray-200 px-4 py-4">
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
           <div className="flex items-baseline justify-between mb-4">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-sm font-medium text-[#535862]">
               Time to Retirement
             </span>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-semibold text-gray-600">{years}</span>
-              <span className="text-[11px] text-gray-400">yrs</span>
+              <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{years}</span>
+              <span className="text-sm text-[#717680]">yrs</span>
             </div>
           </div>
           <input
@@ -192,14 +192,14 @@ export const RetirementScenarioPanel: React.FC = () => {
             style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB 100%)` }}
           />
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-gray-300">5 yrs</span>
-            <span className="text-[10px] text-gray-300">25 yrs</span>
+            <span className="text-[11px] text-[#A4A7AE]">5 yrs</span>
+            <span className="text-[11px] text-[#A4A7AE]">25 yrs</span>
           </div>
         </div>
 
         {/* Sell at Retirement */}
-        <div className="rounded-lg border border-gray-200 px-4 py-4">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 block mb-3">
+        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
+          <span className="text-sm font-medium text-[#535862] block mb-3">
             Sell at Retirement
           </span>
           <div className="flex flex-col gap-2">
@@ -213,18 +213,18 @@ export const RetirementScenarioPanel: React.FC = () => {
                   disabled={!canSell}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all duration-150 ${
                     !canSell
-                      ? 'border-gray-50 bg-gray-50/50 opacity-50 cursor-not-allowed'
+                      ? 'border-[#E9EAEB] bg-[#F5F5F5]/40 opacity-50 cursor-not-allowed'
                       : isSold
-                        ? 'border-blue-200 bg-blue-50/50'
-                        : 'border-gray-100 bg-white hover:bg-gray-50'
+                        ? 'border-[#D5D7DA] bg-[#F5F5F5]'
+                        : 'border-[#E9EAEB] bg-white hover:bg-[#FAFAFA]'
                   }`}
                 >
                   <div className="text-left">
-                    <div className="text-[12px] font-medium text-gray-600 leading-tight">
-                      {isSold && <span className="text-gray-400 mr-1">Selling —</span>}
+                    <div className="text-[13px] font-medium text-[#181D27] leading-tight">
+                      {isSold && <span className="text-[#717680] mr-1">Selling —</span>}
                       {prop.title}
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">
+                    <div className="text-[11px] text-[#717680] mt-0.5">
                       {!canSell
                         ? `Not yet purchased (buys ${prop.purchaseYear})`
                         : `${prop.propertyType || 'Property'} · ${fmt(prop.futureEquity)} equity`
@@ -234,10 +234,10 @@ export const RetirementScenarioPanel: React.FC = () => {
                   <span
                     className={`text-[10px] font-medium tracking-wide px-2.5 py-1 rounded ${
                       !canSell
-                        ? 'border border-gray-100 text-gray-300'
+                        ? 'border border-[#E9EAEB] text-[#A4A7AE]'
                         : isSold
-                          ? 'bg-gray-500 text-white'
-                          : 'border border-gray-200 text-gray-400'
+                          ? 'bg-gray-600 text-white'
+                          : 'border border-[#E9EAEB] text-[#717680]'
                     }`}
                   >
                     {isSold ? 'SOLD' : 'SELL'}
@@ -252,7 +252,7 @@ export const RetirementScenarioPanel: React.FC = () => {
       {/* ── Cashflow Warning ──────────────────────────────────────── */}
       {summary.annualCashflow < 0 && soldCount < totalCount && (
         <div className="px-1">
-          <p className="text-[11px] font-medium text-gray-500">
+          <p className="text-[11px] font-medium text-[#535862]">
             Negative cashflow of {fmt(summary.annualCashflow)}/yr — top-up from other income required to hold this portfolio through retirement.
           </p>
         </div>
