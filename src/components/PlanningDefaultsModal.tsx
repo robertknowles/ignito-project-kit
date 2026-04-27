@@ -20,7 +20,7 @@ export interface PlanningDefaults {
   defaultInterestRate: number
   defaultTimeline: number
   defaultOwnership: 'individual' | 'joint'
-  defaultPacing: 'aggressive' | 'balanced' | 'conservative'
+  defaultStrategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
 }
 
 const DEFAULT_PLANNING: PlanningDefaults = {
@@ -32,7 +32,7 @@ const DEFAULT_PLANNING: PlanningDefaults = {
   defaultInterestRate: 6.5,
   defaultTimeline: 15,
   defaultOwnership: 'individual',
-  defaultPacing: 'balanced',
+  defaultStrategyPreset: 'eg-low',
 }
 
 const PROPERTY_TYPES = [
@@ -238,15 +238,17 @@ export const PlanningDefaultsModal: React.FC<PlanningDefaultsModalProps> = ({ is
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Pacing</label>
+                <label className="text-xs text-gray-400 block mb-1">Default strategy preset</label>
                 <select
-                  value={defaults.defaultPacing}
-                  onChange={e => setDefaults(d => ({ ...d, defaultPacing: e.target.value as 'aggressive' | 'balanced' | 'conservative' }))}
+                  value={defaults.defaultStrategyPreset}
+                  onChange={e => setDefaults(d => ({ ...d, defaultStrategyPreset: e.target.value as PlanningDefaults['defaultStrategyPreset'] }))}
                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md"
                 >
-                  <option value="aggressive">Aggressive</option>
-                  <option value="balanced">Balanced</option>
-                  <option value="conservative">Conservative</option>
+                  <option value="eg-low">Equity Growth — Low Price</option>
+                  <option value="eg-high">Equity Growth — High Price</option>
+                  <option value="cf-low">Cash Flow — Low Price</option>
+                  <option value="cf-high">Cash Flow — High Price</option>
+                  <option value="commercial-transition">Commercial Transition</option>
                 </select>
               </div>
             </div>

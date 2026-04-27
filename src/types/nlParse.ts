@@ -145,9 +145,6 @@ export interface NLParseResponse {
     parameters: Record<string, unknown>;
   };
 
-  // Acquisition pacing from NL input (legacy — superseded by strategyPreset; removed in Phase 5)
-  pacing?: 'aggressive' | 'balanced' | 'conservative';
-
   /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 

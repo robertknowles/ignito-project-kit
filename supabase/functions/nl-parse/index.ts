@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const { message, conversationHistory, currentPlan, userId, strategyPreset, pacingMode } = await req.json();
+    const { message, conversationHistory, currentPlan, userId, strategyPreset } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -63,10 +63,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build the system prompt with current plan context and active strategy preset.
-    // pacingMode is accepted but ignored — kept for one release as a backstop
-    // against in-flight requests from older clients; removed in Phase 5.
-    void pacingMode;
     const systemPrompt = buildSystemPrompt(currentPlan, strategyPreset);
 
     // Build message history for multi-turn conversation

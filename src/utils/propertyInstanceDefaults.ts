@@ -7,10 +7,8 @@ import {
   translateLegacyEngineId,
 } from './propertyCells';
 
-// v4: 10-cell type×mode matrix (current model)
-import propertyDefaultsV4 from '../data/property-defaults-v4.json';
-// v3: 8-template legacy model — kept for back-compat scenario loads.
-import propertyDefaultsV3 from '../data/property-defaults.json';
+// 10-cell type×mode matrix (canonical model).
+import propertyDefaults from '../data/property-defaults.json';
 
 /**
  * Converts a growthAssumption tier (High/Medium/Low) to a GrowthCurve.
@@ -42,14 +40,12 @@ const propertyTypeToKey = (propertyType: string): string => {
  * Returns instance defaults for a property type.
  *
  * Resolution order:
- *   1. If input is a v4 cell ID → return v4 defaults.
+ *   1. If input is a v4 cell ID → return cell defaults.
  *   2. If input is a legacy positional engine ID (`property_N`) → translate
- *      to v4 cell ID and return v4 defaults.
+ *      to v4 cell ID and return cell defaults.
  *   3. If input is a legacy v3 type key (e.g. "duplexes") → translate to v4
- *      cell ID and return v4 defaults (preserves saved scenarios).
- *   4. Normalise display label to a key:
- *      a. If normalised key is a v4 cell ID → v4 defaults.
- *      b. Else if normalised key is a v3 key → v3 defaults.
+ *      cell ID and return cell defaults (preserves saved scenarios).
+ *   4. Normalise display label to a key, then retry steps 1 + 3.
  *   5. Fall back to minimal defaults.
  *
  * `valuationAtPurchase` always defaults to `purchasePrice`.
@@ -57,46 +53,43 @@ const propertyTypeToKey = (propertyType: string): string => {
 export const getPropertyInstanceDefaults = (
   propertyType: string
 ): PropertyInstanceDetails => {
+  const lookupCell = (cellId: string): PropertyInstanceDetails | null => {
+    const defaults = propertyDefaults[cellId as keyof typeof propertyDefaults] as
+      | PropertyInstanceDetails
+      | undefined;
+    return defaults ? { ...defaults, valuationAtPurchase: defaults.purchasePrice } : null;
+  };
+
   // 1. Direct v4 cell ID
   if (isCellId(propertyType)) {
-    const defaults = propertyDefaultsV4[propertyType] as PropertyInstanceDetails;
-    return { ...defaults, valuationAtPurchase: defaults.purchasePrice };
+    const result = lookupCell(propertyType);
+    if (result) return result;
   }
 
   // 2. Legacy positional engine ID (property_0..property_7)
   const positionalCellId = translateLegacyEngineId(propertyType);
   if (positionalCellId) {
-    const defaults = propertyDefaultsV4[positionalCellId] as PropertyInstanceDetails;
-    return { ...defaults, valuationAtPurchase: defaults.purchasePrice };
+    const result = lookupCell(positionalCellId);
+    if (result) return result;
   }
 
   // 3. Legacy v3 type key (e.g. "duplexes", "units-apartments")
   const legacyTranslation = translateLegacyTypeKey(propertyType);
   if (legacyTranslation) {
-    const defaults = propertyDefaultsV4[legacyTranslation.newCellId] as PropertyInstanceDetails;
-    return { ...defaults, valuationAtPurchase: defaults.purchasePrice };
+    const result = lookupCell(legacyTranslation.newCellId);
+    if (result) return result;
   }
 
-  // 4. Display-label paths
+  // 4. Display-label normalisation
   const normalisedKey = propertyTypeToKey(propertyType);
-
-  // 4a. Normalised → v4 cell ID
   if (isCellId(normalisedKey)) {
-    const defaults = propertyDefaultsV4[normalisedKey] as PropertyInstanceDetails;
-    return { ...defaults, valuationAtPurchase: defaults.purchasePrice };
+    const result = lookupCell(normalisedKey);
+    if (result) return result;
   }
-
-  // 4b. Normalised → v3 key (back-compat for "Metro Houses" etc. before UI migration)
-  const v3Defaults = propertyDefaultsV3[normalisedKey as keyof typeof propertyDefaultsV3];
-  if (v3Defaults) {
-    // Translate v3 → v4 to keep behaviour aligned with the new matrix.
-    const v3Translation = translateLegacyTypeKey(normalisedKey);
-    if (v3Translation) {
-      const v4Defaults = propertyDefaultsV4[v3Translation.newCellId] as PropertyInstanceDetails;
-      return { ...v4Defaults, valuationAtPurchase: v4Defaults.purchasePrice };
-    }
-    // No translation found — return v3 defaults as-is (defensive fallback).
-    return { ...v3Defaults, valuationAtPurchase: v3Defaults.purchasePrice } as PropertyInstanceDetails;
+  const normalisedLegacy = translateLegacyTypeKey(normalisedKey);
+  if (normalisedLegacy) {
+    const result = lookupCell(normalisedLegacy.newCellId);
+    if (result) return result;
   }
 
   // 5. Minimal defaults

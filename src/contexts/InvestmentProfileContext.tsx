@@ -29,14 +29,11 @@ export interface InvestmentProfileData {
   // NEW: Financial Freedom projection
   targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
   ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
-  // Acquisition pacing mode (deprecated — replaced by strategyPreset; removed in Phase 5)
-  pacingMode: 'aggressive' | 'balanced' | 'conservative';
   /**
    * Strategic preset selected by the BA. Drives chatbot cell selection and
-   * property sequencing per the 10-cell matrix. Optional during the pivot —
-   * defaults to 'eg-low' if not set.
+   * property sequencing per the 10-cell matrix.
    */
-  strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
+  strategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 }
 
 export interface CalculatedValues {
@@ -94,7 +91,6 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
     // NEW: Financial Freedom projection
     targetPassiveIncome: 80000, // $80k annual passive income target
     ioToPiTransitionYears: 5, // 5 years after last purchase, switch IO→P&I
-    pacingMode: 'balanced',
     strategyPreset: 'eg-low',
   });
 

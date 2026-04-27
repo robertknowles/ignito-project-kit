@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
-import propertyDefaultsV4 from '../data/property-defaults-v4.json';
-import propertyDefaultsV3 from '../data/property-defaults.json';
+import propertyDefaults from '../data/property-defaults.json';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
 import {
   CELL_IDS,
@@ -117,7 +116,7 @@ const initializePropertyAssumptions = (): PropertyAssumption[] => {
   return CELL_IDS.map((cellId) =>
     convertToPropertyAssumption(
       cellId,
-      propertyDefaultsV4[cellId] as PropertyInstanceDetails
+      propertyDefaults[cellId] as PropertyInstanceDetails
     )
   );
 };
@@ -129,7 +128,7 @@ const initializePropertyAssumptions = (): PropertyAssumption[] => {
  */
 const initializePropertyTypeTemplates = (): PropertyTypeTemplate[] => {
   return CELL_IDS.map((cellId) => ({
-    ...(propertyDefaultsV4[cellId] as PropertyInstanceDetails),
+    ...(propertyDefaults[cellId] as PropertyInstanceDetails),
     propertyType: getCellDisplayLabel(cellId),
     cellId,
   }));

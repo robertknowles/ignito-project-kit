@@ -62,7 +62,13 @@
       "Bash(node -e ' *)",
       "Bash(python3 -c \"import json; json.load\\(open\\('src/data/property-defaults.json'\\)\\); print\\('JSON valid'\\)\")",
       "Bash(git rev-list *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node -e \"const j = require\\('./src/data/property-defaults-v4.json'\\); const keys = Object.keys\\(j\\); console.log\\('cells:', keys.length\\); const fields = Object.keys\\(j[keys[0]]\\); console.log\\('fields per cell:', fields.length\\); console.log\\('sample fields:', fields.slice\\(0,8\\).join\\(','\\)\\);\")",
+      "Bash(sed -n '120,140p' src/hooks/useAllClientScenarios.ts)",
+      "Bash(sed -n '270,285p' src/pages/DataAssumptions.tsx)",
+      "Bash(sed -n '1,50p' src/hooks/useAllClientScenarios.ts)",
+      "Bash(sed -n '260,290p' src/pages/DataAssumptions.tsx)",
+      "Bash(grep -rn \"property_\\\\\\\\\\\\\\\\d\\\\\\\\|propertyId\\\\\\\\.match\\\\\\\\|\\\\\\\\\\\\\\\\\\\\\\\\$\\\\\\\\{property_\\\\\\\\|\\\\\\\\\\\\\"property_\\\\\\\\|'property_\" src/ --include=\"*.ts\" --include=\"*.tsx\")"
     ]
   }
 }

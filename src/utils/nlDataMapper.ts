@@ -100,12 +100,7 @@ export function mapToInvestmentProfile(
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
   }
 
-  // Pacing mode from NL input (legacy — superseded by strategyPreset; kept until Phase 5)
-  if (response.pacing) {
-    updates.pacingMode = response.pacing;
-  }
-
-  // Strategy preset from NL input (new path)
+  // Strategy preset from NL input.
   if (response.strategyPreset) {
     updates.strategyPreset = response.strategyPreset;
   }
