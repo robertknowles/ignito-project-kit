@@ -220,7 +220,7 @@ const Hero: React.FC = () => {
                         { label: 'Change # of properties', icon: <Hash size={12} /> },
                         { label: 'Change property prices', icon: <DollarSign size={12} /> },
                         { label: 'Change property types', icon: <Home size={12} /> },
-                        { label: 'Change timing / pacing', icon: <Clock size={12} /> },
+                        { label: 'Switch strategy', icon: <Clock size={12} /> },
                       ].map((btn) => (
                         <div
                           key={btn.label}
