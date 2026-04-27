@@ -3,6 +3,25 @@ import { useDataAssumptions } from './DataAssumptionsContext';
 import { useClient } from './ClientContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
+import { translateLegacyEngineId, translateLegacyInstanceId } from '../utils/propertyCells';
+
+/**
+ * Translate any legacy keys in a stored selections record (e.g.
+ * `{ property_5: 2 }`) to v4 cell IDs (`{ "metro-house-growth": 2 }`).
+ * Unknown keys are kept as-is so custom blocks survive.
+ */
+const translateSelections = (raw: PropertySelection): PropertySelection => {
+  const out: PropertySelection = {};
+  for (const [key, qty] of Object.entries(raw)) {
+    const newKey = translateLegacyEngineId(key) ?? key;
+    out[newKey] = (out[newKey] ?? 0) + qty;
+  }
+  return out;
+};
+
+/** Translate any legacy entries in a stored property order array to v4 form. */
+const translatePropertyOrder = (raw: string[]): string[] =>
+  raw.map((id) => translateLegacyInstanceId(id));
 
 export interface PropertyType {
   id: string;
@@ -244,17 +263,18 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     pendingQuantityRef.current = { ...selections };
   }, [selections]);
 
-  // Convert property type templates to property types for calculations
+  // Convert property type templates to property types for calculations.
+  // The `id` is now the v4 cell ID (e.g. "metro-house-growth"), aligning the
+  // engine ID with chatbot output and persisted scenario data.
   const propertyTypes = useMemo(() => {
-    // Predefined property types from templates (source of truth)
-    const predefinedTypes = propertyTypeTemplates.map((template, index) => {
+    const predefinedTypes = propertyTypeTemplates.map((template) => {
       const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100;
       const depositPercent = 100 - template.lvr;
-      const growthTier = (template.growthAssumption || 'Medium') as keyof typeof GROWTH_RATES;
+      const growthTier = (template.growthAssumption || 'Medium') as keyof typeof GROWTH_RATE_TIERS;
       const rates = GROWTH_RATE_TIERS[growthTier] || GROWTH_RATE_TIERS.Medium;
-      
+
       return {
-        id: `property_${index}`,
+        id: template.cellId,
         title: template.propertyType,
         priceRange: `$${template.purchasePrice.toLocaleString()}`,
         yield: `${yieldPercent.toFixed(1)}%`,
@@ -263,7 +283,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         cost: template.purchasePrice,
         depositRequired: Math.round((template.purchasePrice * depositPercent) / 100),
         yieldPercent: yieldPercent,
-        growthPercent: rates.year1, // Use Year 1 growth rate for display
+        growthPercent: rates.year1,
         state: template.state || 'NSW',
         loanType: template.loanProduct || 'IO',
         isCustom: false,
@@ -506,17 +526,17 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     // This prevents React batching issues
     setTimeout(() => {
       try {
-        // Load property selections
+        // Load property selections — translate any legacy positional IDs to v4 cell IDs.
         const storageKey = `property_selections_${clientId}`;
         const stored = localStorage.getItem(storageKey);
-        
+
         if (stored) {
-          const parsedSelections = JSON.parse(stored);
-          setSelections(parsedSelections);
+          const parsedSelections = JSON.parse(stored) as PropertySelection;
+          setSelections(translateSelections(parsedSelections));
         } else {
           setSelections({});
         }
-        
+
         // Load pause blocks
         const pauseStorageKey = `pause_blocks_${clientId}`;
         const storedPauses = localStorage.getItem(pauseStorageKey);
@@ -525,7 +545,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         } else {
           setPauseBlocks([]);
         }
-        
+
         // Load custom blocks
         const customBlocksStorageKey = `custom_blocks_${clientId}`;
         const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
@@ -534,7 +554,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         } else {
           setCustomBlocks([]);
         }
-        
+
         // Load event blocks
         const eventBlocksStorageKey = `event_blocks_${clientId}`;
         const storedEventBlocks = localStorage.getItem(eventBlocksStorageKey);
@@ -543,15 +563,17 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         } else {
           setEventBlocks([]);
         }
-        
-        // Load property order
+
+        // Load property order — translate legacy instance IDs to v4 form.
         const propertyOrderStorageKey = `property_order_${clientId}`;
         const storedPropertyOrder = localStorage.getItem(propertyOrderStorageKey);
         if (storedPropertyOrder) {
-          setPropertyOrder(JSON.parse(storedPropertyOrder));
+          setPropertyOrder(translatePropertyOrder(JSON.parse(storedPropertyOrder) as string[]));
         } else {
-          // If no property order exists, reconstruct from selections for backwards compatibility
-          const parsedSelections = stored ? JSON.parse(stored) : {};
+          // No stored order — reconstruct from (translated) selections.
+          const parsedSelections = stored
+            ? translateSelections(JSON.parse(stored) as PropertySelection)
+            : {};
           const reconstructedOrder: string[] = [];
           Object.entries(parsedSelections).forEach(([propertyId, quantity]) => {
             for (let i = 0; i < (quantity as number); i++) {

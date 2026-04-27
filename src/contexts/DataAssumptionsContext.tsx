@@ -2,12 +2,21 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
-import propertyDefaults from '../data/property-defaults.json';
+import propertyDefaultsV4 from '../data/property-defaults-v4.json';
+import propertyDefaultsV3 from '../data/property-defaults.json';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
+import {
+  CELL_IDS,
+  type CellId,
+  getCellDisplayLabel,
+  translateLegacyTypeKey,
+  isCellId,
+} from '../utils/propertyCells';
 
-// Property Type Template: Contains all 36 fields from PropertyInstanceDetails
+// Property Type Template: Contains all PropertyInstanceDetails fields plus identity.
 export interface PropertyTypeTemplate extends PropertyInstanceDetails {
-  propertyType: string; // Display name (e.g., "Units / Apartments")
+  propertyType: string; // Display label (e.g., "Metro House — Growth")
+  cellId: CellId;       // v4 cell ID (e.g., "metro-house-growth")
 }
 
 // DEPRECATED: Old property assumptions interface - kept for migration only
@@ -62,21 +71,15 @@ interface DataAssumptionsProviderProps {
 type GrowthAssumption = 'High' | 'Medium' | 'Low';
 
 /**
- * Converts property defaults key to display name
+ * Converts a property type key to its display label.
+ * v4 cell IDs use propertyCells.getCellDisplayLabel.
+ * Legacy v3 keys translate through the alias map first.
  */
 const keyToDisplayName = (key: string): string => {
-  // NOTE: These names MUST match keyToPropertyType exactly for template lookups to work
-  const map: Record<string, string> = {
-    'units-apartments': 'Units / Apartments',
-    'villas-townhouses': 'Villas / Townhouses',
-    'houses-regional': 'Houses (Regional)',
-    'duplexes': 'Duplexes',
-    'small-blocks-3-4-units': 'Small Blocks (3-4 Units)',
-    'metro-houses': 'Metro Houses',
-    'larger-blocks-10-20-units': 'Larger Blocks (10-20 Units)',
-    'commercial-property': 'Commercial Property',
-  };
-  return map[key] || key;
+  if (isCellId(key)) return getCellDisplayLabel(key);
+  const translation = translateLegacyTypeKey(key);
+  if (translation) return getCellDisplayLabel(translation.newCellId);
+  return key;
 };
 
 /**
@@ -107,52 +110,28 @@ const convertToPropertyAssumption = (key: string, defaults: PropertyInstanceDeta
 };
 
 /**
- * Initialize default property assumptions from property-defaults.json
+ * Initialize the deprecated PropertyAssumption[] from v4 cells.
+ * Kept until consumers of getPropertyData migrate to propertyTypeTemplates.
  */
 const initializePropertyAssumptions = (): PropertyAssumption[] => {
-  return Object.keys(propertyDefaults).map(key => 
+  return CELL_IDS.map((cellId) =>
     convertToPropertyAssumption(
-      key, 
-      propertyDefaults[key as keyof typeof propertyDefaults] as PropertyInstanceDetails
+      cellId,
+      propertyDefaultsV4[cellId] as PropertyInstanceDetails
     )
   );
 };
 
 /**
- * Convert property key to display name
- */
-const keyToPropertyType = (key: string): string => {
-  const mapping: Record<string, string> = {
-    'units-apartments': 'Units / Apartments',
-    'villas-townhouses': 'Villas / Townhouses',
-    'houses-regional': 'Houses (Regional)',
-    'duplexes': 'Duplexes',
-    'small-blocks-3-4-units': 'Small Blocks (3-4 Units)',
-    'metro-houses': 'Metro Houses',
-    'larger-blocks-10-20-units': 'Larger Blocks (10-20 Units)',
-    'commercial-property': 'Commercial Property',
-  };
-  return mapping[key] || key;
-};
-
-/**
- * Convert property type display name to key
- */
-const propertyTypeToKey = (propertyType: string): string => {
-  return propertyType
-    .toLowerCase()
-    .replace(/\s*\/\s*/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/[()]/g, '');
-};
-
-/**
- * Initialize property type templates from property-defaults.json
+ * Initialize property type templates from v4 cells (10 cells, type×mode matrix).
+ * Each template carries both the display label (legacy match key) and cellId
+ * (canonical match key), so callers can look up by either.
  */
 const initializePropertyTypeTemplates = (): PropertyTypeTemplate[] => {
-  return Object.keys(propertyDefaults).map(key => ({
-    ...propertyDefaults[key as keyof typeof propertyDefaults] as PropertyInstanceDetails,
-    propertyType: keyToPropertyType(key),
+  return CELL_IDS.map((cellId) => ({
+    ...(propertyDefaultsV4[cellId] as PropertyInstanceDetails),
+    propertyType: getCellDisplayLabel(cellId),
+    cellId,
   }));
 };
 
@@ -306,41 +285,52 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     };
   }, [propertyTypeTemplates, propertyAssumptions, globalFactors, user, role]);
 
-  // NEW: Property type template methods
+  /**
+   * Resolve any caller-supplied property identifier to its template.
+   * Accepts:
+   *   - v4 cell ID ("metro-house-growth")
+   *   - v4 display label ("Metro House — Growth")
+   *   - Legacy v3 key ("duplexes") — translated to v4 cell ID
+   *   - Legacy v3 display label ("Duplexes") — translated by normalising and re-checking
+   */
   const getPropertyTypeTemplate = (propertyType: string): PropertyTypeTemplate | undefined => {
-    // First try exact match
-    let result = propertyTypeTemplates.find(template => template.propertyType === propertyType);
-    
-    // If not found, try normalized match (handles legacy name mismatches from database)
-    // Known mismatches: "Houses (Regional focus)" vs "Houses (Regional)", case differences in "units" vs "Units"
-    if (!result) {
-      const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim();
-      const normalizedInput = normalizeForMatch(propertyType);
-      result = propertyTypeTemplates.find(template => normalizeForMatch(template.propertyType) === normalizedInput);
+    // 1. Direct cell ID match
+    if (isCellId(propertyType)) {
+      return propertyTypeTemplates.find((t) => t.cellId === propertyType);
     }
-    
-    return result;
+
+    // 2. Direct display label match
+    let result = propertyTypeTemplates.find((t) => t.propertyType === propertyType);
+    if (result) return result;
+
+    // 3. Legacy v3 key → translate to v4 cell ID
+    const translation = translateLegacyTypeKey(propertyType);
+    if (translation) {
+      return propertyTypeTemplates.find((t) => t.cellId === translation.newCellId);
+    }
+
+    // 4. Normalised display label match (handles "Houses (Regional focus)" → "houses-regional")
+    const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim();
+    const normalizedInput = normalizeForMatch(propertyType);
+    result = propertyTypeTemplates.find((t) => normalizeForMatch(t.propertyType) === normalizedInput);
+    if (result) return result;
+
+    // 5. Try v3-key-shaped form of the normalised display label
+    const v3Key = normalizedInput.replace(/\s*\/\s*/g, '-').replace(/\s+/g, '-').replace(/[()]/g, '');
+    const v3Translation = translateLegacyTypeKey(v3Key);
+    if (v3Translation) {
+      return propertyTypeTemplates.find((t) => t.cellId === v3Translation.newCellId);
+    }
+
+    return undefined;
   };
 
   const updatePropertyTypeTemplate = (propertyType: string, updates: Partial<PropertyInstanceDetails>) => {
-    setPropertyTypeTemplates(prev => {
-      // Helper to normalize property type names for matching (same as getPropertyTypeTemplate)
-      const normalizeForMatch = (name: string) => name.toLowerCase().replace(' focus', '').trim();
-      const normalizedInput = normalizeForMatch(propertyType);
-      
-      return prev.map(template => {
-        // First try exact match
-        if (template.propertyType === propertyType) {
-          return { ...template, ...updates };
-        }
-        // Then try normalized match (handles legacy name mismatches from database)
-        // Known mismatches: "Houses (Regional focus)" vs "Houses (Regional)", case differences
-        if (normalizeForMatch(template.propertyType) === normalizedInput) {
-          return { ...template, ...updates };
-        }
-        return template;
-      });
-    });
+    const target = getPropertyTypeTemplate(propertyType);
+    if (!target) return;
+    setPropertyTypeTemplates((prev) =>
+      prev.map((t) => (t.cellId === target.cellId ? { ...t, ...updates } : t))
+    );
   };
 
   // DEPRECATED: Old methods (kept for backward compatibility)

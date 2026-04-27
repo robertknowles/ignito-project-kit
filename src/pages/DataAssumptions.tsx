@@ -18,6 +18,7 @@ import { LibraryDrawer } from '../components/LibraryDrawer'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useClient, Client } from '../contexts/ClientContext'
+import { translateLegacyEngineId } from '../utils/propertyCells'
 import { useAuth } from '../contexts/AuthContext'
 import { PropertyDetailModal } from '../components/PropertyDetailModal'
 import { TitleDeedCard } from '../components/TitleDeedCard'
@@ -272,14 +273,24 @@ export const DataAssumptions = () => {
               const instance = propertyInstances[instanceId] || {}
               const tracking = portfolioTracking[instanceId] || {}
 
-              // Extract property type from instance ID (e.g. "property_0_instance_0" → "property_0")
-              const propTypeMatch = instanceId.match(/^(property_\d+)_instance_\d+$/)
+              // Extract property type from instance ID. Supports both legacy positional
+              // form ("property_0_instance_0") and v4 cell-ID form ("metro-house-growth_instance_0").
+              const propTypeMatch = instanceId.match(/^(.+)_instance_\d+$/)
               const propTypeId = propTypeMatch ? propTypeMatch[1] : instanceId
 
-              // Try to get a title from the property type templates
-              const propIndex = propTypeId.match(/property_(\d+)/)
-              const templateIndex = propIndex ? parseInt(propIndex[1], 10) : -1
-              const template = templateIndex >= 0 ? propertyTypeTemplates[templateIndex] : null
+              // Resolve type ID → template via cellId, with legacy positional fallback.
+              let template = propertyTypeTemplates.find((t) => t.cellId === propTypeId) ?? null
+              if (!template) {
+                const translatedCellId = translateLegacyEngineId(propTypeId)
+                if (translatedCellId) {
+                  template = propertyTypeTemplates.find((t) => t.cellId === translatedCellId) ?? null
+                }
+              }
+              if (!template) {
+                const propIndex = propTypeId.match(/property_(\d+)/)
+                const templateIndex = propIndex ? parseInt(propIndex[1], 10) : -1
+                template = templateIndex >= 0 ? propertyTypeTemplates[templateIndex] : null
+              }
               const title = template ? template.propertyType : instance.title || `Property ${idx + 1}`
 
               // Estimate purchase year based on position

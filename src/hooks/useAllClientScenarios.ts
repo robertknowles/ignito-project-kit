@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useClient } from '../contexts/ClientContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import { translateLegacyEngineId } from '../utils/propertyCells';
 
 export interface TimelinePurchase {
   year: number;
@@ -124,19 +125,27 @@ let propertyNumber = 1;
 
               Object.entries(selections).forEach(([propertyId, quantity]) => {
                 const qty = quantity as number;
-                
-                // propertyId is like "property_0", "property_7", etc.
-                // Extract the index number
-                const match = propertyId.match(/property_(\d+)/);
-                if (!match || qty === 0) {
+                if (qty === 0) {
                   return;
                 }
-                
-                const propertyIndex = parseInt(match[1], 10);
-                
-                // Find the matching template by index, then get fresh data via getPropertyData
-                const template = propertyTypeTemplates[propertyIndex];
-                const assumption = template ? getPropertyData(template.propertyType) : propertyAssumptions[propertyIndex];
+
+                // Resolve propertyId → template, supporting both legacy positional
+                // IDs ("property_5") and v4 cell IDs ("metro-house-growth").
+                let template = propertyTypeTemplates.find((t) => t.cellId === propertyId);
+                if (!template) {
+                  const translatedCellId = translateLegacyEngineId(propertyId);
+                  if (translatedCellId) {
+                    template = propertyTypeTemplates.find((t) => t.cellId === translatedCellId);
+                  }
+                }
+                // Final fallback: legacy positional index lookup (pre-v4 behaviour).
+                if (!template) {
+                  const match = propertyId.match(/property_(\d+)/);
+                  const propertyIndex = match ? parseInt(match[1], 10) : -1;
+                  template = propertyIndex >= 0 ? propertyTypeTemplates[propertyIndex] : undefined;
+                }
+
+                const assumption = template ? getPropertyData(template.propertyType) : undefined;
                 
                 if (!assumption) {
                   return;

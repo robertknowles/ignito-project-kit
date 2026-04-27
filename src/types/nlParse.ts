@@ -22,6 +22,8 @@ export interface CurrentPlanState {
     timelineYears: number;
     equityGoal: number;
     cashflowGoal: number;
+    /** v4 strategy preset selected by the BA. Drives chatbot cell selection. */
+    strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
   };
   properties: Array<{
     instanceId: string;
@@ -32,6 +34,8 @@ export interface CurrentPlanState {
     growthAssumption: 'High' | 'Medium' | 'Low';
     loanProduct: 'IO' | 'PI';
     lvr: number;
+    /** v4 mode of the cell ("Growth"/"Cashflow" for residential; "HighCost"/"LowCost" for Commercial). */
+    mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
   }>;
   clientNames: string[];
 }
@@ -69,7 +73,9 @@ export interface NLParseResponse {
 
   // For initial_plan — property sequence
   properties?: Array<{
-    type: string; // Must match property-defaults.json keys (e.g. "units-apartments")
+    type: string; // v4 cell ID (e.g. "metro-house-growth"). Legacy v3 keys still accepted.
+    /** v4 mode of the cell. If omitted, the cell's default mode is used. */
+    mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
     purchasePrice: number;
     state: string; // NSW, VIC, QLD, SA, WA, TAS, NT, ACT
     growthAssumption: 'High' | 'Medium' | 'Low';
@@ -139,8 +145,11 @@ export interface NLParseResponse {
     parameters: Record<string, unknown>;
   };
 
-  // Acquisition pacing from NL input
+  // Acquisition pacing from NL input (legacy — superseded by strategyPreset; removed in Phase 5)
   pacing?: 'aggressive' | 'balanced' | 'conservative';
+
+  /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
+  strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 
   // Post-plan refinement options — contextual buttons shown after initial plan generation
   refinementOptions?: Array<{

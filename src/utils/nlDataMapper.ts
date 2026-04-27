@@ -13,19 +13,31 @@ import type { InvestmentProfileData } from '@/contexts/InvestmentProfileContext'
 import type { PropertySelection } from '@/contexts/PropertySelectionContext';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
-import propertyDefaults from '@/data/property-defaults.json';
+import {
+  isCellId,
+  translateLegacyTypeKey,
+  translateLegacyEngineId,
+  type CellId,
+} from '@/utils/propertyCells';
 
-// ── Property Type Key → Engine ID Mapping ─────────────────────────
-// The engine (PropertySelectionContext) uses index-based IDs like "property_0".
-// The NL system uses descriptive keys like "units-apartments".
-// This map bridges the two worlds.
-const propertyDefaultKeys = Object.keys(propertyDefaults);
-const nlKeyToEngineId: Record<string, string> = {};
-const engineIdToNlKey: Record<string, string> = {};
-propertyDefaultKeys.forEach((key, index) => {
-  nlKeyToEngineId[key] = `property_${index}`;
-  engineIdToNlKey[`property_${index}`] = key;
-});
+/**
+ * Resolve any chatbot-supplied property type value to a v4 cell ID.
+ *
+ * Accepts:
+ *   - A v4 cell ID directly ("metro-house-growth")
+ *   - A legacy v3 type key ("duplexes", "units-apartments")
+ *   - A legacy positional engine ID ("property_5") — defensive
+ *
+ * Returns null if no translation possible (unknown type).
+ */
+const resolveCellId = (value: string): CellId | null => {
+  if (isCellId(value)) return value;
+  const legacyTranslation = translateLegacyTypeKey(value);
+  if (legacyTranslation) return legacyTranslation.newCellId;
+  const positional = translateLegacyEngineId(value);
+  if (positional) return positional;
+  return null;
+};
 
 // ── Step 1.6: Map to Investment Profile ────────────────────────────
 
@@ -88,9 +100,14 @@ export function mapToInvestmentProfile(
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
   }
 
-  // Pacing mode from NL input
+  // Pacing mode from NL input (legacy — superseded by strategyPreset; kept until Phase 5)
   if (response.pacing) {
     updates.pacingMode = response.pacing;
+  }
+
+  // Strategy preset from NL input (new path)
+  if (response.strategyPreset) {
+    updates.strategyPreset = response.strategyPreset;
   }
 
   return updates;
@@ -124,34 +141,37 @@ export function mapToPropertySelections(
     return { selections, propertyOrder, instances };
   }
 
-  // Track counts per property type to generate correct instance IDs
+  // Track counts per cell ID to generate correct instance IDs.
   const typeCounts: Record<string, number> = {};
 
   for (const prop of response.properties) {
-    const nlKey = prop.type; // Descriptive key from Claude (e.g. "units-apartments")
-    // Convert to engine ID (e.g. "property_0") — fall back to nlKey for custom types
-    const engineId = nlKeyToEngineId[nlKey] ?? nlKey;
+    // Resolve Claude's `prop.type` to a v4 cell ID. Accepts cell IDs,
+    // legacy v3 keys, or positional engine IDs.
+    const resolvedCellId = resolveCellId(prop.type);
+    // If unresolvable (truly unknown type), fall back to the raw input —
+    // engine still works, it just won't have matrix-defined defaults.
+    const engineId: string = resolvedCellId ?? prop.type;
 
-    // Count this type
     const currentCount = typeCounts[engineId] ?? 0;
     typeCounts[engineId] = currentCount + 1;
 
-    // Generate instance ID matching PropPath's convention: {engineId}_instance_{index}
+    // Instance ID convention: {cellId}_instance_{index}
     const instanceId = `${engineId}_instance_${currentCount}`;
 
-    // Get the full 36-field template from property-defaults.json
-    // Use the NL key (descriptive name) since getPropertyInstanceDefaults expects that format
-    const defaults = getPropertyInstanceDefaults(nlKey);
+    // Pull the full template defaults for this cell.
+    const defaults = getPropertyInstanceDefaults(engineId);
 
-    // Overlay Claude's extracted values onto the defaults
+    // Overlay Claude's extracted values. Mode comes from prop.mode if Claude
+    // sent it (Phase 3+); otherwise inherit the cell's default mode from defaults.
     const instance: PropertyInstanceDetails = {
       ...defaults,
       purchasePrice: prop.purchasePrice,
-      valuationAtPurchase: prop.purchasePrice, // Always match purchase price
+      valuationAtPurchase: prop.purchasePrice,
       state: prop.state,
       growthAssumption: prop.growthAssumption,
       loanProduct: prop.loanProduct,
       lvr: prop.lvr,
+      mode: prop.mode ?? defaults.mode,
     };
 
     // Optional: rent per week (if Claude extracted it)
