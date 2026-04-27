@@ -35,6 +35,7 @@ import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
+import { CHAT_SEND_EVENT, type ChatSendDetail } from '@/utils/chatBus'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -506,6 +507,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     },
     [isLoading, sendMessage]
   )
+
+  // Listen for cross-component chat sends (e.g. dashboard property cards
+  // dispatching a re-plan when the BA changes a property type bucket).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<ChatSendDetail>).detail
+      if (detail?.message && !isLoading) {
+        sendMessage(detail.message)
+      }
+    }
+    window.addEventListener(CHAT_SEND_EVENT, handler)
+    return () => window.removeEventListener(CHAT_SEND_EVENT, handler)
+  }, [isLoading, sendMessage])
 
   // Drag handle for resizing
   const handleResizeStart = useCallback((e: React.MouseEvent) => {

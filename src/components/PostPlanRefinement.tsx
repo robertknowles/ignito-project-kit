@@ -1,15 +1,14 @@
 /**
- * PostPlanRefinement — 2-step refinement flow after plan generation
+ * PostPlanRefinement — strategic-intent buttons under the chat input.
  *
- * Step 1: Fixed category buttons (# properties, prices, types, pacing)
- * Step 2: Contextual sub-options based on what was clicked
- *
- * Fully client-side — no AI call needed for the button display.
+ * Parametric edits (price, type, count) are now handled directly via the
+ * dashboard property cards. Chat is reserved for strategic intent — risk
+ * profile, pacing, stress tests, and full strategy switches.
  */
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { HashIcon, DollarSignIcon, HomeIcon, GaugeIcon, ChevronLeftIcon } from 'lucide-react'
+import { ShieldIcon, GaugeIcon, ActivityIcon, RefreshCwIcon, ChevronLeftIcon } from 'lucide-react'
 
 interface PostPlanRefinementProps {
   propertyCount: number
@@ -25,67 +24,41 @@ interface Category {
 
 const categories: Category[] = [
   {
-    id: 'count',
-    label: 'Change # of properties',
-    icon: <HashIcon size={12} />,
-    getOptions: (count) => {
-      const opts: Array<{ label: string; prompt: string }> = []
-      if (count > 1) {
-        opts.push({
-          label: `Remove one (→ ${count - 1})`,
-          prompt: `Remove one property from the plan, keep the best ${count - 1}`,
-        })
-      }
-      opts.push({
-        label: `Add one more (→ ${count + 1})`,
-        prompt: `Add one more property to the portfolio, making it ${count + 1} total`,
-      })
-      if (count > 2) {
-        opts.push({
-          label: `Start smaller (→ 2)`,
-          prompt: 'Scale back to just 2 properties to start with',
-        })
-      }
-      if (count < 5) {
-        opts.push({
-          label: `Go bigger (→ ${Math.min(count + 2, 6)})`,
-          prompt: `Expand to ${Math.min(count + 2, 6)} properties total`,
-        })
-      }
-      return opts
-    },
-  },
-  {
-    id: 'price',
-    label: 'Change property prices',
-    icon: <DollarSignIcon size={12} />,
+    id: 'risk',
+    label: 'Risk profile',
+    icon: <ShieldIcon size={12} />,
     getOptions: () => [
-      { label: 'Cheaper entry points', prompt: 'Bring property prices down — focus on more affordable entry points under $500k' },
-      { label: 'Mid-range ($500-700k)', prompt: 'Adjust property prices to the $500-700k range' },
-      { label: 'Higher end ($700k+)', prompt: 'Push property prices higher — $700k+ range for better capital growth' },
-      { label: 'Mix of price points', prompt: 'Mix up the prices — start cheap and work up to more expensive properties later' },
-    ],
-  },
-  {
-    id: 'type',
-    label: 'Change property types',
-    icon: <HomeIcon size={12} />,
-    getOptions: () => [
-      { label: 'All units/apartments', prompt: 'Switch all properties to units or apartments' },
-      { label: 'All houses', prompt: 'Switch all properties to houses' },
-      { label: 'Townhouses / villas', prompt: 'Switch to townhouses or villas for better land content' },
-      { label: 'Mix of types', prompt: 'Mix property types — some units, some houses, some townhouses' },
+      { label: 'Make more conservative', prompt: 'Make this plan more conservative — lower-risk property choices, lower LVRs, more cashflow buffer.' },
+      { label: 'Make more aggressive', prompt: 'Make this plan more aggressive — higher-growth properties, push borrowing capacity, accept lower cashflow short-term.' },
     ],
   },
   {
     id: 'pacing',
-    label: 'Change timing / pacing',
+    label: 'Pacing',
     icon: <GaugeIcon size={12} />,
     getOptions: () => [
-      { label: 'More aggressive', prompt: 'Push acquisitions closer together — more aggressive pacing' },
-      { label: 'More conservative', prompt: 'Space acquisitions further apart — more conservative pacing' },
-      { label: 'Shorter timeline', prompt: 'Compress the entire plan into a shorter timeline' },
-      { label: 'Longer timeline', prompt: 'Extend the timeline to give more breathing room between purchases' },
+      { label: 'Pace slower', prompt: 'Pace acquisitions slower — give more breathing room between purchases.' },
+      { label: 'Pace faster', prompt: 'Pace acquisitions faster — compress the timeline so the portfolio is built sooner.' },
+    ],
+  },
+  {
+    id: 'stress',
+    label: 'Stress test',
+    icon: <ActivityIcon size={12} />,
+    getOptions: () => [
+      { label: 'Higher interest rates', prompt: 'Stress test this plan against a 2% rise in interest rates — show me what breaks.' },
+      { label: 'Lower growth scenario', prompt: 'Stress test against a low-growth market — what happens if growth comes in 30% below assumption?' },
+      { label: 'Income shock', prompt: 'Stress test against a 6-month loss of one income — does the portfolio survive?' },
+    ],
+  },
+  {
+    id: 'strategy',
+    label: 'Try a different strategy',
+    icon: <RefreshCwIcon size={12} />,
+    getOptions: () => [
+      { label: 'Equity-growth focus', prompt: 'Re-plan with an equity-growth focus — prioritise capital growth over cashflow.' },
+      { label: 'Cashflow focus', prompt: 'Re-plan with a cashflow focus — prioritise positively-geared properties.' },
+      { label: 'Commercial transition', prompt: 'Re-plan with a commercial transition strategy — start residential, move into commercial later.' },
     ],
   },
 ]

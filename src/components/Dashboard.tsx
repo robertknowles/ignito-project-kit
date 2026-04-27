@@ -5,6 +5,7 @@ import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { ScenarioCanvas } from './ScenarioCanvas';
+import { PropertyCardRow } from './PropertyCardRow';
 import { ComparisonInsights } from './ComparisonInsights';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
@@ -119,7 +120,12 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
 
-        {/* 2. Equity Unlock Timeline */}
+        {/* 2. Property Cards — pivot between Investment Timeline and Equity Unlock */}
+        <ChartCard title="Properties">
+          <PropertyCardRow />
+        </ChartCard>
+
+        {/* 3. Equity Unlock Timeline */}
         <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
           <EquityUnlockChart />
         </ChartCard>
