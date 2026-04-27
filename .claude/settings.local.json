@@ -54,7 +54,15 @@
       "Bash(/Users/robknowles/.nvm/versions/node/v20.18.1/bin/npx tsc:*)",
       "Bash(/usr/local/bin/node --version)",
       "Bash(/usr/local/bin/npx tsc:*)",
-      "Bash(export PATH=\"/usr/local/bin:$PATH\")"
+      "Bash(export PATH=\"/usr/local/bin:$PATH\")",
+      "Bash(sed -n '180,210p' src/components/ChatPanel.tsx)",
+      "Bash(sed -n '90,125p' src/components/Dashboard.tsx)",
+      "Bash(sed -n '60,80p' src/contexts/ScenarioSaveContext.tsx)",
+      "Bash(sed -n '40,115p' src/types/nlParse.ts)",
+      "Bash(node -e ' *)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('src/data/property-defaults.json'\\)\\); print\\('JSON valid'\\)\")",
+      "Bash(git rev-list *)",
+      "Bash(git push *)"
     ]
   }
 }

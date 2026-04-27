@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "captured": "2026-04-27T00:09:16Z",
+    "scenarioId": 27,
+    "scenarioName": "John Smith's Scenario",
+    "clientId": 14,
+    "codeState": "post-Wave-1, pre-Wave-2",
+    "buildClean": true,
+    "tscClean": true,
+    "userInput": "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties.",
+    "diffMethod": "After Wave 2, reload scenario id 27, query the same chartData fields. Each (year, field) pair must match within ±1 (rounding) or it's a regression."
+  },
+  "headlineKPIs": {
+    "portfolioValue2040": 3397661,
+    "totalEquity2040": 1831261,
+    "totalDebt2040": 1566400,
+    "availableFunds2040": 1354129,
+    "equityGoalYear": 2036,
+    "incomeGoalYear": 2045,
+    "nextPurchaseYear": 2027,
+    "displayedNetCashflow": "$15,030/mo",
+    "displayedPortfolio": "$3.40M",
+    "displayedEquity": "$1.83M"
+  },
+  "fundingSourcesAtT0": {
+    "VillasTownhouses_2027": { "totalToFund": 91000, "cashDeposit": 80000, "accumulatedSavings": 11000, "ready": "88%" },
+    "HousesRegional_2030": { "totalToFund": 84000 },
+    "Duplexes_2032": { "totalToFund": 112000 },
+    "UnitsApartments_2034": { "totalToFund": 85000 }
+  },
+  "retirementTab_15yrs_0sold": {
+    "cashInHand": 0,
+    "portfolioValue": "$3.8M",
+    "totalEquity": "$2.2M",
+    "debtRemaining": "$1.6M",
+    "annualCashflow": "+$25k/yr",
+    "perPropertyEquity": {
+      "VillasTownhouses": 783000,
+      "HousesRegional": 528000,
+      "Duplexes": 593000,
+      "UnitsApartments": 328000
+    }
+  },
+  "portfolioGrowthData": [
+    { "year": "2026", "portfolioValue": 0, "equity": 0, "totalDebt": 0, "availableFunds": 80000, "borrowingCapacity": 1000000, "doNothingBalance": 80000, "monthlyHoldingCost": 0 },
+    { "year": "2027", "portfolioValue": 0, "equity": 0, "totalDebt": 0, "availableFunds": 104000, "borrowingCapacity": 1000000, "doNothingBalance": 107600, "monthlyHoldingCost": 0 },
+    { "year": "2028", "portfolioValue": 477297, "equity": 81297, "totalDebt": 396000, "availableFunds": 74000, "borrowingCapacity": 604000, "doNothingBalance": 136442, "monthlyHoldingCost": -1339, "purchase": "Villas / Townhouses" },
+    { "year": "2029", "portfolioValue": 530959, "equity": 134959, "totalDebt": 396000, "availableFunds": 126768, "borrowingCapacity": 604000, "doNothingBalance": 166582, "monthlyHoldingCost": -1199 },
+    { "year": "2030", "portfolioValue": 584055, "equity": 188055, "totalDebt": 396000, "availableFunds": 193244, "borrowingCapacity": 604000, "doNothingBalance": 198078, "monthlyHoldingCost": -1062 },
+    { "year": "2031", "portfolioValue": 1059382, "equity": 311382, "totalDebt": 748000, "availableFunds": 197506, "borrowingCapacity": 252000, "doNothingBalance": 230992, "monthlyHoldingCost": -1762, "purchase": "Houses (Regional)" },
+    { "year": "2032", "portfolioValue": 1149936, "equity": 401936, "totalDebt": 748000, "availableFunds": 293949, "borrowingCapacity": 252000, "doNothingBalance": 265386, "monthlyHoldingCost": -1500 },
+    { "year": "2033", "portfolioValue": 1821174, "equity": 589174, "totalDebt": 1232000, "availableFunds": 304939, "borrowingCapacity": 0, "doNothingBalance": 301329, "monthlyHoldingCost": -1921, "purchase": "Duplexes" },
+    { "year": "2034", "portfolioValue": 2355270, "equity": 788870, "totalDebt": 1566400, "availableFunds": 376216, "borrowingCapacity": 0, "doNothingBalance": 338888, "monthlyHoldingCost": -2552, "purchase": "Units / Apartments" },
+    { "year": "2035", "portfolioValue": 2534363, "equity": 967963, "totalDebt": 1566400, "availableFunds": 543490, "borrowingCapacity": 0, "doNothingBalance": 378138, "monthlyHoldingCost": -1967 },
+    { "year": "2036", "portfolioValue": 2706004, "equity": 1139604, "totalDebt": 1566400, "availableFunds": 704803, "borrowingCapacity": 0, "doNothingBalance": 419155, "monthlyHoldingCost": -1414 },
+    { "year": "2037", "portfolioValue": 2874166, "equity": 1307766, "totalDebt": 1566400, "availableFunds": 863333, "borrowingCapacity": 0, "doNothingBalance": 462017, "monthlyHoldingCost": -886 },
+    { "year": "2038", "portfolioValue": 3042005, "equity": 1475605, "totalDebt": 1566400, "availableFunds": 1021604, "borrowingCapacity": 0, "doNothingBalance": 506807, "monthlyHoldingCost": -366 },
+    { "year": "2039", "portfolioValue": 3214841, "equity": 1648441, "totalDebt": 1566400, "availableFunds": 1183873, "borrowingCapacity": 0, "doNothingBalance": 553614, "monthlyHoldingCost": 172 },
+    { "year": "2040", "portfolioValue": 3397661, "equity": 1831261, "totalDebt": 1566400, "availableFunds": 1354129, "borrowingCapacity": 0, "doNothingBalance": 602526, "monthlyHoldingCost": 742 }
+  ],
+  "cashflowData_keyYears": [
+    { "year": "2028", "cashflow": -16064, "rentalIncome": 18267, "expenses": 8591, "loanRepayments": 25740 },
+    { "year": "2031", "cashflow": -21150, "rentalIncome": 43898, "expenses": 16428, "loanRepayments": 48620 },
+    { "year": "2034", "cashflow": -30627, "rentalIncome": 109348, "expenses": 38159, "loanRepayments": 101816 },
+    { "year": "2040", "cashflow": 8907, "rentalIncome": 158523, "expenses": 47800, "loanRepayments": 101816 }
+  ],
+  "investmentProfile": {
+    "depositPool": 80000,
+    "annualSavings": 24000,
+    "baseSalary": 120000,
+    "borrowingCapacity": 1000000,
+    "currentDebt": 0,
+    "portfolioValue": 0,
+    "depositBuffer": 40000,
+    "equityFactor": 0.75,
+    "equityReleaseFactor": 0.35,
+    "rentFactor": 0.75,
+    "salaryServiceabilityMultiplier": 4,
+    "serviceabilityRatio": 1.2,
+    "ioToPiTransitionYears": 5,
+    "maxPurchasesPerYear": 3,
+    "existingPortfolioGrowthRate": 0.03,
+    "useExistingEquity": true,
+    "pacingMode": "balanced",
+    "timelineYears": 15,
+    "equityGoal": 1000000,
+    "cashflowGoal": 50000,
+    "targetPassiveIncome": 80000,
+    "growthCurve": { "year1": 12.5, "years2to3": 10, "year4": 7.5, "year5plus": 6 }
+  },
+  "propertyInstancesSnapshot": {
+    "_note": "These are the inputs that produced the outputs above. Wave 2 will trim PropertyInstance to ~7 fields. After Wave 2, reloading scenario 27 should produce identical outputs because the engine will look up the missing fields by property type at simulation time.",
+    "property_0_instance_0": { "type": "units-apartments", "purchasePrice": 380000, "state": "VIC", "growthAssumption": "Medium", "loanProduct": "IO", "lvr": 88, "rentPerWeek": 335 },
+    "property_1_instance_0": { "type": "villas-townhouses", "purchasePrice": 450000, "state": "QLD", "growthAssumption": "High", "loanProduct": "IO", "lvr": 88, "rentPerWeek": 345 },
+    "property_2_instance_0": { "type": "houses-regional", "purchasePrice": 400000, "state": "NSW", "growthAssumption": "High", "loanProduct": "IO", "lvr": 88, "rentPerWeek": 370 },
+    "property_3_instance_0": { "type": "duplexes", "purchasePrice": 550000, "state": "QLD", "growthAssumption": "High", "loanProduct": "IO", "lvr": 88, "rentPerWeek": 635 }
+  },
+  "propertyOrder": [
+    "property_1_instance_0",
+    "property_2_instance_0",
+    "property_3_instance_0",
+    "property_0_instance_0"
+  ]
+}
