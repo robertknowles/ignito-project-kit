@@ -212,9 +212,19 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
           globalFactors?: GlobalEconomicFactors;
         };
 
-        // Load property type templates if available
+        // Load property type templates if available — but only if every saved
+        // template carries a v4 `cellId`. Pre-pivot saves stored the 8-template
+        // model without cell IDs; loading those would leave propertyTypes with
+        // `id: undefined` and break engine lookups. Discard pre-pivot saves
+        // and fall through to the freshly initialised v4 cell templates.
         if (profileData.propertyTypeTemplates) {
-          setPropertyTypeTemplates(profileData.propertyTypeTemplates);
+          const allHaveCellId = profileData.propertyTypeTemplates.every(
+            (t) => typeof (t as PropertyTypeTemplate).cellId === 'string'
+          );
+          if (allHaveCellId) {
+            setPropertyTypeTemplates(profileData.propertyTypeTemplates);
+          }
+          // else: keep the in-memory v4 init from initializePropertyTypeTemplates().
         }
 
         // DEPRECATED: Load old property assumptions for backward compatibility

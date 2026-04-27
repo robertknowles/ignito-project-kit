@@ -206,8 +206,16 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [propertyOrder, setPropertyOrder] = useState<string[]>([]);
   // Ref to track pending quantity changes to avoid stale closure issues with rapid clicks
   const pendingQuantityRef = useRef<Record<string, number>>({});
+  /**
+   * Gates the save-to-localStorage effects on a per-client basis. The provider
+   * mounts with empty selections/order — without this gate, the save effects
+   * fire immediately and overwrite the persisted scenario before
+   * loadClientData has a chance to read it back. Set per client by
+   * loadClientData (and after the client-switch effect below).
+   */
+  const hasLoadedRef = useRef<Record<number, boolean>>({});
   const { propertyTypeTemplates } = useDataAssumptions(); // Get profile-level templates from DataAssumptionsContext
-  
+
 
   // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
   // to prevent conflicts between individual context loading and unified scenario loading
@@ -217,9 +225,11 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
     }
   }, [activeClient?.id]);
 
-  // Save selections to localStorage whenever they change
+  // Save selections to localStorage whenever they change — but only after
+  // loadClientData has completed at least once for this client, to avoid the
+  // initial-mount race that would otherwise overwrite stored data with `{}`.
   useEffect(() => {
-    if (activeClient?.id) {
+    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
       const storageKey = `property_selections_${activeClient.id}`;
       localStorage.setItem(storageKey, JSON.stringify(selections));
     }
@@ -227,7 +237,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Save pause blocks to localStorage whenever they change
   useEffect(() => {
-    if (activeClient?.id) {
+    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
       const pauseStorageKey = `pause_blocks_${activeClient.id}`;
       localStorage.setItem(pauseStorageKey, JSON.stringify(pauseBlocks));
     }
@@ -235,7 +245,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Save custom blocks to localStorage whenever they change
   useEffect(() => {
-    if (activeClient?.id) {
+    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
       const customBlocksStorageKey = `custom_blocks_${activeClient.id}`;
       localStorage.setItem(customBlocksStorageKey, JSON.stringify(customBlocks));
     }
@@ -243,7 +253,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Save property order to localStorage whenever it changes
   useEffect(() => {
-    if (activeClient?.id) {
+    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
       const propertyOrderStorageKey = `property_order_${activeClient.id}`;
       localStorage.setItem(propertyOrderStorageKey, JSON.stringify(propertyOrder));
     }
@@ -251,7 +261,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
   // Save event blocks to localStorage whenever they change
   useEffect(() => {
-    if (activeClient?.id) {
+    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
       const eventBlocksStorageKey = `event_blocks_${activeClient.id}`;
       localStorage.setItem(eventBlocksStorageKey, JSON.stringify(eventBlocks));
     }
@@ -510,13 +520,17 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       .sort((a, b) => a.period - b.period);
   }, [eventBlocks]);
 
-  // Bulk setter for scenario restoration - sets selections and propertyOrder atomically
+  // Bulk setter for scenario restoration - sets selections and propertyOrder atomically.
+  // Also unlocks the save-to-localStorage gate for the active client, so that
+  // chat-driven writes (which bypass loadClientData) start persisting immediately.
   const setAllSelections = useCallback((newSelections: PropertySelection, newPropertyOrder: string[]) => {
     setSelections({ ...newSelections });
     setPropertyOrder([...newPropertyOrder]);
-    // Update pending ref to match new selections
     pendingQuantityRef.current = { ...newSelections };
-  }, []);
+    if (activeClient?.id) {
+      hasLoadedRef.current[activeClient.id] = true;
+    }
+  }, [activeClient?.id]);
 
   // Load all client data from localStorage
   const loadClientData = useCallback((clientId: number) => {
@@ -589,6 +603,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
         setEventBlocks([]);
         setPropertyOrder([]);
       } finally {
+        // Unlock save-to-localStorage for this client now that loadClientData
+        // has completed. Subsequent state changes will persist.
+        hasLoadedRef.current[clientId] = true;
         setIsLoading(false);
       }
     }, 0);

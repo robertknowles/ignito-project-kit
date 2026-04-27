@@ -9,6 +9,35 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { ChatMessage } from '../types/nlParse';
+import {
+  translateLegacyEngineId,
+  translateLegacyInstanceId,
+} from '../utils/propertyCells';
+
+/** Translate a saved propertySelections record from legacy positional IDs to v4 cell IDs. */
+const translateSavedSelections = (raw: Record<string, number>): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const [key, qty] of Object.entries(raw)) {
+    const newKey = translateLegacyEngineId(key) ?? key;
+    out[newKey] = (out[newKey] ?? 0) + qty;
+  }
+  return out;
+};
+
+/** Translate a saved propertyOrder array from legacy positional instance IDs to v4 form. */
+const translateSavedOrder = (raw: string[]): string[] => raw.map((id) => translateLegacyInstanceId(id));
+
+/** Translate a saved propertyInstances record so keys match the new instance IDs. */
+const translateSavedInstances = (
+  raw: Record<string, PropertyInstanceDetails>
+): Record<string, PropertyInstanceDetails> => {
+  const out: Record<string, PropertyInstanceDetails> = {};
+  for (const [oldId, instance] of Object.entries(raw)) {
+    const newId = translateLegacyInstanceId(oldId);
+    out[newId] = instance;
+  }
+  return out;
+};
 
 // Communication log entry for CRM features
 export interface CommunicationLogEntry {
@@ -317,10 +346,11 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setLastSavedData(null);
           setLastSaved(null);
           setScenarioId(null);
-          setHasUnsavedChanges(false);
-          // Reset contexts to default
-          resetSelections();
-          propertyInstanceContext.setInstances({});
+          // No saved scenario in Supabase. Don't wipe selections/instances —
+          // the user may have unsaved chat-driven data already in
+          // localStorage that PropertySelectionContext.loadClientData has
+          // (or will) restore. Leave the contexts as they are. The debounced
+          // change-detection effect below sets hasUnsavedChanges separately.
           return null;
         }
         throw error;
@@ -328,37 +358,48 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
-        
+
         // Set the scenario ID
         setScenarioId(data.id);
-        
+
+        // Translate saved data through the legacy alias layer so pre-pivot
+        // scenarios (which used positional IDs like `property_5`) load
+        // correctly under the v4 cell-ID model.
+        const translatedSelections = translateSavedSelections(scenarioData.propertySelections);
+        const translatedOrder = scenarioData.propertyOrder
+          ? translateSavedOrder(scenarioData.propertyOrder)
+          : undefined;
+        const translatedInstances = scenarioData.propertyInstances
+          ? translateSavedInstances(scenarioData.propertyInstances)
+          : undefined;
+
         // Apply property selections
         resetSelections();
-        Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+        Object.entries(translatedSelections).forEach(([propertyId, quantity]) => {
           if (quantity > 0) {
             updatePropertyQuantity(propertyId, quantity);
           }
         });
-        
+
         // Apply investment profile
         if (scenarioData.investmentProfile) {
           updateProfile(scenarioData.investmentProfile);
         }
-        
+
         // Load property instances
-        if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
-          propertyInstanceContext.setInstances(scenarioData.propertyInstances);
+        if (translatedInstances && Object.keys(translatedInstances).length > 0) {
+          propertyInstanceContext.setInstances(translatedInstances);
         } else {
           propertyInstanceContext.setInstances({});
         }
-        
+
         // Restore property order (chronological order in which properties were added)
-        if (scenarioData.propertyOrder && scenarioData.propertyOrder.length > 0) {
-          setPropertyOrder(scenarioData.propertyOrder);
+        if (translatedOrder && translatedOrder.length > 0) {
+          setPropertyOrder(translatedOrder);
         } else {
-          // Backwards compatibility: reconstruct order from selections if propertyOrder not saved
+          // Backwards compatibility: reconstruct order from translated selections.
           const reconstructedOrder: string[] = [];
-          Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+          Object.entries(translatedSelections).forEach(([propertyId, quantity]) => {
             for (let i = 0; i < quantity; i++) {
               reconstructedOrder.push(`${propertyId}_instance_${i}`);
             }
@@ -379,11 +420,11 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         return scenarioData;
       } else {
+        // Row exists but has no `data` payload — treat the same as no saved
+        // scenario: leave the active selections/instances alone so unsaved
+        // chat-driven data isn't clobbered.
         setLastSavedData(null);
         setLastSaved(null);
-        setHasUnsavedChanges(false);
-        resetSelections();
-        propertyInstanceContext.setInstances({});
         return null;
       }
     } catch (error) {
