@@ -102,6 +102,13 @@ export interface PropertyInstanceDetails {
   
   /** Whether LMI should be capitalized into the loan (reduces upfront cash required) */
   lmiCapitalized?: boolean;
+
+  /**
+   * Strategic configuration mode for the property type.
+   * 'Growth' | 'Cashflow' for residential cells; 'HighCost' | 'LowCost' for commercial.
+   * Optional during the pivot — defaults inferred from the cell ID via propertyCells.ts.
+   */
+  mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
 }
 
 
