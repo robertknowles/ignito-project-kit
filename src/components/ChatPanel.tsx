@@ -284,7 +284,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     getChartContext,
     userId: user?.id,
     clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
-    pacingMode: profile.pacingMode || 'balanced',
+    strategyPreset: profile.strategyPreset || 'eg-low',
     hasExistingPlan: propertyOrder.length > 0,
   })
 

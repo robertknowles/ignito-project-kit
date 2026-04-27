@@ -52,8 +52,8 @@ interface UseChatConversationOptions {
   userId?: string
   /** Client name for personalised loading text */
   clientName?: string
-  /** Acquisition pacing mode — controls property spacing and growth assumptions */
-  pacingMode?: 'aggressive' | 'balanced' | 'conservative'
+  /** Strategy preset — drives chatbot cell selection and property sequencing. */
+  strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
   /** True when a plan already exists — used to reject misclassified initial_plan rebuilds. */
   hasExistingPlan?: boolean
 }
@@ -180,7 +180,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               conversationHistory,
               currentPlan,
               userId: options.userId,
-              pacingMode: options.pacingMode || 'balanced',
+              strategyPreset: options.strategyPreset || 'eg-low',
             },
           })
 
