@@ -18,15 +18,13 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { PropertySummaryCard } from './PropertySummaryCard';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
-import {
-  getCanonicalTypeForBucket,
-  type PropertyBucket,
-} from '../utils/propertyTypeBuckets';
+import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { dispatchChatSend } from '../utils/chatBus';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
-const DEFAULT_NEW_BUCKET: PropertyBucket = 'Units / Townhouses';
+/** Default cell for a brand-new "Add property" click — entry-level metro unit. */
+const DEFAULT_NEW_CELL_ID: CellId = 'metro-unit-cashflow';
 
 const parseInstanceId = (
   instanceId: string
@@ -68,7 +66,7 @@ export const PropertyCardRow: React.FC = () => {
         ? propertyTypes.find((p) => p.id === parsed.propertyId)
         : undefined;
       const propertyType =
-        propertyTypeMeta?.title ?? timelineProp?.title ?? 'Units / Apartments';
+        propertyTypeMeta?.title ?? timelineProp?.title ?? getCellDisplayLabel(DEFAULT_NEW_CELL_ID);
 
       // Per-property monthly cashflow (NOT cumulative portfolio cashflow).
       // Mirrors the pattern TimelinePanel uses for its single-property card label.
@@ -165,15 +163,14 @@ export const PropertyCardRow: React.FC = () => {
     }
   };
 
-  // Add a generic new property — defaults to the most-common bucket.
-  // BA can change the type via the dropdown in the detail panel, which
+  // Add a generic new property — defaults to the entry-level cell.
+  // BA can change the cell via the dropdown in the detail panel, which
   // triggers an AI re-plan automatically.
   const handleAdd = () => {
-    const canonicalType = getCanonicalTypeForBucket(DEFAULT_NEW_BUCKET);
-    const propertyMeta = propertyTypes.find((p) => p.title === canonicalType);
+    const propertyMeta = propertyTypes.find((p) => p.id === DEFAULT_NEW_CELL_ID);
     if (!propertyMeta) {
       console.warn(
-        `[PropertyCardRow] No property template found for canonical type "${canonicalType}"`
+        `[PropertyCardRow] No property template found for cell "${DEFAULT_NEW_CELL_ID}"`
       );
       return;
     }
@@ -182,17 +179,18 @@ export const PropertyCardRow: React.FC = () => {
     // We don't open the detail panel automatically — let the BA decide.
   };
 
-  // Bucket change in detail panel → fire AI re-plan via chat
+  // Cell change in detail panel → fire AI re-plan via chat
   const handleBucketChange = (
     instanceId: string,
     propertyType: string,
-    newBucket: PropertyBucket
+    newCellId: CellId
   ) => {
     const positionLabel = (() => {
       const idx = cards.findIndex((c) => c.instanceId === instanceId);
       return idx >= 0 ? `property ${idx + 1}` : 'this property';
     })();
-    const message = `Change ${positionLabel} from ${propertyType} to a ${newBucket} property — re-plan the rest of the timeline accordingly.`;
+    const newLabel = getCellDisplayLabel(newCellId);
+    const message = `Change ${positionLabel} from ${propertyType} to a ${newLabel} property — re-plan the rest of the timeline accordingly.`;
     dispatchChatSend(message);
   };
 

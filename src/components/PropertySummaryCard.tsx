@@ -10,7 +10,18 @@ import React from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
-import { getBucketForPropertyType } from '../utils/propertyTypeBuckets';
+import { isCellId, getCellDisplayLabel, translateLegacyTypeKey, type CellId } from '../utils/propertyCells';
+
+/**
+ * Resolve any propertyType identifier (cell ID, legacy v3 key, display label)
+ * to the v4 cell display label like "Metro House — Growth".
+ */
+const resolveCellLabel = (propertyType: string): string => {
+  if (isCellId(propertyType)) return getCellDisplayLabel(propertyType as CellId);
+  const translation = translateLegacyTypeKey(propertyType);
+  if (translation) return getCellDisplayLabel(translation.newCellId);
+  return propertyType;
+};
 
 const formatCompactCurrency = (value: number): string => {
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -49,7 +60,7 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
   onClick,
   onRemove,
 }) => {
-  const bucket = getBucketForPropertyType(propertyType);
+  const cellLabel = resolveCellLabel(propertyType);
   const cashflowPositive = monthlyCashflow >= 0;
 
   return (
@@ -88,7 +99,7 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
-                {bucket}
+                {cellLabel}
               </div>
               <div className="text-[10px] text-gray-500 mt-0.5">
                 {instanceData.state}

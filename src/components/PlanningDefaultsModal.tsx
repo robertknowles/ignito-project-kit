@@ -36,14 +36,16 @@ const DEFAULT_PLANNING: PlanningDefaults = {
 }
 
 const PROPERTY_TYPES = [
-  { key: 'units-apartments', label: 'Units / Apartments' },
-  { key: 'villas-townhouses', label: 'Villas / Townhouses' },
-  { key: 'houses-regional', label: 'Houses (Regional)' },
-  { key: 'duplexes', label: 'Duplexes' },
-  { key: 'small-blocks-3-4-units', label: 'Small Blocks' },
-  { key: 'metro-houses', label: 'Metro Houses' },
-  { key: 'larger-blocks-10-20-units', label: 'Larger Blocks' },
-  { key: 'commercial-property', label: 'Commercial' },
+  { key: 'metro-house-growth', label: 'Metro House — Growth' },
+  { key: 'metro-house-cashflow', label: 'Metro House — Cashflow' },
+  { key: 'regional-house-growth', label: 'Regional House — Growth' },
+  { key: 'regional-house-cashflow', label: 'Regional House — Cashflow' },
+  { key: 'metro-unit-growth', label: 'Metro Unit — Growth' },
+  { key: 'metro-unit-cashflow', label: 'Metro Unit — Cashflow' },
+  { key: 'regional-unit-growth', label: 'Regional Unit — Growth' },
+  { key: 'regional-unit-cashflow', label: 'Regional Unit — Cashflow' },
+  { key: 'commercial-high-cost', label: 'Commercial — High Cost' },
+  { key: 'commercial-low-cost', label: 'Commercial — Low Cost' },
 ]
 
 const STATES = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT']

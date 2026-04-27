@@ -16,7 +16,6 @@ import { EquityUnlockChart, EquityUnlockSummary, useEquityUnlockLegend } from '.
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { CHART_COLORS } from '@/constants/chartColors';
-import { PacingToggle } from './PacingToggle';
 import { useLayout } from '@/contexts/LayoutContext';
 import { Skeleton } from '@/components/ui/skeleton';
 

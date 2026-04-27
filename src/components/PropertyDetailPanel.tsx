@@ -15,10 +15,12 @@ import { Info } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import {
-  PROPERTY_BUCKETS,
-  getBucketForPropertyType,
-  type PropertyBucket,
-} from '../utils/propertyTypeBuckets';
+  CELL_IDS,
+  isCellId,
+  getCellDisplayLabel,
+  translateLegacyTypeKey,
+  type CellId,
+} from '../utils/propertyCells';
 
 // Slider styling — matches TimelinePanel
 const sliderClassName =
@@ -126,9 +128,18 @@ interface PropertyDetailPanelProps {
   propertyType: string;
   /** Generic field write — for slider/numeric edits; cascades math only. */
   onFieldChange: (field: keyof PropertyInstanceDetails, value: any) => void;
-  /** Bucket change — fires AI re-plan via chatBus instead of writing directly. */
-  onBucketChange: (newBucket: PropertyBucket) => void;
+  /** Cell change — fires AI re-plan via chatBus instead of writing directly. */
+  onBucketChange: (newCellId: CellId) => void;
 }
+
+/** Resolve any propertyType identifier (cell ID, legacy v3 key, display label) to a v4 CellId. */
+const resolveCellId = (propertyType: string): CellId => {
+  if (isCellId(propertyType)) return propertyType as CellId;
+  const translation = translateLegacyTypeKey(propertyType);
+  if (translation) return translation.newCellId;
+  // Fallback: assume metro-unit-cashflow when input is unrecognised.
+  return 'metro-unit-cashflow';
+};
 
 export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
   instanceData,
@@ -185,7 +196,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
     );
   }, [instanceData]);
 
-  const currentBucket = getBucketForPropertyType(propertyType);
+  const currentCellId = resolveCellId(propertyType);
 
   const tabs = [
     { id: 'property' as const, label: 'PROPERTY' },
@@ -226,13 +237,13 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
                 </span>
               </div>
               <select
-                value={currentBucket}
-                onChange={(e) => onBucketChange(e.target.value as PropertyBucket)}
+                value={currentCellId}
+                onChange={(e) => onBucketChange(e.target.value as CellId)}
                 className="w-full text-[13px] font-semibold text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
               >
-                {PROPERTY_BUCKETS.map((bucket) => (
-                  <option key={bucket} value={bucket}>
-                    {bucket}
+                {CELL_IDS.map((cellId) => (
+                  <option key={cellId} value={cellId}>
+                    {getCellDisplayLabel(cellId)}
                   </option>
                 ))}
               </select>

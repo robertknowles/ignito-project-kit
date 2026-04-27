@@ -28,6 +28,17 @@ const PROPERTY_IMAGES: Record<string, string> = {
   'Small Blocks (3-4 Units)': '/images/properties/smaller-blocks-3-4.png',
   'Larger Blocks (10-20 Units)': '/images/properties/larger-blocks-10-20.png',
   'Commercial Property': '/images/properties/commercial-property.png',
+  // v4 cell display labels — share existing image assets per cell type/mode pair.
+  'Metro House — Growth': '/images/properties/metro-house.png',
+  'Metro House — Cashflow': '/images/properties/metro-house.png',
+  'Regional House — Growth': '/images/properties/regional-house.png',
+  'Regional House — Cashflow': '/images/properties/regional-house.png',
+  'Metro Unit — Growth': '/images/properties/townhouses.png',
+  'Metro Unit — Cashflow': '/images/properties/units-apartments.png',
+  'Regional Unit — Growth': '/images/properties/townhouses.png',
+  'Regional Unit — Cashflow': '/images/properties/units-apartments.png',
+  'Commercial — High Cost': '/images/properties/commercial-property.png',
+  'Commercial — Low Cost': '/images/properties/commercial-property.png',
 };
 
 // State colors - neutral slate-based palette

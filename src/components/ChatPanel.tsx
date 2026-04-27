@@ -11,7 +11,7 @@ import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIco
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
-import { PacingToggle } from './PacingToggle'
+import { StrategyPresetSelector } from './StrategyPresetSelector'
 import { PlanningDefaultsModal } from './PlanningDefaultsModal'
 import { AddToTimelineModal } from './AddToTimelineModal'
 import { extractTextFromPdf } from '@/utils/pdfExtractor'
@@ -602,7 +602,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
                 e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
               </p>
-              <PacingToggle />
+              <StrategyPresetSelector />
             </div>
           )}
 

@@ -1,7 +1,7 @@
 /**
  * PostPlanRefinement — 2-step refinement flow after plan generation
  *
- * Step 1: Fixed category buttons (# properties, prices, types, pacing)
+ * Step 1: Fixed category buttons (# properties, prices, types, strategy)
  * Step 2: Contextual sub-options based on what was clicked
  *
  * Fully client-side — no AI call needed for the button display.
@@ -9,7 +9,33 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { HashIcon, DollarSignIcon, HomeIcon, GaugeIcon, ChevronLeftIcon } from 'lucide-react'
+import { HashIcon, DollarSignIcon, HomeIcon, CompassIcon, ChevronLeftIcon } from 'lucide-react'
+import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
+
+type PresetId = 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
+
+const PRESET_SWITCH_OPTIONS: Record<PresetId, { label: string; prompt: string }> = {
+  'eg-low': {
+    label: 'Equity Growth — Low Price',
+    prompt: 'Switch to the Equity Growth — Low Price strategy: bias toward regional houses and metro units in growth mode at lower entry prices, scaling through volume.',
+  },
+  'eg-high': {
+    label: 'Equity Growth — High Price',
+    prompt: 'Switch to the Equity Growth — High Price strategy: bias toward metro houses in growth mode, fewer larger assets with stronger land content.',
+  },
+  'cf-low': {
+    label: 'Cash Flow — Low Price',
+    prompt: 'Switch to the Cash Flow — Low Price strategy: bias toward regional units and regional houses in cashflow mode, yield-focused.',
+  },
+  'cf-high': {
+    label: 'Cash Flow — High Price',
+    prompt: 'Switch to the Cash Flow — High Price strategy: bias toward metro houses in cashflow mode and high-cost commercial, premium yield.',
+  },
+  'commercial-transition': {
+    label: 'Commercial Transition',
+    prompt: 'Switch to the Commercial Transition strategy: build equity in residential first, then pivot to commercial yield around year 5-7.',
+  },
+}
 
 interface PostPlanRefinementProps {
   propertyCount: number
@@ -20,7 +46,7 @@ interface Category {
   id: string
   label: string
   icon: React.ReactNode
-  getOptions: (count: number) => Array<{ label: string; prompt: string }>
+  getOptions: (count: number, currentPreset: PresetId) => Array<{ label: string; prompt: string }>
 }
 
 const categories: Category[] = [
@@ -78,20 +104,20 @@ const categories: Category[] = [
     ],
   },
   {
-    id: 'pacing',
-    label: 'Change timing / pacing',
-    icon: <GaugeIcon size={12} />,
-    getOptions: () => [
-      { label: 'More aggressive', prompt: 'Push acquisitions closer together — more aggressive pacing' },
-      { label: 'More conservative', prompt: 'Space acquisitions further apart — more conservative pacing' },
-      { label: 'Shorter timeline', prompt: 'Compress the entire plan into a shorter timeline' },
-      { label: 'Longer timeline', prompt: 'Extend the timeline to give more breathing room between purchases' },
-    ],
+    id: 'strategy',
+    label: 'Switch strategy',
+    icon: <CompassIcon size={12} />,
+    getOptions: (_count, currentPreset) =>
+      (Object.keys(PRESET_SWITCH_OPTIONS) as PresetId[])
+        .filter((p) => p !== currentPreset)
+        .map((p) => PRESET_SWITCH_OPTIONS[p]),
   },
 ]
 
 export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ propertyCount, onSelect }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+  const { profile } = useInvestmentProfile()
+  const currentPreset = (profile.strategyPreset || 'eg-low') as PresetId
 
   const handleCategoryClick = (categoryId: string) => {
     setExpandedCategory(expandedCategory === categoryId ? null : categoryId)
@@ -153,7 +179,7 @@ export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ property
               {activeCategory?.label}
             </button>
             <div className="grid grid-cols-2 gap-1.5">
-              {activeCategory?.getOptions(propertyCount).map((opt, i) => (
+              {activeCategory?.getOptions(propertyCount, currentPreset).map((opt, i) => (
                 <button
                   key={i}
                   onClick={() => handleOptionClick(opt.prompt)}

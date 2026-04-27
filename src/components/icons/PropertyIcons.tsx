@@ -200,13 +200,36 @@ export const PROPERTY_TYPE_ICONS: Record<string, React.FC<IconProps>> = {
   // Fallbacks for other building types
   'commercial': Building08Icon,
   'mixed': Building01Icon,
+
+  // ── v4 cell IDs (10-cell type×mode matrix) ────────────────────────
+  'metro-house-growth': Home03Icon,
+  'metro-house-cashflow': Home03Icon,
+  'regional-house-growth': Home03Icon,
+  'regional-house-cashflow': Home03Icon,
+  'metro-unit-growth': Building03Icon,
+  'metro-unit-cashflow': Building03Icon,
+  'regional-unit-growth': Building03Icon,
+  'regional-unit-cashflow': Building03Icon,
+  'commercial-high-cost': Building08Icon,
+  'commercial-low-cost': Building08Icon,
 }
 
 /**
  * Get the icon component for a property type string.
- * Falls back to Building01Icon if no match.
+ * Accepts cell IDs ("metro-house-growth"), display labels ("Metro House — Growth"),
+ * or legacy keys ("units-apartments"). Falls back to Building01Icon if no match.
  */
 export const getPropertyIcon = (propertyType: string): React.FC<IconProps> => {
   const normalised = propertyType.toLowerCase().replace(/\s+/g, '_')
-  return PROPERTY_TYPE_ICONS[normalised] || Building01Icon
+  const direct = PROPERTY_TYPE_ICONS[normalised]
+  if (direct) return direct
+
+  // Fallback for display labels: strip the " — Mode" suffix and try keyword match.
+  const lower = propertyType.toLowerCase()
+  if (lower.includes('metro house')) return PROPERTY_TYPE_ICONS['metro-house-growth']
+  if (lower.includes('regional house') || lower.includes('house')) return PROPERTY_TYPE_ICONS['regional-house-growth']
+  if (lower.includes('unit') || lower.includes('apartment')) return PROPERTY_TYPE_ICONS['metro-unit-growth']
+  if (lower.includes('commercial')) return PROPERTY_TYPE_ICONS['commercial-high-cost']
+
+  return Building01Icon
 }
