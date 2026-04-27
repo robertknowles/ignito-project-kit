@@ -198,10 +198,8 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
       instanceData.buildingPestInspection +
       instanceData.plumbingElectricalInspections +
       instanceData.independentValuation +
-      instanceData.unconditionalHoldingDeposit +
       instanceData.mortgageFees +
       instanceData.conveyancing +
-      instanceData.ratesAdjustment +
       instanceData.maintenanceAllowancePostSettlement
     );
   }, [instanceData, calculatedStampDuty]);
@@ -462,17 +460,6 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
               step={0.5}
               format="percent"
             />
-            
-            {/* Vacancy Rate */}
-            <SliderInput
-              label="Vacancy Rate"
-              value={instanceData.vacancyRate}
-              onChange={(v) => onFieldChange('vacancyRate', v)}
-              min={0}
-              max={10}
-              step={0.5}
-              format="percent"
-            />
           </div>
         )}
         
@@ -511,20 +498,12 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                         <span className="font-medium">${instanceData.independentValuation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span>Unconditional Deposit:</span>
-                        <span className="font-medium">${instanceData.unconditionalHoldingDeposit.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
                         <span>Mortgage Fees:</span>
                         <span className="font-medium">${instanceData.mortgageFees.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span>Conveyancing:</span>
                         <span className="font-medium">${instanceData.conveyancing.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Rates Adjustment:</span>
-                        <span className="font-medium">${instanceData.ratesAdjustment.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span>Maintenance Post Settlement:</span>
@@ -704,15 +683,6 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Unconditional Deposit ($)</label>
-              <input
-                type="number"
-                value={instanceData.unconditionalHoldingDeposit}
-                onChange={(e) => onFieldChange('unconditionalHoldingDeposit', parseFloat(e.target.value) || 0)}
-                className={inputClass}
-              />
-            </div>
-            <div>
               <label className="block text-xs text-gray-400 mb-1">Mortgage Fees ($)</label>
               <input
                 type="number"
@@ -721,9 +691,6 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
                 className={inputClass}
               />
             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Conveyancing ($)</label>
               <input
@@ -733,17 +700,8 @@ const PurchaseCostsModal: React.FC<PurchaseCostsModalProps> = ({
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Rates Adjustment ($)</label>
-              <input
-                type="number"
-                value={instanceData.ratesAdjustment}
-                onChange={(e) => onFieldChange('ratesAdjustment', parseFloat(e.target.value) || 0)}
-                className={inputClass}
-              />
-            </div>
           </div>
-          
+
           <div>
             <label className="block text-xs text-gray-400 mb-1">Maintenance Post Settlement ($)</label>
             <input
@@ -845,21 +803,6 @@ const AnnualExpensesModal: React.FC<AnnualExpensesModalProps> = ({
             </div>
           </div>
           
-          {/* Deductions/Depreciation Section */}
-          <div className="mt-4 pt-4 border-t border-gray-700">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Tax Deductions / Depreciation ($/yr)</label>
-              <input
-                type="number"
-                value={instanceData.potentialDeductionsRebates || 0}
-                onChange={(e) => onFieldChange('potentialDeductionsRebates', parseFloat(e.target.value) || 0)}
-                className={inputClass}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Estimated annual depreciation deductions. Reduces expenses and improves net cashflow.
-              </p>
-            </div>
-          </div>
         </div>
         
         <button

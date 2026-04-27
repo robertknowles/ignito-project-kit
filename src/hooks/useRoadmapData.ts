@@ -22,8 +22,9 @@ import {
   DEFAULT_INTEREST_RATE,
   ANNUAL_INFLATION_RATE,
   SAVINGS_INTEREST_RATE,
+  SAVINGS_DEPLOYMENT_RATE,
+  DEFAULT_VACANCY_RATE,
   annualRateToPeriodRate,
-  calculateRentalRecognitionRate,
 } from '../constants/financialParams';
 
 // Currency formatter helper
@@ -322,7 +323,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         if (propertyInstance) {
           // Calculate management fee based on adjusted income (rent - vacancy)
           const grossAnnualIncome = propertyInstance.rentPerWeek * 52;
-          const vacancyAmount = grossAnnualIncome * (propertyInstance.vacancyRate / 100);
+          const vacancyAmount = grossAnnualIncome * DEFAULT_VACANCY_RATE;
           const adjustedIncome = grossAnnualIncome - vacancyAmount;
           const managementFee = adjustedIncome * (propertyInstance.propertyManagementPercent / 100);
           
@@ -384,18 +385,17 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // CAPTURE START OF YEAR VALUES (before any purchases this year)
       // For purchase years, read from calculator (SINGLE SOURCE OF TRUTH)
       // For non-purchase years, calculate based on accumulated values
-      const SAVINGS_RATE = 0.25;
       const firstPurchaseThisYear = purchasesThisYear?.[0];
-      
+
       // Cash: use calculator's baseDeposit for purchase years
-      const startOfYearCash = firstPurchaseThisYear 
-        ? firstPurchaseThisYear.baseDeposit 
+      const startOfYearCash = firstPurchaseThisYear
+        ? firstPurchaseThisYear.baseDeposit
         : runningCashBalance;
-      
+
       // Savings: accumulation minus what's been spent on previous purchases
       // This ensures the displayed savings value correctly accounts for funds used
-      const grossSavingsAccumulated = yearIndex > 0 
-        ? profile.annualSavings * SAVINGS_RATE * yearIndex
+      const grossSavingsAccumulated = yearIndex > 0
+        ? profile.annualSavings * SAVINGS_DEPLOYMENT_RATE * yearIndex
         : 0;
       const startOfYearSavings = Math.max(0, grossSavingsAccumulated - cumulativeSavingsSpent);
       
@@ -429,9 +429,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         // NO PURCHASES THIS YEAR - accumulate savings normally
         // This is the only place we calculate savings independently
         // (because the calculator doesn't compute non-purchase years)
-        // Only 25% of annual savings goes into the "available for investment" pool
-        const SAVINGS_RATE = 0.25;
-        const annualSavingsContribution = profile.annualSavings * SAVINGS_RATE;
+        const annualSavingsContribution = profile.annualSavings * SAVINGS_DEPLOYMENT_RATE;
         // Only deduct negative cashflow (property shortfall you need to cover)
         const cashflowDeduction = netCashflowFromExistingProperties < 0 ? netCashflowFromExistingProperties : 0;
         const thisYearSavingsContribution = annualSavingsContribution + cashflowDeduction;

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import propertyDefaults from '../data/property-defaults.json';
+import { GROWTH_RATE_TIERS } from '../constants/financialParams';
 
 // Property Type Template: Contains all 36 fields from PropertyInstanceDetails
 export interface PropertyTypeTemplate extends PropertyInstanceDetails {
@@ -58,31 +59,7 @@ interface DataAssumptionsProviderProps {
   children: React.ReactNode;
 }
 
-/**
- * Growth rate tiers for property appreciation
- */
-const GROWTH_RATES = {
-  High: {
-    year1: 12.5,
-    years2to3: 10,
-    year4: 7.5,
-    year5plus: 6,
-  },
-  Medium: {
-    year1: 8,
-    years2to3: 6,
-    year4: 5,
-    year5plus: 4,
-  },
-  Low: {
-    year1: 5,
-    years2to3: 4,
-    year4: 3.5,
-    year5plus: 3,
-  },
-} as const;
-
-type GrowthAssumption = keyof typeof GROWTH_RATES;
+type GrowthAssumption = 'High' | 'Medium' | 'Low';
 
 /**
  * Converts property defaults key to display name
@@ -110,7 +87,7 @@ const convertToPropertyAssumption = (key: string, defaults: PropertyInstanceDeta
   const growthAssumption = (defaults.growthAssumption || 'Medium') as GrowthAssumption;
   
   // Validate and get growth rates, fallback to Medium if invalid
-  const rates = GROWTH_RATES[growthAssumption] || GROWTH_RATES.Medium;
+  const rates = GROWTH_RATE_TIERS[growthAssumption] || GROWTH_RATE_TIERS.Medium;
   
   return {
     // Existing fields (for backward compatibility)
@@ -392,7 +369,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     if (template) {
       // Convert template to PropertyAssumption format
       const growthTier = (template.growthAssumption || 'Medium') as GrowthAssumption;
-      const rates = GROWTH_RATES[growthTier] || GROWTH_RATES.Medium;
+      const rates = GROWTH_RATE_TIERS[growthTier] || GROWTH_RATE_TIERS.Medium;
       
       return {
         // Legacy fields (derived from template)

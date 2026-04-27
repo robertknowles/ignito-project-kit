@@ -1,4 +1,5 @@
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import { DEFAULT_VACANCY_RATE } from '../constants/financialParams';
 
 export interface CashflowBreakdown {
   // Income
@@ -6,7 +7,7 @@ export interface CashflowBreakdown {
   grossAnnualIncome: number;
   vacancyAmount: number;
   adjustedIncome: number;
-  
+
   // Expenses
   loanInterest: number;
   propertyManagementFee: number;
@@ -15,15 +16,15 @@ export interface CashflowBreakdown {
   strata: number;
   maintenance: number;
   totalOperatingExpenses: number;
-  
+
   // Non-deductible
   landTax: number;
   principalPayments: number;
   totalNonDeductibleExpenses: number;
-  
-  // Deductions
+
+  // Deductions (kept on the breakdown for backward compatibility — always 0 now)
   potentialDeductions: number;
-  
+
   // Net
   netAnnualCashflow: number;
   netMonthlyCashflow: number;
@@ -37,46 +38,43 @@ export function calculateDetailedCashflow(
   property: PropertyInstanceDetails,
   loanAmount: number
 ): CashflowBreakdown {
-  // Income
+  // Income — vacancy is a portfolio-wide policy default (no per-instance override)
   const weeklyRent = property.rentPerWeek;
   const grossAnnualIncome = weeklyRent * 52;
-  const vacancyAmount = grossAnnualIncome * (property.vacancyRate / 100);
+  const vacancyAmount = grossAnnualIncome * DEFAULT_VACANCY_RATE;
   const adjustedIncome = grossAnnualIncome - vacancyAmount;
-  
+
   // Expenses
-  // Apply loan offset account to reduce effective loan amount for interest calculation
-  const effectiveLoanAmount = Math.max(0, loanAmount - property.loanOffsetAccount);
-  const loanInterest = effectiveLoanAmount * (property.interestRate / 100);
+  const loanInterest = loanAmount * (property.interestRate / 100);
   const propertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
   const buildingInsurance = property.buildingInsuranceAnnual;
   const councilRatesWater = property.councilRatesWater;
   const strata = property.strata;
   const maintenance = property.maintenanceAllowanceAnnual;
-  
-  const totalOperatingExpenses = 
+
+  const totalOperatingExpenses =
     loanInterest +
     propertyManagementFee +
     buildingInsurance +
     councilRatesWater +
     strata +
     maintenance;
-  
+
   // Non-deductible (will be calculated by other utilities)
   const landTax = property.landTaxOverride ?? 0; // Will be calculated by landTaxCalculator
-  const principalPayments = property.loanProduct === 'PI' 
+  const principalPayments = property.loanProduct === 'PI'
     ? calculatePrincipalPayment(loanAmount, property.interestRate, property.loanTerm)
     : 0;
-  
+
   const totalNonDeductibleExpenses = landTax + principalPayments;
-  
-  // Deductions
-  const potentialDeductions = property.potentialDeductionsRebates;
-  
+
+  const potentialDeductions = 0;
+
   // Net cashflow
-  const netAnnualCashflow = adjustedIncome - totalOperatingExpenses - totalNonDeductibleExpenses + potentialDeductions;
+  const netAnnualCashflow = adjustedIncome - totalOperatingExpenses - totalNonDeductibleExpenses;
   const netMonthlyCashflow = netAnnualCashflow / 12;
   const netWeeklyCashflow = netAnnualCashflow / 52;
-  
+
   return {
     weeklyRent,
     grossAnnualIncome,

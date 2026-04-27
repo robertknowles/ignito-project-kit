@@ -32,8 +32,11 @@ import {
   periodToDisplay,
   periodToYear,
   yearToPeriod,
-  calculateRentalRecognitionRate,
   RENTAL_RECOGNITION_RATE,
+  SAVINGS_DEPLOYMENT_RATE,
+  DEPENDENT_BC_PENALTY,
+  DEPENDENT_SAVINGS_PENALTY,
+  DEFAULT_VACANCY_RATE,
   calculateInflationFactor,
 } from '../constants/financialParams';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
@@ -217,9 +220,9 @@ setTimelineLoanTypes({});
             // Recalculate borrowing capacity based on new salary
             modifiedProfile.borrowingCapacity = 
               event.payload.newSalary * modifiedProfile.salaryServiceabilityMultiplier;
-            // Estimate savings change (rough approximation - 25% of salary delta)
+            // Estimate savings change (rough approximation - SAVINGS_DEPLOYMENT_RATE of salary delta)
             const salaryDelta = event.payload.newSalary - (event.payload.previousSalary || baseProfile.baseSalary);
-            modifiedProfile.annualSavings = baseProfile.annualSavings + (salaryDelta * 0.25);
+            modifiedProfile.annualSavings = baseProfile.annualSavings + (salaryDelta * SAVINGS_DEPLOYMENT_RATE);
           }
           break;
           
@@ -229,8 +232,8 @@ setTimelineLoanTypes({});
             const partnerDelta = event.payload.newPartnerSalary - (event.payload.previousPartnerSalary || 0);
             // Add partner income contribution to borrowing capacity (assume same multiplier)
             modifiedProfile.borrowingCapacity += partnerDelta * modifiedProfile.salaryServiceabilityMultiplier;
-            // Add to household savings (assume 25% contribution)
-            modifiedProfile.annualSavings += partnerDelta * 0.25;
+            // Add to household savings (same SAVINGS_DEPLOYMENT_RATE as salary deltas)
+            modifiedProfile.annualSavings += partnerDelta * SAVINGS_DEPLOYMENT_RATE;
           }
           break;
           
@@ -260,15 +263,10 @@ setTimelineLoanTypes({});
           
         case 'dependent_change':
           if (event.payload.dependentChange !== undefined) {
-            // Each dependent reduces borrowing capacity by ~$10k-15k (bank policy)
-            // and increases expenses (reducing savings)
-            const capacityReductionPerDependent = 12000;
-            const savingsReductionPerDependent = 6000;
-            
-            modifiedProfile.borrowingCapacity -= 
-              event.payload.dependentChange * capacityReductionPerDependent;
-            modifiedProfile.annualSavings -= 
-              event.payload.dependentChange * savingsReductionPerDependent;
+            modifiedProfile.borrowingCapacity -=
+              event.payload.dependentChange * DEPENDENT_BC_PENALTY;
+            modifiedProfile.annualSavings -=
+              event.payload.dependentChange * DEPENDENT_SAVINGS_PENALTY;
           }
           break;
           
@@ -364,12 +362,10 @@ setTimelineLoanTypes({});
         existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
       }
       
-      // Process each period chronologically to track running balances
-      // Only 25% of annual savings goes into the "available for investment" pool
-      // This matches the 25% usage rate when funding purchases
-      const SAVINGS_RATE = 0.25;
-      // Use the event-modified annual savings rate
-      const periodSavings = (periodProfile.annualSavings * SAVINGS_RATE) / PERIODS_PER_YEAR;
+      // Process each period chronologically to track running balances.
+      // Only SAVINGS_DEPLOYMENT_RATE of annual savings flows into the
+      // "available for investment" pool — the rest stays liquid.
+      const periodSavings = (periodProfile.annualSavings * SAVINGS_DEPLOYMENT_RATE) / PERIODS_PER_YEAR;
       let totalBaseSavings = 0;
       let totalCashflowReinvestment = 0;
       
@@ -503,65 +499,6 @@ setTimelineLoanTypes({});
       };
     };
 
-  const calculatePropertyScore = (
-    purchase: { period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number },
-    currentPeriod: number
-  ): { cashflowScore: number; equityScore: number; totalScore: number } => {
-    const periodsOwned = currentPeriod - purchase.period;
-    const propertyData = getPropertyData(purchase.title);
-    
-    if (!propertyData) {
-      return { cashflowScore: 0, equityScore: 0, totalScore: 0 };
-    }
-    
-    // Calculate current property value with tiered growth
-    const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-    
-    // Cashflow Score using detailed cashflow calculation
-    const propertyInstance = getInstance(purchase.instanceId);
-    let netCashflow = 0;
-    
-    if (propertyInstance) {
-      // Calculate detailed cashflow using all 39 inputs
-      const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
-      
-      // Adjust for property growth (rent increases with property value)
-      const growthFactor = currentValue / purchase.cost;
-      const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
-      
-      // Apply inflation to expenses
-      const inflationFactor = calculateInflationFactor(periodsOwned);
-      netCashflow = adjustedAnnualCashflow * inflationFactor;
-    } else {
-      // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
-const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
-      const yieldRate = parseFloat(propertyData.yield) / 100;
-      // Override with actual purchase values
-      fallbackInstance.purchasePrice = purchase.cost;
-      fallbackInstance.rentPerWeek = (currentValue * yieldRate) / 52;
-      
-      const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
-      const growthFactor = currentValue / purchase.cost;
-      const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
-      const inflationFactor = calculateInflationFactor(periodsOwned);
-      netCashflow = adjustedAnnualCashflow * inflationFactor;
-    }
-    
-    // Equity Score (current equity in property)
-    // Current loan = original loan + any equity released so far
-    const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-    const currentEquity = currentValue - currentLoanAmount;
-    
-    // Weighted scoring: 60% cashflow + 40% equity
-    const weightedScore = 0.6 * netCashflow + 0.4 * currentEquity;
-    
-    return {
-      cashflowScore: netCashflow,
-      equityScore: currentEquity,
-      totalScore: weightedScore
-    };
-  };
-
   const checkAffordability = (
     property: any,
     availableFunds: number,
@@ -641,7 +578,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             
             // Apply progressive rental recognition based on portfolio size
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
-            const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+            const recognitionRate = RENTAL_RECOGNITION_RATE;
             const recognizedIncome = inflationAdjustedIncome * recognitionRate;
             
             // Calculate net cashflow (income - expenses - interest - principal)
@@ -664,7 +601,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
 const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             const yieldRate = parseFloat(propertyData.yield) / 100;
             const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
-            const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+            const recognitionRate = RENTAL_RECOGNITION_RATE;
             
             // Override with actual purchase values
             fallbackInstance.purchasePrice = purchase.cost;
@@ -801,15 +738,15 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       if (affordPropertyInstance) {
         // Use actual instance rent (agent-editable)
         const annualRent = affordPropertyInstance.rentPerWeek * 52;
-        const vacancyAdjusted = annualRent * (1 - affordPropertyInstance.vacancyRate / 100);
+        const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
         const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
-        const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+        const recognitionRate = RENTAL_RECOGNITION_RATE;
         newPropertyRentalIncome = vacancyAdjusted * recognitionRate;
       } else if (propertyData) {
         // Fallback to template yield
         const yieldRate = parseFloat(propertyData.yield) / 100;
         const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
-        const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+        const recognitionRate = RENTAL_RECOGNITION_RATE;
         newPropertyRentalIncome = property.cost * yieldRate * recognitionRate;
       }
       
@@ -840,8 +777,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       const affordDepositBalance = calculateDepositBalance(
         property.cost,
         affordInstanceLvr,
-        affordPropertyInstanceForCosts.conditionalHoldingDeposit,
-        affordPropertyInstanceForCosts.unconditionalHoldingDeposit
+        affordPropertyInstanceForCosts.conditionalHoldingDeposit
       );
       
       // Calculate all one-off costs using property instance
@@ -1217,7 +1153,7 @@ return { period: Infinity };
         // Calculate cashflow breakdown for this property
         // Calculate portfolio size for rental recognition
         portfolioSize = purchaseHistory.filter(p => p.period <= purchasePeriod).length + 1;
-        rentalRecognitionRate = calculateRentalRecognitionRate(portfolioSize);
+        rentalRecognitionRate = RENTAL_RECOGNITION_RATE;
         
         // Get the loan type for this instance (default to 'IO' if not set)
         const currentInstanceLoanType = timelineLoanTypes[instanceId] || 'IO';
@@ -1351,8 +1287,7 @@ return { period: Infinity };
       const depositBalance = calculateDepositBalance(
         correctPurchasePrice,
         instanceLvr,
-        propertyInstanceForCosts.conditionalHoldingDeposit,
-        propertyInstanceForCosts.unconditionalHoldingDeposit
+        propertyInstanceForCosts.conditionalHoldingDeposit
       );
       
       // Calculate all one-off costs using property instance (includes all 12 purchase cost fields)
@@ -1524,11 +1459,9 @@ return { period: Infinity };
           legalFees: oneOffCosts.conveyancing,
           inspectionFees: oneOffCosts.buildingPestInspection + oneOffCosts.plumbingElectricalInspections + oneOffCosts.independentValuation,
           // Other fees includes ALL remaining one-off costs
-          otherFees: oneOffCosts.mortgageFees + 
-                     oneOffCosts.ratesAdjustment + 
+          otherFees: oneOffCosts.mortgageFees +
                      oneOffCosts.engagementFee +
                      oneOffCosts.conditionalHoldingDeposit +
-                     oneOffCosts.unconditionalHoldingDeposit +
                      oneOffCosts.buildingInsuranceUpfront +
                      oneOffCosts.maintenanceAllowancePostSettlement,
           total: oneOffCosts.totalCashRequired + lmi,
@@ -1649,8 +1582,7 @@ return { period: Infinity };
     const affordabilityDepositBalance = calculateDepositBalance(
       property.cost,
       affordabilityInstanceLvr,
-      affordabilityPropertyInstanceForCosts.conditionalHoldingDeposit,
-      affordabilityPropertyInstanceForCosts.unconditionalHoldingDeposit
+      affordabilityPropertyInstanceForCosts.conditionalHoldingDeposit
     );
     
     // Calculate all one-off costs using property instance
@@ -1685,16 +1617,16 @@ return { period: Infinity };
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const growthFactor = currentValue / purchase.cost;
           const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
-          const vacancyAdjusted = annualRent * (1 - purchaseInstance.vacancyRate / 100);
+          const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
           const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
         } else if (propertyData) {
           // Fallback to template yield
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const yieldRate = parseFloat(propertyData.yield) / 100;
           const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += currentValue * yieldRate * recognitionRate;
         }
       }
@@ -1706,15 +1638,15 @@ return { period: Infinity };
     if (newPropertyInstance) {
       // Use instance rent (agent-editable)
       const annualRent = newPropertyInstance.rentPerWeek * 52;
-      const vacancyAdjusted = annualRent * (1 - newPropertyInstance.vacancyRate / 100);
+      const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
       const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-      const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+      const recognitionRate = RENTAL_RECOGNITION_RATE;
       totalRentalIncome += vacancyAdjusted * recognitionRate;
     } else if (propertyData) {
       // Fallback to template yield
       const yieldRate = parseFloat(propertyData.yield) / 100;
       const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-      const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+      const recognitionRate = RENTAL_RECOGNITION_RATE;
       totalRentalIncome += property.cost * yieldRate * recognitionRate;
     }
     
@@ -1963,15 +1895,15 @@ createInstance(instanceId, propertyType, period);
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const growthFactor = currentValue / purchase.cost;
           const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
-          const vacancyAdjusted = annualRent * (1 - purchaseInstance.vacancyRate / 100);
+          const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
           const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
-          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
         } else if (propertyData) {
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const yieldRate = parseFloat(propertyData.yield) / 100;
           const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
-          const recognitionRate = calculateRentalRecognitionRate(portfolioSize);
+          const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += currentValue * yieldRate * recognitionRate;
         }
       }

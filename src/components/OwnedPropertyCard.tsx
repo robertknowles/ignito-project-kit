@@ -144,10 +144,6 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
               <span className="text-xs text-gray-500">Gross rental income</span>
               <span className="text-xs font-medium text-[#181D27]">{formatExact(yr1Breakdown.grossAnnualIncome)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500">Vacancy ({propInstance.vacancyRate}%)</span>
-              <span className="text-xs font-medium text-gray-700">{formatExact(-yr1Breakdown.vacancyAmount)}</span>
-            </div>
           </div>
 
           <div className="border-t border-gray-100 my-2" />

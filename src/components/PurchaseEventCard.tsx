@@ -46,7 +46,6 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
     loanProduct: 'IO',
     interestRate: 6.5,
     loanTerm: 30,
-    loanOffsetAccount: 0,
   };
   
   // Calculate derived values using centralised LMI calculator

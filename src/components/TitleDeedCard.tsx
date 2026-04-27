@@ -1,13 +1,7 @@
 import React from 'react'
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon'
 import type { PropertyTypeTemplate } from '../contexts/DataAssumptionsContext'
-
-// Growth rate tiers matching DataAssumptionsContext
-const GROWTH_RATES = {
-  High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
-  Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
-  Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
-} as const
+import { GROWTH_RATE_TIERS } from '../constants/financialParams'
 
 // Property images mapping - matches PropertyBlocksPanel.tsx
 const PROPERTY_IMAGES: Record<string, string> = {
@@ -76,7 +70,7 @@ export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }
   // Calculate derived values
   const yieldPercent = ((template.rentPerWeek * 52) / template.purchasePrice) * 100
   const mortgageValue = (template.purchasePrice * template.lvr) / 100
-  const growthRates = GROWTH_RATES[template.growthAssumption] || GROWTH_RATES.Medium
+  const growthRates = GROWTH_RATE_TIERS[template.growthAssumption] || GROWTH_RATE_TIERS.Medium
   
   // Format currency
   const formatCurrency = (value: number) => {

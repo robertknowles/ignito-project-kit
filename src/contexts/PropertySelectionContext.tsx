@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, useRe
 import { useDataAssumptions } from './DataAssumptionsContext';
 import { useClient } from './ClientContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import { GROWTH_RATE_TIERS } from '../constants/financialParams';
 
 export interface PropertyType {
   id: string;
@@ -188,12 +189,6 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const pendingQuantityRef = useRef<Record<string, number>>({});
   const { propertyTypeTemplates } = useDataAssumptions(); // Get profile-level templates from DataAssumptionsContext
   
-  // Growth rate tiers - must match DataAssumptionsContext.tsx
-  const GROWTH_RATES = {
-    High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
-    Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
-    Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
-  } as const;
 
   // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
   // to prevent conflicts between individual context loading and unified scenario loading
@@ -256,7 +251,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100;
       const depositPercent = 100 - template.lvr;
       const growthTier = (template.growthAssumption || 'Medium') as keyof typeof GROWTH_RATES;
-      const rates = GROWTH_RATES[growthTier] || GROWTH_RATES.Medium;
+      const rates = GROWTH_RATE_TIERS[growthTier] || GROWTH_RATE_TIERS.Medium;
       
       return {
         id: `property_${index}`,

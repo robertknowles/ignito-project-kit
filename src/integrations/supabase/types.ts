@@ -14,41 +14,33 @@ export interface PropertyInstanceDetails {
   valuationAtPurchase: number;
   rentPerWeek: number;
   growthAssumption: 'High' | 'Medium' | 'Low';
-  minimumYield: number;
-  
-  // Section B: Contract & Loan Details (8 fields)
-  daysToUnconditional: number;
-  daysForSettlement: number;
+
+  // Section B: Contract & Loan Details (5 fields)
   lvr: number;
   lmiWaiver: boolean;
   loanProduct: 'IO' | 'PI';
   interestRate: number;
   loanTerm: number;
-  loanOffsetAccount: number;
-  
-  // Section D: One-Off Purchase Costs (12 fields)
+
+  // Section D: One-Off Purchase Costs (10 fields)
   engagementFee: number;
   conditionalHoldingDeposit: number;
   buildingInsuranceUpfront: number;
   buildingPestInspection: number;
   plumbingElectricalInspections: number;
   independentValuation: number;
-  unconditionalHoldingDeposit: number;
   mortgageFees: number;
   conveyancing: number;
-  ratesAdjustment: number;
   maintenanceAllowancePostSettlement: number;
   stampDutyOverride: number | null;
-  
-  // Section E: Cashflow (8 fields)
-  vacancyRate: number;
+
+  // Section E: Cashflow (6 fields)
   propertyManagementPercent: number;
   buildingInsuranceAnnual: number;
   councilRatesWater: number;
   strata: number;
   maintenanceAllowanceAnnual: number;
   landTaxOverride: number | null;
-  potentialDeductionsRebates: number;
 }
 
 // Type definition for scenario data stored in scenarios.data column

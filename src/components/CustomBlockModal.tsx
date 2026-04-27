@@ -31,15 +31,10 @@ interface CustomBlockModalProps {
     maintenanceAllowanceAnnual?: number;
     buildingInsuranceAnnual?: number;
     propertyManagementPercent?: number;
-    vacancyRate?: number;
-    minimumYield?: number;
     valuationAtPurchase?: number;
-    daysToUnconditional?: number;
-    daysForSettlement?: number;
     conditionalHoldingDeposit?: number;
     lmiWaiver?: boolean;
     loanTerm?: number;
-    loanOffsetAccount?: number;
   };
 }
 
@@ -66,21 +61,17 @@ const getDefaultFormData = (): Omit<CustomPropertyBlock, 'id' | 'isCustom'> => (
   valuationAtPurchase: 378000,
   rentPerWeek: 335,
   growthAssumption: 'Medium',
-  minimumYield: 4.5,
   yieldPercent: 7,
   growthPercent: 5,
-  
+
   // Section B: Contract & Loan Details
-  daysToUnconditional: 21,
-  daysForSettlement: 42,
   lvr: 88,
   lmiWaiver: false,
   loanProduct: 'IO',
   loanType: 'IO',
   interestRate: 6.5,
   loanTerm: 30,
-  loanOffsetAccount: 0,
-  
+
   // Section D: One-Off Purchase Costs
   engagementFee: 8000,
   conditionalHoldingDeposit: 7000,
@@ -88,22 +79,18 @@ const getDefaultFormData = (): Omit<CustomPropertyBlock, 'id' | 'isCustom'> => (
   buildingPestInspection: 600,
   plumbingElectricalInspections: 250,
   independentValuation: 0,
-  unconditionalHoldingDeposit: 0,
   mortgageFees: 1000,
   conveyancing: 2200,
-  ratesAdjustment: 0,
   maintenanceAllowancePostSettlement: 1000,
   stampDutyOverride: null,
-  
+
   // Section E: Cashflow
-  vacancyRate: 4,
   propertyManagementPercent: 8,
   buildingInsuranceAnnual: 1200,
   councilRatesWater: 2000,
   strata: 3200,
   maintenanceAllowanceAnnual: 1750,
   landTaxOverride: null,
-  potentialDeductionsRebates: 0,
 });
 
 // Scale defaults based on purchase price
@@ -163,12 +150,8 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
         interestRate: sourceTemplate.interestRate || 6.5,
         // Use template values if available, otherwise scaled defaults
         valuationAtPurchase: sourceTemplate.valuationAtPurchase || scaledDefaults.valuationAtPurchase || Math.round(sourceTemplate.purchasePrice * 1.08),
-        minimumYield: sourceTemplate.minimumYield || 4.5,
-        daysToUnconditional: sourceTemplate.daysToUnconditional || 21,
-        daysForSettlement: sourceTemplate.daysForSettlement || 42,
         lmiWaiver: sourceTemplate.lmiWaiver || false,
         loanTerm: sourceTemplate.loanTerm || 30,
-        loanOffsetAccount: sourceTemplate.loanOffsetAccount || 0,
         engagementFee: sourceTemplate.engagementFee || scaledDefaults.engagementFee || 8000,
         conditionalHoldingDeposit: sourceTemplate.conditionalHoldingDeposit || scaledDefaults.conditionalHoldingDeposit || Math.round(sourceTemplate.purchasePrice * 0.02),
         buildingInsuranceUpfront: sourceTemplate.buildingInsuranceUpfront || scaledDefaults.buildingInsuranceUpfront || 1400,
@@ -182,7 +165,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
         maintenanceAllowanceAnnual: sourceTemplate.maintenanceAllowanceAnnual || scaledDefaults.maintenanceAllowanceAnnual || 1750,
         buildingInsuranceAnnual: sourceTemplate.buildingInsuranceAnnual || scaledDefaults.buildingInsuranceAnnual || 1200,
         propertyManagementPercent: sourceTemplate.propertyManagementPercent || 8,
-        vacancyRate: sourceTemplate.vacancyRate ?? 4,
       }));
     } else if (isOpen && !sourceTemplate) {
       // Reset to defaults when opening for new custom block
@@ -256,10 +238,8 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
       formData.buildingPestInspection +
       formData.plumbingElectricalInspections +
       formData.independentValuation +
-      formData.unconditionalHoldingDeposit +
       formData.mortgageFees +
       formData.conveyancing +
-      formData.ratesAdjustment +
       formData.maintenanceAllowancePostSettlement
     );
   }, [formData]);
@@ -415,17 +395,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className={labelClass}>Minimum Yield (%)</label>
-                  <input
-                    type="number"
-                    value={formData.minimumYield}
-                    onChange={(e) => setFormData({ ...formData, minimumYield: parseFloat(e.target.value) || 0 })}
-                    step="0.1"
-                    className={inputClass}
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -443,27 +412,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
             
             {expandedSections.contract && (
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>Days to Unconditional</label>
-                    <input
-                      type="number"
-                      value={formData.daysToUnconditional}
-                      onChange={(e) => setFormData({ ...formData, daysToUnconditional: parseInt(e.target.value) || 0 })}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Days for Settlement</label>
-                    <input
-                      type="number"
-                      value={formData.daysForSettlement}
-                      onChange={(e) => setFormData({ ...formData, daysForSettlement: parseInt(e.target.value) || 0 })}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className={labelClass}>LVR (%)</label>
@@ -500,28 +448,16 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>Loan Product</label>
-                    <select
-                      value={formData.loanProduct}
-                      onChange={(e) => setFormData({ ...formData, loanProduct: e.target.value as 'IO' | 'PI', loanType: e.target.value as 'IO' | 'PI' })}
-                      className={inputClass}
-                    >
-                      <option value="IO">Interest Only</option>
-                      <option value="PI">Principal & Interest</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Offset Account ($)</label>
-                    <input
-                      type="number"
-                      value={formData.loanOffsetAccount}
-                      onChange={(e) => setFormData({ ...formData, loanOffsetAccount: parseInt(e.target.value) || 0 })}
-                      step="1000"
-                      className={inputClass}
-                    />
-                  </div>
+                <div>
+                  <label className={labelClass}>Loan Product</label>
+                  <select
+                    value={formData.loanProduct}
+                    onChange={(e) => setFormData({ ...formData, loanProduct: e.target.value as 'IO' | 'PI', loanType: e.target.value as 'IO' | 'PI' })}
+                    className={inputClass}
+                  >
+                    <option value="IO">Interest Only</option>
+                    <option value="PI">Principal & Interest</option>
+                  </select>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -622,16 +558,6 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Unconditional Holding Deposit ($)</label>
-                    <input
-                      type="number"
-                      value={formData.unconditionalHoldingDeposit}
-                      onChange={(e) => setFormData({ ...formData, unconditionalHoldingDeposit: parseInt(e.target.value) || 0 })}
-                      step="500"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
                     <label className={labelClass}>Mortgage Fees ($)</label>
                     <input
                       type="number"
@@ -641,25 +567,12 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                       className={inputClass}
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Conveyancing ($)</label>
                     <input
                       type="number"
                       value={formData.conveyancing}
                       onChange={(e) => setFormData({ ...formData, conveyancing: parseInt(e.target.value) || 0 })}
-                      step="100"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Rates Adjustment ($)</label>
-                    <input
-                      type="number"
-                      value={formData.ratesAdjustment}
-                      onChange={(e) => setFormData({ ...formData, ratesAdjustment: parseInt(e.target.value) || 0 })}
                       step="100"
                       className={inputClass}
                     />
@@ -719,31 +632,17 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
             
             {expandedSections.cashflow && (
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>Vacancy Rate (%)</label>
-                    <input
-                      type="number"
-                      value={formData.vacancyRate}
-                      onChange={(e) => setFormData({ ...formData, vacancyRate: parseFloat(e.target.value) || 0 })}
-                      step="0.5"
-                      min="0"
-                      max="20"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Property Management (%)</label>
-                    <input
-                      type="number"
-                      value={formData.propertyManagementPercent}
-                      onChange={(e) => setFormData({ ...formData, propertyManagementPercent: parseFloat(e.target.value) || 0 })}
-                      step="0.1"
-                      min="0"
-                      max="15"
-                      className={inputClass}
-                    />
-                  </div>
+                <div>
+                  <label className={labelClass}>Property Management (%)</label>
+                  <input
+                    type="number"
+                    value={formData.propertyManagementPercent}
+                    onChange={(e) => setFormData({ ...formData, propertyManagementPercent: parseFloat(e.target.value) || 0 })}
+                    step="0.1"
+                    min="0"
+                    max="15"
+                    className={inputClass}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -792,33 +691,21 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>
-                      Land Tax Override ($/yr)
-                      <span className="ml-1 text-xs text-gray-400 font-normal">
-                        (auto: ${calculatedLandTax.toLocaleString()})
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.landTaxOverride ?? ''}
-                      onChange={(e) => setFormData({ ...formData, landTaxOverride: e.target.value ? parseInt(e.target.value) : null })}
-                      placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
-                      step="100"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Potential Deductions/Rebates ($)</label>
-                    <input
-                      type="number"
-                      value={formData.potentialDeductionsRebates}
-                      onChange={(e) => setFormData({ ...formData, potentialDeductionsRebates: parseInt(e.target.value) || 0 })}
-                      step="100"
-                      className={inputClass}
-                    />
-                  </div>
+                <div>
+                  <label className={labelClass}>
+                    Land Tax Override ($/yr)
+                    <span className="ml-1 text-xs text-gray-400 font-normal">
+                      (auto: ${calculatedLandTax.toLocaleString()})
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.landTaxOverride ?? ''}
+                    onChange={(e) => setFormData({ ...formData, landTaxOverride: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
+                    step="100"
+                    className={inputClass}
+                  />
                 </div>
 
                 {/* Annual expenses total */}

@@ -35,10 +35,8 @@ interface OneOffCostsState {
   buildingPestInspection: number;
   plumbingElectricalInspections: number;
   independentValuation: number;
-  unconditionalHoldingDeposit: number;
   mortgageFees: number;
   conveyancing: number;
-  ratesAdjustment: number;
   maintenanceAllowancePostSettlement: number;
   stampDutyOverride: number | null;
 }
@@ -156,10 +154,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
     buildingPestInspection: propertyInstance?.buildingPestInspection ?? propertyDefaults.buildingPestInspection,
     plumbingElectricalInspections: propertyInstance?.plumbingElectricalInspections ?? propertyDefaults.plumbingElectricalInspections,
     independentValuation: propertyInstance?.independentValuation ?? propertyDefaults.independentValuation,
-    unconditionalHoldingDeposit: propertyInstance?.unconditionalHoldingDeposit ?? propertyDefaults.unconditionalHoldingDeposit,
     mortgageFees: propertyInstance?.mortgageFees ?? propertyDefaults.mortgageFees,
     conveyancing: propertyInstance?.conveyancing ?? propertyDefaults.conveyancing,
-    ratesAdjustment: propertyInstance?.ratesAdjustment ?? propertyDefaults.ratesAdjustment,
     maintenanceAllowancePostSettlement: propertyInstance?.maintenanceAllowancePostSettlement ?? propertyDefaults.maintenanceAllowancePostSettlement,
     stampDutyOverride: propertyInstance?.stampDutyOverride ?? null,
   });
@@ -199,10 +195,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
         buildingPestInspection: propertyInstance.buildingPestInspection ?? propertyDefaults.buildingPestInspection,
         plumbingElectricalInspections: propertyInstance.plumbingElectricalInspections ?? propertyDefaults.plumbingElectricalInspections,
         independentValuation: propertyInstance.independentValuation ?? propertyDefaults.independentValuation,
-        unconditionalHoldingDeposit: propertyInstance.unconditionalHoldingDeposit ?? propertyDefaults.unconditionalHoldingDeposit,
         mortgageFees: propertyInstance.mortgageFees ?? propertyDefaults.mortgageFees,
         conveyancing: propertyInstance.conveyancing ?? propertyDefaults.conveyancing,
-        ratesAdjustment: propertyInstance.ratesAdjustment ?? propertyDefaults.ratesAdjustment,
         maintenanceAllowancePostSettlement: propertyInstance.maintenanceAllowancePostSettlement ?? propertyDefaults.maintenanceAllowancePostSettlement,
         stampDutyOverride: propertyInstance.stampDutyOverride ?? null,
       });
@@ -249,8 +243,7 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
     const depositBalance = calculateDepositBalance(
       adjustedValues.purchasePrice,
       adjustedValues.lvr,
-      adjustedOneOffCosts.conditionalHoldingDeposit,
-      adjustedOneOffCosts.unconditionalHoldingDeposit
+      adjustedOneOffCosts.conditionalHoldingDeposit
     );
     
     // Build temporary instance for calculating one-off costs
@@ -494,10 +487,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       buildingPestInspection: adjustedOneOffCosts.buildingPestInspection,
       plumbingElectricalInspections: adjustedOneOffCosts.plumbingElectricalInspections,
       independentValuation: adjustedOneOffCosts.independentValuation,
-      unconditionalHoldingDeposit: adjustedOneOffCosts.unconditionalHoldingDeposit,
       mortgageFees: adjustedOneOffCosts.mortgageFees,
       conveyancing: adjustedOneOffCosts.conveyancing,
-      ratesAdjustment: adjustedOneOffCosts.ratesAdjustment,
       maintenanceAllowancePostSettlement: adjustedOneOffCosts.maintenanceAllowancePostSettlement,
       stampDutyOverride: adjustedOneOffCosts.stampDutyOverride,
       // LMI capitalization flag
@@ -523,10 +514,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       buildingPestInspection: propertyInstance?.buildingPestInspection ?? propertyDefaults.buildingPestInspection,
       plumbingElectricalInspections: propertyInstance?.plumbingElectricalInspections ?? propertyDefaults.plumbingElectricalInspections,
       independentValuation: propertyInstance?.independentValuation ?? propertyDefaults.independentValuation,
-      unconditionalHoldingDeposit: propertyInstance?.unconditionalHoldingDeposit ?? propertyDefaults.unconditionalHoldingDeposit,
       mortgageFees: propertyInstance?.mortgageFees ?? propertyDefaults.mortgageFees,
       conveyancing: propertyInstance?.conveyancing ?? propertyDefaults.conveyancing,
-      ratesAdjustment: propertyInstance?.ratesAdjustment ?? propertyDefaults.ratesAdjustment,
       maintenanceAllowancePostSettlement: propertyInstance?.maintenanceAllowancePostSettlement ?? propertyDefaults.maintenanceAllowancePostSettlement,
       stampDutyOverride: propertyInstance?.stampDutyOverride ?? null,
     };
@@ -545,10 +534,8 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
       adjustedOneOffCosts.buildingPestInspection !== originalCosts.buildingPestInspection ||
       adjustedOneOffCosts.plumbingElectricalInspections !== originalCosts.plumbingElectricalInspections ||
       adjustedOneOffCosts.independentValuation !== originalCosts.independentValuation ||
-      adjustedOneOffCosts.unconditionalHoldingDeposit !== originalCosts.unconditionalHoldingDeposit ||
       adjustedOneOffCosts.mortgageFees !== originalCosts.mortgageFees ||
       adjustedOneOffCosts.conveyancing !== originalCosts.conveyancing ||
-      adjustedOneOffCosts.ratesAdjustment !== originalCosts.ratesAdjustment ||
       adjustedOneOffCosts.maintenanceAllowancePostSettlement !== originalCosts.maintenanceAllowancePostSettlement ||
       adjustedOneOffCosts.stampDutyOverride !== originalCosts.stampDutyOverride
     );
@@ -982,17 +969,6 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                 {/* Editable Cost Fields - Row 4 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-gray-600">Unconditional Deposit</Label>
-                    <Input
-                      type="number"
-                      value={adjustedOneOffCosts.unconditionalHoldingDeposit}
-                      onChange={(e) => handleOneOffCostChange('unconditionalHoldingDeposit', Number(e.target.value))}
-                      step={500}
-                      min={0}
-                      className="text-right text-sm h-8"
-                    />
-                  </div>
-                  <div>
                     <Label className="text-xs text-gray-600">Mortgage Fees</Label>
                     <Input
                       type="number"
@@ -1003,10 +979,6 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                       className="text-right text-sm h-8"
                     />
                   </div>
-                </div>
-
-                {/* Editable Cost Fields - Row 5 */}
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-gray-600">Conveyancing</Label>
                     <Input
@@ -1018,20 +990,9 @@ export const GuardrailFixModal: React.FC<GuardrailFixModalProps> = ({
                       className="text-right text-sm h-8"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs text-gray-600">Rates Adjustment</Label>
-                    <Input
-                      type="number"
-                      value={adjustedOneOffCosts.ratesAdjustment}
-                      onChange={(e) => handleOneOffCostChange('ratesAdjustment', Number(e.target.value))}
-                      step={100}
-                      min={0}
-                      className="text-right text-sm h-8"
-                    />
-                  </div>
                 </div>
 
-                {/* Editable Cost Fields - Row 6 */}
+                {/* Editable Cost Fields - Row 5 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-gray-600">Maintenance Allowance</Label>

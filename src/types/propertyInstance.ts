@@ -19,18 +19,9 @@ export interface PropertyInstanceDetails {
   
   /** Growth assumption tier (High, Medium, Low) - determines tiered growth rates */
   growthAssumption: 'High' | 'Medium' | 'Low';
-  
-  /** Minimum acceptable yield threshold for validation */
-  minimumYield: number;
-  
-  // Section B: Contract & Loan Details (8 fields)
-  
-  /** Days from contract to unconditional exchange */
-  daysToUnconditional: number;
-  
-  /** Days from contract to settlement */
-  daysForSettlement: number;
-  
+
+  // Section B: Contract & Loan Details (5 fields)
+
   /** Loan-to-value ratio (0-100) */
   lvr: number;
   
@@ -45,11 +36,8 @@ export interface PropertyInstanceDetails {
   
   /** Loan term in years (typically 30 for residential, 20-25 for commercial) */
   loanTerm: number;
-  
-  /** Balance in offset account (reduces effective interest paid) */
-  loanOffsetAccount: number;
-  
-  // Section D: One-Off Purchase Costs (12 fields)
+
+  // Section D: One-Off Purchase Costs (11 fields)
   
   /** Buyer's agent engagement fee */
   engagementFee: number;
@@ -68,30 +56,21 @@ export interface PropertyInstanceDetails {
   
   /** Independent property valuation cost (optional) */
   independentValuation: number;
-  
-  /** Additional deposit at unconditional exchange (typically $0) */
-  unconditionalHoldingDeposit: number;
-  
+
   /** Mortgage setup and discharge fees */
   mortgageFees: number;
   
   /** Conveyancing fees including searches */
   conveyancing: number;
-  
-  /** Council rates adjustment at settlement (typically $0) */
-  ratesAdjustment: number;
-  
+
   /** Post-settlement maintenance buffer fund */
   maintenanceAllowancePostSettlement: number;
   
   /** Override for calculated stamp duty (null = use calculated value) */
   stampDutyOverride: number | null;
   
-  // Section E: Cashflow (8 fields)
-  
-  /** Vacancy rate as percentage (e.g., 2 for 2%) */
-  vacancyRate: number;
-  
+  // Section E: Cashflow (7 fields)
+
   /** Property management fee as percentage of rent (e.g., 6.6 for 6.6%) */
   propertyManagementPercent: number;
   
@@ -109,10 +88,7 @@ export interface PropertyInstanceDetails {
   
   /** Override for calculated land tax (null = use calculated value) */
   landTaxOverride: number | null;
-  
-  /** Potential tax deductions or rebates */
-  potentialDeductionsRebates: number;
-  
+
   // Section F: Manual Placement (Drag-and-Drop)
   
   /** Whether this property has been manually placed via drag-and-drop */

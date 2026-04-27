@@ -47,7 +47,6 @@ const validateField = (field: string, value: any): string | null => {
       if (value < 1 || value > 40) return 'Must be 1-40 years';
       return null;
     
-    case 'vacancyRate':
     case 'propertyManagementPercent':
       if (value < 0 || value > 100) return 'Must be 0-100%';
       return null;
@@ -279,13 +278,13 @@ try {
       // Log all fields being saved
       const fieldsList = [
         'state', 'purchasePrice', 'valuationAtPurchase', 'rentPerWeek', 'growthAssumption',
-        'daysToUnconditional', 'daysForSettlement', 'lvr', 'lmiWaiver', 'loanProduct', 'interestRate', 
-        'loanTerm', 'loanOffsetAccount', 'engagementFee', 'conditionalHoldingDeposit', 
+        'lvr', 'lmiWaiver', 'loanProduct', 'interestRate',
+        'loanTerm', 'engagementFee', 'conditionalHoldingDeposit',
         'buildingInsuranceUpfront', 'buildingPestInspection', 'plumbingElectricalInspections',
-        'independentValuation', 'unconditionalHoldingDeposit', 'mortgageFees', 'conveyancing',
-        'ratesAdjustment', 'maintenanceAllowancePostSettlement', 'stampDutyOverride',
-        'vacancyRate', 'propertyManagementPercent', 'buildingInsuranceAnnual', 'councilRatesWater',
-        'strata', 'maintenanceAllowanceAnnual', 'landTaxOverride', 'potentialDeductionsRebates'
+        'independentValuation', 'mortgageFees', 'conveyancing',
+        'maintenanceAllowancePostSettlement', 'stampDutyOverride',
+        'propertyManagementPercent', 'buildingInsuranceAnnual', 'councilRatesWater',
+        'strata', 'maintenanceAllowanceAnnual', 'landTaxOverride'
       ];
 fieldsList.forEach(field => {
         if (field in formData) {
@@ -387,10 +386,8 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
       formData.buildingPestInspection +
       formData.plumbingElectricalInspections +
       formData.independentValuation +
-      formData.unconditionalHoldingDeposit +
       formData.mortgageFees +
       formData.conveyancing +
-      formData.ratesAdjustment +
       formData.maintenanceAllowancePostSettlement
     );
   }, [formData]);
@@ -565,7 +562,7 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={labelClass}>Rent/Week ($)</label>
                         <input
@@ -593,42 +590,6 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                           disabled={isSaving || readOnly}
                         />
                         <p className="text-[10px] text-gray-400 mt-0.5">Auto-syncs with rent</p>
-                      </div>
-                      <div>
-                        <label className={labelClass}>Minimum Yield (%)</label>
-                        <input
-                          type="number"
-                          value={formData.minimumYield}
-                          onChange={(e) => handleFieldChange('minimumYield', parseNumericInput(e.target.value))}
-                          step="0.1"
-                          min="0"
-                          max="20"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Days to Unconditional</label>
-                        <input
-                          type="number"
-                          value={formData.daysToUnconditional}
-                          onChange={(e) => handleFieldChange('daysToUnconditional', parseInt(e.target.value) || 0)}
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Days for Settlement</label>
-                        <input
-                          type="number"
-                          value={formData.daysForSettlement}
-                          onChange={(e) => handleFieldChange('daysForSettlement', parseInt(e.target.value) || 0)}
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
                       </div>
                     </div>
                   </div>
@@ -696,30 +657,17 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Loan Product</label>
-                        <select
-                          value={formData.loanProduct}
-                          onChange={(e) => handleFieldChange('loanProduct', e.target.value as 'IO' | 'PI')}
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        >
-                          <option value="IO">Interest Only</option>
-                          <option value="PI">Principal & Interest</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelClass}>Offset Account ($)</label>
-                        <input
-                          type="number"
-                          value={formData.loanOffsetAccount}
-                          onChange={(e) => handleFieldChange('loanOffsetAccount', parseNumericInput(e.target.value))}
-                          step="1000"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
+                    <div>
+                      <label className={labelClass}>Loan Product</label>
+                      <select
+                        value={formData.loanProduct}
+                        onChange={(e) => handleFieldChange('loanProduct', e.target.value as 'IO' | 'PI')}
+                        className={inputClass}
+                        disabled={isSaving || readOnly}
+                      >
+                        <option value="IO">Interest Only</option>
+                        <option value="PI">Principal & Interest</option>
+                      </select>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -845,17 +793,6 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>Unconditional Holding Deposit ($)</label>
-                        <input
-                          type="number"
-                          value={formData.unconditionalHoldingDeposit}
-                          onChange={(e) => handleFieldChange('unconditionalHoldingDeposit', parseNumericInput(e.target.value))}
-                          step="500"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
-                      <div>
                         <label className={labelClass}>Mortgage Fees ($)</label>
                         <input
                           type="number"
@@ -866,26 +803,12 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                           disabled={isSaving || readOnly}
                         />
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className={labelClass}>Conveyancing ($)</label>
                         <input
                           type="number"
                           value={formData.conveyancing}
                           onChange={(e) => handleFieldChange('conveyancing', parseNumericInput(e.target.value))}
-                          step="100"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Rates Adjustment ($)</label>
-                        <input
-                          type="number"
-                          value={formData.ratesAdjustment}
-                          onChange={(e) => handleFieldChange('ratesAdjustment', parseNumericInput(e.target.value))}
                           step="100"
                           className={inputClass}
                           disabled={isSaving || readOnly}
@@ -948,39 +871,21 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                 
                 {expandedSections.cashflow && (
                   <div className="p-4 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Vacancy Rate (%)</label>
-                        <input
-                          type="number"
-                          value={formData.vacancyRate}
-                          onChange={(e) => handleFieldChange('vacancyRate', parseNumericInput(e.target.value))}
-                          step="0.5"
-                          min="0"
-                          max="20"
-                          className={validationErrors.vacancyRate ? inputErrorClass : inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                        {validationErrors.vacancyRate && (
-                          <p className="text-xs text-red-700 mt-1">{validationErrors.vacancyRate}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className={labelClass}>Property Management (%)</label>
-                        <input
-                          type="number"
-                          value={formData.propertyManagementPercent}
-                          onChange={(e) => handleFieldChange('propertyManagementPercent', parseNumericInput(e.target.value))}
-                          step="0.1"
-                          min="0"
-                          max="15"
-                          className={validationErrors.propertyManagementPercent ? inputErrorClass : inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                        {validationErrors.propertyManagementPercent && (
-                          <p className="text-xs text-red-700 mt-1">{validationErrors.propertyManagementPercent}</p>
-                        )}
-                      </div>
+                    <div>
+                      <label className={labelClass}>Property Management (%)</label>
+                      <input
+                        type="number"
+                        value={formData.propertyManagementPercent}
+                        onChange={(e) => handleFieldChange('propertyManagementPercent', parseNumericInput(e.target.value))}
+                        step="0.1"
+                        min="0"
+                        max="15"
+                        className={validationErrors.propertyManagementPercent ? inputErrorClass : inputClass}
+                        disabled={isSaving || readOnly}
+                      />
+                      {validationErrors.propertyManagementPercent && (
+                        <p className="text-xs text-red-700 mt-1">{validationErrors.propertyManagementPercent}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -1033,35 +938,22 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>
-                          Land Tax Override ($/yr)
-                          <span className="ml-1 text-xs text-gray-400 font-normal">
-                            (auto: ${calculatedLandTax.toLocaleString()})
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          value={formData.landTaxOverride ?? ''}
-                          onChange={(e) => handleFieldChange('landTaxOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
-                          placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
-                          step="100"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Potential Deductions/Rebates ($)</label>
-                        <input
-                          type="number"
-                          value={formData.potentialDeductionsRebates}
-                          onChange={(e) => handleFieldChange('potentialDeductionsRebates', parseNumericInput(e.target.value))}
-                          step="100"
-                          className={inputClass}
-                          disabled={isSaving || readOnly}
-                        />
-                      </div>
+                    <div>
+                      <label className={labelClass}>
+                        Land Tax Override ($/yr)
+                        <span className="ml-1 text-xs text-gray-400 font-normal">
+                          (auto: ${calculatedLandTax.toLocaleString()})
+                        </span>
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.landTaxOverride ?? ''}
+                        onChange={(e) => handleFieldChange('landTaxOverride', e.target.value ? parseNumericInput(e.target.value) : null)}
+                        placeholder={`Auto: $${calculatedLandTax.toLocaleString()}`}
+                        step="100"
+                        className={inputClass}
+                        disabled={isSaving || readOnly}
+                      />
                     </div>
 
                     {/* Annual expenses total */}

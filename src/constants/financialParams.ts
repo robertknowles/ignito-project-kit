@@ -56,14 +56,6 @@ export const RENTAL_SERVICEABILITY_CONTRIBUTION_RATE = 0.70;
  */
 export const RENTAL_RECOGNITION_RATE = 0.80;
 
-/**
- * Calculate rental recognition rate based on portfolio size
- * Now returns a flat 80% for all portfolio sizes, matching bank practice.
- */
-export const calculateRentalRecognitionRate = (portfolioSize: number): number => {
-  return RENTAL_RECOGNITION_RATE;
-};
-
 // =============================================================================
 // EQUITY & LVR CONSTANTS
 // =============================================================================
@@ -175,8 +167,26 @@ export const LMI_FREE_LVR_THRESHOLD = 80;
 /** Interest rate for savings not yet deployed (high-interest savings account rate) */
 export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
 
+/**
+ * Proportion of annual savings deployed to investment pool each period.
+ * The remaining 75% stays liquid (living expenses, emergency buffer, etc.).
+ * Also used to project how a salary delta from an income event flows
+ * into the savings stream (25% of income delta → savings delta).
+ */
+export const SAVINGS_DEPLOYMENT_RATE = 0.25;
+
 /** Minimum extractable equity to trigger refinance indicator */
 export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k
+
+// =============================================================================
+// DEPENDENT PENALTIES
+// =============================================================================
+
+/** Borrowing capacity reduction per dependent (bank assessment policy) */
+export const DEPENDENT_BC_PENALTY = 12000;
+
+/** Annual savings reduction per dependent (estimated extra household expense) */
+export const DEPENDENT_SAVINGS_PENALTY = 6000;
 
 // =============================================================================
 // GROWTH RATE TIERS (per property type's growthAssumption)
