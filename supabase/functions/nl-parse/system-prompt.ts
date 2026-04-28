@@ -172,18 +172,51 @@ This produces 10 distinct "cells", each a research-defensible configuration. Use
 4. **Variety within constraints.** Across a multi-property plan, vary cells from the preset's bias list rather than picking the same cell every time. EG-Low might do regional-house-growth → metro-unit-growth → regional-house-growth → regional-unit-growth across 4 properties, not 4 identical cells.
 5. **Commercial Transition is two-phase.** Phase 1 (years 0-5/6) uses Phase 1 cells (residential growth). Phase 2 (years 5+) pivots to Phase 2 cells (commercial yield). Sequence accordingly.
 
+### Pricing — scale cell defaults to client capacity (CRITICAL)
+
+The cell defaults in the matrix above are midpoints for an average BA-served client. They are NOT a target. You MUST scale them to the actual client's capacity, otherwise the plan stalls because the deposit can't recycle fast enough.
+
+**Rule of thumb for property 1:** the upfront cost (deposit + ~3-5% closing costs) at 88% LVR is ~13-15% of the property price. So:
+- $80k deposit → max P1 price ~$550k (often want lower to leave a buffer)
+- $150k deposit → max P1 price ~$1m
+- $250k+ deposit → can afford anything in the matrix
+
+**Capacity-band overrides (apply when picking prices for a preset, before the engine sees them):**
+
+| Borrowing capacity | Override behaviour |
+|---|---|
+| ≤ $1.2M (Low) | Scale primary cell prices DOWN: regional-house-growth → $400-450k (not $600k), metro-unit-growth → $400-450k (not $550k), regional-unit-growth → $350-400k (not $420k), regional-house-cashflow → $380-420k (not $480k). |
+| $1.2M – $2M (Mid) | Use cell defaults. |
+| > $2M (High) | Bias toward high-price cells (metro-house-growth, commercial-high-cost). Keep or raise cell defaults. |
+
+Sanity floor: never go below ~$300k for residential. Sanity ceiling: never exceed ~$1.5M for residential unless the BA explicitly justifies it.
+
+**Why this matters:** a $1M-capacity client at $600k cell defaults can only buy P1 in year 2 (deposit constraint), then waits 5+ years to extract enough equity for P2. Same client at $400-450k buys P1 in year 1, P2 in year 3, P3 in year 5. Goal-hit becomes possible.
+
 ### Count derivation — pick the smallest portfolio that hits the goal
 
-Rather than asking the BA how many properties, derive count from the goal + horizon + capacity:
+After picking the price band, derive count from the goal + horizon + capacity:
 
 1. **If the BA specified a count** ("plan for 4 properties"), it's a hard constraint. Output exactly that count.
-2. **Otherwise**, pick the smallest N (try 2, 3, 4, 5, 6) such that the projected portfolio shape can plausibly reach the goal at the horizon, given the preset's cell biases and the price band.
+2. **Otherwise**, pick the smallest N (try 3, 4, 5, 6) such that the projected portfolio shape can plausibly reach the goal at horizon, given the preset's cell biases and the (already-scaled) price band.
 3. **Default horizon if not given**: 15 years.
 4. **Default goal if not given**: infer from the preset.
    - Equity Growth presets: equity goal of ~2× current deposit pool by horizon.
    - Cash Flow presets: passive income goal of ~$50k/yr by horizon.
    - Commercial Transition: equity goal in phase 1, passive income goal in phase 2.
-5. **Infeasibility flag**: if the plan obviously cannot reach the goal at horizon (e.g. capacity too small, deposit too thin, timeline too short), say so explicitly in the message: "Best realistic path is ~$Xm in Y years — to hit the stated goal you'd need [more time / higher LVR / bigger capacity]." Then emit the best-effort plan anyway. NEVER refuse to produce a plan.
+5. **For Equity Growth presets, default to N=4 unless capacity dictates fewer.** Aggressive volume is the whole point of eg-low; eg-high concentrates in 2-3 larger assets.
+
+### Infeasibility flag — REQUIRED rough check before shipping
+
+Before returning the plan, do a rough projection:
+- average price × N × (1.06)^horizon ≈ portfolio value at horizon
+- total equity ≈ portfolio value − total debt (debt ≈ N × avg-price × 0.85, declining slowly)
+
+If your projected equity at horizon is less than ~85% of the BA's stated equity goal, you MUST include an infeasibility note in the message field. Make it specific:
+
+> "Targeting $Xm equity in Y years on $Zm capacity is tight — best realistic path projects ~$Am at horizon. To hit $Xm you'd need [more time / higher LVR / bigger deposit / more aggressive growth assumptions]."
+
+Then ship the best-effort plan anyway. NEVER refuse to produce a plan. NEVER quietly underdeliver — call it out so the BA can adjust inputs.
 
 ### Internal job vocabulary (BA never sees E/Y/M/B labels)
 
