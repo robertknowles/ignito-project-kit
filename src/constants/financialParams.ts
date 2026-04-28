@@ -169,11 +169,16 @@ export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
 
 /**
  * Proportion of annual savings deployed to investment pool each period.
- * The remaining 75% stays liquid (living expenses, emergency buffer, etc.).
+ * The remainder stays liquid (living expenses, emergency buffer, etc.).
  * Also used to project how a salary delta from an income event flows
- * into the savings stream (25% of income delta → savings delta).
+ * into the savings stream (this rate of income delta → savings delta).
+ *
+ * Calibrated to 50%: a serious investor saving $24k/yr is willing to
+ * deploy half ($12k/yr) into deposits, not just a quarter. The previous
+ * 25% bottlenecked recycling so much that 4-property eg-low plans
+ * stretched 8+ years.
  */
-export const SAVINGS_DEPLOYMENT_RATE = 0.25;
+export const SAVINGS_DEPLOYMENT_RATE = 0.50;
 
 /** Minimum extractable equity to trigger refinance indicator */
 export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k

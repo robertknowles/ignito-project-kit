@@ -77,9 +77,13 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   baseSalary: 60000,
   salaryServiceabilityMultiplier: 4.0,
   serviceabilityRatio: 1.2,
-  // Engine fine-tuning parameters
-  equityReleaseFactor: 0.35,
-  depositBuffer: 40000,
+  // Engine fine-tuning parameters — calibrated for the new preset model.
+  // Previous values (0.35 / $40k / 0.25) were too tight: they bottlenecked
+  // deposit recycling so badly that 4-property eg-low plans stretched 8+
+  // years and missed equity goals. New values model an active, recycling-
+  // focused BA strategy.
+  equityReleaseFactor: 0.65, // recycle 65% of extractable equity (was 35%)
+  depositBuffer: 15000,      // smaller cash buffer; most deposit is usable (was $40k)
   rentFactor: 0.75,
   // Growth curve
   growthCurve: {
