@@ -68,7 +68,9 @@
       "Bash(sed -n '270,285p' src/pages/DataAssumptions.tsx)",
       "Bash(sed -n '1,50p' src/hooks/useAllClientScenarios.ts)",
       "Bash(sed -n '260,290p' src/pages/DataAssumptions.tsx)",
-      "Bash(grep -rn \"property_\\\\\\\\\\\\\\\\d\\\\\\\\|propertyId\\\\\\\\.match\\\\\\\\|\\\\\\\\\\\\\\\\\\\\\\\\$\\\\\\\\{property_\\\\\\\\|\\\\\\\\\\\\\"property_\\\\\\\\|'property_\" src/ --include=\"*.ts\" --include=\"*.tsx\")"
+      "Bash(grep -rn \"property_\\\\\\\\\\\\\\\\d\\\\\\\\|propertyId\\\\\\\\.match\\\\\\\\|\\\\\\\\\\\\\\\\\\\\\\\\$\\\\\\\\{property_\\\\\\\\|\\\\\\\\\\\\\"property_\\\\\\\\|'property_\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(open /Users/robknowles/Projects/proppath-strategy-system-map.html)",
+      "Bash(npx --yes supabase@latest functions deploy nl-parse --project-ref gaoqzrdzihmrwipwsbwo)"
     ]
   }
 }

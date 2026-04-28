@@ -34,6 +34,16 @@ export interface InvestmentProfileData {
    * property sequencing per the 10-cell matrix.
    */
   strategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
+  /**
+   * Internal pacing lever — tier-links across ~9 dials (multiplier, savings
+   * deployment, equity release, vacancy, BC factor, rental contribution,
+   * equity factor, max purchases, low-tier LVR). Default 'aggressive' for
+   * 4 of 5 presets (sales tool: ambitious-but-achievable). cf-high default
+   * 'moderate' (Property Couch retire-on-yield is a fundamentally
+   * conservative thesis). BA can override via chat hint
+   * ("let's be conservative" / "go aggressive").
+   */
+  pacingMode: 'conservative' | 'moderate' | 'aggressive';
 }
 
 export interface CalculatedValues {
@@ -72,19 +82,20 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   equityGoal: 1000000, // Default $1M equity goal
   cashflowGoal: 50000, // Default $50k annual cashflow goal
   // Enhanced dynamic features
-  equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
+  // Aggressive default. Tier-link: Conservative 0.65 / Moderate 0.75 / Aggressive 0.80
+  equityFactor: 0.80,
   // Dual serviceability model
   baseSalary: 60000,
-  salaryServiceabilityMultiplier: 4.0,
+  // Aggressive default. Tier-link: Conservative 4.0 / Moderate 5.0 / Aggressive 6.0
+  // APRA-derived "max borrowing ~5–6× gross household income" consensus across
+  // Henderson, PK Gupta, Paliwal sources.
+  salaryServiceabilityMultiplier: 6.0,
   serviceabilityRatio: 1.2,
-  // Engine fine-tuning parameters — calibrated for active-investor cadence.
-  // BAs aiming for 1/year purchases on a sub-$1.5M-capacity client need
-  // aggressive recycling: most usable equity recycled, almost all deposit
-  // deployed, minimal cash buffer. The earlier conservative values
-  // (0.35 / $40k) modelled a paranoid risk profile that produced 8+ year
-  // plans even when the chatbot suggested affordable prices.
-  equityReleaseFactor: 0.75, // recycle 75% of extractable equity
-  depositBuffer: 5000,       // tiny cash buffer; deposit fully deployable
+  // Engine fine-tuning parameters (Aggressive Pacing defaults).
+  // Tier-link: equityReleaseFactor Conservative 0.35 / Moderate 0.50 / Aggressive 0.70
+  // depositBuffer = max($5k, 6 × monthly holding cost) at runtime; $5k is the absolute floor.
+  equityReleaseFactor: 0.70, // recycle 70% of extractable equity
+  depositBuffer: 5000,       // floor; engine derives 6-month-of-holding-cost target above this
   rentFactor: 0.75,
   // Growth curve
   growthCurve: {
@@ -101,6 +112,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   targetPassiveIncome: 80000,
   ioToPiTransitionYears: 5,
   strategyPreset: 'eg-low',
+  pacingMode: 'aggressive',
 };
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {

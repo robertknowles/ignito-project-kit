@@ -24,21 +24,21 @@ export const BASE_YEAR = new Date().getFullYear();
 
 /**
  * Serviceability Factor: Percentage of borrowing capacity representing realistic annual debt service
- * 
- * Based on bank assessment methodology:
- * - ~35% of gross income available for debt service
- * - Borrowing capacity typically ~6x income
- * - Therefore: annual payment capacity = capacity / 6 * 0.35 ≈ capacity * 0.06
+ *
+ * Aggressive Pacing default (per BA-research calibration 2026-04-29). Tier-linked:
+ *   Conservative 0.06 / Moderate 0.08 / Aggressive 0.10
+ * Calibrated to lender DSR consensus (BA-research workstream B).
  */
-export const SERVICEABILITY_FACTOR = 0.06;
+export const SERVICEABILITY_FACTOR = 0.10;
 
 /**
  * Rental Income Contribution Rate for Serviceability
- * 
- * Banks typically "shade" rental income by 30%, recognizing only 70% for serviceability.
- * This accounts for vacancy, expenses, and conservative assessment.
+ *
+ * Aggressive Pacing default. Tier-linked:
+ *   Conservative 0.70 / Moderate 0.75 / Aggressive 0.80
+ * 0.80 matches universal Australian lender practice (80% rental shading).
  */
-export const RENTAL_SERVICEABILITY_CONTRIBUTION_RATE = 0.70;
+export const RENTAL_SERVICEABILITY_CONTRIBUTION_RATE = 0.80;
 
 // =============================================================================
 // RENTAL RECOGNITION RATE
@@ -79,11 +79,13 @@ export const EQUITY_EXTRACTION_LVR_CAP = 0.80;
 
 /**
  * Default equity factor for borrowing capacity boost
- * 
+ *
+ * Aggressive Pacing default. Tier-linked:
+ *   Conservative 0.65 / Moderate 0.75 / Aggressive 0.80
  * When portfolio equity is used to boost borrowing capacity,
- * lenders typically apply a factor (e.g., 75%) to the extractable equity.
+ * lenders typically apply a factor (0.65–0.80) to the extractable equity.
  */
-export const DEFAULT_EQUITY_FACTOR = 0.75;
+export const DEFAULT_EQUITY_FACTOR = 0.80;
 
 // =============================================================================
 // INTEREST RATE DEFAULTS
@@ -91,15 +93,18 @@ export const DEFAULT_EQUITY_FACTOR = 0.75;
 
 /**
  * Default interest rate for calculations when not specified
- * 
+ *
+ * Refresh quarterly. Currently 6.25% — median variable investor P&I
+ * across the Big 4 as of Q1 2026.
+ *
  * Used for:
  * - Existing portfolio debt service
  * - Fallback when property instance doesn't have specific rate
  */
-export const DEFAULT_INTEREST_RATE = 0.065; // 6.5%
+export const DEFAULT_INTEREST_RATE = 0.0625; // 6.25%
 
 /** Default interest rate as percentage (for display) */
-export const DEFAULT_INTEREST_RATE_PERCENT = 6.5;
+export const DEFAULT_INTEREST_RATE_PERCENT = 6.25;
 
 // =============================================================================
 // INFLATION & GROWTH
@@ -124,8 +129,14 @@ export const DEFAULT_GROWTH_RATE = 0.06; // 6%
 // VACANCY & EXPENSE DEFAULTS
 // =============================================================================
 
-/** Default vacancy rate */
-export const DEFAULT_VACANCY_RATE = 0.04; // 4%
+/**
+ * Default vacancy rate
+ *
+ * Aggressive Pacing default. Tier-linked:
+ *   Conservative 0.06 / Moderate 0.04 / Aggressive 0.02 (≈1 week/yr)
+ * Per-cell vacancy override for commercial cells (5–8%) handled at instance level.
+ */
+export const DEFAULT_VACANCY_RATE = 0.02; // 2%
 
 /** Default rental yield for existing portfolio */
 export const DEFAULT_RENTAL_YIELD = 0.04; // 4%
@@ -139,11 +150,16 @@ export const DEFAULT_EXPENSE_RATIO = 0.30; // 30% of rental income
 
 /**
  * Maximum properties that can be purchased in a single 6-month period
- * 
- * Limits portfolio scaling velocity for realistic modeling.
+ *
+ * Aggressive Pacing default = 2 per 6-month period (4/year ceiling).
+ * Tier-linked: Conservative 1 / Moderate 2 / Aggressive 2.
+ * 4/year is the realistic per-client ceiling — the prior 6/year
+ * (3 per period) was institutional-velocity territory and produced
+ * plausibility-breaking bursts.
+ *
  * Note: This is a fallback default. The actual value comes from profile.maxPurchasesPerYear.
  */
-export const MAX_PURCHASES_PER_PERIOD = 3;
+export const MAX_PURCHASES_PER_PERIOD = 2;
 
 /**
  * Default growth rate for existing/mature portfolio properties
@@ -173,12 +189,13 @@ export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
  * Also used to project how a salary delta from an income event flows
  * into the savings stream (this rate of income delta → savings delta).
  *
- * Calibrated to 65%: a serious BA-advised investor on an aggressive
- * acquisition path commits the bulk of their savings to next deposits.
- * Lower values stretch the cadence beyond what experienced BAs achieve
- * for clients with similar income/savings profiles.
+ * Aggressive Pacing default. Tier-linked:
+ *   Conservative 0.20 / Moderate 0.40 / Aggressive 0.60
+ * Calibrated against BA-research consensus: real households trap surplus
+ * into living expenses, school fees, holidays. 0.60 is the realistic
+ * Aggressive ceiling for ambitious investors.
  */
-export const SAVINGS_DEPLOYMENT_RATE = 0.65;
+export const SAVINGS_DEPLOYMENT_RATE = 0.60;
 
 /** Minimum extractable equity to trigger refinance indicator */
 export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k
@@ -206,7 +223,10 @@ import type { GrowthCurve } from '../types/property';
  */
 export const GROWTH_RATE_TIERS: Record<string, GrowthCurve> = {
   High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
-  Medium: { year1: 8, years2to3: 6, year4: 5, year5plus: 4 },
+  // Medium tier flatter through the long tail per Yardney/Pressley/national-avg
+  // 7% long-term consensus. Previous 8/6/5/4 tapered too fast in years 10-15
+  // and was a meaningful contributor to the "outputs are too slow" symptom.
+  Medium: { year1: 8, years2to3: 7, year4: 6, year5plus: 5 },
   Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
 };
 

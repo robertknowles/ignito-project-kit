@@ -354,6 +354,25 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
                 </label>
               </div>
             )}
+            {instanceData.lvr > 80 && !instanceData.lmiWaiver && (
+              <div className="flex items-center justify-between py-2">
+                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                  LMI Capitalised
+                  <span className="block text-[10px] font-normal text-gray-400 mt-0.5">
+                    Add LMI to loan instead of paying cash at settlement
+                  </span>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!instanceData.lmiCapitalized}
+                    onChange={(e) => onFieldChange('lmiCapitalized', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gray-700" />
+                </label>
+              </div>
+            )}
           </div>
         )}
 

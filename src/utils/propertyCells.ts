@@ -87,6 +87,8 @@ export type StrategyPresetId =
   | 'cf-high'
   | 'commercial-transition';
 
+export type PacingMode = 'conservative' | 'moderate' | 'aggressive';
+
 export interface StrategyPresetMeta {
   id: StrategyPresetId;
   shortLabel: string;
@@ -99,6 +101,22 @@ export interface StrategyPresetMeta {
   /** Two-phase presets (Commercial Transition) split bias by phase. */
   phase1?: CellId[];
   phase2?: CellId[];
+  /**
+   * LVR target at acquisition for this preset (architectural — preset-driven,
+   * not cell-driven). Cell defaults remain as fallbacks for the rare path
+   * where no preset is selected. Per BA-research consensus: 80% across
+   * residential presets; commercial-transition splits 80% Phase 1 / 70% Phase 2.
+   */
+  lvrTarget: number;
+  /** Phase-2 LVR target for two-phase presets (commercial-transition). */
+  phase2LvrTarget?: number;
+  /**
+   * Default Pacing Mode for this preset. Most presets default 'aggressive'
+   * (sales tool: ambitious-but-achievable plans, infeasibility flagged honestly).
+   * cf-high defaults 'moderate' — Property Couch retire-on-yield is a
+   * fundamentally conservative thesis. BA can override via chat hint.
+   */
+  defaultPacing: PacingMode;
 }
 
 export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
@@ -109,6 +127,8 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     description: 'Scale through volume. Multiple growth-mode assets at lower entry per property.',
     primary: ['regional-house-growth', 'metro-unit-growth'],
     secondary: ['regional-unit-growth'],
+    lvrTarget: 80,
+    defaultPacing: 'aggressive',
   },
   'eg-high': {
     id: 'eg-high',
@@ -117,6 +137,8 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     description: 'Concentrate in fewer larger assets. Stronger land content, larger equity per asset.',
     primary: ['metro-house-growth'],
     secondary: ['metro-unit-growth'],
+    lvrTarget: 80,
+    defaultPacing: 'aggressive',
   },
   'cf-high': {
     id: 'cf-high',
@@ -125,6 +147,8 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     description: 'Strong yield at scale. Premium tenants, improves DSR.',
     primary: ['metro-house-cashflow', 'commercial-high-cost'],
     secondary: ['regional-house-cashflow'],
+    lvrTarget: 80,
+    defaultPacing: 'moderate',
   },
   'cf-low': {
     id: 'cf-low',
@@ -133,6 +157,8 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     description: 'Minimise cash flow gap. Yield-focused, accept higher property count.',
     primary: ['regional-unit-cashflow', 'regional-house-cashflow'],
     secondary: ['commercial-low-cost'],
+    lvrTarget: 80,
+    defaultPacing: 'aggressive',
   },
   'commercial-transition': {
     id: 'commercial-transition',
@@ -143,8 +169,31 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     secondary: [],
     phase1: ['metro-house-growth', 'regional-house-growth'],
     phase2: ['commercial-high-cost', 'commercial-low-cost'],
+    lvrTarget: 80,
+    phase2LvrTarget: 70,
+    defaultPacing: 'aggressive',
   },
 };
+
+/**
+ * Get the LVR target for a preset (preset-driven, not cell-driven).
+ * For two-phase presets, phase 1 uses lvrTarget, phase 2 uses phase2LvrTarget.
+ */
+export const getPresetLvrTarget = (
+  presetId: StrategyPresetId,
+  phase: 1 | 2 = 1
+): number => {
+  const meta = STRATEGY_PRESETS[presetId];
+  if (phase === 2 && meta.phase2LvrTarget !== undefined) return meta.phase2LvrTarget;
+  return meta.lvrTarget;
+};
+
+/**
+ * Get the default Pacing Mode for a preset. Used to seed profile.pacingMode
+ * when a BA selects (or switches to) a preset.
+ */
+export const getPresetDefaultPacing = (presetId: StrategyPresetId): PacingMode =>
+  STRATEGY_PRESETS[presetId].defaultPacing;
 
 export const getCellsForPreset = (
   presetId: StrategyPresetId

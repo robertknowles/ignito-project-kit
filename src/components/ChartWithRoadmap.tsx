@@ -765,6 +765,31 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return chartData.find(d => d.totalEquity >= profile.equityGoal);
   }, [chartData, profile.equityGoal]);
 
+  // Goal achievability summary — surfaces a dashboard-level flag when the
+  // projected equity at the BA's stated horizon doesn't reach the goal.
+  // Per spec: "failure mode = explicit infeasible message, never silent compromise."
+  const goalAchievability = useMemo(() => {
+    if (!chartData.length || !profile.equityGoal || profile.equityGoal <= 0) {
+      return null; // No goal set, no flag
+    }
+    const horizonYear = (chartData[0]?.year ?? new Date().getFullYear()) + (profile.timelineYears ?? 15);
+    // Use the data point closest to (but not exceeding) the horizon year
+    const horizonPoint =
+      chartData.find(d => d.year >= horizonYear) ??
+      chartData[chartData.length - 1];
+    const finalEquity = horizonPoint?.totalEquity ?? 0;
+    const achieved = !!equityGoalReached;
+    const shortfall = Math.max(0, profile.equityGoal - finalEquity);
+    return {
+      achieved,
+      finalEquity,
+      goal: profile.equityGoal,
+      shortfall,
+      reachedYear: equityGoalReached?.year ?? null,
+      horizonYear,
+    };
+  }, [chartData, profile.equityGoal, profile.timelineYears, equityGoalReached]);
+
   // Find the most recent purchase year (last property purchased)
   const mostRecentPurchase = useMemo(() => {
     const purchaseYears = chartData.filter(d => d.purchaseInYear);
@@ -885,6 +910,48 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   return (
       <div ref={containerRef} className="w-full h-full">
+        {/* Goal achievability flag — visible only when a goal is set */}
+        {goalAchievability && (
+          <div
+            className={
+              goalAchievability.achieved
+                ? 'mb-3 flex items-center gap-2 px-3 py-2 rounded-md border bg-green-50 border-green-200 text-green-800 text-xs font-medium'
+                : 'mb-3 flex items-center gap-2 px-3 py-2 rounded-md border bg-amber-50 border-amber-300 text-amber-900 text-xs font-medium'
+            }
+            data-testid="goal-achievability-flag"
+          >
+            <span
+              className={
+                goalAchievability.achieved
+                  ? 'inline-block w-1.5 h-1.5 rounded-full bg-green-500'
+                  : 'inline-block w-1.5 h-1.5 rounded-full bg-amber-500'
+              }
+              aria-hidden="true"
+            />
+            {goalAchievability.achieved ? (
+              <span>
+                Equity goal of {formatCurrency(goalAchievability.goal)} reached in{' '}
+                <strong>{goalAchievability.reachedYear}</strong>
+                {goalAchievability.reachedYear &&
+                  goalAchievability.reachedYear < goalAchievability.horizonYear && (
+                    <span className="text-green-700">
+                      {' '}— {goalAchievability.horizonYear - goalAchievability.reachedYear} years ahead of target
+                    </span>
+                  )}
+              </span>
+            ) : (
+              <span>
+                Goal not reached — projected equity at year {goalAchievability.horizonYear} is{' '}
+                <strong>{formatCurrency(goalAchievability.finalEquity)}</strong> against a target of{' '}
+                <strong>{formatCurrency(goalAchievability.goal)}</strong>
+                {goalAchievability.shortfall > 0 && (
+                  <span> (gap: {formatCurrency(goalAchievability.shortfall)})</span>
+                )}
+                . Adjust horizon, deposit, or strategy to close the gap.
+              </span>
+            )}
+          </div>
+        )}
         <div ref={scrollContainerRef} className="overflow-hidden h-full">
           {/* Scrollable container with dynamic total width */}
           <div style={{ minWidth: totalWidth }}>

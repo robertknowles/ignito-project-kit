@@ -272,13 +272,15 @@ setError('Failed to load onboarding form');
         investmentProfile: {
           ...existingData.investmentProfile,
           ...formData,
-          // Preserve advanced settings that clients shouldn't modify
-          equityFactor: existingData.investmentProfile?.equityFactor ?? 0.75,
+          // Preserve advanced settings that clients shouldn't modify.
+          // Fallbacks updated 2026-04-29 to Aggressive Pacing defaults
+          // per BA-research calibration.
+          equityFactor: existingData.investmentProfile?.equityFactor ?? 0.80,
           baseSalary: existingData.investmentProfile?.baseSalary ?? 60000,
-          salaryServiceabilityMultiplier: existingData.investmentProfile?.salaryServiceabilityMultiplier ?? 4.0,
+          salaryServiceabilityMultiplier: existingData.investmentProfile?.salaryServiceabilityMultiplier ?? 6.0,
           serviceabilityRatio: existingData.investmentProfile?.serviceabilityRatio ?? 1.2,
-          equityReleaseFactor: existingData.investmentProfile?.equityReleaseFactor ?? 0.35,
-          depositBuffer: existingData.investmentProfile?.depositBuffer ?? 40000,
+          equityReleaseFactor: existingData.investmentProfile?.equityReleaseFactor ?? 0.70,
+          depositBuffer: existingData.investmentProfile?.depositBuffer ?? 5000,
           rentFactor: existingData.investmentProfile?.rentFactor ?? 0.75,
           growthCurve: existingData.investmentProfile?.growthCurve ?? {
             year1: 12.5,
