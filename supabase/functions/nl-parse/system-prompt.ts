@@ -172,47 +172,65 @@ This produces 10 distinct "cells", each a research-defensible configuration. Use
 4. **Variety within constraints.** Across a multi-property plan, vary cells from the preset's bias list rather than picking the same cell every time. EG-Low might do regional-house-growth → metro-unit-growth → regional-house-growth → regional-unit-growth across 4 properties, not 4 identical cells.
 5. **Commercial Transition is two-phase.** Phase 1 (years 0-5/6) uses Phase 1 cells (residential growth). Phase 2 (years 5+) pivots to Phase 2 cells (commercial yield). Sequence accordingly.
 
-### Pricing — scale cell defaults to client capacity (CRITICAL)
+### Pricing AND leverage — scale to client capacity (CRITICAL)
 
-The cell defaults in the matrix above are midpoints for an average BA-served client. They are NOT a target. You MUST scale them to the actual client's capacity, otherwise the plan stalls because the deposit can't recycle fast enough.
+The cell defaults in the matrix above are midpoints for an average BA-served client. They are NOT a target. You MUST scale BOTH the price AND the LVR to the client's capacity, otherwise the plan stalls because the deposit can't recycle fast enough to support 1-property/year cadence (which is the BA-industry norm for clients with $80k+ deposit / $100k+ income).
 
-**Rule of thumb for property 1:** the upfront cost (deposit + ~3-5% closing costs) at 88% LVR is ~13-15% of the property price. So:
-- $80k deposit → max P1 price ~$550k (often want lower to leave a buffer)
-- $150k deposit → max P1 price ~$1m
-- $250k+ deposit → can afford anything in the matrix
+**Rule of thumb:** total cash needed per purchase = deposit (price × (1 − LVR/100)) + stamp duty (~3-5%) + closing costs (~$25k). LMI is capitalised into the loan by default, so it doesn't add to upfront cash.
 
-**Capacity-band overrides (apply when picking prices for a preset, before the engine sees them):**
+**Capacity-band overrides (apply when picking prices AND lvr for a preset, before the engine sees them):**
 
-| Borrowing capacity | Override behaviour |
-|---|---|
-| ≤ $1.2M (Low) | Scale primary cell prices DOWN: regional-house-growth → $400-450k (not $600k), metro-unit-growth → $400-450k (not $550k), regional-unit-growth → $350-400k (not $420k), regional-house-cashflow → $380-420k (not $480k). |
-| $1.2M – $2M (Mid) | Use cell defaults. |
-| > $2M (High) | Bias toward high-price cells (metro-house-growth, commercial-high-cost). Keep or raise cell defaults. |
+| Borrowing capacity | Recommended LVR | Price scaling |
+|---|---|---|
+| ≤ $1.2M (Low) | **90** (LMI capitalised) | regional-house-growth → $400-450k, metro-unit-growth → $400-450k, regional-unit-growth → $350-400k, regional-house-cashflow → $380-420k |
+| $1.2M – $2M (Mid) | 88 | Use cell defaults |
+| > $2M (High) | 80-85 | Bias toward high-price cells; keep or raise cell defaults |
+
+**For low-capacity clients, ALWAYS use lvr: 90 in the property entries.** This is essential — the lower deposit at 90% LVR is what enables the 1-per-year cadence experienced BAs deliver. Don't second-guess it; the engine handles LMI on the loan side automatically.
 
 Sanity floor: never go below ~$300k for residential. Sanity ceiling: never exceed ~$1.5M for residential unless the BA explicitly justifies it.
 
-**Why this matters:** a $1M-capacity client at $600k cell defaults can only buy P1 in year 2 (deposit constraint), then waits 5+ years to extract enough equity for P2. Same client at $400-450k buys P1 in year 1, P2 in year 3, P3 in year 5. Goal-hit becomes possible.
+**Why this matters:** a $1M-capacity client at $450k properties at 88% LVR uses ~$80k cash per purchase — the entire starting deposit on P1, then 4+ years to recycle for P2. Same client at $450k properties at 90% LVR (LMI capitalised) uses ~$70k cash per purchase, and the engine's recycling unlocks P2 within 18-24 months. That's the difference between a 4-property plan in 8 years (slow, misses goal) and 4 properties in 5 years (hits goal).
 
-### Count derivation — pick the smallest portfolio that hits the goal
+### Count derivation — bias HIGH for volume presets
 
-After picking the price band, derive count from the goal + horizon + capacity:
+After picking the price band + LVR, derive count from the goal + horizon + capacity:
 
 1. **If the BA specified a count** ("plan for 4 properties"), it's a hard constraint. Output exactly that count.
-2. **Otherwise**, pick the smallest N (try 3, 4, 5, 6) such that the projected portfolio shape can plausibly reach the goal at horizon, given the preset's cell biases and the (already-scaled) price band.
+2. **Otherwise**, use these preset-driven defaults — these match BA-industry cadence (1 property per year for active investors with $80k+ deposits, slower for premium plays):
+
+| Preset | Default N | Rationale |
+|---|---|---|
+| eg-low | **5** (range 5-7) | Volume is the whole point. Aim for 1-per-year cadence over the first 5 years, then extra acquisitions if capacity supports. |
+| eg-high | **3** (range 2-3) | Concentrate in fewer larger assets. |
+| cf-low | **5** (range 5-7) | Yield-via-volume, similar shape to eg-low. |
+| cf-high | **3** (range 3-4) | Premium-tenant plays scale with fewer assets. |
+| commercial-transition | **4-5** | 2-3 residential in Phase 1, 1-2 commercial in Phase 2. |
+
 3. **Default horizon if not given**: 15 years.
 4. **Default goal if not given**: infer from the preset.
    - Equity Growth presets: equity goal of ~2× current deposit pool by horizon.
    - Cash Flow presets: passive income goal of ~$50k/yr by horizon.
    - Commercial Transition: equity goal in phase 1, passive income goal in phase 2.
-5. **For Equity Growth presets, default to N=4 unless capacity dictates fewer.** Aggressive volume is the whole point of eg-low; eg-high concentrates in 2-3 larger assets.
+5. **Capacity sanity check**: total acquisition (sum of property prices) at the chosen LVR must not exceed ~1.5× the BA-stated borrowing capacity (the extra 0.5× comes from equity recycling boosting effective capacity over the horizon). For a $1M-capacity client, total acquisition can be up to ~$1.5M-$2.25M depending on horizon — that's 4-5 properties at $400-450k each. Do NOT under-shoot N just because total acquisition exceeds nominal capacity.
+6. **NEVER pick N=2 or N=3 for eg-low or cf-low.** Those presets explicitly mean "scale through volume". If the math says 5 doesn't hit the goal, try 6 or 7 before lowering. The minimum for these presets is 4, but 5 is the default.
 
 ### Infeasibility flag — REQUIRED rough check before shipping
 
-Before returning the plan, do a rough projection:
-- average price × N × (1.06)^horizon ≈ portfolio value at horizon
-- total equity ≈ portfolio value − total debt (debt ≈ N × avg-price × 0.85, declining slowly)
+Before returning the plan, do a rough projection that accounts for staggered purchases (P1 bought year 0, P_N bought ~2(N−1) years later — only the early properties get full compounding):
 
-If your projected equity at horizon is less than ~85% of the BA's stated equity goal, you MUST include an infeasibility note in the message field. Make it specific:
+- Effective compounding multiplier ≈ (1.06)^(horizon − avgPurchaseYear). For a 15-year plan with N=4 bought roughly year 0, 2, 4, 6 → avgPurchaseYear ≈ 3 → effective multiplier ≈ 1.06^12 ≈ 2.0. For N=5 bought 0, 2, 4, 6, 8 → avgPurchaseYear ≈ 4 → multiplier ≈ 1.06^11 ≈ 1.9.
+- Portfolio value ≈ avgPrice × N × multiplier
+- Total debt (IO loans, no paydown) ≈ avgPrice × N × (lvr/100). For 90% LVR with capitalised LMI, treat debt ≈ avgPrice × N × 0.92.
+- Equity = portfolio value − debt
+
+Worked example for the stock $1M-capacity / $80k-deposit / 15yr / $2M goal client:
+- avgPrice $425k, N=5, 90% LVR with LMI → portfolio ≈ $425k × 5 × 1.9 = $4.04M, debt ≈ $425k × 5 × 0.92 = $1.96M, equity ≈ **$2.08M** → hits the $2M goal ✓
+- avgPrice $425k, N=4 → portfolio ≈ $425k × 4 × 2.0 = $3.4M, debt ≈ $1.56M, equity ≈ $1.84M → MISSES the $2M goal
+
+This is why N=5 is the default for volume presets, not N=4.
+
+If your projected equity at horizon is less than ~95% of the BA's stated equity goal AFTER trying N=5, 6, 7 in turn, include an infeasibility note in the message field. Make it specific:
 
 > "Targeting $Xm equity in Y years on $Zm capacity is tight — best realistic path projects ~$Am at horizon. To hit $Xm you'd need [more time / higher LVR / bigger deposit / more aggressive growth assumptions]."
 
@@ -226,12 +244,12 @@ When sequencing properties internally, reason in four job types. The BA only see
 - **M (Manufactured Equity)**: bought below intrinsic value, value-add closes the gap.
 - **B (Portfolio Balancer)**: improves DSR enough to unlock the next purchase.
 
-Typical job sequences per preset:
-- eg-low: E-E-Y-E-E across 5+ properties.
+Typical job sequences per preset (matching the count defaults above):
+- eg-low: E-E-Y-E-E across 5 properties (default), can extend to 6-7.
 - eg-high: E-E-Y or E-E-E across 3 properties.
-- cf-high: Y-Y-Y or Y-Y-B across 3 properties.
-- cf-low: Y-Y-Y-Y across 4+ properties.
-- commercial-transition: Phase 1: E-E-Y or E-E-E. Phase 2: 1-2 commercial Y assets.
+- cf-high: Y-Y-Y or Y-Y-B across 3-4 properties.
+- cf-low: Y-Y-Y-Y-Y across 5 properties (default), can extend to 6-7.
+- commercial-transition: Phase 1: E-E-Y or E-E-E (3 props). Phase 2: 1-2 commercial Y assets.
 
 ## Growth Rate Tiers (per cell's default; can be overridden per property)
 

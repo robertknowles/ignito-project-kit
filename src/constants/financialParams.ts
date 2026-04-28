@@ -173,12 +173,12 @@ export const SAVINGS_INTEREST_RATE = 0.045; // 4.5% p.a.
  * Also used to project how a salary delta from an income event flows
  * into the savings stream (this rate of income delta → savings delta).
  *
- * Calibrated to 50%: a serious investor saving $24k/yr is willing to
- * deploy half ($12k/yr) into deposits, not just a quarter. The previous
- * 25% bottlenecked recycling so much that 4-property eg-low plans
- * stretched 8+ years.
+ * Calibrated to 65%: a serious BA-advised investor on an aggressive
+ * acquisition path commits the bulk of their savings to next deposits.
+ * Lower values stretch the cadence beyond what experienced BAs achieve
+ * for clients with similar income/savings profiles.
  */
-export const SAVINGS_DEPLOYMENT_RATE = 0.50;
+export const SAVINGS_DEPLOYMENT_RATE = 0.65;
 
 /** Minimum extractable equity to trigger refinance indicator */
 export const MIN_EXTRACTABLE_EQUITY_THRESHOLD = 50000; // $50k

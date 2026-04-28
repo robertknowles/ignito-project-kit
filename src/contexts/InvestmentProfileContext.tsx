@@ -77,13 +77,14 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   baseSalary: 60000,
   salaryServiceabilityMultiplier: 4.0,
   serviceabilityRatio: 1.2,
-  // Engine fine-tuning parameters — calibrated for the new preset model.
-  // Previous values (0.35 / $40k / 0.25) were too tight: they bottlenecked
-  // deposit recycling so badly that 4-property eg-low plans stretched 8+
-  // years and missed equity goals. New values model an active, recycling-
-  // focused BA strategy.
-  equityReleaseFactor: 0.65, // recycle 65% of extractable equity (was 35%)
-  depositBuffer: 15000,      // smaller cash buffer; most deposit is usable (was $40k)
+  // Engine fine-tuning parameters — calibrated for active-investor cadence.
+  // BAs aiming for 1/year purchases on a sub-$1.5M-capacity client need
+  // aggressive recycling: most usable equity recycled, almost all deposit
+  // deployed, minimal cash buffer. The earlier conservative values
+  // (0.35 / $40k) modelled a paranoid risk profile that produced 8+ year
+  // plans even when the chatbot suggested affordable prices.
+  equityReleaseFactor: 0.75, // recycle 75% of extractable equity
+  depositBuffer: 5000,       // tiny cash buffer; deposit fully deployable
   rentFactor: 0.75,
   // Growth curve
   growthCurve: {
