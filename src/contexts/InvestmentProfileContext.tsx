@@ -57,42 +57,49 @@ interface InvestmentProfileProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Default investment profile shape. Used as the initial state for the
+ * provider AND as the reset target when a client switch leaves no saved
+ * scenario in Supabase (see ScenarioSaveContext.loadClientScenario).
+ */
+export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
+  depositPool: 50000,
+  borrowingCapacity: 500000,
+  portfolioValue: 0,
+  currentDebt: 0,
+  annualSavings: 24000,
+  timelineYears: 15,
+  equityGoal: 1000000, // Default $1M equity goal
+  cashflowGoal: 50000, // Default $50k annual cashflow goal
+  // Enhanced dynamic features
+  equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
+  // Dual serviceability model
+  baseSalary: 60000,
+  salaryServiceabilityMultiplier: 4.0,
+  serviceabilityRatio: 1.2,
+  // Engine fine-tuning parameters
+  equityReleaseFactor: 0.35,
+  depositBuffer: 40000,
+  rentFactor: 0.75,
+  // Growth curve
+  growthCurve: {
+    year1: 12.5,
+    years2to3: 10,
+    year4: 7.5,
+    year5plus: 6,
+  },
+  // Advanced portfolio settings
+  useExistingEquity: true,
+  maxPurchasesPerYear: 3,
+  existingPortfolioGrowthRate: 0.03,
+  // Financial Freedom projection
+  targetPassiveIncome: 80000,
+  ioToPiTransitionYears: 5,
+  strategyPreset: 'eg-low',
+};
+
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {
-  const [profile, setProfile] = useState<InvestmentProfileData>({
-    depositPool: 50000,
-    borrowingCapacity: 500000,
-    portfolioValue: 0,
-    currentDebt: 0,
-    annualSavings: 24000,
-    timelineYears: 15,
-    equityGoal: 1000000, // Default $1M equity goal
-    cashflowGoal: 50000, // Default $50k annual cashflow goal
-    // Enhanced dynamic features
-    equityFactor: 0.75, // 75% of usable equity can boost borrowing capacity
-    // NEW: Dual serviceability model
-    baseSalary: 60000, // $60,000 annual salary
-    salaryServiceabilityMultiplier: 4.0, // 4x salary lending capacity (reduced from 5x)
-    serviceabilityRatio: 1.2, // 120% rental income serviceability ratio (tightened)
-    // NEW: Engine fine-tuning parameters
-    equityReleaseFactor: 0.35, // 35% of equity available for recycling (reduced)
-    depositBuffer: 40000, // $40k extra cash buffer for deposits
-    rentFactor: 0.75, // 75% factor to temper rental income boost
-    // NEW: Growth curve
-    growthCurve: {
-      year1: 12.5,      // 12.5% Year 1
-      years2to3: 10,    // 10% Years 2-3
-      year4: 7.5,       // 7.5% Year 4
-      year5plus: 6,     // 6% Year 5+
-    },
-    // NEW: Advanced portfolio settings
-    useExistingEquity: true, // Use existing equity for purchases by default
-    maxPurchasesPerYear: 3, // Max 3 purchases per year
-    existingPortfolioGrowthRate: 0.03, // 3% annual growth for mature properties
-    // NEW: Financial Freedom projection
-    targetPassiveIncome: 80000, // $80k annual passive income target
-    ioToPiTransitionYears: 5, // 5 years after last purchase, switch IO→P&I
-    strategyPreset: 'eg-low',
-  });
+  const [profile, setProfile] = useState<InvestmentProfileData>({ ...INITIAL_INVESTMENT_PROFILE });
 
   // Background calculations - not displayed in UI but available for simulation engine
   const calculatedValues = useMemo((): CalculatedValues => {

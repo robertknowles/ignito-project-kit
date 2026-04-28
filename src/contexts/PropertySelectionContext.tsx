@@ -3,25 +3,22 @@ import { useDataAssumptions } from './DataAssumptionsContext';
 import { useClient } from './ClientContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
-import { translateLegacyEngineId, translateLegacyInstanceId } from '../utils/propertyCells';
 
 /**
- * Translate any legacy keys in a stored selections record (e.g.
- * `{ property_5: 2 }`) to v4 cell IDs (`{ "metro-house-growth": 2 }`).
- * Unknown keys are kept as-is so custom blocks survive.
+ * Persistence model
+ * -----------------
+ * Scenario state in this context (selections, propertyOrder, pauseBlocks,
+ * customBlocks, eventBlocks) is held IN-MEMORY ONLY during a session.
+ * Persistence happens ONLY when the BA explicitly saves a scenario via
+ * ScenarioSaveContext (which writes to Supabase).
+ *
+ * On page reload:
+ *   - If a saved Supabase scenario exists for the active client → restored
+ *     by ScenarioSaveContext.loadClientScenario.
+ *   - If not → blank state. Unsaved chat-driven plans are lost by design.
+ *
+ * No auto-write to localStorage; no auto-read from localStorage.
  */
-const translateSelections = (raw: PropertySelection): PropertySelection => {
-  const out: PropertySelection = {};
-  for (const [key, qty] of Object.entries(raw)) {
-    const newKey = translateLegacyEngineId(key) ?? key;
-    out[newKey] = (out[newKey] ?? 0) + qty;
-  }
-  return out;
-};
-
-/** Translate any legacy entries in a stored property order array to v4 form. */
-const translatePropertyOrder = (raw: string[]): string[] =>
-  raw.map((id) => translateLegacyInstanceId(id));
 
 export interface PropertyType {
   id: string;
@@ -206,66 +203,16 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const [propertyOrder, setPropertyOrder] = useState<string[]>([]);
   // Ref to track pending quantity changes to avoid stale closure issues with rapid clicks
   const pendingQuantityRef = useRef<Record<string, number>>({});
-  /**
-   * Gates the save-to-localStorage effects on a per-client basis. The provider
-   * mounts with empty selections/order — without this gate, the save effects
-   * fire immediately and overwrite the persisted scenario before
-   * loadClientData has a chance to read it back. Set per client by
-   * loadClientData (and after the client-switch effect below).
-   */
-  const hasLoadedRef = useRef<Record<number, boolean>>({});
-  const { propertyTypeTemplates } = useDataAssumptions(); // Get profile-level templates from DataAssumptionsContext
+  const { propertyTypeTemplates } = useDataAssumptions();
 
-
-  // Disable auto-loading from localStorage - this is now handled by useClientSwitching hook
-  // to prevent conflicts between individual context loading and unified scenario loading
+  // Mark this provider as ready once a client is active. Loading state is no
+  // longer tied to a localStorage read — the source of truth is Supabase via
+  // ScenarioSaveContext.
   useEffect(() => {
     if (activeClient?.id) {
       setIsLoading(false);
     }
   }, [activeClient?.id]);
-
-  // Save selections to localStorage whenever they change — but only after
-  // loadClientData has completed at least once for this client, to avoid the
-  // initial-mount race that would otherwise overwrite stored data with `{}`.
-  useEffect(() => {
-    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
-      const storageKey = `property_selections_${activeClient.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(selections));
-    }
-  }, [selections, activeClient?.id]);
-
-  // Save pause blocks to localStorage whenever they change
-  useEffect(() => {
-    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
-      const pauseStorageKey = `pause_blocks_${activeClient.id}`;
-      localStorage.setItem(pauseStorageKey, JSON.stringify(pauseBlocks));
-    }
-  }, [pauseBlocks, activeClient?.id]);
-
-  // Save custom blocks to localStorage whenever they change
-  useEffect(() => {
-    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
-      const customBlocksStorageKey = `custom_blocks_${activeClient.id}`;
-      localStorage.setItem(customBlocksStorageKey, JSON.stringify(customBlocks));
-    }
-  }, [customBlocks, activeClient?.id]);
-
-  // Save property order to localStorage whenever it changes
-  useEffect(() => {
-    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
-      const propertyOrderStorageKey = `property_order_${activeClient.id}`;
-      localStorage.setItem(propertyOrderStorageKey, JSON.stringify(propertyOrder));
-    }
-  }, [propertyOrder, activeClient?.id]);
-
-  // Save event blocks to localStorage whenever they change
-  useEffect(() => {
-    if (activeClient?.id && hasLoadedRef.current[activeClient.id]) {
-      const eventBlocksStorageKey = `event_blocks_${activeClient.id}`;
-      localStorage.setItem(eventBlocksStorageKey, JSON.stringify(eventBlocks));
-    }
-  }, [eventBlocks, activeClient?.id]);
 
   // Sync the pendingQuantityRef with actual selections state after each render
   // This ensures the ref stays in sync and handles cases like loading from localStorage
@@ -520,95 +467,32 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       .sort((a, b) => a.period - b.period);
   }, [eventBlocks]);
 
-  // Bulk setter for scenario restoration - sets selections and propertyOrder atomically.
-  // Also unlocks the save-to-localStorage gate for the active client, so that
-  // chat-driven writes (which bypass loadClientData) start persisting immediately.
+  // Bulk setter for scenario restoration — sets selections and propertyOrder
+  // atomically. In-memory only; persistence is via ScenarioSaveContext on
+  // explicit save.
   const setAllSelections = useCallback((newSelections: PropertySelection, newPropertyOrder: string[]) => {
     setSelections({ ...newSelections });
     setPropertyOrder([...newPropertyOrder]);
     pendingQuantityRef.current = { ...newSelections };
-    if (activeClient?.id) {
-      hasLoadedRef.current[activeClient.id] = true;
-    }
-  }, [activeClient?.id]);
+  }, []);
 
-  // Load all client data from localStorage
-  const loadClientData = useCallback((clientId: number) => {
-    setIsLoading(true);
-    
-    // Use setTimeout to ensure state updates happen in next tick
-    // This prevents React batching issues
-    setTimeout(() => {
-      try {
-        // Load property selections — translate any legacy positional IDs to v4 cell IDs.
-        const storageKey = `property_selections_${clientId}`;
-        const stored = localStorage.getItem(storageKey);
-
-        if (stored) {
-          const parsedSelections = JSON.parse(stored) as PropertySelection;
-          setSelections(translateSelections(parsedSelections));
-        } else {
-          setSelections({});
-        }
-
-        // Load pause blocks
-        const pauseStorageKey = `pause_blocks_${clientId}`;
-        const storedPauses = localStorage.getItem(pauseStorageKey);
-        if (storedPauses) {
-          setPauseBlocks(JSON.parse(storedPauses));
-        } else {
-          setPauseBlocks([]);
-        }
-
-        // Load custom blocks
-        const customBlocksStorageKey = `custom_blocks_${clientId}`;
-        const storedCustomBlocks = localStorage.getItem(customBlocksStorageKey);
-        if (storedCustomBlocks) {
-          setCustomBlocks(JSON.parse(storedCustomBlocks));
-        } else {
-          setCustomBlocks([]);
-        }
-
-        // Load event blocks
-        const eventBlocksStorageKey = `event_blocks_${clientId}`;
-        const storedEventBlocks = localStorage.getItem(eventBlocksStorageKey);
-        if (storedEventBlocks) {
-          setEventBlocks(JSON.parse(storedEventBlocks));
-        } else {
-          setEventBlocks([]);
-        }
-
-        // Load property order — translate legacy instance IDs to v4 form.
-        const propertyOrderStorageKey = `property_order_${clientId}`;
-        const storedPropertyOrder = localStorage.getItem(propertyOrderStorageKey);
-        if (storedPropertyOrder) {
-          setPropertyOrder(translatePropertyOrder(JSON.parse(storedPropertyOrder) as string[]));
-        } else {
-          // No stored order — reconstruct from (translated) selections.
-          const parsedSelections = stored
-            ? translateSelections(JSON.parse(stored) as PropertySelection)
-            : {};
-          const reconstructedOrder: string[] = [];
-          Object.entries(parsedSelections).forEach(([propertyId, quantity]) => {
-            for (let i = 0; i < (quantity as number); i++) {
-              reconstructedOrder.push(`${propertyId}_instance_${i}`);
-            }
-          });
-          setPropertyOrder(reconstructedOrder);
-        }
-      } catch (error) {
-        setSelections({});
-        setPauseBlocks([]);
-        setCustomBlocks([]);
-        setEventBlocks([]);
-        setPropertyOrder([]);
-      } finally {
-        // Unlock save-to-localStorage for this client now that loadClientData
-        // has completed. Subsequent state changes will persist.
-        hasLoadedRef.current[clientId] = true;
-        setIsLoading(false);
-      }
-    }, 0);
+  /**
+   * Reset all in-memory scenario state for the active client. Called when
+   * switching clients or when ScenarioSaveContext determines no saved
+   * scenario exists. No localStorage involvement — persistence happens
+   * only on explicit save.
+   *
+   * The clientId parameter is retained for API compatibility with
+   * useClientSwitching, but no per-client storage is read.
+   */
+  const loadClientData = useCallback((_clientId: number) => {
+    setSelections({});
+    setPauseBlocks([]);
+    setCustomBlocks([]);
+    setEventBlocks([]);
+    setPropertyOrder([]);
+    pendingQuantityRef.current = {};
+    setIsLoading(false);
   }, []);
 
   const value = {

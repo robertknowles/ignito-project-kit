@@ -57,33 +57,15 @@ export const useAffordabilityCalculator = () => {
   const { activeClient } = useClient();
   const { getInstance, createInstance, instances } = usePropertyInstance();
   
-  // Per-instance loan type state (keyed by instanceId)
+  // Per-instance loan type state (keyed by instanceId). In-memory only;
+  // persists across a session but not across reloads. Saved scenarios
+  // restore their own loan types via PropertyInstanceDetails.loanProduct.
   const [timelineLoanTypes, setTimelineLoanTypes] = useState<Record<string, 'IO' | 'PI'>>({});
-  
-  // Load timeline loan types from localStorage when client changes
+
+  // Reset loan-type overrides when the active client changes.
   useEffect(() => {
-    if (activeClient?.id) {
-      const storageKey = `timeline_loan_types_${activeClient.id}`;
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        try {
-          setTimelineLoanTypes(JSON.parse(stored));
-        } catch (error) {
-setTimelineLoanTypes({});
-        }
-      } else {
-        setTimelineLoanTypes({});
-      }
-    }
+    setTimelineLoanTypes({});
   }, [activeClient?.id]);
-  
-  // Save timeline loan types to localStorage whenever they change
-  useEffect(() => {
-    if (activeClient?.id) {
-      const storageKey = `timeline_loan_types_${activeClient.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(timelineLoanTypes));
-    }
-  }, [timelineLoanTypes, activeClient?.id]);
   
   // Function to update loan type for a specific timeline property instance
   const updateTimelinePropertyLoanType = useCallback((instanceId: string, loanType: 'IO' | 'PI') => {

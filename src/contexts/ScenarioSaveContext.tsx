@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
 import { usePropertySelection } from './PropertySelectionContext';
-import { useInvestmentProfile } from './InvestmentProfileContext';
+import { useInvestmentProfile, INITIAL_INVESTMENT_PROFILE } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
 import { useMultiScenario, Scenario } from './MultiScenarioContext';
 import { useAuth } from './AuthContext';
@@ -133,7 +133,7 @@ export const useScenarioSave = () => {
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient, updateClient } = useClient();
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
-  const { profile, updateProfile } = useInvestmentProfile();
+  const { profile, updateProfile, setProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
   const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext, isDeletionInProgress } = useMultiScenario();
   const { user, role } = useAuth();
@@ -421,10 +421,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return scenarioData;
       } else {
         // Row exists but has no `data` payload — treat the same as no saved
-        // scenario: leave the active selections/instances alone so unsaved
-        // chat-driven data isn't clobbered.
+        // scenario: blank slate.
         setLastSavedData(null);
         setLastSaved(null);
+        setHasUnsavedChanges(false);
+        resetSelections();
+        setPropertyOrder([]);
+        propertyInstanceContext.setInstances({});
+        setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+        setChatMessages([]);
+        setTimelineSnapshot([]);
+        setChartData(undefined);
         return null;
       }
     } catch (error) {
@@ -437,7 +444,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       loadInProgressRef.current = false;
     }
-  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
+  }, [resetSelections, updateProfile, setProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setChatMessages]);
 
   // Reset scenario - clear all data and delete from database
   const resetScenario = useCallback(async () => {
@@ -502,14 +509,20 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .single();
       
       if (error) {
-        // PGRST116 means no rows found
+        // PGRST116 means no rows found — full blank slate.
         if (error.code === 'PGRST116') {
           setNoScenarioForClient(true);
           setLastSavedData(null);
           setLastSaved(null);
           setScenarioId(null);
+          setHasUnsavedChanges(false);
           resetSelections();
+          setPropertyOrder([]);
           propertyInstanceContext.setInstances({});
+          setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+          setChatMessages([]);
+          setTimelineSnapshot([]);
+          setChartData(undefined);
           return null;
         }
         throw error;
@@ -564,8 +577,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setNoScenarioForClient(true);
         setLastSavedData(null);
         setLastSaved(null);
+        setHasUnsavedChanges(false);
         resetSelections();
+        setPropertyOrder([]);
         propertyInstanceContext.setInstances({});
+        setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+        setChatMessages([]);
+        setTimelineSnapshot([]);
+        setChartData(undefined);
         return null;
       }
     } catch (error) {
@@ -579,7 +598,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setClientScenarioLoading(false);
     }
-  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder]);
+  }, [resetSelections, updateProfile, setProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setChatMessages]);
 
   // Auto-load scenario for client users (sandbox mode)
   useEffect(() => {
