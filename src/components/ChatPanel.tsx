@@ -75,9 +75,37 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Track client names for plan state
   const clientNamesRef = useRef<string[]>([])
 
-  // Build current plan state for the edge function
+  // Build current plan state for the edge function.
+  // The enginePlanState block carries the actual projected horizon numbers
+  // from the simulator, so the AI can cite them in chat (matching the
+  // dashboard) instead of doing its own rough projection that drifts ~20%.
   const getCurrentPlan = useCallback((): CurrentPlanState | null => {
     if (propertyOrder.length === 0) return null
+
+    // Resolve engine projection from chartData if it exists. portfolioGrowthData
+    // is the same array the dashboard reads, so values here always match what
+    // the BA sees on screen.
+    let enginePlanState: CurrentPlanState['enginePlanState']
+    const growthData = chartData?.portfolioGrowthData ?? []
+    if (growthData.length > 0) {
+      const baseYearNum = parseInt(growthData[0]?.year ?? `${new Date().getFullYear()}`, 10)
+      const horizonYear = baseYearNum + (profile.timelineYears ?? 15)
+      const horizonPoint =
+        growthData.find((d) => parseInt(d.year, 10) >= horizonYear) ??
+        growthData[growthData.length - 1]
+      const equityGoalReachedPoint =
+        profile.equityGoal > 0
+          ? growthData.find((d) => d.equity >= profile.equityGoal)
+          : undefined
+      enginePlanState = {
+        horizonYear,
+        projectedPortfolioValue: Math.round(horizonPoint?.portfolioValue ?? 0),
+        projectedEquity: Math.round(horizonPoint?.equity ?? 0),
+        equityGoalReachedYear: equityGoalReachedPoint
+          ? parseInt(equityGoalReachedPoint.year, 10)
+          : null,
+      }
+    }
 
     return {
       investmentProfile: {
@@ -102,8 +130,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         }
       }),
       clientNames: clientNamesRef.current,
+      enginePlanState,
     }
-  }, [profile, propertyOrder, instances])
+  }, [profile, propertyOrder, instances, chartData])
 
   // Handle plan generation — wire NL response into contexts
   const handlePlanGenerated = useCallback(

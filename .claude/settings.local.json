@@ -70,7 +70,8 @@
       "Bash(sed -n '260,290p' src/pages/DataAssumptions.tsx)",
       "Bash(grep -rn \"property_\\\\\\\\\\\\\\\\d\\\\\\\\|propertyId\\\\\\\\.match\\\\\\\\|\\\\\\\\\\\\\\\\\\\\\\\\$\\\\\\\\{property_\\\\\\\\|\\\\\\\\\\\\\"property_\\\\\\\\|'property_\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(open /Users/robknowles/Projects/proppath-strategy-system-map.html)",
-      "Bash(npx --yes supabase@latest functions deploy nl-parse --project-ref gaoqzrdzihmrwipwsbwo)"
+      "Bash(npx --yes supabase@latest functions deploy nl-parse --project-ref gaoqzrdzihmrwipwsbwo)",
+      "Bash(grep -n \"^[^\\\\\\\\\\\\\\\\]*\\\\`[^\\\\\\\\\\\\\\\\]*\\\\`\" /Users/robknowles/Projects/Code_Repo/ignito-project-kit/.claude/worktrees/bold-tesla-bf3a42/supabase/functions/nl-parse/system-prompt.ts)"
     ]
   }
 }

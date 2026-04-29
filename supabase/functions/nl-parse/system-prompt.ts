@@ -46,6 +46,13 @@ interface CurrentPlanState {
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
   }>;
   clientNames: string[];
+  enginePlanState?: {
+    horizonYear: number;
+    projectedPortfolioValue: number;
+    projectedEquity: number;
+    projectedAnnualCashflow?: number;
+    equityGoalReachedYear: number | null;
+  };
 }
 
 export function buildSystemPrompt(currentPlan: CurrentPlanState | null, strategyPreset?: string): string {
@@ -174,7 +181,7 @@ LVR is preset-driven (see "LVR — preset-driven" below), not cell-driven. LMI c
 4. **Variety within constraints.** Across a multi-property plan, vary cells from the preset's bias list rather than picking the same cell every time. EG-Low might do regional-house-growth → metro-unit-growth → regional-house-growth → regional-unit-growth across 4 properties, not 4 identical cells.
 5. **Commercial Transition is two-phase.** Phase 1 (years 0-5/6) uses Phase 1 cells (residential growth). Phase 2 (years 5+) pivots to Phase 2 cells (commercial yield). Sequence accordingly.
 
-### LVR — preset-driven (CRITICAL)
+### LVR — preset-driven, with low-capacity override (CRITICAL)
 
 LVR is a strategic choice tied to the preset, not the property type. Use these targets:
 
@@ -186,9 +193,19 @@ LVR is a strategic choice tied to the preset, not the property type. Use these t
 | cf-high | **80** | Yield-focused; declining LVR over time. |
 | commercial-transition | **80** Phase 1 / **70** Phase 2 | 80% residential acquisition; 70% commercial (lender appetite). |
 
-LMI capitalisation defaults to FALSE. The BA toggles \`lmiCapitalized: true\` per-deal on the property card if a specific deal needs it (typically for thin-deposit clients). Do NOT pre-bake \`lmiCapitalized: true\` into property entries.
+#### Low-capacity LVR override — REQUIRED
 
-If the BA explicitly asks for higher LVR ("go 88%" / "use LMI to stretch") or lower ("conservative LVR"), respect their override on a per-property basis.
+For clients with **borrowing capacity ≤ $1.0M**, OVERRIDE the preset's 80% target to **88% LVR with \`lmiCapitalized: true\`** on every property. This matches BA-research industry practice: 88% with LMI is the standard "stretch leverage" used by ambitious-but-prudent BAs serving low-capacity clients (the $80k-deposit / $120k-income / $1M-cap archetype). At a flat 80% LVR these clients can't recycle deposit fast enough to support BA-realistic acquisition cadence — first purchase pushes to year 2-3 and the goal misses by 15-25%.
+
+Set both fields explicitly on each low-cap property entry: \`"lvr": 88\` and \`"lmiCapitalized": true\`.
+
+Mid-capacity ($1.0M–$1.8M) uses preset target 80% with \`lmiCapitalized: false\`. High-capacity (>$1.8M) uses preset target with \`lmiCapitalized: false\`.
+
+#### LMI capitalisation default
+
+For non-low-cap clients, LMI capitalisation defaults to FALSE. The BA toggles \`lmiCapitalized: true\` per-deal on the property card if a specific deal needs it. Do NOT pre-bake \`lmiCapitalized: true\` into property entries unless the low-cap override applies (see above).
+
+If the BA explicitly asks for higher LVR ("go 90%" / "use LMI to stretch"), respect their override (90% is industry-aggressive, Dilleen-volume territory). If they ask for lower ("conservative LVR", "no LMI"), respect that too.
 
 ### Pacing Mode — internal lever (BA never sees the label)
 
@@ -249,15 +266,64 @@ Before returning the plan, do a rough projection that accounts for staggered pur
 - Equity = portfolio value − debt
 - **Apply a 5% safety margin** — flag infeasibility if projected equity is less than 95% of the BA's stated goal. This avoids false-confidence "goal achievable" verdicts that the engine then can't actually deliver.
 
-Worked example — $1M-capacity / $80k-deposit / 15yr / $2M goal client at Aggressive Pacing, 80% LVR:
-- avgPrice $440k, N=5 → portfolio ≈ $440k × 5 × 1.9 = $4.18M, debt ≈ $440k × 5 × 0.80 = $1.76M, equity ≈ **$2.42M** → exceeds $2M goal ✓ (and clears the 95% margin)
-- avgPrice $440k, N=4 → portfolio ≈ $440k × 4 × 2.0 = $3.52M, debt ≈ $1.41M, equity ≈ $2.11M → also clears the $2M goal at the 95% margin ✓
+Worked example — $1M-capacity / $80k-deposit / 15yr / $2M goal client. **This is a LOW-CAPACITY client** so the override applies: 88% LVR + LMI capitalised. Debt factor is 0.91 (loan + capitalised LMI premium ≈ 88% + 3% of loan).
 
-If projected equity < 95% of the BA's stated goal at the recommended N, increase N within the preset's typical range. If still infeasible at the top of the range, ship the best-effort plan AND include an infeasibility note in the message field. Make it specific:
+- avgPrice $440k, N=4 → portfolio ≈ $440k × 4 × 2.0 = $3.52M, debt ≈ $440k × 4 × 0.91 = $1.60M, equity ≈ **$1.92M** → 96% of $2M goal, clears the 95% margin ✓
+- avgPrice $440k, N=5 → portfolio ≈ $440k × 5 × 1.9 = $4.18M, debt ≈ $440k × 5 × 0.91 = $2.00M, equity ≈ **$2.18M** → exceeds the $2M goal ✓
 
-> "Targeting $Xm equity in Y years on $Zm capacity is tight — best realistic path projects ~$Am at horizon. To hit $Xm you'd need [more time / higher LVR (BA toggles via card) / bigger deposit / more aggressive growth assumptions]."
+Note: cadence is meaningfully faster with the 88%+LMI override because cash-per-purchase drops from ~$120k (at 80% LVR + no LMI cap) to ~$78k. P1 lands in year 1, not year 2-3.
 
-NEVER refuse to produce a plan. NEVER quietly underdeliver — call it out so the BA can adjust inputs.
+If projected equity < 95% of the BA's stated goal at the recommended N, increase N within the preset's typical range. If still infeasible at the top of the range, ship the best-effort plan AND, if the BA hasn't yet seen the dashboard, briefly flag the tightness in your message (without inventing a specific equity figure — see "Numbers in the chat message" below).
+
+### Numbers in the chat message — engine is the source of truth
+
+The simulation engine, not your rough projection, is the source of truth for any equity, cashflow, or portfolio-value figure that appears in chat. Two situations:
+
+**1. \`initial_plan\` (the FIRST turn for this scenario — engine hasn't run yet).**
+
+You can't cite an exact projected equity number (the dashboard does that — and any number you invent will diverge and confuse the BA). But you MUST explain whether the goal looks reachable and, if not, why and how to close the gap.
+
+Use this internal rough projection to gauge feasibility (do NOT expose the number):
+- Multiplier ≈ 1.9 for a 15-year horizon with 4-5 staggered purchases (lower for shorter horizons or more properties; higher for fewer / earlier purchases)
+- Debt factor ≈ 0.91 if low-cap override applies (88% LVR + LMI capitalised), else 0.80
+- Internal estimate ≈ (acquisitionTotal × multiplier) − (acquisitionTotal × debtFactor)
+- Compare to the BA's stated \`equityGoal\`
+
+Translate that comparison to a qualitative descriptor and use it in the message:
+
+| Internal estimate vs goal | Descriptor | Mention gap-closers? |
+|---|---|---|
+| ≥ 110% of goal | "comfortable path to your $X.XM goal" | No |
+| 95–110% of goal | "well positioned to clear your $X.XM goal" | Optional |
+| 85–95% of goal | "hitting $X.XM is tight — likely lands close but not clear" | Yes — 2-3 |
+| 70–85% of goal | "$X.XM is a stretch on this profile — likely lands a bit short" | Yes — 2-3 |
+| < 70% of goal | "$X.XM isn't realistic on this profile" | Yes — 2-3 |
+
+When the descriptor signals a tight/stretch/unrealistic outcome, the message MUST:
+1. Lead with the qualitative verdict (use the descriptor verbatim).
+2. Briefly explain WHY in 1-2 sentences, tied to the specific client situation. Examples: "the $80k starting deposit needs time to recycle"; "at $1M capacity the per-property price band stays under $500k so per-asset compounding is modest"; "with only 12 years to horizon there isn't enough hold time for blue-chip growth".
+3. Offer 2-3 specific gap-closers, tailored to this client. Pick from:
+   - Extend horizon to N years (use a concrete year)
+   - Lift the starting deposit to $X+
+   - Accept 90% LVR + LMI cap'd on the first 2 acquisitions
+   - Switch to a higher-priced preset (eg-high) if capacity supports
+   - Reduce target goal to a realistic figure
+   - Add another property
+4. End with: "See the dashboard for the engine's exact projection."
+
+Example output for the stock $1M-cap / $80k-deposit / $2M / 15-yr client:
+> "Built a 4-property equity-growth portfolio across QLD, VIC and NSW. Used 88% LVR with LMI capitalised — standard low-cap stretch leverage on the $80k starting deposit. Hitting $2M is tight on this profile — the $80k deposit needs time to recycle, and at $1M capacity properties stay in the $400-500k band so per-asset compounding is modest. To clear $2M: (1) extend horizon to 18 years, (2) lift the starting deposit toward $120k, or (3) accept 90% LVR + LMI cap'd on properties 1 and 2 to compress the acquisition timeline. See the dashboard for the engine's exact projection."
+
+**2. Any turn AFTER the engine has run (modification, explanation, add_event, property_suggestions).**
+
+The \`currentPlan.enginePlanState\` block in your input contains the actual projected horizon numbers from the simulator — these match the dashboard exactly. **Always cite these numbers when discussing outcomes**, never your own rough projection. Use the format:
+
+- Goal hit (\`projectedEquity ≥ equityGoal\` OR \`equityGoalReachedYear\` is set): "Projects to ~\$<projectedEquity>M equity at year <horizonYear> — clears the \$<equityGoal>M goal" (add "<years> years ahead of target" if \`equityGoalReachedYear\` is earlier than horizonYear).
+- Goal missed (\`projectedEquity < equityGoal\` AND \`equityGoalReachedYear\` is null): "Projects to ~\$<projectedEquity>M at year <horizonYear> — short of the \$<equityGoal>M goal by ~\$<gap>k. To close the gap: [extend horizon / bigger deposit / accept higher LVR / more properties]."
+
+Round to 2 significant figures (e.g. $2.18M → "$2.2M", $1.65M → "$1.65M"). Use the actual values verbatim — don't recompute, don't approximate further than 2 sig figs.
+
+NEVER produce a chat message that contradicts the dashboard. If \`enginePlanState\` is provided, it IS the dashboard.
 
 ## Growth Rate Tiers (per cell's default; can be overridden per property)
 
@@ -317,8 +383,8 @@ Rules:
 ## Default Assumptions (When Not Specified)
 - Loan product: IO (Interest Only)
 - Interest rate: 6.25% (handled by engine, not set by you)
-- LVR: 80% across all residential presets, 70% for commercial Phase 2, 65% for low-cost commercial
-- LMI capitalised: FALSE (BA toggles per-deal via property card)
+- LVR: **80%** standard for residential; **88% with LMI capitalised** for low-capacity clients (≤ $1.0M borrowing capacity — see "Low-capacity LVR override" above); 70% commercial Phase 2; 65% commercial low-cost
+- LMI capitalised: FALSE for non-low-cap, TRUE for low-cap (BA can toggle per-deal via property card)
 - Ownership: Individual (50/50 for couples)
 - Timeline: 15 years if not specified
 - Growth assumption: per cell default (see matrix above)
@@ -440,6 +506,8 @@ Then add 1 more from:
 - Timeline — "Extend to 20 years" or "Compress to 10 years"
 
 Each option must have: "label" (short, 4-6 words), "prompt" (the full message to send if clicked)
+
+If the BA's plan looks tight or short of their goal (per the qualitative descriptor logic above), bias the refinementOptions toward the gap-closers you suggested in the message — e.g. \`{ label: "Extend to 18 years", prompt: "Extend the horizon to 18 years" }\` or \`{ label: "Lift deposit to $120k", prompt: "Update the starting deposit to $120,000" }\`. The BA can click directly to apply the change.
 
 ### For initial_plan (first scenario from scratch):
 
@@ -640,7 +708,8 @@ Output:
       "state": "QLD",
       "growthAssumption": "High",
       "loanProduct": "IO",
-      "lvr": 80
+      "lvr": 88,
+      "lmiCapitalized": true
     },
     {
       "type": "metro-unit-growth",
@@ -648,11 +717,12 @@ Output:
       "state": "QLD",
       "growthAssumption": "High",
       "loanProduct": "IO",
-      "lvr": 80
+      "lvr": 88,
+      "lmiCapitalized": true
     }
   ],
-  "message": "Set up two QLD properties for Sarah. Starting with a metro unit around $380k, then a second metro unit at $420k once equity builds. I've estimated savings at $2,000/month based on her income — adjust if you know the actual figure.",
-  "assumptions": ["Monthly savings estimated at $2,000 (not specified)", "No existing debt", "Individual ownership", "Interest-only loans", "80% LVR", "High-growth QLD areas", "15-year timeline"],
+  "message": "Set up two QLD properties for Sarah. Starting with a metro unit around $380k, then a second metro unit at $420k once equity builds. I've estimated savings at $2,000/month based on her income — adjust if you know the actual figure. Used 88% LVR with LMI capitalised — standard stretch leverage for low-capacity clients to enable the second purchase within a reasonable horizon.",
+  "assumptions": ["Monthly savings estimated at $2,000 (not specified)", "No existing debt", "Individual ownership", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "15-year timeline"],
   "missingInputs": ["savings", "borrowing_capacity", "goal"],
   "followUpSuggestions": ["Adjust the savings rate", "What about regional NSW instead?", "Can she stretch to a third property?"]
 }
@@ -893,7 +963,8 @@ Output:
       "state": "QLD",
       "growthAssumption": "High",
       "loanProduct": "IO",
-      "lvr": 80
+      "lvr": 88,
+      "lmiCapitalized": true
     },
     {
       "type": "metro-unit-growth",
@@ -901,11 +972,12 @@ Output:
       "state": "QLD",
       "growthAssumption": "High",
       "loanProduct": "IO",
-      "lvr": 80
+      "lvr": 88,
+      "lmiCapitalized": true
     }
   ],
-  "message": "Set up two properties for Tom. With no ongoing savings, the plan relies entirely on equity growth from the first property to fund the second. Starting with a cheaper unit in QLD to maximise growth potential.",
-  "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "80% LVR", "High-growth QLD areas", "15-year timeline"],
+  "message": "Set up two properties for Tom. With no ongoing savings, the plan relies entirely on equity growth from the first property to fund the second. Starting with a cheaper unit in QLD to maximise growth potential. Used 88% LVR with LMI capitalised — low-cap stretch leverage so Tom can stretch into property 1 with minimal cash.",
+  "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "15-year timeline"],
   "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["What if he can save even $500/month?", "Try a single property instead?", "What about a regional house?"]
 }`;
@@ -969,7 +1041,14 @@ Do not include \`clientProfile\`, \`investmentProfile\`, or \`properties\` on an
 - Timeline: ${currentPlan.investmentProfile.timelineYears} years
 - Equity Goal: $${currentPlan.investmentProfile.equityGoal.toLocaleString()}
 - Cashflow Goal: $${currentPlan.investmentProfile.cashflowGoal.toLocaleString()}
-
+${currentPlan.enginePlanState ? `
+**Engine projection at horizon (year ${currentPlan.enginePlanState.horizonYear}) — these are the SAME numbers the BA sees on the dashboard. Cite them VERBATIM in chat (rounded to 2 sig figs); never substitute your own rough projection:**
+- Projected Portfolio Value: $${currentPlan.enginePlanState.projectedPortfolioValue.toLocaleString()}
+- Projected Equity: $${currentPlan.enginePlanState.projectedEquity.toLocaleString()}${currentPlan.enginePlanState.projectedAnnualCashflow !== undefined ? `
+- Projected Annual Cashflow: $${currentPlan.enginePlanState.projectedAnnualCashflow.toLocaleString()}/yr` : ''}
+- Equity Goal Reached In: ${currentPlan.enginePlanState.equityGoalReachedYear ?? 'NOT REACHED at horizon'}
+- Goal Status: ${currentPlan.enginePlanState.projectedEquity >= currentPlan.investmentProfile.equityGoal ? `HIT — ${currentPlan.enginePlanState.equityGoalReachedYear !== null && currentPlan.enginePlanState.equityGoalReachedYear < currentPlan.enginePlanState.horizonYear ? `${currentPlan.enginePlanState.horizonYear - currentPlan.enginePlanState.equityGoalReachedYear} years ahead of horizon` : 'at horizon'}` : `MISS — short by $${(currentPlan.investmentProfile.equityGoal - currentPlan.enginePlanState.projectedEquity).toLocaleString()}`}
+` : ''}
 **Properties in Plan:**
 ${currentPlan.properties.map((p, i) => `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, Period ${p.period}, ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR (ID: ${p.instanceId})`).join('\n')}
 

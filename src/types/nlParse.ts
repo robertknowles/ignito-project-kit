@@ -38,6 +38,27 @@ export interface CurrentPlanState {
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
   }>;
   clientNames: string[];
+  /**
+   * Engine output snapshot — the actual projected horizon values from the
+   * simulator, computed from the current chart data. Sent on every turn
+   * AFTER the first one so the AI can cite real numbers (matching the
+   * dashboard) instead of doing its own rough projection that drifts.
+   * Populated on modifications, explanations, and add_event turns.
+   * On initial_plan (first turn) this is undefined because the engine
+   * hasn't run yet on the new plan.
+   */
+  enginePlanState?: {
+    /** Horizon year used in the projection (typically baseYear + timelineYears) */
+    horizonYear: number;
+    /** Projected portfolio gross value at horizon (AUD) */
+    projectedPortfolioValue: number;
+    /** Projected total equity at horizon (AUD) — the BA's primary goal metric */
+    projectedEquity: number;
+    /** Projected net annual cashflow at horizon (AUD/yr) */
+    projectedAnnualCashflow?: number;
+    /** First year the equity goal is reached, if any (else null) */
+    equityGoalReachedYear: number | null;
+  };
 }
 
 // ── Edge Function Response ─────────────────────────────────────────
