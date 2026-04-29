@@ -21,7 +21,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
   if (iconOnly) {
     return (
       <button
-        onClick={saveScenario}
+        onClick={() => saveScenario()}
         disabled={isLoading || !hasUnsavedChanges}
         className="w-8 h-8 text-gray-500 hover:text-gray-900 rounded-md flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
       >
@@ -43,7 +43,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
 
   return (
     <button
-      onClick={saveScenario}
+      onClick={() => saveScenario()}
       disabled={isLoading || !hasUnsavedChanges}
       className="flex items-center gap-1.5 bg-gray-600 text-white px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-gray-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
     >

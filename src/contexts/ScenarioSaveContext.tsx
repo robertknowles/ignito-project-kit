@@ -105,9 +105,10 @@ export interface ScenarioData {
 interface ScenarioSaveContextType {
   hasUnsavedChanges: boolean;
   isLoading: boolean;
+  isAutosaving: boolean;
   lastSaved: string | null;
   scenarioId: number | null;
-  saveScenario: () => void;
+  saveScenario: (silent?: boolean) => Promise<void>;
   resetScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
   setTimelineSnapshot: (snapshot: any[]) => void;
@@ -150,9 +151,16 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ScenarioData['chartData'] | undefined>(undefined);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // Optimistic concurrency: capture the version at load time, increment on successful save.
+  // If a save fails because DB version no longer matches, another tab won — reload.
+  const [loadedVersion, setLoadedVersion] = useState<number>(0);
+  // Pause change-detection during a load so we don't briefly flag a freshly-loaded scenario as "unsaved".
+  const [isLoadingScenario, setIsLoadingScenario] = useState<boolean>(false);
+  const [isAutosaving, setIsAutosaving] = useState<boolean>(false);
   const loadedClientRef = useRef<number | null>(null);
   const saveInProgressRef = useRef<boolean>(false);
   const loadInProgressRef = useRef<boolean>(false);
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
@@ -194,8 +202,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return baseData;
   }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
 
-  // Save scenario
-  const saveScenario = useCallback(async () => {
+  // Save scenario.
+  // `silent`: suppress toasts (used by autosave). Errors still toast unless silent.
+  const saveScenario = useCallback(async (silent: boolean = false): Promise<void> => {
     // Block saves for client role - sandbox mode
     if (role === 'client') {
       return;
@@ -205,90 +214,127 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    // Prevent concurrent save operations
+    // Prevent concurrent save operations. Autosave silently bows out; manual save toasts.
     if (saveInProgressRef.current) {
-      toast({
-        title: "Save in Progress",
-        description: "Please wait for the current save to complete",
-      });
+      if (!silent) {
+        toast({
+          title: "Save in Progress",
+          description: "Please wait for the current save to complete",
+        });
+      }
       return;
     }
 
     saveInProgressRef.current = true;
-    setIsLoading(true);
-    
+    if (silent) {
+      setIsAutosaving(true);
+    } else {
+      setIsLoading(true);
+    }
+
     try {
       const scenarioData = getCurrentScenarioData();
-      
+
       // Fetch agent profile for display names and company_id
       let agentDisplayName = 'Agent';
       let companyDisplayName = 'PropPath';
       let userCompanyId: string | null = null;
-      
+
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('full_name, company_name, company_id')
           .eq('id', user.id)
           .single();
-        
+
         if (profileData) {
           agentDisplayName = profileData.full_name || user.user_metadata?.name || 'Agent';
           companyDisplayName = profileData.company_name || 'PropPath';
           userCompanyId = profileData.company_id;
         }
       }
-      
-      // Check if a scenario already exists for this client
-      const { data: existingScenarios, error: fetchError } = await supabase
-        .from('scenarios')
-        .select('id')
-        .eq('client_id', activeClient.id)
-        .limit(1);
-      
-      if (fetchError) throw fetchError;
-      
-      if (existingScenarios && existingScenarios.length > 0) {
-        // Update existing scenario
-        const { error } = await supabase
+
+      const baseFields = {
+        name: `${activeClient.name}'s Scenario`,
+        updated_at: new Date().toISOString(),
+        data: scenarioData,
+        client_display_name: activeClient.name || 'Client',
+        agent_display_name: agentDisplayName,
+        company_display_name: companyDisplayName,
+      };
+
+      if (scenarioId !== null) {
+        // UPDATE path with optimistic version check.
+        // Only succeeds if DB version still matches the version we loaded.
+        const newVersion = loadedVersion + 1;
+        const { data: updated, error } = await supabase
           .from('scenarios')
           .update({
-            name: `${activeClient.name}'s Scenario`,
-            updated_at: new Date().toISOString(),
-            data: scenarioData,
-            client_display_name: activeClient.name || 'Client',
-            agent_display_name: agentDisplayName,
-            company_display_name: companyDisplayName,
-            // Include company_id to fix scenarios that were saved without it
+            ...baseFields,
+            version: newVersion,
             ...(userCompanyId && { company_id: userCompanyId }),
           })
-          .eq('id', existingScenarios[0].id);
-        
+          .eq('id', scenarioId)
+          .eq('version', loadedVersion)
+          .select('id, version');
+
         if (error) throw error;
-        setScenarioId(existingScenarios[0].id);
+
+        if (!updated || updated.length === 0) {
+          // Version conflict — another tab saved while we were editing.
+          // Reload so the user sees the freshest state.
+          if (!silent) {
+            toast({
+              title: "Updated in another tab",
+              description: "Reloading the latest version of this scenario.",
+            });
+          }
+          await loadClientScenario(activeClient.id);
+          return;
+        }
+
+        setLoadedVersion(updated[0].version);
       } else {
-        // Insert new scenario
+        // No scenarioId in state. Defensive pre-check in case state and DB drifted —
+        // if a row exists we should reload, not insert a duplicate.
+        const { data: existing, error: existingError } = await supabase
+          .from('scenarios')
+          .select('id, version')
+          .eq('client_id', activeClient.id)
+          .limit(1);
+
+        if (existingError) throw existingError;
+
+        if (existing && existing.length > 0) {
+          if (!silent) {
+            toast({
+              title: "Existing scenario found",
+              description: "Reloading the saved version for this client.",
+            });
+          }
+          await loadClientScenario(activeClient.id);
+          return;
+        }
+
+        // Truly new — INSERT with version 0
         const { data: newScenario, error } = await supabase
           .from('scenarios')
           .insert({
-            name: `${activeClient.name}'s Scenario`,
+            ...baseFields,
             client_id: activeClient.id,
-            updated_at: new Date().toISOString(),
-            data: scenarioData,
-            client_display_name: activeClient.name || 'Client',
-            agent_display_name: agentDisplayName,
-            company_display_name: companyDisplayName,
             company_id: userCompanyId,
+            version: 0,
           })
-          .select('id')
+          .select('id, version')
           .single();
-        
+
         if (error) throw error;
         if (newScenario) {
           setScenarioId(newScenario.id);
+          setLoadedVersion(newScenario.version);
         }
       }
-      
+
       setLastSavedData(scenarioData);
       setLastSaved(scenarioData.lastSaved);
       setHasUnsavedChanges(false);
@@ -298,29 +344,36 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await updateClient(activeClient.id, { roadmap_status: 'draft' });
       }
 
-      // Different toast message for comparison mode
-      if (scenarioData.comparisonMode && scenarioData.scenarios) {
-        toast({
-          title: "Scenarios Saved",
-          description: `${scenarioData.scenarios.length} scenarios saved for ${activeClient.name} (comparison mode)`,
-        });
-      } else {
-        toast({
-          title: "Scenario Saved",
-          description: `${activeClient.name}'s scenario saved successfully`,
-        });
+      if (!silent) {
+        // Different toast message for comparison mode
+        if (scenarioData.comparisonMode && scenarioData.scenarios) {
+          toast({
+            title: "Scenarios Saved",
+            description: `${scenarioData.scenarios.length} scenarios saved for ${activeClient.name} (comparison mode)`,
+          });
+        } else {
+          toast({
+            title: "Scenario Saved",
+            description: `${activeClient.name}'s scenario saved successfully`,
+          });
+        }
       }
     } catch (error) {
-      toast({
-        title: "Save Error",
-        description: "Failed to save scenario. Please try again.",
-        variant: "destructive",
-      });
+      // Autosave failures fail quietly to avoid spam; manual saves toast.
+      // Future improvement: surface a persistent indicator if multiple autosaves fail in a row.
+      if (!silent) {
+        toast({
+          title: "Save Error",
+          description: "Failed to save scenario. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
+      setIsAutosaving(false);
       saveInProgressRef.current = false;
     }
-  }, [role, activeClient, getCurrentScenarioData, user]);
+  }, [role, activeClient, getCurrentScenarioData, user, scenarioId, loadedVersion, updateClient]);
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {
@@ -330,7 +383,11 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     loadInProgressRef.current = true;
-    
+    setIsLoadingScenario(true);
+    // Eager-clear chat history so the previous client's chat doesn't briefly
+    // render in the new client's panel during the async fetch.
+    setChatMessages([]);
+
     try {
       const { data, error } = await supabase
         .from('scenarios')
@@ -339,13 +396,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (error) {
         // PGRST116 means no rows found
         if (error.code === 'PGRST116') {
           setLastSavedData(null);
           setLastSaved(null);
           setScenarioId(null);
+          setLoadedVersion(0);
           // No saved scenario in Supabase. Don't wipe selections/instances —
           // the user may have unsaved chat-driven data already in
           // localStorage that PropertySelectionContext.loadClientData has
@@ -359,8 +417,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
 
-        // Set the scenario ID
+        // Set the scenario ID and capture version for optimistic concurrency.
         setScenarioId(data.id);
+        setLoadedVersion((data as { version?: number }).version ?? 0);
 
         // Translate saved data through the legacy alias layer so pre-pivot
         // scenarios (which used positional IDs like `property_5`) load
@@ -424,6 +483,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // scenario: blank slate.
         setLastSavedData(null);
         setLastSaved(null);
+        setLoadedVersion(0);
         setHasUnsavedChanges(false);
         resetSelections();
         setPropertyOrder([]);
@@ -443,6 +503,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return null;
     } finally {
       loadInProgressRef.current = false;
+      setIsLoadingScenario(false);
     }
   }, [resetSelections, updateProfile, setProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setChatMessages]);
 
@@ -474,9 +535,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLastSavedData(null);
       setLastSaved(null);
       setScenarioId(null);
+      setLoadedVersion(0);
       setHasUnsavedChanges(false);
       setTimelineSnapshot([]);
       setChartData(undefined);
+      setChatMessages([]);
+
+      // Cancel any pending autosave so it doesn't immediately recreate the row.
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
 
       toast({
         title: "Scenario Reset",
@@ -618,12 +687,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Debounced change detection to prevent excessive calculations
   const changeDetectionTimer = useRef<NodeJS.Timeout | null>(null);
-  
+
   useEffect(() => {
+    // Don't run change-detection while a load is in flight — the freshly-loaded
+    // state needs a moment to settle before it makes sense to compare against
+    // lastSavedData. Without this, we briefly flash hasUnsavedChanges=true on
+    // a scenario the user just opened.
+    if (isLoadingScenario) return;
+
     if (changeDetectionTimer.current) {
       clearTimeout(changeDetectionTimer.current);
     }
-    
+
     changeDetectionTimer.current = setTimeout(() => {
       if (activeClient && lastSavedData) {
         const currentData = getCurrentScenarioData();
@@ -652,11 +727,53 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(hasData);
       }
     }, 150); // 150ms debounce
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData, isLoadingScenario]);
+
+  // Autosave: when there are unsaved changes, persist them silently after a
+  // short debounce. This means scenarios are durable as soon as the chat
+  // generates a plan or the user touches a property card — no manual Save click
+  // required. Reset is the only way to clear the saved state.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    if (role === 'client') return; // sandbox role can't write
+    if (!activeClient) return;
+    if (isLoadingScenario) return;
+    if (saveInProgressRef.current) return; // save already happening; the next change-detection tick will re-trigger
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      // Fire and forget — saveScenario handles its own errors.
+      void saveScenario(true);
+    }, 1000);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [hasUnsavedChanges, role, activeClient, isLoadingScenario, saveScenario]);
+
+  // beforeunload safety net — only fires if a user closes the tab DURING the
+  // 1s autosave debounce window. With autosave wired up, this should rarely
+  // trigger, but it prevents silent data loss in the edge case.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
 
   const value = {
     hasUnsavedChanges,
     isLoading,
+    isAutosaving,
     lastSaved,
     scenarioId,
     saveScenario,

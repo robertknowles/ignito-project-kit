@@ -162,6 +162,21 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       const loadingMsg = createMessage('assistant', 'loading', loadingText)
       setMessages((prev) => [...prev, loadingMsg])
 
+      // Minimum-display floor for the loading indicator. On warm edge function
+      // calls the response can come back in <1s, faster than the loading-step
+      // timers (1500/2500ms). Without this floor, users only ever see the
+      // loader on a cold first call. 600ms is enough to register visually
+      // without feeling sluggish on genuinely fast responses.
+      const loadingStartedAt = Date.now()
+      const MIN_LOADING_MS = 600
+      const removeLoading = async () => {
+        const elapsed = Date.now() - loadingStartedAt
+        if (elapsed < MIN_LOADING_MS) {
+          await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed))
+        }
+        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
+      }
+
       try {
         // Get current plan state for context
         const currentPlan = options.getCurrentPlan?.() ?? null
@@ -231,8 +246,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
         const response = data
 
-        // Remove loading indicator
-        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
+        // Remove loading indicator (respects minimum-display floor)
+        await removeLoading()
 
         // Guard: if a plan already exists but the model returned initial_plan,
         // the model misclassified a follow-up question as a rebuild. Downgrade
@@ -437,8 +452,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           })
         }
       } catch (err) {
-        // Remove loading indicator
-        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
+        // Remove loading indicator (respects minimum-display floor)
+        await removeLoading()
 
         // Map error types to friendly messages
         const errCode = err instanceof Error ? err.message : ''
