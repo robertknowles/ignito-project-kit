@@ -89,6 +89,9 @@ export interface PropertyInstanceDetails {
   /** Override for calculated land tax (null = use calculated value) */
   landTaxOverride: number | null;
 
+  /** Vacancy rate as % of rental income (e.g., 2 for 2%). Optional — UI surfaces it for per-property override; engine currently uses DEFAULT_VACANCY_RATE constant globally. */
+  vacancyRate?: number;
+
   // Section F: Manual Placement (Drag-and-Drop)
   
   /** Whether this property has been manually placed via drag-and-drop */

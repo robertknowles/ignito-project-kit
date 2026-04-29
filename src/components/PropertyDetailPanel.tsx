@@ -461,7 +461,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             />
             <SliderInput
               label="Vacancy Rate"
-              value={instanceData.vacancyRate}
+              value={instanceData.vacancyRate ?? 2}
               onChange={(v) => onFieldChange('vacancyRate', v)}
               min={0}
               max={10}
