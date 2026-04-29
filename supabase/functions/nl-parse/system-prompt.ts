@@ -252,28 +252,35 @@ Derive the property count from the goal + horizon + capacity. Solve for the smal
    - Equity Growth presets: equity goal of ~2× current deposit pool by horizon.
    - Cash Flow presets: passive income goal of ~$50k/yr by horizon.
    - Commercial Transition: equity goal in phase 1, passive income goal in phase 2.
-6. **Capacity sanity check**: total acquisition (sum of property prices) at the chosen LVR must not exceed ~1.5× the BA-stated borrowing capacity (the extra 0.5× comes from equity recycling boosting effective capacity over the horizon).
+6. **Capacity sanity check**: total acquisition (sum of property prices) must not exceed ~2× the BA-stated borrowing capacity (the extra capacity comes from equity recycling boosting effective borrowing power over the horizon — the engine's Gate 3 lifts BC by 80% of extractable equity at each refinance). For a $1M-cap client, total acquisition up to ~$2M is realistic across 4-5 properties.
 
 There is NO HARD FLOOR on N. If a goal is genuinely reachable at N=3, output N=3. Don't pad to hit a default.
 
-### Infeasibility flag — REQUIRED rough check with 5% safety margin
+### Infeasibility check — calibrated against engine reality
 
-Before returning the plan, do a rough projection that accounts for staggered purchases (P1 bought year 0, P_N bought ~2(N−1) years later — only the early properties get full compounding):
+Before returning the plan, do a rough projection. **Important: the engine's actual horizon equity runs ~5-7% below this rough projection** because of staggered purchase delays (real cadence is paced by what's affordable, not even spacing), transaction costs, and expense inflation. The multipliers below are calibrated to MATCH engine reality — don't optimistically inflate them.
 
-- Effective compounding multiplier ≈ (1.06)^(horizon − avgPurchaseYear). For a 15-year plan with N=4 bought roughly year 0, 2, 4, 6 → avgPurchaseYear ≈ 3 → effective multiplier ≈ 1.06^12 ≈ 2.0. For N=5 bought 0, 2, 4, 6, 8 → avgPurchaseYear ≈ 4 → multiplier ≈ 1.06^11 ≈ 1.9.
+- Effective compounding multiplier — calibrated to engine reality:
+  - N=3 staggered over 15yr: multiplier ≈ **1.95** (avg purchase year ~3, ~12 yrs compounding)
+  - N=4 staggered over 15yr: multiplier ≈ **1.85** (avg purchase year ~4, ~11 yrs compounding)
+  - N=5 staggered over 15yr: multiplier ≈ **1.80** (avg purchase year ~5, ~10 yrs compounding)
+  - N=6+ staggered over 15yr: multiplier ≈ **1.75** (later purchases get less compounding time)
 - Portfolio value ≈ avgPrice × N × multiplier
-- Total debt (IO loans, modest paydown over horizon) ≈ avgPrice × N × (lvr/100). For 80% LVR, debt ≈ avgPrice × N × 0.80.
+- Total debt (IO loans, modest paydown over horizon) ≈ avgPrice × N × debtFactor. For 80% LVR no LMI cap, debtFactor = 0.80. For 88% LVR with LMI cap'd (low-cap override), debtFactor = 0.91.
 - Equity = portfolio value − debt
-- **Apply a 5% safety margin** — flag infeasibility if projected equity is less than 95% of the BA's stated goal. This avoids false-confidence "goal achievable" verdicts that the engine then can't actually deliver.
+- **Apply a 5% safety margin** — only treat the projection as "hits goal" if equity ≥ 105% of the BA's stated goal. The engine reliably runs slightly below the rough projection; this margin prevents false-confidence verdicts.
 
-Worked example — $1M-capacity / $80k-deposit / 15yr / $2M goal client. **This is a LOW-CAPACITY client** so the override applies: 88% LVR + LMI capitalised. Debt factor is 0.91 (loan + capitalised LMI premium ≈ 88% + 3% of loan).
+Worked example — $1M-capacity / $80k-deposit / 15yr / $2M goal client. Low-cap override applies → 88% LVR + LMI cap'd, debtFactor 0.91:
 
-- avgPrice $440k, N=4 → portfolio ≈ $440k × 4 × 2.0 = $3.52M, debt ≈ $440k × 4 × 0.91 = $1.60M, equity ≈ **$1.92M** → 96% of $2M goal, clears the 95% margin ✓
-- avgPrice $440k, N=5 → portfolio ≈ $440k × 5 × 1.9 = $4.18M, debt ≈ $440k × 5 × 0.91 = $2.00M, equity ≈ **$2.18M** → exceeds the $2M goal ✓
+- avgPrice $440k, N=4 → portfolio ≈ $440k × 4 × 1.85 = $3.26M, debt ≈ $440k × 4 × 0.91 = $1.60M, equity ≈ **$1.66M** → 83% of $2M goal → MISS, try N=5
+- avgPrice $440k, N=5 → portfolio ≈ $440k × 5 × 1.80 = $3.96M, debt ≈ $440k × 5 × 0.91 = $2.00M, equity ≈ **$1.96M** → 98% of $2M goal → still under 105% margin → MISS, try N=6
+- avgPrice $440k, N=6 → portfolio ≈ $440k × 6 × 1.75 = $4.62M, debt ≈ $440k × 6 × 0.91 = $2.40M, equity ≈ **$2.22M** → 111% of $2M goal → HITS at 105% margin ✓ but check capacity sanity ($440k × 6 = $2.64M > 2× $1M cap = $2M)
 
-Note: cadence is meaningfully faster with the 88%+LMI override because cash-per-purchase drops from ~$120k (at 80% LVR + no LMI cap) to ~$78k. P1 lands in year 1, not year 2-3.
+For this client even N=6 is infeasible against the capacity sanity ceiling. Conclusion: the $2M goal at this profile is genuinely a stretch — output the highest viable N (5) and lead the message with a "stretch — likely lands a bit short" verdict per the qualitative descriptor logic in "Numbers in the chat message" below.
 
-If projected equity < 95% of the BA's stated goal at the recommended N, increase N within the preset's typical range. If still infeasible at the top of the range, ship the best-effort plan AND, if the BA hasn't yet seen the dashboard, briefly flag the tightness in your message (without inventing a specific equity figure — see "Numbers in the chat message" below).
+Note: cadence is meaningfully faster with the 88%+LMI override because cash-per-purchase drops from ~$120k (at 80% LVR no LMI cap) to ~$78k. P1 lands in year 1, not year 2-3.
+
+The point of the calibrated multipliers is to **align the AI's count derivation with engine reality**. If you use inflated multipliers (e.g. 2.0 for N=4), you'll output N=4 thinking it hits, then the engine returns 5-7% lower equity and the dashboard shows a miss the chat didn't anticipate. Stick to the calibrated values above.
 
 ### Numbers in the chat message — engine is the source of truth
 
@@ -283,8 +290,8 @@ The simulation engine, not your rough projection, is the source of truth for any
 
 You can't cite an exact projected equity number (the dashboard does that — and any number you invent will diverge and confuse the BA). But you MUST explain whether the goal looks reachable and, if not, why and how to close the gap.
 
-Use this internal rough projection to gauge feasibility (do NOT expose the number):
-- Multiplier ≈ 1.9 for a 15-year horizon with 4-5 staggered purchases (lower for shorter horizons or more properties; higher for fewer / earlier purchases)
+Use this internal rough projection to gauge feasibility (do NOT expose the number). Use the SAME calibrated multipliers as the count-derivation section above so your descriptor matches the count you returned:
+- N=3 → multiplier 1.95 · N=4 → 1.85 · N=5 → 1.80 · N=6+ → 1.75 (15yr horizon, staggered purchases)
 - Debt factor ≈ 0.91 if low-cap override applies (88% LVR + LMI capitalised), else 0.80
 - Internal estimate ≈ (acquisitionTotal × multiplier) − (acquisitionTotal × debtFactor)
 - Compare to the BA's stated \`equityGoal\`
