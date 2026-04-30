@@ -1,8 +1,5 @@
 import React from 'react'
 import { LeftRail } from '../components/LeftRail'
-import { TopBar } from '../components/TopBar'
-import { ChatPanel } from '../components/ChatPanel'
-import { useLayout } from '../contexts/LayoutContext'
 import { ChartCard } from '../components/ui/ChartCard'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { Button } from '@/components/ui/button'
@@ -90,8 +87,6 @@ const SliderRow: React.FC<SliderRowProps> = ({
 }
 
 const Assumptions: React.FC = () => {
-  const { chatPanelWidth } = useLayout()
-  const drawerOpen = true
   const { profile, updateProfile } = useInvestmentProfile()
 
   // Convert profile decimals to display percentages (and back)
@@ -122,14 +117,11 @@ const Assumptions: React.FC = () => {
   return (
     <div className="main-app flex h-screen w-full bg-white">
       <LeftRail />
-      <ChatPanel isOpen={drawerOpen} />
 
       <div
-        className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ marginLeft: drawerOpen ? 64 + chatPanelWidth : 64 }}
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ marginLeft: 64 }}
       >
-        <TopBar />
-
         <div className="flex-1 overflow-auto bg-white">
           <div
             className="flex flex-col gap-6 mx-auto"

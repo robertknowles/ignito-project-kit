@@ -182,9 +182,7 @@ export function AppRouter() {
                               path="/assumptions"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <LayoutProvider>
-                                    <Assumptions />
-                                  </LayoutProvider>
+                                  <Assumptions />
                                 </ProtectedRoute>
                               }
                             />
