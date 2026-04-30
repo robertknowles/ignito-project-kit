@@ -22,6 +22,7 @@ import {
   DEFAULT_RENTAL_YIELD,
   DEFAULT_EXPENSE_RATIO,
   ANNUAL_INFLATION_RATE,
+  ANNUAL_WAGE_GROWTH_RATE,
   SAVINGS_INTEREST_RATE,
   EQUITY_EXTRACTION_LVR_CAP,
 } from '../constants/financialParams';
@@ -254,18 +255,24 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         ? purchasesThisYear.map(p => p.title)
         : undefined;
 
-      // Do-nothing baseline: compound savings with no property investment
+      // Do-nothing baseline: compound savings with no property investment.
+      // Savings grow with wage growth (matches Gameplans 2.5% wage growth default).
       const doNothingBalance = (() => {
         let balance = profile.depositPool;
         for (let y = 0; y < yearsElapsed; y++) {
-          balance = balance * (1 + SAVINGS_INTEREST_RATE) + profile.annualSavings;
+          const yearSavings = profile.annualSavings * Math.pow(1 + ANNUAL_WAGE_GROWTH_RATE, y);
+          balance = balance * (1 + SAVINGS_INTEREST_RATE) + yearSavings;
         }
         return Math.round(balance);
       })();
 
-      // Available funds: deposit pool + cumulative savings + usable equity from portfolio
+      // Available funds: deposit pool + cumulative wage-grown savings + usable equity from portfolio.
+      // Cumulative savings = sum of geometric series annualSavings × (1+wageGrowth)^i for i in [0, yearsElapsed).
+      // Closed form: annualSavings × ((1+wageGrowth)^yearsElapsed − 1) / wageGrowth
       const usableEquity = Math.max(0, totalMetrics.portfolioValue * EQUITY_EXTRACTION_LVR_CAP - totalMetrics.totalDebt);
-      const cumulativeSavings = profile.annualSavings * yearsElapsed;
+      const cumulativeSavings = yearsElapsed > 0 && ANNUAL_WAGE_GROWTH_RATE > 0
+        ? profile.annualSavings * (Math.pow(1 + ANNUAL_WAGE_GROWTH_RATE, yearsElapsed) - 1) / ANNUAL_WAGE_GROWTH_RATE
+        : profile.annualSavings * yearsElapsed;
       const depositsUsed = relevantPurchases.reduce((sum, p) => sum + p.depositRequired, 0);
       const availableFunds = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
 
