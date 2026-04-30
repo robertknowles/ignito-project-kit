@@ -24,6 +24,34 @@ const defaultBranding: BrandingSettings = {
   isClientInteractiveEnabled: true,
 };
 
+const BRANDING_CACHE_KEY = 'proppath:branding-cache';
+
+const readCachedBranding = (): BrandingSettings | null => {
+  try {
+    const raw = localStorage.getItem(BRANDING_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.primaryColor !== 'string') return null;
+    return {
+      companyName: parsed.companyName ?? defaultBranding.companyName,
+      logoUrl: parsed.logoUrl ?? null,
+      primaryColor: parsed.primaryColor,
+      isClientInteractiveEnabled:
+        parsed.isClientInteractiveEnabled ?? defaultBranding.isClientInteractiveEnabled,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedBranding = (branding: BrandingSettings) => {
+  try {
+    localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(branding));
+  } catch {
+    // ignore quota errors
+  }
+};
+
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
 
 export const useBranding = () => {
@@ -41,7 +69,9 @@ const injectCSSVariables = (primaryColor: string) => {
 };
 
 export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [branding, setBranding] = useState<BrandingSettings>(defaultBranding);
+  const [branding, setBranding] = useState<BrandingSettings>(
+    () => readCachedBranding() ?? defaultBranding
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, companyId, loading: authLoading } = useAuth();
@@ -76,7 +106,8 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
 
       setBranding(brandingData);
-      
+      writeCachedBranding(brandingData);
+
       // Inject CSS variables
       injectCSSVariables(brandingData.primaryColor);
     } catch (err) {
@@ -116,6 +147,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Update local state
       const newBranding = { ...branding, ...updates };
       setBranding(newBranding);
+      writeCachedBranding(newBranding);
 
       // Update CSS variables if colors changed
       if (updates.primaryColor) {
@@ -148,9 +180,10 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, companyId, authLoading, fetchBranding]);
 
-  // Set default CSS variables on initial load
+  // Set CSS variables on initial load using current (possibly cached) branding
   useEffect(() => {
-    injectCSSVariables(defaultBranding.primaryColor);
+    injectCSSVariables(branding.primaryColor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = {
