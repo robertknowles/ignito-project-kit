@@ -104,18 +104,21 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
   const profile = scenarioData?.profile ?? contextProfile;
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
 
+  // Profile-level assumption overrides (set via Assumptions page).
+  // Each falls back to its platform constant when not set on the profile.
+  // Declared at component scope so all downstream useMemos (portfolioGrowthData,
+  // cashflowData, monthlyHoldingCost, etc.) can reference them.
+  const defaultInterestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
+  const profileVacancyRate = profile.vacancyRate ?? DEFAULT_VACANCY_RATE;
+  const profileWageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
+  const profileInflation = profile.inflationRate ?? ANNUAL_INFLATION_RATE;
+
   const portfolioGrowthData = useMemo((): PortfolioGrowthDataPoint[] => {
     const data: PortfolioGrowthDataPoint[] = [];
     const startYear = BASE_YEAR;
     const endYear = startYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
-    // Profile-level assumption overrides (set via Assumptions page).
-    // Each falls back to its platform constant when not set on the profile.
-    const defaultInterestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
-    const profileVacancyRate = profile.vacancyRate ?? DEFAULT_VACANCY_RATE;
-    const profileWageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
-    const profileInflation = profile.inflationRate ?? ANNUAL_INFLATION_RATE;
 
     // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
