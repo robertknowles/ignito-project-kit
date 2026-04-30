@@ -38,10 +38,16 @@ export function calculateDetailedCashflow(
   property: PropertyInstanceDetails,
   loanAmount: number
 ): CashflowBreakdown {
-  // Income — vacancy is a portfolio-wide policy default (no per-instance override)
+  // Income — vacancy honours per-instance override (set via PropertyDetailPanel
+  // slider) when available, falling back to global DEFAULT_VACANCY_RATE.
+  // Per-instance vacancyRate is stored as a percentage (e.g. 4 for 4%);
+  // DEFAULT_VACANCY_RATE is stored as a decimal (e.g. 0.04). Normalise.
   const weeklyRent = property.rentPerWeek;
   const grossAnnualIncome = weeklyRent * 52;
-  const vacancyAmount = grossAnnualIncome * DEFAULT_VACANCY_RATE;
+  const effectiveVacancyRate = (property.vacancyRate !== undefined && property.vacancyRate !== null && property.vacancyRate >= 0)
+    ? property.vacancyRate / 100
+    : DEFAULT_VACANCY_RATE;
+  const vacancyAmount = grossAnnualIncome * effectiveVacancyRate;
   const adjustedIncome = grossAnnualIncome - vacancyAmount;
 
   // Expenses
