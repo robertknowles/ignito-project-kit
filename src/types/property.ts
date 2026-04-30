@@ -10,7 +10,11 @@ export interface GrowthCurve {
 
 export interface PropertyPurchase {
   year: number;
-  cost: number;
+  cost: number;             // Purchase price (paid). Used for loan calc, stamp duty, transaction costs.
+  growthBasis?: number;     // Initial-value basis for growth/equity calc. Defaults to cost when undefined.
+                            // When valuationAtPurchase > cost (manufactured equity from buying under value),
+                            // growthBasis = valuationAtPurchase. The engine uses growthBasis as the
+                            // compounding starting point so manufactured equity flows into chart equity.
   loanAmount: number;
   depositRequired: number;
   title: string;

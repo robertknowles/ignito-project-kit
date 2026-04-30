@@ -201,13 +201,15 @@ export const calculatePortfolioMetrics = (
     
     // Use property-specific growth curve if available, otherwise fallback to global curve
     const effectiveGrowthCurve = purchase.growthCurve || growthCurve;
-    
-    // Use tiered growth with period-based calculations using property-specific curve
-    const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld, effectiveGrowthCurve);
-    
+
+    // Use growthBasis for value/equity (manufactured equity at purchase compounds
+    // forward); falls back to cost when no manufactured equity at purchase.
+    const growthBasis = purchase.growthBasis ?? purchase.cost;
+    const currentValue = calculatePropertyGrowth(growthBasis, periodsHeld, effectiveGrowthCurve);
+
     // Use detailed cash flow analysis with property-specific growth
     const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, effectiveGrowthCurve, expenses);
-    
+
     // Simplified debt model - no principal reduction
     const remainingDebt = purchase.loanAmount;
     const propertyEquity = Math.max(0, currentValue - remainingDebt);
@@ -352,16 +354,22 @@ export const calculateGrowthProjections = (
       .map(purchase => {
         const yearsHeld = Math.max(0, currentYear - purchase.year);
         const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
-        // Use tiered growth with period-based calculations
-        const currentValue = calculatePropertyGrowth(purchase.cost, periodsHeld, growthCurve);
+        // Equity calc uses growthBasis (manufactured equity flows forward).
+        // Rent calc uses cost-compounded value because rent is market-determined,
+        // not valuation-determined — yield is set against actual purchase price.
+        const growthBasis = purchase.growthBasis ?? purchase.cost;
+        const valueForEquity = calculatePropertyGrowth(growthBasis, periodsHeld, growthCurve);
+        const valueForRent = (growthBasis === purchase.cost)
+          ? valueForEquity
+          : calculatePropertyGrowth(purchase.cost, periodsHeld, growthCurve);
         const remainingDebt = purchase.loanAmount; // Simplified - no principal reduction
-        const equity = Math.max(0, currentValue - remainingDebt);
-        const rentalIncome = currentValue * purchase.rentalYield;
-        
+        const equity = Math.max(0, valueForEquity - remainingDebt);
+        const rentalIncome = valueForRent * purchase.rentalYield;
+
         return {
           propertyId: `${purchase.title}_${purchase.year}`,
           title: purchase.title,
-          currentValue: Math.round(currentValue),
+          currentValue: Math.round(valueForEquity),
           equity: Math.round(equity),
           rentalIncome: Math.round(rentalIncome),
           yearsPurchased: yearsHeld
@@ -490,10 +498,13 @@ export const projectPropertyTimeline = (
     const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
 
     // Property value via tiered growth (reuses calculatePropertyGrowth)
-    const propertyValue = calculatePropertyGrowth(property.cost, periodsOwned, growthCurve);
+    // growthBasis defaults to cost when no manufactured equity at purchase.
+    const propertyGrowthBasis = property.growthBasis ?? property.cost;
+    const propertyValue = calculatePropertyGrowth(propertyGrowthBasis, periodsOwned, growthCurve);
 
-    // Rent grows with property value (same yield maintained)
-    const rentGrowthFactor = propertyValue / property.cost;
+    // Rent grows with the same compounding factor (not the manufactured-equity premium).
+    // rentGrowthFactor = pure compound factor applied to initial rent.
+    const rentGrowthFactor = propertyValue / propertyGrowthBasis;
     const annualRent = initialAnnualRent * rentGrowthFactor;
 
     // Expenses grow with inflation (fixed costs) or scale with rent/value

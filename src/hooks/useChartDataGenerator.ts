@@ -141,9 +141,19 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         ? (instanceRentPerWeek * 52) / property.cost 
         : (propertyData ? parseFloat(propertyData.yield) / 100 : DEFAULT_RENTAL_YIELD);
       
+      // Manufactured equity: if BA secured property under valuation, use the
+      // valuation as the compounding basis. Loan is still based on cost (purchase
+      // price). When valuationAtPurchase <= cost, growthBasis falls back to cost
+      // (no behaviour change vs pre-2026-04-30).
+      const valuationAtPurchase = propertyInstance?.valuationAtPurchase;
+      const growthBasis = (valuationAtPurchase && valuationAtPurchase > property.cost)
+        ? valuationAtPurchase
+        : property.cost;
+
       return {
         year: property.affordableYear,
         cost: property.cost,
+        growthBasis,
         loanAmount: property.loanAmount,
         depositRequired: property.depositRequired,
         title: property.title,
@@ -369,10 +379,12 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             ? applyGrowthAdjustment(propertyGrowthCurve, growthAdjustment)
             : propertyGrowthCurve;
           
-          const baseValue = calculatePropertyGrowth(property.cost, periodsOwned, adjustedPropertyGrowthCurve);
+          // Use growthBasis (defaults to cost if no manufactured equity at purchase)
+          const propertyGrowthBasis = property.growthBasis ?? property.cost;
+          const baseValue = calculatePropertyGrowth(propertyGrowthBasis, periodsOwned, adjustedPropertyGrowthCurve);
           // Add renovation value increase
           const currentValue = baseValue + renovationValueIncrease;
-          const growthFactor = currentValue / property.cost;
+          const growthFactor = currentValue / propertyGrowthBasis;
           
           // Calculate detailed cashflow using all 39 property fields
           const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount);
@@ -447,9 +459,11 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             propertyGrowthCurve = applyGrowthAdjustment(propertyGrowthCurve, growthAdjustment);
           }
           
-          const baseValue = calculatePropertyGrowth(property.cost, periodsOwned, propertyGrowthCurve);
+          // Use growthBasis (defaults to cost if no manufactured equity at purchase)
+          const propertyGrowthBasis = property.growthBasis ?? property.cost;
+          const baseValue = calculatePropertyGrowth(propertyGrowthBasis, periodsOwned, propertyGrowthCurve);
           const currentValue = baseValue + renovationValueIncrease;
-          const growthFactor = currentValue / property.cost;
+          const growthFactor = currentValue / propertyGrowthBasis;
           const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
           
           // Recalculate loan interest with event-adjusted rate

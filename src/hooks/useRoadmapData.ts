@@ -289,8 +289,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           : profile.growthCurve;
         
         // Calculate current property value with tiered growth (using instance growth rate)
-        // Apply market correction events using purchasePeriod as basePeriod
-        const baseValue = calculatePropertyGrowthWithEvents(prop.cost, periodsOwned, effectiveGrowthCurve, eventBlocks, purchasePeriod);
+        // Apply market correction events using purchasePeriod as basePeriod.
+        // growthBasis defaults to cost when no manufactured equity at purchase.
+        const propGrowthBasis = prop.growthBasis ?? prop.cost;
+        const baseValue = calculatePropertyGrowthWithEvents(propGrowthBasis, periodsOwned, effectiveGrowthCurve, eventBlocks, purchasePeriod);
         
         // Add renovation value increases
         const renovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
@@ -359,10 +361,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           : profile.growthCurve;
         
         // Use event-aware growth calculation
-        const baseValue = calculatePropertyGrowthWithEvents(prop.cost, periodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+        // growthBasis defaults to cost when no manufactured equity at purchase.
+        const propGrowthBasis = prop.growthBasis ?? prop.cost;
+        const baseValue = calculatePropertyGrowthWithEvents(propGrowthBasis, periodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
         const renovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
         const currentValue = baseValue + renovationIncrease;
-        const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
+        // growthFactor uses growthBasis as denominator so it represents the pure
+        // compounding factor (manufactured equity premium does NOT bleed into rent).
+        const growthFactor = yearsOwned > 0 ? currentValue / propGrowthBasis : 1;
         const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
         
         const propRentalIncome = prop.grossRentalIncome * growthFactor * inflationFactor;
@@ -527,12 +533,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
             : profile.growthCurve;
           
-          // Use event-aware growth calculation
-          const propBaseValue = calculatePropertyGrowthWithEvents(prop.cost, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+          // Use event-aware growth calculation. growthBasis defaults to cost when
+          // no manufactured equity at purchase.
+          const propGrowthBasis = prop.growthBasis ?? prop.cost;
+          const propBaseValue = calculatePropertyGrowthWithEvents(propGrowthBasis, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
           const propRenovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
           const propCurrentValue = propBaseValue + propRenovationIncrease;
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
-          
+
           return {
             propertyId: prop.instanceId,
             propertyType: prop.title,
@@ -734,12 +742,14 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
             ? getGrowthCurveFromAssumption(propInstance.growthAssumption)
             : profile.growthCurve;
           
-          // Use event-aware growth calculation
-          const propBaseValue = calculatePropertyGrowthWithEvents(prop.cost, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
+          // Use event-aware growth calculation. growthBasis defaults to cost when
+          // no manufactured equity at purchase.
+          const propGrowthBasis = prop.growthBasis ?? prop.cost;
+          const propBaseValue = calculatePropertyGrowthWithEvents(propGrowthBasis, propPeriodsOwned, propGrowthCurve, eventBlocks, propPurchasePeriod);
           const propRenovationIncrease = getRenovationValueIncrease(prop.instanceId, periodsElapsed, eventBlocks);
           const propCurrentValue = propBaseValue + propRenovationIncrease;
           const halfYear = prop.affordableYear % 1 >= 0.5 ? 'H2' : 'H1';
-          
+
           return {
             propertyId: prop.instanceId,
             propertyType: prop.title,
