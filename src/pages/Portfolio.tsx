@@ -273,7 +273,7 @@ export const Portfolio = () => {
               ratesAdjustment: instance.ratesAdjustment || 0,
               maintenanceAllowancePostSettlement: instance.maintenanceAllowancePostSettlement || 0,
               stampDutyOverride: instance.stampDutyOverride ?? null,
-              vacancyRate: instance.vacancyRate ?? 2,
+              vacancyRate: instance.vacancyRate ?? 4,
               propertyManagementPercent: instance.propertyManagementPercent ?? 6.6,
               buildingInsuranceAnnual: instance.buildingInsuranceAnnual ?? 350,
               councilRatesWater: instance.councilRatesWater ?? 2000,
@@ -778,7 +778,8 @@ export const Portfolio = () => {
 
                           // Purchased — render full OwnedPropertyCard
                           const scenarioDataItem = activeScenarios.find(s => s.scenarioId === scenario.scenarioId)
-                          const defaultGrowthCurve: GrowthCurve = { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 }
+                          // Matches Medium tier per Gameplans-replication calibration (2026-04-30)
+                          const defaultGrowthCurve: GrowthCurve = { year1: 6, years2to3: 5.5, year4: 5, year5plus: 5 }
                           const growthCurve = scenarioDataItem?.growthCurve || defaultGrowthCurve
 
                           const timelineData: TimelinePropertyData = property.rawTimelineItem || {
@@ -819,7 +820,7 @@ export const Portfolio = () => {
                             ratesAdjustment: 0,
                             maintenanceAllowancePostSettlement: 0,
                             stampDutyOverride: null,
-                            vacancyRate: 2,
+                            vacancyRate: 4,
                             propertyManagementPercent: 6.6,
                             buildingInsuranceAnnual: 350,
                             councilRatesWater: 2000,

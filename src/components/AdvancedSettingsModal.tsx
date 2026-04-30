@@ -100,8 +100,8 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({
               <span>6% (Optimistic)</span>
             </div>
             <p className="text-xs text-gray-500">
-              Annual growth rate applied to existing mature properties. 
-              New purchases use tiered growth rates (12.5% Y1, tapering to 6% Y5+).
+              Annual growth rate applied to existing mature properties.
+              New purchases use tiered growth rates (Medium tier defaults: 6% Y1, 5.5% Y2-3, 5% Y4+).
             </p>
           </div>
 
@@ -111,9 +111,9 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({
               About These Settings
             </h4>
             <p className="text-xs text-gray-500 leading-relaxed">
-              These advanced settings help fine-tune the simulation model to match your client's 
-              risk tolerance and market expectations. The defaults (3 purchases/year, 3% growth) 
-              represent moderate assumptions suitable for most scenarios.
+              These advanced settings help fine-tune the simulation model to match your client's
+              risk tolerance and market expectations. The defaults (3 purchases/year, 5% existing-portfolio growth)
+              represent moderate assumptions calibrated against industry consensus (Gameplans alignment 2026-04-30).
             </p>
           </div>
         </div>

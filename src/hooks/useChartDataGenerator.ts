@@ -184,7 +184,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         profile.portfolioValue,
         profile.currentDebt,
         yearsElapsed,
-        profile.existingPortfolioGrowthRate || 0.03,
+        profile.existingPortfolioGrowthRate || 0.05,
         adjustedProfileGrowthCurve,
         defaultInterestRate
       );
@@ -307,7 +307,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       
       if (profile.portfolioValue > 0) {
         // Use configurable flat rate for existing portfolio (mature properties)
-        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
         const grownValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
         existingRentalIncome = grownValue * DEFAULT_RENTAL_YIELD;
         // Use event-adjusted interest rate for existing debt

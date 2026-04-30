@@ -339,7 +339,7 @@ export const useAffordabilityCalculator = () => {
       // Only include if useExistingEquity toggle is enabled
       let existingPortfolioEquity = 0;
       if (periodProfile.portfolioValue > 0 && profile.useExistingEquity) {
-        const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const growthRate = profile.existingPortfolioGrowthRate || 0.05;
         const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(periodProfile.portfolioValue, currentPeriod - 1, growthRate);
         existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
       }
@@ -501,7 +501,7 @@ export const useAffordabilityCalculator = () => {
       // CRITICAL: Add rental income from EXISTING portfolio (before this scenario)
       // The existing portfolio generates rental income that helps serviceability
       if (profile.portfolioValue > 0) {
-        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.03;
+        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
         const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, existingGrowthRate);
         const existingRentalYield = profile.existingRentalYield || 0.04; // Default 4% yield
         const existingAnnualRent = grownPortfolioValue * existingRentalYield;
@@ -634,7 +634,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       
         if (profile.portfolioValue > 0 && profile.useExistingEquity) {
           // Use configurable flat rate for existing portfolio (mature properties)
-          const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
           const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
           propertyValues.push(grownPortfolioValue);
           
@@ -1099,7 +1099,7 @@ return { period: Infinity };
         // Calculate existing portfolio value (with growth)
         // Uses configurable flat rate for mature properties
         if (profile.portfolioValue > 0) {
-          const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
           portfolioValueAfter += calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, purchasePeriod - 1, growthRate);
         }
         
@@ -1693,7 +1693,7 @@ return { period: Infinity };
     // Existing portfolio equity - uses configurable flat rate for mature properties
     // Only include if useExistingEquity toggle is enabled
     if (profile.portfolioValue > 0 && profile.useExistingEquity) {
-      const growthRate = profile.existingPortfolioGrowthRate || 0.03;
+      const growthRate = profile.existingPortfolioGrowthRate || 0.05;
       const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, period - 1, growthRate);
       const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
       totalUsableEquity += portfolioEquity;

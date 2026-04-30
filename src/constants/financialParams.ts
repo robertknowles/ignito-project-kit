@@ -120,10 +120,20 @@ export const ANNUAL_INFLATION_RATE = 0.03;
 
 /**
  * Default property growth rate (fallback)
- * 
+ *
  * Used when property-specific growth curve is not available.
  */
 export const DEFAULT_GROWTH_RATE = 0.06; // 6%
+
+/**
+ * Annual wage growth rate for client income projection.
+ *
+ * Matches Gameplans default of 2.5% (RBA wage inflation target band).
+ * Currently DECLARED ONLY — engine does not yet apply this to BC ceiling
+ * or projected income. Reserved for B-bucket goal-anchored backwards-calc
+ * work where projected income materially affects deposit-readiness math.
+ */
+export const ANNUAL_WAGE_GROWTH_RATE = 0.025; // 2.5%
 
 // =============================================================================
 // VACANCY & EXPENSE DEFAULTS
@@ -132,11 +142,15 @@ export const DEFAULT_GROWTH_RATE = 0.06; // 6%
 /**
  * Default vacancy rate
  *
- * Aggressive Pacing default. Tier-linked:
- *   Conservative 0.06 / Moderate 0.04 / Aggressive 0.02 (≈1 week/yr)
+ * Calibrated against Gameplans/lender consensus (BA-research workstream B + 2026-04-30
+ * Gameplans-replication pass). 4% ≈ 2 weeks/yr — sits within standard Australian
+ * lender assessment range (3–6%). Prior 2% (1 week/yr) was outside consensus.
+ *
+ * Tier-linked:
+ *   Conservative 0.06 / Moderate 0.04 / Aggressive 0.04
  * Per-cell vacancy override for commercial cells (5–8%) handled at instance level.
  */
-export const DEFAULT_VACANCY_RATE = 0.02; // 2%
+export const DEFAULT_VACANCY_RATE = 0.04; // 4%
 
 /** Default rental yield for existing portfolio */
 export const DEFAULT_RENTAL_YIELD = 0.04; // 4%
@@ -163,11 +177,18 @@ export const MAX_PURCHASES_PER_PERIOD = 2;
 
 /**
  * Default growth rate for existing/mature portfolio properties
- * 
- * Mature properties grow at a conservative flat rate (not tiered like new purchases).
+ *
+ * Mature properties grow at a flat rate (not tiered like new purchases).
+ * Calibrated 2026-04-30 to match Gameplans default of 5% (per Gameplans-replication
+ * pass). Existing portfolio properties at-or-near-default tier project at the same
+ * rate as new properties' year5+ tail. Per-property historical compound floor (B-bucket
+ * follow-up) will replace this flat rate with property-specific historical compound.
+ *
  * Note: This is a fallback default. The actual value comes from profile.existingPortfolioGrowthRate.
+ * NOTE: Three local duplicates of this constant exist in metricsCalculator.ts,
+ * useRoadmapData.ts, and InvestmentTimeline.tsx — all updated together. Consolidate later.
  */
-export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.05; // 5% annual
 
 // =============================================================================
 // LMI THRESHOLDS
@@ -223,10 +244,14 @@ import type { GrowthCurve } from '../types/property';
  */
 export const GROWTH_RATE_TIERS: Record<string, GrowthCurve> = {
   High: { year1: 12.5, years2to3: 10, year4: 7.5, year5plus: 6 },
-  // Medium tier flatter through the long tail per Yardney/Pressley/national-avg
-  // 7% long-term consensus. Previous 8/6/5/4 tapered too fast in years 10-15
-  // and was a meaningful contributor to the "outputs are too slow" symptom.
-  Medium: { year1: 8, years2to3: 7, year4: 6, year5plus: 5 },
+  // Medium tier calibrated 2026-04-30 to ~5.4% average across 15 years
+  // (Gameplans-replication "smart match" position). Previous 8/7/6/5 averaged
+  // ~6.4% which produced equity outputs ~30% above Gameplans on like-for-like
+  // scenarios. Current curve sits ~2% above Gameplans' 5% flat default —
+  // deliberate slight overshoot (still defensible vs 6.8% national 25-yr avg)
+  // while leaving headroom for B-bucket per-property historical compound floor
+  // to close the residual gap.
+  Medium: { year1: 6, years2to3: 5.5, year4: 5, year5plus: 5 },
   Low: { year1: 5, years2to3: 4, year4: 3.5, year5plus: 3 },
 };
 

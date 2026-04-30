@@ -259,19 +259,21 @@ export function ClientDashboard({
   const defaultGrowthRate = 0.06;
   const defaultInterestRate = investmentProfile?.interestRate || 0.065;
   
-  // Default growth curve for tiered growth
+  // Default growth curve for tiered growth — matches Medium tier
+  // (Gameplans-replication calibration 2026-04-30). Fallback when scenario data
+  // doesn't carry an explicit growth curve.
   const defaultGrowthCurve: GrowthCurve = {
-    year1: 12.5,
-    years2to3: 10,
-    year4: 7.5,
-    year5plus: 6
+    year1: 6,
+    years2to3: 5.5,
+    year4: 5,
+    year5plus: 5
   };
 
   // Existing portfolio values from investment profile
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
   const existingRentalYield = investmentProfile?.existingRentalYield || 0.04;
-  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.03; // 3% default for mature properties
+  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.05; // 5% default for mature properties (matches Gameplans calibration 2026-04-30)
 
   // Calculate chart data
   const { portfolioData, cashflowData, equityGoalYear, incomeGoalYear } = useMemo(() => {
@@ -509,7 +511,7 @@ export function ClientDashboard({
       const yearsSinceStart = year - scenarioStartYear;
       
       // Existing portfolio metrics
-      const scenarioExistingGrowthRate = profile?.existingPortfolioGrowthRate || 0.03;
+      const scenarioExistingGrowthRate = profile?.existingPortfolioGrowthRate || 0.05;
       const existingMetrics = calculateExistingPortfolioMetrics(
         scenarioExistingValue,
         scenarioExistingDebt,

@@ -37,7 +37,7 @@ const defaultFormData: InvestmentProfileFormData = {
   // Advanced portfolio settings
   useExistingEquity: true,
   maxPurchasesPerYear: 3,
-  existingPortfolioGrowthRate: 0.03,
+  existingPortfolioGrowthRate: 0.05,
 };
 
 const defaultBranding: BrandingData = {
@@ -282,11 +282,13 @@ setError('Failed to load onboarding form');
           equityReleaseFactor: existingData.investmentProfile?.equityReleaseFactor ?? 0.70,
           depositBuffer: existingData.investmentProfile?.depositBuffer ?? 5000,
           rentFactor: existingData.investmentProfile?.rentFactor ?? 0.75,
+          // Matches Medium tier per Gameplans-replication calibration (2026-04-30).
+          // Fallback when existing onboarding data has no saved growthCurve.
           growthCurve: existingData.investmentProfile?.growthCurve ?? {
-            year1: 12.5,
-            years2to3: 10,
-            year4: 7.5,
-            year5plus: 6,
+            year1: 6,
+            years2to3: 5.5,
+            year4: 5,
+            year5plus: 5,
           },
         },
         // Mark onboarding as completed

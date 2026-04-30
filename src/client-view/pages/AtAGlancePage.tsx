@@ -59,19 +59,21 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   const defaultGrowthRate = 0.06; // 6% annual growth
   const defaultInterestRate = investmentProfile?.interestRate || 0.065; // 6.5% interest
   
-  // Default growth curve for tiered growth
+  // Default growth curve for tiered growth — matches Medium tier
+  // (Gameplans-replication calibration 2026-04-30). Used when chartData isn't
+  // pre-calculated and we fall back to recomputing from propertySelections.
   const defaultGrowthCurve: GrowthCurve = {
-    year1: 12.5,
-    years2to3: 10,
-    year4: 7.5,
-    year5plus: 6
+    year1: 6,
+    years2to3: 5.5,
+    year4: 5,
+    year5plus: 5
   };
 
   // Existing portfolio values from investment profile
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
   const existingRentalYield = investmentProfile?.existingRentalYield || 0.04; // 4% default
-  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.03; // 3% default for mature properties
+  const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.05; // 5% default for mature properties (matches Gameplans calibration 2026-04-30)
 
   // Use pre-calculated chart data from dashboard if available (ensures exact match)
   // Otherwise fall back to calculating from propertySelections

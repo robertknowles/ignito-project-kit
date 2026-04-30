@@ -648,10 +648,10 @@ const generatePage4 = (
     ['Note', 'Property-specific', 'Each property has its own interest rate, LVR, and growth settings'],
     ['Default Interest Rate', '6.5%', 'Default for calculations (varies by property)'],
     ['Growth System', 'High/Medium/Low', 'Tiered growth rates per property type'],
-    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year growth (High tier)'],
-    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth (High tier)'],
-    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth (High tier)'],
-    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth (High tier)'],
+    ['Growth Rate (Y1)', `${profile.growthCurve.year1}%`, 'First year growth (profile default tier)'],
+    ['Growth Rate (Y2-3)', `${profile.growthCurve.years2to3}%`, 'Years 2-3 growth (profile default tier)'],
+    ['Growth Rate (Y4)', `${profile.growthCurve.year4}%`, 'Year 4 growth (profile default tier)'],
+    ['Growth Rate (Y5+)', `${profile.growthCurve.year5plus}%`, 'Year 5+ growth (profile default tier)'],
     ['Expense Calculation', 'Detailed', 'Per-property: management, insurance, rates, strata, maintenance, land tax'],
     ['Inflation', '3%', 'Annual cost inflation']
   ];

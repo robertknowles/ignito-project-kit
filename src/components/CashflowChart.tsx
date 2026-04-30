@@ -50,8 +50,9 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     return capped.map(d => ({
       year: d.year,
-      income: Math.round(d.rentalIncome / 12),   // monthly
-      expenses: Math.round(d.expenses / 12),       // monthly
+      income: Math.round(d.rentalIncome / 12),                          // monthly rent
+      expenses: Math.round((d.expenses + d.loanRepayments) / 12),       // monthly running costs + mortgage interest
+      netCashflow: Math.round(d.cashflow / 12),                         // monthly net (pre-computed correctly upstream)
     }));
   }, [cashflowData, profile.timelineYears]);
 
@@ -61,7 +62,9 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     const income = payload.find((p: any) => p.dataKey === 'income')?.value ?? 0;
     const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value ?? 0;
-    const net = income - expenses;
+    // Use the pre-computed net cashflow (includes mortgage interest properly).
+    // Fall back to income - expenses only if it's missing (defensive).
+    const net = data.find(d => d.year === label)?.netCashflow ?? (income - expenses);
 
     return (
       <div

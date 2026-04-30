@@ -1,8 +1,11 @@
 export interface GrowthCurve {
-  year1: number;        // Default: 12.5%
-  years2to3: number;    // Default: 10%
-  year4: number;        // Default: 7.5%
-  year5plus: number;    // Default: 6%
+  // Medium tier defaults per 2026-04-30 Gameplans-replication calibration
+  // (~5.4% avg). High tier (12.5/10/7.5/6) and Low tier (5/4/3.5/3) available
+  // via GROWTH_RATE_TIERS in constants/financialParams.ts.
+  year1: number;        // Default: 6%
+  years2to3: number;    // Default: 5.5%
+  year4: number;        // Default: 5%
+  year5plus: number;    // Default: 5%
 }
 
 export interface PropertyPurchase {

@@ -43,11 +43,10 @@ export const calculatePropertyGrowth = (
   return currentValue;
 };
 
-// Conservative growth for existing/mature portfolios
-// Uses flat 3% annual rate (vs tiered rates for new purchases)
-// TODO: Make this rate configurable in the future
-// Default growth rate for existing/mature portfolio (can be overridden via profile)
-export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+// Growth rate for existing/mature portfolios
+// Uses flat 5% annual rate (vs tiered rates for new purchases) — matches Gameplans default
+// (calibration 2026-04-30). Duplicate of constants/financialParams.ts; consolidate later.
+export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.05; // 5% annual
 
 export const calculateExistingPortfolioGrowth = (
   initialValue: number,

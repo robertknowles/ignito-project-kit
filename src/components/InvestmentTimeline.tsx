@@ -148,9 +148,10 @@ const calculatePropertyGrowth = (initialValue: number, periods: number, growthCu
   return currentValue;
 };
 
-// Conservative growth for existing/mature portfolios
-// Default 3% annual rate (configurable via profile.existingPortfolioGrowthRate)
-const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.03; // 3% annual
+// Growth rate for existing/mature portfolios
+// Default 5% annual rate (configurable via profile.existingPortfolioGrowthRate).
+// Matches Gameplans default (calibration 2026-04-30). Duplicate of constants/financialParams.ts; consolidate later.
+const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.05; // 5% annual
 
 const calculateExistingPortfolioGrowthByPeriod = (
   initialValue: number,

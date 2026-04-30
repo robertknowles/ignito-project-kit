@@ -21,11 +21,11 @@ export interface InvestmentProfileData {
   depositBuffer: number; // Extra cash buffer required for deposits ($30k)
   rentFactor: number; // Factor to temper rental income boost (0.7-0.8)
   // NEW: Growth curve
-  growthCurve: GrowthCurve; // Tiered growth: 12.5% Y1, 10% Y2-3, 7.5% Y4, 6% Y5+
+  growthCurve: GrowthCurve; // Tiered growth (default matches Medium tier per 2026-04-30 calibration)
   // NEW: Advanced portfolio settings
   useExistingEquity: boolean; // Toggle for existing equity in purchases (default: true)
   maxPurchasesPerYear: number; // Annual purchase cap (default: 3, range: 1-4)
-  existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.03 = 3%)
+  existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.05 = 5%, matches Gameplans)
   // NEW: Financial Freedom projection
   targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
   ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
@@ -97,17 +97,19 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   equityReleaseFactor: 0.70, // recycle 70% of extractable equity
   depositBuffer: 5000,       // floor; engine derives 6-month-of-holding-cost target above this
   rentFactor: 0.75,
-  // Growth curve
+  // Growth curve — matches GROWTH_RATE_TIERS.Medium (Gameplans-replication
+  // calibration 2026-04-30). Previous default was the High tier curve
+  // (12.5/10/7.5/6) which was inappropriate as the universal fallback.
   growthCurve: {
-    year1: 12.5,
-    years2to3: 10,
-    year4: 7.5,
-    year5plus: 6,
+    year1: 6,
+    years2to3: 5.5,
+    year4: 5,
+    year5plus: 5,
   },
   // Advanced portfolio settings
   useExistingEquity: true,
   maxPurchasesPerYear: 3,
-  existingPortfolioGrowthRate: 0.03,
+  existingPortfolioGrowthRate: 0.05,
   // Financial Freedom projection
   targetPassiveIncome: 80000,
   ioToPiTransitionYears: 5,
