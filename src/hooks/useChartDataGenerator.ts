@@ -19,6 +19,7 @@ import {
   PERIODS_PER_YEAR,
   BASE_YEAR,
   DEFAULT_INTEREST_RATE,
+  DEFAULT_VACANCY_RATE,
   DEFAULT_RENTAL_YIELD,
   DEFAULT_EXPENSE_RATIO,
   ANNUAL_INFLATION_RATE,
@@ -109,7 +110,12 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     const endYear = startYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
-    const defaultInterestRate = DEFAULT_INTEREST_RATE;
+    // Profile-level assumption overrides (set via Assumptions page).
+    // Each falls back to its platform constant when not set on the profile.
+    const defaultInterestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
+    const profileVacancyRate = profile.vacancyRate ?? DEFAULT_VACANCY_RATE;
+    const profileWageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
+    const profileInflation = profile.inflationRate ?? ANNUAL_INFLATION_RATE;
 
     // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
@@ -256,11 +262,11 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         : undefined;
 
       // Do-nothing baseline: compound savings with no property investment.
-      // Savings grow with wage growth (matches Gameplans 2.5% wage growth default).
+      // Savings grow with profile-level wage growth override (default 2.5%).
       const doNothingBalance = (() => {
         let balance = profile.depositPool;
         for (let y = 0; y < yearsElapsed; y++) {
-          const yearSavings = profile.annualSavings * Math.pow(1 + ANNUAL_WAGE_GROWTH_RATE, y);
+          const yearSavings = profile.annualSavings * Math.pow(1 + profileWageGrowth, y);
           balance = balance * (1 + SAVINGS_INTEREST_RATE) + yearSavings;
         }
         return Math.round(balance);
@@ -270,8 +276,8 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       // Cumulative savings = sum of geometric series annualSavings × (1+wageGrowth)^i for i in [0, yearsElapsed).
       // Closed form: annualSavings × ((1+wageGrowth)^yearsElapsed − 1) / wageGrowth
       const usableEquity = Math.max(0, totalMetrics.portfolioValue * EQUITY_EXTRACTION_LVR_CAP - totalMetrics.totalDebt);
-      const cumulativeSavings = yearsElapsed > 0 && ANNUAL_WAGE_GROWTH_RATE > 0
-        ? profile.annualSavings * (Math.pow(1 + ANNUAL_WAGE_GROWTH_RATE, yearsElapsed) - 1) / ANNUAL_WAGE_GROWTH_RATE
+      const cumulativeSavings = yearsElapsed > 0 && profileWageGrowth > 0
+        ? profile.annualSavings * (Math.pow(1 + profileWageGrowth, yearsElapsed) - 1) / profileWageGrowth
         : profile.annualSavings * yearsElapsed;
       const depositsUsed = relevantPurchases.reduce((sum, p) => sum + p.depositRequired, 0);
       const availableFunds = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
@@ -394,14 +400,14 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           const growthFactor = currentValue / propertyGrowthBasis;
           
           // Calculate detailed cashflow using all 39 property fields
-          const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount);
+          const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount, profileVacancyRate);
           
           // Recalculate loan interest with event-adjusted rate
           const adjustedLoanInterest = property.loanAmount * propertyEffectiveRate;
           
           // Adjust for property growth (rent increases with property value)
           // Apply inflation to expenses
-          const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+          const inflationFactor = Math.pow(1 + profileInflation, yearsOwned);
           
           // Gross income grows with property value
           const adjustedGrossIncome = cashflowBreakdown.grossAnnualIncome * growthFactor;
@@ -451,7 +457,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             fallbackInstance.rentPerWeek = Math.round((property.cost * yieldRate) / 52);
           }
           
-          const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, property.loanAmount);
+          const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, property.loanAmount, profileVacancyRate);
           
           // Simple growth adjustment for fallback
           let propertyGrowthCurve = propertyData ? {
@@ -471,7 +477,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           const baseValue = calculatePropertyGrowth(propertyGrowthBasis, periodsOwned, propertyGrowthCurve);
           const currentValue = baseValue + renovationValueIncrease;
           const growthFactor = currentValue / propertyGrowthBasis;
-          const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+          const inflationFactor = Math.pow(1 + profileInflation, yearsOwned);
           
           // Recalculate loan interest with event-adjusted rate
           const adjustedLoanInterest = property.loanAmount * propertyEffectiveRate;
@@ -537,7 +543,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       if (!propertyInstance) {
         return { propertyTitle: property.title, monthlyCost: 0, instanceId: property.instanceId };
       }
-      const breakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount);
+      const breakdown = calculateDetailedCashflow(propertyInstance, property.loanAmount, profileVacancyRate);
       return {
         propertyTitle: property.title,
         monthlyCost: Math.round(breakdown.netWeeklyCashflow * 52 / 12),

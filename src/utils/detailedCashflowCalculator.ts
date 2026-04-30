@@ -36,17 +36,24 @@ export interface CashflowBreakdown {
  */
 export function calculateDetailedCashflow(
   property: PropertyInstanceDetails,
-  loanAmount: number
+  loanAmount: number,
+  /**
+   * Profile-level vacancy default override (set via Assumptions page).
+   * Used when property.vacancyRate isn't set per-instance. Falls back to
+   * platform DEFAULT_VACANCY_RATE when not provided.
+   * Decimal form (e.g. 0.04 for 4%).
+   */
+  profileVacancyDefault?: number
 ): CashflowBreakdown {
-  // Income — vacancy honours per-instance override (set via PropertyDetailPanel
-  // slider) when available, falling back to global DEFAULT_VACANCY_RATE.
-  // Per-instance vacancyRate is stored as a percentage (e.g. 4 for 4%);
-  // DEFAULT_VACANCY_RATE is stored as a decimal (e.g. 0.04). Normalise.
+  // Income — vacancy resolution order:
+  //   1. Per-instance property.vacancyRate (PropertyDetailPanel slider) — percentage form
+  //   2. Profile-level profileVacancyDefault (Assumptions page) — decimal form
+  //   3. Platform DEFAULT_VACANCY_RATE — decimal form
   const weeklyRent = property.rentPerWeek;
   const grossAnnualIncome = weeklyRent * 52;
   const effectiveVacancyRate = (property.vacancyRate !== undefined && property.vacancyRate !== null && property.vacancyRate >= 0)
     ? property.vacancyRate / 100
-    : DEFAULT_VACANCY_RATE;
+    : (profileVacancyDefault ?? DEFAULT_VACANCY_RATE);
   const vacancyAmount = grossAnnualIncome * effectiveVacancyRate;
   const adjustedIncome = grossAnnualIncome - vacancyAmount;
 

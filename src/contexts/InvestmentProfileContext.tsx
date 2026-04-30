@@ -26,6 +26,16 @@ export interface InvestmentProfileData {
   useExistingEquity: boolean; // Toggle for existing equity in purchases (default: true)
   maxPurchasesPerYear: number; // Annual purchase cap (default: 3, range: 1-4)
   existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.05 = 5%, matches Gameplans)
+  // NEW: Per-scenario assumption overrides (Tier 1 — Assumptions page)
+  // Each falls back to platform constants in financialParams.ts when undefined.
+  // Adjusting these on the Assumptions page changes the chart projections for
+  // this scenario only — does NOT alter the AI's initial plan generation.
+  interestRate: number;       // Decimal, default 0.0625 (matches DEFAULT_INTEREST_RATE)
+  vacancyRate: number;        // Decimal, default 0.04 (matches DEFAULT_VACANCY_RATE)
+  wageGrowthRate: number;     // Decimal, default 0.025 (matches ANNUAL_WAGE_GROWTH_RATE)
+  inflationRate: number;      // Decimal, default 0.03 (matches ANNUAL_INFLATION_RATE)
+  valuationPremiumResidential: number; // Decimal, default 0.03 (3% above purchase = manufactured equity from buying under value)
+  valuationPremiumCommercial: number;  // Decimal, default 0.05 (5% commercial premium — distressed-seller opportunity higher)
   // NEW: Financial Freedom projection
   targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
   ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
@@ -110,6 +120,13 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   useExistingEquity: true,
   maxPurchasesPerYear: 3,
   existingPortfolioGrowthRate: 0.05,
+  // Tier 1 assumption overrides — defaults match platform constants
+  interestRate: 0.0625,
+  vacancyRate: 0.04,
+  wageGrowthRate: 0.025,
+  inflationRate: 0.03,
+  valuationPremiumResidential: 0.03,
+  valuationPremiumCommercial: 0.05,
   // Financial Freedom projection
   targetPassiveIncome: 80000,
   ioToPiTransitionYears: 5,
