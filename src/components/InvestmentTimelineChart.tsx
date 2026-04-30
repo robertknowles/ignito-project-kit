@@ -180,7 +180,10 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             isAnimationActive={false}
           />
 
-          {/* Purchase markers — property type icons on portfolio line, click to open per-property */}
+          {/* Purchase markers — property type icons on portfolio line, click to open per-property.
+              When multiple purchases land in the same year, icons stack vertically (each subsequent
+              icon offset upward by bgSize + stackGap px) so the BA can see the multi-purchase year
+              at a glance. */}
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}
@@ -189,37 +192,56 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
               r={0}
               shape={(props: any) => {
                 const { cx, cy } = props
-                const iconPath = getPropertyIconPath(pt.purchasePropertyTypes?.[0] || '')
                 const iconSize = 14
                 const bgSize = 26
-                const instanceId = pt.purchaseInstanceIds?.[0]
-                const handleClick = () => {
-                  if (instanceId) {
-                    navigate('/portfolio', { state: { propertyInstanceId: instanceId } })
-                  } else {
-                    navigate('/portfolio')
-                  }
-                }
+                const stackGap = 2 // px between stacked icons
+                const propertyTypes = pt.purchasePropertyTypes ?? []
+                const instanceIds = pt.purchaseInstanceIds ?? []
+                const labels = pt.purchaseLabel ? pt.purchaseLabel.split(', ') : []
+                // Defensive: if data missing, render single icon at cy (legacy behaviour)
+                const renderCount = Math.max(1, propertyTypes.length)
+
                 return (
-                  <g
-                    onClick={handleClick}
-                    style={{ cursor: 'pointer' }}
-                    role="button"
-                    aria-label={`Open ${pt.purchaseLabel || 'property'} in Per-Property view`}
-                  >
-                    <title>{`Open ${pt.purchaseLabel || 'property'}`}</title>
-                    <circle cx={cx} cy={cy} r={bgSize / 2} fill="white" stroke="#E9EAEB" strokeWidth={1} />
-                    <svg
-                      x={cx - iconSize / 2}
-                      y={cy - iconSize / 2}
-                      width={iconSize}
-                      height={iconSize}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  <g>
+                    {Array.from({ length: renderCount }).map((_, idx) => {
+                      const propertyType = propertyTypes[idx] ?? ''
+                      const iconPath = getPropertyIconPath(propertyType)
+                      const instanceId = instanceIds[idx]
+                      const label = labels[idx] || pt.purchaseLabel || 'property'
+                      // Stack: idx=0 sits on the data point (cy); each subsequent icon
+                      // shifts UP by (bgSize + stackGap) so the stack grows above the line.
+                      const iconCy = cy - idx * (bgSize + stackGap)
+                      const handleClick = () => {
+                        if (instanceId) {
+                          navigate('/portfolio', { state: { propertyInstanceId: instanceId } })
+                        } else {
+                          navigate('/portfolio')
+                        }
+                      }
+                      return (
+                        <g
+                          key={instanceId || `${pt.year}-${idx}`}
+                          onClick={handleClick}
+                          style={{ cursor: 'pointer' }}
+                          role="button"
+                          aria-label={`Open ${label} in Per-Property view`}
+                        >
+                          <title>{`Open ${label}`}</title>
+                          <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="white" stroke="#E9EAEB" strokeWidth={1} />
+                          <svg
+                            x={cx - iconSize / 2}
+                            y={iconCy - iconSize / 2}
+                            width={iconSize}
+                            height={iconSize}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            style={{ pointerEvents: 'none' }}
+                          >
+                            <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </g>
+                      )
+                    })}
                   </g>
                 )
               }}

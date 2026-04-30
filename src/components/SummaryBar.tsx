@@ -40,11 +40,20 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     }
   }, [portfolioGrowthData])
 
-  // Monthly net cashflow from the most recent year's data
+  // Monthly net cashflow from the most recent year's data.
+  // Computed from components (rentalIncome − expenses − loanRepayments) rather
+  // than reading the `cashflow` field directly. This guarantees the KPI matches
+  // what the CashflowChart displays in its Net tooltip — both now use identical
+  // arithmetic on the same fields. Defensive against any upstream cashflow-field
+  // aggregation drift.
   const monthlyCashflow = useMemo(() => {
-    const finalCashflow = cashflowData[cashflowData.length - 1]
-    const annual = finalCashflow?.cashflow ?? 0
-    return Math.round(annual / 12)
+    const finalData = cashflowData[cashflowData.length - 1]
+    if (!finalData) return 0
+    const rentalIncome = finalData.rentalIncome ?? 0
+    const expenses = finalData.expenses ?? 0
+    const loanRepayments = finalData.loanRepayments ?? 0
+    const annualNet = rentalIncome - expenses - loanRepayments
+    return Math.round(annualNet / 12)
   }, [cashflowData])
 
   // Next purchase info
