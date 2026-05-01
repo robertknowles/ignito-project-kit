@@ -20,7 +20,9 @@ interface BrandingContextType {
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
   logoUrl: null,
-  primaryColor: '#2563EB',
+  // Black is the neutral fallback — avoids a blue flash before the
+  // company's actual primary colour is fetched from Supabase on first login.
+  primaryColor: '#000000',
   isClientInteractiveEnabled: true,
 };
 
