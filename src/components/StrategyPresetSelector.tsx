@@ -65,12 +65,46 @@ const PRESETS: PresetMeta[] = [
 ]
 
 interface StrategyPresetSelectorProps {
+  /**
+   * - 'compact' (legacy segmented control)
+   * - 'inline-chips' (rounded pill chips, fits inside the hero chat card on AgentHome)
+   * - undefined / false → full stack of stretched rows (legacy behaviour)
+   */
   compact?: boolean
+  variant?: 'inline-chips'
 }
 
-export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ compact = false }) => {
+export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ compact = false, variant }) => {
   const { profile, updateProfile } = useInvestmentProfile()
   const currentPreset = profile.strategyPreset || 'eg-low'
+
+  if (variant === 'inline-chips') {
+    // Pill-shaped chips — designed to live inside the hero chat card on the
+    // home page (Adobe-style "in-prompt controls"). Compact label + icon.
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PRESETS.map(({ id, shortLabel, icon }) => {
+          const active = currentPreset === id
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => updateProfile({ strategyPreset: id })}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
+                active
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
+              }`}
+              title={shortLabel}
+            >
+              {icon}
+              {shortLabel}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
 
   if (compact) {
     return (
@@ -93,7 +127,8 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
     )
   }
 
-  // Full mode — 5 full-stretch rows, one preset per row.
+  // Full mode — 5 full-stretch rows, one preset per row (used inside ChatPanel
+  // empty state on the dashboard).
   return (
     <div className="w-full space-y-2.5">
       <p className="text-[11px] text-[#717680] font-medium text-center">Strategy preset</p>

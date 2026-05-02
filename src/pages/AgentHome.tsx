@@ -1,22 +1,21 @@
 /**
  * AgentHome — landing page after login.
  *
- * Streamlined to three sections (per cofounder spec, 2026-05-02):
- *   1. Hero chat input (full-width, with strategy preset rows). Pressing Enter
- *      stashes the prompt in sessionStorage and navigates to /dashboard, where
- *      ChatPanel reads it and fires the message as the first turn of a fresh
- *      thread (existing dashboard loading shimmer + AI flow then runs as usual).
- *   2. Recents — client cards sorted by most-recently-updated.
- *   3. Assumptions — the 11-tile dial grid inlined (replaces the standalone
- *      /assumptions page).
- *
- * Everything else from the previous AgentHome (stats, action-required table,
- * calendar, activity feed, send-form modals) is intentionally removed.
+ * Three left-aligned sections within a wide centred container:
+ *   1. Hero chat card — textarea on top, strategy preset chips inline along
+ *      the bottom-left, send button bottom-right (Adobe-style in-prompt
+ *      controls). Press Enter to launch a fresh dashboard scenario.
+ *   2. Recents — thumbnail tiles for clients, sorted by most-recently-updated.
+ *   3. Assumptions — the 11-tile dial grid inlined (replaces /assumptions page).
  */
 
-import React, { useMemo, useRef, useState, useCallback } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2 as Loader2Icon, Send as SendIcon } from 'lucide-react'
+import {
+  Loader2 as Loader2Icon,
+  Send as SendIcon,
+  RotateCcw,
+} from 'lucide-react'
 import { LeftRail } from '@/components/LeftRail'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
@@ -28,8 +27,27 @@ const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
 const AVATAR_BG = '#535862'
 const AVATAR_TEXT = '#FFFFFF'
 
-const getInitials = (name: string) => {
-  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+const formatRelativeShort = (iso?: string) => {
+  if (!iso) return ''
+  const ts = new Date(iso).getTime()
+  const diff = Date.now() - ts
+  const day = 86_400_000
+  if (diff < day) return 'today'
+  if (diff < 2 * day) return 'yesterday'
+  const days = Math.floor(diff / day)
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}mo ago`
+  const years = Math.floor(months / 12)
+  return `${years}y ago`
 }
 
 export const AgentHome: React.FC = () => {
@@ -41,13 +59,13 @@ export const AgentHome: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const resetAssumptionsRef = useRef<() => void>(() => {})
 
-  // Auto-grow the textarea up to a reasonable cap.
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
     setPrompt(el.value)
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`
   }, [])
 
   const launchScenario = useCallback(
@@ -56,15 +74,12 @@ export const AgentHome: React.FC = () => {
       if (!trimmed || submitting) return
       setSubmitting(true)
       try {
-        // Ensure there's an active client to attach the new scenario to.
         let target = activeClient
         if (!target) {
           if (clients.length > 0) {
             target = clients[0]
             setActiveClient(target)
           } else {
-            // First-time use: silently spin up an "Untitled Client" so the
-            // BA can rename later. Matches the no-friction Canva/Adobe pattern.
             const created = await createClient({
               name: 'Untitled Client',
               stage: 'onboarding',
@@ -104,7 +119,6 @@ export const AgentHome: React.FC = () => {
     launchScenario(prompt)
   }, [launchScenario, prompt])
 
-  // Recents — clients sorted by most-recently-updated.
   const recentClients = useMemo(() => {
     return [...clients]
       .sort((a, b) => {
@@ -112,7 +126,7 @@ export const AgentHome: React.FC = () => {
         const bT = new Date(b.updated_at || b.last_active_at || b.created_at).getTime()
         return bT - aT
       })
-      .slice(0, 12)
+      .slice(0, 16)
   }, [clients])
 
   const handleRecentClick = useCallback(
@@ -130,85 +144,98 @@ export const AgentHome: React.FC = () => {
       <LeftRail />
       <div className="flex-1 overflow-auto" style={{ marginLeft: 64 }}>
         <div
-          className="mx-auto flex flex-col gap-12"
-          style={{ padding: '64px 32px 96px 32px', width: '92%', maxWidth: 1100 }}
+          className="mx-auto"
+          style={{ padding: '40px 48px 96px 48px', maxWidth: 1320 }}
         >
           {/* ── Hero ─────────────────────────────────────────────── */}
-          <section className="flex flex-col items-center gap-6">
-            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 text-center tracking-tight">
+          <section className="flex flex-col gap-3 mb-10">
+            <h1 className="text-[22px] font-semibold text-gray-900 leading-tight">
               Build a portfolio plan
             </h1>
-            <p className="text-sm text-gray-500 text-center max-w-xl -mt-3">
-              Describe a client scenario in plain English. Press Enter to
-              generate the roadmap — refine inside the dashboard.
-            </p>
 
-            <div className="w-full">
-              <div
-                className="flex items-end gap-2 px-4 py-3.5 bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300"
-              >
-                <textarea
-                  ref={textareaRef}
-                  value={prompt}
-                  onChange={handleInput}
-                  onKeyDown={handleKeyDown}
-                  placeholder="e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
-                  rows={1}
-                  disabled={submitting}
-                  className="flex-1 bg-transparent text-[14px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[200px]"
-                />
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe a client scenario in plain English. e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
+                rows={2}
+                disabled={submitting}
+                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
+              />
+              <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-1">
+                <StrategyPresetSelector variant="inline-chips" />
                 <button
                   onClick={handleSendClick}
                   disabled={!isActive || submitting}
-                  className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white"
+                  className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white border border-gray-200 hover:bg-gray-50"
                   style={{ opacity: !isActive && !submitting ? 0.4 : 1 }}
                   aria-label="Generate plan"
                 >
                   {submitting ? (
                     <Loader2Icon size={15} className="animate-spin" style={{ color: primaryColor }} />
                   ) : (
-                    <SendIcon size={15} style={{ color: isActive ? primaryColor : '#717680' }} />
+                    <SendIcon size={15} style={{ color: isActive ? primaryColor : '#9CA3AF' }} />
                   )}
                 </button>
               </div>
             </div>
-
-            <div className="w-full max-w-2xl">
-              <StrategyPresetSelector />
-            </div>
           </section>
 
           {/* ── Recents ──────────────────────────────────────────── */}
-          <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-semibold text-gray-900">Recents</h2>
+          <section className="flex flex-col gap-4 mb-12">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-[15px] font-semibold text-gray-900">Recents</h2>
+              {recentClients.length > 0 && (
+                <button
+                  onClick={() => navigate('/clients')}
+                  className="text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  View all
+                </button>
+              )}
+            </div>
             {recentClients.length === 0 ? (
               <div className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-5 py-8 text-center">
                 No recent clients yet — type a scenario above to start your first plan.
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                 {recentClients.map((client) => {
                   const initials = getInitials(client.name)
                   const isCurrent = activeClient?.id === client.id
+                  const updated = formatRelativeShort(
+                    client.updated_at || client.last_active_at || client.created_at
+                  )
                   return (
                     <button
                       key={client.id}
                       onClick={() => handleRecentClick(client)}
-                      className={`group flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
+                      className={`group flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
                         isCurrent
                           ? 'border-gray-900 bg-gray-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
                       <div
-                        className="w-full aspect-square rounded-lg flex items-center justify-center text-lg font-semibold border border-[#E9EAEB]"
-                        style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
+                        className="rounded-lg flex items-center justify-center text-[14px] font-semibold border border-[#E9EAEB]"
+                        style={{
+                          backgroundColor: AVATAR_BG,
+                          color: AVATAR_TEXT,
+                          aspectRatio: '4 / 3',
+                        }}
                       >
                         {initials}
                       </div>
-                      <span className="text-[12px] font-medium text-gray-800 truncate w-full text-center">
-                        {client.name}
-                      </span>
+                      <div className="px-1 pb-0.5">
+                        <div className="text-[12px] font-medium text-gray-900 truncate leading-tight">
+                          {client.name}
+                        </div>
+                        <div className="text-[10.5px] text-gray-500 mt-0.5 truncate">
+                          Edited {updated}
+                        </div>
+                      </div>
                     </button>
                   )
                 })}
@@ -218,7 +245,22 @@ export const AgentHome: React.FC = () => {
 
           {/* ── Assumptions (inlined, replaces /assumptions page) ── */}
           <section className="flex flex-col gap-4">
-            <AssumptionsGrid />
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-[15px] font-semibold text-gray-900">Assumptions</h2>
+              <button
+                onClick={() => resetAssumptionsRef.current?.()}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                <RotateCcw size={12} />
+                Reset to defaults
+              </button>
+            </div>
+            <AssumptionsGrid
+              showHeader={false}
+              onResetExposed={(fn) => {
+                resetAssumptionsRef.current = fn
+              }}
+            />
           </section>
         </div>
       </div>

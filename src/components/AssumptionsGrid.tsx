@@ -126,15 +126,17 @@ const DialTile: React.FC<DialTileProps> = ({
 }
 
 interface AssumptionsGridProps {
-  /** Whether to show the page-level header + reset button. Home page sets false, standalone page sets true. */
+  /** Whether to render an internal heading + reset button row. AgentHome supplies its own external header so passes false. */
   showHeader?: boolean
+  /** Externally-triggered reset, exposed so the parent's heading row can wire its own button. */
+  onResetExposed?: (resetFn: () => void) => void
 }
 
 /**
  * Reusable Assumptions tile grid + reset behaviour.
- * Used in the standalone Assumptions page and inlined on AgentHome.
+ * Used inside the standalone page (legacy) and inlined on AgentHome.
  */
-export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = true }) => {
+export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = true, onResetExposed }) => {
   const { profile, updateProfile } = useInvestmentProfile()
 
   const interestPct = profile.interestRate * 100
@@ -160,6 +162,14 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       equityReleaseFactor: 0.7,
     })
   }
+
+  // Expose reset to parents that supply their own header (AgentHome).
+  useEffect(() => {
+    onResetExposed?.(handleResetAll)
+    // handleResetAll is stable enough for our purposes — re-running would
+    // re-publish the same closure each render which is harmless.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onResetExposed])
 
   return (
     <div className="flex flex-col gap-4">
