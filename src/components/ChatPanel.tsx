@@ -550,6 +550,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     return () => window.removeEventListener(CHAT_SEND_EVENT, handler)
   }, [isLoading, sendMessage])
 
+  // One-shot: when AgentHome's hero input sends us here with a pending prompt,
+  // clear any prior chat and fire the prompt as the first message of a fresh
+  // thread — so the dashboard loads with the user's message + the normal AI
+  // shimmer/response flow, exactly like typing it in directly.
+  const pendingPromptHandledRef = useRef(false)
+  useEffect(() => {
+    if (pendingPromptHandledRef.current) return
+    if (isLoading) return
+    if (!activeClient?.id) return
+
+    const pending = sessionStorage.getItem('proppath:pending-prompt')
+    if (!pending) return
+
+    pendingPromptHandledRef.current = true
+    sessionStorage.removeItem('proppath:pending-prompt')
+
+    clearMessages()
+    // Defer one tick so the cleared state lands before the new send.
+    setTimeout(() => {
+      sendMessage(pending)
+    }, 50)
+  }, [isLoading, activeClient?.id, clearMessages, sendMessage])
+
   // Drag handle for resizing
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

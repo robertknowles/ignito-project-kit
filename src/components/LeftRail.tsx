@@ -6,7 +6,6 @@ import {
   LogOutIcon,
   SettingsIcon,
   BellIcon,
-  SlidersHorizontalIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -148,26 +147,6 @@ export const LeftRail = () => {
             </Tooltip>
           )}
 
-          {/* Assumptions */}
-          {(role === 'owner' || role === 'agent') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                    location.pathname === '/assumptions' ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-                  style={{ color: primaryColor }}
-                  onClick={() => navigate('/assumptions')}
-                  aria-label="Assumptions"
-                >
-                  <SlidersHorizontalIcon size={20} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Assumptions</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
         </div>
 
         {/* Spacer to push bottom items down */}
