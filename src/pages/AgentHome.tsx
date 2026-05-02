@@ -240,11 +240,11 @@ export const AgentHome: React.FC = () => {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 z-0"
           style={{
-            height: 420,
+            height: 500,
             background:
-              'radial-gradient(900px 360px at 18% -120px, rgba(165, 180, 252, 0.32), transparent 65%),' +
-              'radial-gradient(900px 360px at 82% -120px, rgba(186, 230, 253, 0.32), transparent 65%),' +
-              'linear-gradient(180deg, rgba(248, 250, 252, 0.85) 0%, rgba(255, 255, 255, 0) 80%)',
+              'radial-gradient(1000px 420px at 18% -110px, rgba(165, 180, 252, 0.45), transparent 66%),' +
+              'radial-gradient(1000px 420px at 82% -110px, rgba(186, 230, 253, 0.45), transparent 66%),' +
+              'linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(255, 255, 255, 0) 88%)',
           }}
         />
 
