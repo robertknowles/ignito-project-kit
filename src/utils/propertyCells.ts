@@ -66,13 +66,13 @@ export const getCellType = (cellId: CellId): CellType => CELL_META[cellId].type;
 export const getCellMode = (cellId: CellId): Mode => CELL_META[cellId].mode;
 
 /**
- * Display label for a cell, e.g. "Metro House — Growth" or "Commercial — High Cost".
+ * Display label for a cell, e.g. "Metro House Growth" or "Commercial High Cost".
  * Used in property cards and chat references.
  */
 export const getCellDisplayLabel = (cellId: CellId): string => {
   const { type, mode } = CELL_META[cellId];
   const modeLabel = mode === 'HighCost' ? 'High Cost' : mode === 'LowCost' ? 'Low Cost' : mode;
-  return `${type} — ${modeLabel}`;
+  return `${type} ${modeLabel}`;
 };
 
 export const isCellId = (value: string): value is CellId =>
@@ -122,7 +122,7 @@ export interface StrategyPresetMeta {
 export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
   'eg-low': {
     id: 'eg-low',
-    shortLabel: 'Equity Growth — Low Price',
+    shortLabel: 'Equity Growth, Low Price',
     fullLabel: 'Equity Growth, Low Price Point',
     description: 'Scale through volume. Multiple growth-mode assets at lower entry per property.',
     primary: ['regional-house-growth', 'metro-unit-growth'],
@@ -132,7 +132,7 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
   },
   'eg-high': {
     id: 'eg-high',
-    shortLabel: 'Equity Growth — High Price',
+    shortLabel: 'Equity Growth, High Price',
     fullLabel: 'Equity Growth, High Price Point',
     description: 'Concentrate in fewer larger assets. Stronger land content, larger equity per asset.',
     primary: ['metro-house-growth'],
@@ -142,7 +142,7 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
   },
   'cf-high': {
     id: 'cf-high',
-    shortLabel: 'Cash Flow — High Price',
+    shortLabel: 'Cash Flow, High Price',
     fullLabel: 'Cash Flow, High Price Point',
     description: 'Strong yield at scale. Premium tenants, improves DSR.',
     primary: ['metro-house-cashflow', 'commercial-high-cost'],
@@ -152,7 +152,7 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
   },
   'cf-low': {
     id: 'cf-low',
-    shortLabel: 'Cash Flow — Low Price',
+    shortLabel: 'Cash Flow, Low Price',
     fullLabel: 'Cash Flow, Low Price Point',
     description: 'Minimise cash flow gap. Yield-focused, accept higher property count.',
     primary: ['regional-unit-cashflow', 'regional-house-cashflow'],

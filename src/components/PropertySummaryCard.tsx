@@ -10,11 +10,11 @@ import React from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
-import { isCellId, getCellDisplayLabel, translateLegacyTypeKey, type CellId } from '../utils/propertyCells';
+import { CELL_IDS, isCellId, getCellDisplayLabel, translateLegacyTypeKey, type CellId } from '../utils/propertyCells';
 
 /**
  * Resolve any propertyType identifier (cell ID, legacy v3 key, display label)
- * to the v4 cell display label like "Metro House — Growth".
+ * to the v4 cell display label like "Metro House Growth".
  */
 const resolveCellLabel = (propertyType: string): string => {
   if (isCellId(propertyType)) return getCellDisplayLabel(propertyType as CellId);
@@ -22,6 +22,16 @@ const resolveCellLabel = (propertyType: string): string => {
   if (translation) return getCellDisplayLabel(translation.newCellId);
   return propertyType;
 };
+
+/** Resolve a propertyType identifier to its CellId (best-effort). */
+const resolveCellId = (propertyType: string): CellId | null => {
+  if (isCellId(propertyType)) return propertyType as CellId;
+  const translation = translateLegacyTypeKey(propertyType);
+  if (translation) return translation.newCellId;
+  return null;
+};
+
+const AUS_STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
 const formatCompactCurrency = (value: number): string => {
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -49,6 +59,10 @@ interface PropertySummaryCardProps {
   isExpanded: boolean;
   onClick: () => void;
   onRemove: () => void;
+  /** Inline cell-type change — fires AI re-plan via chatBus (parent supplies). */
+  onTypeChange?: (newCellId: CellId) => void;
+  /** Inline state change — direct field write. */
+  onStateChange?: (newState: string) => void;
 }
 
 export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
@@ -59,9 +73,14 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
   isExpanded,
   onClick,
   onRemove,
+  onTypeChange,
+  onStateChange,
 }) => {
   const cellLabel = resolveCellLabel(propertyType);
+  const currentCellId = resolveCellId(propertyType);
   const cashflowPositive = monthlyCashflow >= 0;
+
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
     <div className="flex-shrink-0 group" style={{ width: 220 }}>
@@ -98,12 +117,67 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
               <PropertyTypeIcon propertyTitle={propertyType} size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
-                {cellLabel}
-              </div>
-              <div className="text-[10px] text-gray-500 mt-0.5">
-                {instanceData.state}
-              </div>
+              {/* Inline-edit Type — click label to swap cell type */}
+              {onTypeChange && currentCellId ? (
+                <label
+                  className="relative block cursor-pointer group/type"
+                  onClick={stop}
+                  title="Change property type"
+                >
+                  <span className="text-[12px] font-semibold text-gray-900 truncate leading-tight block group-hover/type:underline decoration-dotted underline-offset-2">
+                    {cellLabel}
+                  </span>
+                  <select
+                    value={currentCellId}
+                    onChange={(e) => {
+                      onTypeChange(e.target.value as CellId);
+                    }}
+                    onClick={stop}
+                    className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                    aria-label="Property type"
+                  >
+                    {CELL_IDS.map((cellId) => (
+                      <option key={cellId} value={cellId}>
+                        {getCellDisplayLabel(cellId)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
+                  {cellLabel}
+                </div>
+              )}
+
+              {/* Inline-edit State — click chip to swap */}
+              {onStateChange ? (
+                <label
+                  className="relative inline-block cursor-pointer mt-0.5 group/state"
+                  onClick={stop}
+                  title="Change state"
+                >
+                  <span className="text-[10px] text-gray-500 group-hover/state:text-gray-700 group-hover/state:underline decoration-dotted underline-offset-2">
+                    {instanceData.state}
+                  </span>
+                  <select
+                    value={instanceData.state}
+                    onChange={(e) => onStateChange(e.target.value)}
+                    onClick={stop}
+                    className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                    aria-label="Property state"
+                  >
+                    {AUS_STATES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className="text-[10px] text-gray-500 mt-0.5">
+                  {instanceData.state}
+                </div>
+              )}
             </div>
             <ChevronDown
               size={14}

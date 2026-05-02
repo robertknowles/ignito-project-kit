@@ -154,12 +154,8 @@ export const Dashboard = () => {
           )}
         </HoldingCostSection>
 
-        {/* 6. Financial Summary — collapsible */}
-        <ChartCard
-          title="Financial Summary"
-                   collapsible
-          defaultCollapsed
-        >
+        {/* 6. Financial Summary — always expanded */}
+        <ChartCard title="Financial Summary">
           <FinancialSummaryTable />
         </ChartCard>
 

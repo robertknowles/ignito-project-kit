@@ -30,28 +30,28 @@ const PRESETS: PresetMeta[] = [
   {
     id: 'eg-low',
     shortLabel: 'EG · Low',
-    fullLabel: 'Equity Growth — Low Price',
+    fullLabel: 'Equity Growth, Low Price',
     description: 'Scale through volume. Multiple growth-mode assets at lower entry.',
     icon: <TrendingUpIcon size={14} />,
   },
   {
     id: 'eg-high',
     shortLabel: 'EG · High',
-    fullLabel: 'Equity Growth — High Price',
+    fullLabel: 'Equity Growth, High Price',
     description: 'Concentrate in fewer larger assets. Stronger land content.',
     icon: <TrendingUpIcon size={14} />,
   },
   {
     id: 'cf-low',
     shortLabel: 'CF · Low',
-    fullLabel: 'Cash Flow — Low Price',
+    fullLabel: 'Cash Flow, Low Price',
     description: 'Yield-focused, accept higher property count.',
     icon: <DollarSignIcon size={14} />,
   },
   {
     id: 'cf-high',
     shortLabel: 'CF · High',
-    fullLabel: 'Cash Flow — High Price',
+    fullLabel: 'Cash Flow, High Price',
     description: 'Strong yield at scale. Premium tenants, improves DSR.',
     icon: <DollarSignIcon size={14} />,
   },
@@ -93,25 +93,22 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
     )
   }
 
-  // Full mode — 2x2 grid + full-width commercial row.
-  const goalPresets = PRESETS.filter((p) => p.id !== 'commercial-transition')
-  const commercialPreset = PRESETS.find((p) => p.id === 'commercial-transition')!
-
+  // Full mode — 5 full-stretch rows, one preset per row.
   return (
     <div className="w-full space-y-2.5">
       <p className="text-[11px] text-[#717680] font-medium text-center">Strategy preset</p>
-      <div className="grid grid-cols-2 gap-1.5">
-        {goalPresets.map(({ id, fullLabel, description, icon }) => (
+      <div className="flex flex-col gap-1.5">
+        {PRESETS.map(({ id, fullLabel, description, icon }) => (
           <button
             key={id}
             onClick={() => updateProfile({ strategyPreset: id })}
-            className={`flex flex-col items-start gap-1 px-2.5 py-2.5 rounded-xl border transition-all text-left ${
+            className={`w-full flex flex-col items-start gap-1 px-3 py-2.5 rounded-xl border transition-all text-left ${
               currentPreset === id
                 ? 'bg-gray-600 text-white border-gray-600 hover:bg-gray-700 hover:border-gray-700'
                 : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
             }`}
           >
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {icon}
               <span className="text-[11px] font-medium leading-tight">{fullLabel}</span>
             </div>
@@ -121,22 +118,6 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
           </button>
         ))}
       </div>
-      <button
-        onClick={() => updateProfile({ strategyPreset: commercialPreset.id })}
-        className={`w-full flex flex-col items-start gap-1 px-2.5 py-2.5 rounded-xl border transition-all text-left ${
-          currentPreset === commercialPreset.id
-            ? 'bg-gray-600 text-white border-gray-600 hover:bg-gray-700 hover:border-gray-700'
-            : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
-        }`}
-      >
-        <div className="flex items-center gap-1">
-          {commercialPreset.icon}
-          <span className="text-[11px] font-medium leading-tight">{commercialPreset.fullLabel}</span>
-        </div>
-        <span className={`text-[10px] leading-tight ${currentPreset === commercialPreset.id ? 'text-white/60' : 'text-[#717680]'}`}>
-          {commercialPreset.description}
-        </span>
-      </button>
     </div>
   )
 }

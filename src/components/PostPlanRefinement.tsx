@@ -16,20 +16,20 @@ type PresetId = 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transi
 
 const PRESET_SWITCH_OPTIONS: Record<PresetId, { label: string; prompt: string }> = {
   'eg-low': {
-    label: 'Equity Growth — Low Price',
-    prompt: 'Switch to the Equity Growth — Low Price strategy: bias toward regional houses and metro units in growth mode at lower entry prices, scaling through volume.',
+    label: 'Equity Growth, Low Price',
+    prompt: 'Switch to the Equity Growth Low Price strategy: bias toward regional houses and metro units in growth mode at lower entry prices, scaling through volume.',
   },
   'eg-high': {
-    label: 'Equity Growth — High Price',
-    prompt: 'Switch to the Equity Growth — High Price strategy: bias toward metro houses in growth mode, fewer larger assets with stronger land content.',
+    label: 'Equity Growth, High Price',
+    prompt: 'Switch to the Equity Growth High Price strategy: bias toward metro houses in growth mode, fewer larger assets with stronger land content.',
   },
   'cf-low': {
-    label: 'Cash Flow — Low Price',
-    prompt: 'Switch to the Cash Flow — Low Price strategy: bias toward regional units and regional houses in cashflow mode, yield-focused.',
+    label: 'Cash Flow, Low Price',
+    prompt: 'Switch to the Cash Flow Low Price strategy: bias toward regional units and regional houses in cashflow mode, yield-focused.',
   },
   'cf-high': {
-    label: 'Cash Flow — High Price',
-    prompt: 'Switch to the Cash Flow — High Price strategy: bias toward metro houses in cashflow mode and high-cost commercial, premium yield.',
+    label: 'Cash Flow, High Price',
+    prompt: 'Switch to the Cash Flow High Price strategy: bias toward metro houses in cashflow mode and high-cost commercial, premium yield.',
   },
   'commercial-transition': {
     label: 'Commercial Transition',

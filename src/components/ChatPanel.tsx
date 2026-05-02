@@ -697,22 +697,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             />
             {(() => {
               const isActive = Boolean(inputValue.trim() || selectedFile)
-              const showBrandBg = isActive || isLoading
               return (
                 <button
                   onClick={handleSend}
                   disabled={!isActive || isLoading}
-                  className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                  className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white"
                   style={{
-                    backgroundColor: showBrandBg ? primaryColor : undefined,
-                    color: showBrandBg ? 'white' : undefined,
-                    opacity: !isActive && !isLoading ? 0.3 : 1,
+                    opacity: !isActive && !isLoading ? 0.4 : 1,
                   }}
                 >
                   {isLoading ? (
-                    <Loader2Icon size={13} className="animate-spin" style={{ color: 'white' }} />
+                    <Loader2Icon size={13} className="animate-spin" style={{ color: primaryColor }} />
                   ) : (
-                    <SendIcon size={13} style={{ color: isActive ? 'white' : '#717680' }} />
+                    <SendIcon size={13} style={{ color: isActive ? primaryColor : '#717680' }} />
                   )}
                 </button>
               )

@@ -18,12 +18,13 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { PropertySummaryCard } from './PropertySummaryCard';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
+import { AddToTimelineModal } from './AddToTimelineModal';
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { dispatchChatSend } from '../utils/chatBus';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
-/** Default cell for a brand-new "Add property" click — entry-level metro unit. */
+/** Default cell when no propertyType can be resolved. */
 const DEFAULT_NEW_CELL_ID: CellId = 'metro-unit-cashflow';
 
 const parseInstanceId = (
@@ -39,7 +40,6 @@ export const PropertyCardRow: React.FC = () => {
     propertyOrder,
     setPropertyOrder,
     propertyTypes,
-    incrementProperty,
     updatePropertyQuantity,
     getPropertyQuantity,
   } = usePropertySelection();
@@ -47,6 +47,7 @@ export const PropertyCardRow: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
 
   const [expandedInstanceId, setExpandedInstanceId] = useState<string | null>(null);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   // Build the list of cards to render — keyed by instanceId, ordered by
   // purchase year (falls back to propertyOrder position when year missing)
@@ -163,20 +164,9 @@ export const PropertyCardRow: React.FC = () => {
     }
   };
 
-  // Add a generic new property — defaults to the entry-level cell.
-  // BA can change the cell via the dropdown in the detail panel, which
-  // triggers an AI re-plan automatically.
+  // Open the property library so the BA picks the cell type explicitly.
   const handleAdd = () => {
-    const propertyMeta = propertyTypes.find((p) => p.id === DEFAULT_NEW_CELL_ID);
-    if (!propertyMeta) {
-      console.warn(
-        `[PropertyCardRow] No property template found for cell "${DEFAULT_NEW_CELL_ID}"`
-      );
-      return;
-    }
-    incrementProperty(propertyMeta.id);
-    // The instance will be auto-created by useAffordabilityCalculator.
-    // We don't open the detail panel automatically — let the BA decide.
+    setIsLibraryOpen(true);
   };
 
   // Cell change in detail panel → fire AI re-plan via chat
@@ -206,15 +196,18 @@ export const PropertyCardRow: React.FC = () => {
   if (cards.length === 0) {
     // Empty state — single + button
     return (
-      <div className="flex items-center justify-center py-8">
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
-        >
-          <Plus size={16} />
-          Add a property
-        </button>
-      </div>
+      <>
+        <div className="flex items-center justify-center py-8">
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <Plus size={16} />
+            Add a property
+          </button>
+        </div>
+        <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+      </>
     );
   }
 
@@ -245,6 +238,16 @@ export const PropertyCardRow: React.FC = () => {
                   )
                 }
                 onRemove={() => handleRemove(card.instanceId)}
+                onTypeChange={(newCellId) =>
+                  handleBucketChange(
+                    card.instanceId,
+                    card.propertyType,
+                    newCellId
+                  )
+                }
+                onStateChange={(newState) =>
+                  handleFieldChange(card.instanceId, 'state', newState)
+                }
               />
             ) : null
           )}
@@ -286,6 +289,8 @@ export const PropertyCardRow: React.FC = () => {
           />
         </div>
       )}
+
+      <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>
   );
 };

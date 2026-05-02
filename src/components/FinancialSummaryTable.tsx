@@ -68,8 +68,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
     return map;
   }, [cashflowData]);
 
-  const [isBuyFundingExpanded, setIsBuyFundingExpanded] = useState(false);
-  const [isAvailableFundsExpanded, setIsAvailableFundsExpanded] = useState(false);
+  // Per design: table is always rendered in expanded mode (no per-row collapse).
+  const isBuyFundingExpanded = true;
+  const isAvailableFundsExpanded = true;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -122,18 +123,14 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* PURCHASE Row */}
       <div style={gridStyle}>
-        <div
-          className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
-          onClick={() => setIsBuyFundingExpanded(!isBuyFundingExpanded)}
-        >
-          <span className="text-xs font-medium text-[#717680] flex items-center gap-0.5">
-            <span className={`text-[8px] transition-transform duration-200 ${isBuyFundingExpanded ? 'rotate-90' : ''}`}>▶</span>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-xs font-medium text-[#717680]">
             Buy
           </span>
           <TooltipProvider>
             <UITooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="inline-flex items-center justify-center">
                   <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                 </button>
               </TooltipTrigger>
@@ -174,18 +171,14 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* FUNDS Row */}
       <div style={gridStyle}>
-        <div
-          className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1 cursor-pointer hover:bg-gray-50/50 transition-colors"
-          onClick={() => setIsAvailableFundsExpanded(!isAvailableFundsExpanded)}
-        >
-          <span className="text-xs font-medium text-[#717680] flex items-center gap-0.5">
-            <span className={`text-[8px] transition-transform duration-200 ${isAvailableFundsExpanded ? 'rotate-90' : ''}`}>▶</span>
+        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
+          <span className="text-xs font-medium text-[#717680]">
             Funds
           </span>
           <TooltipProvider>
             <UITooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="inline-flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="inline-flex items-center justify-center">
                   <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
                 </button>
               </TooltipTrigger>

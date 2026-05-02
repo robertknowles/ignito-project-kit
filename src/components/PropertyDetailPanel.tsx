@@ -22,12 +22,16 @@ import {
   type CellId,
 } from '../utils/propertyCells';
 
-// Slider styling — matches TimelinePanel
+// Slider styling — chunky white thumb with a clearly visible grey ring.
+// 16px thumb, 2px solid #6B7280 (gray-500) border, raised shadow.
 const sliderClassName =
-  'w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all';
+  'w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1.5 ' +
+  '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-solid [&::-webkit-slider-thumb]:border-[#6B7280] [&::-webkit-slider-thumb]:shadow-[0_1px_3px_rgba(0,0,0,0.15)] ' +
+  '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-solid [&::-moz-range-thumb]:border-[#6B7280] [&::-moz-range-thumb]:shadow-[0_1px_3px_rgba(0,0,0,0.15)] ' +
+  'active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all';
 
 const getSliderStyle = (value: number, min: number, max: number) => ({
-  background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${
+  background: `linear-gradient(to right, #6B7280 0%, #6B7280 ${
     ((value - min) / (max - min)) * 100
   }%, #E5E7EB ${((value - min) / (max - min)) * 100}%, #E5E7EB 100%)`,
 });
@@ -76,11 +80,11 @@ const SliderInput: React.FC<SliderInputProps> = ({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[12px] font-medium text-gray-600">
           {label}
         </span>
-        <span className="text-[13px] font-semibold text-gray-800 ml-1">
+        <span className="text-[14px] font-semibold text-gray-900 ml-1">
           {formatValue(value)}
         </span>
       </div>
@@ -95,7 +99,7 @@ const SliderInput: React.FC<SliderInputProps> = ({
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
       {hint && (
-        <div className="text-[10px] text-gray-400 mt-1">{hint}</div>
+        <div className="text-[10px] text-gray-400 mt-1.5">{hint}</div>
       )}
     </div>
   );
@@ -228,18 +232,18 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
       <div className="px-6 py-5">
         {/* PROPERTY */}
         {activeTab === 'property' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
             {/* Property type bucket dropdown — fires AI re-plan on change */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   Property Type
                 </span>
               </div>
               <select
                 value={currentCellId}
                 onChange={(e) => onBucketChange(e.target.value as CellId)}
-                className="w-full text-[13px] font-semibold text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
+                className="w-full text-[14px] font-semibold text-gray-900 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
               >
                 {CELL_IDS.map((cellId) => (
                   <option key={cellId} value={cellId}>
@@ -304,7 +308,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
 
         {/* LOAN */}
         {activeTab === 'loan' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
             <SliderInput
               label="Interest Rate"
               value={instanceData.interestRate}
@@ -325,14 +329,14 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   Loan Product
                 </span>
               </div>
               <select
                 value={instanceData.loanProduct}
                 onChange={(e) => onFieldChange('loanProduct', e.target.value)}
-                className="w-full text-[13px] font-semibold text-gray-800 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
+                className="w-full text-[14px] font-semibold text-gray-900 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
               >
                 <option value="IO">Interest Only</option>
                 <option value="PI">Principal &amp; Interest</option>
@@ -340,7 +344,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             </div>
             {instanceData.lvr > 80 && (
               <div className="flex items-center justify-between py-2">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   LMI Waiver
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -356,7 +360,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             )}
             {instanceData.lvr > 80 && !instanceData.lmiWaiver && (
               <div className="flex items-center justify-between py-2">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   LMI Capitalised
                   <span className="block text-[10px] font-normal text-gray-400 mt-0.5">
                     Add LMI to loan instead of paying cash at settlement
@@ -378,14 +382,14 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
 
         {/* ASSUMPTIONS */}
         {activeTab === 'assumptions' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
             {/* Growth — Low/Med/High slider, simplified per §4 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   Growth
                 </span>
-                <span className="text-[13px] font-semibold text-gray-800">
+                <span className="text-[14px] font-semibold text-gray-900">
                   {instanceData.growthAssumption}
                 </span>
               </div>
@@ -419,10 +423,10 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
             {/* Stamp Duty — auto-with-override */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-gray-500 tracking-wide">
+                <span className="text-[12px] font-medium text-gray-600">
                   Stamp Duty
                 </span>
-                <span className="text-[13px] font-semibold text-gray-800">
+                <span className="text-[14px] font-semibold text-gray-900">
                   {instanceData.stampDutyOverride
                     ? formatCompactCurrency(instanceData.stampDutyOverride)
                     : `Auto: ${formatCompactCurrency(calculatedStampDuty)}`}
