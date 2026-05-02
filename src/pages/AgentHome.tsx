@@ -22,8 +22,6 @@ import { LeftRail } from '@/components/LeftRail'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
 import { ChartCard } from '@/components/ui/ChartCard'
-import { getPropertyTypeImagePath } from '@/utils/propertyTypeIcon'
-import { translateLegacyEngineId, isCellId, getCellDisplayLabel, type CellId } from '@/utils/propertyCells'
 import { useClient } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -59,17 +57,19 @@ const formatRelativeShort = (iso?: string) => {
 }
 
 interface ScenarioPreview {
-  /** Property type cell IDs in chronological purchase order. */
-  propertyCells: CellId[]
   finalEquity: number | null
   propertyCount: number
+  timelineYears: number | null
+  strategyPreset: string | null
   updatedAt: string | null
 }
 
-/** Resolve a saved propertySelections key to a v4 cell ID label, best-effort. */
-const resolveCellIdFromKey = (key: string): CellId | null => {
-  if (isCellId(key)) return key
-  return translateLegacyEngineId(key)
+const STRATEGY_LABELS: Record<string, string> = {
+  'eg-low': 'Equity Growth',
+  'eg-high': 'Equity Growth',
+  'cf-low': 'Cash Flow',
+  'cf-high': 'Cash Flow',
+  'commercial-transition': 'Commercial Transition',
 }
 
 export const AgentHome: React.FC = () => {
@@ -116,34 +116,18 @@ export const AgentHome: React.FC = () => {
           : []
         const finalEquity = equityPoints.length > 0 ? equityPoints[equityPoints.length - 1] : null
         const selections = (d?.propertySelections || {}) as Record<string, number>
-        const order: string[] = Array.isArray(d?.propertyOrder) ? d.propertyOrder : []
-        // Build a chronological cell-ID list. Prefer propertyOrder (instance
-        // IDs of the form `<cellId>_instance_N`); fall back to selections
-        // expanded by quantity if order is unavailable.
-        const cellsFromOrder: CellId[] = []
-        for (const id of order) {
-          const m = id.match(/^(.+)_instance_\d+$/)
-          if (!m) continue
-          const cell = resolveCellIdFromKey(m[1])
-          if (cell) cellsFromOrder.push(cell)
-        }
-        const cellsFromSelections: CellId[] = []
-        if (cellsFromOrder.length === 0) {
-          for (const [key, qty] of Object.entries(selections)) {
-            const cell = resolveCellIdFromKey(key)
-            const n = Math.max(0, Math.round(Number(qty) || 0))
-            if (cell) for (let i = 0; i < n; i++) cellsFromSelections.push(cell)
-          }
-        }
-        const propertyCells = cellsFromOrder.length > 0 ? cellsFromOrder : cellsFromSelections
-        const propertyCount = propertyCells.length || Object.values(selections).reduce(
+        const propertyCount = Object.values(selections).reduce(
           (sum, n) => sum + (Math.max(0, Math.round(Number(n) || 0))),
           0
         )
+        const profile = d?.investmentProfile || {}
+        const timelineYears = Number(profile.timelineYears) || null
+        const strategyPreset = typeof profile.strategyPreset === 'string' ? profile.strategyPreset : null
         map[cid] = {
-          propertyCells,
           finalEquity,
           propertyCount,
+          timelineYears,
+          strategyPreset,
           updatedAt: (row as any).updated_at ?? null,
         }
       }
@@ -246,35 +230,41 @@ export const AgentHome: React.FC = () => {
   return (
     <div className="main-app flex h-screen w-full bg-white">
       <LeftRail />
-      <div className="flex-1 overflow-auto" style={{ marginLeft: 64 }}>
+      <div className="relative flex-1 overflow-auto" style={{ marginLeft: 64 }}>
+        {/* ── Atmospheric aurora wash at the top of the page ─────
+            Two overlapping radial gradients — one warm, one cool —
+            anchored above the viewport so they peek down from the top
+            and fade out by ~360px. Subtle enough not to distract from
+            content, distinct enough to give the page atmosphere. */}
         <div
-          className="mx-auto"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-0"
+          style={{
+            height: 420,
+            background:
+              'radial-gradient(900px 360px at 18% -120px, rgba(165, 180, 252, 0.32), transparent 65%),' +
+              'radial-gradient(900px 360px at 82% -120px, rgba(186, 230, 253, 0.32), transparent 65%),' +
+              'linear-gradient(180deg, rgba(248, 250, 252, 0.85) 0%, rgba(255, 255, 255, 0) 80%)',
+          }}
+        />
+
+        <div
+          className="relative z-10 mx-auto"
           style={{ padding: '40px 48px 96px 48px', maxWidth: 1320 }}
         >
           {/* ── Hero ─────────────────────────────────────────────── */}
-          <section className="relative flex flex-col gap-4 mb-10">
-            {/* Soft atmospheric wash behind the hero card — hints at the
-                brand colour without committing to a full Canva-style
-                gradient page background. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 -top-10 -bottom-10 -mx-12 rounded-[40px] pointer-events-none"
-              style={{
-                background: `radial-gradient(60% 80% at 50% 0%, ${primaryColor}0F 0%, transparent 65%)`,
-              }}
-            />
-
-            <h1 className="relative text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
+          <section className="flex flex-col gap-4 mb-10">
+            <h1 className="text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
               Build a property plan
             </h1>
 
-            <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
               <textarea
                 ref={textareaRef}
                 value={prompt}
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
+                placeholder={'e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."'}
                 rows={2}
                 disabled={submitting}
                 className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
@@ -329,15 +319,26 @@ export const AgentHome: React.FC = () => {
                         client.created_at
                     )
                     const preview = previewByClient[client.id]
-                    const hasScenario = !!preview && preview.propertyCells.length > 0
-                    // Cap the visible icons; show a "+N" stub when the plan has more.
-                    const MAX_VISIBLE_ICONS = 4
-                    const visibleCells = hasScenario
-                      ? preview!.propertyCells.slice(0, MAX_VISIBLE_ICONS)
-                      : []
-                    const hiddenCount = hasScenario
-                      ? Math.max(0, preview!.propertyCells.length - MAX_VISIBLE_ICONS)
-                      : 0
+                    const hasScenario =
+                      !!preview &&
+                      ((preview.finalEquity !== null && preview.finalEquity > 0) || preview.propertyCount > 0)
+
+                    // Build the meta line below the headline equity figure.
+                    const metaParts: string[] = []
+                    if (preview?.propertyCount && preview.propertyCount > 0) {
+                      metaParts.push(
+                        `${preview.propertyCount} ${preview.propertyCount === 1 ? 'property' : 'properties'}`
+                      )
+                    }
+                    if (preview?.timelineYears && preview.timelineYears > 0) {
+                      metaParts.push(`${preview.timelineYears} yrs`)
+                    }
+                    const metaLine = metaParts.join(' · ')
+                    const strategyLabel =
+                      preview?.strategyPreset && STRATEGY_LABELS[preview.strategyPreset]
+                        ? STRATEGY_LABELS[preview.strategyPreset]
+                        : null
+
                     return (
                       <button
                         key={client.id}
@@ -349,39 +350,32 @@ export const AgentHome: React.FC = () => {
                         }`}
                       >
                         <div
-                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-[#F8FAFC] flex flex-col justify-between"
+                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-white"
                           style={{ aspectRatio: '4 / 3' }}
                         >
                           {hasScenario ? (
-                            <>
-                              {/* Final equity figure top-left */}
-                              {preview!.finalEquity !== null && preview!.finalEquity > 0 && (
-                                <div className="absolute top-1.5 left-1.5 text-[11px] font-semibold text-gray-800">
-                                  {formatEquity(preview!.finalEquity)}
+                            <div className="h-full w-full flex flex-col justify-between p-2.5">
+                              <div>
+                                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
+                                  Total equity
                                 </div>
-                              )}
-                              {/* Property type icons row at the bottom */}
-                              <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-start gap-0.5">
-                                {visibleCells.map((cell, i) => (
-                                  <img
-                                    key={`${cell}-${i}`}
-                                    src={getPropertyTypeImagePath(getCellDisplayLabel(cell))}
-                                    alt=""
-                                    width={20}
-                                    height={20}
-                                    className="w-5 h-5 rounded object-contain"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none'
-                                    }}
-                                  />
-                                ))}
-                                {hiddenCount > 0 && (
-                                  <span className="text-[9.5px] font-semibold text-gray-500 ml-1">
-                                    +{hiddenCount}
-                                  </span>
+                                <div className="text-[18px] font-semibold text-gray-900 tabular-nums leading-tight mt-0.5">
+                                  {preview!.finalEquity !== null && preview!.finalEquity > 0
+                                    ? formatEquity(preview!.finalEquity)
+                                    : '—'}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                {metaLine && (
+                                  <div className="text-[10.5px] text-gray-500 truncate">{metaLine}</div>
+                                )}
+                                {strategyLabel && (
+                                  <div className="text-[10.5px] font-medium text-gray-600 truncate">
+                                    {strategyLabel}
+                                  </div>
                                 )}
                               </div>
-                            </>
+                            </div>
                           ) : (
                             <div
                               className="w-full h-full flex items-center justify-center text-[14px] font-semibold"
