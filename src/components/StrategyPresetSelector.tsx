@@ -24,6 +24,10 @@ interface PresetMeta {
   fullLabel: string
   description: string
   icon: React.ReactNode
+  /** Accent colour used for the icon + active background (Tailwind hex literals). */
+  accent: string
+  /** Subtle tinted bg used in the inactive chip state. */
+  tint: string
 }
 
 const PRESETS: PresetMeta[] = [
@@ -33,6 +37,8 @@ const PRESETS: PresetMeta[] = [
     fullLabel: 'Equity Growth, Low Price',
     description: 'Scale through volume. Multiple growth-mode assets at lower entry.',
     icon: <TrendingUpIcon size={14} />,
+    accent: '#059669', // emerald-600
+    tint: '#ECFDF5', // emerald-50
   },
   {
     id: 'eg-high',
@@ -40,6 +46,8 @@ const PRESETS: PresetMeta[] = [
     fullLabel: 'Equity Growth, High Price',
     description: 'Concentrate in fewer larger assets. Stronger land content.',
     icon: <TrendingUpIcon size={14} />,
+    accent: '#047857', // emerald-700
+    tint: '#D1FAE5', // emerald-100
   },
   {
     id: 'cf-low',
@@ -47,6 +55,8 @@ const PRESETS: PresetMeta[] = [
     fullLabel: 'Cash Flow, Low Price',
     description: 'Yield-focused, accept higher property count.',
     icon: <DollarSignIcon size={14} />,
+    accent: '#D97706', // amber-600
+    tint: '#FFFBEB', // amber-50
   },
   {
     id: 'cf-high',
@@ -54,6 +64,8 @@ const PRESETS: PresetMeta[] = [
     fullLabel: 'Cash Flow, High Price',
     description: 'Strong yield at scale. Premium tenants, improves DSR.',
     icon: <DollarSignIcon size={14} />,
+    accent: '#B45309', // amber-700
+    tint: '#FEF3C7', // amber-100
   },
   {
     id: 'commercial-transition',
@@ -61,6 +73,8 @@ const PRESETS: PresetMeta[] = [
     fullLabel: 'Commercial Transition',
     description: 'Phase 1: build equity in residential. Phase 2: pivot to commercial yield.',
     icon: <BuildingIcon size={14} />,
+    accent: '#4F46E5', // indigo-600
+    tint: '#EEF2FF', // indigo-50
   },
 ]
 
@@ -80,24 +94,34 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
 
   if (variant === 'inline-chips') {
     // Pill-shaped chips — designed to live inside the hero chat card on the
-    // home page (Adobe-style "in-prompt controls"). Compact label + icon.
+    // home page (Adobe-style "in-prompt controls"). Each preset has its own
+    // accent colour so they're scannable rather than monochrome.
     return (
       <div className="flex flex-wrap items-center gap-1.5">
-        {PRESETS.map(({ id, shortLabel, icon }) => {
+        {PRESETS.map(({ id, shortLabel, icon, accent, tint }) => {
           const active = currentPreset === id
           return (
             <button
               key={id}
               type="button"
               onClick={() => updateProfile({ strategyPreset: id })}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-medium transition-colors"
+              style={
                 active
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9F9F9]'
-              }`}
+                  ? {
+                      backgroundColor: accent,
+                      borderColor: accent,
+                      color: '#FFFFFF',
+                    }
+                  : {
+                      backgroundColor: tint,
+                      borderColor: 'transparent',
+                      color: accent,
+                    }
+              }
               title={shortLabel}
             >
-              {icon}
+              <span style={{ color: active ? '#FFFFFF' : accent }}>{icon}</span>
               {shortLabel}
             </button>
           )

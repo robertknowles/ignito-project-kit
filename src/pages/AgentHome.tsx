@@ -5,11 +5,13 @@
  *   1. Hero chat card — textarea on top, strategy preset chips inline along
  *      the bottom-left, send button bottom-right (Adobe-style in-prompt
  *      controls). Press Enter to launch a fresh dashboard scenario.
- *   2. Recents — thumbnail tiles for clients, sorted by most-recently-updated.
- *   3. Assumptions — the 11-tile dial grid inlined (replaces /assumptions page).
+ *   2. Recents — ChartCard wrapping client tiles with mini equity sparklines
+ *      pulled from each client's most recent saved scenario.
+ *   3. Assumptions — ChartCard wrapping the 11-tile dial grid (replaces the
+ *      standalone /assumptions page).
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Loader2 as Loader2Icon,
@@ -19,8 +21,11 @@ import {
 import { LeftRail } from '@/components/LeftRail'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
+import { MiniSparkline } from '@/components/MiniSparkline'
+import { ChartCard } from '@/components/ui/ChartCard'
 import { useClient } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
@@ -50,6 +55,13 @@ const formatRelativeShort = (iso?: string) => {
   return `${years}y ago`
 }
 
+interface ScenarioPreview {
+  equityPoints: number[]
+  finalEquity: number | null
+  propertyCount: number
+  updatedAt: string | null
+}
+
 export const AgentHome: React.FC = () => {
   const navigate = useNavigate()
   const { clients, activeClient, setActiveClient, createClient } = useClient()
@@ -60,6 +72,59 @@ export const AgentHome: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resetAssumptionsRef = useRef<() => void>(() => {})
+
+  // Per-client preview data (final equity, equity series, property count,
+  // last updated). Pulled in a single batch query so 16 tiles don't fan out
+  // 16 separate selects.
+  const [previewByClient, setPreviewByClient] = useState<Record<number, ScenarioPreview>>({})
+
+  useEffect(() => {
+    if (clients.length === 0) {
+      setPreviewByClient({})
+      return
+    }
+    let cancelled = false
+
+    const run = async () => {
+      const ids = clients.map((c) => c.id)
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('client_id, data, updated_at')
+        .in('client_id', ids)
+        .order('updated_at', { ascending: false })
+
+      if (error || cancelled || !data) return
+
+      const map: Record<number, ScenarioPreview> = {}
+      for (const row of data) {
+        const cid = (row as any).client_id as number
+        if (map[cid]) continue // first row per client wins (most-recently-updated)
+        const d = (row as any).data
+        const growth = d?.chartData?.portfolioGrowthData
+        const equityPoints: number[] = Array.isArray(growth)
+          ? growth.map((p: any) => Number(p?.equity) || 0).filter((n: number) => Number.isFinite(n))
+          : []
+        const finalEquity = equityPoints.length > 0 ? equityPoints[equityPoints.length - 1] : null
+        const propertyCount = d?.propertySelections
+          ? Object.values(d.propertySelections as Record<string, number>).reduce(
+              (sum, n) => sum + (Number(n) || 0),
+              0
+            )
+          : 0
+        map[cid] = {
+          equityPoints,
+          finalEquity,
+          propertyCount,
+          updatedAt: (row as any).updated_at ?? null,
+        }
+      }
+      if (!cancelled) setPreviewByClient(map)
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [clients])
 
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
@@ -122,12 +187,16 @@ export const AgentHome: React.FC = () => {
   const recentClients = useMemo(() => {
     return [...clients]
       .sort((a, b) => {
-        const aT = new Date(a.updated_at || a.last_active_at || a.created_at).getTime()
-        const bT = new Date(b.updated_at || b.last_active_at || b.created_at).getTime()
+        const aT = new Date(
+          previewByClient[a.id]?.updatedAt || a.updated_at || a.last_active_at || a.created_at
+        ).getTime()
+        const bT = new Date(
+          previewByClient[b.id]?.updatedAt || b.updated_at || b.last_active_at || b.created_at
+        ).getTime()
         return bT - aT
       })
       .slice(0, 16)
-  }, [clients])
+  }, [clients, previewByClient])
 
   const handleRecentClick = useCallback(
     (client: typeof clients[number]) => {
@@ -139,6 +208,12 @@ export const AgentHome: React.FC = () => {
 
   const isActive = prompt.trim().length > 0
 
+  const formatEquity = (n: number) => {
+    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+    if (n >= 1_000) return `$${Math.round(n / 1000)}k`
+    return `$${Math.round(n)}`
+  }
+
   return (
     <div className="main-app flex h-screen w-full bg-white">
       <LeftRail />
@@ -148,18 +223,34 @@ export const AgentHome: React.FC = () => {
           style={{ padding: '40px 48px 96px 48px', maxWidth: 1320 }}
         >
           {/* ── Hero ─────────────────────────────────────────────── */}
-          <section className="flex flex-col gap-3 mb-10">
-            <h1 className="text-[22px] font-semibold text-gray-900 leading-tight">
-              Build a portfolio plan
-            </h1>
+          <section className="relative flex flex-col gap-4 mb-10">
+            {/* Soft atmospheric wash behind the hero card — hints at the
+                brand colour without committing to a full Canva-style
+                gradient page background. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 -top-10 -bottom-10 -mx-12 rounded-[40px] pointer-events-none"
+              style={{
+                background: `radial-gradient(60% 80% at 50% 0%, ${primaryColor}0F 0%, transparent 65%)`,
+              }}
+            />
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
+            <div className="relative">
+              <h1 className="text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
+                Build a portfolio plan
+              </h1>
+              <p className="text-[13px] text-gray-500 mt-1">
+                Describe a client scenario in plain English. Press Enter to generate.
+              </p>
+            </div>
+
+            <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
               <textarea
                 ref={textareaRef}
                 value={prompt}
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
-                placeholder="Describe a client scenario in plain English. e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
+                placeholder="e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
                 rows={2}
                 disabled={submitting}
                 className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
@@ -184,83 +275,115 @@ export const AgentHome: React.FC = () => {
           </section>
 
           {/* ── Recents ──────────────────────────────────────────── */}
-          <section className="flex flex-col gap-4 mb-12">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-[15px] font-semibold text-gray-900">Recents</h2>
-              {recentClients.length > 0 && (
-                <button
-                  onClick={() => navigate('/clients')}
-                  className="text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  View all
-                </button>
-              )}
-            </div>
-            {recentClients.length === 0 ? (
-              <div className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-5 py-8 text-center">
-                No recent clients yet — type a scenario above to start your first plan.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                {recentClients.map((client) => {
-                  const initials = getInitials(client.name)
-                  const isCurrent = activeClient?.id === client.id
-                  const updated = formatRelativeShort(
-                    client.updated_at || client.last_active_at || client.created_at
-                  )
-                  return (
-                    <button
-                      key={client.id}
-                      onClick={() => handleRecentClick(client)}
-                      className={`group flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
-                        isCurrent
-                          ? 'border-gray-900 bg-gray-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <div
-                        className="rounded-lg flex items-center justify-center text-[14px] font-semibold border border-[#E9EAEB]"
-                        style={{
-                          backgroundColor: AVATAR_BG,
-                          color: AVATAR_TEXT,
-                          aspectRatio: '4 / 3',
-                        }}
+          <section className="mb-8">
+            <ChartCard
+              title="Recents"
+              action={
+                recentClients.length > 0 ? (
+                  <button
+                    onClick={() => navigate('/clients')}
+                    className="text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                  >
+                    View all
+                  </button>
+                ) : undefined
+              }
+            >
+              {recentClients.length === 0 ? (
+                <div className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-5 py-8 text-center">
+                  No recent clients yet — type a scenario above to start your first plan.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                  {recentClients.map((client) => {
+                    const initials = getInitials(client.name)
+                    const isCurrent = activeClient?.id === client.id
+                    const updated = formatRelativeShort(
+                      previewByClient[client.id]?.updatedAt ||
+                        client.updated_at ||
+                        client.last_active_at ||
+                        client.created_at
+                    )
+                    const preview = previewByClient[client.id]
+                    const hasChart = preview && preview.equityPoints.length >= 2
+                    return (
+                      <button
+                        key={client.id}
+                        onClick={() => handleRecentClick(client)}
+                        className={`group flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
+                          isCurrent
+                            ? 'border-gray-900 bg-gray-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
                       >
-                        {initials}
-                      </div>
-                      <div className="px-1 pb-0.5">
-                        <div className="text-[12px] font-medium text-gray-900 truncate leading-tight">
-                          {client.name}
+                        <div
+                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-[#F8FAFC]"
+                          style={{ aspectRatio: '4 / 3' }}
+                        >
+                          {hasChart ? (
+                            <>
+                              <MiniSparkline
+                                values={preview!.equityPoints}
+                                color={primaryColor}
+                                className="absolute inset-0"
+                              />
+                              {preview!.finalEquity !== null && (
+                                <div className="absolute top-1.5 left-1.5 text-[10px] font-semibold text-gray-700 bg-white/85 backdrop-blur rounded px-1.5 py-0.5">
+                                  {formatEquity(preview!.finalEquity)}
+                                </div>
+                              )}
+                              {preview!.propertyCount > 0 && (
+                                <div className="absolute bottom-1.5 right-1.5 text-[9.5px] font-medium text-gray-500 bg-white/85 backdrop-blur rounded px-1.5 py-0.5">
+                                  {preview!.propertyCount} {preview!.propertyCount === 1 ? 'prop' : 'props'}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div
+                              className="w-full h-full flex items-center justify-center text-[14px] font-semibold"
+                              style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
+                            >
+                              {initials}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-[10.5px] text-gray-500 mt-0.5 truncate">
-                          Edited {updated}
+                        <div className="px-1 pb-0.5">
+                          <div className="text-[12px] font-medium text-gray-900 truncate leading-tight">
+                            {client.name}
+                          </div>
+                          <div className="text-[10.5px] text-gray-500 mt-0.5 truncate">
+                            Edited {updated}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </ChartCard>
           </section>
 
           {/* ── Assumptions (inlined, replaces /assumptions page) ── */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-[15px] font-semibold text-gray-900">Assumptions</h2>
-              <button
-                onClick={() => resetAssumptionsRef.current?.()}
-                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                <RotateCcw size={12} />
-                Reset to defaults
-              </button>
-            </div>
-            <AssumptionsGrid
-              showHeader={false}
-              onResetExposed={(fn) => {
-                resetAssumptionsRef.current = fn
-              }}
-            />
+          <section>
+            <ChartCard
+              title="Assumptions"
+              action={
+                <button
+                  onClick={() => resetAssumptionsRef.current?.()}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  Reset to defaults
+                </button>
+              }
+            >
+              <AssumptionsGrid
+                showHeader={false}
+                onResetExposed={(fn) => {
+                  resetAssumptionsRef.current = fn
+                }}
+              />
+            </ChartCard>
           </section>
         </div>
       </div>

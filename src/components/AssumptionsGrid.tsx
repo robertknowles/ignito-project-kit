@@ -66,7 +66,9 @@ const DialTile: React.FC<DialTileProps> = ({
   }
 
   const isDefault = Math.abs(value - defaultValue) < 0.001
-  const valueColor = isDefault ? 'text-amber-600' : 'text-blue-600'
+  // Defaults render in neutral grey so the assumption grid doesn't look
+  // like Gameplans' amber-on-white. Overrides remain blue for contrast.
+  const valueColor = isDefault ? 'text-gray-700' : 'text-blue-600'
 
   return (
     <div
