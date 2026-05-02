@@ -21,8 +21,9 @@ import {
 import { LeftRail } from '@/components/LeftRail'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
-import { MiniSparkline } from '@/components/MiniSparkline'
 import { ChartCard } from '@/components/ui/ChartCard'
+import { getPropertyTypeImagePath } from '@/utils/propertyTypeIcon'
+import { translateLegacyEngineId, isCellId, getCellDisplayLabel, type CellId } from '@/utils/propertyCells'
 import { useClient } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -56,10 +57,17 @@ const formatRelativeShort = (iso?: string) => {
 }
 
 interface ScenarioPreview {
-  equityPoints: number[]
+  /** Property type cell IDs in chronological purchase order. */
+  propertyCells: CellId[]
   finalEquity: number | null
   propertyCount: number
   updatedAt: string | null
+}
+
+/** Resolve a saved propertySelections key to a v4 cell ID label, best-effort. */
+const resolveCellIdFromKey = (key: string): CellId | null => {
+  if (isCellId(key)) return key
+  return translateLegacyEngineId(key)
 }
 
 export const AgentHome: React.FC = () => {
@@ -105,14 +113,33 @@ export const AgentHome: React.FC = () => {
           ? growth.map((p: any) => Number(p?.equity) || 0).filter((n: number) => Number.isFinite(n))
           : []
         const finalEquity = equityPoints.length > 0 ? equityPoints[equityPoints.length - 1] : null
-        const propertyCount = d?.propertySelections
-          ? Object.values(d.propertySelections as Record<string, number>).reduce(
-              (sum, n) => sum + (Number(n) || 0),
-              0
-            )
-          : 0
+        const selections = (d?.propertySelections || {}) as Record<string, number>
+        const order: string[] = Array.isArray(d?.propertyOrder) ? d.propertyOrder : []
+        // Build a chronological cell-ID list. Prefer propertyOrder (instance
+        // IDs of the form `<cellId>_instance_N`); fall back to selections
+        // expanded by quantity if order is unavailable.
+        const cellsFromOrder: CellId[] = []
+        for (const id of order) {
+          const m = id.match(/^(.+)_instance_\d+$/)
+          if (!m) continue
+          const cell = resolveCellIdFromKey(m[1])
+          if (cell) cellsFromOrder.push(cell)
+        }
+        const cellsFromSelections: CellId[] = []
+        if (cellsFromOrder.length === 0) {
+          for (const [key, qty] of Object.entries(selections)) {
+            const cell = resolveCellIdFromKey(key)
+            const n = Math.max(0, Math.round(Number(qty) || 0))
+            if (cell) for (let i = 0; i < n; i++) cellsFromSelections.push(cell)
+          }
+        }
+        const propertyCells = cellsFromOrder.length > 0 ? cellsFromOrder : cellsFromSelections
+        const propertyCount = propertyCells.length || Object.values(selections).reduce(
+          (sum, n) => sum + (Math.max(0, Math.round(Number(n) || 0))),
+          0
+        )
         map[cid] = {
-          equityPoints,
+          propertyCells,
           finalEquity,
           propertyCount,
           updatedAt: (row as any).updated_at ?? null,
@@ -235,14 +262,9 @@ export const AgentHome: React.FC = () => {
               }}
             />
 
-            <div className="relative">
-              <h1 className="text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
-                Build a portfolio plan
-              </h1>
-              <p className="text-[13px] text-gray-500 mt-1">
-                Describe a client scenario in plain English. Press Enter to generate.
-              </p>
-            </div>
+            <h1 className="relative text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
+              What's the scenario?
+            </h1>
 
             <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
               <textarea
@@ -251,12 +273,17 @@ export const AgentHome: React.FC = () => {
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
-                rows={2}
+                rows={3}
                 disabled={submitting}
-                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
+                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-2 max-h-[220px]"
               />
-              <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-1">
+
+              {/* Strategy presets — descriptive rows, sit inside the chat card. */}
+              <div className="px-3 pt-1 pb-3 border-t border-gray-100">
                 <StrategyPresetSelector variant="inline-chips" />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-3 pb-3">
                 <button
                   onClick={handleSendClick}
                   disabled={!isActive || submitting}
@@ -305,7 +332,15 @@ export const AgentHome: React.FC = () => {
                         client.created_at
                     )
                     const preview = previewByClient[client.id]
-                    const hasChart = preview && preview.equityPoints.length >= 2
+                    const hasScenario = !!preview && preview.propertyCells.length > 0
+                    // Cap the visible icons; show a "+N" stub when the plan has more.
+                    const MAX_VISIBLE_ICONS = 4
+                    const visibleCells = hasScenario
+                      ? preview!.propertyCells.slice(0, MAX_VISIBLE_ICONS)
+                      : []
+                    const hiddenCount = hasScenario
+                      ? Math.max(0, preview!.propertyCells.length - MAX_VISIBLE_ICONS)
+                      : 0
                     return (
                       <button
                         key={client.id}
@@ -317,26 +352,38 @@ export const AgentHome: React.FC = () => {
                         }`}
                       >
                         <div
-                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-[#F8FAFC]"
+                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-[#F8FAFC] flex flex-col justify-between"
                           style={{ aspectRatio: '4 / 3' }}
                         >
-                          {hasChart ? (
+                          {hasScenario ? (
                             <>
-                              <MiniSparkline
-                                values={preview!.equityPoints}
-                                color={primaryColor}
-                                className="absolute inset-0"
-                              />
-                              {preview!.finalEquity !== null && (
-                                <div className="absolute top-1.5 left-1.5 text-[10px] font-semibold text-gray-700 bg-white/85 backdrop-blur rounded px-1.5 py-0.5">
+                              {/* Final equity figure top-left */}
+                              {preview!.finalEquity !== null && preview!.finalEquity > 0 && (
+                                <div className="absolute top-1.5 left-1.5 text-[11px] font-semibold text-gray-800">
                                   {formatEquity(preview!.finalEquity)}
                                 </div>
                               )}
-                              {preview!.propertyCount > 0 && (
-                                <div className="absolute bottom-1.5 right-1.5 text-[9.5px] font-medium text-gray-500 bg-white/85 backdrop-blur rounded px-1.5 py-0.5">
-                                  {preview!.propertyCount} {preview!.propertyCount === 1 ? 'prop' : 'props'}
-                                </div>
-                              )}
+                              {/* Property type icons row at the bottom */}
+                              <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-start gap-0.5">
+                                {visibleCells.map((cell, i) => (
+                                  <img
+                                    key={`${cell}-${i}`}
+                                    src={getPropertyTypeImagePath(getCellDisplayLabel(cell))}
+                                    alt=""
+                                    width={20}
+                                    height={20}
+                                    className="w-5 h-5 rounded object-contain"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                ))}
+                                {hiddenCount > 0 && (
+                                  <span className="text-[9.5px] font-semibold text-gray-500 ml-1">
+                                    +{hiddenCount}
+                                  </span>
+                                )}
+                              </div>
                             </>
                           ) : (
                             <div

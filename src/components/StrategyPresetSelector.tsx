@@ -24,57 +24,43 @@ interface PresetMeta {
   fullLabel: string
   description: string
   icon: React.ReactNode
-  /** Accent colour used for the icon + active background (Tailwind hex literals). */
-  accent: string
-  /** Subtle tinted bg used in the inactive chip state. */
-  tint: string
 }
 
 const PRESETS: PresetMeta[] = [
   {
     id: 'eg-low',
     shortLabel: 'EG · Low',
-    fullLabel: 'Equity Growth, Low Price',
-    description: 'Scale through volume. Multiple growth-mode assets at lower entry.',
+    fullLabel: 'Equity Growth, Low Price Point',
+    description: 'Scale through volume. Multiple growth-mode assets at lower entry per property.',
     icon: <TrendingUpIcon size={14} />,
-    accent: '#059669', // emerald-600
-    tint: '#ECFDF5', // emerald-50
   },
   {
     id: 'eg-high',
     shortLabel: 'EG · High',
-    fullLabel: 'Equity Growth, High Price',
-    description: 'Concentrate in fewer larger assets. Stronger land content.',
+    fullLabel: 'Equity Growth, High Price Point',
+    description: 'Concentrate in fewer larger assets. Stronger land content, larger equity per asset.',
     icon: <TrendingUpIcon size={14} />,
-    accent: '#047857', // emerald-700
-    tint: '#D1FAE5', // emerald-100
   },
   {
     id: 'cf-low',
     shortLabel: 'CF · Low',
-    fullLabel: 'Cash Flow, Low Price',
-    description: 'Yield-focused, accept higher property count.',
+    fullLabel: 'Cash Flow, Low Price Point',
+    description: 'Minimise cash flow gap. Yield-focused, accept a higher property count.',
     icon: <DollarSignIcon size={14} />,
-    accent: '#D97706', // amber-600
-    tint: '#FFFBEB', // amber-50
   },
   {
     id: 'cf-high',
     shortLabel: 'CF · High',
-    fullLabel: 'Cash Flow, High Price',
-    description: 'Strong yield at scale. Premium tenants, improves DSR.',
+    fullLabel: 'Cash Flow, High Price Point',
+    description: 'Strong yield at scale. Premium tenants, improves DSR over the horizon.',
     icon: <DollarSignIcon size={14} />,
-    accent: '#B45309', // amber-700
-    tint: '#FEF3C7', // amber-100
   },
   {
     id: 'commercial-transition',
     shortLabel: 'Commercial',
     fullLabel: 'Commercial Transition',
-    description: 'Phase 1: build equity in residential. Phase 2: pivot to commercial yield.',
+    description: 'Two-phase. Phase 1: build equity in residential. Phase 2: pivot to commercial yield.',
     icon: <BuildingIcon size={14} />,
-    accent: '#4F46E5', // indigo-600
-    tint: '#EEF2FF', // indigo-50
   },
 ]
 
@@ -93,36 +79,40 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
   const currentPreset = profile.strategyPreset || 'eg-low'
 
   if (variant === 'inline-chips') {
-    // Pill-shaped chips — designed to live inside the hero chat card on the
-    // home page (Adobe-style "in-prompt controls"). Each preset has its own
-    // accent colour so they're scannable rather than monochrome.
+    // 5 stacked descriptive rows — designed to live inside the home-page
+    // hero chat card. Each row has the full preset name + a one-sentence
+    // description so the BA can pick without prior knowledge of the codes.
+    // No colour accents — neutral palette matches the rest of the app.
     return (
-      <div className="flex flex-wrap items-center gap-1.5">
-        {PRESETS.map(({ id, shortLabel, icon, accent, tint }) => {
+      <div className="flex flex-col gap-1.5 w-full">
+        {PRESETS.map(({ id, fullLabel, description, icon }) => {
           const active = currentPreset === id
           return (
             <button
               key={id}
               type="button"
               onClick={() => updateProfile({ strategyPreset: id })}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-medium transition-colors"
-              style={
+              className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-left transition-colors ${
                 active
-                  ? {
-                      backgroundColor: accent,
-                      borderColor: accent,
-                      color: '#FFFFFF',
-                    }
-                  : {
-                      backgroundColor: tint,
-                      borderColor: 'transparent',
-                      color: accent,
-                    }
-              }
-              title={shortLabel}
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9FAFB]'
+              }`}
             >
-              <span style={{ color: active ? '#FFFFFF' : accent }}>{icon}</span>
-              {shortLabel}
+              <span
+                className={`mt-0.5 flex-shrink-0 ${active ? 'text-white' : 'text-[#717680]'}`}
+              >
+                {icon}
+              </span>
+              <span className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[12.5px] font-medium leading-tight">{fullLabel}</span>
+                <span
+                  className={`text-[11.5px] leading-snug ${
+                    active ? 'text-white/70' : 'text-[#717680]'
+                  }`}
+                >
+                  {description}
+                </span>
+              </span>
             </button>
           )
         })}
