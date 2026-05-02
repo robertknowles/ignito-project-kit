@@ -30,8 +30,10 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
-const AVATAR_BG = '#535862'
-const AVATAR_TEXT = '#FFFFFF'
+// Recents fallback (no scenario data yet): white tile with dark-grey
+// initials, matches the rest of the app's neutral palette.
+const AVATAR_BG = '#FFFFFF'
+const AVATAR_TEXT = '#414651'
 
 const getInitials = (name: string) =>
   name
@@ -263,7 +265,7 @@ export const AgentHome: React.FC = () => {
             />
 
             <h1 className="relative text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
-              What's the scenario?
+              Build a property plan
             </h1>
 
             <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
@@ -273,17 +275,12 @@ export const AgentHome: React.FC = () => {
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. John, $120k income, $80k deposit. Wants to hit $2M in equity over 15 years…"
-                rows={3}
+                rows={2}
                 disabled={submitting}
-                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-2 max-h-[220px]"
+                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
               />
-
-              {/* Strategy presets — descriptive rows, sit inside the chat card. */}
-              <div className="px-3 pt-1 pb-3 border-t border-gray-100">
+              <div className="flex items-end justify-between gap-3 px-3 pb-3 pt-1">
                 <StrategyPresetSelector variant="inline-chips" />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 px-3 pb-3">
                 <button
                   onClick={handleSendClick}
                   disabled={!isActive || submitting}

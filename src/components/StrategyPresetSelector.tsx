@@ -79,40 +79,28 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
   const currentPreset = profile.strategyPreset || 'eg-low'
 
   if (variant === 'inline-chips') {
-    // 5 stacked descriptive rows — designed to live inside the home-page
-    // hero chat card. Each row has the full preset name + a one-sentence
-    // description so the BA can pick without prior knowledge of the codes.
-    // No colour accents — neutral palette matches the rest of the app.
+    // Compact pill chips inside the home-page hero chat card. Slightly fuller
+    // labels than the segmented control's short codes (e.g. "Equity Growth ·
+    // Low" rather than "EG · Low"), neutral palette, flex-wraps to 2 rows
+    // gracefully on narrower viewports.
     return (
-      <div className="flex flex-col gap-1.5 w-full">
-        {PRESETS.map(({ id, fullLabel, description, icon }) => {
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PRESETS.map(({ id, fullLabel, icon }) => {
           const active = currentPreset === id
           return (
             <button
               key={id}
               type="button"
               onClick={() => updateProfile({ strategyPreset: id })}
-              className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-left transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11.5px] font-medium transition-colors ${
                 active
                   ? 'bg-gray-900 text-white border-gray-900'
                   : 'bg-white text-[#535862] border-[#E9EAEB] hover:border-[#D5D7DA] hover:bg-[#F9FAFB]'
               }`}
+              title={fullLabel}
             >
-              <span
-                className={`mt-0.5 flex-shrink-0 ${active ? 'text-white' : 'text-[#717680]'}`}
-              >
-                {icon}
-              </span>
-              <span className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[12.5px] font-medium leading-tight">{fullLabel}</span>
-                <span
-                  className={`text-[11.5px] leading-snug ${
-                    active ? 'text-white/70' : 'text-[#717680]'
-                  }`}
-                >
-                  {description}
-                </span>
-              </span>
+              <span className={active ? 'text-white' : 'text-[#717680]'}>{icon}</span>
+              {fullLabel}
             </button>
           )
         })}
