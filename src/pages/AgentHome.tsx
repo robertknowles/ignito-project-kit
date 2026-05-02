@@ -67,9 +67,9 @@ export const AgentHome: React.FC = () => {
             // BA can rename later. Matches the no-friction Canva/Adobe pattern.
             const created = await createClient({
               name: 'Untitled Client',
-              stage: 'discovery' as any,
-              portal_status: 'inactive' as any,
-              roadmap_status: 'not_started' as any,
+              stage: 'onboarding',
+              portal_status: 'not_invited',
+              roadmap_status: 'not_started',
             })
             if (!created) {
               toast.error('Could not create a client to run this scenario against')

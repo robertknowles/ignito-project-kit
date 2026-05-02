@@ -341,9 +341,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }
   }, [activeClient?.id, clearMessages])
 
-  // Load saved chat messages when they change (scenario load or client switch)
+  // Detected SYNCHRONOUSLY at component init (not in an effect) so that the
+  // saved-chat-load effect below can suppress its first run and avoid a flash
+  // of the previous scenario's chat before the pending-prompt handler wipes it.
+  const hasPendingPromptOnMountRef = useRef<boolean>(
+    typeof window !== 'undefined' && !!sessionStorage.getItem('proppath:pending-prompt')
+  )
+
+  // Load saved chat messages when they change (scenario load or client switch).
+  // Skipped on the initial load if the user just arrived from AgentHome with a
+  // pending prompt — we want a fresh thread, not the prior scenario's chat.
   useEffect(() => {
     if (!loadedRef.current) {
+      if (hasPendingPromptOnMountRef.current) {
+        loadedRef.current = true
+        return
+      }
       if (savedChatMessages.length > 0) {
         loadMessages(savedChatMessages)
       }
