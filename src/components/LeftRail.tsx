@@ -6,6 +6,7 @@ import {
   LogOutIcon,
   SettingsIcon,
   BellIcon,
+  HomeIcon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,12 +19,6 @@ import {
 } from '@/components/ui/tooltip'
 import { useTourManager, TourStep } from '@/components/TourManager'
 
-// PropPath default logo SVG component
-const PropPathLogo = ({ color }: { color: string }) => (
-  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 28L4 14L16 2L28 14L14 14L10 18L22 18L26 22L20 28H4Z" fill={color} />
-  </svg>
-)
 
 export const LeftRail = () => {
   const navigate = useNavigate()
@@ -80,7 +75,7 @@ export const LeftRail = () => {
         position="right"
       >
       <div id="left-rail" className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
-        {/* Logo at top */}
+        {/* Home — explicit home icon (replaces former logo-as-home button) */}
         <div className="mb-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -88,21 +83,15 @@ export const LeftRail = () => {
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                   location.pathname === '/home' ? 'bg-gray-100' : 'hover:bg-gray-100'
                 }`}
+                style={{ color: primaryColor }}
                 onClick={() => navigate('/home')}
+                aria-label="Home"
               >
-                {branding.logoUrl ? (
-                  <img
-                    src={branding.logoUrl}
-                    alt="Company logo"
-                    className="w-6 h-6 object-contain"
-                  />
-                ) : (
-                  <PropPathLogo color={primaryColor} />
-                )}
+                <HomeIcon size={20} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>{branding.companyName || 'Home'}</p>
+              <p>Home</p>
             </TooltipContent>
           </Tooltip>
         </div>

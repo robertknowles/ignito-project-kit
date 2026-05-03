@@ -4,6 +4,7 @@ import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
+import { usePropertySelection } from '@/contexts/PropertySelectionContext';
 import { ScenarioCanvas } from './ScenarioCanvas';
 import { PropertyCardRow } from './PropertyCardRow';
 import { ComparisonInsights } from './ComparisonInsights';
@@ -59,6 +60,7 @@ export const Dashboard = () => {
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { planGenerating } = useLayout();
+  const { propertyOrder: livePropertyOrder } = usePropertySelection();
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
     const isActive = scenario.id === activeScenarioId;
@@ -103,8 +105,15 @@ export const Dashboard = () => {
 
   const equityLegend = useEquityUnlockLegend();
 
-  // Show skeleton when no plan exists yet; shimmer only while generating
-  if (liveTimelineProperties.length === 0) {
+  // Show skeleton only when there's genuinely no plan (no properties in the order
+  // yet) AND we're not actively generating. Previously this checked just
+  // liveTimelineProperties.length, which would skeleton-out the page if the
+  // affordability calculator transiently returned empty (e.g. during a
+  // re-mount after navigation) even when the underlying selections were
+  // intact. Anchoring on propertyOrder (the source of truth for "do we have
+  // a plan?") prevents the dashboard from blanking on nav-back.
+  const hasPlan = livePropertyOrder.length > 0 || liveTimelineProperties.length > 0;
+  if (!hasPlan) {
     return <DashboardSkeleton animate={planGenerating} />;
   }
 

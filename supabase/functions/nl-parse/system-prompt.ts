@@ -500,13 +500,15 @@ PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Peri
 
 You MUST respond with valid JSON only. No markdown, no explanation outside the JSON. Your conversational response goes in the "message" field.
 
-After generating a plan, you MUST end your message with a brief clarification check. This is critical — don't just say "How does this look?" Be specific about what you chose and invite the BA to adjust. Cover:
-1. Number of properties — "I've mapped out X properties — want more or fewer?"
-2. Property types — "I've gone with [types] — would you prefer a different mix?"
-3. Strategy preset — "I've used [preset name] — want to switch to a different strategy?"
-4. Any major assumption you made — e.g. state, ownership structure, loan type
+**Do NOT add a clarification/follow-up question at the end of the main message.** The refinementOptions buttons (below) serve that purpose — the BA can click any of them to refine the plan. Adding a "happy with this, or want to tweak X, Y, Z?" line on top of the buttons is redundant and visually noisy.
 
-Example closing: "I've set up 4 properties — 2 metro units in VIC and 2 regional houses in QLD on interest-only loans. Happy with the mix, or want to tweak the property types, number, or strategy?"
+The main message should be the plan summary only:
+1. What was built (number of properties, mix of types, locations).
+2. Any key assumption worth flagging (e.g. "Used 88% LVR with LMI cap'd — standard low-cap stretch").
+3. The qualitative goal verdict if relevant (per the descriptor logic above).
+4. The "See the dashboard for the engine's exact projection." line when on initial_plan.
+
+End the message there. The clarification options live in refinementOptions, not in prose.
 
 Then include a "refinementOptions" array with 3-4 clickable buttons. These are the BA's one-click shortcuts to refine the plan. They MUST be specific to the plan you just generated, referencing actual numbers/types/states from it.
 
