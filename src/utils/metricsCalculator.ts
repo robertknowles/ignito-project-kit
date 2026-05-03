@@ -1,5 +1,6 @@
 import type { PropertyPurchase, PropertyMetrics, PropertyExpenses, CashFlowAnalysis, GrowthProjection, GrowthCurve } from '../types/property';
 import {
+  BASE_YEAR,
   PERIODS_PER_YEAR,
   ANNUAL_INFLATION_RATE,
   annualRateToPeriodRate,
@@ -300,7 +301,7 @@ export const calculateBorrowingCapacityProgression = (
   const progression: Array<{ year: number; capacity: number; rentContribution: number }> = [];
   
   for (let year = 1; year <= timelineYears; year++) {
-    const currentYear = 2025 + year - 1;
+    const currentYear = BASE_YEAR + year - 1;
     const purchasesByThisYear = purchases.filter(p => p.year <= currentYear);
     
     // Calculate existing debt
@@ -329,7 +330,7 @@ export const calculateGrowthProjections = (
   existingDebt: number = 0,
   timelineYears: number,
   growthCurve: GrowthCurve,
-  baseYear: number = 2025,
+  baseYear: number = BASE_YEAR,
   existingPortfolioGrowthRate: number = DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE
 ): GrowthProjection[] => {
   const projections: GrowthProjection[] = [];

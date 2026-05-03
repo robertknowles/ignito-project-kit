@@ -3,6 +3,7 @@ import { Card } from './ui/card';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { analyzeCashFlow, DEFAULT_PROPERTY_EXPENSES } from '../utils/metricsCalculator';
+import { BASE_YEAR } from '../constants/financialParams';
 import type { PropertyPurchase } from '../types/property';
 
 export const CashFlowAnalysis = () => {
@@ -11,7 +12,7 @@ export const CashFlowAnalysis = () => {
 
   // Convert feasible properties to PropertyPurchase format
   const feasibleProperties = timelineProperties.filter(prop => prop.status === 'feasible');
-  const currentYear = 2025 + 15; // End of timeline for analysis
+  const currentYear = BASE_YEAR + 15; // End of timeline for analysis
   
   const cashFlowBreakdown = feasibleProperties.map(property => {
     const propertyData = getPropertyData(property.title);

@@ -14,6 +14,7 @@ import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { CHART_COLORS, CHART_STYLE, PROPERTY_COLORS } from '../constants/chartColors'
+import { BASE_YEAR } from '../constants/financialParams'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
@@ -43,7 +44,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
 
   const data = useMemo(() => {
     if (years.length === 0) {
-      return [{ year: 2025, portfolioValue: 0, totalEquity: 0, doNothingBalance: 0, purchaseInYear: false, purchaseLabel: '' }]
+      return [{ year: BASE_YEAR, portfolioValue: 0, totalEquity: 0, doNothingBalance: 0, purchaseInYear: false, purchaseLabel: '' }]
     }
     return years.map((y) => ({
       year: y.year,

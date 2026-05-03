@@ -226,10 +226,10 @@ export const InvestmentTimeline = React.forwardRef<{ scrollToYear: (year: number
     }
   }));
   
-  // Generate ALL years (2025-2050) by interpolating between purchase events
+  // Generate ALL years by interpolating between purchase events
   const fullYearlyBreakdown = useMemo((): YearBreakdownData[] => {
-    const baseYear = 2025;
-    const endYear = baseYear + profile.timelineYears - 1; // e.g., 2025 + 15 - 1 = 2039
+    const baseYear = BASE_YEAR;
+    const endYear = baseYear + profile.timelineYears - 1;
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultInterestRate = DEFAULT_INTEREST_RATE;
     const defaultGrowthRate = 0.06; // Default 6% for timeline calculations

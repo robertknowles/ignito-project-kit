@@ -614,7 +614,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   }, [chatPanelWidth, setChatPanelWidth])
 
   const handleResizeDoubleClick = useCallback(() => {
-    setChatPanelWidth(288) // Reset to default w-72
+    setChatPanelWidth(360) // Reset to default
   }, [setChatPanelWidth])
 
   return (
@@ -624,16 +624,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Header — Client Selector + action icons */}
-        <div className="flex items-center border-b border-gray-200 h-[52px] px-2">
+        <div className="flex-shrink-0 flex items-center border-b border-gray-200 h-[52px] px-2">
           <ClientSelector />
           <div className="ml-auto flex items-center gap-0.5">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
-              title="Upload PDF"
-            >
-              <PaperclipIcon size={14} />
-            </button>
             <button
               onClick={() => setShowPropertyLibrary(true)}
               className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
@@ -651,9 +644,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           </div>
         </div>
 
-        {/* Messages area */}
+        {/* Messages area — min-h-0 is REQUIRED for flex-1 + overflow-y-auto to constrain
+            properly. Without it, content can push the container beyond its allocated
+            height and shove the input area below the viewport once the thread grows. */}
         <div
-          className={`flex-1 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+          className={`flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -696,8 +691,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area — fixed at bottom */}
-        <div className="px-3 pb-3 pt-2">
+        {/* Input area — fixed at bottom. flex-shrink-0 guarantees it keeps its
+            intrinsic height even when messages above try to expand. */}
+        <div className="flex-shrink-0 px-3 pb-3 pt-2">
           {/* File preview */}
           {selectedFile && (
             <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[#F5F5F5] rounded-lg">
@@ -720,7 +716,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
             className="hidden"
           />
           <div className="flex items-center gap-2.5 bg-white rounded-xl px-3.5 py-2.5 border border-gray-200 focus-within:border-gray-300 transition-colors">
-            <SearchIcon size={14} className="text-[#717680] flex-shrink-0" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-shrink-0 text-[#717680] hover:text-[#414651] transition-colors"
+              title="Attach PDF or transcript"
+              aria-label="Attach file"
+            >
+              <PaperclipIcon size={14} />
+            </button>
             <textarea
               ref={inputRef}
               value={inputValue}

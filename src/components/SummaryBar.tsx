@@ -31,12 +31,15 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       return {
         portfolioValue: 0,
         totalEquity: 0,
+        terminalYear: null as number | null,
       }
     }
 
+    const parsedYear = parseInt(String(finalPortfolioData.year), 10)
     return {
       portfolioValue: finalPortfolioData.portfolioValue,
       totalEquity: finalPortfolioData.equity,
+      terminalYear: Number.isFinite(parsedYear) ? parsedYear : null,
     }
   }, [portfolioGrowthData])
 
@@ -121,6 +124,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.portfolioValue)}
           </span>
+          {kpis.terminalYear && (
+            <span className="ml-1.5 text-sm text-[#717680]">by {kpis.terminalYear}</span>
+          )}
         </div>
       </div>
 
@@ -136,6 +142,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatCurrency(kpis.totalEquity)}
           </span>
+          {kpis.terminalYear && (
+            <span className="ml-1.5 text-sm text-[#717680]">by {kpis.terminalYear}</span>
+          )}
         </div>
       </div>
 
@@ -147,11 +156,14 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
             <Wallet02Icon size={18} color="#535862" />
           </div>
         </div>
-        <div className="mt-1 flex items-baseline gap-1">
+        <div className="mt-1 flex items-baseline gap-1 flex-wrap">
           <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
             {formatMonthlyCashflow(monthlyCashflow)}
           </span>
           <span className="text-sm text-[#717680]">/mo</span>
+          {kpis.terminalYear && (
+            <span className="text-sm text-[#717680]">by {kpis.terminalYear}</span>
+          )}
         </div>
       </div>
 

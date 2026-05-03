@@ -82,10 +82,22 @@ Deno.serve(async (req: Request) => {
     // Add the current message
     messages.push({ role: 'user', content: message });
 
+    // Prompt caching: marking the system prompt as ephemeral lets Anthropic's
+    // cache hold the tokenised prompt for ~5 minutes, cutting per-call input cost
+    // ~90% on cache hits and shaving meaningful latency off subsequent turns.
+    // The cache key is the full system text + tools, so as long as the prompt
+    // doesn't change shape between turns (it doesn't here — strategyPreset is
+    // baked into a single string), every follow-up turn in a session hits cache.
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages,
     });
 

@@ -15,13 +15,13 @@ import React, { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { PropertySummaryCard } from './PropertySummaryCard';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { AddToTimelineModal } from './AddToTimelineModal';
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { dispatchChatSend } from '../utils/chatBus';
-import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 /** Default cell when no propertyType can be resolved. */
@@ -44,6 +44,7 @@ export const PropertyCardRow: React.FC = () => {
     getPropertyQuantity,
   } = usePropertySelection();
   const { instances, setInstances, updateInstance } = usePropertyInstance();
+  const { profile } = useInvestmentProfile();
   const { timelineProperties } = useAffordabilityCalculator();
 
   const [expandedInstanceId, setExpandedInstanceId] = useState<string | null>(null);
@@ -57,9 +58,14 @@ export const PropertyCardRow: React.FC = () => {
       const timelineProp = timelineProperties.find(
         (tp) => tp.instanceId === instanceId
       );
-      const purchaseYear = timelineProp?.affordableYear
-        ? Math.floor(timelineProp.affordableYear)
+      const rawYear = timelineProp?.affordableYear;
+      const purchaseYear = Number.isFinite(rawYear)
+        ? Math.floor(rawYear as number)
         : undefined;
+      // Only flag as unplaceable when the user explicitly capped the timeline.
+      // Without an explicit cap, the timeline auto-extends — we just hide the year
+      // rather than nag the BA to extend something they never set.
+      const isUnplaceable = rawYear === Infinity && profile.timelineYearsExplicit === true;
 
       // Resolve property type title from propertyId
       const parsed = parseInstanceId(instanceId);
@@ -69,21 +75,12 @@ export const PropertyCardRow: React.FC = () => {
       const propertyType =
         propertyTypeMeta?.title ?? timelineProp?.title ?? getCellDisplayLabel(DEFAULT_NEW_CELL_ID);
 
-      // Per-property monthly cashflow (NOT cumulative portfolio cashflow).
-      // Mirrors the pattern TimelinePanel uses for its single-property card label.
-      const monthlyCashflow = instanceData
-        ? calculateDetailedCashflow(
-            instanceData,
-            instanceData.purchasePrice * (instanceData.lvr / 100)
-          ).netMonthlyCashflow
-        : 0;
-
       return {
         instanceId,
         instanceData,
         propertyType,
         purchaseYear,
-        monthlyCashflow,
+        isUnplaceable,
         orderIdx,
       };
     });
@@ -228,7 +225,7 @@ export const PropertyCardRow: React.FC = () => {
                 propertyType={card.propertyType}
                 instanceData={card.instanceData}
                 purchaseYear={card.purchaseYear}
-                monthlyCashflow={card.monthlyCashflow}
+                isUnplaceable={card.isUnplaceable}
                 isExpanded={expandedInstanceId === card.instanceId}
                 onClick={() =>
                   setExpandedInstanceId(

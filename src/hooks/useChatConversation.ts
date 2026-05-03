@@ -181,9 +181,15 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Get current plan state for context
         const currentPlan = options.getCurrentPlan?.() ?? null
 
-        // Build conversation history (text messages only, for context)
+        // Build conversation history (text messages only, for context).
+        // Sliding window: keep only the last 20 entries (~10 user/assistant turns).
+        // Prevents context-window blow-up on long threads — older messages stay in
+        // the UI but get dropped from the LLM payload. Recent context is what
+        // matters for follow-up coherence; older turns rarely change the answer.
+        const HISTORY_WINDOW = 20
         const conversationHistory = messages
           .filter((m) => m.role !== 'system' && m.type === 'text')
+          .slice(-HISTORY_WINDOW)
           .map((m) => ({ role: m.role, content: m.content }))
 
         // Call the edge function (with single retry for transient failures)

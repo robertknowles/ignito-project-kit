@@ -24,6 +24,8 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../contexts/InvestmentProfileContext'
 import { useLayout } from '../contexts/LayoutContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { BASE_YEAR } from '../constants/financialParams'
+import { isCellId, getCellDisplayLabel, type CellId } from '../utils/propertyCells'
 import { Building03Icon, TrendUp01Icon, BarChartSquare02Icon, Wallet02Icon } from '@/components/icons/PropertyIcons'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -325,7 +327,9 @@ export const Portfolio = () => {
                 const instanceId = item.instanceId || item.id || `prop_${idx}`
                 const instance = propertyInstances[instanceId] || {}
                 const tracking = portfolioTracking[instanceId] || {}
-                const prop = buildProperty(instanceId, item.title || `Property ${idx + 1}`, instance, tracking, Math.round(item.affordableYear || 2025), idx, item.cost, item)
+                const cellPart = instanceId.split('_instance_')[0]
+                const fallbackTitle = isCellId(cellPart) ? getCellDisplayLabel(cellPart as CellId) : `Property ${idx + 1}`
+                const prop = buildProperty(instanceId, item.title || fallbackTitle, instance, tracking, Math.round(item.affordableYear || BASE_YEAR), idx, item.cost, item)
                 properties.push(prop)
                 purchaseMap[`${scenario.id}_${instanceId}`] = {
                   isPurchased: tracking.isPurchased || false,
@@ -344,19 +348,20 @@ export const Portfolio = () => {
               })
             }
 
-            const baseYear = 2025
+            const baseYear = BASE_YEAR
             const profile = sd.investmentProfile || {}
             const annualSavings = profile.annualSavings || 50000
 
             instanceIds.forEach((instanceId: string, idx: number) => {
               const instance = propertyInstances[instanceId] || {}
               const tracking = portfolioTracking[instanceId] || {}
-              const propTypeMatch = instanceId.match(/^(property_\d+)_instance_\d+$/)
+              const propTypeMatch = instanceId.match(/^(.+)_instance_\d+$/)
               const propTypeId = propTypeMatch ? propTypeMatch[1] : instanceId
               const propIndex = propTypeId.match(/property_(\d+)/)
               const templateIndex = propIndex ? parseInt(propIndex[1], 10) : -1
               const template = templateIndex >= 0 ? propertyTypeTemplates[templateIndex] : null
-              const title = template ? template.propertyType : instance.title || `Property ${idx + 1}`
+              const cellLabel = isCellId(propTypeId) ? getCellDisplayLabel(propTypeId as CellId) : null
+              const title = template ? template.propertyType : (cellLabel || instance.title || `Property ${idx + 1}`)
               const estimatedYear = baseYear + Math.max(1, Math.ceil(((idx + 1) * (instance.purchasePrice || 400000) * 0.2) / annualSavings))
 
               const prop = buildProperty(instanceId, title, instance, tracking, estimatedYear, idx)
@@ -414,7 +419,7 @@ export const Portfolio = () => {
       const annualRent = rentPerWeek * 52
       const grossYield = purchasePrice > 0 ? (annualRent / purchasePrice) * 100 : 0
       const growthRate = instance.growthAssumption === 'High' ? 7 : instance.growthAssumption === 'Low' ? 4 : 5.5
-      const affordableYear = timelineItem ? Math.round(timelineItem.affordableYear) : 2025 + idx + 1
+      const affordableYear = timelineItem ? Math.round(timelineItem.affordableYear) : BASE_YEAR + idx + 1
       const yearsHeld = Math.max(0, new Date().getFullYear() - affordableYear)
       const estimatedValue = purchasePrice * Math.pow(1 + growthRate / 100, yearsHeld)
       const equity = estimatedValue - loanAmount

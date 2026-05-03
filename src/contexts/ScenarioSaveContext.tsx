@@ -200,7 +200,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     return baseData;
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, chatMessages, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
 
   // Save scenario.
   // `silent`: suppress toasts (used by autosave). Errors still toast unless silent.
@@ -747,7 +747,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       autosaveTimerRef.current = null;
       // Fire and forget — saveScenario handles its own errors.
       void saveScenario(true);
-    }, 1000);
+    }, 250);
 
     return () => {
       if (autosaveTimerRef.current) {

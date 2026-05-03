@@ -1,7 +1,7 @@
 /**
  * PropertySummaryCard — compact ~220px summary card for the dashboard
  * property card row. Shows icon, type bucket + state tag, year, price,
- * monthly cashflow chip, caret, and a hover-revealed X to remove.
+ * caret, and a hover-revealed X to remove.
  *
  * Click anywhere on the card body (not the X) to expand the detail panel.
  */
@@ -39,22 +39,14 @@ const formatCompactCurrency = (value: number): string => {
   return `$${value}`;
 };
 
-const formatMonthlyCashflow = (value: number): string => {
-  const rounded = Math.round(value);
-  const abs = Math.abs(rounded);
-  const formatted =
-    abs >= 1000 ? `$${(abs / 1000).toFixed(1)}k` : `$${abs}`;
-  return rounded < 0 ? `-${formatted}/mo` : `${formatted}/mo`;
-};
-
 interface PropertySummaryCardProps {
   instanceId: string;
   propertyType: string;
   instanceData: PropertyInstanceDetails;
   /** Calculated purchase year (e.g. 2029) — undefined if not yet placed */
   purchaseYear?: number;
-  /** Estimated monthly net cashflow */
-  monthlyCashflow: number;
+  /** True when the property cannot be afforded inside the planning timeline */
+  isUnplaceable?: boolean;
   /** Whether this card's detail panel is currently open */
   isExpanded: boolean;
   onClick: () => void;
@@ -69,7 +61,7 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
   propertyType,
   instanceData,
   purchaseYear,
-  monthlyCashflow,
+  isUnplaceable,
   isExpanded,
   onClick,
   onRemove,
@@ -78,15 +70,19 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
 }) => {
   const cellLabel = resolveCellLabel(propertyType);
   const currentCellId = resolveCellId(propertyType);
-  const cashflowPositive = monthlyCashflow >= 0;
 
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
     <div className="flex-shrink-0 group" style={{ width: 220 }}>
       {/* Year — sits above the card like a chart-axis label */}
-      <div className="text-[11px] font-medium text-gray-400 mb-1.5 px-1">
-        {purchaseYear ?? '—'}
+      <div
+        className={`text-[11px] font-medium mb-1.5 px-1 ${
+          isUnplaceable ? 'text-amber-600' : 'text-gray-400'
+        }`}
+        title={isUnplaceable ? "This property doesn't fit in the current timeline — extend the timeline or adjust the strategy." : undefined}
+      >
+        {isUnplaceable ? "Doesn't fit — extend timeline" : (purchaseYear ?? '—')}
       </div>
 
       <div
@@ -187,19 +183,10 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
             />
           </div>
 
-          {/* Price + cashflow chip */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          {/* Price */}
+          <div className="pt-2 border-t border-gray-100">
             <div className="text-[14px] font-semibold text-gray-900">
               {formatCompactCurrency(instanceData.purchasePrice)}
-            </div>
-            <div
-              className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ${
-                cashflowPositive
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-red-600 bg-red-50'
-              }`}
-            >
-              {formatMonthlyCashflow(monthlyCashflow)}
             </div>
           </div>
         </div>

@@ -38,7 +38,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
   // Cap at timeline end year to match all other dashboard charts
   const data = useMemo(() => {
     const rawData = cashflowData.length > 0 ? cashflowData : [{
-      year: '2025',
+      year: String(BASE_YEAR),
       cashflow: 0,
       rentalIncome: 0,
       expenses: 0,

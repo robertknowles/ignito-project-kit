@@ -30,7 +30,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
-  const DEFAULT_CHAT_WIDTH = 288; // w-72
+  const DEFAULT_CHAT_WIDTH = 360;
   const [chatPanelWidth, setChatPanelWidthState] = useState<number>(() => {
     const saved = localStorage.getItem('proppath-chat-width');
     return saved ? parseInt(saved, 10) : DEFAULT_CHAT_WIDTH;

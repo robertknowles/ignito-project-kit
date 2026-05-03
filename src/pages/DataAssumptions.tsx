@@ -18,7 +18,8 @@ import { LibraryDrawer } from '../components/LibraryDrawer'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useClient, Client } from '../contexts/ClientContext'
-import { translateLegacyEngineId } from '../utils/propertyCells'
+import { translateLegacyEngineId, isCellId, getCellDisplayLabel, type CellId } from '../utils/propertyCells'
+import { BASE_YEAR } from '../constants/financialParams'
 import { useAuth } from '../contexts/AuthContext'
 import { PropertyDetailModal } from '../components/PropertyDetailModal'
 import { TitleDeedCard } from '../components/TitleDeedCard'
@@ -251,7 +252,9 @@ export const DataAssumptions = () => {
                 const instanceId = item.instanceId || item.id || `prop_${idx}`
                 const instance = propertyInstances[instanceId] || {}
                 const tracking = portfolioTracking[instanceId] || {}
-                const prop = buildProperty(instanceId, item.title || `Property ${idx + 1}`, instance, tracking, Math.round(item.affordableYear || 2025), idx, item.cost)
+                const cellPart = instanceId.split('_instance_')[0]
+                const fallbackTitle = isCellId(cellPart) ? getCellDisplayLabel(cellPart as CellId) : `Property ${idx + 1}`
+                const prop = buildProperty(instanceId, item.title || fallbackTitle, instance, tracking, Math.round(item.affordableYear || BASE_YEAR), idx, item.cost)
                 properties.push(prop)
                 purchaseMap[`${scenario.id}_${instanceId}`] = {
                   isPurchased: tracking.isPurchased || false,
@@ -276,7 +279,7 @@ export const DataAssumptions = () => {
               })
             }
 
-            const baseYear = 2025
+            const baseYear = BASE_YEAR
             const profile = sd.investmentProfile || {}
             const annualSavings = profile.annualSavings || 50000
 

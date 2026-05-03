@@ -16,6 +16,7 @@ import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
+import { BASE_YEAR } from '../constants/financialParams'
 
 export const PortfolioGrowthChart = () => {
   const { portfolioGrowthData } = useChartDataGenerator()
@@ -24,7 +25,7 @@ export const PortfolioGrowthChart = () => {
   // Use calculated data or show empty state
   const data = portfolioGrowthData.length > 0 ? portfolioGrowthData : [
     {
-      year: '2025',
+      year: String(BASE_YEAR),
       portfolioValue: 0,
       equity: 0,
       properties: undefined,

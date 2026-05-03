@@ -2,7 +2,7 @@ import React from 'react';
 import { DollarSign, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import type { YearBreakdownData } from '@/types/property';
 import { BreakdownInfo } from './BreakdownInfo';
-import { EQUITY_EXTRACTION_LVR_CAP } from '@/constants/financialParams';
+import { BASE_YEAR, EQUITY_EXTRACTION_LVR_CAP } from '@/constants/financialParams';
 
 interface DepositTestFunnelProps {
   yearData: YearBreakdownData;
@@ -40,8 +40,7 @@ export const DepositTestFunnel: React.FC<DepositTestFunnelProps> = ({ yearData }
   const calculatedEquity = Math.max(0, maxLendable - existingDebt);
   
   // Calculate years accumulated for Cumulative Savings breakdown
-  const baseYear = 2025;
-  const yearsAccumulated = Math.max(0, yearData.year - baseYear);
+  const yearsAccumulated = Math.max(0, yearData.year - BASE_YEAR);
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;

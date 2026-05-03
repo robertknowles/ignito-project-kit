@@ -8,6 +8,13 @@ export interface InvestmentProfileData {
   currentDebt: number;
   annualSavings: number;
   timelineYears: number;
+  /**
+   * True when the user explicitly stated a timeline (e.g. "in 10 years", "by 2040").
+   * False/undefined when timelineYears is just the default (15). Drives whether the
+   * "doesn't fit — extend" message appears on property cards: an unplaceable
+   * property is only flagged when the user has explicitly capped the timeline.
+   */
+  timelineYearsExplicit?: boolean;
   equityGoal: number; // Changed from equityGrowth percentage to dollar amount
   cashflowGoal: number; // Changed from cashflow percentage to dollar amount
   // Enhanced dynamic features
@@ -89,6 +96,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   currentDebt: 0,
   annualSavings: 24000,
   timelineYears: 15,
+  timelineYearsExplicit: false,
   equityGoal: 1000000, // Default $1M equity goal
   cashflowGoal: 50000, // Default $50k annual cashflow goal
   // Enhanced dynamic features
