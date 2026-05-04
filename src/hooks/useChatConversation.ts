@@ -192,10 +192,25 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           .slice(-HISTORY_WINDOW)
           .map((m) => ({ role: m.role, content: m.content }))
 
-        // Call the edge function (with single retry for transient failures)
-        let data: NLParseResponse
-        const callEdgeFunction = async () => {
-          const result = await supabase.functions.invoke('nl-parse', {
+        // Call the edge function with timeout + exponential-backoff retry on
+        // transient errors (TIMEOUT, RATE_LIMIT, MALFORMED). Permanent errors
+        // surface immediately. Total max wall time ≈ 65s under the worst case.
+        const NL_PARSE_TIMEOUT_MS = 30_000
+        // Retry budget per error class. First attempt is always free; the
+        // numbers below are how many ADDITIONAL retries we allow.
+        const MAX_RETRIES_BY_CODE: Record<string, number> = {
+          MALFORMED: 1,   // Claude occasionally returns bad JSON; one retry usually fixes it
+          RATE_LIMIT: 2,  // Anthropic rate-limit windows are short; backoff buys recovery time
+          TIMEOUT: 1,     // Claude/edge slow; try once more, don't pile on
+        }
+        // Base delays in ms before each retry (index = retry attempt number).
+        // Add jitter to break up thundering-herd patterns when many users
+        // retry at the same moment after a shared rate-limit event.
+        const RETRY_BASE_DELAYS_MS = [400, 1500, 3500]
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+        const callOnce = async (): Promise<NLParseResponse> => {
+          const invokePromise = supabase.functions.invoke('nl-parse', {
             body: {
               message: userText.trim(),
               conversationHistory,
@@ -205,9 +220,26 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             },
           })
 
+          // Race the invoke against a hard client-side timeout. Without this
+          // the user can wait indefinitely if the edge function hangs (Supabase
+          // doesn't surface a timely error in that case).
+          let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(
+              () => reject(new Error('TIMEOUT')),
+              NL_PARSE_TIMEOUT_MS,
+            )
+          })
+
+          let result: Awaited<typeof invokePromise>
+          try {
+            result = await Promise.race([invokePromise, timeoutPromise])
+          } finally {
+            if (timeoutHandle) clearTimeout(timeoutHandle)
+          }
+
           if (result.error) {
             const msg = result.error.message || ''
-            // Detect specific error types
             if (msg.includes('timeout') || msg.includes('TIMEOUT') || msg.includes('504')) {
               throw new Error('TIMEOUT')
             }
@@ -228,26 +260,37 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           return result.data as NLParseResponse
         }
 
-        try {
-          data = await callEdgeFunction()
-        } catch (firstErr) {
-          const errMsg = firstErr instanceof Error ? firstErr.message : ''
-          // Retry once for malformed responses (Claude occasionally returns bad JSON)
-          if (errMsg === 'MALFORMED') {
+        const callWithRetry = async (): Promise<NLParseResponse> => {
+          let attempt = 0
+          while (true) {
             try {
-              data = await callEdgeFunction()
-            } catch {
-              throw new Error('MALFORMED')
+              return await callOnce()
+            } catch (err) {
+              const code = err instanceof Error ? err.message : ''
+              const budget = MAX_RETRIES_BY_CODE[code] ?? 0
+              if (attempt >= budget) {
+                throw err
+              }
+              const baseDelay = RETRY_BASE_DELAYS_MS[attempt] ?? 3500
+              const jitter = Math.floor(Math.random() * 250)
+              console.warn(
+                `[nl-parse] ${code} on attempt ${attempt + 1}, retrying in ${baseDelay + jitter}ms`,
+              )
+              await sleep(baseDelay + jitter)
+              attempt += 1
             }
-          } else if (errMsg === 'TIMEOUT') {
-            throw new Error('TIMEOUT')
-          } else if (errMsg === 'RATE_LIMIT') {
-            throw new Error('RATE_LIMIT')
-          } else if (!navigator.onLine) {
-            throw new Error('OFFLINE')
-          } else {
-            throw firstErr
           }
+        }
+
+        let data: NLParseResponse
+        try {
+          data = await callWithRetry()
+        } catch (err) {
+          // Convert OFFLINE last so we don't override more specific codes
+          if (!navigator.onLine) {
+            throw new Error('OFFLINE')
+          }
+          throw err
         }
 
         const response = data

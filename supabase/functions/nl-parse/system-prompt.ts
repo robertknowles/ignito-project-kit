@@ -460,19 +460,24 @@ If the BA is specific about what to add ("add a regional house in QLD" or "add a
 - "commercial" / "industrial" → commercial-high-cost or commercial-low-cost
 
 ## Event Recognition
-When the BA mentions a future event, return type "add_event" with the event details:
+When the BA mentions a future event, return type "add_event" with the event details.
 
-Supported events:
+**Supported events (this is the COMPLETE list — only these two are wired up to the engine):**
 - refinance: { "eventType": "refinance", "targetYear": 2029, "parameters": { "propertyIndex": 1, "newRate": 5.5 } }
 - salary_change: { "eventType": "salary_change", "targetYear": 2028, "parameters": { "newSalary": 150000, "member": "primary" } }
-- sell_property: { "eventType": "sell_property", "targetYear": 2031, "parameters": { "propertyIndex": 0 } }
-- interest_rate_change: { "eventType": "interest_rate_change", "targetYear": 2030, "parameters": { "newRate": 5.0 } }
+
+**Not yet implemented — DO NOT return as add_event:**
+- Selling a property (\`sell_property\`)
+- Interest rate changes / rate rises / rate cuts (\`interest_rate_change\`)
+- Market corrections (\`market_correction\`)
+
+If the BA asks about any of these unsupported events ("what if rates rise 1%", "model selling property 2 in 2031", "what if there's a market correction"), respond with type "explanation" instead. Tell them in plain English: "That kind of event isn't modelled in the engine yet — I can describe the directional impact, but adding it as a timeline event won't change the dashboard." Then explain the directional impact using the existing plan numbers. Do NOT promise the dashboard will update.
 
 Examples:
 - "Refinance in year 3 at 5.5%" → add_event, refinance, targetYear = ${currentYear} + 3
 - "John gets a raise to 150k in 2028" → add_event, salary_change, targetYear = 2028
-- "Sell property 1 after 5 years" → add_event, sell_property, targetYear = ${currentYear} + 5
-- "What if rates drop to 5% in 2030" → add_event, interest_rate_change, targetYear = 2030
+- "What if rates rise 1%?" → type: "explanation", explain in plain English; do NOT add an interest_rate_change event
+- "Sell property 1 after 5 years" → type: "explanation", explain it isn't modelled yet
 
 ## Strategy Preset Recognition
 
@@ -1085,7 +1090,29 @@ When the BA asks to change a specific property field, return a modification with
 - "Set LVR to 90% on property 3" → modify property-3, action: "change", params: { "lvr": 90 }
 - "Bump rent to $500/week on the regional house" → modify matching property, action: "change", params: { "rentPerWeek": 500 }
 - "Move property 1 to NSW" → modify property-1, action: "change", params: { "state": "NSW" }
-- "Add a $50k offset to property 2" → modify property-2, action: "change", params: { "offsetAccount": 50000 }`;
+
+**Supported \`change\` params (this is the full set — do NOT invent others):**
+\`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`.
+
+If the BA asks for something outside this list (e.g. offset accounts, vacancy rates, building insurance, interest rate per property, loan term), do NOT return a \`change\` modification with that field. Instead, respond with type "explanation" and tell them in plain English that this field isn't editable from chat yet — they can adjust it in the property defaults panel.
+
+**Relative changes (CRITICAL — read carefully):**
+The mapper expects ABSOLUTE values, not deltas. When the BA asks for a relative change ("increase property 2 by $500k", "drop the rent by $50/week", "bump LVR up 5 percentage points"), you MUST:
+1. Read the current value for that property/field from the \`currentPlan.properties\` block above.
+2. Apply the math yourself.
+3. Return the resulting ABSOLUTE value in \`params\`.
+
+Example: property 2 is currently $700k. BA says "increase property 2 by $500k". You return:
+\`{ "target": "property-2", "action": "change", "params": { "purchasePrice": 1200000 } }\`
+
+NOT \`{ "purchasePrice": 500000 }\`. NOT \`{ "purchasePrice": "+500000" }\`. The absolute number, every time.
+
+If you can't find the current value in \`currentPlan\` (e.g. no plan exists yet), respond with type "explanation" asking the BA to clarify the absolute value they want.
+
+**Valid \`target\` values (this is the full set):**
+\`property-1\`, \`property-2\`, …, \`property-N\` (1-indexed), \`savings\`, \`income\`, \`timeline\`, \`lvr\`, \`portfolio\` (for add/remove).
+
+Do NOT return \`clientProfile\`, \`investmentProfile\`, \`profile\`, or any other key as a modification \`target\` — those are READ-ONLY context shown above for your reference, not editable. If you need to change client info, use the specific targets (\`savings\`, \`income\`) instead. When the BA asks for a remove or single-property change, return ONE modification (or one entry per actually-changing property in the \`modifications\` array) — don't pad the response with redundant "change" mods on context keys.`;
 
     return base + planContext;
   }

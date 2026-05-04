@@ -206,7 +206,23 @@ export interface ContextUpdates {
     propertyOrder: string[];
     instances: Record<string, PropertyInstanceDetails>;
   };
+  // Human-readable reasons the mapper couldn't apply something. Surfaced
+  // in the chat by ChatPanel so we never silently drop a modification while
+  // letting Claude's "Done!" message stand. Empty/undefined = no warnings.
+  warnings?: string[];
 }
+
+// Property fields the mapper knows how to apply. Anything else returned by
+// Claude is reported as a warning so the user (and we) can see it was dropped.
+// Keep this in sync with the change-handler in mapModificationToUpdates.
+const SUPPORTED_CHANGE_FIELDS = new Set([
+  'purchasePrice',
+  'state',
+  'lvr',
+  'loanProduct',
+  'growthAssumption',
+  'rentPerWeek',
+]);
 
 /**
  * Maps a modification-type NLParseResponse to specific context updates.
@@ -220,21 +236,29 @@ export function mapModificationToUpdates(
   currentOrder: string[]
 ): ContextUpdates {
   if (!response.modification) {
-    return {};
+    console.warn('[nlDataMapper] mapModificationToUpdates called with no modification on response');
+    return { warnings: ['I tried to make a change but the request came through empty — try saying it a different way.'] };
   }
 
   const { target, action, params } = response.modification;
   const updates: ContextUpdates = {};
+  const warnings: string[] = [];
 
   // Resolve "property-N" to actual instance ID (1-indexed in chat, 0-indexed in array)
   const propertyMatch = target.match(/^property-(\d+)$/);
 
   if (propertyMatch) {
-    const propertyIndex = parseInt(propertyMatch[1], 10) - 1; // Convert to 0-indexed
+    const requestedNumber = parseInt(propertyMatch[1], 10);
+    const propertyIndex = requestedNumber - 1; // Convert to 0-indexed
     const instanceId = currentOrder[propertyIndex];
 
     if (!instanceId) {
-      return updates; // Invalid property reference
+      const total = currentOrder.length;
+      const msg = total === 0
+        ? `I tried to change property ${requestedNumber}, but the plan doesn't have any properties yet.`
+        : `I tried to change property ${requestedNumber}, but the plan only has ${total} ${total === 1 ? 'property' : 'properties'}. Which one did you mean?`;
+      console.warn(`[nlDataMapper] property index out of range: requested ${requestedNumber}, have ${total}`);
+      return { warnings: [msg] };
     }
 
     switch (action) {
@@ -248,6 +272,8 @@ export function mapModificationToUpdates(
               manualPlacementPeriod: targetPeriod,
             },
           }];
+        } else {
+          warnings.push(`Wanted to move property ${requestedNumber} but no target period was given.`);
         }
         break;
       }
@@ -273,8 +299,29 @@ export function mapModificationToUpdates(
         if (params.rentPerWeek !== undefined) {
           instanceChanges.rentPerWeek = params.rentPerWeek as number;
         }
+
+        // Surface any params Claude tried to set that we don't actually
+        // support. Without this, the mapper silently dropped them and the
+        // chat happily said "Done!" — the source of "I asked it to change X
+        // and nothing happened" reports.
+        const unsupported = Object.keys(params).filter(
+          (k) => !SUPPORTED_CHANGE_FIELDS.has(k),
+        );
+        if (unsupported.length > 0) {
+          console.warn(`[nlDataMapper] dropped unsupported change fields: ${unsupported.join(', ')}`);
+          warnings.push(
+            `Couldn't change ${unsupported.join(', ')} on property ${requestedNumber} — that field isn't editable yet.`,
+          );
+        }
+
         if (Object.keys(instanceChanges).length > 0) {
           updates.instanceUpdates = [{ instanceId, updates: instanceChanges }];
+        } else if (unsupported.length === 0) {
+          // No supported and no unsupported fields — Claude returned an empty
+          // params object. Tell the user.
+          warnings.push(
+            `Got a change request for property ${requestedNumber} but no fields were specified.`,
+          );
         }
         break;
       }
@@ -351,5 +398,52 @@ export function mapModificationToUpdates(
     }));
   }
 
+  // Decide whether a no-update outcome deserves a user-visible warning.
+  // Claude sometimes sends compound modifications that include redundant
+  // "change" mods on context-only targets like clientProfile / investmentProfile
+  // — those are not real targets and should be silently ignored instead of
+  // confusing the user with "I couldn't apply it" messages while the actual
+  // remove/change worked.
+  const KNOWN_NON_PROPERTY_TARGETS = new Set([
+    'savings',
+    'income',
+    'timeline',
+    'lvr',
+    'portfolio',
+  ]);
+  const isPropertyTarget = !!propertyMatch;
+  const isKnownTarget = isPropertyTarget || KNOWN_NON_PROPERTY_TARGETS.has(target);
+
+  const producedUpdates =
+    !!updates.profileUpdates ||
+    !!updates.instanceUpdates ||
+    !!updates.selectionChanges;
+
+  if (!producedUpdates && warnings.length === 0) {
+    if (!isKnownTarget) {
+      // Unknown target — Claude sent us something we don't model. Log for
+      // diagnostics but do NOT surface to the user; this commonly fires for
+      // redundant context-only mods alongside a real change in the same batch.
+      console.warn('[nlDataMapper] ignoring unknown modification target', {
+        target,
+        action,
+        paramKeys: Object.keys(params ?? {}),
+      });
+    } else {
+      // Known target but nothing landed — that IS surprising, tell the user.
+      console.warn('[nlDataMapper] known target produced no updates', {
+        target,
+        action,
+        paramKeys: Object.keys(params ?? {}),
+      });
+      warnings.push(
+        `I understood the request but couldn't apply it — the engine didn't get any concrete changes from "${action}" on "${target}".`,
+      );
+    }
+  }
+
+  if (warnings.length > 0) {
+    updates.warnings = warnings;
+  }
   return updates;
 }

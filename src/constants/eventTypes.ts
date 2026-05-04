@@ -268,10 +268,23 @@ export const EVENT_TYPES: Record<EventType, EventTypeDefinition> = {
 // =============================================================================
 
 /**
+ * Event types hidden from the user-facing picker. Their definitions stay in
+ * EVENT_TYPES so existing saved scenarios still render, but new ones can't be
+ * added because the calculator treats them as no-ops.
+ */
+const HIDDEN_FROM_PICKER: ReadonlySet<EventType> = new Set([
+  'sell_property',
+  'interest_rate_change',
+  'market_correction',
+]);
+
+/**
  * Get all event types for a specific category
  */
 export const getEventTypesForCategory = (category: EventCategory): EventTypeDefinition[] => {
-  return Object.values(EVENT_TYPES).filter(et => et.category === category);
+  return Object.values(EVENT_TYPES).filter(
+    et => et.category === category && !HIDDEN_FROM_PICKER.has(et.id),
+  );
 };
 
 /**

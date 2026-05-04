@@ -10,37 +10,14 @@ export function Upgrade() {
   const { user, signOut } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
-  const handleSubscribe = async (plan: PlanKey) => {
+  // Stripe checkout is disabled during the testing period. When re-enabling,
+  // restore the create-checkout invocation (see git history).
+  const handleSubscribe = async (_plan: PlanKey) => {
     if (!user) {
       navigate('/login');
       return;
     }
-
-    setLoadingPlan(plan);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          plan,
-          userId: user.id
-        }
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        alert('Failed to start checkout. Please try again.');
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
-    } finally {
-      setLoadingPlan(null);
-    }
+    alert('Subscriptions are temporarily unavailable while PropPath is in private testing.');
   };
 
   const handleSignOut = async () => {

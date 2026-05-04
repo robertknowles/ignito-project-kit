@@ -64,16 +64,6 @@ const Footer: React.FC = () => {
               <h4 className="text-[13px] font-semibold mb-6">Company</h4>
               <div className="flex flex-col gap-4 text-[13px] text-linear-muted">
                 <a href="#founders" className="hover:text-black transition-colors">Founding Agency</a>
-                <a href="#" className="hover:text-black transition-colors">About</a>
-                <a href="#" className="hover:text-black transition-colors">Contact</a>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[13px] font-semibold mb-6">Legal</h4>
-              <div className="flex flex-col gap-4 text-[13px] text-linear-muted">
-                <a href="#" className="hover:text-black transition-colors">Privacy</a>
-                <a href="#" className="hover:text-black transition-colors">Terms</a>
               </div>
             </div>
           </div>

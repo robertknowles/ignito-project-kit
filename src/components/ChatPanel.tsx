@@ -86,6 +86,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Track client names for plan state
   const clientNamesRef = useRef<string[]>([])
 
+  // Forward-ref to addSystemMessage so handleModification (defined ABOVE the
+  // useChatConversation call that returns addSystemMessage) can post into the
+  // chat without sitting in a temporal dead zone for the const declaration.
+  const addSystemMessageRef = useRef<((text: string) => void) | null>(null)
+
   // Build current plan state for the edge function.
   // The enginePlanState block carries the actual projected horizon numbers
   // from the simulator, so the AI can cite them in chat (matching the
@@ -189,11 +194,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       let currentInstances = { ...instances }
       let currentOrder = [...propertyOrder]
       let currentSelections = { ...selections }
+      // Collect mapper warnings across all mods so we can surface them once
+      // to the user instead of letting Claude's "Done!" stand for a silent drop.
+      const allWarnings: string[] = []
 
       for (const mod of modList) {
         // Create a temporary response with just this modification
         const singleResponse = { ...response, modification: mod, modifications: undefined }
         const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder)
+
+        if (updates.warnings && updates.warnings.length > 0) {
+          allWarnings.push(...updates.warnings)
+        }
 
         if (updates.profileUpdates) {
           mergedProfileUpdates = { ...mergedProfileUpdates, ...updates.profileUpdates }
@@ -207,6 +219,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                 ...currentInstances,
                 [instanceId]: { ...current, ...instUpdates },
               }
+            } else {
+              console.warn(`[ChatPanel] mapper returned update for missing instance ${instanceId}`)
+              allWarnings.push(`Couldn't find that property to update — it may have been removed.`)
             }
           }
         }
@@ -245,6 +260,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       if (didChange) {
         flushSaveAfterStateUpdate()
       }
+
+      // Surface mapper warnings so the user isn't lied to. If Claude's reply
+      // says "Done!" but the mapper couldn't apply something, post a system
+      // message right after explaining what didn't land. This is the fix for
+      // "I asked it to change X and nothing happened" reports.
+      if (allWarnings.length > 0) {
+        const dedup = Array.from(new Set(allWarnings))
+        const heading = didChange
+          ? 'Some parts of that update didn\'t apply:'
+          : 'I couldn\'t apply that change:'
+        addSystemMessageRef.current?.(`${heading}\n• ${dedup.join('\n• ')}`)
+      }
     },
     [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate]
   )
@@ -277,41 +304,46 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [chartData, timelineProperties]
   )
 
-  // Handle add_event — add timeline events from NL
+  // Handle add_event — add timeline events from NL.
+  //
+  // Only `refinance` and `salary_change` are wired into the calculation
+  // engine. Other event types (sell_property, interest_rate_change,
+  // market_correction) have placeholder logic in useAffordabilityCalculator
+  // that does nothing — adding them looked successful but the dashboard
+  // never moved, which is exactly the "looks functional but silently does
+  // nothing" trap we're cleaning up. Bounce them with a clear system
+  // message instead of pretending to apply them.
+  const SUPPORTED_EVENT_TYPES = new Set(['refinance', 'salary_change'])
+  const UNSUPPORTED_EVENT_LABELS: Record<string, string> = {
+    sell_property: 'selling a property',
+    interest_rate_change: 'interest rate changes',
+    market_correction: 'market corrections',
+  }
   const handleAddEvent = useCallback(
     (response: NLParseResponse) => {
       if (!response.event) return
       const { eventType, targetYear, parameters } = response.event
+
+      if (!SUPPORTED_EVENT_TYPES.has(eventType)) {
+        const label = UNSUPPORTED_EVENT_LABELS[eventType] ?? eventType
+        console.warn(`[nl-parse] blocking unsupported add_event type: ${eventType}`)
+        addSystemMessageRef.current?.(
+          `Heads up — ${label} isn't modelled in the engine yet, so I haven't added a timeline event for it. The dashboard wouldn't change. I can describe the directional impact in chat, but the numbers won't move until this is implemented.`,
+        )
+        return
+      }
+
       const BASE_YEAR = new Date().getFullYear()
       const period = Math.max(1, Math.round((targetYear - BASE_YEAR) * 2) + 1)
 
-      // Map NL event types to the existing event system. EVENT_TYPES uses
-      // underscore ids (salary_change, interest_rate_change, sell_property)
-      // so we preserve those — the previous dashed mapping produced ids that
-      // didn't exist in the registry and crashed the roadmap when it tried
-      // to look up .label on an undefined typeDef.
-      const eventTypeMap: Record<string, string> = {
-        refinance: 'refinance',
-        salary_change: 'salary_change',
-        sell_property: 'sell_property',
-        interest_rate_change: 'interest_rate_change',
-      }
       const categoryMap: Record<string, string> = {
         refinance: 'portfolio',
         salary_change: 'income',
-        sell_property: 'portfolio',
-        interest_rate_change: 'market',
-      }
-
-      const mappedType = eventTypeMap[eventType]
-      if (!mappedType) {
-        console.warn('[nl-parse] unknown event type from add_event response:', eventType)
-        return
       }
 
       addEvent({
         type: 'event',
-        eventType: mappedType,
+        eventType,
         category: categoryMap[eventType] || 'portfolio',
         period,
         order: 0,
@@ -345,6 +377,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     strategyPreset: profile.strategyPreset || 'eg-low',
     hasExistingPlan: propertyOrder.length > 0,
   })
+
+  // Keep the forward-ref pointed at the latest addSystemMessage so callbacks
+  // declared above this hook (handleModification) can post into the chat.
+  addSystemMessageRef.current = addSystemMessage
 
   // Clear chat when scenario is reset (scenarioId goes from a value to null)
   const prevScenarioIdRef = useRef<string | null>(null)

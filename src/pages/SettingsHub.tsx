@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import {
   FileTextIcon,
   PaletteIcon,
-  CreditCardIcon,
-  BookOpenIcon,
   BarChart3Icon,
   Loader2Icon,
 } from 'lucide-react'
@@ -11,14 +9,12 @@ import { LeftRail } from '../components/LeftRail'
 import { useNavigate } from 'react-router-dom'
 import { useAIUsage } from '@/hooks/useAIUsage'
 
-type SettingsTab = 'forms' | 'white-label' | 'plans' | 'usage' | 'help'
+type SettingsTab = 'forms' | 'white-label' | 'usage'
 
 const settingsTabs: { id: SettingsTab; label: string; icon: React.ElementType; description: string }[] = [
   { id: 'forms', label: 'Forms', icon: FileTextIcon, description: 'Create and manage client form templates' },
   { id: 'white-label', label: 'White Label', icon: PaletteIcon, description: 'Company branding and team management' },
-  { id: 'plans', label: 'Plans & Pricing', icon: CreditCardIcon, description: 'Manage your subscription' },
   { id: 'usage', label: 'AI Usage', icon: BarChart3Icon, description: 'View your AI usage this month' },
-  { id: 'help', label: 'Help & Resources', icon: BookOpenIcon, description: 'Documentation and support' },
 ]
 
 /** Format large numbers with commas */
@@ -112,20 +108,6 @@ export const SettingsHub = () => {
               </>
             )}
 
-            {activeTab === 'plans' && (
-              <>
-                <div className="mb-6">
-                  <h1 className="page-title">Plans & Pricing</h1>
-                  <p className="body-secondary mt-1">Manage your subscription and billing</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-                  <CreditCardIcon size={48} className="text-gray-300 mx-auto mb-4" />
-                  <p className="body-dark font-medium">Coming Soon</p>
-                  <p className="body-secondary mt-1">Subscription management will be available here.</p>
-                </div>
-              </>
-            )}
-
             {activeTab === 'usage' && (
               <>
                 <div className="mb-6">
@@ -189,19 +171,6 @@ export const SettingsHub = () => {
               </>
             )}
 
-            {activeTab === 'help' && (
-              <>
-                <div className="mb-6">
-                  <h1 className="page-title">Help & Resources</h1>
-                  <p className="body-secondary mt-1">Documentation, guides and support</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-                  <BookOpenIcon size={48} className="text-gray-300 mx-auto mb-4" />
-                  <p className="body-dark font-medium">Coming Soon</p>
-                  <p className="body-secondary mt-1">Help documentation and resources will be available here.</p>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>

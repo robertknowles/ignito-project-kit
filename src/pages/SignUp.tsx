@@ -226,14 +226,7 @@ export function SignUp() {
                   htmlFor="agree-terms"
                   className="ml-2 block text-sm text-[#6b7280]"
                 >
-                  I agree to the{' '}
-                  <a href="#" className="text-[#374151] hover:text-[#111827] underline">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-[#374151] hover:text-[#111827] underline">
-                    Privacy Policy
-                  </a>
+                  I agree to the Terms of Service and Privacy Policy
                 </label>
               </div>
               <div>

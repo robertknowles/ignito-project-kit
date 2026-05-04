@@ -10,38 +10,15 @@ const Pricing: React.FC = () => {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
-  const handleSubscribe = async (plan: PlanKey) => {
-    console.log('[Pricing] handleSubscribe called with plan:', plan, 'user:', user?.id);
-
+  // Stripe checkout is disabled during the testing period. Route users to
+  // signup if they're not signed in, otherwise show a short notice. When
+  // re-enabling, restore the create-checkout invocation (see git history).
+  const handleSubscribe = async (_plan: PlanKey) => {
     if (!user) {
-      console.log('[Pricing] No user, storing plan in localStorage and redirecting to signup');
-      localStorage.setItem('pending_subscription_plan', plan);
       navigate('/signup');
       return;
     }
-
-    setLoadingPlan(plan);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan, userId: user.id },
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        alert('Failed to start checkout. Please try again.');
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
-    } finally {
-      setLoadingPlan(null);
-    }
+    alert('Subscriptions are temporarily unavailable while PropPath is in private testing.');
   };
 
   return (

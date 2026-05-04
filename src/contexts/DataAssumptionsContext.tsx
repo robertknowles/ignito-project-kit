@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import propertyDefaults from '../data/property-defaults.json';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
@@ -136,8 +137,13 @@ const initializePropertyTypeTemplates = (): PropertyTypeTemplate[] => {
 
 export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = ({ children }) => {
   const { user, role } = useAuth();
+  const { toast } = useToast();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevAssumptionsRef = useRef<string>('');
+  // Track consecutive autosave failures so we surface a toast on the second
+  // failure (the first might be a transient blip; two in a row is real).
+  const saveFailureCountRef = useRef<number>(0);
+  const saveFailureToastShownRef = useRef<boolean>(false);
 
   // NEW: Property type templates (single source of truth)
   const [propertyTypeTemplates, setPropertyTypeTemplates] = useState<PropertyTypeTemplate[]>(
@@ -180,10 +186,26 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
       if (error) {
         throw error;
       }
+      // Reset failure tracking on success so we re-arm the toast for any
+      // future streak of failures.
+      saveFailureCountRef.current = 0;
+      saveFailureToastShownRef.current = false;
     } catch (error) {
-      // Failed to save assumptions to profile
+      console.error('[DataAssumptions] save failed:', error);
+      saveFailureCountRef.current += 1;
+      // Surface once after two consecutive failures, then suppress until a
+      // save succeeds. Avoids spamming the user on every keystroke during an
+      // outage while still making the failure visible.
+      if (saveFailureCountRef.current >= 2 && !saveFailureToastShownRef.current) {
+        saveFailureToastShownRef.current = true;
+        toast({
+          title: 'Could not save assumptions',
+          description: 'Your changes are still on screen but haven\'t been saved. Check your connection and try editing again.',
+          variant: 'destructive',
+        });
+      }
     }
-  }, [user, propertyTypeTemplates, propertyAssumptions, globalFactors]);
+  }, [user, propertyTypeTemplates, propertyAssumptions, globalFactors, toast]);
 
   const loadAssumptionsFromProfile = async () => {
     if (!user) {

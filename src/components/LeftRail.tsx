@@ -143,25 +143,7 @@ export const LeftRail = () => {
 
         {/* Bottom Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {/* Notifications */}
-          {(role === 'owner' || role === 'agent') && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
-                  style={{ color: primaryColor }}
-                  onClick={() => {
-                    // Placeholder — notifications coming soon
-                  }}
-                >
-                  <BellIcon size={20} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Notifications</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {/* Notifications — hidden until the feature is built. */}
 
           {/* User Profile Menu */}
           <div className="relative" ref={profileDropdownRef}>

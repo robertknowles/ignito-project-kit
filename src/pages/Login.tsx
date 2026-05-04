@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { MailIcon, LockIcon, EyeIcon, EyeOffIcon, HomeIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
-import { PlanKey } from '@/config/stripe'
 
 export function Login() {
   const navigate = useNavigate()
@@ -21,40 +19,14 @@ export function Login() {
     setError('')
 
     const { error: signInError } = await signIn(email, password)
-    
+
     if (signInError) {
       setError(signInError.message)
       setLoading(false)
     } else {
-      // Check if there's a pending subscription plan
-      const pendingPlan = localStorage.getItem('pending_subscription_plan') as PlanKey | null
-      
-      if (pendingPlan) {
-        // Clear the pending plan
-        localStorage.removeItem('pending_subscription_plan')
-        
-        // Get the current user and trigger checkout
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          try {
-            const { data, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-              body: {
-                plan: pendingPlan,
-                userId: user.id
-              }
-            })
-            
-            if (!checkoutError && data?.url) {
-              window.location.href = data.url
-              return
-            }
-          } catch (err) {
-            console.error('Checkout error:', err)
-          }
-        }
-      }
-      
+      // Pending-checkout handling removed while subscriptions are disabled.
+      // Drop any stale pending plan so it doesn't sit in localStorage.
+      localStorage.removeItem('pending_subscription_plan')
       navigate('/home')
     }
   }
