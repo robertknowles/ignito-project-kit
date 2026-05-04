@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { usePropertySelection } from '@/contexts/PropertySelectionContext';
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
+import { useClient } from '@/contexts/ClientContext';
 import { ScenarioCanvas } from './ScenarioCanvas';
 import { PropertyCardRow } from './PropertyCardRow';
 import { ComparisonInsights } from './ComparisonInsights';
@@ -61,6 +63,27 @@ export const Dashboard = () => {
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { planGenerating } = useLayout();
   const { propertyOrder: livePropertyOrder } = usePropertySelection();
+  const { loadClientScenario } = useScenarioSave();
+  const { activeClient } = useClient();
+
+  // Self-heal from a blank dashboard. We've seen cases (cofounder report,
+  // 2026-05-04) where navigating away to /home and back lands on an empty
+  // dashboard even though the chat history is intact and Supabase still
+  // holds the saved scenario. Root cause is hard to pin down — could be a
+  // transient context wipe, a race between mount and the calculator memo,
+  // or a stale closure in the load guard. Rather than chase the ghost, we
+  // refetch from Supabase on mount whenever propertyOrder is empty. If
+  // the scenario row exists, the contexts repopulate; if it doesn't, this
+  // is a no-op. The ref guards against re-firing within the same mount
+  // (e.g. if a save returns empty data we don't want to loop).
+  const recoveryAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (recoveryAttemptedRef.current) return;
+    if (livePropertyOrder.length > 0) return;
+    if (!activeClient?.id) return;
+    recoveryAttemptedRef.current = true;
+    loadClientScenario(activeClient.id);
+  }, [livePropertyOrder.length, activeClient?.id, loadClientScenario]);
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
     const isActive = scenario.id === activeScenarioId;
