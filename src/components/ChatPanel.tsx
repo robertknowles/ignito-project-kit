@@ -70,7 +70,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { activeClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario } = useScenarioSave()
+
+  // Explicit save trigger — bypasses the change-detection + autosave debounce
+  // chain that we suspect is racing with auth/navigation flows. Called from
+  // handlePlanGenerated / handleModification after state updates so the DB
+  // row is durable before the user can navigate or log out. Tiny delay lets
+  // React flush the state updates that handlePlanGenerated just made.
+  const flushSaveAfterStateUpdate = useCallback(() => {
+    setTimeout(() => {
+      void saveScenario(true)
+    }, 200)
+  }, [saveScenario])
 
   // Track client names for plan state
   const clientNamesRef = useRef<string[]>([])
@@ -154,9 +165,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       if (newOrder.length > 0) {
         setAllSelections(newSelections, newOrder)
         setInstances(newInstances)
+        // Force a save right after the plan lands. We don't rely on the
+        // change-detection autosave anymore — it has been racing with auth
+        // state changes and navigation, occasionally missing the save and
+        // leaving the dashboard blank on reload.
+        flushSaveAfterStateUpdate()
       }
     },
-    [updateProfile, setAllSelections, setInstances]
+    [updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate]
   )
 
   // Handle modifications — supports single modification or compound modifications array
@@ -208,16 +224,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       }
 
       // Apply instance and selection changes
+      let didChange = false
       if (modList.some(m => m.target.startsWith('property-') || m.target === 'lvr')) {
         setInstances(currentInstances)
+        didChange = true
       }
 
       if (modList.some(m => ['add', 'remove'].includes(m.action))) {
         setAllSelections(currentSelections, currentOrder)
         setInstances(currentInstances)
+        didChange = true
+      }
+
+      if (Object.keys(mergedProfileUpdates).length > 0) {
+        didChange = true
+      }
+
+      // Same explicit-save reasoning as handlePlanGenerated: don't trust the
+      // autosave debounce to fire before the user navigates or logs out.
+      if (didChange) {
+        flushSaveAfterStateUpdate()
       }
     },
-    [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances]
+    [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate]
   )
 
   // Scenario comparison fork is disabled by product decision. Comparison

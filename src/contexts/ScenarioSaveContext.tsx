@@ -677,6 +677,16 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [role, user?.id, loadScenarioForClientUser]);
 
+  // Reset the load guard when the auth user changes (logout/login). Without
+  // this, logout-then-login leaves loadedClientRef pointing at the previous
+  // session's client id, so the load effect below silently skips the
+  // re-fetch — and any client-side wipe to the contexts during logout (e.g.
+  // future cleanup we add, or framework-level state churn) leaves the
+  // dashboard blank with no recovery path.
+  useEffect(() => {
+    loadedClientRef.current = null;
+  }, [user?.id]);
+
   // Load scenario when activeClient changes
   useEffect(() => {
     if (activeClient && loadedClientRef.current !== activeClient.id) {
