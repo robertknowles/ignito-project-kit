@@ -463,9 +463,19 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // making the user's last message vanish on navigation. Same-client
     // reload preserves chat by default and only adopts the DB version if
     // it's at least as long (see chat-restore block below).
-    const isSameClientReload = activeClient?.id === clientId;
+    //
+    // Use loadedClientRef.current (the LAST client we initiated a load for)
+    // rather than activeClient?.id from the closure — the closure can be
+    // stale because loadClientScenario isn't redeclared on every activeClient
+    // change. When the parent effect fires loadClientScenario(client2) right
+    // after setActiveClient(client2), the closure here may still see
+    // activeClient.id = client1, making isSameClientReload incorrectly true
+    // and skipping the chat clear → previous client's chat persists into the
+    // new client's slot until the async fetch lands.
+    const isSameClientReload = loadedClientRef.current === clientId;
     if (!isSameClientReload) {
       setChatMessages([]);
+      setLoadedScenarioClientId(null);
     }
 
     try {

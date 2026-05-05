@@ -541,10 +541,24 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       // Pending-prompt handler will fire and start a fresh thread.
       return
     }
+    // CRITICAL: don't overwrite local messages with an empty saved chat.
+    // The pending-prompt handler may have just injected the user's first
+    // prompt for a brand-new client (no saved chat yet); calling
+    // loadMessages([]) here would wipe both the user's prompt and the
+    // loading indicator that's already on screen. Same applies to any case
+    // where the user has typed mid-flight ahead of the saved chat catching
+    // up. Trust the client-change effect to have already cleared local
+    // messages on the actual switch — if local has content NOW, it's content
+    // that belongs to this client.
+    if (savedChatMessages.length === 0 && messages.length > 0) {
+      loadedChatForClientRef.current = activeClient.id
+      loadedRef.current = true
+      return
+    }
     loadMessages(savedChatMessages)
     loadedChatForClientRef.current = activeClient.id
     loadedRef.current = true
-  }, [activeClient?.id, loadedScenarioClientId, savedChatMessages, loadMessages])
+  }, [activeClient?.id, loadedScenarioClientId, savedChatMessages, loadMessages, messages.length])
 
   // Sync current messages to scenario save context (for persistence).
   // Skip while we're mid-transition between clients (loadedScenarioClientId
