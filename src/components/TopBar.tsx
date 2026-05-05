@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export const TopBar = () => {
-  const { scenarioId, hasUnsavedChanges } = useScenarioSave()
+  const { scenarioId, hasUnsavedChanges, isChatRequestInFlight } = useScenarioSave()
   const { activeClient } = useClient()
   const { addScenario, scenarios } = useMultiScenario()
   const { toast } = useToast()
@@ -414,14 +414,28 @@ export const TopBar = () => {
         <div className="absolute left-1/2 top-0 h-full -translate-x-1/2 flex items-center">
           {tabs.map(tab => {
             const isActive = activeTab === tab.path
+            // Disable tab navigation while a chat request is in flight.
+            // Switching routes mid-fetch remounts ChatPanel and orphans the
+            // in-flight promise — user reports the loading state "glitches"
+            // when clicking between tabs during plan generation or a
+            // modification response. Holding the tabs until the response
+            // lands is the cheapest reliable fix.
+            const disabled = isChatRequestInFlight && !isActive
             return (
               <button
                 key={tab.label}
-                onClick={() => navigate(tab.path)}
+                onClick={() => {
+                  if (disabled) return
+                  navigate(tab.path)
+                }}
+                disabled={disabled}
+                title={disabled ? 'Wait for the plan to finish generating' : undefined}
                 className={`relative h-full px-5 text-[13px] font-medium transition-colors ${
                   isActive
                     ? 'text-[#111827]'
-                    : 'text-gray-500 hover:text-gray-700'
+                    : disabled
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {tab.label}

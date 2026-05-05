@@ -118,6 +118,16 @@ interface ScenarioSaveContextType {
    * in-memory edits made since the last successful autosave.
    */
   syncScenarioVersion: (newVersion: number) => void;
+  /**
+   * True while a chat request is in flight (plan generation, modification,
+   * explanation). Lifted to this context (which lives above the route layer)
+   * so other components — notably the tab nav in TopBar — can react to it
+   * across route changes. Without this, switching tabs mid-request remounts
+   * ChatPanel and orphans the in-flight fetch in the unmounted component's
+   * closure, causing visible glitches and dropped responses.
+   */
+  isChatRequestInFlight: boolean;
+  setChatRequestInFlight: (inFlight: boolean) => void;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
   // NL Chat history persistence
@@ -881,6 +891,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoadedVersion(newVersion);
   }, []);
 
+  const [isChatRequestInFlight, setChatRequestInFlight] = useState<boolean>(false);
+
   const value = {
     hasUnsavedChanges,
     isLoading,
@@ -891,6 +903,8 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     resetScenario,
     loadClientScenario,
     syncScenarioVersion,
+    isChatRequestInFlight,
+    setChatRequestInFlight,
     setTimelineSnapshot,
     setChartData,
     // NL Chat history persistence

@@ -48,8 +48,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           {/* Legend — inline in header */}
           {legend && legend.length > 0 && !collapsed && (
             <div className="flex items-center gap-3">
-              {legend.map((item) => (
-                <div key={item.label} className="flex items-center gap-1.5">
+              {legend.map((item, idx) => (
+                // Key includes idx because some charts (Equity Unlock) emit
+                // one legend entry per property, and two properties can share
+                // the same display title (e.g. two "Metro Unit — Growth"). A
+                // pure-label key collides and React drops the duplicate, which
+                // also masks state updates on the dropped entry.
+                <div key={`${item.label}-${idx}`} className="flex items-center gap-1.5">
                   {item.variant === 'ring' ? (
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"

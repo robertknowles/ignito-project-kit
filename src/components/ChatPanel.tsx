@@ -71,7 +71,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { activeClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight } = useScenarioSave()
 
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
@@ -477,9 +477,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const [loadingStep, setLoadingStep] = useState(0)
   const perfStartRef = useRef<number>(0)
 
-  // Sync loading state to layout context for Dashboard skeleton UI + step progression
+  // Sync loading state to layout context for Dashboard skeleton UI + step
+  // progression. Also lift to ScenarioSaveContext so TopBar (above the route
+  // layer) can disable tab nav while a request is in flight — switching
+  // routes mid-fetch remounts ChatPanel and orphans the in-flight promise
+  // (visible glitch + dropped response).
   useEffect(() => {
     setPlanGenerating(isLoading)
+    setChatRequestInFlight(isLoading)
     if (isLoading) {
       perfStartRef.current = performance.now()
       setLoadingStep(0)
@@ -498,7 +503,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       perfStartRef.current = 0
       setLoadingStep(0)
     }
-  }, [isLoading, setPlanGenerating])
+  }, [isLoading, setPlanGenerating, setChatRequestInFlight])
 
   // Auto-scroll to bottom when messages change or loading steps progress
   useEffect(() => {
