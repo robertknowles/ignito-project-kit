@@ -75,12 +75,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
   // handlePlanGenerated / handleModification after state updates so the DB
-  // row is durable before the user can navigate or log out. Tiny delay lets
-  // React flush the state updates that handlePlanGenerated just made.
+  // row is durable before the user can navigate or log out. setTimeout(0)
+  // schedules after React flushes the current setState batch but on the very
+  // next tick — was 200ms, which lost the race when users clicked to a
+  // different page within the debounce window (founder report 2026-05-05:
+  // chat modification confirmation message disappeared after navigation).
   const flushSaveAfterStateUpdate = useCallback(() => {
     setTimeout(() => {
       void saveScenario(true)
-    }, 200)
+    }, 0)
   }, [saveScenario])
 
   // Track client names extracted from the chat-generated plan. These are sent
@@ -197,6 +200,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         : response.modification
           ? [response.modification]
           : []
+
+      // Diagnostic log so silent-mod-not-applying bug reports have data.
+      // Surfaces target/action/params for each mod alongside the current
+      // property prices, so we can tell whether the AI returned a delta
+      // instead of an absolute, an out-of-range index, or empty params.
+      if (modList.length > 0) {
+        console.info('[ChatPanel] handleModification', {
+          modifications: modList,
+          currentPropertyOrder: propertyOrder,
+          currentPrices: propertyOrder.map((id, i) => ({
+            index: i + 1,
+            instanceId: id,
+            purchasePrice: instances[id]?.purchasePrice,
+          })),
+        })
+      }
 
       let mergedProfileUpdates: Record<string, unknown> = {}
       let currentInstances = { ...instances }

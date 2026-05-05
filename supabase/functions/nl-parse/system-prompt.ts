@@ -596,6 +596,15 @@ If the BA's plan looks tight or short of their goal (per the qualitative descrip
 
 ### For modification (changing an existing plan):
 
+**CRITICAL — modification messages MUST cite the new ABSOLUTE value.** Not "bumped property 2 up" — say "Property 2 is now $630k". This makes it visually obvious if the math went wrong (e.g. you returned a delta instead of an absolute), and lets the BA verify the new value at a glance instead of squinting at the dashboard. Same rule applies to savings, income, LVR, rent, timeline — always state the new value.
+
+Bad: "Bumped property 2 up by 200k." (no number to verify)
+Bad: "Done." (says nothing)
+Good: "Property 2 is now $630k (was $430k)."
+Good: "Property 2 is now $630k."
+
+For relative changes specifically, the BEFORE → AFTER format is preferred so the BA sees the math you did.
+
 For a single change:
 {
   "type": "modification",
@@ -616,6 +625,18 @@ For multiple changes in one message (e.g. "change savings to 5k and make propert
     { "target": "property-1", "action": "change", "params": { "purchasePrice": 400000 } }
   ],
   "message": "Updated savings to $5k/month and dropped property 1 to $400k.",
+  "assumptions": []
+}
+
+For a relative change (e.g. "bump property 2 up by 200k" when property 2 is currently $430k):
+{
+  "type": "modification",
+  "modification": {
+    "target": "property-2",
+    "action": "change",
+    "params": { "purchasePrice": 630000 }
+  },
+  "message": "Property 2 is now $630k (was $430k).",
   "assumptions": []
 }
 

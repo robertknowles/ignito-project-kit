@@ -430,9 +430,16 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     loadInProgressRef.current = true;
     setIsLoadingScenario(true);
-    // Eager-clear chat history so the previous client's chat doesn't briefly
-    // render in the new client's panel during the async fetch.
-    setChatMessages([]);
+    // Eager-clear chat history ONLY when switching to a different client —
+    // otherwise (self-heal recovery, same-client reload from save conflict)
+    // we'd wipe in-memory chat messages that haven't been autosaved yet,
+    // making the user's last message vanish on navigation. Same-client
+    // reload preserves chat by default and only adopts the DB version if
+    // it's at least as long (see chat-restore block below).
+    const isSameClientReload = activeClient?.id === clientId;
+    if (!isSameClientReload) {
+      setChatMessages([]);
+    }
 
     try {
       const { data, error } = await supabase
@@ -512,12 +519,23 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setPropertyOrder(reconstructedOrder);
         }
         
-        // Restore NL chat history if present
+        // Restore NL chat history. On a same-client reload (recovery path),
+        // only adopt the DB version if it's at least as long as what's in
+        // memory — otherwise an autosave that hadn't fired yet would have
+        // its in-memory chat overwritten by stale DB data, making the user's
+        // last message disappear on navigation.
         if (scenarioData.chatHistory && scenarioData.chatHistory.length > 0) {
-          setChatMessages(scenarioData.chatHistory);
-        } else {
+          if (isSameClientReload) {
+            setChatMessages((prev) =>
+              scenarioData.chatHistory!.length >= prev.length ? scenarioData.chatHistory! : prev
+            );
+          } else {
+            setChatMessages(scenarioData.chatHistory);
+          }
+        } else if (!isSameClientReload) {
           setChatMessages([]);
         }
+        // (else: same-client reload with no DB chat — keep whatever's in memory)
 
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
