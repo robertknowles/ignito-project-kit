@@ -697,19 +697,37 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // shimmer/response flow, exactly like typing it in directly.
   const pendingPromptHandledRef = useRef(false)
   useEffect(() => {
-    if (pendingPromptHandledRef.current) return
-    if (isLoading) return
-    if (!activeClient?.id) return
+    if (pendingPromptHandledRef.current) {
+      console.info('[pending-prompt] skip: already handled')
+      return
+    }
+    if (isLoading) {
+      console.info('[pending-prompt] skip: already loading')
+      return
+    }
+    if (!activeClient?.id) {
+      console.info('[pending-prompt] skip: no active client yet')
+      return
+    }
 
     const pending = sessionStorage.getItem('proppath:pending-prompt')
-    if (!pending) return
+    if (!pending) {
+      console.info('[pending-prompt] skip: no pending prompt in sessionStorage')
+      return
+    }
 
+    console.info('[pending-prompt] firing', {
+      clientId: activeClient.id,
+      clientName: activeClient.name,
+      promptLength: pending.length,
+    })
     pendingPromptHandledRef.current = true
     sessionStorage.removeItem('proppath:pending-prompt')
 
     clearMessages()
     // Defer one tick so the cleared state lands before the new send.
     setTimeout(() => {
+      console.info('[pending-prompt] sendMessage now')
       sendMessage(pending)
     }, 50)
   }, [isLoading, activeClient?.id, clearMessages, sendMessage])
