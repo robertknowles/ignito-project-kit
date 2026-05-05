@@ -83,8 +83,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }, 200)
   }, [saveScenario])
 
-  // Track client names for plan state
+  // Track client names extracted from the chat-generated plan. These are sent
+  // to the AI as plan context AND drive the loading-step display ("Reading
+  // X's profile"). Reset whenever the active client changes — without this,
+  // names from a previous client's plan leak into the next session, both as
+  // a cosmetic glitch (wrong name in the loading text) and a real correctness
+  // issue (the AI receives stale clientNames in its plan-context block).
   const clientNamesRef = useRef<string[]>([])
+  useEffect(() => {
+    clientNamesRef.current = []
+  }, [activeClient?.id])
 
   // Forward-ref to addSystemMessage so handleModification (defined ABOVE the
   // useChatConversation call that returns addSystemMessage) can post into the
