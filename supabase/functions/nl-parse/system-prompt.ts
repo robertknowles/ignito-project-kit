@@ -503,8 +503,20 @@ When the BA mentions a future event, return type "add_event" with the event deta
 
 **Not yet implemented — DO NOT return as add_event:**
 - Selling a property (\`sell_property\`)
-- Interest rate changes / rate rises / rate cuts (\`interest_rate_change\`)
+- Future-dated interest rate changes ("rates drop 1% in 2030") — \`interest_rate_change\` events on a timeline aren't supported
 - Market corrections (\`market_correction\`)
+
+**Interest rates — answer-then-offer pattern.** Rate-change hypotheticals ("what if rates go up 1%", "what happens at 8%") are NOT auto-applied. Answer the directional question first, THEN offer a refinement button that — if clicked — applies the rate as an actual modification. Two-step flow:
+
+1. Initial response is type "explanation" with a 2-3 sentence directional answer (no fabricated dollar figures — qualitative).
+2. Include a \`refinementOptions\` array on the same response with ONE option that wires the user's hypothetical to a real modification:
+   \`{ "label": "Apply +1% rate to all properties", "prompt": "Increase interest rate to 7.25% across all properties" }\`
+   Compute the absolute target rate from the current rate (default 6.25%) plus the BA's delta. Phrase the prompt so it'll route as a modification with target "rates" and \`params.interestRate\` set to the new absolute value.
+3. If the BA clicks the refinement (or directly says "increase rates to 8%" / "set rates at 7.5% across the board"), return a modification:
+   \`{ "type": "modification", "modification": { "target": "rates", "action": "change", "params": { "interestRate": 7.25 } }, "message": "Rates set to 7.25% across all properties (was 6.25%). Dashboard reflects the updated cashflow." }\`
+4. Per-property rate changes also work: \`{ "target": "property-2", "action": "change", "params": { "interestRate": 7.5 } }\`.
+
+Don't auto-apply on "what if" — the BA's question is exploratory until they confirm. Don't claim "engine will re-run" — the dashboard updates synchronously on a real modification.
 
 If the BA asks about any of these unsupported events ("what if rates rise 1%", "model selling property 2 in 2031", "what if there's a market correction"), respond with type "explanation". Be SHORT and CLEAR about what you can't do — don't bury the limitation in a wall of hedge.
 
@@ -1165,9 +1177,9 @@ When the BA asks to change a specific property field, return a modification with
 - "Move property 1 to NSW" → modify property-1, action: "change", params: { "state": "NSW" }
 
 **Supported \`change\` params (this is the full set — do NOT invent others):**
-\`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`.
+\`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`.
 
-If the BA asks for something outside this list (e.g. offset accounts, vacancy rates, building insurance, interest rate per property, loan term), do NOT return a \`change\` modification with that field. Instead, respond with type "explanation" and tell them in plain English that this field isn't editable from chat yet — they can adjust it in the property defaults panel.
+If the BA asks for something outside this list (e.g. offset accounts, vacancy rates, building insurance, loan term), do NOT return a \`change\` modification with that field. Instead, respond with type "explanation" and tell them in plain English that this field isn't editable from chat yet — they can adjust it in the property defaults panel.
 
 **\`type\` (cell ID) is NOT a settable change param.** Property types/cells aren't swappable per-property — the cell determines defaults (growth tier, default price, yield, expense profile) that don't transfer cleanly. If the BA asks "make property 2 a regional house" or "change property 1 to a metro unit":
 
@@ -1188,7 +1200,7 @@ NOT \`{ "purchasePrice": 500000 }\`. NOT \`{ "purchasePrice": "+500000" }\`. The
 If you can't find the current value in \`currentPlan\` (e.g. no plan exists yet), respond with type "explanation" asking the BA to clarify the absolute value they want.
 
 **Valid \`target\` values (this is the full set):**
-\`property-1\`, \`property-2\`, …, \`property-N\` (1-indexed), \`savings\`, \`income\`, \`timeline\`, \`lvr\`, \`portfolio\` (for add/remove).
+\`property-1\`, \`property-2\`, …, \`property-N\` (1-indexed), \`savings\`, \`income\`, \`timeline\`, \`lvr\`, \`rates\` (or \`interestRate\` — bulk-apply rate to all properties), \`portfolio\` (for add/remove).
 
 Do NOT return \`clientProfile\`, \`investmentProfile\`, \`profile\`, or any other key as a modification \`target\` — those are READ-ONLY context shown above for your reference, not editable. If you need to change client info, use the specific targets (\`savings\`, \`income\`) instead. When the BA asks for a remove or single-property change, return ONE modification (or one entry per actually-changing property in the \`modifications\` array) — don't pad the response with redundant "change" mods on context keys.`;
 

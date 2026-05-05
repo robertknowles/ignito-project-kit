@@ -268,7 +268,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
       // Apply instance and selection changes
       let didChange = false
-      if (modList.some(m => m.target.startsWith('property-') || m.target === 'lvr')) {
+      if (modList.some(m => m.target.startsWith('property-') || m.target === 'lvr' || m.target === 'rates' || m.target === 'interestRate')) {
         setInstances(currentInstances)
         didChange = true
       }

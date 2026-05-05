@@ -222,6 +222,7 @@ const SUPPORTED_CHANGE_FIELDS = new Set([
   'loanProduct',
   'growthAssumption',
   'rentPerWeek',
+  'interestRate',
 ]);
 
 /**
@@ -298,6 +299,9 @@ export function mapModificationToUpdates(
         }
         if (params.rentPerWeek !== undefined) {
           instanceChanges.rentPerWeek = params.rentPerWeek as number;
+        }
+        if (params.interestRate !== undefined) {
+          instanceChanges.interestRate = params.interestRate as number;
         }
 
         // Surface any params Claude tried to set that we don't actually
@@ -422,6 +426,18 @@ export function mapModificationToUpdates(
     }));
   }
 
+  if ((target === 'rates' || target === 'interestRate') && params.interestRate !== undefined) {
+    // Apply interest rate change to all properties. Lets the chat answer
+    // hypotheticals like "what if rates rise 1%" with directional commentary,
+    // then offer a refinementOption that — if clicked — flips this to a real
+    // modification. Without a bulk target, the AI would have to emit one
+    // change per property which is fragile.
+    updates.instanceUpdates = currentOrder.map((instanceId) => ({
+      instanceId,
+      updates: { interestRate: params.interestRate as number },
+    }));
+  }
+
   // Decide whether a no-update outcome deserves a user-visible warning.
   // Claude sometimes sends compound modifications that include redundant
   // "change" mods on context-only targets like clientProfile / investmentProfile
@@ -433,6 +449,8 @@ export function mapModificationToUpdates(
     'income',
     'timeline',
     'lvr',
+    'rates',
+    'interestRate',
     'portfolio',
   ]);
   const isPropertyTarget = !!propertyMatch;
