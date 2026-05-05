@@ -695,6 +695,39 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [activeClient?.id, loadClientScenario]);
 
+  // Self-heal: defensive recovery from in-memory context wipe.
+  //
+  // Pattern: user has a saved scenario, navigates to another page (per-property
+  // detail, home, settings) and back. On return the dashboard renders blank
+  // because propertyOrder/selections went empty, even though Supabase still
+  // holds the row and chat history is intact. Reproduced across multiple
+  // navigation pathways (cofounder report 2026-05-04, 2026-05-05).
+  //
+  // Root cause is hard to pin down — could be transient context churn, a child
+  // provider remount, or a stale closure. Rather than chase per-page, we detect
+  // the empty-state-with-saved-row condition at the context level and refetch.
+  //
+  // Trigger conditions (ALL must hold):
+  //  - activeClient is set
+  //  - we previously loaded a scenario from Supabase (scenarioId != null)
+  //  - propertyOrder is empty (the visible symptom of a wipe)
+  //  - no load is currently in flight
+  //  - role is owner/agent (client sandbox has its own loader)
+  //
+  // Covers all entry pathways automatically — Dashboard, Portfolio, Retirement,
+  // Settings, DataAssumptions, the property detail modal, and any future page
+  // that reads scenario state. loadInProgressRef inside loadClientScenario
+  // guards against concurrent calls if a route-level recovery also fires.
+  useEffect(() => {
+    if (!activeClient) return;
+    if (role === 'client') return;
+    if (!scenarioId) return;
+    if (propertyOrder.length > 0) return;
+    if (loadInProgressRef.current) return;
+    if (isLoadingScenario) return;
+    loadClientScenario(activeClient.id);
+  }, [activeClient?.id, role, scenarioId, propertyOrder.length, isLoadingScenario, loadClientScenario]);
+
   // Debounced change detection to prevent excessive calculations
   const changeDetectionTimer = useRef<NodeJS.Timeout | null>(null);
 
