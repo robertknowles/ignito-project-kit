@@ -13,6 +13,21 @@ Run sections in order. Each test has an **Expected:** line — match what you se
 
 Anything in FAIL or WEIRD is a fix candidate before investors hit it.
 
+### When to reset / start fresh
+
+Don't reset between every test — most tiers share state on purpose. The rule:
+
+| Section | Fresh scenario between tests? | How to do it |
+|---|---|---|
+| **Tier A** (A1–A6) | Yes — each one tests fresh plan generation | Create a **new client** for each. Cleaner than "Reset Scenario" and tests multi-client behaviour incidentally. |
+| **Tier B** (B1–B6) | No | Run all six on the same plan generated from one Tier A test. |
+| **Tier C** | Mixed | C1, C2, C3 need fresh (new client). C4, C5 need a plan to already exist (run after a Tier A or after C1–C3). |
+| **Tier D** (megachain) | No | Single uninterrupted session. No resets within. |
+| **Platform flows 1–6** | Per flow as written | Some need fresh state (Flow 1, 2, 6), others build on existing state. |
+| **Persistence flows 7–14** | No | These tests are *about* state persistence — resetting would defeat them. |
+
+In practice you'll create about 6–8 new clients during the chatbot section, and zero resets after that.
+
 ---
 
 ## Part 1 — Chatbot Stress Tests
