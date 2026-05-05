@@ -417,11 +417,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // declared above this hook (handleModification) can post into the chat.
   addSystemMessageRef.current = addSystemMessage
 
-  // Clear chat when scenario is reset (scenarioId goes from a value to null)
+  // Clear chat when scenario is reset (scenarioId goes from a value to null).
+  // Also reset clientNamesRef — without this, names from the previous plan
+  // leak into the next session: the loading-step text still says "Reading
+  // Sarah's profile" after reset, and once the new plan is generated the
+  // stale ref gets sent to the AI as plan-context on subsequent calls.
+  // Founder report 2026-05-05: AI kept referencing "Sarah" after reset.
   const prevScenarioIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (prevScenarioIdRef.current !== null && scenarioId === null) {
       clearMessages()
+      clientNamesRef.current = []
       loadedRef.current = false
     }
     prevScenarioIdRef.current = scenarioId
