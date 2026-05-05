@@ -73,6 +73,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const optionsRef = useRef(options)
   optionsRef.current = options
 
+  // Same trick for messages — the pending-prompt handler does
+  // clearMessages() → setTimeout(sendMessage, 50). The setTimeout
+  // captures sendMessage from the render BEFORE clearMessages landed,
+  // so conversationHistory built from messages-via-closure leaks the
+  // previous client's chat into the new client's request. The AI then
+  // sees "previous chat → new prompt" and classifies as modification
+  // instead of initial_plan (cofounder report 2026-05-06: 3rd home-flow
+  // launch in a row returned "Updated the profile" instead of building
+  // a fresh plan).
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
   const createMessage = useCallback(
     (
       role: ChatMessage['role'],
@@ -199,7 +211,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // the UI but get dropped from the LLM payload. Recent context is what
         // matters for follow-up coherence; older turns rarely change the answer.
         const HISTORY_WINDOW = 20
-        const conversationHistory = messages
+        const conversationHistory = messagesRef.current
           .filter((m) => m.role !== 'system' && m.type === 'text')
           .slice(-HISTORY_WINDOW)
           .map((m) => ({ role: m.role, content: m.content }))
@@ -332,12 +344,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // sendMessage was scheduled before a client switch settled.
         const liveHasExistingPlan = optionsRef.current.hasExistingPlan
         const liveStrategyPreset = optionsRef.current.strategyPreset
-        console.info('[nl-parse] response received', {
-          responseType: response.type,
-          liveHasExistingPlan,
-          liveStrategyPreset,
-          responseStrategyPreset: response.strategyPreset,
-        })
         if (liveHasExistingPlan && response.type === 'initial_plan') {
           const isStrategySwitch =
             !!response.strategyPreset &&
