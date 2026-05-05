@@ -148,12 +148,19 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
    */
   const sendMessage = useCallback(
     async (userText: string) => {
-      if (!userText.trim() || isLoading) return
+      if (!userText.trim() || isLoading) {
+        console.info('[sendMessage] early-return', { isLoading, empty: !userText.trim() })
+        return
+      }
+
+      const t0 = performance.now()
+      console.info('[sendMessage] start', { t: 0, userText: userText.slice(0, 40) })
 
       // Add user message
       const userMsg = createMessage('user', 'text', userText.trim())
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
+      console.info('[sendMessage] user msg added + isLoading=true', { dt: Math.round(performance.now() - t0) })
 
       // Add loading indicator with personalised text
       const loadingText = options.clientName
@@ -171,10 +178,12 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       const MIN_LOADING_MS = 600
       const removeLoading = async () => {
         const elapsed = Date.now() - loadingStartedAt
+        console.info('[sendMessage] removeLoading start', { elapsed, willAwait: elapsed < MIN_LOADING_MS })
         if (elapsed < MIN_LOADING_MS) {
           await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed))
         }
         setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
+        console.info('[sendMessage] removeLoading done', { totalElapsed: Date.now() - loadingStartedAt })
       }
 
       try {
@@ -562,6 +571,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
         console.error('nl-parse error:', err)
       } finally {
+        console.info('[sendMessage] finally → setIsLoading(false)', { totalDt: Math.round(performance.now() - t0) })
         setIsLoading(false)
       }
     },
