@@ -71,7 +71,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { activeClient, updateClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, isLoadingScenario } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId } = useScenarioSave()
 
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
@@ -508,46 +508,57 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // for the current client (so a genuinely empty chat doesn't loop forever).
   // Skipped if the user arrived from AgentHome with a pending prompt — that
   // handler wants a fresh thread.
+  // ChatPanel effects fire BEFORE ScenarioSaveContext's loadClientScenario
+  // kicks off, so on a client switch the first render still sees
+  // savedChatMessages from the PREVIOUS client. Earlier "load whatever's
+  // there" attempts baked stale messages in and short-circuited later
+  // updates, so clicking between clients showed a frozen old chat alongside
+  // a new dashboard.
+  //
+  // Gate on loadedScenarioClientId — set by ScenarioSaveContext only after
+  // a load completes for that specific client. Until that signal matches
+  // activeClient.id, savedChatMessages might still be stale, so we hold
+  // local messages clear and wait. Once it matches, we sync messages to
+  // savedChatMessages exactly (which may be empty for a chat-less client —
+  // that's correct).
+  //
+  // Skipped when the user arrived from AgentHome with a pending prompt; the
+  // pending-prompt handler clears + starts a fresh thread.
   const loadedChatForClientRef = useRef<number | null>(null)
   useEffect(() => {
     if (!activeClient?.id) return
-    if (loadedChatForClientRef.current === activeClient.id) return
-    if (hasPendingPromptOnMountRef.current && savedChatMessages.length === 0) {
-      // Wait — pending-prompt handler will fire and start fresh.
+
+    // savedChatMessages doesn't yet reflect the current client. Reset our
+    // tracker so the next sync (when the context catches up) actually fires.
+    if (loadedScenarioClientId !== activeClient.id) {
+      if (loadedChatForClientRef.current !== null) {
+        loadedChatForClientRef.current = null
+      }
       return
     }
-    if (savedChatMessages.length > 0) {
-      loadMessages(savedChatMessages)
-      loadedChatForClientRef.current = activeClient.id
-      loadedRef.current = true
-    }
-    // If savedChatMessages is empty, do NOT mark as loaded — the async fetch
-    // may still be in flight. Once it settles (either to actual chat or to
-    // genuinely empty), this effect re-runs.
-  }, [activeClient?.id, savedChatMessages, loadMessages])
-
-  // Companion: once savedChatMessages has settled (loadClientScenario
-  // finished) AND it's empty for the current client, accept the empty state.
-  // Without this, a client with NO chat keeps the effect above in a "waiting"
-  // posture and any later setChatMessages([]) would still skip marking
-  // loaded. Tied to isLoadingScenario so we know the load is done.
-  useEffect(() => {
-    if (!activeClient?.id) return
     if (loadedChatForClientRef.current === activeClient.id) return
-    if (isLoadingScenario) return
-    if (savedChatMessages.length > 0) return
+    if (hasPendingPromptOnMountRef.current && savedChatMessages.length === 0) {
+      // Pending-prompt handler will fire and start a fresh thread.
+      return
+    }
+    loadMessages(savedChatMessages)
     loadedChatForClientRef.current = activeClient.id
     loadedRef.current = true
-  }, [activeClient?.id, isLoadingScenario, savedChatMessages.length])
+  }, [activeClient?.id, loadedScenarioClientId, savedChatMessages, loadMessages])
 
-  // Sync current messages to scenario save context (for persistence)
+  // Sync current messages to scenario save context (for persistence).
+  // Skip while we're mid-transition between clients (loadedScenarioClientId
+  // hasn't caught up to activeClient.id yet) — otherwise the previous
+  // client's still-in-memory messages would briefly overwrite the new
+  // client's slot before loadClientScenario settles.
   useEffect(() => {
+    if (activeClient?.id && loadedScenarioClientId !== activeClient.id) return
     if (messages.length > 0) {
       // Filter out loading messages before saving
       const persistableMessages = messages.filter((m) => m.type !== 'loading')
       saveChatMessages(persistableMessages)
     }
-  }, [messages, saveChatMessages])
+  }, [messages, saveChatMessages, activeClient?.id, loadedScenarioClientId])
 
   // Loading step progression for ChatLoadingSteps
   const [loadingStep, setLoadingStep] = useState(0)

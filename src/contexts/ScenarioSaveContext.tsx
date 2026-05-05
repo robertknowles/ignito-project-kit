@@ -107,6 +107,14 @@ interface ScenarioSaveContextType {
   isLoading: boolean;
   /** True while loadClientScenario's async fetch is in flight. */
   isLoadingScenario: boolean;
+  /**
+   * The client id whose data the current in-memory scenario state reflects.
+   * null until the first load completes. Consumers like ChatPanel use this
+   * to detect when savedChatMessages is fresh for the active client vs still
+   * stale from a previous one (race between activeClient change and the
+   * async scenario fetch settling).
+   */
+  loadedScenarioClientId: number | null;
   isAutosaving: boolean;
   lastSaved: string | null;
   scenarioId: number | null;
@@ -170,6 +178,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ScenarioData['chartData'] | undefined>(undefined);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // Tracks which client the in-memory scenario state (chatMessages, scenarioId,
+  // selections, etc.) currently reflects. Set after loadClientScenario settles
+  // for that client (success OR no-data path). Consumers like ChatPanel use
+  // this to know whether savedChatMessages is fresh for the active client or
+  // still stale from the previous one.
+  const [loadedScenarioClientId, setLoadedScenarioClientId] = useState<number | null>(null);
   // Optimistic concurrency: capture the version at load time, increment on successful save.
   // If a save fails because DB version no longer matches, another tab won — reload.
   const [loadedVersion, setLoadedVersion] = useState<number>(0);
@@ -480,6 +494,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLastSaved(null);
         setScenarioId(null);
         setLoadedVersion(0);
+        if (!isSameClientReload) {
+          setChatMessages([]);
+        }
+        setLoadedScenarioClientId(clientId);
         return null;
       }
 
@@ -556,6 +574,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
+        setLoadedScenarioClientId(clientId);
 
         return scenarioData;
       } else {
@@ -572,6 +591,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setChatMessages([]);
         setTimelineSnapshot([]);
         setChartData(undefined);
+        setLoadedScenarioClientId(clientId);
         return null;
       }
     } catch (error) {
@@ -917,6 +937,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     hasUnsavedChanges,
     isLoading,
     isLoadingScenario,
+    loadedScenarioClientId,
     isAutosaving,
     lastSaved,
     scenarioId,
