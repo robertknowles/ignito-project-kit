@@ -304,9 +304,22 @@ export function mapModificationToUpdates(
         // support. Without this, the mapper silently dropped them and the
         // chat happily said "Done!" — the source of "I asked it to change X
         // and nothing happened" reports.
-        const unsupported = Object.keys(params).filter(
-          (k) => !SUPPORTED_CHANGE_FIELDS.has(k),
-        );
+        //
+        // EXCEPTION: a no-op `type` "change" is silently suppressed. The cell
+        // ID is encoded as the instanceId prefix (e.g. "regional-house-growth_
+        // instance_0"); when the AI emits a type change matching the current
+        // cell, it's just acknowledging — not actually mutating. Surfacing a
+        // warning for that is misleading (founder report 2026-05-05, B3:
+        // "make property 1 a regional house" when it already was).
+        const currentCellId = instanceId.replace(/_instance_\d+$/, '');
+        const unsupported = Object.keys(params).filter((k) => {
+          if (SUPPORTED_CHANGE_FIELDS.has(k)) return false;
+          if (k === 'type' && params.type === currentCellId) {
+            // No-op type "change" — current type already matches. Silent skip.
+            return false;
+          }
+          return true;
+        });
         if (unsupported.length > 0) {
           console.warn(`[nlDataMapper] dropped unsupported change fields: ${unsupported.join(', ')}`);
           warnings.push(

@@ -1139,6 +1139,11 @@ When the BA asks to change a specific property field, return a modification with
 
 If the BA asks for something outside this list (e.g. offset accounts, vacancy rates, building insurance, interest rate per property, loan term), do NOT return a \`change\` modification with that field. Instead, respond with type "explanation" and tell them in plain English that this field isn't editable from chat yet — they can adjust it in the property defaults panel.
 
+**\`type\` (cell ID) is NOT a settable change param.** Property types/cells aren't swappable per-property — the cell determines defaults (growth tier, default price, yield, expense profile) that don't transfer cleanly. If the BA asks "make property 2 a regional house" or "change property 1 to a metro unit":
+
+- **First check the property's CURRENT type in the \`currentPlan.properties\` block above.** If the requested type already matches what's there (e.g. BA asks "make property 1 a regional house" and property 1 is already \`regional-house-growth\` or \`regional-house-cashflow\`), do NOT issue a modification — the change is a no-op. Just acknowledge in the message: "Property 1 is already a regional house — nothing to change there." Continue processing any OTHER parts of the same prompt normally (compound modifications often pair a no-op type confirmation with real changes to other fields).
+- If the requested type is genuinely different from current, treat it as a request the system can't do per-property and respond with type "explanation": "Per-property type swaps aren't supported — try a strategy switch ('switch to cash flow' / 'switch to commercial transition') if you want a different mix, or I can drop this property and add a new one in its place." Don't emit a \`change\` modification with a \`type\` field — the mapper drops it and the chat ends up lying about what landed.
+
 **Relative changes (CRITICAL — read carefully):**
 The mapper expects ABSOLUTE values, not deltas. When the BA asks for a relative change ("increase property 2 by $500k", "drop the rent by $50/week", "bump LVR up 5 percentage points"), you MUST:
 1. Read the current value for that property/field from the \`currentPlan.properties\` block above.
