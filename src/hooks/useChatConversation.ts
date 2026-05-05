@@ -394,12 +394,27 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
           case 'explanation': {
             const wasDowngraded = response.type === 'initial_plan' || response.type === 'comparison'
-            // Get chart data context for a data-grounded explanation
-            const chartContext = options.getChartContext?.(
-              response.explanation?.question ?? userText,
-              response.explanation?.relevantPeriods,
-              response.explanation?.relevantProperties
+            // Skip the chart-context enrichment for explanations that aren't
+            // anchored to specific periods or properties. Questions like "what
+            // if rates rise 2%?" or "model selling property 1" have no period
+            // to look up — the follow-up just re-asks the AI the same question
+            // and yields a near-duplicate response, producing a visible double-
+            // message UX with a long loading state between them (founder
+            // report 2026-05-05, B4). Skip if no period/property anchors AND
+            // not a downgraded-rebuild fallback.
+            const hasAnchors = !!(
+              response.explanation?.relevantPeriods?.length ||
+              response.explanation?.relevantProperties?.length ||
+              response.explanation?.relevantPeriod
             )
+            // Get chart data context for a data-grounded explanation
+            const chartContext = hasAnchors
+              ? options.getChartContext?.(
+                  response.explanation?.question ?? userText,
+                  response.explanation?.relevantPeriods,
+                  response.explanation?.relevantProperties
+                )
+              : null
 
             if (chartContext) {
               // Make a follow-up call with chart data so Claude references real numbers
