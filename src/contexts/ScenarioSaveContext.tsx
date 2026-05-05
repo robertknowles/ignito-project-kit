@@ -105,6 +105,8 @@ export interface ScenarioData {
 interface ScenarioSaveContextType {
   hasUnsavedChanges: boolean;
   isLoading: boolean;
+  /** True while loadClientScenario's async fetch is in flight. */
+  isLoadingScenario: boolean;
   isAutosaving: boolean;
   lastSaved: string | null;
   scenarioId: number | null;
@@ -914,6 +916,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const value = {
     hasUnsavedChanges,
     isLoading,
+    isLoadingScenario,
     isAutosaving,
     lastSaved,
     scenarioId,
