@@ -434,21 +434,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // declared above this hook (handleModification) can post into the chat.
   addSystemMessageRef.current = addSystemMessage
 
-  // Clear chat when scenario is reset (scenarioId goes from a value to null).
-  // Also reset clientNamesRef — without this, names from the previous plan
-  // leak into the next session: the loading-step text still says "Reading
-  // Sarah's profile" after reset, and once the new plan is generated the
-  // stale ref gets sent to the AI as plan-context on subsequent calls.
+  // Clear chat when scenario is reset (scenarioId goes from a value to null)
+  // ON THE SAME CLIENT. Also reset clientNamesRef — without this, names from
+  // the previous plan leak into the next session.
   // Founder report 2026-05-05: AI kept referencing "Sarah" after reset.
+  //
+  // Important: skip this clear on client switches — when the user launches a
+  // new client from AgentHome, scenarioId goes null because the new client has
+  // no saved scenario. Clearing here would wipe the pending-prompt message
+  // that was just injected by the home-flow handler.
   const prevScenarioIdRef = useRef<string | null>(null)
+  const prevScenarioClientRef = useRef<number | null>(null)
   useEffect(() => {
+    const clientChanged = activeClient?.id !== prevScenarioClientRef.current
+    prevScenarioClientRef.current = activeClient?.id ?? null
+
+    if (clientChanged) {
+      prevScenarioIdRef.current = scenarioId
+      return
+    }
+
     if (prevScenarioIdRef.current !== null && scenarioId === null) {
       clearMessages()
       clientNamesRef.current = []
       loadedRef.current = false
     }
     prevScenarioIdRef.current = scenarioId
-  }, [scenarioId, clearMessages])
+  }, [scenarioId, activeClient?.id, clearMessages])
 
   // Reset chat state when the active client changes
   const loadedRef = useRef(false)
@@ -691,43 +703,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     return () => window.removeEventListener(CHAT_SEND_EVENT, handler)
   }, [isLoading, sendMessage])
 
-  // One-shot: when AgentHome's hero input sends us here with a pending prompt,
-  // clear any prior chat and fire the prompt as the first message of a fresh
-  // thread — so the dashboard loads with the user's message + the normal AI
-  // shimmer/response flow, exactly like typing it in directly.
+  // One-shot per client: when AgentHome's hero input sends us here with a
+  // pending prompt, clear any prior chat and fire the prompt as the first
+  // message of a fresh thread — so the dashboard loads with the user's message
+  // + the normal AI shimmer/response flow, exactly like typing it in directly.
+  // Reset when activeClient changes so subsequent launches from Home work.
   const pendingPromptHandledRef = useRef(false)
+  const pendingPromptClientRef = useRef<number | null>(null)
   useEffect(() => {
-    if (pendingPromptHandledRef.current) {
-      console.info('[pending-prompt] skip: already handled')
-      return
+    if (activeClient?.id !== pendingPromptClientRef.current) {
+      pendingPromptHandledRef.current = false
+      pendingPromptClientRef.current = activeClient?.id ?? null
     }
-    if (isLoading) {
-      console.info('[pending-prompt] skip: already loading')
-      return
-    }
-    if (!activeClient?.id) {
-      console.info('[pending-prompt] skip: no active client yet')
-      return
-    }
+  }, [activeClient?.id])
+
+  useEffect(() => {
+    if (pendingPromptHandledRef.current) return
+    if (isLoading) return
+    if (!activeClient?.id) return
 
     const pending = sessionStorage.getItem('proppath:pending-prompt')
-    if (!pending) {
-      console.info('[pending-prompt] skip: no pending prompt in sessionStorage')
-      return
-    }
+    if (!pending) return
 
-    console.info('[pending-prompt] firing', {
-      clientId: activeClient.id,
-      clientName: activeClient.name,
-      promptLength: pending.length,
-    })
     pendingPromptHandledRef.current = true
     sessionStorage.removeItem('proppath:pending-prompt')
 
     clearMessages()
     // Defer one tick so the cleared state lands before the new send.
     setTimeout(() => {
-      console.info('[pending-prompt] sendMessage now')
       sendMessage(pending)
     }, 50)
   }, [isLoading, activeClient?.id, clearMessages, sendMessage])

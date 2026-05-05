@@ -435,8 +435,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Load client scenario
   const loadClientScenario = useCallback(async (clientId: number) => {
-    console.info('[loadClientScenario] called', { clientId, alreadyInProgress: loadInProgressRef.current })
-    // Prevent concurrent load operations
     if (loadInProgressRef.current) {
       return null;
     }
@@ -461,8 +459,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // retries with exponential backoff (~1+2+4+8 ≈ 15s). That 15s of
       // retrying was visible to the user as a stalled loading state on the
       // home → new-client flow (founder report 2026-05-06).
-      const fetchStart = performance.now()
-      console.info('[loadClientScenario] fetching', { clientId })
       const { data, error } = await supabase
         .from('scenarios')
         .select('*')
@@ -470,12 +466,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      console.info('[loadClientScenario] fetch done', {
-        clientId,
-        ms: Math.round(performance.now() - fetchStart),
-        hasData: !!data,
-        errorCode: (error as { code?: string } | null)?.code,
-      })
 
       if (error) {
         throw error;
