@@ -363,24 +363,35 @@ export function mapModificationToUpdates(
   }
 
   // Add property — target is "portfolio", new property details are in response.properties
-  if (action === 'add' && response.properties && response.properties.length > 0) {
-    const newMapping = mapToPropertySelections(response)
+  if (action === 'add') {
+    if (response.properties && response.properties.length > 0) {
+      const newMapping = mapToPropertySelections(response)
 
-    // Merge new properties into existing plan
-    const mergedInstances = { ...currentInstances, ...newMapping.instances }
-    const mergedOrder = [...currentOrder, ...newMapping.propertyOrder]
+      // Merge new properties into existing plan
+      const mergedInstances = { ...currentInstances, ...newMapping.instances }
+      const mergedOrder = [...currentOrder, ...newMapping.propertyOrder]
 
-    // Rebuild selections from merged order
-    const mergedSelections: PropertySelection = {}
-    for (const id of mergedOrder) {
-      const type = id.replace(/_instance_\d+$/, '')
-      mergedSelections[type] = (mergedSelections[type] ?? 0) + 1
-    }
+      // Rebuild selections from merged order
+      const mergedSelections: PropertySelection = {}
+      for (const id of mergedOrder) {
+        const type = id.replace(/_instance_\d+$/, '')
+        mergedSelections[type] = (mergedSelections[type] ?? 0) + 1
+      }
 
-    updates.selectionChanges = {
-      selections: mergedSelections,
-      propertyOrder: mergedOrder,
-      instances: mergedInstances,
+      updates.selectionChanges = {
+        selections: mergedSelections,
+        propertyOrder: mergedOrder,
+        instances: mergedInstances,
+      }
+    } else {
+      // AI said "added a property" but didn't include the property details on
+      // response.properties — without this guard the mapper silently no-ops
+      // and the chat happily says "Added a 6th property…" with no actual
+      // change on the dashboard (founder report 2026-05-05, B6).
+      console.warn('[nlDataMapper] add action returned with no response.properties array');
+      warnings.push(
+        `I described adding a property but didn't actually attach the details — say "add a regional unit in QLD around $380k" (or click the suggested options) and I'll wire it up.`,
+      );
     }
   }
 
