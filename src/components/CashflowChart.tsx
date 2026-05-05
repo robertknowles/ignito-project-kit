@@ -50,9 +50,9 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     return capped.map(d => ({
       year: d.year,
-      income: Math.round(d.rentalIncome / 12),                          // monthly rent
-      expenses: Math.round((d.expenses + d.loanRepayments) / 12),       // monthly running costs + mortgage interest
-      netCashflow: Math.round(d.cashflow / 12),                         // monthly net (pre-computed correctly upstream)
+      income: Math.round(d.rentalIncome),                          // annual rent
+      expenses: Math.round(d.expenses + d.loanRepayments),         // annual running costs + mortgage interest
+      netCashflow: Math.round(d.cashflow),                         // annual net (pre-computed correctly upstream)
     }));
   }, [cashflowData, profile.timelineYears]);
 
@@ -79,11 +79,11 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         <p className="font-semibold text-[#181D27] mb-2">{label}</p>
         <div className="flex justify-between gap-6 mb-1">
           <span className="text-gray-500">Income</span>
-          <span className="font-medium text-gray-700">${income.toLocaleString()}/mo</span>
+          <span className="font-medium text-gray-700">${income.toLocaleString()}/yr</span>
         </div>
         <div className="flex justify-between gap-6 mb-1">
           <span className="text-gray-500">Expenses</span>
-          <span className="font-medium text-gray-700">${expenses.toLocaleString()}/mo</span>
+          <span className="font-medium text-gray-700">${expenses.toLocaleString()}/yr</span>
         </div>
         <div
           className="flex justify-between gap-6 pt-2 mt-1"
@@ -91,7 +91,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         >
           <span className="font-semibold text-gray-900">Net</span>
           <span className={`font-semibold ${net >= 0 ? 'text-gray-900' : 'text-gray-500'}`}>
-            {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}/mo
+            {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}/yr
           </span>
         </div>
       </div>
@@ -100,6 +100,10 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
   const formatYAxis = (value: number) => {
     if (value === 0) return '$0';
+    if (Math.abs(value) >= 1_000_000) {
+      const m = value / 1_000_000;
+      return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
+    }
     return `$${(value / 1000).toFixed(0)}K`;
   };
 
