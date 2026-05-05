@@ -111,6 +111,13 @@ interface ScenarioSaveContextType {
   saveScenario: (silent?: boolean) => Promise<void>;
   resetScenario: () => void;
   loadClientScenario: (clientId: number) => ScenarioData | null;
+  /**
+   * Sync the loaded version pointer after a direct write to scenarios.data
+   * (e.g. via mutateScenarioData). Without this, the next autosave would
+   * conflict on the stale version, fall into the reload path, and discard
+   * in-memory edits made since the last successful autosave.
+   */
+  syncScenarioVersion: (newVersion: number) => void;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
   // NL Chat history persistence
@@ -852,6 +859,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
+  const syncScenarioVersion = useCallback((newVersion: number) => {
+    setLoadedVersion(newVersion);
+  }, []);
+
   const value = {
     hasUnsavedChanges,
     isLoading,
@@ -861,6 +872,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     saveScenario,
     resetScenario,
     loadClientScenario,
+    syncScenarioVersion,
     setTimelineSnapshot,
     setChartData,
     // NL Chat history persistence

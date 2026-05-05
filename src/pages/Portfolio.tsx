@@ -29,6 +29,8 @@ import { isCellId, getCellDisplayLabel, type CellId } from '../utils/propertyCel
 import { Building03Icon, TrendUp01Icon, BarChartSquare02Icon, Wallet02Icon } from '@/components/icons/PropertyIcons'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { savePortfolioTracking } from '@/utils/portfolioTrackingWriter'
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import {
   Dialog,
   DialogContent,
@@ -138,6 +140,7 @@ export const Portfolio = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
   const { clients, activeClient: globalActiveClient } = useClient()
   const { companyId } = useAuth()
+  const { syncScenarioVersion } = useScenarioSave()
   const location = useLocation()
   const routedPropertyInstanceId = (location.state as { propertyInstanceId?: string } | null)?.propertyInstanceId ?? null
 
@@ -528,13 +531,24 @@ export const Portfolio = () => {
   }, [activeClientId, activeScenarios, purchaseStates])
 
   // Handle toggle purchase
-  const handleActivateProperty = (scenarioId: number, property: PortfolioProperty) => {
+  const handleActivateProperty = async (scenarioId: number, property: PortfolioProperty) => {
     const key = `${scenarioId}_${property.instanceId}`
     const current = purchaseStates[key]
 
     if (current?.isPurchased) {
+      // Optimistic local update; revert on save failure.
       setPurchaseStates(prev => ({ ...prev, [key]: { ...prev[key], isPurchased: false } }))
-      savePortfolioTracking(scenarioId, property.instanceId, false, current.address, current.photo)
+      const result = await savePortfolioTracking(scenarioId, property.instanceId, {
+        isPurchased: false,
+        address: current.address,
+        photo: current.photo,
+      })
+      if (!result.ok) {
+        setPurchaseStates(prev => ({ ...prev, [key]: { ...prev[key], isPurchased: true } }))
+        toast.error(`Couldn't update ${property.title}. Please retry.`)
+        return
+      }
+      syncScenarioVersion(result.newVersion)
       toast.success(`${property.title} marked as not yet purchased`)
     } else {
       setActivatingProperty(property)
@@ -549,41 +563,25 @@ export const Portfolio = () => {
     if (!activatingProperty || !activatingScenarioId) return
     setSaving(true)
     const key = `${activatingScenarioId}_${activatingProperty.instanceId}`
+    const result = await savePortfolioTracking(activatingScenarioId, activatingProperty.instanceId, {
+      isPurchased: true,
+      address: activateAddress,
+      photo: activatePhoto,
+    })
+    setSaving(false)
+    if (!result.ok) {
+      toast.error(`Couldn't mark ${activatingProperty.title} as purchased. Please retry.`)
+      return
+    }
+    syncScenarioVersion(result.newVersion)
     setPurchaseStates(prev => ({
       ...prev,
       [key]: { isPurchased: true, address: activateAddress, photo: activatePhoto },
     }))
-    await savePortfolioTracking(activatingScenarioId, activatingProperty.instanceId, true, activateAddress, activatePhoto)
-    setSaving(false)
     setActivateModalOpen(false)
     setActivatingProperty(null)
     setActivatingScenarioId(null)
     toast.success(`${activatingProperty.title} marked as purchased!`)
-  }
-
-  const savePortfolioTracking = async (
-    scenarioId: number, instanceId: string,
-    isPurchased: boolean, address: string, photo: string
-  ) => {
-    try {
-      const { data: scenario, error } = await supabase
-        .from('scenarios')
-        .select('data')
-        .eq('id', scenarioId)
-        .single()
-      if (error || !scenario) return
-
-      const currentData = scenario.data as any || {}
-      const portfolioTracking = currentData.portfolioTracking || {}
-      portfolioTracking[instanceId] = { isPurchased, address, photo }
-
-      await supabase
-        .from('scenarios')
-        .update({ data: { ...currentData, portfolioTracking } })
-        .eq('id', scenarioId)
-    } catch {
-      // Silently fail
-    }
   }
 
   return (

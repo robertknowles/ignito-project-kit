@@ -23,9 +23,10 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import { Client } from '@/contexts/ClientContext';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CommunicationLogEntry } from '@/contexts/ScenarioSaveContext';
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
+import { mutateScenarioData } from '@/utils/scenarioDataWriter';
 
 interface ClientProfileModalProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [communicationLog, setCommunicationLog] = useState<CommunicationLogEntry[]>([]);
+  const { syncScenarioVersion } = useScenarioSave();
 
   // Load communication log when modal opens
   useEffect(() => {
@@ -90,54 +92,30 @@ export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
 
     setSavingNote(true);
 
-    try {
-      // Fetch current scenario data
-      const { data: scenario, error: fetchError } = await supabase
-        .from('scenarios')
-        .select('data')
-        .eq('id', clientStatus.scenarioId)
-        .single();
+    const newEntry: CommunicationLogEntry = {
+      id: Math.random().toString(36).substring(2, 15),
+      date: new Date().toISOString(),
+      note: newNote.trim(),
+      author: 'Agent',
+    };
 
-      if (fetchError) throw fetchError;
+    const result = await mutateScenarioData(clientStatus.scenarioId, (current) => {
+      const existingLog = (current.communicationLog ?? []) as CommunicationLogEntry[];
+      return { ...current, communicationLog: [newEntry, ...existingLog] };
+    });
 
-      const currentData = scenario?.data as any || {};
-      const existingLog = currentData.communicationLog || [];
+    setSavingNote(false);
 
-      // Create new note entry
-      const newEntry: CommunicationLogEntry = {
-        id: Math.random().toString(36).substring(2, 15),
-        date: new Date().toISOString(),
-        note: newNote.trim(),
-        author: 'Agent', // Could be dynamic based on logged-in user
-      };
-
-      const updatedLog = [newEntry, ...existingLog];
-
-      // Update scenario with new communication log
-      const { error: updateError } = await supabase
-        .from('scenarios')
-        .update({
-          data: {
-            ...currentData,
-            communicationLog: updatedLog,
-          },
-        })
-        .eq('id', clientStatus.scenarioId);
-
-      if (updateError) throw updateError;
-
-      // Update local state
-      setCommunicationLog(updatedLog);
-      setNewNote('');
-      toast.success('Note added successfully');
-      
-      // Notify parent to refresh status
-      onStatusChange?.();
-    } catch (error) {
-toast.error('Failed to add note');
-    } finally {
-      setSavingNote(false);
+    if (!result.ok) {
+      toast.error('Failed to add note');
+      return;
     }
+
+    syncScenarioVersion(result.newVersion);
+    setCommunicationLog((prev) => [newEntry, ...prev]);
+    setNewNote('');
+    toast.success('Note added successfully');
+    onStatusChange?.();
   };
 
   // Determine the next best action for this client

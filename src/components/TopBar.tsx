@@ -90,17 +90,32 @@ export const TopBar = () => {
 
       let shareId = scenario?.share_id
 
-      // If no share_id exists, generate one
+      // If no share_id exists, generate one. Guard with .is('share_id', null)
+      // so a concurrent click in another tab can't have its newly-generated id
+      // overwritten — only one writer wins, the other re-reads the canonical id.
       if (!shareId) {
-        shareId = Math.random().toString(36).substring(2, 15) + 
+        const candidate = Math.random().toString(36).substring(2, 15) +
                   Math.random().toString(36).substring(2, 15)
 
-        const { error: updateError } = await supabase
+        const { data: updated, error: updateError } = await supabase
           .from('scenarios')
-          .update({ share_id: shareId })
+          .update({ share_id: candidate })
           .eq('id', scenarioId)
+          .is('share_id', null)
+          .select('share_id')
 
         if (updateError) throw updateError
+
+        if (updated && updated.length > 0) {
+          shareId = candidate
+        } else {
+          const { data: refreshed } = await supabase
+            .from('scenarios')
+            .select('share_id')
+            .eq('id', scenarioId)
+            .single()
+          shareId = refreshed?.share_id
+        }
       }
 
       // Open the client report in a new tab with the share_id
@@ -165,17 +180,31 @@ export const TopBar = () => {
 
       let shareId = scenario?.share_id
 
-      // If no share_id exists, generate one
+      // If no share_id exists, generate one. Same null-guard pattern as above
+      // so concurrent invite flows can't overwrite each other's generated id.
       if (!shareId) {
-        shareId = Math.random().toString(36).substring(2, 15) + 
+        const candidate = Math.random().toString(36).substring(2, 15) +
                   Math.random().toString(36).substring(2, 15)
 
-        const { error: updateError } = await supabase
+        const { data: updated, error: updateError } = await supabase
           .from('scenarios')
-          .update({ share_id: shareId })
+          .update({ share_id: candidate })
           .eq('id', scenarioId)
+          .is('share_id', null)
+          .select('share_id')
 
         if (updateError) throw updateError
+
+        if (updated && updated.length > 0) {
+          shareId = candidate
+        } else {
+          const { data: refreshed } = await supabase
+            .from('scenarios')
+            .select('share_id')
+            .eq('id', scenarioId)
+            .single()
+          shareId = refreshed?.share_id
+        }
       }
 
       // Check if client already has a user account
@@ -250,11 +279,13 @@ export const TopBar = () => {
           // Failed to create user record
         }
 
-        // Link the client user to the scenario
+        // Link the client user to the scenario. Null-guard so a concurrent
+        // invite flow can't overwrite an already-linked user with a different id.
         const { error: scenarioError } = await supabase
           .from('scenarios')
           .update({ client_user_id: newUserId })
           .eq('id', scenarioId)
+          .is('client_user_id', null)
 
         if (scenarioError) {
           // Failed to update scenario
@@ -342,12 +373,14 @@ export const TopBar = () => {
         // Failed to create user record
       }
 
-      // Link the client user to the scenario
+      // Link the client user to the scenario. Null-guard so a concurrent
+      // invite flow can't overwrite an already-linked user with a different id.
       if (scenarioId) {
         const { error: scenarioError } = await supabase
           .from('scenarios')
           .update({ client_user_id: newUserId })
           .eq('id', scenarioId)
+          .is('client_user_id', null)
 
         if (scenarioError) {
           // Failed to update scenario
