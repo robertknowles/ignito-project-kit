@@ -36,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 import { CHAT_SEND_EVENT, type ChatSendDetail } from '@/utils/chatBus'
+import { toast } from 'sonner'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -286,6 +287,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       // autosave debounce to fire before the user navigates or logs out.
       if (didChange) {
         flushSaveAfterStateUpdate()
+        // Visible confirmation that the modification landed. Without this,
+        // when the chart's visual change is small (e.g. one property's price
+        // shifted slightly), users can't tell whether anything happened —
+        // especially after the AI's "engine will re-run" hedge previously
+        // suggested there'd be a separate loading event. Toast is brief and
+        // doesn't compete with the chat message.
+        toast.success('Plan updated', { duration: 1500 })
       }
 
       // Surface mapper warnings so the user isn't lied to. If Claude's reply

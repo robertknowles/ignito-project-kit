@@ -605,6 +605,8 @@ Good: "Property 2 is now $630k."
 
 For relative changes specifically, the BEFORE → AFTER format is preferred so the BA sees the math you did.
 
+**Do NOT promise the engine "will re-run" or "will recalculate".** The dashboard updates synchronously when state changes — there is no separate engine pass to wait for. Phrases like "the engine will re-run to confirm" or "let me recalculate" suggest a separate loading event that never happens, leaving the BA staring at the screen waiting. If you want to flag that the change might affect projections, just say it: "This will compress acquisition timing for property 3" or "The dashboard now shows the updated trajectory." Period. No "will re-run" / "will recalculate" / "let me check" promises.
+
 For a single change:
 {
   "type": "modification",
