@@ -179,14 +179,16 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (error) throw error;
 
       // Update local state
-      setClients(prev => prev.map(client => 
+      setClients(prev => prev.map(client =>
         client.id === clientId ? { ...client, ...updates } : client
       ));
 
-      // Update active client if it's the one being updated
-      if (activeClient?.id === clientId) {
-        setActiveClient({ ...activeClient, ...updates });
-      }
+      // Update active client if it's the one being updated. Use the
+      // functional updater so the check fires against the latest
+      // activeClient — the closure value is stale when updateClient is
+      // called shortly after setActiveClient (e.g. AI plan response
+      // landing right after a fresh client was made active).
+      setActiveClient(prev => (prev?.id === clientId ? { ...prev, ...updates } : prev));
 
       return true;
     } catch (error) {
