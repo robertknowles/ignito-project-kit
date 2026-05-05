@@ -799,6 +799,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Settings, DataAssumptions, the property detail modal, and any future page
   // that reads scenario state. loadInProgressRef inside loadClientScenario
   // guards against concurrent calls if a route-level recovery also fires.
+  // Track which (client, scenario) pair we've already attempted recovery on.
+  // Without this, scenarios with corrupt data (chatHistory present but
+  // propertyOrder/propertySelections genuinely empty in the DB row) cause
+  // the self-heal to loop infinitely — fetch returns the same empty data,
+  // propertyOrder.length stays 0, loadInProgressRef + isLoadingScenario
+  // toggle false, effect re-fires, repeat forever (cofounder report
+  // 2026-05-06: hundreds of identical GETs to /scenarios on Lucy click).
+  const selfHealAttemptedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!activeClient) return;
     if (role === 'client') return;
@@ -806,6 +814,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (propertyOrder.length > 0) return;
     if (loadInProgressRef.current) return;
     if (isLoadingScenario) return;
+    const attemptKey = `${activeClient.id}:${scenarioId}`;
+    if (selfHealAttemptedRef.current === attemptKey) return;
+    selfHealAttemptedRef.current = attemptKey;
     loadClientScenario(activeClient.id);
   }, [activeClient?.id, role, scenarioId, propertyOrder.length, isLoadingScenario, loadClientScenario]);
 
