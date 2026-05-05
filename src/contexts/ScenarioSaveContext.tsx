@@ -254,10 +254,49 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       }
 
+      // Merge with any DB-side fields we don't manage in this context.
+      //
+      // Other pages (Portfolio.tsx, DataAssumptions.tsx) directly write to
+      // scenarios.data.portfolioTracking via their own savePortfolioTracking
+      // helper. Without this merge, our autosave would build scenarioData from
+      // in-memory state (which has no portfolioTracking) and stomp those
+      // writes — that's the "marked as purchased turns back off after nav"
+      // bug (cofounder report 2026-05-05).
+      //
+      // Preserve any unmanaged keys from the existing DB row. Managed keys
+      // (the in-memory state we own) take precedence from scenarioData.
+      // Future-proofs against any other page that writes to scenarios.data.
+      const MANAGED_KEYS = new Set([
+        'propertySelections',
+        'propertyOrder',
+        'investmentProfile',
+        'propertyInstances',
+        'timelineSnapshot',
+        'chartData',
+        'chatHistory',
+        'lastSaved',
+        'comparisonMode',
+        'scenarios',
+      ]);
+      let mergedData: ScenarioData = scenarioData;
+      if (scenarioId !== null) {
+        const { data: existingRow } = await supabase
+          .from('scenarios')
+          .select('data')
+          .eq('id', scenarioId)
+          .single();
+        const existingData = (existingRow?.data ?? {}) as Record<string, unknown>;
+        const preserved: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(existingData)) {
+          if (!MANAGED_KEYS.has(key)) preserved[key] = val;
+        }
+        mergedData = { ...preserved, ...scenarioData } as ScenarioData;
+      }
+
       const baseFields = {
         name: `${activeClient.name}'s Scenario`,
         updated_at: new Date().toISOString(),
-        data: scenarioData,
+        data: mergedData,
         client_display_name: activeClient.name || 'Client',
         agent_display_name: agentDisplayName,
         company_display_name: companyDisplayName,
