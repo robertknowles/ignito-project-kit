@@ -332,6 +332,12 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // sendMessage was scheduled before a client switch settled.
         const liveHasExistingPlan = optionsRef.current.hasExistingPlan
         const liveStrategyPreset = optionsRef.current.strategyPreset
+        console.info('[nl-parse] response received', {
+          responseType: response.type,
+          liveHasExistingPlan,
+          liveStrategyPreset,
+          responseStrategyPreset: response.strategyPreset,
+        })
         if (liveHasExistingPlan && response.type === 'initial_plan') {
           const isStrategySwitch =
             !!response.strategyPreset &&
