@@ -301,13 +301,31 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Guard: if a plan already exists but the model returned initial_plan,
         // the model misclassified a follow-up question as a rebuild. Downgrade
         // to a plain text message so the dashboard isn't destroyed.
+        //
+        // EXCEPTION: strategy switches are the one legitimate initial_plan
+        // rebuild while a plan exists (per system prompt's "Strategy Switches
+        // Mid-Conversation" section). Detect by strategyPreset mismatch — if
+        // the AI returned a different preset than is currently active, the
+        // user explicitly asked to switch strategies and the rebuild is
+        // intended. Without this exception, "switch to cash flow" was being
+        // silently downgraded to an explanation, the AI's confident "Built a
+        // 5-property yield-focused portfolio…" message landed but the
+        // dashboard was never rebuilt (founder report 2026-05-05, B2 fail).
+        //
         // Also downgrade `comparison` responses — the scenario comparison
         // fork is disabled by product decision; "what if" questions should
         // get a written answer, not a forked scenario.
         let effectiveType: NLParseResponse['type'] = response.type
         if (options.hasExistingPlan && response.type === 'initial_plan') {
-          console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
-          effectiveType = 'explanation'
+          const isStrategySwitch =
+            !!response.strategyPreset &&
+            response.strategyPreset !== options.strategyPreset
+          if (!isStrategySwitch) {
+            console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
+            effectiveType = 'explanation'
+          } else {
+            console.info(`[nl-parse] strategy switch detected: ${options.strategyPreset} → ${response.strategyPreset}`)
+          }
         }
         if (response.type === 'comparison') {
           console.warn('[nl-parse] comparison response intercepted — treating as explanation.')
