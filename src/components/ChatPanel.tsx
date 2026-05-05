@@ -427,7 +427,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     userId: user?.id,
     clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
     strategyPreset: profile.strategyPreset || 'eg-low',
-    hasExistingPlan: propertyOrder.length > 0,
+    // Only treat the user as having an existing plan when there's a SAVED
+    // scenario for the current client. propertyOrder alone leaks across
+    // client switches: launching client 2 from Home leaves client 1's
+    // selections in memory until loadClientScenario settles, causing the
+    // initial_plan downgrade guard to misfire (founder report 2026-05-06).
+    hasExistingPlan: propertyOrder.length > 0 && !!scenarioId,
   })
 
   // Keep the forward-ref pointed at the latest addSystemMessage so callbacks
@@ -450,7 +455,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     prevScenarioClientRef.current = activeClient?.id ?? null
 
     if (clientChanged) {
-      prevScenarioIdRef.current = scenarioId
+      // On client switch, scenarioId still holds the previous client's value
+      // and is about to transition to null (or the new client's id) once
+      // loadClientScenario completes. Pin prev to null so that a null landing
+      // doesn't fire the reset-clear (which would wipe the pending-prompt
+      // message that was just injected for the new client).
+      prevScenarioIdRef.current = null
       return
     }
 
