@@ -258,11 +258,13 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let userCompanyId: string | null = null;
 
       if (user) {
+        // maybeSingle so a missing profile row (rare) doesn't trigger
+        // Supabase's 15-second auth-retry storm.
         const { data: profileData } = await supabase
           .from('profiles')
           .select('full_name, company_name, company_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (profileData) {
           agentDisplayName = profileData.full_name || user.user_metadata?.name || 'Agent';
@@ -452,31 +454,34 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     try {
+      // .maybeSingle() returns null instead of erroring when no rows match.
+      // Using .single() here returned 406 Not Acceptable for new clients with
+      // no saved scenario, which Supabase JS treats as auth-retryable and
+      // retries with exponential backoff (~1+2+4+8 ≈ 15s). That 15s of
+      // retrying was visible to the user as a stalled loading state on the
+      // home → new-client flow (founder report 2026-05-06).
       const { data, error } = await supabase
         .from('scenarios')
         .select('*')
         .eq('client_id', clientId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // PGRST116 means no rows found
-        if (error.code === 'PGRST116') {
-          setLastSavedData(null);
-          setLastSaved(null);
-          setScenarioId(null);
-          setLoadedVersion(0);
-          // No saved scenario in Supabase. Don't wipe selections/instances —
-          // the user may have unsaved chat-driven data already in
-          // localStorage that PropertySelectionContext.loadClientData has
-          // (or will) restore. Leave the contexts as they are. The debounced
-          // change-detection effect below sets hasUnsavedChanges separately.
-          return null;
-        }
         throw error;
       }
-      
+
+      if (!data) {
+        // No saved scenario for this client. Don't wipe selections/instances
+        // — the user may have unsaved chat-driven data in memory.
+        setLastSavedData(null);
+        setLastSaved(null);
+        setScenarioId(null);
+        setLoadedVersion(0);
+        return null;
+      }
+
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
 
@@ -642,35 +647,38 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNoScenarioForClient(false);
     
     try {
-      // Query scenarios by client_user_id
+      // Query scenarios by client_user_id. maybeSingle so a no-rows case
+      // returns null cleanly — see loadClientScenario for why .single() was
+      // a 15-second auth-retry stall.
       const { data, error } = await supabase
         .from('scenarios')
         .select('*')
         .eq('client_user_id', userId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
-      
+        .maybeSingle();
+
       if (error) {
-        // PGRST116 means no rows found — full blank slate.
-        if (error.code === 'PGRST116') {
-          setNoScenarioForClient(true);
-          setLastSavedData(null);
-          setLastSaved(null);
-          setScenarioId(null);
-          setHasUnsavedChanges(false);
-          resetSelections();
-          setPropertyOrder([]);
-          propertyInstanceContext.setInstances({});
-          setProfile({ ...INITIAL_INVESTMENT_PROFILE });
-          setChatMessages([]);
-          setTimelineSnapshot([]);
-          setChartData(undefined);
-          return null;
-        }
         throw error;
       }
-      
+
+      if (!data) {
+        // No scenario for this client user — full blank slate.
+        setNoScenarioForClient(true);
+        setLastSavedData(null);
+        setLastSaved(null);
+        setScenarioId(null);
+        setHasUnsavedChanges(false);
+        resetSelections();
+        setPropertyOrder([]);
+        propertyInstanceContext.setInstances({});
+        setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+        setChatMessages([]);
+        setTimelineSnapshot([]);
+        setChartData(undefined);
+        return null;
+      }
+
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
         

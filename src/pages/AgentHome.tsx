@@ -17,12 +17,28 @@ import {
   Loader2 as Loader2Icon,
   Send as SendIcon,
   RotateCcw,
+  MoreHorizontal as MoreHorizontalIcon,
 } from 'lucide-react'
 import { LeftRail } from '@/components/LeftRail'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
 import { ChartCard } from '@/components/ui/ChartCard'
-import { useClient } from '@/contexts/ClientContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { useClient, type Client } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -74,7 +90,9 @@ const STRATEGY_LABELS: Record<string, string> = {
 
 export const AgentHome: React.FC = () => {
   const navigate = useNavigate()
-  const { clients, activeClient, setActiveClient, createClient } = useClient()
+  const { clients, activeClient, setActiveClient, createClient, deleteClient } = useClient()
+  const [pendingDeleteClient, setPendingDeleteClient] = useState<Client | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const { branding } = useBranding()
   const primaryColor = branding.primaryColor
 
@@ -337,15 +355,45 @@ export const AgentHome: React.FC = () => {
                         : null
 
                     return (
-                      <button
+                      <div
                         key={client.id}
-                        onClick={() => handleRecentClick(client)}
-                        className={`group flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
+                        className={`group relative flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
                           isCurrent
                             ? 'border-gray-900 bg-gray-50'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                       >
+                        {/* Three-dot menu — top-right of the card */}
+                        <div className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-6 h-6 inline-flex items-center justify-center rounded-md bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 shadow-sm"
+                                aria-label={`Actions for ${client.name}`}
+                              >
+                                <MoreHorizontalIcon size={14} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onSelect={(e) => {
+                                  e.preventDefault()
+                                  setPendingDeleteClient(client)
+                                }}
+                                className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                              >
+                                Delete client
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRecentClick(client)}
+                          className="text-left w-full"
+                        >
                         <div
                           className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-white"
                           style={{ aspectRatio: '4 / 3' }}
@@ -390,7 +438,8 @@ export const AgentHome: React.FC = () => {
                             Edited {updated}
                           </div>
                         </div>
-                      </button>
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
@@ -422,6 +471,52 @@ export const AgentHome: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {/* Delete client confirmation */}
+      <Dialog
+        open={!!pendingDeleteClient}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDeleteClient(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete client</DialogTitle>
+            <DialogDescription>
+              {pendingDeleteClient
+                ? `Are you sure you want to delete ${pendingDeleteClient.name}? This action cannot be undone and will permanently remove the client along with all associated scenarios, properties and projections.`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPendingDeleteClient(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={async () => {
+                if (!pendingDeleteClient) return
+                setDeleting(true)
+                const ok = await deleteClient(pendingDeleteClient.id)
+                setDeleting(false)
+                if (ok) {
+                  toast.success(`${pendingDeleteClient.name} deleted`)
+                  setPendingDeleteClient(null)
+                } else {
+                  toast.error('Failed to delete client')
+                }
+              }}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

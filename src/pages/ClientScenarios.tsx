@@ -1092,12 +1092,13 @@ toast.error('Failed to create client invite');
                         <th className="table-header">Portal</th>
                         <th className="table-header">Last Active</th>
                         <th className="table-header">Last Action</th>
+                        <th className="table-header w-12"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredClients.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center">
+                          <td colSpan={8} className="px-6 py-12 text-center">
                             <div className="body-secondary">
                               {searchQuery ? 'No clients match your search' : 'No clients in this category'}
                             </div>
@@ -1283,6 +1284,33 @@ toast.error('Failed to create client invite');
                                   ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
                                   : '—'}
                               </span>
+                            </td>
+
+                            {/* Row actions (three-dot menu) */}
+                            <td className="table-cell text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className="w-8 h-8 inline-flex items-center justify-center rounded-md text-[#717680] hover:text-[#414651] hover:bg-[#F2F4F7] transition-colors"
+                                    aria-label={`Actions for ${client.name}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontalIcon size={16} />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem onClick={() => handleRenameClick(client)}>
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteClick(client)}
+                                    className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                  >
+                                    Delete client
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
                           </tr>
                         );
