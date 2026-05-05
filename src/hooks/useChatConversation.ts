@@ -63,6 +63,16 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const [isLoading, setIsLoading] = useState(false)
   const messageIdCounter = useRef(0)
 
+  // Mirror options into a ref so post-response logic (downgrade guard,
+  // strategy-switch detection) reads the LATEST values rather than the
+  // stale snapshot baked into sendMessage's closure. Without this, a
+  // pending-prompt fired right after a Home-flow client switch sees the
+  // PREVIOUS client's hasExistingPlan/strategyPreset, because
+  // loadClientScenario hasn't yet reset propertyOrder/scenarioId by the
+  // time sendMessage's options were captured.
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
   const createMessage = useCallback(
     (
       role: ChatMessage['role'],
@@ -318,15 +328,19 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // fork is disabled by product decision; "what if" questions should
         // get a written answer, not a forked scenario.
         let effectiveType: NLParseResponse['type'] = response.type
-        if (options.hasExistingPlan && response.type === 'initial_plan') {
+        // Read these from the ref — closure-captured values are stale when
+        // sendMessage was scheduled before a client switch settled.
+        const liveHasExistingPlan = optionsRef.current.hasExistingPlan
+        const liveStrategyPreset = optionsRef.current.strategyPreset
+        if (liveHasExistingPlan && response.type === 'initial_plan') {
           const isStrategySwitch =
             !!response.strategyPreset &&
-            response.strategyPreset !== options.strategyPreset
+            response.strategyPreset !== liveStrategyPreset
           if (!isStrategySwitch) {
             console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
             effectiveType = 'explanation'
           } else {
-            console.info(`[nl-parse] strategy switch detected: ${options.strategyPreset} → ${response.strategyPreset}`)
+            console.info(`[nl-parse] strategy switch detected: ${liveStrategyPreset} → ${response.strategyPreset}`)
           }
         }
         if (response.type === 'comparison') {
