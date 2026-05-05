@@ -325,23 +325,25 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         ? applyGrowthAdjustment(profile.growthCurve, growthAdjustment)
         : profile.growthCurve;
       
-      // Calculate existing portfolio cashflow (simplified - uses default expenses)
-      let existingCashflow = 0;
-      let existingRentalIncome = 0;
-      let existingExpenses = 0;
-      let existingLoanPayments = 0;
-      
-      if (profile.portfolioValue > 0) {
-        // Use configurable flat rate for existing portfolio (mature properties)
-        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
-        const grownValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
-        existingRentalIncome = grownValue * DEFAULT_RENTAL_YIELD;
-        // Use event-adjusted interest rate for existing debt
-        existingLoanPayments = profile.currentDebt * effectiveInterestRate;
-        // Simplified expense ratio for existing portfolio
-        existingExpenses = existingRentalIncome * DEFAULT_EXPENSE_RATIO;
-        existingCashflow = existingRentalIncome - existingLoanPayments - existingExpenses;
-      }
+      // Existing portfolio cashflow contribution: zeroed.
+      //
+      // profile.portfolioValue is populated from the chat extraction's
+      // existingPropertyEquity field (typically a PPOR — owner-occupied
+      // home, NOT income-producing). The previous logic blindly applied
+      // DEFAULT_RENTAL_YIELD (4%) to portfolioValue, fabricating rental
+      // income on a property that doesn't generate any. For the cofounder's
+      // 2026-05-06 test case ($3.2M PPOR), that synthesised ~$128k/yr of
+      // phantom rent and made the overall cashflow chart disagree with the
+      // per-property page (which only counts real timeline-property rent).
+      //
+      // Genuine existing IPs should be modelled by adding them to the
+      // timeline as actual properties — that's the only path that gets
+      // their rent, expenses, and loan repayments calculated correctly
+      // and per-property visible.
+      const existingCashflow = 0;
+      const existingRentalIncome = 0;
+      const existingExpenses = 0;
+      const existingLoanPayments = 0;
 
       // Calculate cashflow from new purchases using DETAILED property instance data
       let newPurchasesCashflow = 0;

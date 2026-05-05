@@ -137,7 +137,11 @@ export const EquityUnlockChart: React.FC = () => {
           borderColor: '#E9EAEB',
           padding: '12px 16px',
           fontSize: 13,
-          maxWidth: 260,
+          // Was maxWidth 260 — too narrow when an equity-released entry has
+          // two property titles ("Metro House — Growth → Metro Unit — Growth")
+          // which clipped or hid the second event entirely. Widen + allow
+          // wrapping inside event lines so all events stay readable.
+          maxWidth: 360,
           boxShadow: '0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03)',
         }}
       >
@@ -190,7 +194,7 @@ export const EquityUnlockChart: React.FC = () => {
               Equity released
             </p>
             {eventsThisYear.map((evt, ei) => (
-              <p key={ei} className="text-sm mb-0.5">
+              <p key={ei} className="text-sm mb-1" style={{ wordBreak: 'break-word', lineHeight: 1.35 }}>
                 <span className="font-medium text-gray-700">{fmt(evt.amount)}</span>
                 <span className="text-gray-500"> from {evt.sourceTitle}</span>
                 {evt.destinationTitle && (

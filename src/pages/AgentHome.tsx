@@ -152,26 +152,23 @@ export const AgentHome: React.FC = () => {
       if (!trimmed || submitting) return
       setSubmitting(true)
       try {
-        let target = activeClient
-        if (!target) {
-          if (clients.length > 0) {
-            target = clients[0]
-            setActiveClient(target)
-          } else {
-            const created = await createClient({
-              name: 'Untitled Client',
-              stage: 'onboarding',
-              portal_status: 'not_invited',
-              roadmap_status: 'not_started',
-            })
-            if (!created) {
-              toast.error('Could not create a client to run this scenario against')
-              setSubmitting(false)
-              return
-            }
-            target = created
-          }
+        // Home is the "new scenario" entry point. Always create a fresh
+        // client and switch to it — DO NOT reuse activeClient or clients[0].
+        // Cofounder report 2026-05-06: typing on Home was launching against
+        // the previously-active client, leaving the user "trapped" in that
+        // client's plan with the previous chat history still visible.
+        const created = await createClient({
+          name: 'Untitled Client',
+          stage: 'onboarding',
+          portal_status: 'not_invited',
+          roadmap_status: 'not_started',
+        })
+        if (!created) {
+          toast.error('Could not create a client to run this scenario against')
+          setSubmitting(false)
+          return
         }
+        setActiveClient(created)
 
         sessionStorage.setItem(PENDING_PROMPT_KEY, trimmed)
         navigate('/dashboard')
@@ -180,7 +177,7 @@ export const AgentHome: React.FC = () => {
         setSubmitting(false)
       }
     },
-    [activeClient, clients, createClient, navigate, setActiveClient, submitting]
+    [createClient, navigate, setActiveClient, submitting]
   )
 
   const handleKeyDown = useCallback(

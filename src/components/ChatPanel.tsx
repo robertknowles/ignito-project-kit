@@ -68,7 +68,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const chartData = useChartDataGenerator()
 
   // Client context — for resetting chat on client switch
-  const { activeClient } = useClient()
+  const { activeClient, updateClient } = useClient()
 
   // Scenario persistence — sync chat messages
   const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight } = useScenarioSave()
@@ -168,6 +168,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       // Store client names
       if (response.clientProfile?.members) {
         clientNamesRef.current = response.clientProfile.members.map((m) => m.name)
+
+        // If the active client still has the placeholder name from Home
+        // (Untitled Client) and the AI extracted real names from the prompt,
+        // update the client record so the selector / sidebar / breadcrumb
+        // stop saying "Untitled Client". Only fires for placeholder names so
+        // we don't overwrite a name the BA explicitly set elsewhere.
+        const extracted = response.clientProfile.members
+          .map((m) => m.name)
+          .filter((n) => n && !/^client \d+$/i.test(n))
+        if (
+          activeClient &&
+          extracted.length > 0 &&
+          /^untitled client$/i.test(activeClient.name ?? '')
+        ) {
+          const newName = extracted.length === 1 ? extracted[0] : `${extracted[0]} & ${extracted[1]}`
+          void updateClient(activeClient.id, { name: newName })
+        }
       }
 
       // Map to investment profile and update context
@@ -189,7 +206,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         flushSaveAfterStateUpdate()
       }
     },
-    [updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate]
+    [updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate, activeClient, updateClient]
   )
 
   // Handle modifications — supports single modification or compound modifications array
