@@ -7,6 +7,7 @@ import { useMultiScenario, Scenario } from './MultiScenarioContext';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { repairScenario } from '@/utils/scenarioRepair';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { ChatMessage } from '../types/nlParse';
 import {
@@ -194,6 +195,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const saveInProgressRef = useRef<boolean>(false);
   const loadInProgressRef = useRef<boolean>(false);
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Per-scenario guard so the auto-repair detection can't loop. Set
+  // when we initiate a repair; only cleared on explicit reset.
+  const autoRepairAttemptedRef = useRef<string | null>(null);
+  // Forward-ref to loadClientScenario so the auto-repair completion
+  // callback can re-invoke it after the row has been fixed in DB.
+  const loadClientScenarioRef = useRef<((clientId: number) => Promise<unknown>) | null>(null);
 
   // Get current scenario data
   const getCurrentScenarioData = useCallback((): ScenarioData => {
@@ -615,6 +622,52 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(false);
         setLoadedScenarioClientId(clientId);
 
+        // Auto-repair the cross-client-save corruption signature.
+        //
+        // The pattern: propertyInstances populated, propertyOrder/
+        // propertySelections empty. This is what a partial-write during
+        // a client transition leaves behind — instances + chatHistory +
+        // portfolioTracking survive (separate writers), but the managed
+        // keys saveScenario controls were overwritten with empty state.
+        //
+        // The signature is unambiguous and the recovery is non-
+        // destructive (rebuild order from instance keys, derive
+        // selections from prefix counts), so we run it automatically
+        // on detection. Once-per-scenario guard prevents a fix loop if
+        // the repair somehow doesn't take.
+        const instanceCount = translatedInstances ? Object.keys(translatedInstances).length : 0;
+        const orderCount = translatedOrder?.length ?? 0;
+        const selectionCount = Object.keys(translatedSelections).length;
+        if (instanceCount > 0 && orderCount === 0 && selectionCount === 0) {
+          const attemptKey = `${data.id}`;
+          if (autoRepairAttemptedRef.current !== attemptKey) {
+            autoRepairAttemptedRef.current = attemptKey;
+            // Defer so the current load can return cleanly. The repair
+            // itself reloads the scenario after writing, so the user
+            // sees the restored plan a beat later.
+            void (async () => {
+              const result = await repairScenario(data.id);
+              if (!result.ok) {
+                toast({
+                  title: "Couldn't auto-repair scenario",
+                  description: result.error,
+                  variant: "destructive",
+                });
+                return;
+              }
+              toast({
+                title: 'Scenario auto-repaired',
+                description: `${result.restoredOrder.length} properties rebuilt from saved instance data.`,
+              });
+              // Re-run loadClientScenario so the freshly-repaired row
+              // populates in-memory state. Skip if the user already
+              // navigated away — loadInProgressRef will short-circuit
+              // a stale call anyway.
+              await loadClientScenarioRef.current?.(clientId);
+            })();
+          }
+        }
+
         return scenarioData;
       } else {
         // Row exists but has no `data` payload — treat the same as no saved
@@ -645,6 +698,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoadingScenario(false);
     }
   }, [resetSelections, updateProfile, setProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setChatMessages]);
+  loadClientScenarioRef.current = loadClientScenario;
 
   // Reset scenario - clear all data and delete from database
   const resetScenario = useCallback(async () => {
