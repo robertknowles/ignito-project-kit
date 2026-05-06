@@ -96,7 +96,7 @@ export const FundingSourcesChart: React.FC = () => {
               ? Math.round((d.extractable / totalExtractable) * equity)
               : Math.round(equity / donorEquities.length);
             sources.push({
-              type: 'Equity Extraction',
+              type: 'Equity Release',
               amount: share,
               from: d.title,
               refinanceYear: buyYear,

@@ -164,7 +164,7 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     id: 'commercial-transition',
     shortLabel: 'Commercial Transition',
     fullLabel: 'Commercial Transition',
-    description: 'Two-phase. Phase 1: build equity in residential. Phase 2: pivot to commercial yield.',
+    description: 'Two-phase. Phase 1: build equity in residential. Phase 2: transition to commercial yield.',
     primary: [],
     secondary: [],
     phase1: ['metro-house-growth', 'regional-house-growth'],

@@ -108,7 +108,7 @@ export const generateStrategySummary = (
 ): string => {
   // Handle empty timeline
   if (timelineProperties.length === 0) {
-    return 'Add properties to the timeline to generate an AI-powered strategy summary.';
+    return 'Add properties to the timeline to generate a plan summary.';
   }
 
   // Filter to only feasible properties
@@ -116,7 +116,7 @@ export const generateStrategySummary = (
   
   // Handle case where no properties are feasible
   if (feasibleProperties.length === 0) {
-    return 'Based on the current inputs, none of the selected properties are affordable. Adjust the client profile or property selections to generate a strategy.';
+    return 'Based on the current inputs, none of the selected properties are affordable. Adjust the client profile or property selections to generate a plan.';
   }
 
   // Analyze timeline dynamics
@@ -146,25 +146,20 @@ export const generateStrategySummary = (
   // === BUILD THE OPENER ===
   let opener: string;
   if (dynamics.velocity > 0.5) {
-    // Aggressive: buying every 2 years or less
-    opener = `The strategy initiates with an aggressive accumulation phase, securing ${numberOfProperties} assets early to maximize compounding.`;
+    opener = `The plan models an accelerated acquisition period, with ${numberOfProperties} properties purchased early to maximise compounding time.`;
   } else {
-    // Steady: more conservative pace
-    opener = `The strategy follows a steady acquisition rhythm, carefully timing purchases to match borrowing capacity growth.`;
+    opener = `The plan models a measured acquisition pace, with purchase timing matched to projected borrowing capacity.`;
   }
 
   // === BUILD THE MIDDLE (The Journey) ===
   let middle: string;
   if (dynamics.significantGaps.length > 0) {
-    // Has consolidation periods
     const gap = dynamics.significantGaps[0];
-    middle = `A strategic consolidation period is utilized mid-timeline (${gap.startYear}-${gap.endYear}), allowing equity to compound naturally before leveraged expansion resumes.`;
+    middle = `A hold period is modelled mid-timeline (${gap.startYear}-${gap.endYear}), allowing equity to compound before further acquisitions.`;
   } else if (dynamics.hasAssetPivot && dynamics.pivotYear) {
-    // Asset pivot detected
-    middle = `The portfolio pivots in ${dynamics.pivotYear}, transitioning from growth-focused residential assets into high-yield commercial property to boost passive income.`;
+    middle = `The plan transitions in ${dynamics.pivotYear} from residential growth assets into income-focused commercial property.`;
   } else {
-    // Standard equity recycling narrative
-    middle = `Equity is systematically recycled into further ${dominantType} acquisitions, compounding the asset base.`;
+    middle = `Equity is recycled into further ${dominantType} acquisitions, compounding the asset base.`;
   }
 
   // === BUILD THE CLOSER (Goal Analysis) ===
@@ -174,18 +169,18 @@ export const generateStrategySummary = (
   const goalStatuses: string[] = [];
   
   if (equityGoalAchieved) {
-    goalStatuses.push(`${formatCurrency(finalEquity)} equity target achieved`);
+    goalStatuses.push(`${formatCurrency(finalEquity)} projected equity — clears the ${formatCurrency(profile.equityGoal)} target`);
   } else {
-    goalStatuses.push(`${formatCurrency(finalEquity)} equity (${formatCurrency(profile.equityGoal - finalEquity)} from goal)`);
-  }
-  
-  if (cashflowGoalAchieved) {
-    goalStatuses.push(`${formatCurrency(finalCashflow)} annual cashflow achieved`);
-  } else {
-    goalStatuses.push(`${formatCurrency(finalCashflow)} cashflow (${formatCurrency(profile.cashflowGoal - finalCashflow)} from goal)`);
+    goalStatuses.push(`${formatCurrency(finalEquity)} projected equity (${formatCurrency(profile.equityGoal - finalEquity)} short of target)`);
   }
 
-  const closer = `By Year ${profile.timelineYears}, the portfolio positions for ${goalStatuses.join(' and ')}.`;
+  if (cashflowGoalAchieved) {
+    goalStatuses.push(`${formatCurrency(finalCashflow)} projected annual cashflow — clears the ${formatCurrency(profile.cashflowGoal)} target`);
+  } else {
+    goalStatuses.push(`${formatCurrency(finalCashflow)} projected cashflow (${formatCurrency(profile.cashflowGoal - finalCashflow)} short of target)`);
+  }
+
+  const closer = `By Year ${profile.timelineYears}, the model projects ${goalStatuses.join(' and ')}.`;
 
   // Combine into flowing narrative
   return `${opener} ${middle} ${closer}`;

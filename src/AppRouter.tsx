@@ -38,6 +38,7 @@ import { PortalHome } from './portal/PortalHome'
 import { PortalPropertyPlan } from './portal/PortalPropertyPlan'
 import { PortalPortfolio } from './portal/PortalPortfolio'
 import { PortalProfile } from './portal/PortalProfile'
+import Terms from './pages/Terms'
 
 export function AppRouter() {
   return (
@@ -116,6 +117,9 @@ export function AppRouter() {
                             
                             {/* Public client view - no authentication required */}
                             <Route path="/client-view" element={<ClientView />} />
+
+                            {/* Public terms/disclaimers page */}
+                            <Route path="/terms" element={<Terms />} />
                             
                             {/* Public client onboarding form - no authentication required */}
                             <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />

@@ -112,7 +112,7 @@ export const ComparisonInsights: React.FC<ComparisonInsightsProps> = ({ comparis
     if (winner === 'tie') {
       return 'Scenarios are comparable';
     }
-    return `Scenario ${winner} recommended`;
+    return `Scenario ${winner} performs better`;
   };
   
   return (
@@ -121,7 +121,7 @@ export const ComparisonInsights: React.FC<ComparisonInsightsProps> = ({ comparis
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Trophy className="w-5 h-5 text-amber-500" />
-          Scenario Comparison
+          Comparison
         </h2>
         
         <Badge 

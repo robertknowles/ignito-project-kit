@@ -23,7 +23,7 @@ export function GoalAchievedCard() {
                 fontFamily: 'Figtree, sans-serif',
               }}
             >
-              Portfolio Goal Achieved — Year 2045
+              Portfolio Target Reached — Year 2045
             </h3>
           </div>
         </div>
@@ -43,7 +43,7 @@ export function GoalAchievedCard() {
           </div>
           <div>
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">
-              Passive Income
+              Rental Income
             </p>
             <p className="text-base font-semibold text-blue-600">
               $100k–120k p.a.

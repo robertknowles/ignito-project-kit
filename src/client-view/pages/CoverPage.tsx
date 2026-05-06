@@ -1,4 +1,5 @@
 import React from 'react';
+import { DisclaimerBlock } from '@/components/DisclaimerBlock';
 
 interface CoverPageProps {
   clientDisplayName: string;
@@ -49,6 +50,7 @@ export function CoverPage({ clientDisplayName, agentDisplayName, companyDisplayN
           <div className="text-2xl font-bold text-gray-900">{companyDisplayName}</div>
         </div>
       </div>
+      <DisclaimerBlock variant="B" className="mt-6" />
     </div>;
 }
 

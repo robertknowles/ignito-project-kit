@@ -160,7 +160,7 @@ export function ComparisonKPICards({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-500" />
-            <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Passive Income</span>
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Rental Income</span>
           </div>
         </div>
         

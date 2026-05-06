@@ -550,7 +550,7 @@ setError('Failed to submit your details. Please try again.');
 
                 <SliderField
                   label="Annual Cashflow Goal"
-                  description="Target passive income from properties"
+                  description="Target rental income from properties"
                   value={formData.cashflowGoal}
                   onChange={(val) => setFormData(prev => ({ ...prev, cashflowGoal: val }))}
                   min={0}

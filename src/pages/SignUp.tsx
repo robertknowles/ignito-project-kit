@@ -22,7 +22,12 @@ export function SignUp() {
     setLoading(true)
     setError('')
 
-    // Validate passwords match
+    if (!agreeToTerms) {
+      setError('You must agree to the Terms of Use to create an account')
+      setLoading(false)
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
@@ -226,7 +231,11 @@ export function SignUp() {
                   htmlFor="agree-terms"
                   className="ml-2 block text-sm text-[#6b7280]"
                 >
-                  I agree to the Terms of Service and Privacy Policy
+                  I confirm I hold the appropriate real estate licence for the services I provide, and I agree to the{' '}
+                  <Link to="/terms" className="text-blue-600 hover:underline" target="_blank">
+                    Terms of Use
+                  </Link>
+                  . I understand PropPath is a modelling tool and does not provide financial product advice or credit assistance.
                 </label>
               </div>
               <div>

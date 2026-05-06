@@ -320,7 +320,7 @@ const HowItWorks: React.FC = () => (
         <span className="text-black">A new standard for portfolio planning.</span>{' '}
         <span className="text-black/40">
           PropPath gives investment-focused <br className="hidden lg:block" />
-          buyers' agents an AI-powered way to plan property strategies clients <br className="hidden lg:block" />
+          buyers' agents an AI-powered way to plan property roadmaps clients <br className="hidden lg:block" />
           can actually see, understand, and buy into.
         </span>
       </h2>
@@ -340,7 +340,7 @@ const HowItWorks: React.FC = () => (
         },
         {
           title: 'Designed for speed',
-          desc: 'Cuts through the complexity of multi-property planning so you can move from strategy to client presentation in minutes, not hours.',
+          desc: 'Cuts through the complexity of multi-property planning so you can move from plan to client presentation in minutes, not hours.',
           illustration: <DesignedForSpeedIllustration />,
         },
       ].map((item) => (

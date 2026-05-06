@@ -174,9 +174,9 @@ const detectPriceJump = (
  */
 const getHighYieldVariation = (propertyIndex: number): string => {
   const variations = [
-    "High-yield asset added to boost cashflow.",
+    "Income-focused asset added for cashflow.",
     "Income-focused acquisition to support serviceability.",
-    "Cashflow play to balance portfolio LVR."
+    "Cashflow-oriented addition to balance portfolio LVR."
   ];
   return variations[propertyIndex % variations.length];
 };
@@ -204,7 +204,7 @@ const generateMilestoneNarrative = (
   
   // Commercial property - highest priority
   if (isCommercialProperty(property)) {
-    return "Strategic commercial acquisition to anchor portfolio income.";
+    return "Commercial acquisition to anchor portfolio income.";
   }
   
   // Price jump detection
@@ -231,7 +231,7 @@ const generateNextMove = (
   purchasedProperties: PropertySelection[]
 ): string => {
   if (!nextProperty) {
-    return "Portfolio consolidation phase begins.";
+    return "Portfolio enters hold period — no further acquisitions modelled.";
   }
   
   const currentYear = Math.round(currentProperty.affordableYear || currentProperty.purchaseYear || 2025);

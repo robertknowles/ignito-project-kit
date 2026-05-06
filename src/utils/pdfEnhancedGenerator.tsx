@@ -4,6 +4,7 @@ import type { TimelineProperty, GrowthProjection } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 import type { PropertyAssumption, GlobalEconomicFactors } from '../contexts/DataAssumptionsContext';
 import { generateStrategySummary } from './summaryGenerator';
+import { DISCLAIMER_B_TEXT } from '@/components/DisclaimerBlock';
 
 // ========================================
 // TYPES & INTERFACES
@@ -133,7 +134,7 @@ const detectConsolidationMilestone = (
     return {
       year: consolidationProperty.affordableYear,
       displayPeriod: consolidationProperty.displayPeriod,
-      message: `Consolidation phase begins`
+      message: `Hold period begins — no further acquisitions modelled`
     };
   }
 
@@ -327,10 +328,10 @@ const addPageFooter = (
     
     pdf.text(brandingText, pageWidth / 2, brandingY, { align: 'center' });
     
-    // Disclaimer
-    pdf.setFontSize(7);
+    // Disclaimer (variant C — short form)
+    pdf.setFontSize(6.5);
     pdf.setTextColor(156, 163, 175);
-    pdf.text('Projections are indicative only and not financial advice.', pageWidth / 2, brandingY + 4, { align: 'center' });
+    pdf.text('Factual information only. Not financial, credit, or tax advice. Inputs and projections are estimates.', pageWidth / 2, brandingY + 4, { align: 'center' });
   }
   
   // Page number
@@ -402,7 +403,7 @@ const generatePage1 = async (
   currentY += 6;
   
   pdf.setTextColor(107, 114, 128);
-  pdf.text('Passive Income Goal:', margin + 5, currentY);
+  pdf.text('Income Target:', margin + 5, currentY);
   pdf.setTextColor(17, 24, 39);
   pdf.text(`${formatCurrency(profile.cashflowGoal)}/year`, margin + 55, currentY);
   currentY += 6;
@@ -417,7 +418,7 @@ const generatePage1 = async (
   currentY += 2;
   pdf.setFontSize(10);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('Strategy Summary', margin, currentY);
+  pdf.text('Plan Summary', margin, currentY);
   currentY += 7;
   
   const summary = generateStrategySummary(timelineProperties, profile);
@@ -501,6 +502,14 @@ const generatePage1 = async (
       }
     });
   }
+
+  // Compliance disclaimer (variant B) at the bottom of page 1
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const disclaimerY = pageHeight - 30;
+  pdf.setFontSize(6.5);
+  pdf.setTextColor(156, 163, 175);
+  const disclaimerLines = pdf.splitTextToSize(DISCLAIMER_B_TEXT, pageWidth - margin * 2 - 4);
+  pdf.text(disclaimerLines, margin + 2, disclaimerY);
 };
 
 /**
@@ -535,13 +544,13 @@ const addGoalBanner = (
   
   if (goalAchievement.bothAchieved) {
     const year = Math.max(goalAchievement.equityGoalYear!, goalAchievement.passiveIncomeGoalYear!);
-    pdf.text('GOALS ACHIEVED - All goals achieved by year ' + Math.round(year), margin + 5, currentY);
+    pdf.text('TARGETS REACHED - All targets reached by year ' + Math.round(year), margin + 5, currentY);
     currentY += 6;
     pdf.setFontSize(8);
     pdf.setTextColor(55, 65, 81);
     pdf.text(`Equity: ${formatCurrency(profile.equityGoal)}`, margin + 10, currentY);
     currentY += 5;
-    pdf.text(`Passive Income: ${formatCurrency(profile.cashflowGoal)}/year`, margin + 10, currentY);
+    pdf.text(`Rental Income Target: ${formatCurrency(profile.cashflowGoal)}/year`, margin + 10, currentY);
   } else if (goalAchievement.equityGoalYear) {
     pdf.text(`EQUITY GOAL - ${formatCurrency(profile.equityGoal)} reached by year ${Math.round(goalAchievement.equityGoalYear)}`, margin + 5, currentY);
   } else if (goalAchievement.passiveIncomeGoalYear) {

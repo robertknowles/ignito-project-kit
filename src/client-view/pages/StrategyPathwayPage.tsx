@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 
+import { DisclaimerBlock } from '@/components/DisclaimerBlock'
 import { Building2, Home, TrendingUp, Target } from 'lucide-react'
 import { 
   analyzePortfolioStrategy,
@@ -66,7 +67,7 @@ export function StrategyPathwayPage({ investmentProfile, propertySelections, com
         >
           Commercial and Residential Portfolio Overview
         </h1>
-        <p className="text-sm text-gray-600">Investment Strategy Overview</p>
+        <p className="text-sm text-gray-600">Investment Plan Overview</p>
       </div>
       
       {/* Residential Portfolio Section - Only show if residential properties exist */}
@@ -182,6 +183,7 @@ export function StrategyPathwayPage({ investmentProfile, propertySelections, com
           ))}
         </div>
       </div>
+      <DisclaimerBlock variant="C" className="mt-6" />
       {/* Footer */}
       <div className="mt-8 flex justify-between items-center">
         <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>

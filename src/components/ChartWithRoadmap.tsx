@@ -805,7 +805,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return purchaseYears.length > 0 ? purchaseYears[purchaseYears.length - 1] : null;
   }, [chartData]);
 
-  // Phase labels for Accumulation / Consolidation
+  // Phase labels for Acquisition / Hold
   const phases = useMemo(() => {
     if (!mostRecentPurchase || chartData.length < 2) return [];
     const startYear = chartData[0].year;
@@ -815,7 +815,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
     if (lastPurchaseYear > startYear) {
       result.push({
-        label: 'Accumulation',
+        label: 'Acquisition',
         startYear,
         endYear: lastPurchaseYear,
         fill: 'rgba(59, 130, 246, 0.03)',
@@ -823,7 +823,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     }
     if (lastPurchaseYear < endYear) {
       result.push({
-        label: 'Consolidation',
+        label: 'Hold',
         startYear: lastPurchaseYear,
         endYear,
         fill: 'rgba(34, 197, 94, 0.03)',

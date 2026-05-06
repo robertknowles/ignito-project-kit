@@ -5,6 +5,7 @@ import { ChatPanel } from '../components/ChatPanel'
 import { useLayout } from '../contexts/LayoutContext'
 import { RetirementScenarioPanel } from '../components/RetirementScenario/RetirementScenarioPanel'
 import { ChartCard } from '../components/ui/ChartCard'
+import { DisclaimerBlock } from '@/components/DisclaimerBlock'
 
 const Retirement: React.FC = () => {
   const { chatPanelWidth } = useLayout()
@@ -23,6 +24,7 @@ const Retirement: React.FC = () => {
 
         <div className="flex-1 overflow-auto bg-white">
           <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
+            <DisclaimerBlock variant="D" className="mb-2" />
             <ChartCard title="Retirement Scenario">
               <RetirementScenarioPanel />
             </ChartCard>

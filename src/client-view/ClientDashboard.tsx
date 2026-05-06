@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Target, TrendingUp, Trophy, CheckCircle, Clock, Building2, Download, Share2, Copy } from 'lucide-react';
+import { DisclaimerBlock } from '@/components/DisclaimerBlock';
 import { PortfolioChart } from './components/PortfolioChart';
 import { CashflowChart } from './components/CashflowChart';
 import { TimelineCard } from './components/TimelineCard';
@@ -628,6 +629,9 @@ export function ClientDashboard({
       </div>
 
       <div className="px-6 lg:px-10 py-4 sm:py-6">
+        {/* Compliance disclaimer banner */}
+        <DisclaimerBlock variant="B" className="mb-4 max-w-none" />
+
         {/* Hero Cards - Investment Goals (Conditional: Comparison vs Single Scenario) */}
         {comparisonMode && comparisonMetrics ? (
           // COMPARISON MODE: Side-by-side KPI cards
@@ -658,7 +662,7 @@ export function ClientDashboard({
               <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">{formatCurrency(equityGoal)}</p>
               <p className={`text-sm ${equityGoalYear !== null ? 'text-emerald-600' : 'text-amber-500'}`}>
                 {equityGoalYear !== null 
-                  ? `Achieved by ${equityGoalYear}` 
+                  ? `Reached by ${equityGoalYear}` 
                   : `Target: ${targetYear}`}
               </p>
               {equityYearsAhead !== null && equityYearsAhead > 0 && (
@@ -671,7 +675,7 @@ export function ClientDashboard({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Passive Income</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Rental Income</span>
                 </div>
                 {incomeGoalYear !== null ? (
                   <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -682,7 +686,7 @@ export function ClientDashboard({
               <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">{formatCurrency(incomeGoal)}/yr</p>
               <p className={`text-sm ${incomeGoalYear !== null ? 'text-emerald-600' : 'text-amber-500'}`}>
                 {incomeGoalYear !== null 
-                  ? `Achieved by ${incomeGoalYear}` 
+                  ? `Reached by ${incomeGoalYear}` 
                   : `Target: ${targetYear}`}
               </p>
               {incomeYearsAhead !== null && incomeYearsAhead > 0 && (
@@ -753,7 +757,7 @@ export function ClientDashboard({
                   <div className="flex items-center gap-2 mb-3">
                     <Trophy className="w-4 h-4 text-amber-500" />
                     <h3 className="text-sm font-semibold text-gray-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                      Recommendation
+                      Comparison
                     </h3>
                   </div>
                   
@@ -762,7 +766,7 @@ export function ClientDashboard({
                       <p className="text-sm font-semibold text-gray-800">
                         {comparisonMetrics.winner === 'tie' 
                           ? 'Both scenarios perform similarly' 
-                          : `Scenario ${comparisonMetrics.winner} recommended`}
+                          : `Scenario ${comparisonMetrics.winner} performs better`}
                       </p>
                       {comparisonMetrics.winner !== 'tie' && (
                         <span className={`text-xs font-medium px-2 py-1 rounded ${
@@ -920,7 +924,7 @@ export function ClientDashboard({
                   <div className="flex items-center gap-2 mb-4">
                     <Trophy className="w-4 h-4 text-emerald-600" />
                     <h3 className="text-sm font-semibold text-gray-800" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                      Goals Achieved
+                      Targets Reached
                     </h3>
                     <span className="text-xs text-emerald-600 font-medium">
                       — {Math.min(equityYearsAhead || 0, incomeYearsAhead || 0)} years ahead
@@ -948,7 +952,7 @@ export function ClientDashboard({
                       </div>
                       <div className="bg-white/70 rounded-md p-2.5">
                         <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-[9px] text-gray-500">Passive Income</p>
+                          <p className="text-[9px] text-gray-500">Rental Income</p>
                           <p className="text-xs font-semibold text-emerald-600">{formatCurrency(finalCashflowData?.cashflow || 0)}/yr</p>
                         </div>
                         <div className="flex items-center justify-between">
@@ -962,13 +966,13 @@ export function ClientDashboard({
                     <div className="bg-white/60 rounded-md p-2.5">
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-gray-600">
-                          <span className="font-medium text-emerald-600">Equity goal</span> ({formatCurrency(equityGoal)}) achieved in {equityGoalYear}
+                          <span className="font-medium text-emerald-600">Equity target</span> ({formatCurrency(equityGoal)}) reached in {equityGoalYear}
                         </span>
                         <span className="text-emerald-600 font-medium">✓</span>
                       </div>
                       <div className="flex items-center justify-between text-[10px] mt-1.5">
                         <span className="text-gray-600">
-                          <span className="font-medium text-emerald-600">Income goal</span> ({formatCurrency(incomeGoal)}/yr) achieved in {incomeGoalYear}
+                          <span className="font-medium text-emerald-600">Income target</span> ({formatCurrency(incomeGoal)}/yr) reached in {incomeGoalYear}
                         </span>
                         <span className="text-emerald-600 font-medium">✓</span>
                       </div>

@@ -64,12 +64,13 @@ const Footer: React.FC = () => {
               <h4 className="text-[13px] font-semibold mb-6">Company</h4>
               <div className="flex flex-col gap-4 text-[13px] text-linear-muted">
                 <a href="#founders" className="hover:text-black transition-colors">Founding Agency</a>
+                <a href="/terms" className="hover:text-black transition-colors">Terms &amp; Disclaimers</a>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between pt-10 border-t border-black/[0.05] text-[12px] text-linear-muted gap-4">
-            <div>© 2026 PropPath. Sydney, Australia.</div>
+            <div>© 2026 PropPath. Sydney, Australia. PropPath is a modelling tool, not a financial adviser.</div>
             <div className="flex items-center gap-6">
               <Twitter className="w-4 h-4 hover:text-black transition-colors cursor-pointer" />
               <Github className="w-4 h-4 hover:text-black transition-colors cursor-pointer" />

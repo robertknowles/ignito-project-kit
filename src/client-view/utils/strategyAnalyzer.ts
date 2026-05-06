@@ -299,7 +299,7 @@ export const generateResidentialDescription = (group: PortfolioGroup, investment
   const targets: string[] = [
     `Target: ${formatCurrency(group.totalCost)} portfolio growing at ${averageGrowth.toFixed(1)}% → ${formatCurrency(futureValue)} projected in ${projectionYears} years (${projectedYear})`,
     `${formatCurrency(netEquity)} equity created (${formatCurrency(saleValue)} if sold down)`,
-    `Accumulation phase: Building equity base for next-stage transition`,
+    `Acquisition period: Building equity base for next-stage transition`,
   ];
 
   return { items, targets };
@@ -386,7 +386,7 @@ export const generateCommercialDescription = (group: PortfolioGroup, residential
   // Build items array with conditional serviceability valve bullet
   const items: string[] = isInjectionScenario ? [
     `${formatCurrency(group.totalCost)} commercial ${group.count === 1 ? 'asset' : 'assets'} + ${formatCurrency(equityInjection)} injection from residential gains`,
-    `Strategic commercial injection funded by released equity from accumulation phase`,
+    `Commercial acquisition funded by released equity from acquisition period`,
     `${group.averageYield.toFixed(1)}% yield generating ${formatCurrency(annualCashflow)}/year income stream`,
   ] : [
     `${group.count} commercial ${group.count === 1 ? 'property' : 'properties'} totaling ${formatCurrency(group.totalCost)}`,
@@ -401,11 +401,11 @@ export const generateCommercialDescription = (group: PortfolioGroup, residential
 
   const targets: string[] = isInjectionScenario ? [
     `${group.averageYield.toFixed(1)}% yield = ${formatCurrency(annualCashflow)} positive cashflow to replace income`,
-    `Transition phase: Converting equity growth into passive income generation`,
-    `Target: Financial independence via ${formatCurrency(monthlyCashflow)}/month commercial income`,
+    `Transition phase: Converting equity growth into projected rental income`,
+    `Projected: ${formatCurrency(monthlyCashflow)}/month commercial rental income`,
   ] : [
-    `Commercial properties provide stable, higher-yield income stream`,
-    `Projected ${formatCurrency(group.projectedIncome)}/year passive income`,
+    `Commercial properties provide higher-yield income stream`,
+    `Projected ${formatCurrency(group.projectedIncome)}/year rental income`,
     `Strong equity growth potential: ${formatCurrency(group.totalEquity)} projected equity`,
   ];
 
@@ -480,13 +480,12 @@ const determineStrategyPathway = (analysis: StrategyAnalysis): string => {
     
     // If yield increases by > 1.5%, it's a growth-funded income transition
     if (yieldDelta > 1.5) {
-      return "Growth-Funded Income Transition: Building equity through growth assets, then pivoting to high-yield for passive income";
+      return "Growth-to-Income Transition: Building equity through growth assets, then transitioning to income-focused property";
     }
-    
-    // If yield is stable around 4% (± 0.5%), it's pure wealth accumulation
+
     const avgYield = (firstHalfYield + secondHalfYield) / 2;
     if (Math.abs(yieldDelta) <= 0.5 && avgYield >= 3.5 && avgYield <= 4.5) {
-      return "Pure Wealth Accumulation: Consistent capital growth focus across the timeline";
+      return "Equity Growth Plan: Consistent capital growth focus across the timeline";
     }
   }
 
@@ -504,23 +503,21 @@ const determineStrategyPathway = (analysis: StrategyAnalysis): string => {
     );
     
     if (firstCommercialYear < firstResidentialYear) {
-      return "Commercial-Led Income Strategy: High-yield foundation enabling accelerated growth phase";
+      return "Commercial-Led Income Plan: Income-focused foundation enabling accelerated growth phase";
     }
-    
-    // Commercial-Led if commercial value exceeds residential
+
     if (commercialValue > residentialValue) {
-      return "Commercial-Led Income Strategy: High-yield focus to accelerate debt reduction";
+      return "Commercial-Led Income Plan: Income-focused approach to accelerate debt reduction";
     }
-    
-    // Otherwise Hybrid Aggressive
-    return "Hybrid Aggressive Strategy: Residential growth for equity + Commercial yields for income";
+
+    return "Growth + Income Plan: Residential growth for equity + Commercial for income";
   } else if (hasResidential && !hasCommercial) {
-    return "Residential Growth & Sell-down Strategy: Build equity → Liquidate → Debt-free income";
+    return "Residential Growth Plan: Build equity through residential property";
   } else if (!hasResidential && hasCommercial) {
-    return "Commercial-focused Strategy: High-yield income generation from establishment";
+    return "Commercial Income Plan: Income-focused portfolio from establishment";
   }
-  
-  return "Custom Investment Strategy";
+
+  return "Custom Investment Plan";
 };
 
 /**
@@ -553,17 +550,16 @@ export const generateLongTermDescription = (analysis: StrategyAnalysis, investme
   
   const items: string[] = [];
   
-  // Strategy pathway
-  items.push(`Strategy: ${strategyPathway}`);
+  items.push(`Plan: ${strategyPathway}`);
   
   // LVR and asset base
   items.push(`${formatCurrency(analysis.totalPortfolioValue)} total asset base @ ${lvr.toFixed(1)}% LVR`);
   
   // Equity position with gap analysis
   if (equityAchieved) {
-    items.push(`Target: ${formatCurrency(equityGoal)} equity goal by ${targetYear} ✓ Achieved (${formatCurrency(analysis.totalEquity)} projected)`);
+    items.push(`Target: ${formatCurrency(equityGoal)} equity target by ${targetYear} ✓ Reached (${formatCurrency(analysis.totalEquity)} projected)`);
   } else if (equityGap > 0) {
-    items.push(`Target: ${formatCurrency(equityGoal)} equity goal by ${targetYear} → Gap: ${formatCurrency(equityGap)} shortfall`);
+    items.push(`Target: ${formatCurrency(equityGoal)} equity target by ${targetYear} → Gap: ${formatCurrency(equityGap)} shortfall`);
   } else {
     items.push(`Projected equity: ${formatCurrency(analysis.totalEquity)} by ${targetYear}`);
   }
@@ -574,7 +570,7 @@ export const generateLongTermDescription = (analysis: StrategyAnalysis, investme
     : 0;
   
   if (incomeAchieved) {
-    items.push(`${averageYield.toFixed(1)}% yield → ${formatCurrency(analysis.totalProjectedIncome)} total income redirected into debt reduction ✓ Goal achieved`);
+    items.push(`${averageYield.toFixed(1)}% yield → ${formatCurrency(analysis.totalProjectedIncome)} total income redirected into debt reduction ✓ Target reached`);
   } else if (incomeGap > 0 && cashflowGoal > 0) {
     items.push(`${averageYield.toFixed(1)}% yield → ${formatCurrency(analysis.totalProjectedIncome)} total income (Gap: ${formatCurrency(incomeGap)} to goal of ${formatCurrency(cashflowGoal)}/year)`);
   } else {

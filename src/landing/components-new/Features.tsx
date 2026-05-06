@@ -9,7 +9,7 @@ const features = [
   },
   {
     title: 'Scenario-based Planning',
-    desc: 'Compare and refine different strategy paths to land on the right long-term direction, fast.',
+    desc: 'Compare and refine different scenario paths to land on the right long-term direction, fast.',
     icon: Zap,
   },
   {
@@ -40,7 +40,7 @@ const Features: React.FC = () => (
       <div className="mb-16 md:mb-20">
         <h2 className="text-3xl font-semibold mb-4">Designed for the modern agent.</h2>
         <p className="text-linear-muted max-w-xl">
-          Everything you need to build, manage, and share property strategies with speed and clarity.
+          Everything you need to build, manage, and share property plans with speed and clarity.
         </p>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 
+import { DisclaimerBlock } from '@/components/DisclaimerBlock'
 import { TimelineCard } from '../components/TimelineCard'
 import { MilestoneCard } from '../components/MilestoneCard'
 import { GoalAchievedCard } from '../components/GoalAchievedCard'
@@ -119,6 +120,7 @@ export function PropertyTimelinePage({ investmentProfile, propertySelections, co
         {/* Goal Achieved Card */}
         <GoalAchievedCard />
       </div>
+      <DisclaimerBlock variant="C" className="mt-6" />
       {/* Footer */}
       <div className="mt-8 flex justify-between items-center">
         <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>

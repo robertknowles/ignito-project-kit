@@ -33,7 +33,7 @@ const PRESET_SWITCH_OPTIONS: Record<PresetId, { label: string; prompt: string }>
   },
   'commercial-transition': {
     label: 'Commercial Transition',
-    prompt: 'Switch to the Commercial Transition strategy: build equity in residential first, then pivot to commercial yield around year 5-7.',
+    prompt: 'Switch to the Commercial Transition strategy: build equity in residential first, then transition to commercial yield around year 5-7.',
   },
 }
 

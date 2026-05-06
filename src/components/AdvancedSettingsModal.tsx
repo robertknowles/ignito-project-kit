@@ -67,7 +67,7 @@ export const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({
             />
             <div className="flex justify-between text-xs text-gray-400">
               <span>1 (Conservative)</span>
-              <span>4 (Aggressive)</span>
+              <span>4 (Growth-focused)</span>
             </div>
             <p className="text-xs text-gray-500">
               Limits how many properties can be purchased annually for realistic planning. 

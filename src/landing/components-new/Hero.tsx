@@ -85,7 +85,7 @@ const Hero: React.FC = () => {
               className="text-4xl md:text-[64px] font-medium tracking-[-0.03em] leading-[1.05] md:leading-none mb-8"
             >
               Build AI-powered portfolio <br className="hidden md:block" />
-              strategy for every client
+              plan for every client
             </motion.h1>
 
             <motion.p
@@ -220,7 +220,7 @@ const Hero: React.FC = () => {
                         { label: 'Change # of properties', icon: <Hash size={12} /> },
                         { label: 'Change property prices', icon: <DollarSign size={12} /> },
                         { label: 'Change property types', icon: <Home size={12} /> },
-                        { label: 'Switch strategy', icon: <Clock size={12} /> },
+                        { label: 'Switch plan', icon: <Clock size={12} /> },
                       ].map((btn) => (
                         <div
                           key={btn.label}

@@ -27,6 +27,7 @@ import {
 import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/types/nlParse'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useLayout } from '@/contexts/LayoutContext'
+import { DISCLAIMER_D_TEXT } from '@/components/DisclaimerBlock'
 import { ClientSelector } from './ClientSelector'
 import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
@@ -888,6 +889,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
               <Settings2Icon size={14} />
             </button>
           </div>
+        </div>
+
+        {/* Compliance disclaimer */}
+        <div className="flex-shrink-0 px-3 py-1.5 border-b border-gray-100 bg-gray-50/50">
+          <p className="text-[10px] text-gray-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
         </div>
 
         {/* Messages area — min-h-0 is REQUIRED for flex-1 + overflow-y-auto to constrain

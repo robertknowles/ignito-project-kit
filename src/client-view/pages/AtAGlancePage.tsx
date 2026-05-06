@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 
+import { DisclaimerBlock } from '@/components/DisclaimerBlock'
 import { PortfolioChart } from '../components/PortfolioChart'
 import { CashflowChart } from '../components/CashflowChart'
 import { Target, TrendingUp } from 'lucide-react'
@@ -281,7 +282,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                Passive Income Goal
+                Rental Income Target
               </p>
               <p className="text-xl font-semibold text-gray-900">{formatCurrency(incomeGoal)}/year</p>
             </div>
@@ -293,7 +294,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
             </div>
           </div>
         </div>
-        {/* Goal Achieved Card */}
+        {/* Target Reached Card */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-green-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-blue-600" />
@@ -303,7 +304,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
                 fontFamily: 'Figtree, sans-serif',
               }}
             >
-              Goal Achieved
+              Target Reached
             </h2>
           </div>
           <div className="space-y-3">
@@ -341,6 +342,7 @@ const portfolioDataArr: Array<{ year: number; portfolioValue: number; equity: nu
           <CashflowChart data={cashflowData} />
         </div>
       </div>
+      <DisclaimerBlock variant="C" className="mt-6" />
       {/* Footer */}
       <div className="mt-12 flex justify-between items-center">
         <div className="text-sm font-semibold text-gray-900">{companyDisplayName.toUpperCase()}</div>

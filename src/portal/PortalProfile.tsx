@@ -32,7 +32,7 @@ const FINANCIAL_FIELDS: FieldConfig[] = [
 ]
 
 const PREFERENCE_FIELDS: FieldConfig[] = [
-  { label: 'RISK TOLERANCE', key: 'risk_tolerance', type: 'select', options: ['Conservative', 'Moderate', 'Aggressive'] },
+  { label: 'RISK TOLERANCE', key: 'risk_tolerance', type: 'select', options: ['Conservative', 'Moderate', 'Growth-focused'] },
   { label: 'PRIMARY GOAL', key: 'primary_goal', type: 'select', options: ['Capital growth', 'Cash flow', 'Balanced', 'First home', 'Retirement planning'] },
   { label: 'PREFERRED PROPERTY TYPE', key: 'preferred_property_type', type: 'select', options: ['House', 'Unit/Apartment', 'Townhouse', 'Land', 'Any'] },
   { label: 'PREFERRED LOCATIONS', key: 'preferred_locations', type: 'text' },
@@ -248,7 +248,7 @@ export const PortalProfile = () => {
         <span className="mt-0.5">ℹ️</span>
         <p>
           Any changes you save here are automatically shared with your Buyers Agent and update
-          your investment profile. For significant financial changes, your agent may recommend
+          your investment profile. For significant financial changes, your agent may suggest
           sending a Client Details Update form.
         </p>
       </div>

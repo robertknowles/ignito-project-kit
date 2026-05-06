@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import { filterComplianceLanguage } from '@/utils/complianceFilter'
 import type {
   ChatMessage,
   ChatMessageType,
@@ -332,6 +333,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         }
 
         const response = data
+        if (response.message) {
+          response.message = filterComplianceLanguage(response.message)
+        }
 
         // Remove loading indicator (respects minimum-display floor)
         await removeLoading()

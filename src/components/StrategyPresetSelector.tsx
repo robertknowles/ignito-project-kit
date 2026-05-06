@@ -59,7 +59,7 @@ const PRESETS: PresetMeta[] = [
     id: 'commercial-transition',
     shortLabel: 'Commercial',
     fullLabel: 'Commercial Transition',
-    description: 'Two-phase. Phase 1: build equity in residential. Phase 2: pivot to commercial yield.',
+    description: 'Two-phase. Phase 1: build equity in residential. Phase 2: transition to commercial yield.',
     icon: <BuildingIcon size={14} />,
   },
 ]
@@ -133,7 +133,7 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
   // empty state on the dashboard).
   return (
     <div className="w-full space-y-2.5">
-      <p className="text-[11px] text-[#717680] font-medium text-center">Strategy preset</p>
+      <p className="text-[11px] text-[#717680] font-medium text-center">Plan preset</p>
       <div className="flex flex-col gap-1.5">
         {PRESETS.map(({ id, fullLabel, description, icon }) => (
           <button

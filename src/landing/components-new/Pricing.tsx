@@ -46,9 +46,9 @@ const Pricing: React.FC = () => {
               'Unlimited internal simulations & drafts',
               'Up to 3 client roadmaps per month',
               'Visual multi-property roadmaps',
-              'Strategy scenario comparison',
+              'Scenario comparison',
               'Editable assumptions (growth, yield, cashflow)',
-              'Strategy explanations and exports',
+              'Plan explanations and exports',
               'Email support',
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 text-[14px]">
@@ -96,7 +96,7 @@ const Pricing: React.FC = () => {
               'Equity release modelling',
               'Refinance sequencing',
               'Client milestone tracking',
-              'Greater control over assumptions and strategy inputs',
+              'Greater control over assumptions and planning inputs',
               'Priority support',
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 text-[14px]">
