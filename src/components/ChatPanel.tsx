@@ -571,24 +571,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       return
     }
     if (loadedChatForClientRef.current === activeClient.id) return
-    if (hasPendingPromptOnMountRef.current && savedChatMessages.length === 0) {
-      // Pending-prompt handler will fire and start a fresh thread.
-      return
-    }
-    // CRITICAL: don't overwrite local messages with an empty saved chat.
-    // The pending-prompt handler may have just injected the user's first
-    // prompt for a brand-new client (no saved chat yet); calling
-    // loadMessages([]) here would wipe both the user's prompt and the
-    // loading indicator that's already on screen. Same applies to any case
-    // where the user has typed mid-flight ahead of the saved chat catching
-    // up. Trust the client-change effect to have already cleared local
-    // messages on the actual switch — if local has content NOW, it's content
-    // that belongs to this client.
-    if (savedChatMessages.length === 0 && messages.length > 0) {
+
+    // If local messages already have content, it's authoritative — local
+    // was populated by sendMessage's pending-prompt path (user prompt +
+    // loading indicator) or by the user typing directly. Don't overwrite
+    // with the context version, which can be a FILTERED subset (the
+    // messages-sync effect strips loading messages before pushing to
+    // context, so loading would get wiped if we re-loaded from context).
+    if (messages.length > 0) {
       loadedChatForClientRef.current = activeClient.id
       loadedRef.current = true
       return
     }
+
+    // Local is empty — load from context, which holds the saved chat for
+    // this client (possibly empty for a brand-new client with no chat yet).
     loadMessages(savedChatMessages)
     loadedChatForClientRef.current = activeClient.id
     loadedRef.current = true

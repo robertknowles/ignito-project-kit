@@ -50,12 +50,20 @@ export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStep
         <AnimatePresence>
           {steps.map((step, i) => {
             if (step.status === 'pending') return null
+            // First-visible step (i=0 on initial mount) skips the opacity-fade
+            // animation so the user gets immediate feedback after pressing
+            // Enter — the staggered fade-in caused a perceptible gap between
+            // the user message rendering and "Reading X's profile..."
+            // appearing (cofounder report 2026-05-06: looked like nothing
+            // was happening for ~1s after submit on initial generation).
+            // Subsequent steps still stagger in to feel polished.
+            const skipInitialFade = i === 0
             return (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 4 }}
+                initial={skipInitialFade ? false : { opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: i * 0.1 }}
+                transition={{ duration: 0.2, delay: skipInitialFade ? 0 : i * 0.1 }}
                 className="flex items-center gap-2 text-xs text-gray-400"
               >
                 {step.status === 'active' ? (
