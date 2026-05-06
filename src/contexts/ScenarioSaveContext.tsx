@@ -640,6 +640,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const selectionCount = Object.keys(translatedSelections).length;
         if (instanceCount > 0 && orderCount === 0 && selectionCount === 0) {
           const attemptKey = `${data.id}`;
+          // Loop guard: if a recent attempt for this scenario FAILED, don't
+          // hammer the DB on every render. Successful repairs clear the ref
+          // below, so re-corruption (which produces the same signature on a
+          // fresh load) can be fixed again. If the user wants to retry a
+          // failed auto-repair manually, the row menu Repair button is
+          // independent of this ref.
           if (autoRepairAttemptedRef.current !== attemptKey) {
             autoRepairAttemptedRef.current = attemptKey;
             // Defer so the current load can return cleanly. The repair
@@ -653,12 +659,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
                   description: result.error,
                   variant: "destructive",
                 });
+                // Leave the ref set so we don't loop on a stuck row.
                 return;
               }
               toast({
                 title: 'Scenario auto-repaired',
                 description: `${result.restoredOrder.length} properties rebuilt from saved instance data.`,
               });
+              // Clear the per-scenario guard so a future re-corruption
+              // (e.g. another cross-client save race we haven't found yet)
+              // can be auto-fixed again rather than requiring a page reload
+              // or manual repair.
+              autoRepairAttemptedRef.current = null;
               // Re-run loadClientScenario so the freshly-repaired row
               // populates in-memory state. Skip if the user already
               // navigated away — loadInProgressRef will short-circuit
@@ -666,6 +678,11 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
               await loadClientScenarioRef.current?.(clientId);
             })();
           }
+        } else if (autoRepairAttemptedRef.current === `${data.id}`) {
+          // Healthy load for a scenario we'd previously flagged. Clear the
+          // guard so any future corruption of this same scenario can be
+          // auto-fixed.
+          autoRepairAttemptedRef.current = null;
         }
 
         return scenarioData;
