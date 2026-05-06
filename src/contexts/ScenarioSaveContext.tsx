@@ -476,6 +476,22 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!isSameClientReload) {
       setChatMessages([]);
       setLoadedScenarioClientId(null);
+      // CRITICAL: reset scenarioId/loadedVersion/lastSavedData synchronously
+      // so that any deferred save (e.g. flushSaveAfterStateUpdate's
+      // setTimeout(0) from a chat modification just before the client
+      // switch) sees scenarioId=null and routes through the INSERT
+      // pre-check, which finds the new client's existing row and reloads
+      // instead of PATCHing the OUTGOING client's row. Without this, the
+      // captured saveScenario fires with activeClient=newClient but
+      // scenarioId=oldClient'sId, writing empty in-memory state on top of
+      // the previous client's row (cofounder report 2026-05-06: marked
+      // properties as purchased on Bob → switched to Sam → switched back
+      // to Bob → Bob's plan was wiped from DB while propertyInstances and
+      // portfolioTracking remained intact, the smoking-gun signature of
+      // a saveScenario partial write mid-transition).
+      setScenarioId(null);
+      setLoadedVersion(0);
+      setLastSavedData(null);
     }
 
     try {
