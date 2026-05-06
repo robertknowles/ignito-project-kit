@@ -85,6 +85,13 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
+  // And for isLoading — the early-return guard reads this. Without a
+  // ref a captured sendMessage from a stale render could re-fire after
+  // a real send had already started, slipping past the guard and
+  // duplicating the user message + AI request.
+  const isLoadingRef = useRef(isLoading)
+  isLoadingRef.current = isLoading
+
   const createMessage = useCallback(
     (
       role: ChatMessage['role'],
@@ -170,7 +177,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
    */
   const sendMessage = useCallback(
     async (userText: string) => {
-      if (!userText.trim() || isLoading) {
+      if (!userText.trim() || isLoadingRef.current) {
         return
       }
 
