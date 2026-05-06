@@ -76,16 +76,26 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
   // handlePlanGenerated / handleModification after state updates so the DB
-  // row is durable before the user can navigate or log out. setTimeout(0)
-  // schedules after React flushes the current setState batch but on the very
-  // next tick — was 200ms, which lost the race when users clicked to a
-  // different page within the debounce window (founder report 2026-05-05:
-  // chat modification confirmation message disappeared after navigation).
+  // row is durable before the user can navigate or log out.
+  //
+  // Use a ref to saveScenario so the setTimeout(0) callback fires the LATEST
+  // saveScenario at fire time — not the stale one captured when
+  // handlePlanGenerated was first created. handlePlanGenerated runs from a
+  // closure baked into sendMessage at pending-prompt time (before any plan
+  // existed), so its captured saveScenario closed over empty state. Calling
+  // it would write empty data to the DB. The ref ensures we always reach
+  // the freshly-rendered saveScenario, which closes over the latest
+  // selections/propertyOrder/profile/instances after handlePlanGenerated's
+  // setAllSelections etc. have flushed (cofounder report 2026-05-06: plans
+  // appeared on the dashboard but vanished from the row after a fast
+  // create-and-switch).
+  const saveScenarioRef = useRef(saveScenario)
+  saveScenarioRef.current = saveScenario
   const flushSaveAfterStateUpdate = useCallback(() => {
     setTimeout(() => {
-      void saveScenario(true)
+      void saveScenarioRef.current(true)
     }, 0)
-  }, [saveScenario])
+  }, [])
 
   // Track client names extracted from the chat-generated plan. These are sent
   // to the AI as plan context AND drive the loading-step display ("Reading

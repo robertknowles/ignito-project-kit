@@ -40,9 +40,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { useClient, type Client } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
-import { usePropertySelection } from '@/contexts/PropertySelectionContext'
-import { useInvestmentProfile, INITIAL_INVESTMENT_PROFILE } from '@/contexts/InvestmentProfileContext'
-import { usePropertyInstance } from '@/contexts/PropertyInstanceContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
@@ -94,9 +91,6 @@ const STRATEGY_LABELS: Record<string, string> = {
 export const AgentHome: React.FC = () => {
   const navigate = useNavigate()
   const { clients, activeClient, setActiveClient, createClient, deleteClient } = useClient()
-  const { resetSelections } = usePropertySelection()
-  const { setProfile } = useInvestmentProfile()
-  const { setInstances } = usePropertyInstance()
   const [pendingDeleteClient, setPendingDeleteClient] = useState<Client | null>(null)
   const [deleting, setDeleting] = useState(false)
   const { branding } = useBranding()
@@ -193,19 +187,12 @@ export const AgentHome: React.FC = () => {
           return
         }
 
-        // Wipe in-memory plan state BEFORE switching clients. Without this,
-        // the previous client's propertyOrder / investmentProfile / instances
-        // leak into ChatPanel's getCurrentPlan, and the AI sees them as the
-        // "current plan" alongside the new prompt — responding with things
-        // like "the current plan is built on a $280k salary, Rob's profile is
-        // quite different…" instead of building a fresh roadmap. Reset must
-        // happen at this layer because loadClientScenario's no-data path
-        // explicitly preserves selections (to protect just-generated chat
-        // plans waiting for autosave on the SAME client).
-        resetSelections()
-        setProfile({ ...INITIAL_INVESTMENT_PROFILE })
-        setInstances({})
-
+        // The previous in-memory plan state (propertyOrder, profile,
+        // instances) is wiped by loadClientScenario's no-data path when it
+        // detects a client switch — see ScenarioSaveContext. Doing the reset
+        // there (vs synchronously here) avoids racing the outgoing client's
+        // autosave timer, which would otherwise see in-memory state cleared
+        // and write empty data to the row that just generated a plan.
         setActiveClient(created)
 
         sessionStorage.setItem(PENDING_PROMPT_KEY, trimmed)
@@ -215,7 +202,7 @@ export const AgentHome: React.FC = () => {
         setSubmitting(false)
       }
     },
-    [createClient, navigate, setActiveClient, submitting, resetSelections, setProfile, setInstances]
+    [createClient, navigate, setActiveClient, submitting]
   )
 
   const handleKeyDown = useCallback(

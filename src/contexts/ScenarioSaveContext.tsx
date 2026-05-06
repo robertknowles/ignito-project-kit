@@ -498,14 +498,27 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       if (!data) {
-        // No saved scenario for this client. Don't wipe selections/instances
-        // — the user may have unsaved chat-driven data in memory.
+        // No saved scenario for this client. Wipe selections/instances/profile
+        // ONLY when this is a real client switch (not a self-heal of the
+        // same client) — for self-heal we preserve in-memory state because
+        // the user may have unsaved chat-driven data they're about to save.
+        // Replaces AgentHome's previous synchronous reset, which raced with
+        // the autosave timer for the OUTGOING client and could clobber its
+        // in-flight plan (cofounder report 2026-05-06: fully-generated
+        // plans were going empty after a fast create-and-switch).
         setLastSavedData(null);
         setLastSaved(null);
         setScenarioId(null);
         setLoadedVersion(0);
         if (!isSameClientReload) {
           setChatMessages([]);
+          resetSelections();
+          setPropertyOrder([]);
+          propertyInstanceContext.setInstances({});
+          setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+          setHasUnsavedChanges(false);
+          setTimelineSnapshot([]);
+          setChartData(undefined);
         }
         setLoadedScenarioClientId(clientId);
         return null;
