@@ -161,25 +161,26 @@ export const Dashboard = () => {
           <PropertyCardRow />
         </ChartCard>
 
-        {/* 3. Equity Unlock Timeline */}
-        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
-          <EquityUnlockChart />
-        </ChartCard>
-
-        {/* 3. Funding Sources */}
-        <ChartCard title="Funding Sources">
-          <FundingSourcesChart />
-        </ChartCard>
-
-        {/* 4. Cashflow Projection */}
+        {/* 3. Cashflow Projection */}
         <ChartCard
           title="Cashflow Projection"
           legend={[
             { color: '#2563EB', label: 'Rental Income' },
             { color: '#9CA3AF', label: 'Expenses' },
+            { color: '#10B981', label: 'Net Cashflow' },
           ]}
-                 >
+        >
           <CashflowChart />
+        </ChartCard>
+
+        {/* 4. Equity Unlock Timeline */}
+        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
+          <EquityUnlockChart />
+        </ChartCard>
+
+        {/* 5. Funding Sources */}
+        <ChartCard title="Funding Sources">
+          <FundingSourcesChart />
         </ChartCard>
 
         {/* 5. Monthly Holding Costs */}

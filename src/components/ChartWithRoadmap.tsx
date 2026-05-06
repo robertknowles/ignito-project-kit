@@ -287,6 +287,12 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
     onPropertyClick(property.instanceId);
   };
 
+  const fmtK = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(v) >= 1_000) return `$${Math.round(v / 1_000)}K`;
+    return `$${Math.round(v)}`;
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -295,16 +301,44 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
       {...attributes}
       className="touch-none"
     >
-      <div
-        className={`w-[34px] h-[34px] bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden hover:scale-110 hover:shadow-md transition-all duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        style={{ border: `${borderWidth}px solid ${borderColor}` }}
-        onClick={handleClick}
-        title={`Drag to move: ${property.title}`}
-      >
-        <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
-          {getPropertyTypeIcon(property.title, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
-        </div>
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <UITooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`w-[34px] h-[34px] bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden hover:scale-110 hover:shadow-md transition-all duration-150 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+              style={{ border: `${borderWidth}px solid ${borderColor}` }}
+              onClick={handleClick}
+            >
+              <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
+                {getPropertyTypeIcon(property.title, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="bg-white border border-gray-200 shadow-md rounded-md p-3 max-w-[220px]">
+            <p className="text-xs font-semibold text-gray-900 mb-1.5">{property.title}</p>
+            <div className="space-y-0.5 text-[11px]">
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Purchase Price</span>
+                <span className="font-medium text-gray-700">{fmtK(property.cost)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Deposit</span>
+                <span className="font-medium text-gray-700">{fmtK(property.depositRequired)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Loan</span>
+                <span className="font-medium text-gray-700">{fmtK(property.loanAmount)}</span>
+              </div>
+              <div className="flex justify-between gap-4 pt-1 mt-1 border-t border-gray-100">
+                <span className="text-gray-500">Net Cashflow</span>
+                <span className={`font-medium ${property.netCashflow >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {property.netCashflow >= 0 ? '+' : ''}{fmtK(property.netCashflow)}/yr
+                </span>
+              </div>
+            </div>
+          </TooltipContent>
+        </UITooltip>
+      </TooltipProvider>
       {/* Warning indicator for violations */}
       {hasViolations && (
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">

@@ -123,6 +123,10 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
               <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.08} />
               <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.01} />
             </linearGradient>
+            <linearGradient id="cashflowNetFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10B981" stopOpacity={0.10} />
+              <stop offset="100%" stopColor="#10B981" stopOpacity={0.01} />
+            </linearGradient>
           </defs>
 
           <CartesianGrid {...CHART_STYLE.grid} />
@@ -154,6 +158,18 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             strokeWidth={2}
             strokeDasharray="6 3"
             fill="url(#cashflowExpensesFill)"
+            dot={false}
+            isAnimationActive={false}
+          />
+
+          {/* Net Cashflow line — green solid */}
+          <Area
+            type="monotone"
+            dataKey="netCashflow"
+            name="Net Cashflow"
+            stroke="#10B981"
+            strokeWidth={2}
+            fill="url(#cashflowNetFill)"
             dot={false}
             isAnimationActive={false}
           />

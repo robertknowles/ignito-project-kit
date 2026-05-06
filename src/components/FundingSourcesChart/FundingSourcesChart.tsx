@@ -62,8 +62,8 @@ export const FundingSourcesChart: React.FC = () => {
       const total = cash + equity + savings;
 
       const buyYear = Math.floor(prop.affordableYear);
-      const isOwned = buyYear <= currentYear;
-      const isBuyNext = !isOwned && !foundBuyNext;
+      const isOwned = false;
+      const isBuyNext = !foundBuyNext;
       if (isBuyNext) foundBuyNext = true;
 
       // Build funding sources with donor details
