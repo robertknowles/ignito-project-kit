@@ -78,22 +78,40 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // handlePlanGenerated / handleModification after state updates so the DB
   // row is durable before the user can navigate or log out.
   //
-  // Use a ref to saveScenario so the setTimeout(0) callback fires the LATEST
-  // saveScenario at fire time — not the stale one captured when
-  // handlePlanGenerated was first created. handlePlanGenerated runs from a
-  // closure baked into sendMessage at pending-prompt time (before any plan
-  // existed), so its captured saveScenario closed over empty state. Calling
-  // it would write empty data to the DB. The ref ensures we always reach
-  // the freshly-rendered saveScenario, which closes over the latest
-  // selections/propertyOrder/profile/instances after handlePlanGenerated's
-  // setAllSelections etc. have flushed (cofounder report 2026-05-06: plans
-  // appeared on the dashboard but vanished from the row after a fast
-  // create-and-switch).
+  // Both saveScenario and the latest messages/saveChatMessages flow through
+  // refs so the deferred save reads the FRESHEST values, not whatever was
+  // closed over when handlePlanGenerated was first created (handlePlanGenerated
+  // runs from sendMessage's pending-prompt closure, baked before any plan
+  // existed).
+  //
+  // Inside flushSaveAfterStateUpdate we ALSO eagerly push the latest local
+  // messages into the scenario context BEFORE scheduling saveScenario.
+  // Otherwise the messages-sync useEffect runs in a separate flush from the
+  // setTimeout(0), so saveScenario could fire while context.chatMessages is
+  // still missing the assistant's summary/portfolio response — saving the
+  // user prompt only and dropping the AI reply (cofounder report 2026-05-06:
+  // dashboard restored on click, user msg restored, assistant reply missing).
   const saveScenarioRef = useRef(saveScenario)
   saveScenarioRef.current = saveScenario
+  const messagesForSaveRef = useRef<typeof messages>([])
+  // messagesForSaveRef gets populated below — declared here so the callback
+  // closes over a stable ref. Same for saveChatMessagesRef.
+  const saveChatMessagesRef = useRef(saveChatMessages)
+  saveChatMessagesRef.current = saveChatMessages
   const flushSaveAfterStateUpdate = useCallback(() => {
+    // Defer through two macrotasks so React has time to flush:
+    //   1) setMessages(summary)/setMessages(portfolio)/setAllSelections from
+    //      the response handler — once flushed, messagesForSaveRef.current
+    //      reflects the LATEST local messages including the assistant reply
+    //   2) saveChatMessages — once flushed, context.chatMessages reflects
+    //      the latest persisted-shape messages, which is what saveScenario
+    //      reads via getCurrentScenarioData.
     setTimeout(() => {
-      void saveScenarioRef.current(true)
+      const persistable = messagesForSaveRef.current.filter((m) => m.type !== 'loading')
+      saveChatMessagesRef.current(persistable)
+      setTimeout(() => {
+        void saveScenarioRef.current(true)
+      }, 0)
     }, 0)
   }, [])
 
@@ -448,6 +466,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   // Keep the forward-ref pointed at the latest addSystemMessage so callbacks
   // declared above this hook (handleModification) can post into the chat.
   addSystemMessageRef.current = addSystemMessage
+
+  // Mirror the latest local messages into the ref consumed by
+  // flushSaveAfterStateUpdate (declared above this hook). This lets the
+  // post-state-update save read whatever's in messages right now, without
+  // waiting for the messages-sync useEffect to push them into context.
+  messagesForSaveRef.current = messages
 
   // Clear chat when scenario is reset (scenarioId goes from a value to null)
   // ON THE SAME CLIENT. Also reset clientNamesRef — without this, names from
