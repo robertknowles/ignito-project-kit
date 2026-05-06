@@ -180,8 +180,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       setIsLoading(true)
 
       // Add loading indicator with personalised text
-      const loadingText = options.clientName
-        ? `Mapping ${options.clientName}'s portfolio path...`
+      const loadingText = optionsRef.current.clientName
+        ? `Mapping ${optionsRef.current.clientName}'s portfolio path...`
         : 'Running the numbers...'
       const loadingMsg = createMessage('assistant', 'loading', loadingText)
       setMessages((prev) => [...prev, loadingMsg])
@@ -202,8 +202,15 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       }
 
       try {
-        // Get current plan state for context
-        const currentPlan = options.getCurrentPlan?.() ?? null
+        // Get current plan state for context. Read from the ref so the AI
+        // request payload reflects the LATEST in-memory plan — not whatever
+        // was captured when sendMessage was first created. The captured
+        // version may have closed over a previous client's propertyOrder/
+        // profile if sendMessage was scheduled (via pending-prompt
+        // setTimeout) before loadClientScenario reset state for the new
+        // client. Sending a stale currentPlan was causing the AI to
+        // classify fresh prompts as modifications of the previous client.
+        const currentPlan = optionsRef.current.getCurrentPlan?.() ?? null
 
         // Build conversation history (text messages only, for context).
         // Sliding window: keep only the last 20 entries (~10 user/assistant turns).
@@ -239,8 +246,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               message: userText.trim(),
               conversationHistory,
               currentPlan,
-              userId: options.userId,
-              strategyPreset: options.strategyPreset || 'eg-low',
+              userId: optionsRef.current.userId,
+              strategyPreset: optionsRef.current.strategyPreset || 'eg-low',
             },
           })
 
@@ -397,7 +404,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             }
 
             // Fire callback to wire data into contexts
-            options.onPlanGenerated?.(response)
+            optionsRef.current.onPlanGenerated?.(response)
 
             // Flag refinement on last assistant message (no system message)
             if (response.properties && response.properties.length > 0) {
@@ -416,7 +423,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               assumptions: response.assumptions,
             })
             setMessages((prev) => [...prev, modMsg])
-            options.onModification?.(response)
+            optionsRef.current.onModification?.(response)
             break
           }
 
@@ -437,7 +444,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             )
             // Get chart data context for a data-grounded explanation
             const chartContext = hasAnchors
-              ? options.getChartContext?.(
+              ? optionsRef.current.getChartContext?.(
                   response.explanation?.question ?? userText,
                   response.explanation?.relevantPeriods,
                   response.explanation?.relevantProperties
@@ -455,7 +462,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                       { role: 'user', content: userText },
                     ],
                     currentPlan,
-                    userId: options.userId,
+                    userId: optionsRef.current.userId,
                   },
                 })
 
@@ -474,7 +481,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                       return updated
                     })
                   }
-                  options.onExplanation?.(explResponse)
+                  optionsRef.current.onExplanation?.(explResponse)
                   break
                 }
               } catch {
@@ -493,7 +500,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               assumptions: wasDowngraded ? undefined : response.assumptions,
             })
             setMessages((prev) => [...prev, explMsg])
-            if (!wasDowngraded) options.onExplanation?.(response)
+            if (!wasDowngraded) optionsRef.current.onExplanation?.(response)
             break
           }
 
@@ -502,7 +509,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               assumptions: response.assumptions,
             })
             setMessages((prev) => [...prev, compMsg])
-            options.onComparison?.(response)
+            optionsRef.current.onComparison?.(response)
             break
           }
 
@@ -511,7 +518,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               assumptions: response.assumptions,
             })
             setMessages((prev) => [...prev, eventMsg])
-            options.onAddEvent?.(response)
+            optionsRef.current.onAddEvent?.(response)
             break
           }
 
