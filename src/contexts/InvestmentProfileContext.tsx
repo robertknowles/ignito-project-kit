@@ -95,7 +95,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   portfolioValue: 0,
   currentDebt: 0,
   annualSavings: 24000,
-  timelineYears: 15,
+  timelineYears: 30,
   timelineYearsExplicit: false,
   equityGoal: 1000000, // Default $1M equity goal
   cashflowGoal: 50000, // Default $50k annual cashflow goal

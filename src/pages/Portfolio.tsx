@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Plus,
   Home,
@@ -140,7 +140,7 @@ export const Portfolio = () => {
   const { propertyTypeTemplates } = useDataAssumptions()
   const { clients, activeClient: globalActiveClient } = useClient()
   const { companyId } = useAuth()
-  const { syncScenarioVersion } = useScenarioSave()
+  const { syncScenarioVersion, loadClientScenario } = useScenarioSave()
   const location = useLocation()
   const routedPropertyInstanceId = (location.state as { propertyInstanceId?: string } | null)?.propertyInstanceId ?? null
 
@@ -168,6 +168,21 @@ export const Portfolio = () => {
   const [activateAddress, setActivateAddress] = useState('')
   const [activatePhoto, setActivatePhoto] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Self-heal: reload scenario if context state was lost during navigation
+  const recoveryAttemptedRef = useRef(false)
+  const recoveryClientIdRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (recoveryClientIdRef.current !== globalActiveClient?.id) {
+      recoveryAttemptedRef.current = false
+      recoveryClientIdRef.current = globalActiveClient?.id ?? null
+    }
+    if (recoveryAttemptedRef.current) return
+    if (livePropertyOrder.length > 0) return
+    if (!globalActiveClient?.id) return
+    recoveryAttemptedRef.current = true
+    loadClientScenario(globalActiveClient.id)
+  }, [livePropertyOrder.length, globalActiveClient?.id, loadClientScenario])
 
   // --- Portfolio Data Fetching ---
   useEffect(() => {
@@ -722,9 +737,9 @@ export const Portfolio = () => {
                       <div className="rounded-xl border border-[#E9EAEB] overflow-hidden">
                         <div className="bg-[#FCFCFD] px-6 py-3.5 border-b border-[#E9EAEB]">
                           <div className="flex items-center gap-1 flex-wrap">
-                            {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }) => {
+                            {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }, cardIdx) => {
                               const isActive = key === activeTab
-                              const label = isPurchased && trackingState?.address ? trackingState.address : property.title
+                              const label = isPurchased && trackingState?.address ? trackingState.address : `Property ${cardIdx + 1}`
                               return (
                                 <button
                                   key={key}

@@ -31,7 +31,7 @@ const defaultFormData: InvestmentProfileFormData = {
   annualSavings: 24000,
   portfolioValue: 0,
   currentDebt: 0,
-  timelineYears: 15,
+  timelineYears: 30,
   equityGoal: 1000000,
   cashflowGoal: 50000,
   // Advanced portfolio settings

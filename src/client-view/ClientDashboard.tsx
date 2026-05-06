@@ -255,7 +255,7 @@ export function ClientDashboard({
 
   // Default assumptions
   const startYear = BASE_YEAR;
-  const timelineYears = investmentProfile?.timelineYears || 15;
+  const timelineYears = investmentProfile?.timelineYears || 30;
   const endYear = startYear + timelineYears - 1;
   const defaultGrowthRate = 0.06;
   const defaultInterestRate = investmentProfile?.interestRate || 0.065;

@@ -146,7 +146,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     const growthData = chartData?.portfolioGrowthData ?? []
     if (growthData.length > 0) {
       const baseYearNum = parseInt(growthData[0]?.year ?? `${new Date().getFullYear()}`, 10)
-      const horizonYear = baseYearNum + (profile.timelineYears ?? 15)
+      const horizonYear = baseYearNum + (profile.timelineYears ?? 30)
       const horizonPoint =
         growthData.find((d) => parseInt(d.year, 10) >= horizonYear) ??
         growthData[growthData.length - 1]

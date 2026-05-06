@@ -214,7 +214,7 @@ export const calculateScenarioMetrics = (
   // Calculate timeline years - use shared timeline if provided (for consistent comparison)
   // Otherwise fall back to scenario's own investment profile timeline
   // This is the full investment horizon, not just the span of property purchases
-  const timelineYears = sharedTimelineYears ?? investmentProfile.timelineYears ?? 15;
+  const timelineYears = sharedTimelineYears ?? investmentProfile.timelineYears ?? 30;
   
   return {
     totalProperties,
@@ -423,7 +423,7 @@ export const compareScenarios = (
   // Pass chart data to calculateScenarioMetrics for consistent final values
   // Use the passed profile's timelineYears as the shared baseline for both scenarios
   // This ensures apples-to-apples comparison over the same time horizon
-  const sharedTimelineYears = profile.timelineYears || 15;
+  const sharedTimelineYears = profile.timelineYears || 30;
   const metricsA = calculateScenarioMetrics(scenarioA, chartDataA, sharedTimelineYears);
   const metricsB = calculateScenarioMetrics(scenarioB, chartDataB, sharedTimelineYears);
   const differences = calculateDifferences(metricsA, metricsB);

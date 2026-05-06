@@ -168,7 +168,7 @@ export const useTimelineData = () => {
   const { timelineProperties } = useAffordabilityCalculator()
   
   const startYear = BASE_YEAR;
-  const endYear = startYear + (profile.timelineYears || 15) - 1;
+  const endYear = startYear + (profile.timelineYears || 30) - 1;
   
   // Filter out properties with Infinity affordableYear
   const affordableProperties = timelineProperties.filter(p => p.affordableYear !== Infinity);

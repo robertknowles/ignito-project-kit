@@ -196,7 +196,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     const years: YearData[] = [];
     
     // Calculate end year based on user's timeline setting (max 20 years)
-    const endYear = BASE_YEAR + (profile.timelineYears || 15) - 1;
+    const endYear = BASE_YEAR + (profile.timelineYears || 30) - 1;
 // Default interest rate for calculations
     const defaultInterestRate = DEFAULT_INTEREST_RATE;
     

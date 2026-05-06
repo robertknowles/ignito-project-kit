@@ -1,8 +1,11 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
 import { ChatPanel } from '../components/ChatPanel'
 import { useLayout } from '../contexts/LayoutContext'
+import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { useClient } from '../contexts/ClientContext'
+import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { RetirementScenarioPanel } from '../components/RetirementScenario/RetirementScenarioPanel'
 import { ChartCard } from '../components/ui/ChartCard'
 import { DisclaimerBlock } from '@/components/DisclaimerBlock'
@@ -10,6 +13,23 @@ import { DisclaimerBlock } from '@/components/DisclaimerBlock'
 const Retirement: React.FC = () => {
   const { chatPanelWidth } = useLayout()
   const drawerOpen = true
+  const { propertyOrder } = usePropertySelection()
+  const { activeClient } = useClient()
+  const { loadClientScenario } = useScenarioSave()
+
+  const recoveryAttemptedRef = useRef(false)
+  const recoveryClientIdRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (recoveryClientIdRef.current !== activeClient?.id) {
+      recoveryAttemptedRef.current = false
+      recoveryClientIdRef.current = activeClient?.id ?? null
+    }
+    if (recoveryAttemptedRef.current) return
+    if (propertyOrder.length > 0) return
+    if (!activeClient?.id) return
+    recoveryAttemptedRef.current = true
+    loadClientScenario(activeClient.id)
+  }, [propertyOrder.length, activeClient?.id, loadClientScenario])
 
   return (
     <div className="main-app flex h-screen w-full bg-white">

@@ -252,7 +252,7 @@ export const ClientProfileModal: React.FC<ClientProfileModalProps> = ({
                     Timeline
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {profile.timelineYears || 15} years
+                    {profile.timelineYears || 30} years
                   </div>
                 </div>
                 
