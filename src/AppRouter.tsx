@@ -131,10 +131,14 @@ export function AppRouter() {
                             />
 
                             {/* Protected app routes - require authentication */}
+                            {/* /dashboard is owner/agent only. Clients shared via
+                                the Share button get a /portal login that surfaces
+                                their plan view-only — they don't get edit access
+                                to the chat panel here. */}
                             <Route
                               path="/dashboard"
                               element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <App />
                                 </ProtectedRoute>
                               }

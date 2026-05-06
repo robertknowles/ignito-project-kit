@@ -448,10 +448,24 @@ export const TopBar = () => {
         </div>
       )}
 
-      {/* Right side: Save only (Add Scenario + Client Report hidden for redesign) */}
+      {/* Right side: Reset, Share (client login), Save */}
       {!isClient && (
         <div className="flex items-center gap-2">
           <ResetButton iconOnly />
+          <button
+            onClick={handleShareDashboard}
+            disabled={isLoading || !scenarioId || hasUnsavedChanges}
+            className="w-8 h-8 text-gray-500 hover:text-gray-900 rounded-md flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title={
+              !scenarioId
+                ? 'Save the scenario before sharing'
+                : hasUnsavedChanges
+                  ? 'Save your changes before sharing'
+                  : 'Share dashboard with client (creates a view-only login)'
+            }
+          >
+            <Share2 size={15} />
+          </button>
           <SaveButton />
         </div>
       )}
