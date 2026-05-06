@@ -371,11 +371,39 @@ export function mapModificationToUpdates(
     if (response.properties && response.properties.length > 0) {
       const newMapping = mapToPropertySelections(response)
 
-      // Merge new properties into existing plan
-      const mergedInstances = { ...currentInstances, ...newMapping.instances }
-      const mergedOrder = [...currentOrder, ...newMapping.propertyOrder]
+      // Dedupe — the AI commonly returns the COMPLETE plan (existing
+      // properties PLUS the additions) in response.properties, not just
+      // the new additions. Without this dedupe step the order array
+      // doubles up and produces ghost duplicate tabs in Per-Property
+      // (cofounder report 2026-05-06: "duplicate per-property toggles
+      // after asking the chatbot to add 2x new properties").
+      //
+      // Strategy: walk currentOrder first, then newMapping.propertyOrder,
+      // skipping any instance id we've already seen. New properties from
+      // the AI get fresh _instance_<n> indices because mapToPropertySelections
+      // counts from 0 per type — but if currentOrder already had
+      // <type>_instance_0 and <type>_instance_1, the AI's two returned
+      // entries for that type collide on those exact ids. The dedupe
+      // drops the colliding repeats; any genuinely-new entries (e.g.
+      // _instance_2 added by the AI) survive because they're not in
+      // currentOrder.
+      const seen = new Set<string>()
+      const mergedOrder: string[] = []
+      for (const id of [...currentOrder, ...newMapping.propertyOrder]) {
+        if (seen.has(id)) continue
+        seen.add(id)
+        mergedOrder.push(id)
+      }
 
-      // Rebuild selections from merged order
+      // Instances: preserve the existing (potentially user-edited)
+      // instance values for ids that exist in both. Only fall back to
+      // the AI's newMapping for ids that are genuinely new.
+      const mergedInstances: Record<string, PropertyInstanceDetails> = {
+        ...newMapping.instances,
+        ...currentInstances,
+      }
+
+      // Rebuild selections from the deduped order so counts match.
       const mergedSelections: PropertySelection = {}
       for (const id of mergedOrder) {
         const type = id.replace(/_instance_\d+$/, '')

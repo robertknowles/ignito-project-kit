@@ -19,7 +19,7 @@ const TOUR_DB_COLUMNS = {
 type TourPage = 'dashboard' | 'clients'
 
 // Set to true to disable the tour/help system entirely
-const TOUR_DISABLED = false
+const TOUR_DISABLED = true
 
 // Context for exposing startManualTour function
 interface TourManagerContextType {

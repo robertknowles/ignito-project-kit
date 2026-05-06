@@ -25,19 +25,17 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
-  // If user is authenticated, redirect based on role and new user status
+  // If user is authenticated, redirect based on role.
+  // (Previously new users were sent to /dashboard for an onboarding tour.
+  // Tour is disabled and the home page is the new "build a property plan"
+  // entry point, so all users — new or returning — land on /home.)
   if (user) {
-    // Check if this is a new user (just signed up)
-    // New users should go to /dashboard to see the onboarding tour
-    const isNewUser = localStorage.getItem('ignito_is_new_user') === 'true';
-    
-    if (isNewUser) {
-      // Clear the flag so subsequent logins go to normal destination
+    // Clear any leftover new-user flag so we don't trip old code paths.
+    if (localStorage.getItem('ignito_is_new_user') === 'true') {
       localStorage.removeItem('ignito_is_new_user');
-      return <Navigate to="/dashboard" replace />;
     }
-    
-    // Existing users: Clients go to portal, agents/owners go to home page
+
+    // Clients go to the portal; agents/owners go to the home page.
     const redirectPath = role === 'client' ? '/portal' : '/home';
     return <Navigate to={redirectPath} replace />;
   }
