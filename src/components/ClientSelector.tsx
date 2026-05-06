@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronDownIcon, MoreHorizontal as MoreHorizontalIcon, Pencil as PencilIcon, Trash2 as TrashIcon } from 'lucide-react';
+import { ChevronDownIcon, MoreHorizontal as MoreHorizontalIcon, Pencil as PencilIcon, Trash2 as TrashIcon, Wrench as WrenchIcon } from 'lucide-react';
 import { useClient, type Client } from '@/contexts/ClientContext';
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
+import { diagnoseScenario, repairScenario } from '@/utils/scenarioRepair';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +42,12 @@ export const ClientSelector: React.FC = () => {
   // Delete confirm dialog.
   const [pendingDeleteClient, setPendingDeleteClient] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Repair scenario confirm dialog (LAST-RESORT recovery — manual only).
+  const [pendingRepairClient, setPendingRepairClient] = useState<Client | null>(null);
+  const [repairDiagnosis, setRepairDiagnosis] = useState<{ needsRepair: boolean; reason: string; instanceCount: number; orderCount: number; selectionCount: number } | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const { loadClientScenario } = useScenarioSave();
 
   // Outside-click handling: only close the dropdown. In-progress renames
   // commit on blur, so we don't need to manually cancel them here.
@@ -282,7 +291,7 @@ export const ClientSelector: React.FC = () => {
 
                     {isMenuOpenOnRow && (
                       <div
-                        className="absolute right-2 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1"
+                        className="absolute right-2 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -291,6 +300,39 @@ export const ClientSelector: React.FC = () => {
                         >
                           <PencilIcon size={13} />
                           Rename
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setRowMenuId(null);
+                            // Look up the latest scenario id for this client and run a
+                            // diagnostic before opening the confirm dialog. We only
+                            // want to repair if the corruption signature is present —
+                            // otherwise warn the user to avoid clobbering an intact
+                            // scenario.
+                            const { data: row, error } = await supabase
+                              .from('scenarios')
+                              .select('id')
+                              .eq('client_id', client.id)
+                              .order('updated_at', { ascending: false })
+                              .limit(1)
+                              .maybeSingle();
+                            if (error || !row?.id) {
+                              toast.error(`Couldn't find a scenario row for ${client.name}.`);
+                              return;
+                            }
+                            const diag = await diagnoseScenario(row.id);
+                            if (!diag.ok) {
+                              toast.error(diag.error);
+                              return;
+                            }
+                            setRepairDiagnosis(diag.diagnosis);
+                            setPendingRepairClient(client);
+                          }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] hover:bg-[#F5F5F6] transition-colors"
+                          title="Last-resort recovery: rebuild propertyOrder from saved propertyInstances"
+                        >
+                          <WrenchIcon size={13} />
+                          Repair scenario
                         </button>
                         <button
                           onClick={() => {
@@ -356,6 +398,109 @@ export const ClientSelector: React.FC = () => {
               }}
             >
               {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Repair scenario — manual last-resort recovery. Only does anything
+          if the diagnostic flagged the partial-write corruption signature
+          (propertyInstances populated but propertyOrder/propertySelections
+          empty). When intact, the dialog warns the user and disables the
+          confirm button to avoid clobbering a healthy scenario. */}
+      <Dialog
+        open={!!pendingRepairClient}
+        onOpenChange={(open) => {
+          if (!open && !repairing) {
+            setPendingRepairClient(null);
+            setRepairDiagnosis(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Repair scenario</DialogTitle>
+            <DialogDescription>
+              {pendingRepairClient && repairDiagnosis ? (
+                <>
+                  <span className="block mb-2">
+                    Last-resort recovery for {pendingRepairClient.name}.
+                  </span>
+                  <span className="block text-[12px] text-[#717680] mb-2">
+                    {repairDiagnosis.reason}
+                  </span>
+                  {repairDiagnosis.needsRepair ? (
+                    <span className="block text-[12px]">
+                      Clicking Repair will rebuild the property timeline from
+                      the {repairDiagnosis.instanceCount} property instances
+                      that survived the corruption. Chat history, profile,
+                      and marked-as-purchased state are not affected.
+                    </span>
+                  ) : (
+                    <span className="block text-[12px] text-[#B54708]">
+                      This scenario does not look corrupted. Repair would
+                      just re-derive the order from instances and could
+                      override your current state. Cancel and only run this
+                      if a scenario is showing blank in dashboard/portfolio.
+                    </span>
+                  )}
+                </>
+              ) : (
+                ''
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPendingRepairClient(null);
+                setRepairDiagnosis(null);
+              }}
+              disabled={repairing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={repairDiagnosis?.needsRepair ? 'default' : 'destructive'}
+              disabled={repairing}
+              onClick={async () => {
+                if (!pendingRepairClient) return;
+                setRepairing(true);
+                // Look up the scenario row again at confirm time so we
+                // operate on the freshest id.
+                const { data: row, error: fetchError } = await supabase
+                  .from('scenarios')
+                  .select('id')
+                  .eq('client_id', pendingRepairClient.id)
+                  .order('updated_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                if (fetchError || !row?.id) {
+                  setRepairing(false);
+                  toast.error(`Couldn't find a scenario row for ${pendingRepairClient.name}.`);
+                  return;
+                }
+                const result = await repairScenario(row.id);
+                setRepairing(false);
+                if (!result.ok) {
+                  toast.error(result.error);
+                  return;
+                }
+                toast.success(
+                  `Repaired ${pendingRepairClient.name} — ${result.restoredOrder.length} properties restored`,
+                );
+                setPendingRepairClient(null);
+                setRepairDiagnosis(null);
+                // If the repaired client is the active one, reload its
+                // scenario so the dashboard/portfolio re-render with the
+                // restored data.
+                if (activeClient?.id === pendingRepairClient.id) {
+                  await loadClientScenario(pendingRepairClient.id);
+                }
+              }}
+            >
+              {repairing ? 'Repairing…' : repairDiagnosis?.needsRepair ? 'Repair' : 'Repair anyway'}
             </Button>
           </DialogFooter>
         </DialogContent>
