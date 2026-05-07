@@ -27,16 +27,17 @@ interface CashflowChartProps {
   };
 }
 
-/** Cashflow positive marker — prominent badge on the chart */
+/** Cashflow positive marker — badge pinned to top of chart */
 const CashflowPositiveMarker = ({ viewBox }: any) => {
   if (!viewBox) return null;
-  const { x, y } = viewBox;
-  const badgeY = y - 38;
+  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
+  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
+  const badgeY = 4;
   return (
     <g>
-      <line x1={x} y1={badgeY + 22} x2={x} y2={y - 6} stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={x - 42} y={badgeY} width={84} height={22} rx={11} fill="#8B5CF6" />
-      <text x={x} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill="#8B5CF6" />
+      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
         CF Positive ✓
       </text>
     </g>
@@ -189,25 +190,16 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
           {/* Cashflow positive milestone marker */}
           {cashflowPositivePoint && (
-            <>
-              <ReferenceLine
-                x={cashflowPositivePoint.year}
-                stroke="#8B5CF6"
-                strokeDasharray="6 4"
-                strokeWidth={1.5}
-                strokeOpacity={0.4}
-              />
-              <ReferenceDot
-                x={cashflowPositivePoint.year}
-                y={cashflowPositivePoint.netCashflow}
-                r={6}
-                fill="#8B5CF6"
-                stroke="white"
-                strokeWidth={2.5}
-              >
-                <Label content={<CashflowPositiveMarker />} />
-              </ReferenceDot>
-            </>
+            <ReferenceDot
+              x={cashflowPositivePoint.year}
+              y={cashflowPositivePoint.netCashflow}
+              r={6}
+              fill="#8B5CF6"
+              stroke="white"
+              strokeWidth={2.5}
+            >
+              <Label content={<CashflowPositiveMarker />} />
+            </ReferenceDot>
           )}
         </ComposedChart>
       </ResponsiveContainer>
