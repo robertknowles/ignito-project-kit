@@ -160,6 +160,9 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
   }, [profile.portfolioValue, profile.currentDebt, profile.depositPool]);
 
   const updateProfile = (updates: Partial<InvestmentProfileData>) => {
+    if (updates.timelineYears !== undefined) {
+      updates.timelineYears = Math.max(updates.timelineYears, 30);
+    }
     setProfile(prev => ({ ...prev, ...updates }));
   };
 
