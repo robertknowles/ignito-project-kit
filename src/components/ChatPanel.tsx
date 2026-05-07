@@ -289,9 +289,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           for (const { instanceId, updates: instUpdates } of updates.instanceUpdates) {
             const current = currentInstances[instanceId]
             if (current) {
+              const merged = { ...current, ...instUpdates }
+              // Auto-sync valuation when purchasePrice changes and BA
+              // hasn't manually overridden valuationAtPurchase.
+              if (
+                instUpdates.purchasePrice !== undefined &&
+                instUpdates.valuationAtPurchase === undefined &&
+                !current.valuationAtPurchaseManual
+              ) {
+                merged.valuationAtPurchase = instUpdates.purchasePrice
+              }
               currentInstances = {
                 ...currentInstances,
-                [instanceId]: { ...current, ...instUpdates },
+                [instanceId]: merged,
               }
             } else {
               console.warn(`[ChatPanel] mapper returned update for missing instance ${instanceId}`)
@@ -741,12 +751,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
       if (payload.type === 'instance-update') {
         const instanceId = payload.instanceId as string
-        const updates = payload.updates as Record<string, unknown>
+        const patchUpdates = payload.updates as Record<string, unknown>
         const current = instances[instanceId]
         if (current) {
+          const merged = { ...current, ...patchUpdates }
+          if (
+            patchUpdates.purchasePrice !== undefined &&
+            patchUpdates.valuationAtPurchase === undefined &&
+            !current.valuationAtPurchaseManual
+          ) {
+            (merged as any).valuationAtPurchase = patchUpdates.purchasePrice
+          }
           setInstances({
             ...instances,
-            [instanceId]: { ...current, ...updates },
+            [instanceId]: merged as typeof current,
           })
         }
         // Confirm in chat
