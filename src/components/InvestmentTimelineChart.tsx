@@ -6,14 +6,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ReferenceDot,
+  Label,
   ResponsiveContainer,
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_COLORS, CHART_STYLE, PROPERTY_COLORS } from '../constants/chartColors'
+import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
 import { BASE_YEAR } from '../constants/financialParams'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
@@ -25,6 +27,22 @@ interface InvestmentTimelineChartProps {
     profile: InvestmentProfileData;
   };
 }
+
+/** Equity goal reached marker — prominent badge on the chart */
+const EquityGoalMarker = ({ viewBox }: any) => {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const badgeY = y - 38;
+  return (
+    <g>
+      <line x1={x} y1={badgeY + 22} x2={x} y2={y - 6} stroke="#10B981" strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={x - 32} y={badgeY} width={64} height={22} rx={11} fill="#10B981" />
+      <text x={x} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+        Goal ✓
+      </text>
+    </g>
+  );
+};
 
 /**
  * InvestmentTimelineChart — Standard AreaChart replacement for ChartWithRoadmap
@@ -62,6 +80,11 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
   const purchasePoints = useMemo(() =>
     data.filter(d => d.purchaseInYear),
   [data])
+
+  const equityGoalPoint = useMemo(() => {
+    if (!profile.equityGoal || profile.equityGoal <= 0) return null;
+    return data.find(d => d.totalEquity >= profile.equityGoal) ?? null;
+  }, [data, profile.equityGoal])
 
   const formatYAxis = (value: number): string => {
     if (value === 0) return '$0'
@@ -185,6 +208,29 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
               When multiple purchases land in the same year, icons stack vertically (each subsequent
               icon offset upward by bgSize + stackGap px) so the BA can see the multi-purchase year
               at a glance. */}
+          {/* Equity goal reached milestone marker */}
+          {equityGoalPoint && (
+            <>
+              <ReferenceLine
+                x={equityGoalPoint.year}
+                stroke="#10B981"
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                strokeOpacity={0.4}
+              />
+              <ReferenceDot
+                x={equityGoalPoint.year}
+                y={equityGoalPoint.totalEquity}
+                r={6}
+                fill="#10B981"
+                stroke="white"
+                strokeWidth={2.5}
+              >
+                <Label content={<EquityGoalMarker />} />
+              </ReferenceDot>
+            </>
+          )}
+
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}

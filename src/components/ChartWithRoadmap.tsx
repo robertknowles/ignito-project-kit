@@ -980,10 +980,6 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
               
               {/* Chart container - YAxis + plotting area with data points centered in year columns */}
               <div ref={chartContainerRef} style={{ width: chartWidth + Y_AXIS_WIDTH }} className="relative z-10">
-                {/* DEBUG: outside all conditionals — must be visible */}
-                <div style={{ position: 'absolute', left: 100, top: 5, background: 'red', color: 'white', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, zIndex: 9999 }}>
-                  DEBUG VISIBLE
-                </div>
                 {/* Droppable Year Column Overlays - positioned over the chart */}
                 <div 
                   className="absolute inset-0 pointer-events-none"
