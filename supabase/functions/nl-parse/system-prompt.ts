@@ -447,7 +447,7 @@ Pick only the highest-priority missing items (borrowing_capacity > existing_debt
 - LVR: **80%** standard for residential; **88% with LMI capitalised** for low-capacity clients (≤ $1.0M borrowing capacity — see "Low-capacity LVR override" above); 70% commercial Phase 2; 65% commercial low-cost
 - LMI capitalised: FALSE for non-low-cap, TRUE for low-cap (BA can toggle per-deal via property card)
 - Ownership: Individual (50/50 for couples)
-- Timeline: 15 years if not specified. Set \`investmentProfile.timelineYearsExplicit\` to TRUE only when the BA explicitly states a horizon ("in 10 years", "by 2040", "over 20 years", "15-year plan"). Otherwise omit the flag (or set FALSE) — the dashboard will auto-extend unfittable properties rather than flag them as out-of-scope.
+- Timeline: 20 years if not specified. Set \`investmentProfile.timelineYearsExplicit\` to TRUE only when the BA explicitly states a horizon ("in 10 years", "by 2040", "over 20 years", "15-year plan"). Otherwise omit the flag (or set FALSE) — the dashboard will auto-extend unfittable properties rather than flag them as out-of-scope.
 - Growth assumption: per cell default (see matrix above)
 - Number of properties: derived from goal — no hard floor
 
@@ -636,7 +636,7 @@ If the BA's plan looks tight or short of their goal (per the qualitative descrip
     "depositPool": 80000,
     "annualSavings": 42000,
     "baseSalary": 120000,
-    "timelineYears": 15
+    "timelineYears": 20
   },
   "strategyPreset": "eg-low",
   "properties": [
@@ -770,7 +770,7 @@ Output:
     "depositPool": 80000,
     "annualSavings": 42000,
     "baseSalary": 120000,
-    "timelineYears": 15
+    "timelineYears": 20
   },
   "properties": [
     {
@@ -832,7 +832,7 @@ Output:
     "depositPool": 50000,
     "annualSavings": 24000,
     "baseSalary": 95000,
-    "timelineYears": 15
+    "timelineYears": 20
   },
   "properties": [
     {
@@ -952,7 +952,7 @@ Output:
     "depositPool": 120000,
     "annualSavings": 48000,
     "baseSalary": 120000,
-    "timelineYears": 15
+    "timelineYears": 20
   },
   "properties": [
     {
@@ -1087,7 +1087,7 @@ Output:
     "depositPool": 30000,
     "annualSavings": 0,
     "baseSalary": 95000,
-    "timelineYears": 15
+    "timelineYears": 20
   },
   "properties": [
     {
