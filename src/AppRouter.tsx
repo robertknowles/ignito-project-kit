@@ -205,12 +205,20 @@ export function AppRouter() {
                             {/* Redirect old /data path to /settings */}
                             <Route path="/data" element={<Navigate to="/settings" replace />} />
 
-                            {/* Client Portal routes */}
+                            {/* Client Portal routes — wrap in LayoutProvider
+                                because PortalPropertyPlan renders <Dashboard/>
+                                which uses useLayout() (chatPanelWidth, drawerOpen,
+                                planGenerating, etc.). Without this provider the
+                                client login crashes with "useLayout must be used
+                                within a LayoutProvider" (cofounder report
+                                2026-05-07). */}
                             <Route
                               path="/portal"
                               element={
                                 <ProtectedRoute allowedRoles={['client']} requireSubscription={false}>
-                                  <PortalLayout />
+                                  <LayoutProvider>
+                                    <PortalLayout />
+                                  </LayoutProvider>
                                 </ProtectedRoute>
                               }
                             >
