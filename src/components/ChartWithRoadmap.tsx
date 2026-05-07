@@ -434,9 +434,17 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
   );
 };
 
-// Goal Achievement Label component (empty - we only show the yellow dot)
-const GoalAchievedLabel = () => {
-  return null;
+const GoalAchievedLabel = ({ viewBox }: any) => {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  return (
+    <g>
+      <rect x={x - 28} y={y - 28} width={56} height={18} rx={4} fill="#2563EB" />
+      <text x={x} y={y - 16} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+        Goal ✓
+      </text>
+    </g>
+  );
 };
 
 interface ChartWithRoadmapProps {
@@ -1089,18 +1097,27 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 connectNulls
               />
 
-              {/* Goal Achievement Marker - yellow dot only */}
+              {/* Goal Achievement — vertical line + labeled dot */}
               {equityGoalReached && (
-                <ReferenceDot
-                  x={equityGoalReached.year}
-                  y={equityGoalReached.totalEquity}
-                  r={8}
-                  fill={CHART_COLORS.goal}
-                  stroke="white"
-                  strokeWidth={2}
-                >
-                  <Label content={<GoalAchievedLabel year={equityGoalReached.year} />} />
-                </ReferenceDot>
+                <>
+                  <ReferenceLine
+                    x={equityGoalReached.year}
+                    stroke="#2563EB"
+                    strokeDasharray="4 3"
+                    strokeWidth={1}
+                    strokeOpacity={0.5}
+                  />
+                  <ReferenceDot
+                    x={equityGoalReached.year}
+                    y={equityGoalReached.totalEquity}
+                    r={6}
+                    fill="#2563EB"
+                    stroke="white"
+                    strokeWidth={2}
+                  >
+                    <Label content={<GoalAchievedLabel />} />
+                  </ReferenceDot>
+                </>
               )}
 
             </ComposedChart>
