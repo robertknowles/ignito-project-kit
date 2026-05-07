@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react'
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -110,7 +111,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
   return (
     <div>
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart
+        <ComposedChart
           data={data}
           margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
         >
@@ -122,10 +123,6 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             <linearGradient id="cashflowExpensesFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.08} />
               <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.01} />
-            </linearGradient>
-            <linearGradient id="cashflowNetFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10B981" stopOpacity={0.10} />
-              <stop offset="100%" stopColor="#10B981" stopOpacity={0.01} />
             </linearGradient>
           </defs>
 
@@ -162,18 +159,17 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             isAnimationActive={false}
           />
 
-          {/* Net Cashflow line — green solid */}
-          <Area
+          {/* Net Cashflow line — green solid, no fill so it's always visible */}
+          <Line
             type="monotone"
             dataKey="netCashflow"
             name="Net Cashflow"
             stroke="#10B981"
             strokeWidth={2}
-            fill="url(#cashflowNetFill)"
             dot={false}
             isAnimationActive={false}
           />
-        </AreaChart>
+        </ComposedChart>
       </ResponsiveContainer>
 
     </div>
