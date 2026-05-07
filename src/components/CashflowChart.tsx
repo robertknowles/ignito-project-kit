@@ -8,6 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceDot,
+  Label,
   ResponsiveContainer,
 } from 'recharts'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
@@ -24,6 +26,22 @@ interface CashflowChartProps {
     profile: InvestmentProfileData;
   };
 }
+
+/** Cashflow positive marker — prominent badge on the chart */
+const CashflowPositiveMarker = ({ viewBox }: any) => {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const badgeY = y - 38;
+  return (
+    <g>
+      <line x1={x} y1={badgeY + 22} x2={x} y2={y - 6} stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={x - 42} y={badgeY} width={84} height={22} rx={11} fill="#8B5CF6" />
+      <text x={x} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+        CF Positive ✓
+      </text>
+    </g>
+  );
+};
 
 /**
  * Cashflow Projection — Dual-line area chart
@@ -57,6 +75,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       netCashflow: Math.round(d.cashflow),                         // annual net (pre-computed correctly upstream)
     }));
   }, [cashflowData, profile.timelineYears]);
+
+  // Find where net cashflow first turns positive (cashflow-positive milestone)
+  const cashflowPositivePoint = useMemo(() => {
+    // Look for the first year where netCashflow >= 0 after starting negative
+    const hasNegative = data.some(d => d.netCashflow < 0);
+    if (!hasNegative) return null; // Always positive — no crossover to mark
+    return data.find(d => d.netCashflow >= 0);
+  }, [data]);
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -149,6 +175,29 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             dot={false}
             isAnimationActive={false}
           />
+
+          {/* Cashflow positive milestone marker */}
+          {cashflowPositivePoint && (
+            <>
+              <ReferenceLine
+                x={cashflowPositivePoint.year}
+                stroke="#8B5CF6"
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                strokeOpacity={0.4}
+              />
+              <ReferenceDot
+                x={cashflowPositivePoint.year}
+                y={cashflowPositivePoint.netCashflow}
+                r={6}
+                fill="#8B5CF6"
+                stroke="white"
+                strokeWidth={2.5}
+              >
+                <Label content={<CashflowPositiveMarker />} />
+              </ReferenceDot>
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 

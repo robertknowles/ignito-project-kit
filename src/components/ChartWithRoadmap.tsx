@@ -435,13 +435,30 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
   );
 };
 
-const GoalAchievedLabel = ({ viewBox }: any) => {
+/**
+ * Goal achieved marker — renders a prominent flag icon with label above the dot.
+ * Positioned above the ReferenceDot on the equity line.
+ */
+const GoalAchievedMarker = ({ viewBox }: any) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
+  // Position the badge above the dot
+  const badgeY = y - 42;
   return (
     <g>
-      <rect x={x - 28} y={y - 28} width={56} height={18} rx={4} fill="#2563EB" />
-      <text x={x} y={y - 16} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+      {/* Vertical connector line from badge to dot */}
+      <line x1={x} y1={badgeY + 24} x2={x} y2={y - 8} stroke="#2563EB" strokeWidth={1.5} strokeDasharray="3 2" />
+      {/* Badge background */}
+      <rect x={x - 32} y={badgeY} width={64} height={24} rx={12} fill="#2563EB" />
+      {/* Flag icon (small) */}
+      <path
+        d={`M${x - 18} ${badgeY + 6} v12 M${x - 18} ${badgeY + 6} h8 l-2 3 2 3 h-8`}
+        fill="white"
+        stroke="white"
+        strokeWidth={0.5}
+      />
+      {/* "Goal" text */}
+      <text x={x + 4} y={badgeY + 15.5} textAnchor="middle" fill="white" fontSize={11} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
         Goal ✓
       </text>
     </g>
@@ -1098,25 +1115,25 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 connectNulls
               />
 
-              {/* Goal Achievement — vertical line + labeled dot */}
+              {/* Goal Achievement — vertical line + prominent marker */}
               {equityGoalReached && (
                 <>
                   <ReferenceLine
                     x={equityGoalReached.year}
                     stroke="#2563EB"
-                    strokeDasharray="4 3"
-                    strokeWidth={1}
-                    strokeOpacity={0.5}
+                    strokeDasharray="6 4"
+                    strokeWidth={1.5}
+                    strokeOpacity={0.4}
                   />
                   <ReferenceDot
                     x={equityGoalReached.year}
                     y={equityGoalReached.totalEquity}
-                    r={6}
+                    r={7}
                     fill="#2563EB"
                     stroke="white"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                   >
-                    <Label content={<GoalAchievedLabel />} />
+                    <Label content={<GoalAchievedMarker />} />
                   </ReferenceDot>
                 </>
               )}
