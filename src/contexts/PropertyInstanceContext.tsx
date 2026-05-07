@@ -42,13 +42,31 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
   }, []);
 
   const updateInstance = useCallback((instanceId: string, updates: Partial<PropertyInstanceDetails>) => {
-    setInstances(prev => ({
-      ...prev,
-      [instanceId]: {
-        ...prev[instanceId],
-        ...updates,
-      },
-    }));
+    setInstances(prev => {
+      const existing = prev[instanceId];
+      const merged = { ...existing, ...updates };
+
+      // Auto-sync: when purchasePrice changes and valuation hasn't been
+      // manually overridden, keep valuationAtPurchase in lockstep.
+      if (
+        updates.purchasePrice !== undefined &&
+        updates.valuationAtPurchase === undefined &&
+        !existing?.valuationAtPurchaseManual
+      ) {
+        merged.valuationAtPurchase = updates.purchasePrice;
+      }
+
+      // Flag manual override: when valuationAtPurchase is edited directly
+      // (without purchasePrice in the same update), mark it as manual.
+      if (
+        updates.valuationAtPurchase !== undefined &&
+        updates.purchasePrice === undefined
+      ) {
+        merged.valuationAtPurchaseManual = true;
+      }
+
+      return { ...prev, [instanceId]: merged };
+    });
   }, []);
 
   const deleteInstance = useCallback((instanceId: string) => {

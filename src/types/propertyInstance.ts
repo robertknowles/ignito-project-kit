@@ -13,6 +13,9 @@ export interface PropertyInstanceDetails {
   
   /** Valuation at time of purchase (typically higher than purchase price for good deals) */
   valuationAtPurchase: number;
+
+  /** True when the BA has manually set valuationAtPurchase independently of purchasePrice */
+  valuationAtPurchaseManual?: boolean;
   
   /** Weekly rental income */
   rentPerWeek: number;

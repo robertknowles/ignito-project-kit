@@ -283,7 +283,6 @@ export function mapModificationToUpdates(
         const instanceChanges: Partial<PropertyInstanceDetails> = {};
         if (params.purchasePrice !== undefined) {
           instanceChanges.purchasePrice = params.purchasePrice as number;
-          instanceChanges.valuationAtPurchase = params.purchasePrice as number;
         }
         if (params.state !== undefined) {
           instanceChanges.state = params.state as string;

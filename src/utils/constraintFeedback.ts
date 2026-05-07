@@ -89,7 +89,6 @@ function mapFixToCard(
           instanceId,
           updates: {
             purchasePrice: fix.suggestedValue,
-            valuationAtPurchase: fix.suggestedValue,
           },
         },
       }
