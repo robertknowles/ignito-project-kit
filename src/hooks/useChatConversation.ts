@@ -366,11 +366,12 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           const isStrategySwitch =
             !!response.strategyPreset &&
             response.strategyPreset !== liveStrategyPreset
-          if (!isStrategySwitch) {
-            console.warn('[nl-parse] initial_plan returned while a plan exists — treating as explanation.')
-            effectiveType = 'explanation'
-          } else {
+
+          if (isStrategySwitch) {
             console.info(`[nl-parse] strategy switch detected: ${liveStrategyPreset} → ${response.strategyPreset}`)
+          } else {
+            console.warn('[nl-parse] initial_plan returned while a plan exists — blocking rebuild, treating as explanation.')
+            effectiveType = 'explanation'
           }
         }
         if (response.type === 'comparison') {
@@ -503,9 +504,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // Fallback: show Claude's initial classification message — but if we
             // downgraded from a misclassified initial_plan, the message talks
             // about "Built a 4-property portfolio..." which doesn't answer the
-            // question. Substitute a generic prompt to rephrase.
+            // question. Ask for clarification instead of a dead-end sorry.
             const fallbackText = wasDowngraded
-              ? "Sorry, I couldn't answer that one cleanly — try rephrasing the question and I'll explain without touching the plan."
+              ? "That looks like a new client — clear the current plan first and I'll build a fresh one."
               : response.message
             const explMsg = createMessage('assistant', 'text', fallbackText, {
               assumptions: wasDowngraded ? undefined : response.assumptions,

@@ -186,7 +186,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
                 <p className="text-[10px] font-medium text-gray-700 mb-1">= Cash + Savings + Equity Release</p>
                 <ul className="text-[9px] text-gray-500 space-y-0.5">
                   <li>• Cash: Your initial deposit pool</li>
-                  <li>• Savings: 25% of annual savings</li>
+                  <li>• Savings: 60% of annual savings</li>
                   <li>• Equity: Usable equity at 80% LVR</li>
                 </ul>
               </TooltipContent>

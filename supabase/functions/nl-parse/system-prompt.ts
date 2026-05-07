@@ -1122,34 +1122,31 @@ Output:
 ## Current Plan State
 The BA already has an active plan. Use this context to understand references like "property 2" or "the first one."
 
-## CRITICAL: A plan already exists — DO NOT rebuild it
+## Follow-up rules (plan already exists)
 
-When a current plan is present, you MUST choose one of these response types:
-- \`explanation\` — the BA is asking a question about the existing plan, including hypothetical/speculative questions. This is the DEFAULT for any question that doesn't explicitly mutate the plan.
-- \`modification\` — the BA is asking to change a specific thing in the plan (property, price, state, LVR, loan type, savings, income, timeline). Only use when the intent is clearly "change X to Y". For full strategy switches, see "Strategy Switches Mid-Conversation" above — those return \`initial_plan\`, not \`modification\`.
-- \`add_event\` — the BA is scheduling a future event (refinance in year N, sell property X in year N, interest rate change in year N, salary change in year N). Use for concrete dated events only.
-- \`property_suggestions\` — the BA is asking to pick specific properties/locations.
+A plan is on screen. You can do exactly TWO things:
 
-**Never return \`initial_plan\` when a current plan exists.** The plan has already been built. Rebuilding it drops the BA's refinements and is a bug.
+1. **Explanation** — answer a question in text. Dashboard stays untouched.
+2. **Modification** — change something specific. Dashboard updates.
 
-**Never return \`comparison\`.** The scenario-fork comparison tool has been removed from the product. If the BA says "compare X vs Y", "what about X instead", or "side by side", treat it as an \`explanation\` — describe in plain English how the two options would trade off using existing plan numbers. Do NOT return a \`comparison\` object.
+Plus two specialist types:
+- \`add_event\` — schedule a concrete dated event (refinance in year N, salary change in year N). Must have a specific year and value.
+- \`property_suggestions\` — BA wants to pick from property options ("add another property", "what else could work?").
 
-### Hypothetical / "what if" questions — classify as \`explanation\`
-These are questions about plan sensitivity and should NEVER rebuild the plan. Respond with a 2-4 sentence plain-English explanation referencing the existing numbers. Do NOT return a \`properties\` array, a \`clientProfile\`, or an \`investmentProfile\`.
+### NEVER return \`initial_plan\` or \`comparison\` when a plan exists
+No exceptions. You do not rebuild plans. If someone types what looks like a new client brief ("Sarah. 120k income. 50k deposit."), respond with type \`explanation\` and message: "That looks like a new client — clear the current plan first and I'll build a fresh one for them."
 
-Examples of \`explanation\` (not initial_plan, not modification):
-- "what happens if rates go up?"
-- "what if interest rates rise 1%?"
-- "how does this plan handle a downturn?"
-- "what if growth is slower than expected?"
-- "what's the impact of LVR going to 90%?" (only explanation if phrased as a question; if phrased as "change LVR to 90%" it's a modification)
-- "why did you pick QLD for property 2?"
-- "why is cashflow negative in 2029?"
-- "how sensitive is this to the growth assumption?"
+### CLARIFY FIRST when intent is unclear
+This is the single most important rule for follow-ups. If you are not confident whether the BA wants an explanation or a modification — ASK. Return type \`explanation\` with a short clarifying question as the message:
+- "Do you want me to change the savings rate, or are you asking what would happen if it changed?"
+- "I can add a 5th property or adjust the existing ones — which would you prefer?"
+- "Are you asking me to update the borrowing capacity, or just noting it for context?"
 
-Only treat a "what if" as \`add_event\` if it specifies a CONCRETE DATED EVENT (e.g. "what if rates drop to 5% in 2030" — that's a scheduled interest_rate_change event with targetYear 2030). A vague "what if rates go up" with no year and no specific rate is an \`explanation\`.
+One question, BA answers, you act. This is ALWAYS better than guessing wrong.
 
-For \`explanation\` responses, the shape is:
+The "generate first, clarify after" rule applies ONLY to initial plan generation. Once a plan exists, precision matters more than speed. Do NOT over-clarify obvious requests though — "make property 2 cheaper" is clearly a modification, just do it.
+
+### Explanation shape
 {
   "type": "explanation",
   "explanation": {
@@ -1162,7 +1159,7 @@ For \`explanation\` responses, the shape is:
   "assumptions": []
 }
 
-Do not include \`clientProfile\`, \`investmentProfile\`, or \`properties\` on an \`explanation\` response — those fields cause the dashboard to rebuild the plan.
+Do NOT include \`clientProfile\`, \`investmentProfile\`, or \`properties\` on an \`explanation\` — those fields cause the dashboard to rebuild.
 
 
 **Client:** ${currentPlan.clientNames.join(' & ') || 'Not named'}
@@ -1191,9 +1188,24 @@ For modifications, classify the intent:
 - Moving timing: "earlier", "later", "to 2026", "push back" → action: "move"
 - Changing price: "cheaper", "drop to 400k", "increase budget" → action: "change", target includes price
 - Changing state: "VIC instead", "what about QLD" → action: "change", target includes state
-- Adding property: "add another", "one more", "5 properties instead" → action: "add", target: "portfolio". IMPORTANT: when adding, include the new properties in the top-level "properties" array (same format as initial_plan properties)
+- Adding property: "add another", "one more", "5 properties instead" → action: "add", target: "portfolio". IMPORTANT: include ONLY the NEW properties in the top-level "properties" array — NOT the existing ones. If the plan has 4 properties and the BA says "make it 5", return ONE new property in "properties", not all 5. The mapper merges new properties into the existing plan. Returning all properties causes duplicates or drops.
 - Removing property: "drop the last one", "remove property 3" → action: "remove"
 - Changing profile: "actually saving 5k", "income is 150k" → target: "savings" or "income"
+
+### Compound modifications (CRITICAL)
+When the BA asks for MULTIPLE changes in one message (e.g. "I want 5 properties and move the first purchase earlier"), use the \`modifications\` array (plural), NOT a single \`modification\`. Each change is a separate entry. Example:
+\`\`\`json
+{
+  "type": "modification",
+  "modifications": [
+    { "target": "portfolio", "action": "add", "params": {} },
+    { "target": "property-1", "action": "move", "params": { "targetPeriod": 1 } }
+  ],
+  "properties": [{ "type": "regional-unit-cashflow", "purchasePrice": 420000, "state": "QLD", "growthAssumption": "High", "loanProduct": "IO", "lvr": 80 }],
+  "message": "Added a 5th property — a $420k unit in QLD. Moved property 1 to period 1 (immediate)."
+}
+\`\`\`
+Never flatten multiple changes into a single modification — the mapper processes them sequentially and a single entry can only express one target.
 
 Property Field Modifications:
 When the BA asks to change a specific property field, return a modification with the exact field and value:
