@@ -25,7 +25,7 @@ import { useInvestmentProfile } from '../contexts/InvestmentProfileContext'
 import { useLayout } from '../contexts/LayoutContext'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { BASE_YEAR } from '../constants/financialParams'
-import { isCellId, getCellDisplayLabel, type CellId } from '../utils/propertyCells'
+import { isCellId, getCellDisplayLabel, getSimplifiedDisplayLabel, type CellId } from '../utils/propertyCells'
 import { Building03Icon, TrendUp01Icon, BarChartSquare02Icon, Wallet02Icon } from '@/components/icons/PropertyIcons'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -739,7 +739,7 @@ export const Portfolio = () => {
                           <div className="flex items-center gap-1 flex-wrap">
                             {filteredCards.map(({ property, key, trackingState, isPurchased, scenario }, cardIdx) => {
                               const isActive = key === activeTab
-                              const label = isPurchased && trackingState?.address ? trackingState.address : `Property ${cardIdx + 1}`
+                              const label = isPurchased && trackingState?.address ? trackingState.address : getSimplifiedDisplayLabel(property.title, cardIdx + 1)
                               return (
                                 <button
                                   key={key}

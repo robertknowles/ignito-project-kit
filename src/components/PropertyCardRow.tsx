@@ -217,7 +217,7 @@ export const PropertyCardRow: React.FC = () => {
       {/* Card row — horizontal scroll for any property count */}
       <div className="overflow-x-auto -mx-2 px-2 pb-2">
         <div className="flex items-start gap-3" style={{ minWidth: 'min-content' }}>
-          {cards.map((card) =>
+          {cards.map((card, cardIdx) =>
             card.instanceData ? (
               <PropertySummaryCard
                 key={card.instanceId}
@@ -226,6 +226,7 @@ export const PropertyCardRow: React.FC = () => {
                 instanceData={card.instanceData}
                 purchaseYear={card.purchaseYear}
                 isUnplaceable={card.isUnplaceable}
+                cardIndex={cardIdx + 1}
                 isExpanded={expandedInstanceId === card.instanceId}
                 onClick={() =>
                   setExpandedInstanceId(

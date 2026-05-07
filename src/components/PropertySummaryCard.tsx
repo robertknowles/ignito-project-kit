@@ -16,7 +16,7 @@ import { CELL_IDS, isCellId, getCellDisplayLabel, getSimplifiedDisplayLabel, tra
  * Resolve any propertyType identifier (cell ID, legacy v3 key, display label)
  * to the v4 cell display label like "Metro House Growth".
  */
-const resolveCellLabel = (propertyType: string): string => {
+const resolveCellLabel = (propertyType: string, index?: number): string => {
   let fullLabel: string;
   if (isCellId(propertyType)) {
     fullLabel = getCellDisplayLabel(propertyType as CellId);
@@ -24,7 +24,7 @@ const resolveCellLabel = (propertyType: string): string => {
     const translation = translateLegacyTypeKey(propertyType);
     fullLabel = translation ? getCellDisplayLabel(translation.newCellId) : propertyType;
   }
-  return getSimplifiedDisplayLabel(fullLabel);
+  return getSimplifiedDisplayLabel(fullLabel, index);
 };
 
 /** Resolve a propertyType identifier to its CellId (best-effort). */
@@ -53,6 +53,8 @@ interface PropertySummaryCardProps {
   isUnplaceable?: boolean;
   /** Whether this card's detail panel is currently open */
   isExpanded: boolean;
+  /** 1-based position in the property order (for "Property 1", "Property 2" labels) */
+  cardIndex?: number;
   onClick: () => void;
   onRemove: () => void;
   /** Inline cell-type change — fires AI re-plan via chatBus (parent supplies). */
@@ -67,12 +69,13 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
   purchaseYear,
   isUnplaceable,
   isExpanded,
+  cardIndex,
   onClick,
   onRemove,
   onTypeChange,
   onStateChange,
 }) => {
-  const cellLabel = resolveCellLabel(propertyType);
+  const cellLabel = resolveCellLabel(propertyType, cardIndex);
   const currentCellId = resolveCellId(propertyType);
 
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();

@@ -77,18 +77,21 @@ export const getCellDisplayLabel = (cellId: CellId): string => {
 
 /**
  * Simplified display label — strips property type, keeps focus only.
- * "Metro House Growth" → "Property — Equity Focus"
- * "Regional Unit Cashflow" → "Property — Cashflow Focus"
+ * "Metro House Growth" → "Property - Equity Focus"  (or "Property 1 - Equity Focus" with index)
+ * "Regional Unit Cashflow" → "Property - Cashflow Focus"
  * Also handles em-dash variants ("Metro House — Growth") and raw titles.
+ *
+ * @param index  Optional 1-based position number (e.g. 1, 2, 3).
  */
-export const getSimplifiedDisplayLabel = (title: string): string => {
+export const getSimplifiedDisplayLabel = (title: string, index?: number): string => {
   const lower = title.toLowerCase().replace(/\s*—\s*/g, ' ');
-  if (lower.includes('cashflow') || lower.includes('cash flow')) return 'Property — Cashflow Focus';
-  if (lower.includes('growth')) return 'Property — Equity Focus';
-  if (lower.includes('high cost') || lower.includes('highcost')) return 'Property — Commercial';
-  if (lower.includes('low cost') || lower.includes('lowcost')) return 'Property — Commercial';
-  if (lower.includes('commercial')) return 'Property — Commercial';
-  return 'Property';
+  const prefix = index != null ? `Property ${index}` : 'Property';
+  if (lower.includes('cashflow') || lower.includes('cash flow')) return `${prefix} - Cashflow Focus`;
+  if (lower.includes('growth')) return `${prefix} - Equity Focus`;
+  if (lower.includes('high cost') || lower.includes('highcost')) return `${prefix} - Commercial`;
+  if (lower.includes('low cost') || lower.includes('lowcost')) return `${prefix} - Commercial`;
+  if (lower.includes('commercial')) return `${prefix} - Commercial`;
+  return prefix;
 };
 
 export const isCellId = (value: string): value is CellId =>
