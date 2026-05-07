@@ -117,13 +117,9 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
         >
           <defs>
-            <linearGradient id="cashflowIncomeFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
-            </linearGradient>
-            <linearGradient id="cashflowExpensesFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.01} />
+            <linearGradient id="cashflowNetFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.12} />
+              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.01} />
             </linearGradient>
           </defs>
 
@@ -136,38 +132,18 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine y={0} stroke="#9CA3AF" strokeWidth={1} />
 
-          {/* Income line — solid blue with gradient fill */}
-          <Area
-            type="monotone"
-            dataKey="income"
-            name="Rental income"
-            stroke="#2563EB"
-            strokeWidth={2}
-            fill="url(#cashflowIncomeFill)"
-            dot={false}
-            isAnimationActive={false}
-          />
+          {/* Hidden series so income/expenses data is available in the tooltip payload */}
+          <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
-          {/* Expenses line — dashed grey with subtle fill */}
+          {/* Net Cashflow — the only visible line */}
           <Area
-            type="monotone"
-            dataKey="expenses"
-            name="Expenses"
-            stroke="#9CA3AF"
-            strokeWidth={2}
-            strokeDasharray="6 3"
-            fill="url(#cashflowExpensesFill)"
-            dot={false}
-            isAnimationActive={false}
-          />
-
-          {/* Net Cashflow line — purple (matches equity accent across dashboard) */}
-          <Line
             type="monotone"
             dataKey="netCashflow"
             name="Net Cashflow"
             stroke="#8B5CF6"
             strokeWidth={2}
+            fill="url(#cashflowNetFill)"
             dot={false}
             isAnimationActive={false}
           />

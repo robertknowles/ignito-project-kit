@@ -165,8 +165,6 @@ export const Dashboard = () => {
         <ChartCard
           title="Cashflow Projection"
           legend={[
-            { color: '#2563EB', label: 'Rental Income' },
-            { color: '#9CA3AF', label: 'Expenses' },
             { color: '#8B5CF6', label: 'Net Cashflow' },
           ]}
         >
