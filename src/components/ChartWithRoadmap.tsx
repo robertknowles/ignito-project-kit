@@ -7,9 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
-  ReferenceDot,
   ReferenceArea,
-  Label,
 } from 'recharts';
 import { AlertTriangle, Info, Check } from 'lucide-react';
 import {
@@ -435,35 +433,50 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
   );
 };
 
-/**
- * Goal achieved marker — renders a prominent flag icon with label above the dot.
- * Positioned above the ReferenceDot on the equity line.
- */
-const GoalAchievedMarker = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  const { x, y } = viewBox;
-  // Position the badge above the dot
-  const badgeY = y - 42;
-  return (
-    <g>
-      {/* Vertical connector line from badge to dot */}
-      <line x1={x} y1={badgeY + 24} x2={x} y2={y - 8} stroke="#2563EB" strokeWidth={1.5} strokeDasharray="3 2" />
-      {/* Badge background */}
-      <rect x={x - 32} y={badgeY} width={64} height={24} rx={12} fill="#2563EB" />
-      {/* Flag icon (small) */}
-      <path
-        d={`M${x - 18} ${badgeY + 6} v12 M${x - 18} ${badgeY + 6} h8 l-2 3 2 3 h-8`}
-        fill="white"
-        stroke="white"
-        strokeWidth={0.5}
-      />
-      {/* "Goal" text */}
-      <text x={x + 4} y={badgeY + 15.5} textAnchor="middle" fill="white" fontSize={11} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
-        Goal ✓
-      </text>
-    </g>
-  );
-};
+/** Goal achieved marker — HTML overlay badge positioned like property icons */
+const GoalAchievedBadge: React.FC<{ x: number; y: number }> = ({ x, y }) => (
+  <div
+    style={{
+      position: 'absolute',
+      left: x,
+      top: y - 44,
+      transform: 'translateX(-50%)',
+      pointerEvents: 'none',
+      zIndex: 25,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}
+  >
+    <div
+      style={{
+        background: '#2563EB',
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 600,
+        fontFamily: 'Inter, system-ui, sans-serif',
+        padding: '3px 12px',
+        borderRadius: 11,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      Goal ✓
+    </div>
+    {/* Connector line down to the dot */}
+    <div style={{ width: 1.5, height: 12, background: '#2563EB', opacity: 0.5 }} />
+    {/* Dot on the equity line */}
+    <div
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: '#2563EB',
+        border: '2.5px solid white',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+      }}
+    />
+  </div>
+);
 
 interface ChartWithRoadmapProps {
   scenarioData?: {
@@ -822,7 +835,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   // Find the year when equity goal is first reached
   const equityGoalReached = useMemo(() => {
-    return chartData.find(d => d.totalEquity >= profile.equityGoal);
+    return chartData.find(d => d.totalEquity >= profile.equityGoal) ?? null;
   }, [chartData, profile.equityGoal]);
 
   // Find the most recent purchase year (last property purchased)
@@ -932,6 +945,31 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return positions.filter(pos => pos.property !== undefined);
   }, [chartData, yearColumnWidth, profile.equityGoal, timelineProperties, chartPlotArea]);
 
+  // Goal marker overlay position — uses the same coordinate system as property icons
+  const goalMarkerPosition = useMemo(() => {
+    if (!equityGoalReached || !chartData.length || !chartPlotArea) return null;
+
+    const plotTop = chartPlotArea.top;
+    const plotBottom = chartPlotArea.bottom;
+    const plottingAreaHeight = plotBottom - plotTop;
+
+    const dataMax = Math.max(...chartData.map(d => d.portfolioValue));
+    const equityGoalValue = profile.equityGoal || 0;
+    const rawMax = Math.max(dataMax, equityGoalValue);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawMax)));
+    const maxValue = Math.ceil(rawMax / magnitude * 1.1) * magnitude;
+    const minValue = 0;
+
+    const yearIndex = chartData.findIndex(cd => cd.year === equityGoalReached.year);
+    if (yearIndex < 0) return null;
+
+    const x = Y_AXIS_WIDTH + (yearIndex * yearColumnWidth) + (yearColumnWidth / 2);
+    const valueRatio = (equityGoalReached.totalEquity - minValue) / (maxValue - minValue);
+    const y = plotTop + plottingAreaHeight * (1 - valueRatio);
+
+    return { x, y };
+  }, [equityGoalReached, chartData, chartPlotArea, yearColumnWidth, profile.equityGoal]);
+
   // Generate periods array for droppable columns (one per year in the chart)
   const periodsForDroppables = useMemo(() => {
     return years.map((yearData, index) => ({
@@ -990,7 +1028,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                     order={9}
                     position="bottom"
                   >
-                    <div 
+                    <div
                       className="absolute inset-0"
                       style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
                     >
@@ -1009,13 +1047,21 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                           </div>
                         )
                       ))}
+                      {/* Goal achieved overlay badge */}
+                      {goalMarkerPosition && (
+                        <GoalAchievedBadge x={goalMarkerPosition.x} y={goalMarkerPosition.y} />
+                      )}
                     </div>
                   </TourStep>
                 ) : (
-                  <div 
+                  <div
                     className="absolute inset-0"
                     style={{ height: CHART_HEIGHT, zIndex: 20, pointerEvents: 'none' }}
-                  />
+                  >
+                    {goalMarkerPosition && (
+                      <GoalAchievedBadge x={goalMarkerPosition.x} y={goalMarkerPosition.y} />
+                    )}
+                  </div>
                 )}
 
                 <ComposedChart
@@ -1115,27 +1161,15 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 connectNulls
               />
 
-              {/* Goal Achievement — vertical line + prominent marker */}
+              {/* Goal achievement vertical dashed line (inside chart SVG) */}
               {equityGoalReached && (
-                <>
-                  <ReferenceLine
-                    x={equityGoalReached.year}
-                    stroke="#2563EB"
-                    strokeDasharray="6 4"
-                    strokeWidth={1.5}
-                    strokeOpacity={0.4}
-                  />
-                  <ReferenceDot
-                    x={equityGoalReached.year}
-                    y={equityGoalReached.totalEquity}
-                    r={7}
-                    fill="#2563EB"
-                    stroke="white"
-                    strokeWidth={2.5}
-                  >
-                    <Label content={<GoalAchievedMarker />} />
-                  </ReferenceDot>
-                </>
+                <ReferenceLine
+                  x={equityGoalReached.year}
+                  stroke="#2563EB"
+                  strokeDasharray="6 4"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.35}
+                />
               )}
 
             </ComposedChart>
