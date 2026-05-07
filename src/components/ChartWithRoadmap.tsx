@@ -1033,6 +1033,10 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                       {goalMarkerX != null && (
                         <GoalAchievedOverlay x={goalMarkerX} chartHeight={CHART_HEIGHT} />
                       )}
+                      {/* DEBUG: always-visible test marker — remove after confirming */}
+                      <div style={{ position: 'absolute', left: 200, top: 10, background: 'red', color: 'white', padding: '4px 8px', borderRadius: 8, fontSize: 11, fontWeight: 700, zIndex: 999 }}>
+                        GOAL DEBUG: x={goalMarkerX ?? 'NULL'}
+                      </div>
                     </div>
                   </TourStep>
                 ) : (
