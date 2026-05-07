@@ -283,7 +283,7 @@ Derive the property count from the goal + horizon + capacity. Solve for the smal
    - cf-low: typically 4-7 properties
    - cf-high: typically 3-4 properties
    - commercial-transition: typically 3-5 total (2-3 residential + 1-2 commercial)
-4. **Default horizon if not given**: 15 years.
+4. **Default horizon if not given**: 20 years.
 5. **Default goal if not given**: infer from the preset.
    - Equity Growth presets: equity goal of ~2× current deposit pool by horizon.
    - Cash Flow presets: passive income goal of ~$50k/yr by horizon.
@@ -807,7 +807,7 @@ Output:
     }
   ],
   "message": "Got it. Built a 4-property portfolio starting with a $650k house in VIC, then scaling through QLD and regional NSW. With $240k combined income and $3,500/month savings, there's good capacity here. The engine will work out exact timing based on equity and serviceability.",
-  "assumptions": ["Individual ownership (50/50)", "Interest-only loans", "88% LVR across all properties", "High-growth targeting for all properties", "15-year timeline", "No existing debt"],
+  "assumptions": ["Individual ownership (50/50)", "Interest-only loans", "88% LVR across all properties", "High-growth targeting for all properties", "20-year timeline", "No existing debt"],
   "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["What if we started in QLD instead?", "Can we target 5 properties?", "What about a lower LVR to avoid LMI?"]
 }
@@ -855,7 +855,7 @@ Output:
     }
   ],
   "message": "Set up two QLD properties for Sarah. Starting with a metro unit around $380k, then a second metro unit at $420k once equity builds. I've estimated savings at $2,000/month based on her income — adjust if you know the actual figure. Used 88% LVR with LMI capitalised — standard stretch leverage for low-capacity clients to enable the second purchase within a reasonable horizon.",
-  "assumptions": ["Monthly savings estimated at $2,000 (not specified)", "No existing debt", "Individual ownership", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "15-year timeline"],
+  "assumptions": ["Monthly savings estimated at $2,000 (not specified)", "No existing debt", "Individual ownership", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "20-year timeline"],
   "missingInputs": ["savings", "borrowing_capacity", "goal"],
   "followUpSuggestions": ["Adjust the savings rate", "What about regional NSW instead?", "Can she stretch to a third property?"]
 }
@@ -989,7 +989,7 @@ Output:
     }
   ],
   "message": "Built a 4-property VIC portfolio. Interpreted $240k as combined income ($120k each) and $120k as the available deposit. Starting with a unit, scaling up as equity grows. All in VIC as requested.",
-  "assumptions": ["$240k interpreted as combined income ($120k each)", "$120k interpreted as deposit (not price)", "$4k savings is monthly", "Individual ownership (50/50)", "Interest-only loans", "80% LVR", "15-year timeline", "No existing debt"],
+  "assumptions": ["$240k interpreted as combined income ($120k each)", "$120k interpreted as deposit (not price)", "$4k savings is monthly", "Individual ownership (50/50)", "Interest-only loans", "80% LVR", "20-year timeline", "No existing debt"],
   "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["Correct the income split if it's not 50/50", "Mix in some QLD properties?", "What about a shorter timeline?"]
 }
@@ -1110,7 +1110,7 @@ Output:
     }
   ],
   "message": "Set up two properties for Tom. With no ongoing savings, the plan relies entirely on equity growth from the first property to fund the second. Starting with a cheaper unit in QLD to maximise growth potential. Used 88% LVR with LMI capitalised — low-cap stretch leverage so Tom can stretch into property 1 with minimal cash.",
-  "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "15-year timeline"],
+  "assumptions": ["Zero monthly savings as stated", "Plan relies on equity growth only", "No existing debt", "Interest-only loans", "88% LVR with LMI capitalised (low-cap stretch)", "High-growth QLD areas", "20-year timeline"],
   "missingInputs": ["borrowing_capacity", "goal"],
   "followUpSuggestions": ["What if he can save even $500/month?", "Try a single property instead?", "What about a regional house?"]
 }`;
