@@ -95,7 +95,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   portfolioValue: 0,
   currentDebt: 0,
   annualSavings: 24000,
-  timelineYears: 30,
+  timelineYears: 20,
   timelineYearsExplicit: false,
   equityGoal: 1000000, // Default $1M equity goal
   cashflowGoal: 50000, // Default $50k annual cashflow goal
@@ -161,7 +161,7 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   const updateProfile = (updates: Partial<InvestmentProfileData>) => {
     if (updates.timelineYears !== undefined) {
-      updates.timelineYears = Math.max(updates.timelineYears, 30);
+      updates.timelineYears = Math.max(updates.timelineYears, 20);
     }
     setProfile(prev => ({ ...prev, ...updates }));
   };
@@ -182,7 +182,7 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
   const setProfileFull = (newProfile: InvestmentProfileData) => {
     setProfile({
       ...newProfile,
-      timelineYears: Math.max(newProfile.timelineYears || 30, 30),
+      timelineYears: Math.max(newProfile.timelineYears || 20, 20),
     });
   };
 

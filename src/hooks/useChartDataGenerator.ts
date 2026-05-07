@@ -307,7 +307,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
   const cashflowData = useMemo((): CashflowDataPoint[] => {
     const data: CashflowDataPoint[] = [];
     const startYear = BASE_YEAR;
-    const endYear = startYear + Math.max(profile.timelineYears, 30) - 1;
+    const endYear = startYear + Math.max(profile.timelineYears, 20) - 1;
 
     // Get feasible properties with their detailed cashflow data
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
