@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
@@ -133,6 +134,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             {...CHART_STYLE.yAxis}
           />
           <Tooltip content={<CustomTooltip />} />
+          <ReferenceLine y={0} stroke="#9CA3AF" strokeWidth={1} />
 
           {/* Income line — solid blue with gradient fill */}
           <Area
