@@ -161,7 +161,11 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   const updateProfile = (updates: Partial<InvestmentProfileData>) => {
     if (updates.timelineYears !== undefined) {
-      updates.timelineYears = Math.max(updates.timelineYears, 20);
+      // Floor at 20; also cap non-explicit timelines to 20 (migrates old 30yr defaults)
+      const explicit = updates.timelineYearsExplicit ?? profile.timelineYearsExplicit;
+      updates.timelineYears = explicit
+        ? Math.max(updates.timelineYears, 20)
+        : Math.min(Math.max(updates.timelineYears, 20), 20);
     }
     setProfile(prev => ({ ...prev, ...updates }));
   };
@@ -180,9 +184,14 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   // Bulk setter for scenario restoration - replaces entire profile
   const setProfileFull = (newProfile: InvestmentProfileData) => {
+    const raw = newProfile.timelineYears || 20;
+    // Floor at 20; cap non-explicit timelines to 20 (migrates old 30yr defaults)
+    const clamped = newProfile.timelineYearsExplicit
+      ? Math.max(raw, 20)
+      : Math.min(Math.max(raw, 20), 20);
     setProfile({
       ...newProfile,
-      timelineYears: Math.max(newProfile.timelineYears || 20, 20),
+      timelineYears: clamped,
     });
   };
 
