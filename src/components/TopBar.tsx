@@ -232,72 +232,45 @@ export const TopBar = () => {
           return
         }
 
-        // Create a new user account for the client
+        // Create a new user account for the client via the create-client-user
+        // edge function. This bypasses the email-confirmation step that
+        // supabase.auth.signUp would otherwise require — agents are vouching
+        // for the client by manually creating the account, and forcing the
+        // client to receive + click a confirm link before they can log in
+        // produces "Email not confirmed" errors at sign-in (cofounder report
+        // 2026-05-07).
         const tempPassword = generateTempPassword()
-        
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: clientEmail,
-          password: tempPassword,
-          options: {
-            data: {
-              role: 'client',
-              client_id: activeClient.id,
+        const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
+          'create-client-user',
+          {
+            body: {
+              email: clientEmail,
+              password: tempPassword,
+              clientId: activeClient.id,
+              companyId: activeClient.company_id ?? null,
+              scenarioId,
             },
           },
-        })
+        )
+        if (invokeError) throw invokeError
+        const result = invokeData as { ok: boolean; alreadyExisted?: boolean; error?: string }
+        if (!result?.ok) throw new Error(result?.error || 'Failed to create client account')
 
-        if (authError) {
-          // If user already exists, just show the modal with existing info
-          if (authError.message.includes('already registered')) {
-            setShareCredentials({
-              email: clientEmail,
-              password: '(Account already exists)',
-              loginUrl: `${window.location.origin}/login`,
-              clientName: activeClient.name || 'Client',
-            })
-            setShareModalOpen(true)
-            setIsLoading(false)
-            return
-          }
-          throw authError
-        }
-
-        const newUserId = authData.user?.id
-        if (!newUserId) throw new Error('Failed to create user account')
-
-        // Create user record in users table
-        const { error: userInsertError } = await supabase
-          .from('users')
-          .insert({
-            id: newUserId,
+        if (result.alreadyExisted) {
+          setShareCredentials({
             email: clientEmail,
-            role: 'client',
-            company_id: activeClient.company_id,
+            password: '(Account already exists — use Forgot password to reset)',
+            loginUrl: `${window.location.origin}/login`,
+            clientName: activeClient.name || 'Client',
           })
-
-        if (userInsertError) {
-          // Failed to create user record
+        } else {
+          setShareCredentials({
+            email: clientEmail,
+            password: tempPassword,
+            loginUrl: `${window.location.origin}/login`,
+            clientName: activeClient.name || 'Client',
+          })
         }
-
-        // Link the client user to the scenario. Null-guard so a concurrent
-        // invite flow can't overwrite an already-linked user with a different id.
-        const { error: scenarioError } = await supabase
-          .from('scenarios')
-          .update({ client_user_id: newUserId })
-          .eq('id', scenarioId)
-          .is('client_user_id', null)
-
-        if (scenarioError) {
-          // Failed to update scenario
-        }
-
-        // Show credentials modal
-        setShareCredentials({
-          email: clientEmail,
-          password: tempPassword,
-          loginUrl: `${window.location.origin}/login`,
-          clientName: activeClient.name || 'Client',
-        })
         setShareModalOpen(true)
       }
     } catch (error) {
@@ -327,73 +300,41 @@ export const TopBar = () => {
 
       if (updateError) throw updateError
 
-      // Now proceed with creating the user account
+      // Now proceed with creating the user account via the auto-confirming
+      // edge function (see comment in handleShareDashboard above for why we
+      // can't use supabase.auth.signUp from the browser here).
       const tempPassword = generateTempPassword()
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: pendingEmail.trim(),
-        password: tempPassword,
-        options: {
-          data: {
-            role: 'client',
-            client_id: activeClient.id,
+      const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
+        'create-client-user',
+        {
+          body: {
+            email: pendingEmail.trim(),
+            password: tempPassword,
+            clientId: activeClient.id,
+            companyId: activeClient.company_id ?? null,
+            scenarioId: scenarioId ?? undefined,
           },
         },
-      })
+      )
+      if (invokeError) throw invokeError
+      const result = invokeData as { ok: boolean; alreadyExisted?: boolean; error?: string }
+      if (!result?.ok) throw new Error(result?.error || 'Failed to create client account')
 
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          setShareCredentials({
-            email: pendingEmail.trim(),
-            password: '(Account already exists)',
-            loginUrl: `${window.location.origin}/login`,
-            clientName: activeClient.name || 'Client',
-          })
-          setShareModalOpen(true)
-          setPendingEmail('')
-          return
-        }
-        throw authError
-      }
-
-      const newUserId = authData.user?.id
-      if (!newUserId) throw new Error('Failed to create user account')
-
-      // Create user record in users table
-      const { error: userInsertError } = await supabase
-        .from('users')
-        .insert({
-          id: newUserId,
+      if (result.alreadyExisted) {
+        setShareCredentials({
           email: pendingEmail.trim(),
-          role: 'client',
-          company_id: activeClient.company_id,
+          password: '(Account already exists — use Forgot password to reset)',
+          loginUrl: `${window.location.origin}/login`,
+          clientName: activeClient.name || 'Client',
         })
-
-      if (userInsertError) {
-        // Failed to create user record
+      } else {
+        setShareCredentials({
+          email: pendingEmail.trim(),
+          password: tempPassword,
+          loginUrl: `${window.location.origin}/login`,
+          clientName: activeClient.name || 'Client',
+        })
       }
-
-      // Link the client user to the scenario. Null-guard so a concurrent
-      // invite flow can't overwrite an already-linked user with a different id.
-      if (scenarioId) {
-        const { error: scenarioError } = await supabase
-          .from('scenarios')
-          .update({ client_user_id: newUserId })
-          .eq('id', scenarioId)
-          .is('client_user_id', null)
-
-        if (scenarioError) {
-          // Failed to update scenario
-        }
-      }
-
-      // Show credentials modal
-      setShareCredentials({
-        email: pendingEmail.trim(),
-        password: tempPassword,
-        loginUrl: `${window.location.origin}/login`,
-        clientName: activeClient.name || 'Client',
-      })
       setShareModalOpen(true)
       setPendingEmail('')
     } catch (error) {
