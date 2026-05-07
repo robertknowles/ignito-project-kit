@@ -29,7 +29,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 
   return (
-    <div className="rounded-lg border border-[#E9EAEB] overflow-hidden">
+    <div className="rounded-lg border border-[#E9EAEB] overflow-visible">
       {/* Gray header band */}
       <div
         className={`bg-[#FCFCFD] px-6 py-3.5 flex items-center justify-between ${collapsible ? 'cursor-pointer select-none' : ''}`}

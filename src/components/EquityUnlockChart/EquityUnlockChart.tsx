@@ -240,7 +240,7 @@ export const EquityUnlockChart: React.FC = () => {
             domain={yAxisDomain}
             ticks={yTicks}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} allowEscapeViewBox={{ x: true, y: true }} />
 
           {/* Property lines — NOT stacked */}
           {propertyTimelines.map((prop, idx) => (
