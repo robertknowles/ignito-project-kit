@@ -76,12 +76,23 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     }));
   }, [cashflowData, profile.timelineYears]);
 
-  // Find where net cashflow first turns positive (cashflow-positive milestone)
+  // Find where net cashflow goes positive and STAYS positive (no dips back below zero)
   const cashflowPositivePoint = useMemo(() => {
-    // Look for the first year where netCashflow >= 0 after starting negative
     const hasNegative = data.some(d => d.netCashflow < 0);
     if (!hasNegative) return null; // Always positive — no crossover to mark
-    return data.find(d => d.netCashflow >= 0);
+
+    // Walk backwards from the end to find the last negative year,
+    // then the marker is the year immediately after it.
+    let lastNegativeIndex = -1;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].netCashflow < 0) {
+        lastNegativeIndex = i;
+        break;
+      }
+    }
+    // If never negative (shouldn't happen given hasNegative check) or the last year is negative, no marker
+    if (lastNegativeIndex < 0 || lastNegativeIndex >= data.length - 1) return null;
+    return data[lastNegativeIndex + 1];
   }, [data]);
 
   // Custom tooltip
