@@ -75,6 +75,22 @@ export const getCellDisplayLabel = (cellId: CellId): string => {
   return `${type} ${modeLabel}`;
 };
 
+/**
+ * Simplified display label — strips property type, keeps focus only.
+ * "Metro House Growth" → "Property — Equity Focus"
+ * "Regional Unit Cashflow" → "Property — Cashflow Focus"
+ * Also handles em-dash variants ("Metro House — Growth") and raw titles.
+ */
+export const getSimplifiedDisplayLabel = (title: string): string => {
+  const lower = title.toLowerCase().replace(/\s*—\s*/g, ' ');
+  if (lower.includes('cashflow') || lower.includes('cash flow')) return 'Property — Cashflow Focus';
+  if (lower.includes('growth')) return 'Property — Equity Focus';
+  if (lower.includes('high cost') || lower.includes('highcost')) return 'Property — Commercial';
+  if (lower.includes('low cost') || lower.includes('lowcost')) return 'Property — Commercial';
+  if (lower.includes('commercial')) return 'Property — Commercial';
+  return 'Property';
+};
+
 export const isCellId = (value: string): value is CellId =>
   (CELL_IDS as string[]).includes(value);
 

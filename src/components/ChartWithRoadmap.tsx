@@ -23,6 +23,7 @@ import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hoo
 import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
+import { getSimplifiedDisplayLabel } from '../utils/propertyCells';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -163,14 +164,14 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
           )}
           {yearTriggers.map(t => (
             <p key={t.instanceId} className="text-xs text-amber-600 mt-1">
-              {t.propertyTitle}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
+              {getSimplifiedDisplayLabel(t.propertyTitle)}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
             </p>
           ))}
           {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
             <div className="mt-2 pt-2 border-t border-gray-100">
               {data.purchaseDetails.map((purchase: any, idx: number) => (
                 <p key={idx} className="text-xs font-medium text-gray-700">
-                  {purchase.propertyTitle}
+                  {getSimplifiedDisplayLabel(purchase.propertyTitle)}
                 </p>
               ))}
             </div>
@@ -315,7 +316,7 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
             </div>
           </TooltipTrigger>
           <TooltipContent side="top" className="bg-white border border-gray-200 shadow-md rounded-md p-3 max-w-[220px]">
-            <p className="text-xs font-semibold text-gray-900 mb-1.5">{property.title}</p>
+            <p className="text-xs font-semibold text-gray-900 mb-1.5">{getSimplifiedDisplayLabel(property.title)}</p>
             <div className="space-y-0.5 text-[11px]">
               <div className="flex justify-between gap-4">
                 <span className="text-gray-500">Purchase Price</span>
