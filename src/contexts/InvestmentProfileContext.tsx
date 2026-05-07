@@ -177,7 +177,10 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   // Bulk setter for scenario restoration - replaces entire profile
   const setProfileFull = (newProfile: InvestmentProfileData) => {
-    setProfile({ ...newProfile });
+    setProfile({
+      ...newProfile,
+      timelineYears: Math.max(newProfile.timelineYears || 30, 30),
+    });
   };
 
   const value = {

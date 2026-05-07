@@ -167,7 +167,7 @@ export const Dashboard = () => {
           legend={[
             { color: '#2563EB', label: 'Rental Income' },
             { color: '#9CA3AF', label: 'Expenses' },
-            { color: '#10B981', label: 'Net Cashflow' },
+            { color: '#8B5CF6', label: 'Net Cashflow' },
           ]}
         >
           <CashflowChart />

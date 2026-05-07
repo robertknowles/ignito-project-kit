@@ -159,12 +159,12 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             isAnimationActive={false}
           />
 
-          {/* Net Cashflow line — green solid, no fill so it's always visible */}
+          {/* Net Cashflow line — purple (matches equity accent across dashboard) */}
           <Line
             type="monotone"
             dataKey="netCashflow"
             name="Net Cashflow"
-            stroke="#10B981"
+            stroke="#8B5CF6"
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
