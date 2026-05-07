@@ -129,12 +129,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             tickFormatter={formatYAxis}
             {...CHART_STYLE.yAxis}
           />
+          {/* Secondary axis keeps hidden series out of the primary Y domain */}
+          <YAxis yAxisId="hidden" hide />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine y={0} stroke="#9CA3AF" strokeWidth={1} />
 
           {/* Hidden series so income/expenses data is available in the tooltip payload */}
-          <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
-          <Line dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line yAxisId="hidden" dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line yAxisId="hidden" dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
           {/* Net Cashflow — the only visible line */}
           <Area
