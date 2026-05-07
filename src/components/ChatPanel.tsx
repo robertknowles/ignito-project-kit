@@ -348,10 +348,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       // "I asked it to change X and nothing happened" reports.
       if (allWarnings.length > 0) {
         const dedup = Array.from(new Set(allWarnings))
-        const heading = didChange
-          ? 'Some parts of that update didn\'t apply:'
-          : 'I couldn\'t apply that change:'
-        addSystemMessageRef.current?.(`${heading}\n• ${dedup.join('\n• ')}`)
+        addSystemMessageRef.current?.(dedup.join(' '))
       }
     },
     [instances, propertyOrder, selections, updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate]

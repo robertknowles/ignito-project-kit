@@ -238,7 +238,7 @@ export function mapModificationToUpdates(
 ): ContextUpdates {
   if (!response.modification) {
     console.warn('[nlDataMapper] mapModificationToUpdates called with no modification on response');
-    return { warnings: ['I tried to make a change but the request came through empty — try saying it a different way.'] };
+    return { warnings: ['That didn\'t come through — try saying it a different way.'] };
   }
 
   const { target, action, params } = response.modification;
@@ -274,7 +274,7 @@ export function mapModificationToUpdates(
             },
           }];
         } else {
-          warnings.push(`Wanted to move property ${requestedNumber} but no target period was given.`);
+          warnings.push(`Couldn't move property ${requestedNumber} — try specifying a year, e.g. "move property ${requestedNumber} to 2028".`);
         }
         break;
       }
@@ -327,7 +327,7 @@ export function mapModificationToUpdates(
         if (unsupported.length > 0) {
           console.warn(`[nlDataMapper] dropped unsupported change fields: ${unsupported.join(', ')}`);
           warnings.push(
-            `Couldn't change ${unsupported.join(', ')} on property ${requestedNumber} — that field isn't editable yet.`,
+            `Can't change ${unsupported.join(', ')} from chat yet — you can adjust it on the property card directly.`,
           );
         }
 
@@ -337,7 +337,7 @@ export function mapModificationToUpdates(
           // No supported and no unsupported fields — Claude returned an empty
           // params object. Tell the user.
           warnings.push(
-            `Got a change request for property ${requestedNumber} but no fields were specified.`,
+            `That didn't come through — try being specific, e.g. "change property ${requestedNumber} to $500k" or "set property ${requestedNumber} LVR to 80%".`,
           );
         }
         break;
@@ -436,28 +436,33 @@ export function mapModificationToUpdates(
       // change on the dashboard (founder report 2026-05-05, B6).
       console.warn('[nlDataMapper] add action returned with no response.properties array');
       warnings.push(
-        `I described adding a property but didn't actually attach the details — say "add a regional unit in QLD around $380k" (or click the suggested options) and I'll wire it up.`,
+        `That didn't land — try being more specific, e.g. "add a regional unit in QLD around $380k".`,
       );
     }
   }
 
   // Profile-level modifications (savings, income, etc.)
-  if (target === 'savings' && params.monthlySavings !== undefined) {
-    updates.profileUpdates = {
-      annualSavings: (params.monthlySavings as number) * 12,
-    };
+  // Accept multiple param names the AI might use for each field.
+  if (target === 'savings') {
+    const val = (params.monthlySavings ?? params.savings ?? params.annualSavings) as number | undefined;
+    if (val !== undefined) {
+      const annual = params.annualSavings !== undefined ? val : val * 12;
+      updates.profileUpdates = { annualSavings: annual };
+    }
   }
 
-  if (target === 'income' && params.annualIncome !== undefined) {
-    updates.profileUpdates = {
-      baseSalary: params.annualIncome as number,
-    };
+  if (target === 'income') {
+    const val = (params.annualIncome ?? params.income ?? params.baseSalary ?? params.salary) as number | undefined;
+    if (val !== undefined) {
+      updates.profileUpdates = { baseSalary: val };
+    }
   }
 
-  if (target === 'timeline' && params.timelineYears !== undefined) {
-    updates.profileUpdates = {
-      timelineYears: params.timelineYears as number,
-    };
+  if (target === 'timeline') {
+    const val = (params.timelineYears ?? params.timeline ?? params.years) as number | undefined;
+    if (val !== undefined) {
+      updates.profileUpdates = { timelineYears: val };
+    }
   }
 
   if (target === 'lvr') {
@@ -514,14 +519,15 @@ export function mapModificationToUpdates(
         paramKeys: Object.keys(params ?? {}),
       });
     } else {
-      // Known target but nothing landed — that IS surprising, tell the user.
+      // Known target but nothing landed — log for diagnostics but show
+      // a friendly message, not raw internal field names.
       console.warn('[nlDataMapper] known target produced no updates', {
         target,
         action,
         paramKeys: Object.keys(params ?? {}),
       });
       warnings.push(
-        `I understood the request but couldn't apply it — the engine didn't get any concrete changes from "${action}" on "${target}".`,
+        `That change didn't come through cleanly — try saying it a different way (e.g. "set income to $600k" or "change savings to $5k/month").`,
       );
     }
   }
