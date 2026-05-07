@@ -371,39 +371,53 @@ export function mapModificationToUpdates(
     if (response.properties && response.properties.length > 0) {
       const newMapping = mapToPropertySelections(response)
 
-      // Dedupe — the AI commonly returns the COMPLETE plan (existing
-      // properties PLUS the additions) in response.properties, not just
-      // the new additions. Without this dedupe step the order array
-      // doubles up and produces ghost duplicate tabs in Per-Property
-      // (cofounder report 2026-05-06: "duplicate per-property toggles
-      // after asking the chatbot to add 2x new properties").
-      //
-      // Strategy: walk currentOrder first, then newMapping.propertyOrder,
-      // skipping any instance id we've already seen. New properties from
-      // the AI get fresh _instance_<n> indices because mapToPropertySelections
-      // counts from 0 per type — but if currentOrder already had
-      // <type>_instance_0 and <type>_instance_1, the AI's two returned
-      // entries for that type collide on those exact ids. The dedupe
-      // drops the colliding repeats; any genuinely-new entries (e.g.
-      // _instance_2 added by the AI) survive because they're not in
-      // currentOrder.
-      const seen = new Set<string>()
-      const mergedOrder: string[] = []
-      for (const id of [...currentOrder, ...newMapping.propertyOrder]) {
-        if (seen.has(id)) continue
-        seen.add(id)
-        mergedOrder.push(id)
+      // Re-index new property IDs to avoid collisions with existing ones.
+      // mapToPropertySelections generates IDs starting from _instance_0
+      // per type. If the plan already has metro-unit-growth_instance_0
+      // and the AI adds another metro-unit-growth, both get _instance_0
+      // and the new one is silently dropped by the merge. Fix: find the
+      // max existing index per type and re-number colliding new entries.
+      const existingIds = new Set(currentOrder)
+      const maxIndexByType: Record<string, number> = {}
+      for (const id of currentOrder) {
+        const type = id.replace(/_instance_\d+$/, '')
+        const match = id.match(/_instance_(\d+)$/)
+        const idx = match ? parseInt(match[1], 10) : 0
+        maxIndexByType[type] = Math.max(maxIndexByType[type] ?? -1, idx)
       }
 
-      // Instances: preserve the existing (potentially user-edited)
-      // instance values for ids that exist in both. Only fall back to
-      // the AI's newMapping for ids that are genuinely new.
+      const reindexedOrder: string[] = []
+      const reindexedInstances: Record<string, PropertyInstanceDetails> = {}
+      for (const id of newMapping.propertyOrder) {
+        if (existingIds.has(id)) {
+          const existing = currentInstances[id]
+          const incoming = newMapping.instances[id]
+          const isDuplicate = existing && incoming &&
+            existing.purchasePrice === incoming.purchasePrice &&
+            existing.state === incoming.state
+          if (isDuplicate) {
+            // AI returned an existing property verbatim — skip it
+            continue
+          }
+          // Genuine new property of the same type — re-index to next slot
+          const type = id.replace(/_instance_\d+$/, '')
+          const nextIdx = (maxIndexByType[type] ?? -1) + 1
+          maxIndexByType[type] = nextIdx
+          const newId = `${type}_instance_${nextIdx}`
+          reindexedOrder.push(newId)
+          reindexedInstances[newId] = newMapping.instances[id]
+        } else {
+          reindexedOrder.push(id)
+          reindexedInstances[id] = newMapping.instances[id]
+        }
+      }
+
+      const mergedOrder = [...currentOrder, ...reindexedOrder]
       const mergedInstances: Record<string, PropertyInstanceDetails> = {
-        ...newMapping.instances,
+        ...reindexedInstances,
         ...currentInstances,
       }
 
-      // Rebuild selections from the deduped order so counts match.
       const mergedSelections: PropertySelection = {}
       for (const id of mergedOrder) {
         const type = id.replace(/_instance_\d+$/, '')

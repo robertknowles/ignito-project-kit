@@ -378,6 +378,19 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           console.warn('[nl-parse] comparison response intercepted — treating as explanation.')
           effectiveType = 'explanation'
         }
+        // Rescue: AI returned "modification" for a strategy switch instead of
+        // "initial_plan". Detect by strategyPreset mismatch and re-route so
+        // the plan rebuilds correctly instead of hitting a dead-end warning.
+        if (
+          response.type === 'modification' &&
+          response.strategyPreset &&
+          response.strategyPreset !== liveStrategyPreset &&
+          response.properties &&
+          response.properties.length > 0
+        ) {
+          console.info(`[nl-parse] rescuing misclassified strategy switch: ${liveStrategyPreset} → ${response.strategyPreset}`)
+          effectiveType = 'initial_plan'
+        }
 
         // Process response based on type
         switch (effectiveType) {
@@ -440,7 +453,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
 
           case 'explanation': {
-            const wasDowngraded = response.type === 'initial_plan' || response.type === 'comparison'
+            const wasDowngradedFromPlan = response.type === 'initial_plan'
+            const wasDowngradedFromComparison = response.type === 'comparison'
+            const wasDowngraded = wasDowngradedFromPlan || wasDowngradedFromComparison
             // Skip the chart-context enrichment for explanations that aren't
             // anchored to specific periods or properties. Questions like "what
             // if rates rise 2%?" or "model selling property 1" have no period
@@ -505,7 +520,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // downgraded from a misclassified initial_plan, the message talks
             // about "Built a 4-property portfolio..." which doesn't answer the
             // question. Ask for clarification instead of a dead-end sorry.
-            const fallbackText = wasDowngraded
+            const fallbackText = wasDowngradedFromPlan
               ? "That looks like a new client — clear the current plan first and I'll build a fresh one."
               : response.message
             const explMsg = createMessage('assistant', 'text', fallbackText, {
