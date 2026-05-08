@@ -370,8 +370,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           if (isStrategySwitch) {
             console.info(`[nl-parse] strategy switch detected: ${liveStrategyPreset} → ${response.strategyPreset}`)
           } else {
-            console.warn('[nl-parse] initial_plan returned while a plan exists — blocking rebuild, treating as explanation.')
-            effectiveType = 'explanation'
+            // Check if the user was trying to ADD a property — if so, re-route
+            // to modification instead of blocking. The AI misclassifies add
+            // requests as initial_plan when it includes properties.
+            const addKeywords = /\b(add|another|one more|more propert|extra|squeeze|fifth|sixth|5th|6th)\b/i
+            if (addKeywords.test(userText) && response.properties?.length) {
+              console.info(`[nl-parse] re-routing initial_plan as add-property modification (${response.properties.length} properties)`)
+              response.modification = { target: 'portfolio', action: 'add', params: {} }
+              effectiveType = 'modification'
+            } else {
+              console.warn('[nl-parse] initial_plan returned while a plan exists — blocking rebuild, treating as explanation.')
+              effectiveType = 'explanation'
+            }
           }
         }
         if (response.type === 'comparison') {
@@ -627,15 +637,31 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             })
             setMessages((prev) => [...prev, suggestMsg])
             // Map property suggestions to refinement options format
-            if (response.propertySuggestions?.length) {
+            // Build refinement option buttons from propertySuggestions or
+            // fall back to properties array (AI often populates one but not
+            // the other — without this fallback the user sees "here are 4
+            // options" with no buttons to click).
+            const suggestions = response.propertySuggestions?.length
+              ? response.propertySuggestions.map(s => ({
+                  label: `${s.label} — ${s.price}`,
+                  prompt: s.prompt,
+                }))
+              : response.properties?.length
+                ? response.properties.map((p, i) => {
+                    const typeLabel = p.type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                    const priceK = `$${(p.purchasePrice / 1000).toFixed(0)}k`
+                    return {
+                      label: `${typeLabel} in ${p.state} — ${priceK}`,
+                      prompt: `Add a ${p.type} in ${p.state} at $${p.purchasePrice.toLocaleString()}`,
+                    }
+                  })
+                : null
+            if (suggestions?.length) {
               setMessages((prev) => {
                 const updated = [...prev]
                 const last = [...updated].reverse().find((m) => m.role === 'assistant')
                 if (last) {
-                  last.refinementOptions = response.propertySuggestions!.map(s => ({
-                    label: `${s.label} — ${s.price}`,
-                    prompt: s.prompt,
-                  }))
+                  last.refinementOptions = suggestions
                 }
                 return updated
               })
