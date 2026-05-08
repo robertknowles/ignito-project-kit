@@ -317,6 +317,26 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         }
       }
 
+      // Safety net: if the AI included properties on the response but no mod
+      // in the list had action "add", the properties were never consumed.
+      // This happens when the AI returns a compound like remove+add but uses
+      // singular "modification" (the remove) and puts the add info only in
+      // "properties". Process the orphaned properties as an add now.
+      const hadAddMod = modList.some(m => m.action === 'add')
+      if (!hadAddMod && response.properties && response.properties.length > 0) {
+        console.info('[ChatPanel] processing orphaned properties as add', { count: response.properties.length })
+        const addResponse = { ...response, modification: { target: 'portfolio', action: 'add', params: {} }, modifications: undefined }
+        const addUpdates = mapModificationToUpdates(addResponse, currentInstances, currentOrder)
+        if (addUpdates.selectionChanges) {
+          currentOrder = addUpdates.selectionChanges.propertyOrder
+          currentSelections = addUpdates.selectionChanges.selections
+          currentInstances = addUpdates.selectionChanges.instances
+        }
+        if (addUpdates.warnings?.length) {
+          allWarnings.push(...addUpdates.warnings)
+        }
+      }
+
       // Apply all accumulated updates
       if (Object.keys(mergedProfileUpdates).length > 0) {
         updateProfile(mergedProfileUpdates)
