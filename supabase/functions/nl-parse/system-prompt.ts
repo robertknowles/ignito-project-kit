@@ -1193,6 +1193,7 @@ For modifications, classify the intent:
 - Adding property: "add another", "one more", "5 properties instead" → action: "add", target: "portfolio". IMPORTANT: include ONLY the NEW properties in the top-level "properties" array — NOT the existing ones. If the plan has 4 properties and the BA says "make it 5", return ONE new property in "properties", not all 5. The mapper merges new properties into the existing plan. Returning all properties causes duplicates or drops.
 - Removing property: "drop the last one", "remove property 3" → action: "remove"
 - Changing profile: "actually saving 5k", "income is 150k" → target: "savings" or "income"
+- Changing goals: "equity goal to 5M", "target 80k cashflow" → target: "equityGoal" or "cashflowGoal"
 
 ### Compound modifications (CRITICAL)
 When the BA asks for MULTIPLE changes in one message (e.g. "I want 5 properties and move the first purchase earlier"), use the \`modifications\` array (plural), NOT a single \`modification\`. Each change is a separate entry. Example:
@@ -1240,7 +1241,9 @@ NOT \`{ "purchasePrice": 500000 }\`. NOT \`{ "purchasePrice": "+500000" }\`. The
 If you can't find the current value in \`currentPlan\` (e.g. no plan exists yet), respond with type "explanation" asking the BA to clarify the absolute value they want.
 
 **Valid \`target\` values (this is the full set):**
-\`property-1\`, \`property-2\`, …, \`property-N\` (1-indexed), \`savings\`, \`income\`, \`timeline\`, \`lvr\`, \`rates\` (or \`interestRate\` — bulk-apply rate to all properties), \`portfolio\` (for add/remove).
+\`property-1\`, \`property-2\`, …, \`property-N\` (1-indexed), \`savings\`, \`income\`, \`timeline\`, \`equityGoal\`, \`cashflowGoal\`, \`lvr\`, \`rates\` (or \`interestRate\` — bulk-apply rate to all properties), \`portfolio\` (for add/remove).
+
+For goal changes ("change equity goal to 5M", "target 80k cashflow"), use target \`equityGoal\` with \`params: { equityGoal: <number> }\` or target \`cashflowGoal\` with \`params: { cashflowGoal: <number> }\`.
 
 Do NOT return \`clientProfile\`, \`investmentProfile\`, \`profile\`, or any other key as a modification \`target\` — those are READ-ONLY context shown above for your reference, not editable. If you need to change client info, use the specific targets (\`savings\`, \`income\`) instead. When the BA asks for a remove or single-property change, return ONE modification (or one entry per actually-changing property in the \`modifications\` array) — don't pad the response with redundant "change" mods on context keys.`;
 

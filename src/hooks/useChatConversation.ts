@@ -379,8 +379,24 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           effectiveType = 'explanation'
         }
         // Rescue: AI returned "modification" for a strategy switch instead of
-        // "initial_plan". Detect by strategyPreset mismatch and re-route so
-        // the plan rebuilds correctly instead of hitting a dead-end warning.
+        // "initial_plan". Two layers:
+        // 1. If the response includes strategyPreset + properties, re-route.
+        // 2. Keyword fallback: if the user's message matches a strategy switch
+        //    pattern but the AI returned modification (often with no preset or
+        //    properties at all), infer the target preset from keywords and
+        //    re-fire as initial_plan. Without this the AI confidently says
+        //    "Switching to cash flow…" but the dashboard never updates.
+        const STRATEGY_KEYWORDS: Record<string, typeof liveStrategyPreset> = {
+          'cash flow': 'cf-low',
+          'cashflow': 'cf-low',
+          'cf low': 'cf-low',
+          'cf high': 'cf-high',
+          'equity growth low': 'eg-low',
+          'equity growth high': 'eg-high',
+          'equity growth': 'eg-low',
+          'commercial transition': 'commercial-transition',
+          'commercial': 'commercial-transition',
+        }
         if (
           response.type === 'modification' &&
           response.strategyPreset &&
@@ -390,6 +406,61 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         ) {
           console.info(`[nl-parse] rescuing misclassified strategy switch: ${liveStrategyPreset} → ${response.strategyPreset}`)
           effectiveType = 'initial_plan'
+        } else if (
+          response.type === 'modification' &&
+          liveHasExistingPlan
+        ) {
+          const lower = userText.trim().toLowerCase()
+          const isSwitchRequest = lower.startsWith('switch to') || lower.startsWith('try ') || lower.startsWith('swap to') || lower.startsWith('change strategy') || lower.startsWith('change preset') || lower.startsWith('go ')
+          if (isSwitchRequest) {
+            const matchedPreset = Object.entries(STRATEGY_KEYWORDS).find(
+              ([kw]) => lower.includes(kw)
+            )
+            if (matchedPreset && matchedPreset[1] !== liveStrategyPreset) {
+              const targetPreset = matchedPreset[1]!
+              console.info(`[nl-parse] keyword-rescue strategy switch: "${userText}" → ${targetPreset}`)
+
+              if (response.properties && response.properties.length > 0) {
+                response.strategyPreset = targetPreset as any
+                effectiveType = 'initial_plan'
+              } else {
+                // AI returned modification with no properties — re-send with
+                // explicit instruction to generate a full plan for the new preset.
+                // Send currentPlan: null so the system prompt uses initial-plan
+                // mode (the follow-up rules block says "NEVER return initial_plan"
+                // which fights our explicit instruction). Inline the client details
+                // in the message so the AI knows who the plan is for.
+                try {
+                  const clientInfo = currentPlan
+                    ? `Client: ${currentPlan.clientNames.join(' & ') || 'Unknown'}. Income: $${currentPlan.investmentProfile.baseSalary.toLocaleString()}. Deposit: $${currentPlan.investmentProfile.depositPool.toLocaleString()}. Annual savings: $${currentPlan.investmentProfile.annualSavings.toLocaleString()}. Timeline: ${currentPlan.investmentProfile.timelineYears} years.`
+                    : userText
+                  const retryResult = await supabase.functions.invoke('nl-parse', {
+                    body: {
+                      message: `${clientInfo}\n\nUse the ${targetPreset} strategy preset.`,
+                      conversationHistory: [],
+                      currentPlan: null,
+                      userId: optionsRef.current.userId,
+                      strategyPreset: targetPreset,
+                    },
+                  })
+                  if (retryResult.data && !retryResult.data.error && retryResult.data.properties?.length > 0) {
+                    console.info(`[nl-parse] strategy switch retry succeeded with ${retryResult.data.properties.length} properties`)
+                    Object.assign(response, retryResult.data)
+                    response.strategyPreset = targetPreset as any
+                    effectiveType = 'initial_plan'
+                  } else {
+                    console.warn('[nl-parse] strategy switch retry failed — showing explanation')
+                    response.message = `I tried to switch to ${matchedPreset[0]} but couldn't generate the new plan. Try again, or use the strategy selector on the dashboard.`
+                    effectiveType = 'explanation'
+                  }
+                } catch (err) {
+                  console.error('[nl-parse] strategy switch retry error:', err)
+                  response.message = `I tried to switch to ${matchedPreset[0]} but hit an error. Try again, or use the strategy selector on the dashboard.`
+                  effectiveType = 'explanation'
+                }
+              }
+            }
+          }
         }
 
         // Process response based on type

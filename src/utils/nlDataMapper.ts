@@ -464,6 +464,20 @@ export function mapModificationToUpdates(
     }
   }
 
+  if (target === 'equityGoal' || target === 'equity-goal') {
+    const val = (params.equityGoal ?? params.equity ?? params.goal) as number | undefined;
+    if (val !== undefined) {
+      updates.profileUpdates = { equityGoal: val };
+    }
+  }
+
+  if (target === 'cashflowGoal' || target === 'cashflow-goal') {
+    const val = (params.cashflowGoal ?? params.cashflow ?? params.goal) as number | undefined;
+    if (val !== undefined) {
+      updates.profileUpdates = { cashflowGoal: val };
+    }
+  }
+
   if (target === 'lvr') {
     // Apply LVR change to all properties
     updates.instanceUpdates = currentOrder.map((instanceId) => ({
@@ -484,6 +498,20 @@ export function mapModificationToUpdates(
     }));
   }
 
+  // Fallback: catch equity/cashflow goal params regardless of target.
+  // The AI sometimes sends these on target "portfolio" or "investmentProfile"
+  // instead of the dedicated "equityGoal"/"cashflowGoal" targets.
+  if (!updates.profileUpdates) {
+    const eqVal = (params.equityGoal ?? params.equity) as number | undefined;
+    const cfVal = (params.cashflowGoal ?? params.cashflow) as number | undefined;
+    if (eqVal !== undefined || cfVal !== undefined) {
+      const goalUpdates: Record<string, number> = {};
+      if (eqVal !== undefined) goalUpdates.equityGoal = eqVal;
+      if (cfVal !== undefined) goalUpdates.cashflowGoal = cfVal;
+      updates.profileUpdates = goalUpdates;
+    }
+  }
+
   // Decide whether a no-update outcome deserves a user-visible warning.
   // Claude sometimes sends compound modifications that include redundant
   // "change" mods on context-only targets like clientProfile / investmentProfile
@@ -494,6 +522,10 @@ export function mapModificationToUpdates(
     'savings',
     'income',
     'timeline',
+    'equityGoal',
+    'equity-goal',
+    'cashflowGoal',
+    'cashflow-goal',
     'lvr',
     'rates',
     'interestRate',
