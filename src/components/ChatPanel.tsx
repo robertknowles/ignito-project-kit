@@ -323,6 +323,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       // singular "modification" (the remove) and puts the add info only in
       // "properties". Process the orphaned properties as an add now.
       const hadAddMod = modList.some(m => m.action === 'add')
+      let hadOrphanedAdd = false
       if (!hadAddMod && response.properties && response.properties.length > 0) {
         console.info('[ChatPanel] processing orphaned properties as add', { count: response.properties.length })
         const addResponse = { ...response, modification: { target: 'portfolio', action: 'add', params: {} }, modifications: undefined }
@@ -331,6 +332,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
           currentOrder = addUpdates.selectionChanges.propertyOrder
           currentSelections = addUpdates.selectionChanges.selections
           currentInstances = addUpdates.selectionChanges.instances
+          hadOrphanedAdd = true
         }
         if (addUpdates.warnings?.length) {
           allWarnings.push(...addUpdates.warnings)
@@ -349,7 +351,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
         didChange = true
       }
 
-      if (modList.some(m => ['add', 'remove'].includes(m.action))) {
+      if (hadOrphanedAdd || modList.some(m => ['add', 'remove'].includes(m.action))) {
         setAllSelections(currentSelections, currentOrder)
         setInstances(currentInstances)
         didChange = true
