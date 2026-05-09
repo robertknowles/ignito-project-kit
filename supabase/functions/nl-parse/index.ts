@@ -88,18 +88,31 @@ Deno.serve(async (req: Request) => {
     // The cache key is the full system text + tools, so as long as the prompt
     // doesn't change shape between turns (it doesn't here — strategyPreset is
     // baked into a single string), every follow-up turn in a session hits cache.
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages,
-    });
+    console.info(`nl-parse: calling Anthropic (${messages.length} messages, system prompt ${systemPrompt.length} chars)`);
+    let response;
+    try {
+      response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages,
+      });
+    } catch (apiErr: unknown) {
+      const msg = apiErr instanceof Error ? apiErr.message : String(apiErr);
+      console.error(`nl-parse: Anthropic API error: ${msg}`);
+      // Surface a structured error the client can retry
+      return new Response(
+        JSON.stringify({ error: `AI service error: ${msg}` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    console.info(`nl-parse: Anthropic responded, stop_reason=${response.stop_reason}, usage=${JSON.stringify(response.usage)}`);
 
     // Log token usage (non-blocking — don't await)
     if (userId && response.usage) {
@@ -136,7 +149,7 @@ Deno.serve(async (req: Request) => {
     // as an explanation rather than crashing. This handles the case where
     // the model "forgets" the JSON envelope on open-ended questions.
     if (!parsedResponse && rawText.trim().length > 0) {
-      console.warn('nl-parse: wrapping non-JSON response as explanation');
+      console.warn(`nl-parse: wrapping non-JSON response as explanation (first 200 chars: ${rawText.trim().substring(0, 200)})`);
       parsedResponse = {
         type: 'explanation',
         message: rawText.trim(),
@@ -144,6 +157,7 @@ Deno.serve(async (req: Request) => {
     } else if (!parsedResponse) {
       throw new Error('Could not parse Claude response as JSON');
     }
+    console.info(`nl-parse: parsed response type=${parsedResponse.type}`);
 
     return new Response(
       JSON.stringify(parsedResponse),
