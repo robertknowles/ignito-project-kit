@@ -124,10 +124,25 @@ Deno.serve(async (req: Request) => {
       // Try extracting from markdown code block
       const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
-        parsedResponse = JSON.parse(jsonMatch[1].trim());
-      } else {
-        throw new Error('Could not parse Claude response as JSON');
+        try {
+          parsedResponse = JSON.parse(jsonMatch[1].trim());
+        } catch {
+          // Code block content wasn't valid JSON either — fall through
+        }
       }
+    }
+
+    // If JSON parsing failed entirely but the AI returned text, wrap it
+    // as an explanation rather than crashing. This handles the case where
+    // the model "forgets" the JSON envelope on open-ended questions.
+    if (!parsedResponse && rawText.trim().length > 0) {
+      console.warn('nl-parse: wrapping non-JSON response as explanation');
+      parsedResponse = {
+        type: 'explanation',
+        message: rawText.trim(),
+      };
+    } else if (!parsedResponse) {
+      throw new Error('Could not parse Claude response as JSON');
     }
 
     return new Response(
