@@ -986,7 +986,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const hasOrderChanges = currentOrder.length !== savedOrder.length ||
           currentOrder.some((id, index) => savedOrder[index] !== id);
         
-        const hasChanges = hasSelectionChanges || hasProfileChanges || hasInstanceChanges || hasOrderChanges;
+        const savedChatLength = lastSavedData.chatHistory?.length ?? 0;
+        const hasChatChanges = chatMessages.length !== savedChatLength;
+
+        const hasChanges = hasSelectionChanges || hasProfileChanges || hasInstanceChanges || hasOrderChanges || hasChatChanges;
         setHasUnsavedChanges(hasChanges);
       } else if (activeClient && !lastSavedData) {
         // New client with data = unsaved changes
@@ -994,7 +997,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setHasUnsavedChanges(hasData);
       }
     }, 150); // 150ms debounce
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, activeClient, lastSavedData, getCurrentScenarioData, isLoadingScenario]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, chatMessages, activeClient, lastSavedData, getCurrentScenarioData, isLoadingScenario]);
 
   // Autosave: when there are unsaved changes, persist them silently after a
   // short debounce. This means scenarios are durable as soon as the chat
