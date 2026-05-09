@@ -1228,7 +1228,11 @@ ${currentPlan.enginePlanState ? `
 - Goal Status: ${currentPlan.enginePlanState.projectedEquity >= currentPlan.investmentProfile.equityGoal ? `HIT — ${currentPlan.enginePlanState.equityGoalReachedYear !== null && currentPlan.enginePlanState.equityGoalReachedYear < currentPlan.enginePlanState.horizonYear ? `${currentPlan.enginePlanState.horizonYear - currentPlan.enginePlanState.equityGoalReachedYear} years ahead of horizon` : 'at horizon'}` : `MISS — short by $${(currentPlan.investmentProfile.equityGoal - currentPlan.enginePlanState.projectedEquity).toLocaleString()}`}
 ` : ''}
 **Properties in Plan:**
-${currentPlan.properties.map((p, i) => `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, Period ${p.period}, ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR (ID: ${p.instanceId})`).join('\n')}
+${currentPlan.properties.map((p, i) => {
+  const approxYear = currentYear + Math.floor((p.period - 1) / 2);
+  const halfLabel = (p.period % 2 === 1) ? 'H1' : 'H2';
+  return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, target ~${halfLabel} ${approxYear} (period ${p.period}), ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR (ID: ${p.instanceId})`;
+}).join('\n')}
 
 When the BA says "property 2" or "the second one", they mean property #2 in the list above. When they say "make it cheaper" without specifying which, ask which property. When they say "all of them", apply the change to every property.
 
@@ -1251,7 +1255,7 @@ When the BA asks for MULTIPLE changes in one message (e.g. "I want 5 properties 
     { "target": "property-1", "action": "move", "params": { "targetPeriod": 1 } }
   ],
   "properties": [{ "type": "regional-unit-cashflow", "purchasePrice": 420000, "state": "QLD", "growthAssumption": "High", "loanProduct": "IO", "lvr": 80 }],
-  "message": "Added a 5th property — a $420k unit in QLD. Moved property 1 to period 1 (immediate)."
+  "message": "Added a 5th property — a $420k unit in QLD. Moved property 1 to the earliest possible purchase date."
 }
 \`\`\`
 Never flatten multiple changes into a single modification — the mapper processes them sequentially and a single entry can only express one target.
