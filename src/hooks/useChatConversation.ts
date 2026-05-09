@@ -241,6 +241,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           MALFORMED: 1,   // Claude occasionally returns bad JSON; one retry usually fixes it
           RATE_LIMIT: 2,  // Anthropic rate-limit windows are short; backoff buys recovery time
           TIMEOUT: 1,     // Claude/edge slow; try once more, don't pile on
+          _default: 1,    // Generic edge function errors (500s, JSON parse) — one retry
         }
         // Base delays in ms before each retry (index = retry attempt number).
         // Add jitter to break up thundering-herd patterns when many users
@@ -306,7 +307,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               return await callOnce()
             } catch (err) {
               const code = err instanceof Error ? err.message : ''
-              const budget = MAX_RETRIES_BY_CODE[code] ?? 0
+              const budget = MAX_RETRIES_BY_CODE[code] ?? MAX_RETRIES_BY_CODE._default ?? 0
               if (attempt >= budget) {
                 throw err
               }
@@ -713,13 +714,13 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             friendlyMessage = 'You appear to be offline. Check your connection and try again.'
             break
           default:
-            friendlyMessage = 'Something went wrong — try rephrasing that.'
+            friendlyMessage = 'Something went wrong — try sending that again.'
         }
 
         const errorMsg = createMessage('assistant', 'text', friendlyMessage)
         setMessages((prev) => [...prev, errorMsg])
 
-        console.error('nl-parse error:', err)
+        console.error('[nl-parse] error after retries:', errCode, err)
       } finally {
         setIsLoading(false)
       }
