@@ -280,13 +280,17 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
           if (result.error) {
             const msg = result.error.message || ''
-            if (msg.includes('timeout') || msg.includes('TIMEOUT') || msg.includes('504')) {
+            // Try to extract the actual error from the response body
+            const bodyError = result.data?.error || ''
+            const fullMsg = bodyError || msg
+            console.warn('[nl-parse] edge function error:', { msg, bodyError, status: result.error.status })
+            if (fullMsg.includes('timeout') || fullMsg.includes('TIMEOUT') || fullMsg.includes('504')) {
               throw new Error('TIMEOUT')
             }
-            if (msg.includes('rate') || msg.includes('429') || msg.includes('too many')) {
+            if (fullMsg.includes('rate') || fullMsg.includes('429') || fullMsg.includes('too many')) {
               throw new Error('RATE_LIMIT')
             }
-            throw new Error(msg || 'Failed to reach PropPath AI')
+            throw new Error(fullMsg || 'Failed to reach PropPath AI')
           }
 
           if (!result.data || result.data.error) {
