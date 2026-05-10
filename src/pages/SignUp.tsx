@@ -50,8 +50,8 @@ export function SignUp() {
   return (
     <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb] relative">
       {/* Home Button */}
-      <Link 
-        to="/" 
+      <Link
+        to="/login"
         className="absolute top-6 left-6 flex items-center gap-2 text-[#6b7280] hover:text-[#374151] transition-colors z-10"
       >
         <HomeIcon size={20} />

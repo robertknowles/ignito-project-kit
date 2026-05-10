@@ -35,7 +35,7 @@ export const PortalSidebar = () => {
   const handleLogout = async () => {
     try {
       await signOut()
-      navigate('/')
+      navigate('/login')
     } catch (error) {
       // Logout failed
     }

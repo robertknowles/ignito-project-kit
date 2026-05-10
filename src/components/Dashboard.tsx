@@ -18,6 +18,7 @@ import { FundingSourcesChart } from './FundingSourcesChart/FundingSourcesChart';
 import { EquityUnlockChart, EquityUnlockSummary, useEquityUnlockLegend } from './EquityUnlockChart/EquityUnlockChart';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
+import { BorrowingCapacityChart } from './BorrowingCapacityChart';
 import { CHART_COLORS } from '@/constants/chartColors';
 import { useLayout } from '@/contexts/LayoutContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -183,6 +184,18 @@ export const Dashboard = () => {
         {/* 4. Equity Unlock Timeline */}
         <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
           <EquityUnlockChart />
+        </ChartCard>
+
+        {/* 4b. Borrowing Capacity */}
+        <ChartCard
+          title="Borrowing Capacity"
+          legend={[
+            { color: '#2563EB', label: 'Capacity' },
+            { color: '#8B5CF6', label: 'Total Liabilities' },
+            { color: '#06B6D4', label: 'Offset Debt' },
+          ]}
+        >
+          <BorrowingCapacityChart />
         </ChartCard>
 
         {/* 5. Funding Sources */}

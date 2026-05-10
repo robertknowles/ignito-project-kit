@@ -35,11 +35,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({ iconOnly = false }) => {
   }
 
   // Determine button text based on mode
-  const buttonText = isLoading 
-    ? 'Saving...' 
-    : isMultiScenarioMode && scenarios.length >= 2
-      ? `Save ${scenarios.length} Scenarios`
-      : 'Save Scenario';
+  const buttonText = isLoading ? 'Saving...' : 'Save';
 
   return (
     <button

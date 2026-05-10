@@ -22,7 +22,7 @@ export function Upgrade() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   const starterFeatures = [

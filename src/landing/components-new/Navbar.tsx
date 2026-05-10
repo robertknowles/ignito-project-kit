@@ -35,7 +35,7 @@ const Navbar: React.FC = () => {
     >
       <div className="max-w-[1400px] mx-auto px-6 md:px-8 h-16 flex items-center justify-between">
         <a
-          href="/"
+          href="/login"
           className="flex items-center gap-2 font-semibold text-[15px] tracking-tight"
         >
           <TrendingUp className="w-5 h-5 text-black" />
