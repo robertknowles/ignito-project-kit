@@ -80,22 +80,10 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Fetch company branding
-    let companyName = 'PropPath';
-    let logoUrl: string | null = null;
-    let primaryColor = '#F97316';
-    if (body.companyId) {
-      const { data: company } = await admin
-        .from('companies')
-        .select('name, logo_url, primary_color')
-        .eq('id', body.companyId)
-        .maybeSingle();
-      if (company) {
-        companyName = company.name || companyName;
-        logoUrl = company.logo_url || null;
-        primaryColor = company.primary_color || primaryColor;
-      }
-    }
+    // Always send as PropPath — not the white-label company name
+    const companyName = 'PropPath';
+    const logoUrl: string | null = null;
+    const primaryColor = '#F97316';
 
     const displayName = body.clientName || 'there';
     const isUpdate = body.formType === 'profile_update';
