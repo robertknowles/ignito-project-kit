@@ -503,8 +503,79 @@ export const ClientScenarios = () => {
   // Send form handler
   const handleSendForm = async () => {
     if (!sendFormClientId || !user) return;
+    const client = clients.find(c => c.id === sendFormClientId);
+    if (!client?.email) {
+      toast.error('This client has no email address. Add one first.');
+      return;
+    }
     setSendingForm(true);
     try {
+      // 1. Ensure an onboarding_id exists for this client's scenario
+      const { data: existingScenarios, error: fetchError } = await supabase
+        .from('scenarios')
+        .select('id, onboarding_id')
+        .eq('client_id', sendFormClientId)
+        .limit(1);
+      if (fetchError) throw fetchError;
+
+      let onboardingId: string;
+      if (existingScenarios && existingScenarios.length > 0) {
+        onboardingId = existingScenarios[0].onboarding_id;
+        if (!onboardingId) {
+          onboardingId = Math.random().toString(36).substring(2, 15) +
+                         Math.random().toString(36).substring(2, 15);
+          await supabase
+            .from('scenarios')
+            .update({ onboarding_id: onboardingId })
+            .eq('id', existingScenarios[0].id);
+        }
+      } else {
+        onboardingId = Math.random().toString(36).substring(2, 15) +
+                       Math.random().toString(36).substring(2, 15);
+        await supabase
+          .from('scenarios')
+          .insert({
+            name: `${client.name}'s Scenario`,
+            client_id: sendFormClientId,
+            company_id: companyId,
+            onboarding_id: onboardingId,
+            client_display_name: client.name,
+            data: {
+              propertySelections: {},
+              investmentProfile: {
+                depositPool: 50000,
+                borrowingCapacity: 500000,
+                portfolioValue: 0,
+                currentDebt: 0,
+                annualSavings: 24000,
+                timelineYears: 20,
+                equityGoal: 1000000,
+                cashflowGoal: 50000,
+              },
+            },
+          });
+      }
+
+      const onboardingUrl = `${window.location.origin}/onboarding/${onboardingId}`;
+
+      // 2. Send the email via edge function
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke(
+        'send-onboarding-form',
+        {
+          body: {
+            clientEmail: client.email,
+            clientName: client.name,
+            companyId,
+            onboardingUrl,
+            formType: sendFormType,
+          },
+        }
+      );
+
+      if (emailError) throw emailError;
+      if (emailResult && !emailResult.ok) throw new Error(emailResult.error || 'Email send failed');
+
+      // 3. Record in form_submissions
       const { error } = await supabase
         .from('form_submissions')
         .insert({
@@ -512,10 +583,9 @@ export const ClientScenarios = () => {
           company_id: companyId,
           sent_by: user.id,
           form_type: sendFormType,
-          status: 'not_opened',
+          status: 'sent',
           sent_at: new Date().toISOString(),
         });
-
       if (error) throw error;
 
       await supabase.from('activity_log').insert({
@@ -529,8 +599,7 @@ export const ClientScenarios = () => {
         },
       });
 
-      const clientName = clients.find(c => c.id === sendFormClientId)?.name || 'client';
-      toast.success(`Client details ${sendFormType === 'input_form' ? 'form' : 'update'} sent to ${clientName}`);
+      toast.success(`Details form emailed to ${client.name}`);
 
       // Refresh form statuses
       const clientIds = clients.map(c => c.id);
@@ -552,9 +621,20 @@ export const ClientScenarios = () => {
         setFormStatuses(map);
       }
 
+      // Update local onboarding status
+      setClientStatuses(prev => ({
+        ...prev,
+        [sendFormClientId]: {
+          ...prev[sendFormClientId],
+          hasOnboardingId: true,
+          onboardingId,
+        },
+      }));
+
       setSendFormOpen(false);
       setSendFormClientId(null);
-    } catch {
+    } catch (err) {
+      console.error('[handleSendForm]', err);
       toast.error('Failed to send form');
     }
     setSendingForm(false);

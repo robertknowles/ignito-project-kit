@@ -308,6 +308,48 @@ setError('Failed to load onboarding form');
       if (updateError) throw updateError;
 
       setSubmitted(true);
+
+      // Notify the agent that the client completed the form (fire-and-forget)
+      try {
+        const { data: scenario } = await supabase
+          .from('scenarios')
+          .select('client_id, company_id')
+          .eq('onboarding_id', onboardingId)
+          .single();
+
+        if (scenario?.client_id) {
+          const { data: clientRow } = await supabase
+            .from('clients')
+            .select('user_id, name, email')
+            .eq('id', scenario.client_id)
+            .single();
+
+          if (clientRow?.user_id) {
+            const { data: agentProfile } = await supabase
+              .from('profiles')
+              .select('email, full_name')
+              .eq('id', clientRow.user_id)
+              .single();
+
+            if (agentProfile?.email) {
+              await supabase.functions.invoke('send-onboarding-form', {
+                body: {
+                  clientEmail: clientRow.email || '',
+                  clientName: clientRow.name || clientName,
+                  companyId: scenario.company_id,
+                  onboardingUrl: '',
+                  formType: 'input_form',
+                  notifyAgent: true,
+                  agentEmail: agentProfile.email,
+                  agentName: agentProfile.full_name,
+                },
+              });
+            }
+          }
+        }
+      } catch {
+        // Non-critical — don't block the client's success screen
+      }
     } catch (err) {
 setError('Failed to submit your details. Please try again.');
     } finally {

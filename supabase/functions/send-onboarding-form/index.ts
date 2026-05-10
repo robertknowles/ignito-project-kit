@@ -1,0 +1,273 @@
+/**
+ * send-onboarding-form — emails a client the link to fill out their
+ * financial details questionnaire via Resend.
+ *
+ * Also supports a "completion" mode: when the client finishes the form,
+ * the frontend calls this with `notifyAgent: true` to email the BA.
+ */
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface RequestBody {
+  clientEmail: string;
+  clientName?: string;
+  companyId: string | null;
+  onboardingUrl: string;
+  formType: 'input_form' | 'profile_update';
+  // When true, sends a "client completed" notification to the agent instead
+  notifyAgent?: boolean;
+  agentEmail?: string;
+  agentName?: string;
+}
+
+interface ResponseBody {
+  ok: boolean;
+  error?: string;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const resendKey = Deno.env.get('RESEND_API_KEY');
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+      return json({ ok: false, error: 'Server misconfigured.' }, 500);
+    }
+    if (!resendKey) {
+      return json({ ok: false, error: 'Email service not configured.' }, 500);
+    }
+
+    const body = (await req.json()) as RequestBody;
+
+    // For the completion notification we skip auth — the client isn't logged in
+    if (!body.notifyAgent) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return json({ ok: false, error: 'Missing Authorization header.' }, 401);
+      }
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: callerData, error: callerError } = await userClient.auth.getUser();
+      if (callerError || !callerData?.user) {
+        return json({ ok: false, error: 'Could not verify caller identity.' }, 401);
+      }
+      const { data: callerProfile } = await userClient
+        .from('profiles')
+        .select('role')
+        .eq('id', callerData.user.id)
+        .maybeSingle();
+      if (!callerProfile || (callerProfile.role !== 'owner' && callerProfile.role !== 'agent')) {
+        return json({ ok: false, error: 'Only owners or agents can send forms.' }, 403);
+      }
+    }
+
+    if (!body.clientEmail && !body.notifyAgent) {
+      return json({ ok: false, error: 'clientEmail is required.' }, 400);
+    }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Fetch company branding
+    let companyName = 'PropPath';
+    let logoUrl: string | null = null;
+    let primaryColor = '#F97316';
+    if (body.companyId) {
+      const { data: company } = await admin
+        .from('companies')
+        .select('name, logo_url, primary_color')
+        .eq('id', body.companyId)
+        .maybeSingle();
+      if (company) {
+        companyName = company.name || companyName;
+        logoUrl = company.logo_url || null;
+        primaryColor = company.primary_color || primaryColor;
+      }
+    }
+
+    const displayName = body.clientName || 'there';
+    const isUpdate = body.formType === 'profile_update';
+
+    let to: string;
+    let subject: string;
+    let html: string;
+
+    if (body.notifyAgent && body.agentEmail) {
+      // --- Agent notification: client completed the form ---
+      to = body.agentEmail;
+      subject = `${body.clientName || 'A client'} has completed their details form`;
+      html = buildAgentNotificationHtml({
+        companyName,
+        logoUrl,
+        primaryColor,
+        clientName: body.clientName || 'Your client',
+        clientEmail: body.clientEmail,
+        isUpdate,
+      });
+    } else {
+      // --- Client email: send the onboarding link ---
+      to = body.clientEmail;
+      subject = isUpdate
+        ? `${companyName} — please update your financial details`
+        : `${companyName} — let's get your investment details`;
+      html = buildClientFormHtml({
+        companyName,
+        logoUrl,
+        primaryColor,
+        displayName,
+        onboardingUrl: body.onboardingUrl,
+        isUpdate,
+      });
+    }
+
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${companyName} <noreply@proppath.app>`,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+
+    if (!emailRes.ok) {
+      const errText = await emailRes.text();
+      console.warn('[send-onboarding-form] send failed:', errText);
+      return json({ ok: false, error: 'Failed to send email.' }, 500);
+    }
+
+    return json({ ok: true });
+  } catch (err) {
+    return json({ ok: false, error: err instanceof Error ? err.message : 'Unknown error.' }, 500);
+  }
+});
+
+function json(body: ResponseBody, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// --- HTML builders ---
+
+function buildClientFormHtml(opts: {
+  companyName: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  displayName: string;
+  onboardingUrl: string;
+  isUpdate: boolean;
+}) {
+  const { companyName, logoUrl, primaryColor, displayName, onboardingUrl, isUpdate } = opts;
+  const heading = isUpdate
+    ? 'Time to update your details'
+    : 'Welcome — let’s get started';
+  const body = isUpdate
+    ? `Hi ${displayName}, your adviser has requested updated financial details to keep your investment roadmap accurate.`
+    : `Hi ${displayName}, your property investment adviser has invited you to share your financial details so they can build a personalised investment roadmap for you.`;
+  const buttonText = isUpdate ? 'Update my details' : 'Fill out my details';
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f8;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:${primaryColor};padding:32px 40px;text-align:center;">
+          ${logoUrl
+            ? `<img src="${logoUrl}" alt="${companyName}" style="max-height:48px;max-width:200px;" />`
+            : `<span style="font-size:24px;font-weight:700;color:#ffffff;">${companyName}</span>`
+          }
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">${heading}</h1>
+          <p style="margin:0 0 28px;font-size:15px;color:#535862;line-height:1.6;">${body}</p>
+          <p style="margin:0 0 28px;font-size:15px;color:#535862;line-height:1.6;">
+            It only takes a few minutes. Your information is kept private and secure.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+            <tr><td align="center">
+              <a href="${onboardingUrl}" style="display:inline-block;background:${primaryColor};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                ${buttonText}
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:13px;color:#9b9da2;line-height:1.5;text-align:center;">
+            If the button doesn't work, copy and paste this link into your browser:<br/>
+            <a href="${onboardingUrl}" style="color:${primaryColor};word-break:break-all;">${onboardingUrl}</a>
+          </p>
+        </td></tr>
+        <tr><td style="padding:20px 40px;border-top:1px solid #e9eaeb;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9b9da2;">Sent by ${companyName} via PropPath</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildAgentNotificationHtml(opts: {
+  companyName: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  clientName: string;
+  clientEmail: string;
+  isUpdate: boolean;
+}) {
+  const { companyName, logoUrl, primaryColor, clientName, clientEmail, isUpdate } = opts;
+  const formLabel = isUpdate ? 'Client Details Update' : 'Client Details Form';
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f8;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:${primaryColor};padding:32px 40px;text-align:center;">
+          ${logoUrl
+            ? `<img src="${logoUrl}" alt="${companyName}" style="max-height:48px;max-width:200px;" />`
+            : `<span style="font-size:24px;font-weight:700;color:#ffffff;">${companyName}</span>`
+          }
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Client details received</h1>
+          <p style="margin:0 0 28px;font-size:15px;color:#535862;line-height:1.6;">
+            <strong>${clientName}</strong> (${clientEmail}) has completed their <strong>${formLabel}</strong>. You can now review their details and build their investment roadmap.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+            <tr><td align="center">
+              <a href="https://www.proppath.app/clients" style="display:inline-block;background:${primaryColor};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                View in PropPath
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:20px 40px;border-top:1px solid #e9eaeb;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9b9da2;">Sent by ${companyName} via PropPath</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
