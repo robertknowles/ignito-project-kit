@@ -14,15 +14,14 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  clientEmail: string;
+  clientEmail?: string;
   clientName?: string;
-  companyId: string | null;
-  onboardingUrl: string;
-  formType: 'input_form' | 'profile_update';
-  // When true, sends a "client completed" notification to the agent instead
+  companyId?: string | null;
+  onboardingUrl?: string;
+  formType?: 'input_form' | 'profile_update';
+  // When true, looks up the agent from the onboarding_id and emails them
   notifyAgent?: boolean;
-  agentEmail?: string;
-  agentName?: string;
+  onboardingId?: string;
 }
 
 interface ResponseBody {
@@ -72,10 +71,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    if (!body.clientEmail && !body.notifyAgent) {
-      return json({ ok: false, error: 'clientEmail is required.' }, 400);
-    }
-
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -85,27 +80,66 @@ Deno.serve(async (req: Request) => {
     const logoUrl: string | null = null;
     const primaryColor = '#F97316';
 
-    const displayName = body.clientName || 'there';
-    const isUpdate = body.formType === 'profile_update';
-
     let to: string;
     let subject: string;
     let html: string;
 
-    if (body.notifyAgent && body.agentEmail) {
+    if (body.notifyAgent) {
       // --- Agent notification: client completed the form ---
-      to = body.agentEmail;
-      subject = `${body.clientName || 'A client'} has completed their details form`;
+      // Look up everything server-side (the client page has no auth context)
+      if (!body.onboardingId) {
+        return json({ ok: false, error: 'onboardingId is required for agent notification.' }, 400);
+      }
+
+      const { data: scenario } = await admin
+        .from('scenarios')
+        .select('client_id, company_id')
+        .eq('onboarding_id', body.onboardingId)
+        .single();
+
+      if (!scenario?.client_id) {
+        return json({ ok: false, error: 'Scenario not found.' }, 404);
+      }
+
+      const { data: clientRow } = await admin
+        .from('clients')
+        .select('user_id, name, email')
+        .eq('id', scenario.client_id)
+        .single();
+
+      if (!clientRow?.user_id) {
+        return json({ ok: false, error: 'Client or agent not found.' }, 404);
+      }
+
+      const { data: agentProfile } = await admin
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', clientRow.user_id)
+        .single();
+
+      if (!agentProfile?.email) {
+        return json({ ok: false, error: 'Agent email not found.' }, 404);
+      }
+
+      to = agentProfile.email;
+      subject = `${clientRow.name || 'A client'} has completed their details form`;
       html = buildAgentNotificationHtml({
         companyName,
         logoUrl,
         primaryColor,
-        clientName: body.clientName || 'Your client',
-        clientEmail: body.clientEmail,
-        isUpdate,
+        clientName: clientRow.name || 'Your client',
+        clientEmail: clientRow.email || '',
+        isUpdate: false,
       });
     } else {
       // --- Client email: send the onboarding link ---
+      if (!body.clientEmail) {
+        return json({ ok: false, error: 'clientEmail is required.' }, 400);
+      }
+
+      const displayName = body.clientName || 'there';
+      const isUpdate = body.formType === 'profile_update';
+
       to = body.clientEmail;
       subject = isUpdate
         ? `${companyName} — please update your financial details`
@@ -115,7 +149,7 @@ Deno.serve(async (req: Request) => {
         logoUrl,
         primaryColor,
         displayName,
-        onboardingUrl: body.onboardingUrl,
+        onboardingUrl: body.onboardingUrl || '',
         isUpdate,
       });
     }
