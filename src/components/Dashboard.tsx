@@ -181,12 +181,7 @@ export const Dashboard = () => {
           <CashflowChart />
         </ChartCard>
 
-        {/* 4. Equity Unlock Timeline */}
-        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
-          <EquityUnlockChart />
-        </ChartCard>
-
-        {/* 4b. Borrowing Capacity */}
+        {/* 4. Borrowing Capacity */}
         <ChartCard
           title="Borrowing Capacity"
           legend={[
@@ -196,6 +191,11 @@ export const Dashboard = () => {
           ]}
         >
           <BorrowingCapacityChart />
+        </ChartCard>
+
+        {/* 5. Equity Unlock Timeline */}
+        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
+          <EquityUnlockChart />
         </ChartCard>
 
         {/* 5. Funding Sources */}
