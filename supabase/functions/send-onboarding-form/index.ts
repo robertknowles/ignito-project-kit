@@ -121,17 +121,13 @@ Deno.serve(async (req: Request) => {
         return json({ ok: false, error: 'Client or agent not found.' }, 404);
       }
 
-      const { data: agentProfile } = await admin
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', clientRow.user_id)
-        .single();
+      const { data: { user: agentUser }, error: agentError } = await admin.auth.admin.getUserById(clientRow.user_id);
 
-      if (!agentProfile?.email) {
+      if (agentError || !agentUser?.email) {
         return json({ ok: false, error: 'Agent email not found.' }, 404);
       }
 
-      to = agentProfile.email;
+      to = agentUser.email;
       subject = `${clientRow.name || 'A client'} has completed their details form`;
       html = buildAgentNotificationHtml({
         companyName,
