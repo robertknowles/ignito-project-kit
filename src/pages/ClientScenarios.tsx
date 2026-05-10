@@ -109,6 +109,7 @@ export const ClientScenarios = () => {
   const [sendFormOpen, setSendFormOpen] = useState(false);
   const [sendFormType, setSendFormType] = useState<'input_form' | 'profile_update'>('input_form');
   const [sendFormClientId, setSendFormClientId] = useState<number | null>(null);
+  const [sendFormEmail, setSendFormEmail] = useState('');
   const [sendingForm, setSendingForm] = useState(false);
 
   // Property onboarding state
@@ -502,12 +503,10 @@ export const ClientScenarios = () => {
   // CSV export
   // Send form handler
   const handleSendForm = async () => {
-    if (!sendFormClientId || !user) return;
+    if (!sendFormClientId || !user || !sendFormEmail.trim()) return;
     const client = clients.find(c => c.id === sendFormClientId);
-    if (!client?.email) {
-      toast.error('This client has no email address. Add one first.');
-      return;
-    }
+    if (!client) return;
+    const emailToSend = sendFormEmail.trim();
     setSendingForm(true);
     try {
       // 1. Ensure an onboarding_id exists for this client's scenario
@@ -563,7 +562,7 @@ export const ClientScenarios = () => {
         'send-onboarding-form',
         {
           body: {
-            clientEmail: client.email,
+            clientEmail: emailToSend,
             clientName: client.name,
             companyId,
             onboardingUrl,
@@ -599,6 +598,12 @@ export const ClientScenarios = () => {
         },
       });
 
+      // Save email to client record for future use
+      await supabase
+        .from('clients')
+        .update({ email: emailToSend })
+        .eq('id', sendFormClientId);
+
       toast.success(`Details form emailed to ${client.name}`);
 
       // Refresh form statuses
@@ -633,6 +638,7 @@ export const ClientScenarios = () => {
 
       setSendFormOpen(false);
       setSendFormClientId(null);
+      setSendFormEmail('');
     } catch (err) {
       console.error('[handleSendForm]', err);
       toast.error('Failed to send form');
@@ -1705,7 +1711,12 @@ toast.error('Failed to create client invite');
               <label className="text-sm font-medium text-[#414651] mb-1.5 block">Select client</label>
               <select
                 value={sendFormClientId || ''}
-                onChange={(e) => setSendFormClientId(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => {
+                  const id = e.target.value ? Number(e.target.value) : null;
+                  setSendFormClientId(id);
+                  const c = id ? clients.find(cl => cl.id === id) : null;
+                  setSendFormEmail(c?.email || '');
+                }}
                 className="w-full px-3.5 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
               >
                 <option value="">Choose a client...</option>
@@ -1714,16 +1725,26 @@ toast.error('Failed to create client invite');
                 ))}
               </select>
             </div>
+            <div>
+              <label className="text-sm font-medium text-[#414651] mb-1.5 block">Client email</label>
+              <input
+                type="email"
+                value={sendFormEmail}
+                onChange={(e) => setSendFormEmail(e.target.value)}
+                placeholder="client@example.com"
+                className="w-full px-3.5 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent"
+              />
+            </div>
             <div className="flex justify-end gap-3 pt-1">
               <button
-                onClick={() => setSendFormOpen(false)}
+                onClick={() => { setSendFormOpen(false); setSendFormEmail(''); }}
                 className="px-4 py-2.5 text-sm font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-all duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendForm}
-                disabled={!sendFormClientId || sendingForm}
+                disabled={!sendFormClientId || !sendFormEmail.trim() || sendingForm}
                 className="px-4 py-2.5 text-sm font-semibold text-white bg-[#535862] rounded-lg hover:bg-[#414651] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center gap-2"
               >
                 <Send size={14} />
