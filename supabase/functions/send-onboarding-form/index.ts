@@ -22,6 +22,16 @@ interface RequestBody {
   // When true, looks up the agent from the onboarding_id and emails them
   notifyAgent?: boolean;
   onboardingId?: string;
+  formData?: {
+    depositPool?: number;
+    borrowingCapacity?: number;
+    annualSavings?: number;
+    portfolioValue?: number;
+    currentDebt?: number;
+    timelineYears?: number;
+    equityGoal?: number;
+    cashflowGoal?: number;
+  };
 }
 
 interface ResponseBody {
@@ -130,6 +140,7 @@ Deno.serve(async (req: Request) => {
         clientName: clientRow.name || 'Your client',
         clientEmail: clientRow.email || '',
         isUpdate: false,
+        formData: body.formData,
       });
     } else {
       // --- Client email: send the onboarding link ---
@@ -254,9 +265,33 @@ function buildAgentNotificationHtml(opts: {
   clientName: string;
   clientEmail: string;
   isUpdate: boolean;
+  formData?: RequestBody['formData'];
 }) {
-  const { companyName, logoUrl, primaryColor, clientName, clientEmail, isUpdate } = opts;
+  const { companyName, logoUrl, primaryColor, clientName, clientEmail, isUpdate, formData } = opts;
   const formLabel = isUpdate ? 'Client Details Update' : 'Client Details Form';
+
+  const fmt = (v?: number) => v != null
+    ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(v)
+    : '—';
+
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;color:#717680;font-size:14px;">${label}</td><td style="padding:6px 0;text-align:right;font-weight:600;font-size:14px;">${value}</td></tr>`;
+
+  const detailsTable = formData ? `
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e9eaeb;border-radius:8px;margin-bottom:28px;">
+            <tr><td style="padding:20px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${row('Available Deposit', fmt(formData.depositPool))}
+                ${row('Borrowing Capacity', fmt(formData.borrowingCapacity))}
+                ${row('Annual Savings', fmt(formData.annualSavings))}
+                ${row('Existing Portfolio Value', fmt(formData.portfolioValue))}
+                ${row('Current Debt', fmt(formData.currentDebt))}
+                ${row('Timeline', `${formData.timelineYears ?? '—'} years`)}
+                ${row('Equity Goal', fmt(formData.equityGoal))}
+                ${row('Cashflow Goal', fmt(formData.cashflowGoal))}
+              </table>
+            </td></tr>
+          </table>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -274,8 +309,9 @@ function buildAgentNotificationHtml(opts: {
         <tr><td style="padding:40px;">
           <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Client details received</h1>
           <p style="margin:0 0 28px;font-size:15px;color:#535862;line-height:1.6;">
-            <strong>${clientName}</strong> (${clientEmail}) has completed their <strong>${formLabel}</strong>. You can now review their details and build their investment roadmap.
+            <strong>${clientName}</strong> (${clientEmail}) has completed their <strong>${formLabel}</strong>. Here are the details they submitted:
           </p>
+          ${detailsTable}
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
             <tr><td align="center">
               <a href="https://www.proppath.app/clients" style="display:inline-block;background:${primaryColor};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
@@ -285,7 +321,7 @@ function buildAgentNotificationHtml(opts: {
           </table>
         </td></tr>
         <tr><td style="padding:20px 40px;border-top:1px solid #e9eaeb;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#9b9da2;">Sent by ${companyName} via PropPath</p>
+          <p style="margin:0;font-size:12px;color:#9b9da2;">Sent by ${companyName}</p>
         </td></tr>
       </table>
     </td></tr>
