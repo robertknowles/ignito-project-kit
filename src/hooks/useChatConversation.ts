@@ -493,7 +493,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                 {
                   summaryCard: summaryData,
                   assumptions: response.assumptions,
-                  missingInputs: response.missingInputs,
                 }
               )
               setMessages((prev) => [...prev, summaryMsg])
@@ -501,6 +500,17 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               // No structured client data — just show the message (e.g. asking for more info)
               const textMsg = createMessage('assistant', 'text', response.message)
               setMessages((prev) => [...prev, textMsg])
+            }
+
+            // Standalone accuracy nudge — prompt the BA to share missing inputs
+            if (response.missingInputs && response.missingInputs.length > 0) {
+              const nudgeMsg = createMessage(
+                'assistant',
+                'text',
+                '',
+                { missingInputs: response.missingInputs }
+              )
+              setMessages((prev) => [...prev, nudgeMsg])
             }
 
             const portfolioData = buildPortfolioCard(response)
