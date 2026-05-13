@@ -3,6 +3,7 @@ export const PROPPATH_ADMIN_EMAILS = [
   'james@proppath.com.au',
   'rk@hyperhq.com',
   'jamescb40@gmail.com',
+  'jcb@hyperhq.com',
 ] as const;
 
 export function isPropPathAdmin(email: string | null | undefined): boolean {
