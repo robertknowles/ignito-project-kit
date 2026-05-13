@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { CrmContact } from '@/lib/crmHelpers';
 import { CompanyLogo } from './CompanyLogo';
+import { Linkedin } from 'lucide-react';
 
 interface Props {
   contact: CrmContact;
@@ -41,7 +42,22 @@ export function PipelineCard({ contact, companyName, companyWebsite }: Props) {
     >
       <CompanyLogo website={companyWebsite} name={companyName} size={18} />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-foreground truncate">{contact.full_name}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs font-semibold text-foreground truncate flex-1">{contact.full_name}</p>
+          {contact.linkedin_url && (
+            <a
+              href={contact.linkedin_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="flex-shrink-0 text-blue-400/60 hover:text-blue-400 transition-colors"
+              aria-label={`${contact.full_name} LinkedIn profile`}
+            >
+              <Linkedin size={12} />
+            </a>
+          )}
+        </div>
         <p className="text-[10px] text-blue-300/70 truncate">{companyName}</p>
         {lastTouchDisplay && (
           <p className="text-[10px] text-muted-foreground mt-0.5">{lastTouchDisplay}</p>
