@@ -346,6 +346,146 @@ export type Database = {
           },
         ]
       }
+      crm_companies: {
+        Row: {
+          id: string
+          name: string
+          relevance_tier: 'high' | 'medium' | 'low'
+          employees: number | null
+          state: string | null
+          website: string | null
+          blurb: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          relevance_tier?: 'high' | 'medium' | 'low'
+          employees?: number | null
+          state?: string | null
+          website?: string | null
+          blurb?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          relevance_tier?: 'high' | 'medium' | 'low'
+          employees?: number | null
+          state?: string | null
+          website?: string | null
+          blurb?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_contacts: {
+        Row: {
+          id: string
+          company_id: string
+          full_name: string
+          title: string | null
+          linkedin_url: string | null
+          status: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          connection_sent_at: string | null
+          video_sent_at: string | null
+          replied_at: string | null
+          last_touch_at: string | null
+          next_action_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          full_name: string
+          title?: string | null
+          linkedin_url?: string | null
+          status?: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          connection_sent_at?: string | null
+          video_sent_at?: string | null
+          replied_at?: string | null
+          last_touch_at?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          full_name?: string
+          title?: string | null
+          linkedin_url?: string | null
+          status?: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          connection_sent_at?: string | null
+          video_sent_at?: string | null
+          replied_at?: string | null
+          last_touch_at?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_outreach_steps: {
+        Row: {
+          id: string
+          step_key: string
+          step_order: number
+          day_label: string
+          step_title: string
+          description: string | null
+          template_male: string | null
+          template_female: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          step_key: string
+          step_order: number
+          day_label: string
+          step_title: string
+          description?: string | null
+          template_male?: string | null
+          template_female?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          step_key?: string
+          step_order?: number
+          day_label?: string
+          step_title?: string
+          description?: string | null
+          template_male?: string | null
+          template_female?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string | null

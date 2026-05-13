@@ -28,6 +28,9 @@ import { MultiScenarioProvider } from './contexts/MultiScenarioContext'
 import { LayoutProvider } from './contexts/LayoutContext'
 import { CompanyManagement } from './pages/CompanyManagement'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminOnlyRoute } from './components/AdminOnlyRoute'
+import CrmDashboard from './pages/admin/CrmDashboard'
+import CrmPlaybook from './pages/admin/CrmPlaybook'
 import { PublicRoute } from './components/PublicRoute'
 import { Toaster } from './components/ui/toaster'
 import { Toaster as SonnerToaster } from 'sonner'
@@ -199,6 +202,24 @@ export function AppRouter() {
                                 </ProtectedRoute>
                               }
                             />
+                            {/* PropPath internal CRM — standalone admin portal */}
+                            <Route
+                              path="/admin"
+                              element={
+                                <AdminOnlyRoute>
+                                  <CrmDashboard />
+                                </AdminOnlyRoute>
+                              }
+                            />
+                            <Route
+                              path="/admin/crm/playbook"
+                              element={
+                                <AdminOnlyRoute>
+                                  <CrmPlaybook />
+                                </AdminOnlyRoute>
+                              }
+                            />
+
                             {/* Redirect old /data path to /settings */}
                             <Route path="/data" element={<Navigate to="/settings" replace />} />
 

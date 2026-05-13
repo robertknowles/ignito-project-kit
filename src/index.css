@@ -54,6 +54,60 @@
     --input: 218 12% 24%;
     --ring: 0 0% 97%;
   }
+
+  /* CRM admin portal — Claude Code terminal aesthetic */
+  .crm-portal {
+    --background: 0 0% 10%;          /* #1a1a1a — neutral charcoal */
+    --foreground: 0 0% 80%;          /* #cccccc — soft white */
+    --card: 0 0% 15%;               /* #262626 — lifted surface */
+    --card-foreground: 0 0% 80%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 80%;
+    --primary: 0 0% 80%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 0 0% 20%;          /* #333333 */
+    --secondary-foreground: 0 0% 80%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 45%;   /* #737373 */
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 80%;
+    --destructive: 4 82% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;             /* #2e2e2e — subtle border */
+    --input: 0 0% 18%;
+    --ring: 0 0% 80%;
+
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* CRM thin scrollbars — only visible on hover */
+  .crm-portal * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .crm-portal *:hover {
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+  }
+  .crm-portal *::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .crm-portal *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .crm-portal *::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+  }
+  .crm-portal *:hover::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+  }
+  .crm-portal *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.18);
+  }
 }
 
 @layer base {
