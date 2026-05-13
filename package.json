@@ -8,7 +8,10 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "eval": "npx tsx evals/run-evals.ts",
+    "eval:filter": "npx tsx evals/run-evals.ts --filter",
+    "eval:tier": "npx tsx evals/run-evals.ts --tier"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -71,6 +74,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/html2canvas": "^0.5.35",

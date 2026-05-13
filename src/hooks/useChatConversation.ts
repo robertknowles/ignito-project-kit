@@ -46,6 +46,7 @@ interface UseChatConversationOptions {
   onExplanation?: (response: NLParseResponse) => void
   onComparison?: (response: NLParseResponse) => void
   onAddEvent?: (response: NLParseResponse) => void
+  onUpdateProfile?: (response: NLParseResponse) => void
   getCurrentPlan?: () => CurrentPlanState | null
   /** Returns chart data context string for explanation requests */
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
@@ -59,10 +60,52 @@ interface UseChatConversationOptions {
   hasExistingPlan?: boolean
 }
 
+interface ConversationAction {
+  turn: number;
+  type: string;
+  summary: string;
+}
+
+function buildActionSummary(response: NLParseResponse, userText: string): string {
+  switch (response.type) {
+    case 'initial_plan': {
+      const n = response.properties?.length ?? 0;
+      const preset = response.strategyPreset ?? 'eg-low';
+      const names = response.clientProfile?.members?.map(m => m.name).filter(Boolean).join(' & ');
+      return `Created ${n}-property plan (${preset})${names ? ` for ${names}` : ''}`;
+    }
+    case 'modification': {
+      const t = response.modification?.target ?? 'unknown';
+      return `Modified ${t}`;
+    }
+    case 'update_profile': {
+      const fields = response.profileUpdates
+        ? Object.keys(response.profileUpdates).filter(k => (response.profileUpdates as any)[k] != null)
+        : [];
+      return `Updated profile: ${fields.join(', ') || 'fields'}`;
+    }
+    case 'explanation':
+      return `Answered question: "${userText.slice(0, 60)}"`;
+    case 'add_event':
+      return `Added event: ${response.event?.type ?? 'unknown'}`;
+    case 'property_suggestions':
+      return `Suggested properties for: "${userText.slice(0, 50)}"`;
+    default:
+      return `Responded to: "${userText.slice(0, 50)}"`;
+  }
+}
+
+function formatConversationSummary(actions: ConversationAction[]): string {
+  if (actions.length === 0) return '';
+  return actions.map(a => `Turn ${a.turn}: ${a.summary}`).join('\n');
+}
+
 export function useChatConversation(options: UseChatConversationOptions = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const messageIdCounter = useRef(0)
+  const actionLog = useRef<ConversationAction[]>([])
+  const turnCounter = useRef(0)
 
   // Mirror options into a ref so post-response logic (downgrade guard,
   // strategy-switch detection) reads the LATEST values rather than the
@@ -231,17 +274,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           .slice(-HISTORY_WINDOW)
           .map((m) => ({ role: m.role, content: m.content }))
 
+        const conversationSummary = formatConversationSummary(actionLog.current)
+
         // Call the edge function with timeout + exponential-backoff retry on
-        // transient errors (TIMEOUT, RATE_LIMIT, MALFORMED). Permanent errors
+        // transient errors (TIMEOUT, RATE_LIMIT). Permanent errors
         // surface immediately. Total max wall time ≈ 65s under the worst case.
         const NL_PARSE_TIMEOUT_MS = 30_000
         // Retry budget per error class. First attempt is always free; the
         // numbers below are how many ADDITIONAL retries we allow.
         const MAX_RETRIES_BY_CODE: Record<string, number> = {
-          MALFORMED: 1,   // Claude occasionally returns bad JSON; one retry usually fixes it
           RATE_LIMIT: 2,  // Anthropic rate-limit windows are short; backoff buys recovery time
           TIMEOUT: 1,     // Claude/edge slow; try once more, don't pile on
-          _default: 1,    // Generic edge function errors (500s, JSON parse) — one retry
+          _default: 1,    // Generic edge function errors (500s) — one retry
         }
         // Base delays in ms before each retry (index = retry attempt number).
         // Add jitter to break up thundering-herd patterns when many users
@@ -254,6 +298,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             body: {
               message: userText.trim(),
               conversationHistory,
+              conversationSummary: conversationSummary || undefined,
               currentPlan,
               userId: optionsRef.current.userId,
               strategyPreset: optionsRef.current.strategyPreset || 'eg-low',
@@ -295,9 +340,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
           if (!result.data || result.data.error) {
             const errMsg = result.data?.error || ''
-            if (errMsg.includes('parse') || errMsg.includes('JSON')) {
-              throw new Error('MALFORMED')
-            }
             throw new Error(errMsg || 'Invalid response from PropPath AI')
           }
 
@@ -345,137 +387,26 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Remove loading indicator (respects minimum-display floor)
         await removeLoading()
 
-        // Guard: if a plan already exists but the model returned initial_plan,
-        // the model misclassified a follow-up question as a rebuild. Downgrade
-        // to a plain text message so the dashboard isn't destroyed.
-        //
-        // EXCEPTION: strategy switches are the one legitimate initial_plan
-        // rebuild while a plan exists (per system prompt's "Strategy Switches
-        // Mid-Conversation" section). Detect by strategyPreset mismatch — if
-        // the AI returned a different preset than is currently active, the
-        // user explicitly asked to switch strategies and the rebuild is
-        // intended. Without this exception, "switch to cash flow" was being
-        // silently downgraded to an explanation, the AI's confident "Built a
-        // 5-property yield-focused portfolio…" message landed but the
-        // dashboard was never rebuilt (founder report 2026-05-05, B2 fail).
-        //
-        // Also downgrade `comparison` responses — the scenario comparison
-        // fork is disabled by product decision; "what if" questions should
-        // get a written answer, not a forked scenario.
+        // The pipeline classifier handles intent routing server-side.
+        // Minimal client-side guards remain for edge cases:
+        // 1. Comparison responses are still downgraded (product decision).
+        // 2. initial_plan while plan exists is allowed ONLY for strategy switches.
         let effectiveType: NLParseResponse['type'] = response.type
-        // Read these from the ref — closure-captured values are stale when
-        // sendMessage was scheduled before a client switch settled.
         const liveHasExistingPlan = optionsRef.current.hasExistingPlan
         const liveStrategyPreset = optionsRef.current.strategyPreset
+
         if (liveHasExistingPlan && response.type === 'initial_plan') {
           const isStrategySwitch =
             !!response.strategyPreset &&
             response.strategyPreset !== liveStrategyPreset
-
-          if (isStrategySwitch) {
-            console.info(`[nl-parse] strategy switch detected: ${liveStrategyPreset} → ${response.strategyPreset}`)
-          } else {
-            // Check if the user was trying to ADD a property — if so, re-route
-            // to modification instead of blocking. The AI misclassifies add
-            // requests as initial_plan when it includes properties.
-            const addKeywords = /\b(add|another|one more|more propert|extra|squeeze|fifth|sixth|5th|6th)\b/i
-            if (addKeywords.test(userText) && response.properties?.length) {
-              console.info(`[nl-parse] re-routing initial_plan as add-property modification (${response.properties.length} properties)`)
-              response.modification = { target: 'portfolio', action: 'add', params: {} }
-              effectiveType = 'modification'
-            } else {
-              console.warn('[nl-parse] initial_plan returned while a plan exists — blocking rebuild, treating as explanation.')
-              effectiveType = 'explanation'
-            }
+          if (!isStrategySwitch) {
+            console.warn('[nl-parse] initial_plan returned while plan exists (not a strategy switch) — treating as explanation.')
+            effectiveType = 'explanation'
           }
         }
         if (response.type === 'comparison') {
           console.warn('[nl-parse] comparison response intercepted — treating as explanation.')
           effectiveType = 'explanation'
-        }
-        // Rescue: AI returned "modification" for a strategy switch instead of
-        // "initial_plan". Two layers:
-        // 1. If the response includes strategyPreset + properties, re-route.
-        // 2. Keyword fallback: if the user's message matches a strategy switch
-        //    pattern but the AI returned modification (often with no preset or
-        //    properties at all), infer the target preset from keywords and
-        //    re-fire as initial_plan. Without this the AI confidently says
-        //    "Switching to cash flow…" but the dashboard never updates.
-        const STRATEGY_KEYWORDS: Record<string, typeof liveStrategyPreset> = {
-          'cash flow': 'cf-low',
-          'cashflow': 'cf-low',
-          'cf low': 'cf-low',
-          'cf high': 'cf-high',
-          'equity growth low': 'eg-low',
-          'equity growth high': 'eg-high',
-          'equity growth': 'eg-low',
-          'commercial transition': 'commercial-transition',
-          'commercial': 'commercial-transition',
-        }
-        if (
-          response.type === 'modification' &&
-          response.strategyPreset &&
-          response.strategyPreset !== liveStrategyPreset &&
-          response.properties &&
-          response.properties.length > 0
-        ) {
-          console.info(`[nl-parse] rescuing misclassified strategy switch: ${liveStrategyPreset} → ${response.strategyPreset}`)
-          effectiveType = 'initial_plan'
-        } else if (
-          response.type === 'modification' &&
-          liveHasExistingPlan
-        ) {
-          const lower = userText.trim().toLowerCase()
-          const isSwitchRequest = lower.startsWith('switch to') || lower.startsWith('try ') || lower.startsWith('swap to') || lower.startsWith('change strategy') || lower.startsWith('change preset') || lower.startsWith('go ')
-          if (isSwitchRequest) {
-            const matchedPreset = Object.entries(STRATEGY_KEYWORDS).find(
-              ([kw]) => lower.includes(kw)
-            )
-            if (matchedPreset && matchedPreset[1] !== liveStrategyPreset) {
-              const targetPreset = matchedPreset[1]!
-              console.info(`[nl-parse] keyword-rescue strategy switch: "${userText}" → ${targetPreset}`)
-
-              if (response.properties && response.properties.length > 0) {
-                response.strategyPreset = targetPreset as any
-                effectiveType = 'initial_plan'
-              } else {
-                // AI returned modification with no properties — re-send with
-                // explicit instruction to generate a full plan for the new preset.
-                // Send currentPlan: null so the system prompt uses initial-plan
-                // mode (the follow-up rules block says "NEVER return initial_plan"
-                // which fights our explicit instruction). Inline the client details
-                // in the message so the AI knows who the plan is for.
-                try {
-                  const clientInfo = currentPlan
-                    ? `Client: ${currentPlan.clientNames.join(' & ') || 'Unknown'}. Income: $${currentPlan.investmentProfile.baseSalary.toLocaleString()}. Deposit: $${currentPlan.investmentProfile.depositPool.toLocaleString()}. Annual savings: $${currentPlan.investmentProfile.annualSavings.toLocaleString()}. Timeline: ${currentPlan.investmentProfile.timelineYears} years.`
-                    : userText
-                  const retryResult = await supabase.functions.invoke('nl-parse', {
-                    body: {
-                      message: `${clientInfo}\n\nUse the ${targetPreset} strategy preset.`,
-                      conversationHistory: [],
-                      currentPlan: null,
-                      userId: optionsRef.current.userId,
-                      strategyPreset: targetPreset,
-                    },
-                  })
-                  if (retryResult.data && !retryResult.data.error && retryResult.data.properties?.length > 0) {
-                    console.info(`[nl-parse] strategy switch retry succeeded with ${retryResult.data.properties.length} properties`)
-                    Object.assign(response, retryResult.data)
-                    response.strategyPreset = targetPreset as any
-                    effectiveType = 'initial_plan'
-                  } else {
-                    console.warn('[nl-parse] strategy switch retry failed — showing explanation')
-                    response.message = `I tried to switch to ${matchedPreset[0]} but couldn't generate the new plan. Try again, or use the strategy selector on the dashboard.`
-                    effectiveType = 'explanation'
-                  }
-                } catch (err) {
-                  console.error('[nl-parse] strategy switch retry error:', err)
-                  response.message = `I tried to switch to ${matchedPreset[0]} but hit an error. Try again, or use the strategy selector on the dashboard.`
-                  effectiveType = 'explanation'
-                }
-              }
-            }
-          }
         }
 
         // Process response based on type
@@ -617,7 +548,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // about "Built a 4-property portfolio..." which doesn't answer the
             // question. Ask for clarification instead of a dead-end sorry.
             const fallbackText = wasDowngradedFromPlan
-              ? "That looks like a new client — clear the current plan first and I'll build a fresh one."
+              ? "To start a new client, clear the current plan first using the Reset button."
               : response.message
             const explMsg = createMessage('assistant', 'text', fallbackText, {
               assumptions: wasDowngraded ? undefined : response.assumptions,
@@ -642,6 +573,15 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             })
             setMessages((prev) => [...prev, eventMsg])
             optionsRef.current.onAddEvent?.(response)
+            break
+          }
+
+          case 'update_profile': {
+            const updateMsg = createMessage('assistant', 'text', response.message, {
+              assumptions: response.assumptions,
+            })
+            setMessages((prev) => [...prev, updateMsg])
+            optionsRef.current.onUpdateProfile?.(response)
             break
           }
 
@@ -691,6 +631,17 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
         }
 
+        // Record action for conversation state tracking
+        turnCounter.current += 1
+        actionLog.current = [
+          ...actionLog.current.slice(-9),
+          {
+            turn: turnCounter.current,
+            type: effectiveType,
+            summary: buildActionSummary(response, userText),
+          },
+        ]
+
         // Add follow-up suggestions and refinement options if present
         if (response.followUpSuggestions?.length || response.refinementOptions?.length) {
           setMessages((prev) => {
@@ -716,19 +667,16 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         let friendlyMessage: string
         switch (errCode) {
           case 'TIMEOUT':
-            friendlyMessage = 'That took too long — the AI is under heavy load. Try again in a moment.'
+            friendlyMessage = 'That took a bit long. Send it again and it should go through.'
             break
           case 'RATE_LIMIT':
-            friendlyMessage = 'Too many requests right now. Wait a few seconds and try again.'
-            break
-          case 'MALFORMED':
-            friendlyMessage = 'Got a garbled response — try rephrasing that slightly differently.'
+            friendlyMessage = 'Busy right now — give it a few seconds then resend.'
             break
           case 'OFFLINE':
-            friendlyMessage = 'You appear to be offline. Check your connection and try again.'
+            friendlyMessage = "Can't reach the server. Check your connection and resend."
             break
           default:
-            friendlyMessage = 'Something went wrong — try sending that again.'
+            friendlyMessage = 'Didn\'t go through — try sending that again.'
         }
 
         const errorMsg = createMessage('assistant', 'text', friendlyMessage)
@@ -787,6 +735,8 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
     setMessages([])
     setIsLoading(false)
     messageIdCounter.current = 0
+    actionLog.current = []
+    turnCounter.current = 0
   }, [])
 
   /**
@@ -795,6 +745,12 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const loadMessages = useCallback((savedMessages: ChatMessage[]) => {
     setMessages(savedMessages)
     messageIdCounter.current = savedMessages.length
+  }, [])
+
+  const setMessageFeedback = useCallback((messageId: string, rating: -1 | 1) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m))
+    )
   }, [])
 
   return {
@@ -806,5 +762,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
     addSystemMessage,
     clearMessages,
     loadMessages,
+    setMessageFeedback,
   }
 }

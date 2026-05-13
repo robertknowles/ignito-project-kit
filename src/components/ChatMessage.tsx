@@ -10,7 +10,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { BotIcon } from 'lucide-react'
+import { BotIcon, ThumbsUp, ThumbsDown } from 'lucide-react'
 import type { ChatMessage as ChatMessageType, ChatOptionCardData } from '@/types/nlParse'
 import { ChatOptionCard } from './ChatOptionCard'
 import { ChatSummaryCard } from './ChatSummaryCard'
@@ -22,6 +22,7 @@ interface ChatMessageProps {
   message: ChatMessageType
   onOptionSelect?: (card: ChatOptionCardData) => void
   onFollowUpClick?: (suggestion: string) => void
+  onFeedback?: (messageId: string, rating: -1 | 1) => void
   propertyCount?: number
 }
 
@@ -45,7 +46,7 @@ const MISSING_INPUT_ORDER = [
   'goal',
 ]
 
-export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick, propertyCount }, ref) => {
+export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick, onFeedback, propertyCount }, ref) => {
   // Loading indicator with personalised text
   if (message.type === 'loading') {
     return (
@@ -178,6 +179,34 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
                   )
                   .map((k) => MISSING_INPUT_LABELS[k] ?? k)
                   .join(' · ')}
+              </div>
+            )}
+
+            {/* Feedback thumbs — only on text/summary/portfolio assistant messages */}
+            {message.type !== 'loading' && onFeedback && (
+              <div className="flex items-center gap-1 pt-0.5">
+                <button
+                  onClick={() => onFeedback(message.id, 1)}
+                  className={`p-1 rounded transition-colors ${
+                    message.feedback === 1
+                      ? 'text-emerald-600'
+                      : 'text-[#D5D7DA] hover:text-[#717680]'
+                  }`}
+                  aria-label="Helpful"
+                >
+                  <ThumbsUp className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => onFeedback(message.id, -1)}
+                  className={`p-1 rounded transition-colors ${
+                    message.feedback === -1
+                      ? 'text-red-500'
+                      : 'text-[#D5D7DA] hover:text-[#717680]'
+                  }`}
+                  aria-label="Not helpful"
+                >
+                  <ThumbsDown className="w-3 h-3" />
+                </button>
               </div>
             )}
           </div>

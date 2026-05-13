@@ -23,6 +23,7 @@ import {
   mapToInvestmentProfile,
   mapToPropertySelections,
   mapModificationToUpdates,
+  mapUpdateProfileToUpdates,
 } from '@/utils/nlDataMapper'
 import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/types/nlParse'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -37,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 import { CHAT_SEND_EVENT, type ChatSendDetail } from '@/utils/chatBus'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 interface ChatPanelProps {
@@ -463,6 +465,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [addEvent]
   )
 
+  // Handle update_profile — apply partial profile updates without rebuilding
+  const handleUpdateProfile = useCallback(
+    (response: NLParseResponse) => {
+      const profileUpdates = mapUpdateProfileToUpdates(response)
+      if (Object.keys(profileUpdates).length > 0) {
+        updateProfile(profileUpdates)
+        flushSaveAfterStateUpdate()
+      }
+    },
+    [updateProfile, flushSaveAfterStateUpdate]
+  )
+
   // Handle explanation — highlight relevant period on the chart
   const handleExplanation = useCallback(
     (response: NLParseResponse) => {
@@ -474,12 +488,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   )
 
   // Chat conversation hook
-  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages } = useChatConversation({
+  const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages, setMessageFeedback } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
     onModification: handleModification,
     onExplanation: handleExplanation,
     onComparison: handleComparison,
     onAddEvent: handleAddEvent,
+    onUpdateProfile: handleUpdateProfile,
     getCurrentPlan,
     getChartContext,
     userId: user?.id,
@@ -825,6 +840,27 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     [isLoading, sendMessage]
   )
 
+  const handleFeedback = useCallback(
+    (messageId: string, rating: -1 | 1) => {
+      setMessageFeedback(messageId, rating)
+      const msg = messages.find((m) => m.id === messageId)
+      const prevMsg = msg
+        ? messages[messages.indexOf(msg) - 1]
+        : undefined
+      supabase.from('ai_feedback').insert({
+        user_id: user?.id,
+        client_id: activeClient?.id ?? null,
+        message_id: messageId,
+        rating,
+        user_message: prevMsg?.role === 'user' ? prevMsg.content?.slice(0, 500) : null,
+        assistant_message: msg?.content?.slice(0, 500) ?? null,
+      }).then(({ error }) => {
+        if (error) console.error('[ai_feedback] insert error:', error)
+      })
+    },
+    [messages, setMessageFeedback, user?.id, activeClient?.id]
+  )
+
   // Listen for cross-component chat sends (e.g. dashboard property cards
   // dispatching a re-plan when the BA changes a property type bucket).
   useEffect(() => {
@@ -970,6 +1006,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
                   message={msg}
                   onOptionSelect={handleOptionSelect}
                   onFollowUpClick={handleFollowUpClick}
+                  onFeedback={handleFeedback}
                   propertyCount={propertyOrder.length}
                 />
               )

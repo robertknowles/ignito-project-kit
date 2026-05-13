@@ -26,3 +26,6 @@ dist-ssr
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# Eval reports (generated, not committed)
+evals/report-*.json

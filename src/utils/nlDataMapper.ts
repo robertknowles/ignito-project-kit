@@ -192,6 +192,48 @@ export function mapToPropertySelections(
   return { selections, propertyOrder, instances };
 }
 
+// ── Step 1.7b: Map Update Profile to Updates ────────────────────────
+
+/**
+ * Maps an update_profile response to partial InvestmentProfileData.
+ *
+ * The update_profile type handles mid-conversation profile corrections
+ * like "he actually makes 150k" or "borrowing capacity is 800k". The
+ * AI extracts only the changed fields into profileUpdates — we map
+ * them to the investment profile shape.
+ */
+export function mapUpdateProfileToUpdates(
+  response: NLParseResponse
+): Partial<InvestmentProfileData> {
+  const updates: Partial<InvestmentProfileData> = {};
+
+  if (!response.profileUpdates) {
+    console.warn('[nlDataMapper] mapUpdateProfileToUpdates called with no profileUpdates');
+    return updates;
+  }
+
+  const pu = response.profileUpdates;
+
+  if (pu.baseSalary !== undefined) updates.baseSalary = pu.baseSalary;
+  if (pu.annualSavings !== undefined) updates.annualSavings = pu.annualSavings;
+  if (pu.depositPool !== undefined) updates.depositPool = pu.depositPool;
+  if (pu.borrowingCapacity !== undefined) updates.borrowingCapacity = pu.borrowingCapacity;
+  if (pu.equityGoal !== undefined) updates.equityGoal = pu.equityGoal;
+  if (pu.cashflowGoal !== undefined) updates.cashflowGoal = pu.cashflowGoal;
+  if (pu.timelineYears !== undefined) updates.timelineYears = pu.timelineYears;
+  if (pu.targetPassiveIncome !== undefined) updates.targetPassiveIncome = pu.targetPassiveIncome;
+
+  if (typeof pu.existingPropertyDebt === 'number') {
+    updates.currentDebt = pu.existingPropertyDebt;
+  }
+  if (typeof pu.existingPropertyEquity === 'number') {
+    const resolvedDebt = pu.existingPropertyDebt ?? 0;
+    updates.portfolioValue = (pu.existingPropertyEquity + resolvedDebt) / 0.8;
+  }
+
+  return updates;
+}
+
 // ── Step 1.8: Map Modification to Updates ──────────────────────────
 
 export interface ContextUpdates {
@@ -238,7 +280,7 @@ export function mapModificationToUpdates(
 ): ContextUpdates {
   if (!response.modification) {
     console.warn('[nlDataMapper] mapModificationToUpdates called with no modification on response');
-    return { warnings: ['That didn\'t come through — try saying it a different way.'] };
+    return {};
   }
 
   const { target, action, params } = response.modification;
@@ -255,11 +297,8 @@ export function mapModificationToUpdates(
 
     if (!instanceId) {
       const total = currentOrder.length;
-      const msg = total === 0
-        ? `I tried to change property ${requestedNumber}, but the plan doesn't have any properties yet.`
-        : `I tried to change property ${requestedNumber}, but the plan only has ${total} ${total === 1 ? 'property' : 'properties'}. Which one did you mean?`;
       console.warn(`[nlDataMapper] property index out of range: requested ${requestedNumber}, have ${total}`);
-      return { warnings: [msg] };
+      return {};
     }
 
     switch (action) {
@@ -274,7 +313,7 @@ export function mapModificationToUpdates(
             },
           }];
         } else {
-          warnings.push(`Couldn't move property ${requestedNumber} — try specifying a year, e.g. "move property ${requestedNumber} to 2028".`);
+          console.warn(`[nlDataMapper] move without targetPeriod for property ${requestedNumber}`);
         }
         break;
       }
@@ -325,9 +364,6 @@ export function mapModificationToUpdates(
         });
         if (unsupported.length > 0) {
           console.warn(`[nlDataMapper] dropped unsupported change fields: ${unsupported.join(', ')}`);
-          warnings.push(
-            `Can't change ${unsupported.join(', ')} from chat yet — you can adjust it on the property card directly.`,
-          );
         }
 
         if (Object.keys(instanceChanges).length > 0) {
@@ -335,9 +371,7 @@ export function mapModificationToUpdates(
         } else if (unsupported.length === 0) {
           // No supported and no unsupported fields — Claude returned an empty
           // params object. Tell the user.
-          warnings.push(
-            `That didn't come through — try being specific, e.g. "change property ${requestedNumber} to $500k" or "set property ${requestedNumber} LVR to 80%".`,
-          );
+          console.warn('[nlDataMapper] empty params for property change', { target, requestedNumber });
         }
         break;
       }
@@ -434,9 +468,6 @@ export function mapModificationToUpdates(
       // and the chat happily says "Added a 6th property…" with no actual
       // change on the dashboard (founder report 2026-05-05, B6).
       console.warn('[nlDataMapper] add action returned with no response.properties array');
-      warnings.push(
-        `That didn't land — try being more specific, e.g. "add a regional unit in QLD around $380k".`,
-      );
     }
   }
 
@@ -550,16 +581,11 @@ export function mapModificationToUpdates(
         paramKeys: Object.keys(params ?? {}),
       });
     } else {
-      // Known target but nothing landed — log for diagnostics but show
-      // a friendly message, not raw internal field names.
       console.warn('[nlDataMapper] known target produced no updates', {
         target,
         action,
         paramKeys: Object.keys(params ?? {}),
       });
-      warnings.push(
-        `That change didn't come through cleanly — try saying it a different way (e.g. "set income to $600k" or "change savings to $5k/month").`,
-      );
     }
   }
 

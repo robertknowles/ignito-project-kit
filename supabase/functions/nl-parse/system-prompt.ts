@@ -597,7 +597,7 @@ PropPath uses semi-annual periods. Period 1 = first half of ${currentYear}, Peri
 
 ## JSON Output Format
 
-You MUST respond with valid JSON only. No markdown, no explanation outside the JSON. Your conversational response goes in the "message" field.
+Your output is schema-constrained — the API enforces the JSON shape automatically. Put your conversational response in the "message" field.
 
 **Do NOT add a clarification/follow-up question at the end of the main message.** The refinementOptions buttons (below) serve that purpose — the BA can click any of them to refine the plan. Adding a "happy with this, or want to tweak X, Y, Z?" line on top of the buttons is redundant and visually noisy.
 

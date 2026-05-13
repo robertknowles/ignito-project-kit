@@ -64,7 +64,7 @@ export interface CurrentPlanState {
 // ── Edge Function Response ─────────────────────────────────────────
 
 export interface NLParseResponse {
-  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions';
+  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions' | 'update_profile';
 
   // For initial_plan — client financial details
   clientProfile?: {
@@ -166,6 +166,20 @@ export interface NLParseResponse {
     parameters: Record<string, unknown>;
   };
 
+  // For update_profile — partial profile field updates
+  profileUpdates?: {
+    baseSalary?: number;
+    annualSavings?: number;
+    depositPool?: number;
+    borrowingCapacity?: number;
+    equityGoal?: number;
+    cashflowGoal?: number;
+    timelineYears?: number;
+    existingPropertyDebt?: number;
+    existingPropertyEquity?: number;
+    targetPassiveIncome?: number;
+  };
+
   /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 
@@ -205,6 +219,7 @@ export interface ChatMessage {
   followUpSuggestions?: string[];
   refinementOptions?: Array<{ label: string; prompt: string }>;
   showRefinement?: boolean;
+  feedback?: -1 | 1;
 }
 
 export interface SummaryCardData {
