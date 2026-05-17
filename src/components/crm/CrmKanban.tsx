@@ -1,12 +1,25 @@
+import { useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { CompanyWithContacts, ContactStatus, PIPELINE_STAGES } from '@/lib/crmHelpers';
+import { CompanyWithContacts, ContactStatus, PIPELINE_STAGES, DURATION_BY_STATUS } from '@/lib/crmHelpers';
 import { useCrmKanbanDragDrop } from '@/hooks/useCrmKanbanDragDrop';
 import { PipelineColumn } from './PipelineColumn';
 import { CompanyLogo } from './CompanyLogo';
 
+const STORAGE_KEY = 'crm_duration_overrides';
+
+function loadOverrides(): Partial<Record<ContactStatus, number | null>> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 interface Props {
   companies: CompanyWithContacts[];
   onStatusChange: (contactId: string, newStatus: ContactStatus) => Promise<void>;
+  onAssignedChange?: () => void;
 }
 
 export interface PipelineContact {
@@ -15,7 +28,9 @@ export interface PipelineContact {
   companyWebsite: string | null;
 }
 
-export function CrmKanban({ companies, onStatusChange }: Props) {
+export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props) {
+  const [durationOverrides, setDurationOverrides] = useState<Partial<Record<ContactStatus, number | null>>>(loadOverrides);
+
   const {
     draggedContact,
     handleDragStart,
@@ -34,7 +49,6 @@ export function CrmKanban({ companies, onStatusChange }: Props) {
     contactsByStatus.set(stage.status, []);
   }
 
-  // Build a lookup for drag overlay
   const companyByName = new Map<string, CompanyWithContacts>();
 
   for (const company of companies) {
@@ -46,6 +60,23 @@ export function CrmKanban({ companies, onStatusChange }: Props) {
         bucket.push({ contact, companyName: company.name, companyWebsite: company.website });
       }
     }
+  }
+
+  function handleDurationChange(status: ContactStatus, days: number | null) {
+    const next = { ...durationOverrides };
+    if (days === DURATION_BY_STATUS[status]) {
+      delete next[status];
+    } else {
+      next[status] = days;
+    }
+    setDurationOverrides(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }
+
+  function getEffectiveDuration(status: ContactStatus): number | null {
+    return durationOverrides[status] !== undefined
+      ? durationOverrides[status]!
+      : DURATION_BY_STATUS[status];
   }
 
   const dragCompany = draggedContact ? companyByName.get(draggedContact.company_name) : null;
@@ -65,6 +96,10 @@ export function CrmKanban({ companies, onStatusChange }: Props) {
             status={stage.status}
             label={stage.label}
             contacts={contactsByStatus.get(stage.status) ?? []}
+            onAssignedChange={onAssignedChange}
+            durationDays={getEffectiveDuration(stage.status)}
+            onDurationChange={(days) => handleDurationChange(stage.status, days)}
+            durationOverrides={durationOverrides}
           />
         ))}
       </div>

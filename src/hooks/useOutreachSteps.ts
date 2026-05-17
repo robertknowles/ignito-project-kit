@@ -8,8 +8,7 @@ export interface OutreachStep {
   day_label: string;
   step_title: string;
   description: string | null;
-  template_male: string | null;
-  template_female: string | null;
+  template_body: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

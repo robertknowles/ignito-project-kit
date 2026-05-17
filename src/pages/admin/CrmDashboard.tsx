@@ -156,6 +156,7 @@ export default function CrmDashboard() {
                   await updateStatus(contactId, newStatus);
                   refetch();
                 }}
+                onAssignedChange={refetch}
               />
             </section>
           </div>

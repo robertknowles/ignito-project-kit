@@ -16,7 +16,7 @@ export function useCrmCompanies() {
         contacts:crm_contacts (
           id, company_id, full_name, title, linkedin_url, status,
           connection_sent_at, video_sent_at, replied_at,
-          last_touch_at, next_action_at, notes
+          last_touch_at, next_action_at, notes, assigned_to
         )
       `);
     if (fetchError) {

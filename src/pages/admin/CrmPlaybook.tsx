@@ -1,14 +1,15 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { useOutreachSteps } from '@/hooks/useOutreachSteps';
 import { useUpdateOutreachStep } from '@/hooks/useUpdateOutreachStep';
-import OutreachFlowDiagram from '@/components/crm/OutreachFlowDiagram';
 import { PrinciplesPanel } from '@/components/crm/PrinciplesPanel';
-import { PacingPanel } from '@/components/crm/PacingPanel';
+import { ListBuildingPanel } from '@/components/crm/ListBuildingPanel';
+import OutreachFlowDiagram from '@/components/crm/OutreachFlowDiagram';
 import { OutreachStepCard } from '@/components/crm/OutreachStepCard';
+import { FutureChannelsMindmap } from '@/components/crm/FutureChannelsMindmap';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut } from 'lucide-react';
 
 export default function CrmPlaybook() {
   const { steps, loading, refetch } = useOutreachSteps();
@@ -19,7 +20,6 @@ export default function CrmPlaybook() {
     await supabase.auth.signOut();
   };
 
-  // Most recent updated_at across all steps
   const lastUpdated = steps.length > 0
     ? new Date(
         Math.max(...steps.map((s) => new Date(s.updated_at).getTime()))
@@ -34,7 +34,6 @@ export default function CrmPlaybook() {
   return (
     <div className="crm-portal dark min-h-screen bg-background text-foreground">
       <main className="flex flex-col h-screen overflow-hidden">
-        {/* Top bar */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-4">
             <Button
@@ -64,37 +63,51 @@ export default function CrmPlaybook() {
           </div>
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="max-w-4xl mx-auto space-y-5">
-            <div className="bg-card border border-border rounded-lg p-5">
-              <h3 className="text-sm font-medium text-foreground mb-4">Outreach flow</h3>
-              <OutreachFlowDiagram />
-            </div>
-            <PrinciplesPanel />
-            <PacingPanel />
+          <div className="max-w-4xl mx-auto">
+            <Tabs defaultValue="linkedin">
+              <TabsList className="bg-background border border-border mb-5">
+                <TabsTrigger value="linkedin" className="text-xs data-[state=active]:bg-card">LinkedIn</TabsTrigger>
+                <TabsTrigger value="future" className="text-xs data-[state=active]:bg-card">Future channels</TabsTrigger>
+              </TabsList>
 
-            {/* Steps section */}
-            <div>
-              <h2 className="text-sm font-medium text-foreground mb-3">Templates</h2>
-              <div className="space-y-4">
-                {loading ? (
-                  <p className="text-xs text-muted-foreground">Loading steps...</p>
-                ) : steps.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No outreach steps found. Run the migration to seed data.
-                  </p>
-                ) : (
-                  steps.map((step) => (
-                    <OutreachStepCard
-                      key={step.id}
-                      step={step}
-                      onUpdate={handleUpdate}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+              <TabsContent value="linkedin" className="space-y-5">
+                <div className="bg-card border border-border rounded-lg p-5">
+                  <h3 className="text-sm font-medium text-foreground mb-4">Outreach flow</h3>
+                  <OutreachFlowDiagram />
+                </div>
+                <PrinciplesPanel />
+                <ListBuildingPanel />
+
+                <div>
+                  <h2 className="text-sm font-medium text-foreground mb-3">Templates</h2>
+                  <div className="space-y-4">
+                    {loading ? (
+                      <p className="text-xs text-muted-foreground">Loading templates...</p>
+                    ) : steps.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No outreach steps found. Run the migration to seed data.
+                      </p>
+                    ) : (
+                      steps.map((step) => (
+                        <OutreachStepCard
+                          key={step.id}
+                          step={step}
+                          onUpdate={handleUpdate}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="future">
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h3 className="text-sm font-medium text-foreground mb-4">Channel map</h3>
+                  <FutureChannelsMindmap />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>

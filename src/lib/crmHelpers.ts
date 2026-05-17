@@ -25,6 +25,7 @@ export interface CrmContact {
   last_touch_at: string | null;
   next_action_at: string | null;
   notes: string | null;
+  assigned_to: 'rob' | 'james' | null;
 }
 
 export interface CompanyWithContacts {
@@ -71,6 +72,44 @@ export const PIPELINE_STAGES = [
   { status: 'beta_tester' as const, label: 'Beta tester' },
   { status: 'dead' as const, label: 'Dead' },
 ] as const;
+
+export const DURATION_BY_STATUS: Record<ContactStatus, number | null> = {
+  not_contacted: null,
+  connection_sent: 10,
+  connected: 1,
+  video_sent: 14,
+  replied: null,
+  demo_booked: null,
+  beta_tester: null,
+  dead: null,
+};
+
+export function isContactOverdue(
+  contact: CrmContact,
+  now = new Date(),
+  overrides?: Partial<Record<ContactStatus, number | null>>,
+): boolean {
+  const days = overrides?.[contact.status] !== undefined
+    ? overrides[contact.status]
+    : DURATION_BY_STATUS[contact.status];
+  if (days === null || days === undefined) return false;
+
+  const statusSetAt = getStatusSetTimestamp(contact);
+  if (!statusSetAt) return false;
+
+  const dueAt = new Date(statusSetAt);
+  dueAt.setDate(dueAt.getDate() + days);
+  return now > dueAt;
+}
+
+function getStatusSetTimestamp(contact: CrmContact): string | null {
+  switch (contact.status) {
+    case 'connection_sent': return contact.connection_sent_at;
+    case 'video_sent':      return contact.video_sent_at;
+    case 'connected':       return contact.last_touch_at;
+    default:                return contact.last_touch_at;
+  }
+}
 
 export function getTimestampPatch(newStatus: ContactStatus): Record<string, string | null> {
   const now = new Date().toISOString();
