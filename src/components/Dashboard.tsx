@@ -14,8 +14,7 @@ import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
-import { BorrowingCapacityChart } from './BorrowingCapacityChart';
-import { CHART_COLORS } from '@/constants/chartColors';
+import { TimelineColumn } from './TimelineColumn';
 import { useLayout } from '@/contexts/LayoutContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -165,7 +164,19 @@ export const Dashboard = () => {
           <PropertyCardRow />
         </ChartCard>
 
-        {/* 3. Cashflow Projection */}
+        {/* 3. Investment Timeline */}
+        <ChartCard
+          title="Investment Timeline"
+          legend={[
+            { color: '#7F56D9', label: 'Portfolio Value' },
+            { color: '#B692F6', label: 'Total Equity' },
+            { color: '#6941C6', label: 'Savings Only', variant: 'ring' },
+          ]}
+        >
+          <TimelineColumn />
+        </ChartCard>
+
+        {/* 4. Cashflow Projection */}
         <ChartCard
           title="Cashflow Projection"
           legend={[
@@ -173,18 +184,6 @@ export const Dashboard = () => {
           ]}
         >
           <CashflowChart />
-        </ChartCard>
-
-        {/* 4. Borrowing Capacity */}
-        <ChartCard
-          title="Borrowing Capacity"
-          legend={[
-            { color: '#2563EB', label: 'Capacity' },
-            { color: '#8B5CF6', label: 'Total Liabilities' },
-            { color: '#06B6D4', label: 'Offset Debt' },
-          ]}
-        >
-          <BorrowingCapacityChart />
         </ChartCard>
 
         {/* 5. Financial Summary */}

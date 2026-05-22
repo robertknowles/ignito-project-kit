@@ -100,18 +100,6 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
         {/* KPI Summary Cards */}
         <SummaryBar scenarioData={scenarioData} />
 
-        {/* Investment Timeline */}
-        <ChartCard
-          title="Investment Timeline"
-          legend={[
-            { color: '#7F56D9', label: 'Portfolio Value' },
-            { color: '#B692F6', label: 'Total Equity' },
-            { color: '#6941C6', label: 'Savings Only', variant: 'ring' },
-          ]}
-        >
-          <TimelineColumn scenarioData={scenarioData} />
-        </ChartCard>
-
 
       </div>
     </div>
