@@ -14,11 +14,26 @@ import { useNavigate } from 'react-router-dom'
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
 import { BASE_YEAR } from '../constants/financialParams'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
+
+// ── UUI Design Tokens (from UUI charts-base source + DOM inspection) ────────
+const UUI = {
+  brand700: '#6941C6',
+  brand600: '#7F56D9',
+  brand400: '#B692F6',
+  neutral900: '#171717',
+  neutral700: '#404040',
+  neutral600: '#525252',
+  neutral500: '#737373',
+  neutral200: '#E5E5E5',
+  neutral100: '#F5F5F5',
+  white: '#FFFFFF',
+  success: '#00A63E',
+  fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+} as const;
 
 interface InvestmentTimelineChartProps {
   scenarioData?: {
@@ -35,9 +50,9 @@ const EquityGoalMarker = ({ viewBox }: any) => {
   const badgeY = 4;
   return (
     <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 32} y={badgeY} width={64} height={22} rx={11} fill="#8B5CF6" />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.brand600} strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={cx - 32} y={badgeY} width={64} height={22} rx={11} fill={UUI.brand600} />
+      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
         Goal ✓
       </text>
     </g>
@@ -45,10 +60,15 @@ const EquityGoalMarker = ({ viewBox }: any) => {
 };
 
 /**
- * InvestmentTimelineChart — Standard AreaChart replacement for ChartWithRoadmap
+ * InvestmentTimelineChart — UUI charts-base style
  *
- * Three lines: Portfolio Value (blue), Total Equity (purple), Do Nothing (dashed grey).
- * Uses identical Recharts config as CashflowChart for visual uniformity.
+ * Three series following UUI's multi-series Area pattern:
+ *   Portfolio Value — brand-600 line + gradient fill (primary)
+ *   Total Equity   — brand-400 line, no fill (secondary)
+ *   Savings Only   — brand-700 dashed line, no fill (tertiary)
+ *
+ * Gradient uses brand-700 at 70%→0% opacity (matching UUI source).
+ * Active dots: white fill + brand-600 stroke.
  */
 export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = ({ scenarioData }) => {
   const navigate = useNavigate()
@@ -76,7 +96,6 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
     }))
   }, [years])
 
-  // Extract purchase points for ReferenceDot markers
   const purchasePoints = useMemo(() =>
     data.filter(d => d.purchaseInYear),
   [data])
@@ -93,6 +112,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
     return `$${value.toFixed(0)}`
   }
 
+  // ── UUI-style tooltip ─────────────────────────────────────────────────────
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null
 
@@ -109,32 +129,51 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
 
     return (
       <div
-        className="bg-white border rounded-xl"
         style={{
-          borderColor: '#E9EAEB',
+          background: UUI.white,
+          border: `1px solid ${UUI.neutral200}`,
+          borderRadius: 8,
           padding: '12px 16px',
-          fontSize: 13,
-          boxShadow: '0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03)',
+          fontFamily: UUI.fontFamily,
+          fontSize: 14,
+          boxShadow: '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.06)',
         }}
       >
-        <p className="font-semibold text-[#181D27] mb-2">{label}</p>
+        <p style={{ fontWeight: 600, color: UUI.neutral900, marginBottom: 8, fontSize: 14 }}>{label}</p>
         {dataPoint?.purchaseInYear && (
-          <p className="text-xs text-blue-600 font-medium mb-2">Purchase: {dataPoint.purchaseLabel}</p>
+          <p style={{ fontSize: 12, color: UUI.brand600, fontWeight: 500, marginBottom: 8 }}>
+            Purchase: {dataPoint.purchaseLabel}
+          </p>
         )}
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="text-gray-500">Portfolio Value</span>
-          <span className="font-medium text-gray-700">{fmt(portfolio)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand600, flexShrink: 0 }} />
+            <span style={{ color: UUI.neutral500 }}>Portfolio Value</span>
+          </div>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(portfolio)}</span>
         </div>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="text-gray-500">Total Equity</span>
-          <span className="font-medium text-gray-700">{fmt(equity)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand400, flexShrink: 0 }} />
+            <span style={{ color: UUI.neutral500 }}>Total Equity</span>
+          </div>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(equity)}</span>
         </div>
         <div
-          className="flex justify-between gap-6 pt-2 mt-1"
-          style={{ borderTop: '1px solid #F3F4F6' }}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 24,
+            paddingTop: 8,
+            marginTop: 4,
+            borderTop: `1px solid ${UUI.neutral100}`,
+          }}
         >
-          <span className="text-gray-500">Savings Only</span>
-          <span className="font-medium text-gray-700">{fmt(doNothing)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 2, background: UUI.brand700, flexShrink: 0 }} />
+            <span style={{ color: UUI.neutral500 }}>Savings Only</span>
+          </div>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(doNothing)}</span>
         </div>
       </div>
     )
@@ -142,79 +181,126 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={240}>
         <AreaChart
           data={data}
-          margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
+          margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
         >
           <defs>
-            <linearGradient id="timelinePortfolioFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.01} />
-            </linearGradient>
-            <linearGradient id="timelineEquityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.10} />
-              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.01} />
+            {/* UUI gradient: brand-700 at 70% → 0% opacity */}
+            <linearGradient id="timelineGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={UUI.brand700} stopOpacity={0.7} />
+              <stop offset="95%" stopColor={UUI.brand700} stopOpacity={0} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid {...CHART_STYLE.grid} />
-          <XAxis dataKey="year" {...CHART_STYLE.xAxis} padding={{ left: 20, right: 10 }} />
+          {/* UUI grid: horizontal only, neutral-100, very faint */}
+          <CartesianGrid
+            vertical={false}
+            stroke={UUI.neutral100}
+            strokeOpacity={1}
+          />
+
+          {/* X-axis — UUI: 12px, no axis line, no tick marks, preserveStartEnd */}
+          <XAxis
+            dataKey="year"
+            tick={{
+              fontSize: 12,
+              fill: UUI.neutral500,
+              fontFamily: UUI.fontFamily,
+            }}
+            axisLine={false}
+            tickLine={false}
+            interval="preserveStartEnd"
+            padding={{ left: 10, right: 10 }}
+          />
+
+          {/* Y-axis — UUI style with label */}
           <YAxis
             tickFormatter={formatYAxis}
-            {...CHART_STYLE.yAxis}
+            tick={{
+              fontSize: 12,
+              fill: UUI.neutral500,
+              fontFamily: UUI.fontFamily,
+            }}
+            axisLine={false}
+            tickLine={false}
+            interval="preserveStartEnd"
+            width={55}
           />
-          <Tooltip content={<CustomTooltip />} />
 
-          {/* Portfolio Value — solid blue with gradient fill */}
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{
+              stroke: UUI.brand600,
+              strokeWidth: 2,
+            }}
+          />
+
+          {/* Series A: Portfolio Value — brand-600 line + gradient fill (primary) */}
           <Area
             type="monotone"
             dataKey="portfolioValue"
             name="Portfolio Value"
-            stroke="#2563EB"
-            strokeWidth={2.5}
-            fill="url(#timelinePortfolioFill)"
+            stroke={UUI.brand600}
+            strokeWidth={2}
+            fill="url(#timelineGradient)"
+            fillOpacity={0.1}
             dot={false}
             isAnimationActive={false}
+            activeDot={{
+              fill: UUI.white,
+              stroke: UUI.brand600,
+              strokeWidth: 2,
+              r: 4,
+            }}
           />
 
-          {/* Total Equity — solid purple with gradient fill */}
+          {/* Series B: Total Equity — brand-400 line, no fill (secondary) */}
           <Area
             type="monotone"
             dataKey="totalEquity"
             name="Total Equity"
-            stroke="#8B5CF6"
+            stroke={UUI.brand400}
             strokeWidth={2}
-            fill="url(#timelineEquityFill)"
+            fill="none"
             dot={false}
             isAnimationActive={false}
+            activeDot={{
+              fill: UUI.white,
+              stroke: UUI.brand600,
+              strokeWidth: 2,
+              r: 4,
+            }}
           />
 
-          {/* Do Nothing Baseline — dashed grey, no fill */}
+          {/* Series C: Savings Only — brand-700 dashed line, no fill (tertiary) */}
           <Area
             type="monotone"
             dataKey="doNothingBalance"
             name="Savings Only"
-            stroke={CHART_COLORS.annotationText}
+            stroke={UUI.brand700}
             strokeDasharray="6 4"
-            strokeWidth={1.5}
+            strokeWidth={2}
             fill="none"
             dot={false}
             connectNulls
             isAnimationActive={false}
+            activeDot={{
+              fill: UUI.white,
+              stroke: UUI.brand600,
+              strokeWidth: 2,
+              r: 4,
+            }}
           />
 
-          {/* Purchase markers — property type icons on portfolio line, click to open per-property.
-              When multiple purchases land in the same year, icons stack vertically (each subsequent
-              icon offset upward by bgSize + stackGap px) so the BA can see the multi-purchase year
-              at a glance. */}
-          {/* Equity goal reached milestone marker */}
+          {/* Equity goal milestone marker */}
           {equityGoalPoint && (
             <ReferenceDot
               x={equityGoalPoint.year}
               y={equityGoalPoint.totalEquity}
               r={6}
-              fill="#8B5CF6"
+              fill={UUI.brand600}
               stroke="white"
               strokeWidth={2.5}
             >
@@ -222,6 +308,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             </ReferenceDot>
           )}
 
+          {/* Purchase markers — property type icons on portfolio line */}
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}
@@ -232,11 +319,10 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                 const { cx, cy } = props
                 const iconSize = 14
                 const bgSize = 26
-                const stackGap = 2 // px between stacked icons
+                const stackGap = 2
                 const propertyTypes = pt.purchasePropertyTypes ?? []
                 const instanceIds = pt.purchaseInstanceIds ?? []
                 const labels = pt.purchaseLabel ? pt.purchaseLabel.split(', ') : []
-                // Defensive: if data missing, render single icon at cy (legacy behaviour)
                 const renderCount = Math.max(1, propertyTypes.length)
 
                 return (
@@ -246,8 +332,6 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                       const iconPath = getPropertyIconPath(propertyType)
                       const instanceId = instanceIds[idx]
                       const label = labels[idx] || pt.purchaseLabel || 'property'
-                      // Stack: idx=0 sits on the data point (cy); each subsequent icon
-                      // shifts UP by (bgSize + stackGap) so the stack grows above the line.
                       const iconCy = cy - idx * (bgSize + stackGap)
                       const handleClick = () => {
                         if (instanceId) {
@@ -265,7 +349,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                           aria-label={`Open ${label} in Per-Property view`}
                         >
                           <title>{`Open ${label}`}</title>
-                          <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="white" stroke="#E9EAEB" strokeWidth={1} />
+                          <circle cx={cx} cy={iconCy} r={bgSize / 2} fill={UUI.white} stroke={UUI.neutral200} strokeWidth={1} />
                           <svg
                             x={cx - iconSize / 2}
                             y={iconCy - iconSize / 2}
@@ -275,7 +359,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                             fill="none"
                             style={{ pointerEvents: 'none' }}
                           >
-                            <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d={iconPath} stroke={UUI.neutral900} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </g>
                       )
