@@ -169,8 +169,8 @@ export const Dashboard = () => {
           title="Investment Timeline"
           legend={[
             { color: '#7F56D9', label: 'Portfolio Value' },
-            { color: '#B692F6', label: 'Total Equity' },
-            { color: '#6941C6', label: 'Savings Only', variant: 'ring' },
+            { color: '#737373', label: 'Total Equity' },
+            { color: '#A3A3A3', label: 'Savings Only' },
           ]}
         >
           <TimelineColumn />

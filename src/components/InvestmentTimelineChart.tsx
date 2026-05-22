@@ -21,13 +21,12 @@ import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext
 
 // ── UUI Design Tokens (from UUI charts-base source + DOM inspection) ────────
 const UUI = {
-  brand700: '#6941C6',
   brand600: '#7F56D9',
-  brand400: '#B692F6',
   neutral900: '#171717',
   neutral700: '#404040',
   neutral600: '#525252',
   neutral500: '#737373',
+  neutral400: '#A3A3A3',
   neutral200: '#E5E5E5',
   neutral100: '#F5F5F5',
   white: '#FFFFFF',
@@ -154,7 +153,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand400, flexShrink: 0 }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.neutral500, flexShrink: 0 }} />
             <span style={{ color: UUI.neutral500 }}>Total Equity</span>
           </div>
           <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(equity)}</span>
@@ -170,7 +169,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 2, background: UUI.brand700, flexShrink: 0 }} />
+            <div style={{ width: 8, height: 2, background: UUI.neutral400, flexShrink: 0 }} />
             <span style={{ color: UUI.neutral500 }}>Savings Only</span>
           </div>
           <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(doNothing)}</span>
@@ -187,10 +186,10 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
           margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
         >
           <defs>
-            {/* UUI gradient: brand-700 at 70% → 0% opacity */}
+            {/* UUI LineChart04 gradient: neutral-500 at 70% → 0% opacity */}
             <linearGradient id="timelineGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={UUI.brand700} stopOpacity={0.7} />
-              <stop offset="95%" stopColor={UUI.brand700} stopOpacity={0} />
+              <stop offset="5%" stopColor={UUI.neutral500} stopOpacity={0.7} />
+              <stop offset="95%" stopColor={UUI.neutral500} stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -201,26 +200,27 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             strokeOpacity={1}
           />
 
-          {/* X-axis — UUI: 12px, no axis line, no tick marks, preserveStartEnd */}
+          {/* X-axis — UUI text-tertiary = neutral-600, text-xs = 12px */}
           <XAxis
             dataKey="year"
             tick={{
               fontSize: 12,
-              fill: UUI.neutral500,
+              fill: UUI.neutral600,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}
             tickLine={false}
+            tickMargin={10}
             interval="preserveStartEnd"
             padding={{ left: 10, right: 10 }}
           />
 
-          {/* Y-axis — UUI style with label */}
+          {/* Y-axis — UUI text-tertiary = neutral-600 */}
           <YAxis
             tickFormatter={formatYAxis}
             tick={{
               fontSize: 12,
-              fill: UUI.neutral500,
+              fill: UUI.neutral600,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}
@@ -256,12 +256,12 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Series B: Total Equity — brand-400 line, no fill (secondary) */}
+          {/* Series B: Total Equity — neutral-500 line, no fill (secondary) */}
           <Area
             type="monotone"
             dataKey="totalEquity"
             name="Total Equity"
-            stroke={UUI.brand400}
+            stroke={UUI.neutral500}
             strokeWidth={2}
             fill="none"
             dot={false}
@@ -274,13 +274,12 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Series C: Savings Only — brand-700 dashed line, no fill (tertiary) */}
+          {/* Series C: Savings Only — neutral-400 line, no fill (tertiary) */}
           <Area
             type="monotone"
             dataKey="doNothingBalance"
             name="Savings Only"
-            stroke={UUI.brand700}
-            strokeDasharray="6 4"
+            stroke={UUI.neutral400}
             strokeWidth={2}
             fill="none"
             dot={false}

@@ -176,16 +176,17 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             vertical={false}
           />
 
-          {/* X-axis — UUI 12px, neutral-500, no axis line, no tick marks */}
+          {/* X-axis — UUI text-tertiary = neutral-600, text-xs = 12px */}
           <XAxis
             dataKey="year"
             tick={{
               fontSize: 12,
-              fill: UUI.neutral500,
+              fill: UUI.neutral600,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}
             tickLine={false}
+            tickMargin={10}
             padding={{ left: 20, right: 10 }}
           />
 
