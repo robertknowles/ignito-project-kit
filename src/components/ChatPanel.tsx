@@ -22,6 +22,7 @@ import { usePropertyInstance } from '@/contexts/PropertyInstanceContext'
 import {
   mapToInvestmentProfile,
   mapToPropertySelections,
+  mapToExistingProperties,
   mapModificationToUpdates,
   mapUpdateProfileToUpdates,
 } from '@/utils/nlDataMapper'
@@ -74,7 +75,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
   const { activeClient, updateClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId, setExistingProperties } = useScenarioSave()
 
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
@@ -230,14 +231,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       if (newOrder.length > 0) {
         setAllSelections(newSelections, newOrder)
         setInstances(newInstances)
-        // Force a save right after the plan lands. We don't rely on the
-        // change-detection autosave anymore — it has been racing with auth
-        // state changes and navigation, occasionally missing the save and
-        // leaving the dashboard blank on reload.
-        flushSaveAfterStateUpdate()
       }
+
+      // Map existing portfolio properties (AI-extracted from conversation)
+      const existingProps = mapToExistingProperties(response)
+      if (existingProps) {
+        setExistingProperties(existingProps)
+      }
+
+      // Force a save right after the plan lands.
+      flushSaveAfterStateUpdate()
     },
-    [updateProfile, setAllSelections, setInstances, flushSaveAfterStateUpdate, activeClient, updateClient]
+    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, activeClient, updateClient]
   )
 
   // Handle modifications — supports single modification or compound modifications array
@@ -471,10 +476,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
       const profileUpdates = mapUpdateProfileToUpdates(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
-        flushSaveAfterStateUpdate()
       }
+      const existingProps = mapToExistingProperties(response)
+      if (existingProps) {
+        setExistingProperties(existingProps)
+      }
+      flushSaveAfterStateUpdate()
     },
-    [updateProfile, flushSaveAfterStateUpdate]
+    [updateProfile, setExistingProperties, flushSaveAfterStateUpdate]
   )
 
   // Handle explanation — highlight relevant period on the chart

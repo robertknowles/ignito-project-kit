@@ -12,6 +12,7 @@ import type { NLParseResponse } from '@/types/nlParse';
 import type { InvestmentProfileData } from '@/contexts/InvestmentProfileContext';
 import type { PropertySelection } from '@/contexts/PropertySelectionContext';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
+import type { ExistingProperty } from '@/types/existingProperty';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
 import {
   isCellId,
@@ -106,6 +107,44 @@ export function mapToInvestmentProfile(
   }
 
   return updates;
+}
+
+/**
+ * Map AI-extracted existing portfolio to ExistingProperty[].
+ * Returns null if no existing portfolio data was extracted.
+ */
+export function mapToExistingProperties(
+  response: NLParseResponse
+): ExistingProperty[] | null {
+  const portfolio = response.clientProfile?.existingPortfolio
+    ?? response.profileUpdates?.existingPortfolio;
+  if (!portfolio || portfolio.length === 0) return null;
+
+  return portfolio.map((p, i) => {
+    const annualRent = (p.rentPerWeek ?? Math.round((p.currentValue * 0.04) / 52)) * 52;
+    return {
+      id: `ep-ai-${Date.now()}-${i}`,
+      address: p.address ?? '',
+      state: p.state,
+      boughtYear: p.boughtYear ?? new Date().getFullYear(),
+      purchasePrice: p.purchasePrice,
+      currentValue: p.currentValue,
+      loan: p.loan,
+      rentPerWeek: p.rentPerWeek ?? Math.round((p.currentValue * 0.04) / 52),
+      yield: p.currentValue > 0 ? (annualRent / p.currentValue) * 100 : 4.0,
+      interestRate: p.interestRate ?? 6.0,
+      loanType: p.loanType ?? 'IO',
+      stampDuty: 0,
+      legals: 1_500,
+      buildingPest: 700,
+      baFee: 0,
+      cashDeposit: Math.max(0, p.purchasePrice - p.loan),
+      propertyMgmtPercent: 8,
+      councilWater: 2_500,
+      insurance: 1_500,
+      maintenance: 2_000,
+    }
+  });
 }
 
 // ── Step 1.7: Map to Property Selections + Instances ───────────────

@@ -111,77 +111,69 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
       order={8}
       position="top"
     >
-    <div id="summary-bar-container" className="grid grid-cols-4 gap-4">
+    <div id="summary-bar-container" className="grid grid-cols-4 gap-3">
       {/* Portfolio Value */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-        <div className="flex items-start justify-between">
-          <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
-          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-            <TrendUp01Icon size={18} color="#535862" />
-          </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Portfolio Value</span>
+          <TrendUp01Icon size={14} color="#A4A7AE" />
         </div>
-        <div className="mt-1">
-          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
+        <div className="flex items-baseline gap-1.5 mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">
             {formatCurrency(kpis.portfolioValue)}
           </span>
           {kpis.terminalYear && (
-            <span className="ml-1.5 text-sm text-[#717680]">by {kpis.terminalYear}</span>
+            <span className="text-xs text-[#A4A7AE]">by {kpis.terminalYear}</span>
           )}
         </div>
       </div>
 
       {/* Total Equity */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-        <div className="flex items-start justify-between">
-          <span className="text-sm font-medium text-[#535862]">Total Equity</span>
-          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-            <BarChartSquare02Icon size={18} color="#535862" />
-          </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Total Equity</span>
+          <BarChartSquare02Icon size={14} color="#A4A7AE" />
         </div>
-        <div className="mt-1">
-          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
+        <div className="flex items-baseline gap-1.5 mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">
             {formatCurrency(kpis.totalEquity)}
           </span>
           {kpis.terminalYear && (
-            <span className="ml-1.5 text-sm text-[#717680]">by {kpis.terminalYear}</span>
+            <span className="text-xs text-[#A4A7AE]">by {kpis.terminalYear}</span>
           )}
         </div>
       </div>
 
       {/* Net Cashflow */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-        <div className="flex items-start justify-between">
-          <span className="text-sm font-medium text-[#535862]">Net Cashflow</span>
-          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-            <Wallet02Icon size={18} color="#535862" />
-          </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Net Cashflow</span>
+          <Wallet02Icon size={14} color="#A4A7AE" />
         </div>
-        <div className="mt-1 flex items-baseline gap-1 flex-wrap">
-          <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
+        <div className="flex items-baseline gap-1 mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">
             {formatMonthlyCashflow(monthlyCashflow)}
           </span>
-          <span className="text-sm text-[#717680]">/mo</span>
+          <span className="text-xs text-[#A4A7AE]">/mo</span>
           {kpis.terminalYear && (
-            <span className="text-sm text-[#717680]">by {kpis.terminalYear}</span>
+            <span className="text-xs text-[#A4A7AE]">by {kpis.terminalYear}</span>
           )}
         </div>
       </div>
 
       {/* Next Purchase */}
-      <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-        <div className="flex items-start justify-between">
-          <span className="text-sm font-medium text-[#535862]">Next Purchase</span>
-          <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-            <CalendarCheck01Icon size={18} color="#535862" />
-          </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Next Purchase</span>
+          <CalendarCheck01Icon size={14} color="#A4A7AE" />
         </div>
-        <div className="mt-1">
+        <div className="mt-0.5">
           {nextPurchase ? (
-            <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">
+            <span className="text-lg font-medium text-[#181D27] tracking-tight">
               {nextPurchase.year}
             </span>
           ) : (
-            <span className="text-[28px] font-semibold text-[#181D27] tracking-tight leading-tight">—</span>
+            <span className="text-lg font-medium text-[#181D27] tracking-tight">—</span>
           )}
         </div>
       </div>

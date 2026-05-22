@@ -4,7 +4,6 @@ import {
   Area,
   Line,
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   ReferenceLine,
@@ -15,10 +14,24 @@ import {
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { CHART_STYLE } from '../constants/chartColors'
 import { BASE_YEAR } from '../constants/financialParams'
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+
+// ── UUI Design Tokens (from live DOM inspection of Dashboard 03) ────────────
+const UUI = {
+  brand600: '#7F56D9',
+  neutral900: '#171717',
+  neutral700: '#404040',
+  neutral600: '#525252',
+  neutral500: '#737373',
+  neutral200: '#E5E5E5',
+  neutral100: '#F5F5F5',
+  neutral50: '#FAFAFA',
+  white: '#FFFFFF',
+  success: '#00A63E',
+  fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+} as const;
 
 interface CashflowChartProps {
   scenarioData?: {
@@ -35,9 +48,9 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
   const badgeY = 4;
   return (
     <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill="#8B5CF6" />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily="Inter, system-ui, sans-serif">
+      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.brand600} strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill={UUI.brand600} />
+      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
         CF Positive ✓
       </text>
     </g>
@@ -45,10 +58,10 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
 };
 
 /**
- * Cashflow Projection — Dual-line area chart
+ * Cashflow Projection — UUI Dashboard 03 "Sales" chart style
  *
- * Rental income (solid blue line with gradient fill) vs Expenses (dashed grey line).
- * Replaces the previous bar chart for visual uniformity across the dashboard.
+ * Area chart with striped vertical-line fill pattern (matching UUI's SVG pattern technique).
+ * Net cashflow as single visible line. Income/expenses available in tooltip.
  */
 export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) => {
   const { cashflowData } = useChartDataGenerator(scenarioData)
@@ -71,19 +84,17 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     return capped.map(d => ({
       year: d.year,
-      income: Math.round(d.rentalIncome),                          // annual rent
-      expenses: Math.round(d.expenses + d.loanRepayments),         // annual running costs + mortgage interest
-      netCashflow: Math.round(d.cashflow),                         // annual net (pre-computed correctly upstream)
+      income: Math.round(d.rentalIncome),
+      expenses: Math.round(d.expenses + d.loanRepayments),
+      netCashflow: Math.round(d.cashflow),
     }));
   }, [cashflowData, profile.timelineYears]);
 
   // Find where net cashflow goes positive and STAYS positive (no dips back below zero)
   const cashflowPositivePoint = useMemo(() => {
     const hasNegative = data.some(d => d.netCashflow < 0);
-    if (!hasNegative) return null; // Always positive — no crossover to mark
+    if (!hasNegative) return null;
 
-    // Walk backwards from the end to find the last negative year,
-    // then the marker is the year immediately after it.
     let lastNegativeIndex = -1;
     for (let i = data.length - 1; i >= 0; i--) {
       if (data[i].netCashflow < 0) {
@@ -91,46 +102,51 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         break;
       }
     }
-    // If never negative (shouldn't happen given hasNegative check) or the last year is negative, no marker
     if (lastNegativeIndex < 0 || lastNegativeIndex >= data.length - 1) return null;
     return data[lastNegativeIndex + 1];
   }, [data]);
 
-  // Custom tooltip
+  // ── UUI-style tooltip ─────────────────────────────────────────────────────
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
 
     const income = payload.find((p: any) => p.dataKey === 'income')?.value ?? 0;
     const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value ?? 0;
-    // Use the pre-computed net cashflow (includes mortgage interest properly).
-    // Fall back to income - expenses only if it's missing (defensive).
     const net = data.find(d => d.year === label)?.netCashflow ?? (income - expenses);
 
     return (
       <div
-        className="bg-white border rounded-xl"
         style={{
-          borderColor: '#E9EAEB',
+          background: UUI.white,
+          border: `1px solid ${UUI.neutral200}`,
+          borderRadius: 8,
           padding: '12px 16px',
-          fontSize: 13,
-          boxShadow: '0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03)',
+          fontFamily: UUI.fontFamily,
+          fontSize: 14,
+          boxShadow: '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.06)',
         }}
       >
-        <p className="font-semibold text-[#181D27] mb-2">{label}</p>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="text-gray-500">Income</span>
-          <span className="font-medium text-gray-700">${income.toLocaleString()}/yr</span>
+        <p style={{ fontWeight: 600, color: UUI.neutral900, marginBottom: 8, fontSize: 14 }}>{label}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+          <span style={{ color: UUI.neutral500 }}>Income</span>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>${income.toLocaleString()}/yr</span>
         </div>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="text-gray-500">Expenses</span>
-          <span className="font-medium text-gray-700">${expenses.toLocaleString()}/yr</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+          <span style={{ color: UUI.neutral500 }}>Expenses</span>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>${expenses.toLocaleString()}/yr</span>
         </div>
         <div
-          className="flex justify-between gap-6 pt-2 mt-1"
-          style={{ borderTop: '1px solid #F3F4F6' }}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 24,
+            paddingTop: 8,
+            marginTop: 4,
+            borderTop: `1px solid ${UUI.neutral100}`,
+          }}
         >
-          <span className="font-semibold text-gray-900">Net</span>
-          <span className={`font-semibold ${net >= 0 ? 'text-gray-900' : 'text-gray-500'}`}>
+          <span style={{ fontWeight: 600, color: UUI.neutral900 }}>Net</span>
+          <span style={{ fontWeight: 600, color: net >= 0 ? UUI.success : UUI.neutral500 }}>
             {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}/yr
           </span>
         </div>
@@ -138,52 +154,59 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     );
   };
 
-  const formatYAxis = (value: number) => {
-    if (value === 0) return '$0';
-    if (Math.abs(value) >= 1_000_000) {
-      const m = value / 1_000_000;
-      return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
-    }
-    return `$${(value / 1000).toFixed(0)}K`;
-  };
-
   return (
     <div>
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart
           data={data}
-          margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
+          margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
         >
           <defs>
-            <linearGradient id="cashflowNetFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.12} />
-              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.01} />
-            </linearGradient>
+            {/* UUI striped vertical-line fill pattern */}
+            <pattern id="cashflowVerticalLines" width="8" height="100%" patternUnits="userSpaceOnUse">
+              <line x1="4" y1="0" x2="4" y2="100%" stroke={UUI.brand600} strokeWidth="1" strokeOpacity="0.35" />
+            </pattern>
           </defs>
 
-          <CartesianGrid {...CHART_STYLE.grid} />
-          <XAxis dataKey="year" {...CHART_STYLE.xAxis} padding={{ left: 20, right: 10 }} />
-          <YAxis
-            tickFormatter={formatYAxis}
-            {...CHART_STYLE.yAxis}
+          {/* Faint horizontal grid — UUI uses ~#F5F5F5 (nearly invisible) */}
+          <CartesianGrid
+            strokeDasharray="0"
+            stroke={UUI.neutral100}
+            strokeOpacity={0.8}
+            vertical={false}
           />
+
+          {/* X-axis — UUI 12px, neutral-500, no axis line, no tick marks */}
+          <XAxis
+            dataKey="year"
+            tick={{
+              fontSize: 12,
+              fill: UUI.neutral500,
+              fontFamily: UUI.fontFamily,
+            }}
+            axisLine={false}
+            tickLine={false}
+            padding={{ left: 20, right: 10 }}
+          />
+
+          {/* No Y-axis — matches UUI Sales chart exactly */}
+
           {/* Secondary axis keeps hidden series out of the primary Y domain */}
-          <YAxis yAxisId="hidden" hide />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={0} stroke="#9CA3AF" strokeWidth={1} />
+          <ReferenceLine y={0} stroke={UUI.neutral200} strokeWidth={1} />
 
           {/* Hidden series so income/expenses data is available in the tooltip payload */}
-          <Line yAxisId="hidden" dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
-          <Line yAxisId="hidden" dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
-          {/* Net Cashflow — the only visible line */}
+          {/* Net Cashflow — striped area fill + solid line (UUI pattern) */}
           <Area
             type="monotone"
             dataKey="netCashflow"
             name="Net Cashflow"
-            stroke="#8B5CF6"
+            stroke={UUI.brand600}
             strokeWidth={2}
-            fill="url(#cashflowNetFill)"
+            fill="url(#cashflowVerticalLines)"
             dot={false}
             isAnimationActive={false}
           />
@@ -194,7 +217,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
               x={cashflowPositivePoint.year}
               y={cashflowPositivePoint.netCashflow}
               r={6}
-              fill="#8B5CF6"
+              fill={UUI.brand600}
               stroke="white"
               strokeWidth={2.5}
             >
@@ -203,7 +226,6 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           )}
         </ComposedChart>
       </ResponsiveContainer>
-
     </div>
   )
 }

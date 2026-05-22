@@ -17,9 +17,9 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
-import { PropertySummaryCard } from './PropertySummaryCard';
 import { PropertyDetailPanel } from './PropertyDetailPanel';
 import { AddToTimelineModal } from './AddToTimelineModal';
+import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { dispatchChatSend } from '../utils/chatBus';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -190,8 +190,21 @@ export const PropertyCardRow: React.FC = () => {
     updateInstance(instanceId, { [field]: value });
   };
 
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency: 'AUD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const getGrowthPercent = (tier: string): string => {
+    const rates: Record<string, number> = { High: 12.5, Medium: 6, Low: 5 };
+    return `${(rates[tier] ?? 5).toFixed(1)}%`;
+  };
+
   if (cards.length === 0) {
-    // Empty state — single + button
     return (
       <>
         <div className="flex items-center justify-center py-8">
@@ -214,79 +227,91 @@ export const PropertyCardRow: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Card row — horizontal scroll for any property count */}
-      <div className="overflow-x-auto -mx-2 px-2 pb-2">
-        <div className="flex items-start gap-3" style={{ minWidth: 'min-content' }}>
-          {cards.map((card, cardIdx) =>
-            card.instanceData ? (
-              <PropertySummaryCard
-                key={card.instanceId}
-                instanceId={card.instanceId}
-                propertyType={card.propertyType}
-                instanceData={card.instanceData}
-                purchaseYear={card.purchaseYear}
-                isUnplaceable={card.isUnplaceable}
-                cardIndex={cardIdx + 1}
-                isExpanded={expandedInstanceId === card.instanceId}
-                onClick={() =>
-                  setExpandedInstanceId(
-                    expandedInstanceId === card.instanceId
-                      ? null
-                      : card.instanceId
-                  )
-                }
-                onRemove={() => handleRemove(card.instanceId)}
-                onTypeChange={(newCellId) =>
-                  handleBucketChange(
-                    card.instanceId,
-                    card.propertyType,
-                    newCellId
-                  )
-                }
-                onStateChange={(newState) =>
-                  handleFieldChange(card.instanceId, 'state', newState)
-                }
-              />
-            ) : null
-          )}
+      {/* Property table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 w-10 border-r border-gray-100"></th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Year</th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Price</th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">State</th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">LVR</th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Growth</th>
+              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3">Rent/wk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cards.map((card) => {
+              if (!card.instanceData) return null;
+              const isExpanded = expandedInstanceId === card.instanceId;
+              return (
+                <React.Fragment key={card.instanceId}>
+                  <tr
+                    onClick={() =>
+                      setExpandedInstanceId(isExpanded ? null : card.instanceId)
+                    }
+                    className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
+                      isExpanded ? 'bg-gray-50' : ''
+                    }`}
+                  >
+                    <td className="py-1.5 px-3 border-r border-gray-100">
+                      <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center">
+                        <PropertyTypeIcon propertyTitle={card.propertyType} size={14} className="text-blue-500" />
+                      </div>
+                    </td>
+                    <td className="py-1.5 px-3 font-medium text-gray-600 border-r border-gray-100">
+                      {card.isUnplaceable ? (
+                        <span className="text-amber-600" title="Doesn't fit in current timeline">—</span>
+                      ) : (
+                        card.purchaseYear ?? '—'
+                      )}
+                    </td>
+                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{formatCurrency(card.instanceData.purchasePrice)}</td>
+                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{card.instanceData.state}</td>
+                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{card.instanceData.lvr}%</td>
+                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{getGrowthPercent(card.instanceData.growthAssumption)}</td>
+                    <td className="py-1.5 px-3 text-gray-600">${card.instanceData.rentPerWeek}</td>
+                  </tr>
+                  {/* Inline detail panel */}
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={7} className="p-0">
+                        <div className="border-t border-gray-200 bg-white">
+                          <PropertyDetailPanel
+                            instanceId={card.instanceId}
+                            instanceData={card.instanceData}
+                            propertyType={card.propertyType}
+                            onFieldChange={(field, value) =>
+                              handleFieldChange(card.instanceId, field, value)
+                            }
+                            onBucketChange={(newBucket) =>
+                              handleBucketChange(
+                                card.instanceId,
+                                card.propertyType,
+                                newBucket
+                              )
+                            }
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
 
-          {/* + button — ghost card at the end */}
-          <div className="flex-shrink-0" style={{ width: 220 }}>
-            <div className="text-[11px] font-medium text-gray-400 mb-1.5 px-1">
-              &nbsp;
-            </div>
-            <button
-              onClick={handleAdd}
-              className="w-full h-[88px] rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2 text-sm"
-              aria-label="Add property"
-            >
-              <Plus size={16} />
-              Add property
-            </button>
-          </div>
-        </div>
+        {/* Add property row */}
+        <button
+          onClick={handleAdd}
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 py-3 px-3 transition-colors"
+        >
+          <Plus size={14} />
+          Add property row
+        </button>
       </div>
-
-      {/* Detail panel — wide, full width below the row */}
-      {expandedCard && expandedCard.instanceData && (
-        <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-          <PropertyDetailPanel
-            instanceId={expandedCard.instanceId}
-            instanceData={expandedCard.instanceData}
-            propertyType={expandedCard.propertyType}
-            onFieldChange={(field, value) =>
-              handleFieldChange(expandedCard.instanceId, field, value)
-            }
-            onBucketChange={(newBucket) =>
-              handleBucketChange(
-                expandedCard.instanceId,
-                expandedCard.propertyType,
-                newBucket
-              )
-            }
-          />
-        </div>
-      )}
 
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>

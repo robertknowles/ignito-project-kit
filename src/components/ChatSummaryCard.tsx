@@ -38,9 +38,9 @@ export const ChatSummaryCard: React.FC<ChatSummaryCardProps> = ({ data }) => {
               i < rows.length - 1 ? 'border-b border-gray-100' : ''
             } ${isMissing ? 'bg-amber-50' : ''}`}
           >
-            <span className="text-[#717680] text-[11px] min-w-[90px]">{row.label}</span>
+            <span className="text-[#717680] text-[12px] min-w-[90px] pr-3 border-r border-gray-100">{row.label}</span>
             <span
-              className={`text-[11px] text-right ${
+              className={`text-[12px] text-right ${
                 isPlaceholder
                   ? 'text-amber-700 italic font-normal'
                   : 'text-[#181D27] font-medium'

@@ -13,10 +13,6 @@ import { ComparisonInsights } from './ComparisonInsights';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
 import { compareScenarios } from '@/utils/comparisonCalculator';
-import { HoldingCostPanel, HoldingCostSection } from './HoldingCostPanel/HoldingCostPanel';
-import { FundingSourcesChart } from './FundingSourcesChart/FundingSourcesChart';
-import { EquityUnlockChart, EquityUnlockSummary, useEquityUnlockLegend } from './EquityUnlockChart/EquityUnlockChart';
-import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { CashflowChart } from './CashflowChart';
 import { BorrowingCapacityChart } from './BorrowingCapacityChart';
 import { CHART_COLORS } from '@/constants/chartColors';
@@ -132,8 +128,6 @@ export const Dashboard = () => {
     return null;
   }, [scenarios, scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB]);
 
-  const equityLegend = useEquityUnlockLegend();
-
   // Show skeleton only when there's genuinely no plan (no properties in the order
   // yet) AND we're not actively generating. Previously this checked just
   // liveTimelineProperties.length, which would skeleton-out the page if the
@@ -166,8 +160,8 @@ export const Dashboard = () => {
         {/* Comparison Insights - Only show when 2 scenarios exist */}
         {comparison && <ComparisonInsights comparison={comparison} />}
 
-        {/* 2. Property Cards — pivot between Investment Timeline and Equity Unlock */}
-        <ChartCard title="Properties">
+        {/* 2. Property Cards */}
+        <ChartCard title="Properties" flush>
           <PropertyCardRow />
         </ChartCard>
 
@@ -175,7 +169,7 @@ export const Dashboard = () => {
         <ChartCard
           title="Cashflow Projection"
           legend={[
-            { color: '#8B5CF6', label: 'Net Cashflow' },
+            { color: '#7F56D9', label: 'Net Cashflow' },
           ]}
         >
           <CashflowChart />
@@ -193,31 +187,10 @@ export const Dashboard = () => {
           <BorrowingCapacityChart />
         </ChartCard>
 
-        {/* 5. Equity Unlock Timeline */}
-        <ChartCard title="Equity Unlock Timeline" action={<EquityUnlockSummary />} legend={equityLegend}>
-          <EquityUnlockChart />
-        </ChartCard>
-
-        {/* 5. Funding Sources */}
-        <ChartCard title="Funding Sources">
-          <FundingSourcesChart />
-        </ChartCard>
-
-        {/* 5. Monthly Holding Costs */}
-        <HoldingCostSection>
-          {(dropdown, panel) => (
-            <ChartCard title="Monthly Holding Costs" action={dropdown}>
-              {panel}
-            </ChartCard>
-          )}
-        </HoldingCostSection>
-
-        {/* 6. Financial Summary — always expanded */}
-        <ChartCard title="Financial Summary">
+        {/* 5. Financial Summary */}
+        <ChartCard title="Financial Summary" flush>
           <FinancialSummaryTable />
         </ChartCard>
-
-        {/* Retirement Scenario moved to /retirement tab */}
       </div>
     </div>
   );

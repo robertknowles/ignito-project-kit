@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { Building2 } from 'lucide-react'
 import { LeftRail } from '../components/LeftRail'
 import { TopBar } from '../components/TopBar'
 import { ChatPanel } from '../components/ChatPanel'
@@ -6,15 +7,13 @@ import { useLayout } from '../contexts/LayoutContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useClient } from '../contexts/ClientContext'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
-import { RetirementScenarioPanel } from '../components/RetirementScenario/RetirementScenarioPanel'
-import { ChartCard } from '../components/ui/ChartCard'
-import { DisclaimerBlock } from '@/components/DisclaimerBlock'
+import { PortfolioTab } from '../components/PortfolioTab'
 
 const Retirement: React.FC = () => {
   const { chatPanelWidth } = useLayout()
   const drawerOpen = true
   const { propertyOrder } = usePropertySelection()
-  const { activeClient } = useClient()
+  const { clients, activeClient } = useClient()
   const { loadClientScenario } = useScenarioSave()
 
   const recoveryAttemptedRef = useRef(false)
@@ -44,10 +43,20 @@ const Retirement: React.FC = () => {
 
         <div className="flex-1 overflow-auto bg-white">
           <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>
-            <DisclaimerBlock variant="D" className="mb-2" />
-            <ChartCard title="Retirement Scenario">
-              <RetirementScenarioPanel />
-            </ChartCard>
+            {!activeClient ? (
+              <div className="flex flex-col items-center justify-center h-64">
+                <Building2 size={48} className="text-gray-300 mb-4" />
+                <h2 className="page-title text-gray-400">Portfolio</h2>
+                <p className="body-secondary mt-1">
+                  {clients.length === 0
+                    ? 'No clients yet. Add a client to get started.'
+                    : 'Select a client to view their portfolio.'
+                  }
+                </p>
+              </div>
+            ) : (
+              <PortfolioTab />
+            )}
           </div>
         </div>
       </div>

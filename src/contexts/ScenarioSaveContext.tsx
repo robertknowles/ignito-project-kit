@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { repairScenario } from '@/utils/scenarioRepair';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { ChatMessage } from '../types/nlParse';
+import type { ExistingProperty } from '../types/existingProperty';
 import {
   translateLegacyEngineId,
   translateLegacyInstanceId,
@@ -72,6 +73,7 @@ export interface ScenarioData {
     };
   };
   propertyInstances?: Record<string, PropertyInstanceDetails>;
+  existingProperties?: ExistingProperty[];
   timelineSnapshot?: any[];
   // Pre-calculated chart data for Client Report consistency
   chartData?: {
@@ -141,6 +143,9 @@ interface ScenarioSaveContextType {
   setChatRequestInFlight: (inFlight: boolean) => void;
   setTimelineSnapshot: (snapshot: any[]) => void;
   setChartData: (chartData: ScenarioData['chartData']) => void;
+  // Existing portfolio properties
+  existingProperties: ExistingProperty[];
+  setExistingProperties: (properties: ExistingProperty[]) => void;
   // NL Chat history persistence
   chatMessages: ChatMessage[];
   setChatMessages: (messages: ChatMessage[]) => void;
@@ -179,6 +184,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [timelineSnapshot, setTimelineSnapshot] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ScenarioData['chartData'] | undefined>(undefined);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [existingProperties, setExistingProperties] = useState<ExistingProperty[]>([]);
   // Tracks which client the in-memory scenario state (chatMessages, scenarioId,
   // selections, etc.) currently reflects. Set after loadClientScenario settles
   // for that client (success OR no-data path). Consumers like ChatPanel use
@@ -221,6 +227,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       propertyOrder: propertyOrder,
       investmentProfile: profile,
       propertyInstances: propertyInstanceContext.instances,
+      existingProperties: existingProperties.length > 0 ? existingProperties : undefined,
       timelineSnapshot: timelineSnapshot,
       chartData: chartData,
       chatHistory: chatMessages.length > 0 ? chatMessages : undefined,
@@ -240,7 +247,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     return baseData;
-  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, timelineSnapshot, chartData, chatMessages, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
+  }, [selections, propertyOrder, profile, propertyInstanceContext.instances, existingProperties, timelineSnapshot, chartData, chatMessages, isMultiScenarioMode, scenarios, syncCurrentScenarioFromContext, isDeletionInProgress]);
 
   // Save scenario.
   // `silent`: suppress toasts (used by autosave). Errors still toast unless silent.
@@ -313,6 +320,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         'propertyOrder',
         'investmentProfile',
         'propertyInstances',
+        'existingProperties',
         'timelineSnapshot',
         'chartData',
         'chatHistory',
@@ -482,6 +490,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const isSameClientReload = loadedClientRef.current === clientId;
     if (!isSameClientReload) {
       setChatMessages([]);
+      setExistingProperties([]);
       setLoadedScenarioClientId(null);
       // CRITICAL: reset scenarioId/loadedVersion/lastSavedData synchronously
       // so that any deferred save (e.g. flushSaveAfterStateUpdate's
@@ -535,6 +544,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLoadedVersion(0);
         if (!isSameClientReload) {
           setChatMessages([]);
+          setExistingProperties([]);
           resetSelections();
           setPropertyOrder([]);
           propertyInstanceContext.setInstances({});
@@ -584,6 +594,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } else {
           propertyInstanceContext.setInstances({});
         }
+
+        // Load existing portfolio properties
+        setExistingProperties(scenarioData.existingProperties ?? []);
 
         // Restore property order (chronological order in which properties were added)
         if (translatedOrder && translatedOrder.length > 0) {
@@ -698,6 +711,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         propertyInstanceContext.setInstances({});
         setProfile({ ...INITIAL_INVESTMENT_PROFILE });
         setChatMessages([]);
+        setExistingProperties([]);
         setTimelineSnapshot([]);
         setChartData(undefined);
         setLoadedScenarioClientId(clientId);
@@ -740,6 +754,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       resetSelections();
       propertyInstanceContext.setInstances({});
       setPropertyOrder([]);
+      setExistingProperties([]);
       
       // Reset scenario tracking state
       setLastSavedData(null);
@@ -805,6 +820,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         propertyInstanceContext.setInstances({});
         setProfile({ ...INITIAL_INVESTMENT_PROFILE });
         setChatMessages([]);
+        setExistingProperties([]);
         setTimelineSnapshot([]);
         setChartData(undefined);
         return null;
@@ -812,7 +828,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (data?.data) {
         const scenarioData = data.data as ScenarioData;
-        
+
         // Set the scenario ID
         setScenarioId(data.id);
         
@@ -865,6 +881,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         propertyInstanceContext.setInstances({});
         setProfile({ ...INITIAL_INVESTMENT_PROFILE });
         setChatMessages([]);
+        setExistingProperties([]);
         setTimelineSnapshot([]);
         setChartData(undefined);
         return null;
@@ -1062,6 +1079,9 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setChatRequestInFlight,
     setTimelineSnapshot,
     setChartData,
+    // Existing portfolio properties
+    existingProperties,
+    setExistingProperties,
     // NL Chat history persistence
     chatMessages,
     setChatMessages,

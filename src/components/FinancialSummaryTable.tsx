@@ -103,18 +103,18 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
   return (
     <div ref={containerRef} className="overflow-hidden">
-      <div className="pb-6" style={{ minWidth: 'fit-content' }}>
+      <div className="pb-3" style={{ minWidth: 'fit-content' }}>
       {/* YEAR Header Row */}
       <div
         style={gridStyle}
       >
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5" />
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5" />
         {years.map((yearData) => (
           <div
             key={yearData.year}
-            className="px-1 py-3.5 flex items-center justify-center border-b border-gray-200/60"
+            className="px-1 py-1.5 flex items-center justify-center border-b border-gray-200/60"
           >
-            <span className="text-xs font-medium text-[#717680]">
+            <span className="text-[11px] font-medium text-gray-400">
               {yearData.year}
             </span>
           </div>
@@ -123,8 +123,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* PURCHASE Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Buy
           </span>
           <TooltipProvider>
@@ -147,7 +147,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
         {years.map((yearData) => (
           <div
             key={`purchase-${yearData.year}`}
-            className="px-1 py-3.5 flex flex-col items-center justify-center gap-0.5 border-b border-gray-100"
+            className="px-1 py-1.5 flex flex-col items-center justify-center gap-0.5 border-b border-gray-100"
           >
             {yearData.purchaseInYear && yearData.purchaseDetails && yearData.purchaseDetails.length > 0 ? (
               yearData.purchaseDetails.map((purchase, purchaseIndex) => (
@@ -171,8 +171,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* FUNDS Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Funds
           </span>
           <TooltipProvider>
@@ -196,9 +196,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
         {years.map((yearData) => (
           <div
             key={`avail-${yearData.year}`}
-            className="px-1 py-3.5 flex flex-col items-center justify-center border-b border-gray-100"
+            className="px-1 py-1.5 flex flex-col items-center justify-center border-b border-gray-100"
           >
-            <span className="text-[12px] font-medium text-gray-700">
+            <span className="text-[12px] text-gray-600">
               {formatCompactCurrency(yearData.availableFundsRaw)}
             </span>
             {isAvailableFundsExpanded && yearData.yearBreakdownData && (
@@ -214,8 +214,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* DEBT Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Debt
           </span>
           <TooltipProvider>
@@ -239,9 +239,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
         {years.map((yearData) => (
           <div
             key={`debt-${yearData.year}`}
-            className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+            className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
           >
-            <span className="text-[12px] font-medium text-gray-700">
+            <span className="text-[12px] text-gray-600">
               {formatCompactCurrency(yearData.totalDebt)}
             </span>
           </div>
@@ -250,8 +250,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* EQUITY Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Equity
           </span>
           <TooltipProvider>
@@ -274,9 +274,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
         {years.map((yearData) => (
           <div
             key={`equity-${yearData.year}`}
-            className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+            className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
           >
-            <span className="text-[12px] text-gray-700 font-medium">
+            <span className="text-[12px] text-gray-600">
               {yearData.totalEquityRaw > 0 ? formatCompactCurrency(yearData.totalEquityRaw) : '–'}
             </span>
           </div>
@@ -285,8 +285,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* INCOME Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Income
           </span>
           <TooltipProvider>
@@ -312,9 +312,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           return (
             <div
               key={`income-${yearData.year}`}
-              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+              className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
             >
-              <span className="text-[12px] font-medium text-gray-700">
+              <span className="text-[12px] text-gray-600">
                 {cf && cf.rentalIncome > 0 ? formatCompactCurrency(cf.rentalIncome) : '–'}
               </span>
             </div>
@@ -324,8 +324,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* EXPENSES Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Expenses
           </span>
           <TooltipProvider>
@@ -351,9 +351,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           return (
             <div
               key={`expenses-${yearData.year}`}
-              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+              className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
             >
-              <span className="text-[12px] font-medium text-gray-700">
+              <span className="text-[12px] text-gray-600">
                 {cf && cf.expenses > 0 ? formatCompactCurrency(cf.expenses) : '–'}
               </span>
             </div>
@@ -363,8 +363,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* LOANS Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Loans
           </span>
           <TooltipProvider>
@@ -390,9 +390,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           return (
             <div
               key={`loans-${yearData.year}`}
-              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+              className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
             >
-              <span className="text-[12px] font-medium text-gray-700">
+              <span className="text-[12px] text-gray-600">
                 {cf && cf.loanRepayments > 0 ? formatCompactCurrency(cf.loanRepayments) : '–'}
               </span>
             </div>
@@ -402,8 +402,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
 
       {/* NET CASHFLOW Row */}
       <div style={gridStyle}>
-        <div className="sticky left-0 bg-white z-10 px-2 py-3.5 flex items-center justify-end gap-1">
-          <span className="text-xs font-medium text-[#717680]">
+        <div className="sticky left-0 bg-white z-10 px-2 py-1.5 flex items-center justify-end gap-1">
+          <span className="text-[11px] font-medium text-gray-400">
             Net
           </span>
           <TooltipProvider>
@@ -430,9 +430,9 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
           return (
             <div
               key={`net-${yearData.year}`}
-              className="px-1 py-3.5 flex items-center justify-center border-b border-gray-100"
+              className="px-1 py-1.5 flex items-center justify-center border-b border-gray-100"
             >
-              <span className="text-[12px] font-medium text-gray-700">
+              <span className="text-[12px] text-gray-600">
                 {hasValue ? formatCompactCurrency(cashflow) : '–'}
               </span>
             </div>

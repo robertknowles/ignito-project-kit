@@ -79,6 +79,18 @@ export interface NLParseResponse {
     // Existing property equity (usable equity across PPOR + IPs) in AUD.
     // 0 = confirmed no existing equity. Undefined = BA didn't mention.
     existingPropertyEquity?: number;
+    // Per-property details for existing portfolio (AI-extracted from conversation)
+    existingPortfolio?: Array<{
+      address?: string;
+      state: string;
+      boughtYear?: number;
+      purchasePrice: number;
+      currentValue: number;
+      loan: number;
+      rentPerWeek?: number;
+      interestRate?: number;
+      loanType?: 'IO' | 'PI';
+    }>;
   };
 
   // For initial_plan — mapped to InvestmentProfileData
@@ -178,6 +190,17 @@ export interface NLParseResponse {
     existingPropertyDebt?: number;
     existingPropertyEquity?: number;
     targetPassiveIncome?: number;
+    existingPortfolio?: Array<{
+      address?: string;
+      state: string;
+      boughtYear?: number;
+      purchasePrice: number;
+      currentValue: number;
+      loan: number;
+      rentPerWeek?: number;
+      interestRate?: number;
+      loanType?: 'IO' | 'PI';
+    }>;
   };
 
   /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
