@@ -232,7 +232,6 @@ export const PropertyCardRow: React.FC = () => {
         <table className="w-full text-[12px]">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 w-10 border-r border-gray-100"></th>
               <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Year</th>
               <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Price</th>
               <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">State</th>
@@ -255,11 +254,6 @@ export const PropertyCardRow: React.FC = () => {
                       isExpanded ? 'bg-gray-50' : ''
                     }`}
                   >
-                    <td className="py-1.5 px-3 border-r border-gray-100">
-                      <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center">
-                        <PropertyTypeIcon propertyTitle={card.propertyType} size={14} className="text-blue-500" />
-                      </div>
-                    </td>
                     <td className="py-1.5 px-3 font-medium text-gray-600 border-r border-gray-100">
                       {card.isUnplaceable ? (
                         <span className="text-amber-600" title="Doesn't fit in current timeline">—</span>
@@ -276,7 +270,7 @@ export const PropertyCardRow: React.FC = () => {
                   {/* Inline detail panel */}
                   {isExpanded && (
                     <tr>
-                      <td colSpan={7} className="p-0">
+                      <td colSpan={6} className="p-0">
                         <div className="border-t border-gray-200 bg-white">
                           <PropertyDetailPanel
                             instanceId={card.instanceId}
