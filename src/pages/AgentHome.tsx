@@ -19,7 +19,7 @@ import {
   RotateCcw,
   MoreHorizontal as MoreHorizontalIcon,
 } from 'lucide-react'
-import { LeftRail } from '@/components/LeftRail'
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
 import { ChartCard } from '@/components/ui/ChartCard'
@@ -251,8 +251,8 @@ export const AgentHome: React.FC = () => {
 
   return (
     <div className="main-app flex h-screen w-full bg-white">
-      <LeftRail />
-      <div className="relative flex-1 overflow-auto" style={{ marginLeft: 64 }}>
+      <AppSidebar />
+      <div className="relative flex-1 overflow-auto" style={{ marginLeft: SIDEBAR_WIDTH }}>
         {/* ── Atmospheric aurora wash at the top of the page ─────
             Two overlapping radial gradients — one warm, one cool —
             anchored above the viewport so they peek down from the top

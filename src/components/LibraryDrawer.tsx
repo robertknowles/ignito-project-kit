@@ -38,9 +38,10 @@ export const LibraryDrawer: React.FC<LibraryDrawerProps> = ({
     <>
       {/* Drawer Container */}
       <div
-        className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out ${
           isOpen ? 'w-56' : 'w-0'
         }`}
+        style={{ left: 280 }}
       >
         {/* Content wrapper */}
         <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -130,9 +131,8 @@ export const LibraryDrawer: React.FC<LibraryDrawerProps> = ({
       </div>
 
       {/* Toggle Button */}
-      <div className={`fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out ${
-        isOpen ? 'left-[calc(4rem+14rem)]' : 'left-16'
-      }`}>
+      <div className={`fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out`}
+        style={{ left: isOpen ? 280 + 224 : 280 }}>
         <button
           onClick={onToggle}
           className="w-5 h-10 bg-white border border-gray-200 rounded-r-md flex items-center justify-center hover:bg-gray-50 shadow-sm"

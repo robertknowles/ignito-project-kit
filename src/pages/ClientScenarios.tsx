@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { TourStep } from '@/components/TourManager'
 import { PropertyTimeline } from '../components/PropertyTimeline'
-import { LeftRail } from '../components/LeftRail'
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 // HomeDrawer removed — navigation restructured
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
@@ -1079,8 +1079,8 @@ toast.error('Failed to create client invite');
       />
       
       <div className="main-app flex h-screen w-full bg-white">
-        <LeftRail />
-        <div className="flex-1 overflow-hidden flex flex-col ml-16">
+        <AppSidebar />
+        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
           {/* Warning Banner - shows if user hasn't completed property onboarding */}
           {showWarningBanner && (
             <PropertyOnboardingWarningBanner

@@ -13,7 +13,7 @@ import {
   Wallet,
   Eye,
 } from 'lucide-react'
-import { LeftRail } from '../components/LeftRail'
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { LibraryDrawer } from '../components/LibraryDrawer'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
@@ -460,7 +460,7 @@ export const DataAssumptions = () => {
 
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-      <LeftRail />
+      <AppSidebar />
       <LibraryDrawer
         isOpen={drawerOpen}
         onToggle={() => setDrawerOpen(o => !o)}
@@ -470,9 +470,7 @@ export const DataAssumptions = () => {
         activeClientId={activeClientId}
         onSelectClient={setActiveClientId}
       />
-      <div className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${
-        drawerOpen ? 'ml-[calc(4rem+14rem)]' : 'ml-16'
-      }`}>
+      <div className="flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out" style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + 224 : SIDEBAR_WIDTH }}>
         <div className="flex-1 overflow-auto">
           <div className="p-8">
 

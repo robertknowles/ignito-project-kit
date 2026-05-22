@@ -117,7 +117,6 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
 
     const portfolio = payload.find((p: any) => p.dataKey === 'portfolioValue')?.value ?? 0
     const equity = payload.find((p: any) => p.dataKey === 'totalEquity')?.value ?? 0
-    const doNothing = payload.find((p: any) => p.dataKey === 'doNothingBalance')?.value ?? 0
     const dataPoint = data.find(d => d.year === label)
 
     const fmt = (v: number) => {
@@ -147,32 +146,16 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand600, flexShrink: 0 }} />
-            <span style={{ color: UUI.neutral500 }}>Portfolio Value</span>
-          </div>
-          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(portfolio)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.neutral500, flexShrink: 0 }} />
             <span style={{ color: UUI.neutral500 }}>Total Equity</span>
           </div>
           <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(equity)}</span>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 24,
-            paddingTop: 8,
-            marginTop: 4,
-            borderTop: `1px solid ${UUI.neutral100}`,
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 2, background: UUI.neutral400, flexShrink: 0 }} />
-            <span style={{ color: UUI.neutral500 }}>Savings Only</span>
+            <div style={{ width: 8, height: 2, background: UUI.neutral500, borderStyle: 'dashed', flexShrink: 0 }} />
+            <span style={{ color: UUI.neutral500 }}>Portfolio Value</span>
           </div>
-          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(doNothing)}</span>
+          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(portfolio)}</span>
         </div>
       </div>
     )
@@ -186,10 +169,10 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
           margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
         >
           <defs>
-            {/* UUI LineChart04 gradient: neutral-500 at 70% → 0% opacity */}
+            {/* UUI LineChart04 gradient: brand-600 at 70% → 0% opacity */}
             <linearGradient id="timelineGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={UUI.neutral500} stopOpacity={0.7} />
-              <stop offset="95%" stopColor={UUI.neutral500} stopOpacity={0} />
+              <stop offset="5%" stopColor={UUI.brand600} stopOpacity={0.7} />
+              <stop offset="95%" stopColor={UUI.brand600} stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -215,19 +198,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             padding={{ left: 10, right: 10 }}
           />
 
-          {/* Y-axis — UUI text-tertiary = neutral-600 */}
-          <YAxis
-            tickFormatter={formatYAxis}
-            tick={{
-              fontSize: 12,
-              fill: UUI.neutral600,
-              fontFamily: UUI.fontFamily,
-            }}
-            axisLine={false}
-            tickLine={false}
-            interval="preserveStartEnd"
-            width={55}
-          />
+          {/* No Y-axis */}
 
           <Tooltip
             content={<CustomTooltip />}
@@ -237,53 +208,35 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Series A: Portfolio Value — brand-600 line + gradient fill (primary) */}
+          {/* Portfolio Value — neutral-500 dashed line, no fill (secondary context) */}
           <Area
             type="monotone"
             dataKey="portfolioValue"
             name="Portfolio Value"
+            stroke={UUI.neutral500}
+            strokeDasharray="6 4"
+            strokeWidth={2}
+            fill="none"
+            dot={false}
+            isAnimationActive={false}
+            activeDot={{
+              fill: UUI.white,
+              stroke: UUI.brand600,
+              strokeWidth: 2,
+              r: 4,
+            }}
+          />
+
+          {/* Total Equity — brand-600 solid line + gradient fill (primary, hero line) */}
+          <Area
+            type="monotone"
+            dataKey="totalEquity"
+            name="Total Equity"
             stroke={UUI.brand600}
             strokeWidth={2}
             fill="url(#timelineGradient)"
             fillOpacity={0.1}
             dot={false}
-            isAnimationActive={false}
-            activeDot={{
-              fill: UUI.white,
-              stroke: UUI.brand600,
-              strokeWidth: 2,
-              r: 4,
-            }}
-          />
-
-          {/* Series B: Total Equity — neutral-500 line, no fill (secondary) */}
-          <Area
-            type="monotone"
-            dataKey="totalEquity"
-            name="Total Equity"
-            stroke={UUI.neutral500}
-            strokeWidth={2}
-            fill="none"
-            dot={false}
-            isAnimationActive={false}
-            activeDot={{
-              fill: UUI.white,
-              stroke: UUI.brand600,
-              strokeWidth: 2,
-              r: 4,
-            }}
-          />
-
-          {/* Series C: Savings Only — neutral-400 line, no fill (tertiary) */}
-          <Area
-            type="monotone"
-            dataKey="doNothingBalance"
-            name="Savings Only"
-            stroke={UUI.neutral400}
-            strokeWidth={2}
-            fill="none"
-            dot={false}
-            connectNulls
             isAnimationActive={false}
             activeDot={{
               fill: UUI.white,

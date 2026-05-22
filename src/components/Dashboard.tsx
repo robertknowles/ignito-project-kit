@@ -168,9 +168,8 @@ export const Dashboard = () => {
         <ChartCard
           title="Investment Timeline"
           legend={[
-            { color: '#7F56D9', label: 'Portfolio Value' },
-            { color: '#737373', label: 'Total Equity' },
-            { color: '#A3A3A3', label: 'Savings Only' },
+            { color: '#7F56D9', label: 'Total Equity' },
+            { color: '#737373', label: 'Portfolio Value' },
           ]}
         >
           <TimelineColumn />

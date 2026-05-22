@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Share2, Copy, RotateCcw, ExternalLink, Plus } from 'lucide-react'
+import { Share2, Copy, RotateCcw } from 'lucide-react'
 import { SaveButton } from './SaveButton'
 import { ResetButton } from './ResetButton'
 import { useClientSwitching } from '@/hooks/useClientSwitching'
@@ -9,8 +9,7 @@ import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
-import { TourStep } from '@/components/TourManager'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -30,16 +29,9 @@ export const TopBar = () => {
   const { toast } = useToast()
   const { role } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const isClient = role === 'client'
 
-  // Tab navigation items
-  const tabs = [
-    { label: 'Plan', path: '/dashboard' },
-    { label: 'Brief', path: '/portfolio' },
-    { label: 'Portfolio', path: '/retirement' },
-  ]
-  const activeTab = location.pathname
+  // Tab navigation moved to AppSidebar — TopBar now only hosts action buttons
   
   // State for share dashboard modal
   const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -349,46 +341,7 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-end w-full h-[52px] px-8 bg-white border-b border-gray-200 relative">
-      {/* Center: Tab Navigation — absolutely centered in the full bar */}
-      {!isClient && (
-        <div className="absolute left-1/2 top-0 h-full -translate-x-1/2 flex items-center">
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.path
-            // Disable tab navigation while a chat request is in flight.
-            // Switching routes mid-fetch remounts ChatPanel and orphans the
-            // in-flight promise — user reports the loading state "glitches"
-            // when clicking between tabs during plan generation or a
-            // modification response. Holding the tabs until the response
-            // lands is the cheapest reliable fix.
-            const disabled = isChatRequestInFlight && !isActive
-            return (
-              <button
-                key={tab.label}
-                onClick={() => {
-                  if (disabled) return
-                  navigate(tab.path)
-                }}
-                disabled={disabled}
-                title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                className={`relative h-full px-5 text-[13px] font-medium transition-colors ${
-                  isActive
-                    ? 'text-[#111827]'
-                    : disabled
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.label}
-                {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2563EB]" />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
-
+    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-end w-full h-[52px] px-8 bg-white border-b border-gray-200">
       {/* Right side: Reset, Share (client login), Save */}
       {!isClient && (
         <div className="flex items-center gap-2">

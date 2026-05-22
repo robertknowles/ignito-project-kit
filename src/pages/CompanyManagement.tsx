@@ -8,7 +8,7 @@ import {
   CheckIcon,
   Loader2Icon,
 } from 'lucide-react';
-import { LeftRail } from '../components/LeftRail';
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar';
 // HomeDrawer removed — navigation restructured
 import { useCompany, TeamMember } from '@/contexts/CompanyContext';
 import { useBranding } from '@/contexts/BrandingContext';
@@ -166,8 +166,8 @@ export const CompanyManagement = () => {
 
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-      <LeftRail />
-      <div className="flex-1 overflow-hidden ml-16">
+      <AppSidebar />
+      <div className="flex-1 overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
         <div className="h-full overflow-auto">
           <div className="flex-1 overflow-auto p-8">
             {/* Header */}

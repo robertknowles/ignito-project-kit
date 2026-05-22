@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { Building2 } from 'lucide-react'
-import { LeftRail } from '../components/LeftRail'
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { TopBar } from '../components/TopBar'
 import { ChatPanel } from '../components/ChatPanel'
 import { useClient } from '../contexts/ClientContext'
@@ -32,12 +32,12 @@ export const Portfolio = () => {
 
   return (
     <div className="main-app flex h-screen w-full bg-white">
-      <LeftRail />
+      <AppSidebar />
       <ChatPanel isOpen={drawerOpen} />
 
       <div
         className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ marginLeft: drawerOpen ? 64 + chatPanelWidth : 64 }}
+        style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + chatPanelWidth : SIDEBAR_WIDTH }}
       >
         <TopBar />
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dashboard } from './components/Dashboard';
-import { LeftRail } from './components/LeftRail';
+import { AppSidebar, SIDEBAR_WIDTH } from './components/AppSidebar';
 import { TopBar } from './components/TopBar';
 // InputDrawer hidden for NL pivot — component preserved in codebase for future use
 // import { InputDrawer } from './components/InputDrawer';
@@ -27,8 +27,8 @@ function AppContent() {
   if (isClient && noScenarioForClient) {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <LeftRail />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
+        <AppSidebar />
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
           <TopBar />
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center max-w-md">
@@ -50,13 +50,13 @@ function AppContent() {
       </div>
     );
   }
-  
+
   // Client loading state
   if (isClient && clientScenarioLoading) {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <LeftRail />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
+        <AppSidebar />
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
           <TopBar />
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center">
@@ -68,15 +68,15 @@ function AppContent() {
       </div>
     );
   }
-  
+
   // Show InputDrawer based on role and company settings
   // - Staff (owner/agent): always show InputDrawer
   // - Client: show only if is_client_interactive_enabled is true
   if (!showInputDrawer) {
     return (
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <LeftRail />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden ml-16">
+        <AppSidebar />
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
           <TopBar />
           <div className="flex-1 overflow-hidden">
             <Dashboard key="client-scenario" />
@@ -85,19 +85,19 @@ function AppContent() {
       </div>
     );
   }
-  
+
   return (
     <PropertyDragDropProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <LeftRail />
+        <AppSidebar />
         {/* NL Chat Panel — replaces InputDrawer */}
         <ChatPanel isOpen={drawerOpen} />
-        
+
         {/* Main Content Area - margin adjusts based on drawer state */}
-        <div 
+        <div
           id="main-content"
           className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-          style={{ marginLeft: drawerOpen ? 64 + chatPanelWidth : 64 }}
+          style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + chatPanelWidth : SIDEBAR_WIDTH }}
         >
           <TopBar />
           <div className="flex-1 overflow-hidden">

@@ -8,7 +8,7 @@ import {
   UserPlus,
   RefreshCw,
 } from 'lucide-react'
-import { LeftRail } from '@/components/LeftRail'
+import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -293,8 +293,8 @@ export const AgentForms = () => {
   return (
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <LeftRail />
-        <div className="flex-1 overflow-hidden flex flex-col ml-16">
+        <AppSidebar />
+        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Header */}

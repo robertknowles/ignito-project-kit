@@ -948,8 +948,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
 
   return (
     <div
-      className={`fixed left-16 top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out`}
-      style={{ width: isOpen ? chatPanelWidth : 0 }}
+      className={`fixed top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out`}
+      style={{ left: 280, width: isOpen ? chatPanelWidth : 0 }}
     >
       <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Header — Client Selector + action icons */}
