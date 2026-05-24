@@ -59,7 +59,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const subLabelClass = 'py-2 pl-6 pr-3 text-xs font-semibold text-neutral-500 whitespace-nowrap border-r border-neutral-100';
   const valClass = 'text-xs text-neutral-600';
   const emptyClass = 'text-xs text-neutral-300';
-  const rowClass = 'border-b border-neutral-200 hover:bg-neutral-50/50 transition-colors';
+  const rowClass = 'border-b border-neutral-200';
 
   return (
     <div>

@@ -64,12 +64,12 @@ export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStep
                 initial={skipInitialFade ? false : { opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: skipInitialFade ? 0 : i * 0.1 }}
-                className="flex items-center gap-2 text-xs text-gray-400"
+                className="flex items-center gap-2 text-[11px] text-gray-400"
               >
                 {step.status === 'active' ? (
-                  <Loader2Icon size={12} className="animate-spin text-gray-400" />
+                  <Loader2Icon size={11} className="animate-spin text-gray-400" />
                 ) : (
-                  <CheckIcon size={12} className="text-emerald-500" />
+                  <CheckIcon size={11} className="text-emerald-500" />
                 )}
                 <span className={step.status === 'complete' ? 'text-gray-400' : 'text-gray-500'}>
                   {step.label}...

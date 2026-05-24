@@ -34,7 +34,7 @@ const parseInstanceId = (
 
 // ── Inline cell components ───────────────────────────────────────────────────
 
-const cellBase = 'w-full bg-transparent text-sm text-neutral-600 py-1.5 px-0 border-0 focus:outline-none focus:bg-blue-50/30 transition-colors';
+const cellBase = 'w-full bg-transparent text-xs text-neutral-600 py-1 px-1 border-0 outline-none rounded hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 transition-colors';
 const numberInputClass = `${cellBase} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`;
 
 const NumberInput: React.FC<{
@@ -107,12 +107,12 @@ interface Column {
 }
 
 const readonlyCell = (text: string | number | undefined) => (
-  <span className="text-sm text-neutral-600">{text ?? '—'}</span>
+  <span className="text-xs text-neutral-600">{text ?? '—'}</span>
 );
 
 const yearCell: RenderFn = (card) =>
   card.isUnplaceable
-    ? <span className="text-amber-600 text-sm" title="Doesn't fit in current timeline">—</span>
+    ? <span className="text-amber-600 text-xs" title="Doesn't fit in current timeline">—</span>
     : readonlyCell(card.purchaseYear);
 
 const EQUITY_COLUMNS: Column[] = [
@@ -292,10 +292,10 @@ const CASHFLOW_COLUMNS: Column[] = [
   },
 ];
 
-// ── Combined "Purchases" columns — ALL fields from equity + cashflow ─────────
+// ── Combined "Purchases" columns — streamlined ──────────────────────────────
 
 const PURCHASES_COLUMNS: Column[] = [
-  // ── Core identity ──
+  // ── Identity ──
   { key: 'year', header: 'Year', render: yearCell },
   {
     key: 'state', header: 'State',
@@ -309,7 +309,7 @@ const PURCHASES_COLUMNS: Column[] = [
       ? <SelectInput value={c.instanceData.growthAssumption} options={GROWTH_OPTIONS} onChange={v => onChange(c.instanceId, 'growthAssumption', v)} />
       : null,
   },
-  // ── Purchase / Loan ──
+  // ── Financing ──
   {
     key: 'price', header: 'Price ($)',
     render: (c, onChange) => c.instanceData
@@ -346,12 +346,6 @@ const PURCHASES_COLUMNS: Column[] = [
       ? <SelectInput value={c.instanceData.loanProduct} options={PRODUCT_OPTIONS} onChange={v => onChange(c.instanceId, 'loanProduct', v as any)} />
       : null,
   },
-  {
-    key: 'lmi', header: 'LMI Waiver',
-    render: (c, onChange) => c.instanceData
-      ? <CheckboxInput checked={c.instanceData.lmiWaiver} onChange={v => onChange(c.instanceId, 'lmiWaiver', v)} />
-      : null,
-  },
   // ── Income ──
   {
     key: 'rent', header: 'Rent/wk ($)',
@@ -369,44 +363,20 @@ const PURCHASES_COLUMNS: Column[] = [
       return readonlyCell(`${y}%`);
     },
   },
-  // ── Annual Expenses ──
+  // ── Annual Holding Cost (merged total) ──
   {
-    key: 'mgmt', header: 'Mgmt (%)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.propertyManagementPercent} onChange={v => onChange(c.instanceId, 'propertyManagementPercent', v)} />
-      : null,
+    key: 'holdingCost', header: 'Holding $/yr',
+    render: (c) => {
+      if (!c.instanceData) return null;
+      const d = c.instanceData;
+      const mgmtDollar = (d.propertyManagementPercent / 100) * d.rentPerWeek * 52;
+      const total = Math.round(
+        mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual
+      );
+      return readonlyCell(total.toLocaleString());
+    },
   },
-  {
-    key: 'insAnn', header: 'Ins ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.buildingInsuranceAnnual} onChange={v => onChange(c.instanceId, 'buildingInsuranceAnnual', v)} />
-      : null,
-  },
-  {
-    key: 'rates', header: 'Rates ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.councilRatesWater} onChange={v => onChange(c.instanceId, 'councilRatesWater', v)} />
-      : null,
-  },
-  {
-    key: 'strata', header: 'Strata ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.strata} onChange={v => onChange(c.instanceId, 'strata', v)} />
-      : null,
-  },
-  {
-    key: 'maintAnn', header: 'Maint ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.maintenanceAllowanceAnnual} onChange={v => onChange(c.instanceId, 'maintenanceAllowanceAnnual', v)} />
-      : null,
-  },
-  {
-    key: 'landTax', header: 'Land Tax ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.landTaxOverride} onChange={v => onChange(c.instanceId, 'landTaxOverride', v || null)} placeholder="Auto" />
-      : null,
-  },
-  // ── One-Off Purchase Costs ──
+  // ── Upfront Purchase Costs ──
   {
     key: 'engage', header: 'Engage ($)',
     render: (c, onChange) => c.instanceData
@@ -414,33 +384,17 @@ const PURCHASES_COLUMNS: Column[] = [
       : null,
   },
   {
-    key: 'deposit', header: 'Hold Dep ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.conditionalHoldingDeposit} onChange={v => onChange(c.instanceId, 'conditionalHoldingDeposit', v)} />
-      : null,
+    key: 'inspections', header: 'Inspect ($)',
+    render: (c) => {
+      if (!c.instanceData) return null;
+      const total = (c.instanceData.buildingPestInspection ?? 0) + (c.instanceData.plumbingElectricalInspections ?? 0);
+      return readonlyCell(total.toLocaleString());
+    },
   },
   {
     key: 'insUp', header: 'Ins Up ($)',
     render: (c, onChange) => c.instanceData
       ? <NumberInput value={c.instanceData.buildingInsuranceUpfront} onChange={v => onChange(c.instanceId, 'buildingInsuranceUpfront', v)} />
-      : null,
-  },
-  {
-    key: 'bp', header: 'B&P ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.buildingPestInspection} onChange={v => onChange(c.instanceId, 'buildingPestInspection', v)} />
-      : null,
-  },
-  {
-    key: 'plumb', header: 'Plumb ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.plumbingElectricalInspections} onChange={v => onChange(c.instanceId, 'plumbingElectricalInspections', v)} />
-      : null,
-  },
-  {
-    key: 'indVal', header: 'Ind Val ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.independentValuation} onChange={v => onChange(c.instanceId, 'independentValuation', v)} />
       : null,
   },
   {
@@ -453,18 +407,6 @@ const PURCHASES_COLUMNS: Column[] = [
     key: 'convey', header: 'Convey ($)',
     render: (c, onChange) => c.instanceData
       ? <NumberInput value={c.instanceData.conveyancing} onChange={v => onChange(c.instanceId, 'conveyancing', v)} />
-      : null,
-  },
-  {
-    key: 'maintPost', header: 'Maint Post ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.maintenanceAllowancePostSettlement} onChange={v => onChange(c.instanceId, 'maintenanceAllowancePostSettlement', v)} />
-      : null,
-  },
-  {
-    key: 'stamp', header: 'Stamp ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.stampDutyOverride} onChange={v => onChange(c.instanceId, 'stampDutyOverride', v || null)} placeholder="Auto" />
       : null,
   },
 ];
@@ -589,7 +531,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: mode === 'purchases' ? 2200 : mode === 'cashflow' ? 1200 : 700 }}>
+        <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1400 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
           <thead>
             {/* Column headers only — no group header row */}
             {/* Column headers */}
@@ -611,7 +553,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
             {cards.map(card => {
               if (!card.instanceData) return null;
               return (
-                <tr key={card.instanceId} className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50/50 transition-colors">
+                <tr key={card.instanceId} className="border-b border-neutral-200 last:border-b-0">
                   {columns.map((col, i) => (
                     <td
                       key={col.key}

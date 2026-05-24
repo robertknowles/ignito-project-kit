@@ -8,6 +8,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
@@ -48,9 +49,11 @@ export const ChatPanel: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+  const location = useLocation()
 
   // ── Drag & resize state ──
-  const [chatSize, setChatSize] = useState({ width: 420, height: 640 })
+  const DEFAULT_SIZE = { width: 380, height: 420 }
+  const [chatSize, setChatSize] = useState(DEFAULT_SIZE)
   const [chatPos, setChatPos] = useState<{ x: number; y: number } | null>(null)
   const minimizedRef = useRef(minimized)
   minimizedRef.current = minimized
@@ -68,25 +71,24 @@ export const ChatPanel: React.FC = () => {
     startW: number; startH: number;
   } | null>(null)
 
-  // Set default position (bottom-right) on mount
+  // Set default position (bottom-right) on mount — stored as expanded position
   useEffect(() => {
     if (!chatPos) {
       setChatPos({
-        x: window.innerWidth - chatSize.width - 24,
-        y: window.innerHeight - 48 - 24,
+        x: window.innerWidth - DEFAULT_SIZE.width - 24,
+        y: window.innerHeight - DEFAULT_SIZE.height - 24,
       })
     }
   }, [])
 
-  // When expanding, clamp so the panel stays on screen
+  // Reset to bottom-right default position & size on route change
   useEffect(() => {
-    if (!minimized && chatPos) {
-      const maxY = window.innerHeight - chatSize.height - 12
-      if (chatPos.y > maxY) {
-        setChatPos(prev => prev ? { ...prev, y: Math.max(12, maxY) } : prev)
-      }
-    }
-  }, [minimized])
+    setChatSize(DEFAULT_SIZE)
+    setChatPos({
+      x: window.innerWidth - DEFAULT_SIZE.width - 24,
+      y: window.innerHeight - DEFAULT_SIZE.height - 24,
+    })
+  }, [location.pathname])
 
   // Global mouse listeners for drag & resize
   useEffect(() => {
@@ -776,6 +778,13 @@ export const ChatPanel: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loadingStep])
 
+  // Auto-expand when loading starts (e.g. plan triggered from Home page)
+  useEffect(() => {
+    if (isLoading && minimized) {
+      setMinimized(false)
+    }
+  }, [isLoading])
+
   // Instantly jump to bottom when expanding from minimized
   useEffect(() => {
     if (!minimized) {
@@ -1012,10 +1021,11 @@ export const ChatPanel: React.FC = () => {
       <div
         className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60 overflow-hidden"
         style={{
-          left: chatPos.x, top: chatPos.y,
-          width: minimized ? chatSize.width : chatSize.width,
+          left: chatPos.x,
+          top: minimized ? chatPos.y + chatSize.height - 48 : chatPos.y,
+          width: chatSize.width,
           height: minimized ? 48 : chatSize.height,
-          transition: dragState.current?.active || resizeState.current?.active ? 'none' : 'height 0.2s ease',
+          transition: dragState.current?.active || resizeState.current?.active ? 'none' : 'top 0.2s ease, height 0.2s ease',
         }}
       >
         {/* Header — drag to move, click to toggle */}
@@ -1057,7 +1067,7 @@ export const ChatPanel: React.FC = () => {
 
             {/* Messages area */}
             <div
-              className={`flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+              className={`flex-1 min-h-0 overflow-y-auto px-3.5 pt-3 pb-6 space-y-3 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -1065,10 +1075,10 @@ export const ChatPanel: React.FC = () => {
             >
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <p className="text-[12px] text-[#181D27] leading-[1.6] font-medium">
+                  <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
                     Describe a client scenario to generate an investment roadmap.
                   </p>
-                  <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
+                  <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
                     e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
                   </p>
                   <StrategyPresetSelector />
@@ -1123,7 +1133,7 @@ export const ChatPanel: React.FC = () => {
                 onChange={handleFileInputChange}
                 className="hidden"
               />
-              <div className="flex items-center gap-2.5 bg-white rounded-xl px-3.5 py-2.5 border border-neutral-200 focus-within:border-neutral-300 transition-colors">
+              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-neutral-200 focus-within:border-neutral-300 transition-colors">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors"
@@ -1139,7 +1149,7 @@ export const ChatPanel: React.FC = () => {
                   onKeyDown={handleKeyDown}
                   placeholder="How can I help?"
                   rows={1}
-                  className="flex-1 bg-transparent text-[12px] text-neutral-900 placeholder-neutral-400 resize-none outline-none leading-relaxed max-h-[120px]"
+                  className="flex-1 bg-transparent text-[11px] text-[#414651] placeholder-neutral-400 resize-none outline-none leading-[1.5] max-h-[120px]"
                   disabled={isLoading}
                 />
                 {(() => {

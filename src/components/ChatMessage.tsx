@@ -51,7 +51,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
   if (message.type === 'loading') {
     return (
       <div ref={ref} className="flex items-start gap-2.5">
-        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#F5F5F5] text-sm text-[#535862]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F5F5F5] text-sm text-[#535862]">
           <div className="flex items-center gap-1">
             <motion.span
               className="w-1.5 h-1.5 bg-[#A4A7AE] rounded-full"
@@ -105,7 +105,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
           transition={{ duration: 0.2 }}
           className="flex justify-end"
         >
-          <div className="max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-br-md bg-[#F5F5F5] border border-gray-200 text-[#181D27] text-[12px] leading-[1.6]">
+          <div className="max-w-[90%] px-3 py-2 rounded-xl rounded-br-md bg-[#F5F5F5] text-[#414651] text-[11px] leading-[1.5]">
             {message.content}
           </div>
         </motion.div>
@@ -124,10 +124,10 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
       >
         <div className="flex-1 min-w-0">
           {/* Single bubble wrapping all content */}
-          <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-md bg-white border border-gray-200 space-y-2.5">
+          <div className="px-3 py-2 rounded-xl rounded-bl-md bg-white border border-neutral-100 space-y-2">
             {/* Text content */}
             {message.content && (
-              <div className="text-[12px] text-[#181D27] leading-[1.6]">
+              <div className="text-[11px] text-[#414651] leading-[1.5]">
                 {message.content}
               </div>
             )}

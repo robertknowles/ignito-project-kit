@@ -9,11 +9,11 @@ import { calculatePerPropertyProjection, type TimelinePropertyData } from '../ut
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { GROWTH_RATE_TIERS } from '../constants/financialParams'
 import type { GrowthCurve } from '../types/property'
+import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
-// Format full number with commas, no dollar sign
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
 
-// ── Sub-tab button (reuses Dashboard pattern) ──────────────────────────────
+// ── Sub-tab button ──────────────────────────────────────────────────────────
 
 const SubTabItem: React.FC<{
   icon: React.ReactNode
@@ -34,7 +34,7 @@ const SubTabItem: React.FC<{
   </button>
 )
 
-// ── Key-value table row helper ──────────────────────────────────────────────
+// ── Read-only row ───────────────────────────────────────────────────────────
 
 const KVRow: React.FC<{
   label: string
@@ -42,16 +42,113 @@ const KVRow: React.FC<{
   bold?: boolean
   border?: boolean
 }> = ({ label, value, bold, border = true }) => (
-  <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0 hover:bg-neutral-50/50 transition-colors`}>
+  <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0`}>
     <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
       {label}
     </td>
-    <td className={`py-2 px-3 text-sm ${bold ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}>
+    <td className={`py-2 px-3 text-xs ${bold ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}>
       {value}
     </td>
   </tr>
 )
 
+// ── Editable number row ─────────────────────────────────────────────────────
+
+const EditableNumRow: React.FC<{
+  label: string
+  value: number
+  field: keyof PropertyInstanceDetails
+  instanceId: string
+  bold?: boolean
+  border?: boolean
+  decimals?: number
+}> = ({ label, value, field, instanceId, bold, border = true, decimals }) => {
+  const { updateInstance } = usePropertyInstance()
+  const [focused, setFocused] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  const display = decimals !== undefined ? value.toFixed(decimals) : fmtNum(value)
+
+  return (
+    <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0`}>
+      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
+        {label}
+      </td>
+      <td className="py-1.5 px-2">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={focused ? draft : display}
+          onFocus={() => { setFocused(true); setDraft(String(value)) }}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => {
+            setFocused(false)
+            const n = parseFloat(draft)
+            if (!isNaN(n) && n !== value) {
+              updateInstance(instanceId, { [field]: n } as Partial<PropertyInstanceDetails>)
+            }
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+          className={`w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs ${
+            bold ? 'font-medium text-neutral-900' : 'text-neutral-600'
+          } hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300`}
+        />
+      </td>
+    </tr>
+  )
+}
+
+// ── Editable select row ─────────────────────────────────────────────────────
+
+const EditableSelectRow: React.FC<{
+  label: string
+  value: string
+  field: keyof PropertyInstanceDetails
+  instanceId: string
+  options: { value: string; label: string }[]
+  border?: boolean
+}> = ({ label, value, field, instanceId, options, border = true }) => {
+  const { updateInstance } = usePropertyInstance()
+
+  return (
+    <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0`}>
+      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
+        {label}
+      </td>
+      <td className="py-1.5 px-2">
+        <select
+          value={value}
+          onChange={e => updateInstance(instanceId, { [field]: e.target.value } as Partial<PropertyInstanceDetails>)}
+          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
+        >
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </td>
+    </tr>
+  )
+}
+
+const STATE_OPTIONS = [
+  { value: 'VIC', label: 'VIC' },
+  { value: 'NSW', label: 'NSW' },
+  { value: 'QLD', label: 'QLD' },
+  { value: 'SA', label: 'SA' },
+  { value: 'WA', label: 'WA' },
+  { value: 'TAS', label: 'TAS' },
+  { value: 'NT', label: 'NT' },
+  { value: 'ACT', label: 'ACT' },
+]
+
+const LOAN_PRODUCT_OPTIONS = [
+  { value: 'IO', label: 'Interest only' },
+  { value: 'PI', label: 'Principal & interest' },
+]
+
+const GROWTH_OPTIONS = [
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' },
+]
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -124,66 +221,56 @@ export const BriefTab: React.FC = () => {
     ? ((instanceData.rentPerWeek * 52) / instanceData.purchasePrice * 100).toFixed(1)
     : '0.0'
 
+  const iid = nextProp.instanceId
+
   // ── Tab 1: The Purchase ─────────────────────────────────────────────────
 
   const purchaseTab = (
     <div className="grid grid-cols-3 gap-4 items-start">
       {/* Property Summary */}
       <ChartCard title="Property summary" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
-            <KVRow label="State" value={instanceData.state} />
+            <EditableSelectRow label="State" value={instanceData.state} field="state" instanceId={iid} options={STATE_OPTIONS} />
             <KVRow label="Purchase year" value={Math.floor(nextProp.affordableYear)} />
-            <KVRow label="Purchase price ($)" value={fmtNum(instanceData.purchasePrice)} />
-            <KVRow label="Valuation ($)" value={fmtNum(instanceData.valuationAtPurchase)} />
-            <KVRow label="LVR (%)" value={instanceData.lvr} />
+            <EditableNumRow label="Purchase price ($)" value={instanceData.purchasePrice} field="purchasePrice" instanceId={iid} />
+            <EditableNumRow label="Valuation ($)" value={instanceData.valuationAtPurchase} field="valuationAtPurchase" instanceId={iid} />
+            <EditableNumRow label="LVR (%)" value={instanceData.lvr} field="lvr" instanceId={iid} />
             <KVRow label="Loan amount ($)" value={fmtNum(nextProp.loanAmount)} />
-            <KVRow label="Interest rate (%)" value={instanceData.interestRate} />
-            <KVRow label="Loan product" value={instanceData.loanProduct === 'IO' ? 'Interest only' : 'Principal & interest'} />
-            <KVRow label="Loan term" value={`${instanceData.loanTerm} years`} />
-            <KVRow label="Growth assumption" value={instanceData.growthAssumption} />
-            <KVRow label="Rent/wk ($)" value={fmtNum(instanceData.rentPerWeek)} />
+            <EditableNumRow label="Interest rate (%)" value={instanceData.interestRate} field="interestRate" instanceId={iid} decimals={2} />
+            <EditableSelectRow label="Loan product" value={instanceData.loanProduct} field="loanProduct" instanceId={iid} options={LOAN_PRODUCT_OPTIONS} />
+            <EditableNumRow label="Loan term (yrs)" value={instanceData.loanTerm} field="loanTerm" instanceId={iid} />
+            <EditableSelectRow label="Growth assumption" value={instanceData.growthAssumption} field="growthAssumption" instanceId={iid} options={GROWTH_OPTIONS} />
+            <EditableNumRow label="Rent/wk ($)" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
             <KVRow label="Gross yield (%)" value={grossYield} />
           </tbody>
         </table>
       </ChartCard>
 
-      {/* Purchase Costs */}
+      {/* Purchase Costs — detailed breakdown, each instance field editable */}
       <ChartCard title="Purchase costs" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
             <KVRow label="Deposit ($)" value={fmtNum(nextProp.depositRequired)} />
-            {acqCosts && (
-              <>
-                <KVRow label="Stamp duty ($)" value={fmtNum(acqCosts.stampDuty)} />
-                <KVRow label="LMI ($)" value={fmtNum(acqCosts.lmi)} />
-                <KVRow label="Legal / conveyancing ($)" value={fmtNum(acqCosts.legalFees)} />
-                <KVRow label="Inspections ($)" value={fmtNum(acqCosts.inspectionFees)} />
-                <KVRow label="Other fees ($)" value={fmtNum(acqCosts.otherFees)} />
-              </>
-            )}
-            {!acqCosts && (
-              <>
-                <KVRow label="Stamp duty ($)" value={fmtNum(instanceData.stampDutyOverride ?? 0)} />
-                <KVRow label="Engagement fee ($)" value={fmtNum(instanceData.engagementFee)} />
-                <KVRow label="Holding deposit ($)" value={fmtNum(instanceData.conditionalHoldingDeposit)} />
-                <KVRow label="Insurance upfront ($)" value={fmtNum(instanceData.buildingInsuranceUpfront)} />
-                <KVRow label="B&P inspection ($)" value={fmtNum(instanceData.buildingPestInspection)} />
-                <KVRow label="Plumbing / electrical ($)" value={fmtNum(instanceData.plumbingElectricalInspections)} />
-                <KVRow label="Independent valuation ($)" value={fmtNum(instanceData.independentValuation)} />
-                <KVRow label="Mortgage fees ($)" value={fmtNum(instanceData.mortgageFees)} />
-                <KVRow label="Conveyancing ($)" value={fmtNum(instanceData.conveyancing)} />
-                <KVRow label="Post-settlement maint ($)" value={fmtNum(instanceData.maintenanceAllowancePostSettlement)} />
-              </>
-            )}
+            <EditableNumRow label="Stamp duty ($)" value={acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0} field="stampDutyOverride" instanceId={iid} />
+            <KVRow label="LMI ($)" value={fmtNum(acqCosts?.lmi ?? 0)} />
+            <EditableNumRow label="Engagement fee ($)" value={instanceData.engagementFee} field="engagementFee" instanceId={iid} />
+            <EditableNumRow label="Holding deposit ($)" value={instanceData.conditionalHoldingDeposit} field="conditionalHoldingDeposit" instanceId={iid} />
+            <EditableNumRow label="Insurance upfront ($)" value={instanceData.buildingInsuranceUpfront} field="buildingInsuranceUpfront" instanceId={iid} />
+            <EditableNumRow label="B&P inspection ($)" value={instanceData.buildingPestInspection} field="buildingPestInspection" instanceId={iid} />
+            <EditableNumRow label="Plumbing / elec. ($)" value={instanceData.plumbingElectricalInspections} field="plumbingElectricalInspections" instanceId={iid} />
+            <EditableNumRow label="Ind. valuation ($)" value={instanceData.independentValuation} field="independentValuation" instanceId={iid} />
+            <EditableNumRow label="Mortgage fees ($)" value={instanceData.mortgageFees} field="mortgageFees" instanceId={iid} />
+            <EditableNumRow label="Conveyancing ($)" value={instanceData.conveyancing} field="conveyancing" instanceId={iid} />
+            <EditableNumRow label="Post-sett. maint ($)" value={instanceData.maintenanceAllowancePostSettlement} field="maintenanceAllowancePostSettlement" instanceId={iid} />
             <KVRow label="Total cash required ($)" value={fmtNum(nextProp.totalCashRequired)} bold />
           </tbody>
         </table>
       </ChartCard>
 
-      {/* Funding Source */}
+      {/* Funding Source — all computed */}
       <ChartCard title="Funding source" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
             <KVRow label="Cash ($)" value={fmtNum(nextProp.fundingBreakdown?.cash ?? 0)} />
             <KVRow label="Savings ($)" value={fmtNum(nextProp.fundingBreakdown?.savings ?? 0)} />
@@ -201,9 +288,9 @@ export const BriefTab: React.FC = () => {
     <div className="grid grid-cols-3 gap-4 items-start">
       {/* Cash In */}
       <ChartCard title="Annual cash in" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
-            <KVRow label="Rent/wk ($)" value={fmtNum(cashflow.weeklyRent)} />
+            <EditableNumRow label="Rent/wk ($)" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
             <KVRow label="Gross annual income ($)" value={fmtNum(cashflow.grossAnnualIncome)} />
             <KVRow label="Vacancy ($)" value={fmtNum(cashflow.vacancyAmount)} />
             <KVRow label="Adjusted income ($)" value={fmtNum(cashflow.adjustedIncome)} bold />
@@ -213,15 +300,15 @@ export const BriefTab: React.FC = () => {
 
       {/* Cash Out */}
       <ChartCard title="Annual cash out" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
             <KVRow label="Loan interest ($)" value={fmtNum(cashflow.loanInterest)} />
-            <KVRow label="Property management ($)" value={fmtNum(cashflow.propertyManagementFee)} />
-            <KVRow label="Building insurance ($)" value={fmtNum(cashflow.buildingInsurance)} />
-            <KVRow label="Council rates + water ($)" value={fmtNum(cashflow.councilRatesWater)} />
-            <KVRow label="Strata ($)" value={fmtNum(cashflow.strata)} />
-            <KVRow label="Maintenance ($)" value={fmtNum(cashflow.maintenance)} />
-            <KVRow label="Land tax ($)" value={fmtNum(cashflow.landTax)} />
+            <EditableNumRow label="Prop. mgmt (%)" value={instanceData.propertyManagementPercent} field="propertyManagementPercent" instanceId={iid} decimals={1} />
+            <EditableNumRow label="Building insurance ($)" value={instanceData.buildingInsuranceAnnual} field="buildingInsuranceAnnual" instanceId={iid} />
+            <EditableNumRow label="Council rates + water ($)" value={instanceData.councilRatesWater} field="councilRatesWater" instanceId={iid} />
+            <EditableNumRow label="Strata ($)" value={instanceData.strata} field="strata" instanceId={iid} />
+            <EditableNumRow label="Maintenance ($)" value={instanceData.maintenanceAllowanceAnnual} field="maintenanceAllowanceAnnual" instanceId={iid} />
+            <EditableNumRow label="Land tax ($)" value={cashflow.landTax} field="landTaxOverride" instanceId={iid} />
             {cashflow.principalPayments > 0 && (
               <KVRow label="Principal payments ($)" value={fmtNum(cashflow.principalPayments)} />
             )}
@@ -230,9 +317,9 @@ export const BriefTab: React.FC = () => {
         </table>
       </ChartCard>
 
-      {/* Net Result */}
+      {/* Net Result — all computed */}
       <ChartCard title="Net result" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <tbody>
             <KVRow label="Net annual cashflow ($)" value={fmtNum(cashflow.netAnnualCashflow)} bold />
             <KVRow label="Net monthly ($)" value={fmtNum(cashflow.netMonthlyCashflow)} />
@@ -273,7 +360,7 @@ export const BriefTab: React.FC = () => {
 
       {/* Year-by-Year Projections table — full width */}
       <ChartCard title="Year-by-year projections" flush>
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-neutral-200">
               <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Year</th>
@@ -288,15 +375,15 @@ export const BriefTab: React.FC = () => {
             {keyRows.map((row) => {
               const label = row.year === 0 ? 'Purchase' : `Year ${row.year}`
               return (
-                <tr key={row.year} className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50/50 transition-colors">
+                <tr key={row.year} className="border-b border-neutral-200 last:border-b-0">
                   <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100">{label}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(row.propertyValue)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(row.loanBalance)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(row.equity)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">
+                  <td className="py-2 px-3 text-xs text-neutral-600 border-r border-neutral-100">{fmtNum(row.propertyValue)}</td>
+                  <td className="py-2 px-3 text-xs text-neutral-600 border-r border-neutral-100">{fmtNum(row.loanBalance)}</td>
+                  <td className="py-2 px-3 text-xs text-neutral-600 border-r border-neutral-100">{fmtNum(row.equity)}</td>
+                  <td className="py-2 px-3 text-xs text-neutral-600 border-r border-neutral-100">
                     {row.year === 0 ? '—' : fmtNum(row.netCashflow)}
                   </td>
-                  <td className="py-2 px-3 text-sm text-neutral-600">
+                  <td className="py-2 px-3 text-xs text-neutral-600">
                     {row.year === 0 ? '—' : `${row.roic.toFixed(1)}`}
                   </td>
                 </tr>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -49,85 +49,161 @@ const deriveMetrics = (p: ExistingProperty) => {
   return { equity, annualRent, interest, mgmt, totalExpenses, netCashflow, capitalGrowth, growthPercent, yearsHeld, lvr, releasableEquity, totalCapitalIn, roc }
 }
 
-interface PortfolioTabProps {}
+// ── Inline cell components (matching PropertyCardRow style) ─────────────────
 
-const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ property }) => {
-  const m = deriveMetrics(property)
-  return (
-    <div className="grid grid-cols-3 gap-4 p-5 border-t border-gray-200">
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">One-off Purchase Costs</h4>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-gray-600">Purchase price</span><span className="text-gray-900">{fmt(property.purchasePrice)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Stamp duty</span><span className="text-gray-900">{fmt(property.stampDuty)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Legals + conveyancing</span><span className="text-gray-900">{fmt(property.legals)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Building + pest</span><span className="text-gray-900">{fmt(property.buildingPest)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">BA fee</span><span className="text-gray-900">{fmt(property.baFee)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Cash deposit</span><span className="text-gray-900">{fmt(property.cashDeposit)}</span></div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 mt-2"><span className="text-gray-900 font-medium">Total capital in</span><span className="text-gray-900 font-medium">{fmt(m.totalCapitalIn)}</span></div>
-        </div>
-      </div>
+const cellInput = 'w-full bg-transparent text-xs text-neutral-600 py-1 px-1 border-0 outline-none rounded hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 transition-colors'
+const numInput = `${cellInput} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`
 
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Yearly Cash In & Out</h4>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-gray-600">Rental income</span><span className="text-blue-600 font-medium">+{fmt(m.annualRent)}</span></div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Interest ({property.loanType} {property.interestRate}%)</span>
-            <span className="text-gray-900">–{fmt(m.interest)}</span>
-          </div>
-          <div className="flex justify-between"><span className="text-gray-600">Property mgmt ({property.propertyMgmtPercent}%)</span><span className="text-gray-900">–{fmt(m.mgmt)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Council + water</span><span className="text-gray-900">–{fmt(property.councilWater)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Insurance</span><span className="text-gray-900">–{fmt(property.insurance)}</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Maintenance</span><span className="text-gray-900">–{fmt(property.maintenance)}</span></div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
-            <span className="text-gray-900 font-medium">Net cashflow</span>
-            <span className={`font-medium ${m.netCashflow >= 0 ? 'text-blue-600' : 'text-gray-500'}`}>
-              {m.netCashflow >= 0 ? '+' : ''}{fmt(m.netCashflow)}
-            </span>
-          </div>
-        </div>
-      </div>
+const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT']
+const PRODUCT_OPTIONS = [
+  { value: 'IO', label: 'IO' },
+  { value: 'PI', label: 'P&I' },
+]
 
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Performance To Date</h4>
-        <div className="space-y-2 text-sm mb-4">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Capital growth</span>
-            <span className={`font-medium ${m.capitalGrowth >= 0 ? 'text-blue-600' : 'text-gray-500'}`}>
-              {m.capitalGrowth >= 0 ? '+' : ''}{fmt(m.capitalGrowth)}
-            </span>
-          </div>
-          <div className="flex justify-between"><span className="text-gray-600">Growth %</span><span className={`font-medium ${m.growthPercent >= 0 ? 'text-blue-600' : 'text-gray-500'}`}>+{m.growthPercent.toFixed(0)}%</span></div>
-          <div className="flex justify-between"><span className="text-gray-600">Years held</span><span className="text-gray-900">{m.yearsHeld} yrs</span></div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Equity Now</div>
-            <div className="text-base font-semibold text-gray-900">{fmt(m.equity)}</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">LVR</div>
-            <div className="text-base font-semibold text-gray-900">{m.lvr.toFixed(0)}%</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Releasable @ 80%</div>
-            <div className="text-base font-semibold text-gray-900">{formatCompact(m.releasableEquity)}</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">ROC</div>
-            <div className="text-base font-semibold text-gray-900">{m.roc.toFixed(0)}%</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+const NumCell: React.FC<{
+  value: number
+  onChange: (v: number) => void
+}> = ({ value, onChange }) => (
+  <input
+    type="number"
+    value={value || ''}
+    onChange={e => onChange(Number(e.target.value))}
+    className={numInput}
+  />
+)
+
+const SelectCell: React.FC<{
+  value: string
+  options: { value: string; label: string }[] | string[]
+  onChange: (v: string) => void
+}> = ({ value, options, onChange }) => (
+  <select
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    className={`${cellInput} cursor-pointer`}
+  >
+    {options.map(opt => {
+      const v = typeof opt === 'string' ? opt : opt.value
+      const l = typeof opt === 'string' ? opt : opt.label
+      return <option key={v} value={v}>{l}</option>
+    })}
+  </select>
+)
+
+const TextCell: React.FC<{
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}> = ({ value, onChange, placeholder }) => (
+  <input
+    type="text"
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    placeholder={placeholder}
+    className={cellInput}
+  />
+)
+
+const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
+  <span className="text-xs text-neutral-600">{text}</span>
+)
+
+// ── Column definitions ──────────────────────────────────────────────────────
+
+interface Column {
+  key: string
+  header: string
+  render: (p: ExistingProperty, onChange: (id: string, updates: Partial<ExistingProperty>) => void) => React.ReactNode
 }
+
+const COLUMNS: Column[] = [
+  {
+    key: 'address', header: 'Address',
+    render: (p, onChange) => <TextCell value={p.address} onChange={v => onChange(p.id, { address: v })} placeholder="Enter address" />,
+  },
+  {
+    key: 'year', header: 'Year',
+    render: (p, onChange) => <NumCell value={p.boughtYear} onChange={v => onChange(p.id, { boughtYear: v })} />,
+  },
+  {
+    key: 'state', header: 'State',
+    render: (p, onChange) => <SelectCell value={p.state} options={STATE_OPTIONS} onChange={v => onChange(p.id, { state: v })} />,
+  },
+  {
+    key: 'purchase', header: 'Purchase ($)',
+    render: (p, onChange) => <NumCell value={p.purchasePrice} onChange={v => onChange(p.id, { purchasePrice: v })} />,
+  },
+  {
+    key: 'current', header: 'Current ($)',
+    render: (p, onChange) => <NumCell value={p.currentValue} onChange={v => onChange(p.id, { currentValue: v })} />,
+  },
+  {
+    key: 'loan', header: 'Loan ($)',
+    render: (p, onChange) => <NumCell value={p.loan} onChange={v => onChange(p.id, { loan: v })} />,
+  },
+  {
+    key: 'lvr', header: 'LVR (%)',
+    render: (p) => {
+      const lvr = p.currentValue > 0 ? (p.loan / p.currentValue * 100) : 0
+      return <ReadonlyCell text={lvr > 0 ? `${lvr.toFixed(0)}` : '—'} />
+    },
+  },
+  {
+    key: 'rate', header: 'Rate (%)',
+    render: (p, onChange) => <NumCell value={p.interestRate} onChange={v => onChange(p.id, { interestRate: v })} />,
+  },
+  {
+    key: 'product', header: 'Product',
+    render: (p, onChange) => <SelectCell value={p.loanType} options={PRODUCT_OPTIONS} onChange={v => onChange(p.id, { loanType: v as 'IO' | 'PI' })} />,
+  },
+  {
+    key: 'rent', header: 'Rent/wk ($)',
+    render: (p, onChange) => <NumCell value={p.rentPerWeek} onChange={v => onChange(p.id, { rentPerWeek: v })} />,
+  },
+  {
+    key: 'yield', header: 'Yield (%)',
+    render: (p) => {
+      const y = p.purchasePrice > 0 ? ((p.rentPerWeek * 52) / p.purchasePrice * 100).toFixed(1) : '0.0'
+      return <ReadonlyCell text={`${y}%`} />
+    },
+  },
+  {
+    key: 'mgmt', header: 'Mgmt (%)',
+    render: (p, onChange) => <NumCell value={p.propertyMgmtPercent} onChange={v => onChange(p.id, { propertyMgmtPercent: v })} />,
+  },
+  {
+    key: 'council', header: 'Council ($)',
+    render: (p, onChange) => <NumCell value={p.councilWater} onChange={v => onChange(p.id, { councilWater: v })} />,
+  },
+  {
+    key: 'ins', header: 'Ins ($)',
+    render: (p, onChange) => <NumCell value={p.insurance} onChange={v => onChange(p.id, { insurance: v })} />,
+  },
+  {
+    key: 'maint', header: 'Maint ($)',
+    render: (p, onChange) => <NumCell value={p.maintenance} onChange={v => onChange(p.id, { maintenance: v })} />,
+  },
+  {
+    key: 'engage', header: 'Engage ($)',
+    render: (p, onChange) => <NumCell value={p.baFee} onChange={v => onChange(p.id, { baFee: v })} />,
+  },
+  {
+    key: 'inspect', header: 'Inspect ($)',
+    render: (p, onChange) => <NumCell value={p.buildingPest} onChange={v => onChange(p.id, { buildingPest: v })} />,
+  },
+  {
+    key: 'convey', header: 'Convey ($)',
+    render: (p, onChange) => <NumCell value={p.legals} onChange={v => onChange(p.id, { legals: v })} />,
+  },
+]
+
+// ── Component ───────────────────────────────────────────────────────────────
+
+interface PortfolioTabProps {}
 
 export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const properties = existingProperties
 
   const syncAggregates = useCallback((props: ExistingProperty[]) => {
@@ -141,15 +217,13 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     const next = [...existingProperties, newProp]
     setExistingProperties(next)
     syncAggregates(next)
-    setExpandedId(newProp.id)
   }, [existingProperties, setExistingProperties, syncAggregates])
 
   const handleRemove = useCallback((id: string) => {
     const next = existingProperties.filter(p => p.id !== id)
     setExistingProperties(next)
     syncAggregates(next)
-    if (expandedId === id) setExpandedId(null)
-  }, [existingProperties, setExistingProperties, syncAggregates, expandedId])
+  }, [existingProperties, setExistingProperties, syncAggregates])
 
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
     const next = existingProperties.map(p => p.id === id ? { ...p, ...updates } : p)
@@ -205,12 +279,12 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     return (
       <ChartCard title="Existing Properties" flush>
         <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-sm text-gray-500 mb-4">
-            No existing properties yet — add via chat or manually below.
+          <p className="text-xs text-gray-500 mb-4">
+            No existing properties yet — add one manually below.
           </p>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
           >
             <Plus size={14} />
             Add existing property
@@ -269,66 +343,52 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
         Add property
       </button>
     }>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-neutral-200">
-            <th className="w-8 py-2 px-3 border-r border-neutral-100"></th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Address</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">State</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Bought</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Purchase ($)</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Current ($)</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Loan ($)</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Rent/wk ($)</th>
-            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Yield (%)</th>
-            <th className="w-8 py-2 px-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {properties.map(p => {
-            const isExpanded = expandedId === p.id
-            const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
-            return (
-              <React.Fragment key={p.id}>
-                <tr
-                  onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                  className={`border-b border-neutral-200 last:border-b-0 cursor-pointer transition-colors hover:bg-neutral-50/50 ${isExpanded ? 'bg-neutral-50' : ''}`}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" style={{ minWidth: 1600, tableLayout: 'fixed' }}>
+          <thead>
+            <tr className="border-b border-neutral-200">
+              {COLUMNS.map((col, i) => (
+                <th
+                  key={col.key}
+                  className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
+                    i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
+                  }`}
                 >
-                  <td className="py-2 px-3 text-neutral-400 border-r border-neutral-100">
-                    {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {col.header}
+                </th>
+              ))}
+              <th className="w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {properties.map(p => (
+              <tr key={p.id} className="border-b border-neutral-200 last:border-b-0">
+                {COLUMNS.map((col, i) => (
+                  <td
+                    key={col.key}
+                    className={`py-1 px-3 ${
+                      i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
+                    }`}
+                  >
+                    {col.render(p, handleUpdate)}
                   </td>
-                  <td className="py-2 px-3 text-sm font-medium text-neutral-900 border-r border-neutral-100">{p.address || '(no address)'}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.state}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.boughtYear}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.purchasePrice)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.currentValue)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.loan)}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.rentPerWeek}</td>
-                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.yield.toFixed(1)}</td>
-                  <td className="py-2 px-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRemove(p.id) }}
-                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors"
-                    >
-                      <X size={12} />
-                    </button>
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <tr>
-                    <td colSpan={10} className="p-0 bg-white">
-                      <PropertyDetailPanel property={p} />
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+                ))}
+                <td className="py-1 px-1">
+                  <button
+                    onClick={() => handleRemove(p.id)}
+                    className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                    title="Remove property"
+                  >
+                    <X size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </ChartCard>
   )
-
 
   return (
     <div className="flex flex-col gap-6">

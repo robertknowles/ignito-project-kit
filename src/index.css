@@ -5,6 +5,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global cell-level hover highlight for all tables */
+td:hover {
+  background-color: #f0f0f0;
+  transition: background-color 0.1s ease;
+}
+
 @layer base {
   :root {
     /* Untitled UI neutral gray scale */

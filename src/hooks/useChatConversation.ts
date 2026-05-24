@@ -412,68 +412,17 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Process response based on type
         switch (effectiveType) {
           case 'initial_plan': {
-            // Two-message sequence:
-            // 1. Client summary — what was captured, plus accuracy nudge
-            // 2. Portfolio narrative + property table
-            const summaryData = buildSummaryCard(response)
-            if (summaryData) {
-              const summaryMsg = createMessage(
-                'assistant',
-                'summary-card',
-                "Here's what I captured:",
-                {
-                  summaryCard: summaryData,
-                  assumptions: response.assumptions,
-                }
-              )
-              setMessages((prev) => [...prev, summaryMsg])
-            } else {
-              // No structured client data — just show the message (e.g. asking for more info)
-              const textMsg = createMessage('assistant', 'text', response.message)
-              setMessages((prev) => [...prev, textMsg])
-            }
-
-            // Standalone accuracy nudge — prompt the BA to share missing inputs
-            if (response.missingInputs && response.missingInputs.length > 0) {
-              const nudgeMsg = createMessage(
-                'assistant',
-                'text',
-                '',
-                { missingInputs: response.missingInputs }
-              )
-              setMessages((prev) => [...prev, nudgeMsg])
-            }
-
-            const portfolioData = buildPortfolioCard(response)
-            if (portfolioData) {
-              const portfolioMsg = createMessage(
-                'assistant',
-                'portfolio-card',
-                response.message,
-                { portfolioCard: portfolioData }
-              )
-              setMessages((prev) => [...prev, portfolioMsg])
-            }
+            // Show AI narrative as plain text
+            const planMsg = createMessage('assistant', 'text', response.message)
+            setMessages((prev) => [...prev, planMsg])
 
             // Fire callback to wire data into contexts
             optionsRef.current.onPlanGenerated?.(response)
-
-            // Flag refinement on last assistant message (no system message)
-            if (response.properties && response.properties.length > 0) {
-              setMessages((prev) => {
-                // Find the last assistant message index and create a new array with showRefinement set
-                const lastIdx = prev.map((m, i) => m.role === 'assistant' ? i : -1).filter(i => i >= 0).pop()
-                if (lastIdx === undefined) return prev
-                return prev.map((m, i) => i === lastIdx ? { ...m, showRefinement: true } : m)
-              })
-            }
             break
           }
 
           case 'modification': {
-            const modMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
-            })
+            const modMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, modMsg])
             optionsRef.current.onModification?.(response)
             break
@@ -550,46 +499,35 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             const fallbackText = wasDowngradedFromPlan
               ? "To start a new client, clear the current plan first using the Reset button."
               : response.message
-            const explMsg = createMessage('assistant', 'text', fallbackText, {
-              assumptions: wasDowngraded ? undefined : response.assumptions,
-            })
+            const explMsg = createMessage('assistant', 'text', fallbackText)
             setMessages((prev) => [...prev, explMsg])
             if (!wasDowngraded) optionsRef.current.onExplanation?.(response)
             break
           }
 
           case 'comparison': {
-            const compMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
-            })
+            const compMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, compMsg])
             optionsRef.current.onComparison?.(response)
             break
           }
 
           case 'add_event': {
-            const eventMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
-            })
+            const eventMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, eventMsg])
             optionsRef.current.onAddEvent?.(response)
             break
           }
 
           case 'update_profile': {
-            const updateMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
-            })
+            const updateMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, updateMsg])
             optionsRef.current.onUpdateProfile?.(response)
             break
           }
 
           case 'property_suggestions': {
-            // Show message + property suggestion cards as refinement options
-            const suggestMsg = createMessage('assistant', 'text', response.message, {
-              assumptions: response.assumptions,
-            })
+            const suggestMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, suggestMsg])
             // Map property suggestions to refinement options format
             // Build refinement option buttons from propertySuggestions or
