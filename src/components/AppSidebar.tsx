@@ -27,6 +27,7 @@ import {
   SettingsIcon,
   LogOutIcon,
   ChevronDownIcon,
+  SearchIcon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,8 +36,7 @@ import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useClient } from '@/contexts/ClientContext';
 import { ClientSelector } from './ClientSelector';
 
-/** Matches UUI's MAIN_SIDEBAR_WIDTH (276) + 4px wrapper padding */
-export const SIDEBAR_WIDTH = 280;
+export const SIDEBAR_WIDTH = 256;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -101,10 +101,8 @@ export const AppSidebar: React.FC = () => {
   const navItems: NavEntry[] = [
     { label: 'Home', path: '/home', icon: HomeIcon },
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
-    { divider: true },
     ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
     { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon },
-    { divider: true },
     { label: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
@@ -122,8 +120,8 @@ export const AppSidebar: React.FC = () => {
       className="fixed left-0 top-0 h-screen z-50 flex flex-col bg-white border-r border-neutral-200 pt-5"
       style={{ width: SIDEBAR_WIDTH }}
     >
-      {/* ── Header: Logo ── matches UUI px-4 lg:px-5 gap-5 */}
-      <div className="px-5 mb-5">
+      {/* ── Header: Logo ── */}
+      <div className="px-5 mb-3">
         <button
           onClick={() => navigate('/home')}
           className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none p-0"
@@ -136,13 +134,12 @@ export const AppSidebar: React.FC = () => {
             />
           ) : (
             <>
-              <div className="w-7 h-7 rounded-lg bg-[#7F56D9] flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </div>
-              <span className="text-base font-semibold text-neutral-800 tracking-tight">
+              <img
+                src="/images/proppath-icon.png"
+                alt="PropPath"
+                className="w-7 h-7 rounded-md object-contain"
+              />
+              <span className="text-[14px] font-bold text-neutral-900 tracking-tight">
                 {branding.companyName || 'PropPath'}
               </span>
             </>
@@ -150,8 +147,20 @@ export const AppSidebar: React.FC = () => {
         </button>
       </div>
 
+      {/* ── Search bar ── */}
+      <div className="px-5 mb-3 mt-1">
+        <button
+          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 cursor-pointer transition duration-100 text-left"
+          onClick={() => {}}
+        >
+          <SearchIcon size={16} className="text-neutral-400 shrink-0" />
+          <span className="flex-1 text-sm text-neutral-500">Search</span>
+          <kbd className="text-xs text-neutral-400 bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.5 font-sans">⌘K</kbd>
+        </button>
+      </div>
+
       {/* ── Nav list ── */}
-      <ul className="flex flex-col px-4 pt-5 flex-1 list-none m-0">
+      <ul className="flex flex-col px-4 flex-1 list-none m-0">
         {cleanedItems.map((entry, i) => {
           if (isDivider(entry)) {
             return (

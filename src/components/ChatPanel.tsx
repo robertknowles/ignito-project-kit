@@ -7,13 +7,11 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, GripVerticalIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { StrategyPresetSelector } from './StrategyPresetSelector'
-import { PlanningDefaultsModal } from './PlanningDefaultsModal'
-import { AddToTimelineModal } from './AddToTimelineModal'
 import { extractTextFromPdf } from '@/utils/pdfExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
@@ -45,12 +43,103 @@ export const ChatPanel: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer } = useLayout()
-  const [showPreferences, setShowPreferences] = useState(false)
-  const [showPropertyLibrary, setShowPropertyLibrary] = useState(false)
+  const [minimized, setMinimized] = useState(true)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+
+  // ── Drag & resize state ──
+  const [chatSize, setChatSize] = useState({ width: 420, height: 640 })
+  const [chatPos, setChatPos] = useState<{ x: number; y: number } | null>(null)
+  const minimizedRef = useRef(minimized)
+  minimizedRef.current = minimized
+  const chatPosRef = useRef(chatPos)
+  chatPosRef.current = chatPos
+  const chatSizeRef = useRef(chatSize)
+  chatSizeRef.current = chatSize
+
+  const dragState = useRef<{
+    active: boolean; startX: number; startY: number;
+    startPosX: number; startPosY: number; moved: boolean;
+  } | null>(null)
+  const resizeState = useRef<{
+    active: boolean; startX: number; startY: number;
+    startW: number; startH: number;
+  } | null>(null)
+
+  // Set default position (bottom-right) on mount
+  useEffect(() => {
+    if (!chatPos) {
+      setChatPos({
+        x: window.innerWidth - chatSize.width - 24,
+        y: window.innerHeight - 48 - 24,
+      })
+    }
+  }, [])
+
+  // When expanding, clamp so the panel stays on screen
+  useEffect(() => {
+    if (!minimized && chatPos) {
+      const maxY = window.innerHeight - chatSize.height - 12
+      if (chatPos.y > maxY) {
+        setChatPos(prev => prev ? { ...prev, y: Math.max(12, maxY) } : prev)
+      }
+    }
+  }, [minimized])
+
+  // Global mouse listeners for drag & resize
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (dragState.current?.active) {
+        const dx = e.clientX - dragState.current.startX
+        const dy = e.clientY - dragState.current.startY
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.current.moved = true
+        const newX = Math.max(0, Math.min(window.innerWidth - 200, dragState.current.startPosX + dx))
+        const newY = Math.max(0, Math.min(window.innerHeight - 48, dragState.current.startPosY + dy))
+        setChatPos({ x: newX, y: newY })
+      }
+      if (resizeState.current?.active) {
+        const dw = e.clientX - resizeState.current.startX
+        const dh = e.clientY - resizeState.current.startY
+        setChatSize({
+          width: Math.max(320, Math.min(700, resizeState.current.startW + dw)),
+          height: Math.max(360, Math.min(window.innerHeight - 48, resizeState.current.startH + dh)),
+        })
+      }
+    }
+    const onMouseUp = () => {
+      if (dragState.current) {
+        if (!dragState.current.moved) setMinimized(!minimizedRef.current)
+        dragState.current = null
+      }
+      if (resizeState.current) resizeState.current = null
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp) }
+  }, [])
+
+  const onHeaderMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    e.preventDefault()
+    const pos = chatPosRef.current
+    if (!pos) return
+    dragState.current = {
+      active: true, startX: e.clientX, startY: e.clientY,
+      startPosX: pos.x, startPosY: pos.y, moved: false,
+    }
+  }
+
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const sz = chatSizeRef.current
+    resizeState.current = {
+      active: true, startX: e.clientX, startY: e.clientY,
+      startW: sz.width, startH: sz.height,
+    }
+  }
 
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
@@ -687,6 +776,15 @@ export const ChatPanel: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loadingStep])
 
+  // Instantly jump to bottom when expanding from minimized
+  useEffect(() => {
+    if (!minimized) {
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    }
+  }, [minimized])
+
   // Handle send
   const handleSend = useCallback(async () => {
     const hasText = inputValue.trim()
@@ -909,56 +1007,49 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <>
-      {/* FAB toggle — visible when chat is closed */}
-      {!isOpen && (
-        <button
-          onClick={toggleDrawer}
-          className="fixed bottom-6 z-50 w-12 h-12 rounded-full bg-[#7F56D9] hover:bg-[#6941C6] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
-          style={{ left: 280 + 24 }}
+      {/* Messenger-style chat widget — draggable & resizable */}
+      {chatPos && (
+      <div
+        className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60 overflow-hidden"
+        style={{
+          left: chatPos.x, top: chatPos.y,
+          width: minimized ? chatSize.width : chatSize.width,
+          height: minimized ? 48 : chatSize.height,
+          transition: dragState.current?.active || resizeState.current?.active ? 'none' : 'height 0.2s ease',
+        }}
+      >
+        {/* Header — drag to move, click to toggle */}
+        <div
+          onMouseDown={onHeaderMouseDown}
+          className="flex-shrink-0 flex items-center h-[48px] px-3 cursor-grab active:cursor-grabbing hover:bg-neutral-50 transition-colors select-none"
+          style={!minimized ? { borderBottom: '1px solid #e5e5e5' } : {}}
         >
-          <MessageCircleIcon size={20} />
-        </button>
-      )}
-
-      {/* Floating chat card */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 left-6 w-[420px] z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60"
-            style={{ height: 'min(640px, calc(100vh - 48px))' }}
-          >
-            {/* Header */}
-            <div className="flex-shrink-0 flex items-center h-[52px] px-3 border-b border-neutral-200">
-              <span className="text-sm font-semibold text-neutral-800 pl-1">PropPath AI</span>
-              <div className="ml-auto flex items-center gap-0.5">
-                <button
-                  onClick={() => setShowPropertyLibrary(true)}
-                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
-                  title="Browse Properties"
-                >
-                  <BuildingIcon size={14} />
-                </button>
-                <button
-                  onClick={() => setShowPreferences(true)}
-                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
-                  title="Planning Defaults"
-                >
-                  <Settings2Icon size={14} />
-                </button>
-                <button
-                  onClick={toggleDrawer}
-                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
-                  title="Close chat"
-                >
-                  <XIcon size={14} />
-                </button>
-              </div>
+          <div className="flex items-center gap-2 pl-1">
+            <div className="w-2 h-2 rounded-full bg-[#7F56D9]" />
+            <span className="text-sm font-semibold text-neutral-800">PropPath AI</span>
+          </div>
+          <div className="ml-auto flex items-center gap-0.5">
+            {/* Drag handle — 3x3 dots */}
+            <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-300 cursor-grab active:cursor-grabbing">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <circle cx="3" cy="3" r="1.25" /><circle cx="7" cy="3" r="1.25" /><circle cx="11" cy="3" r="1.25" />
+                <circle cx="3" cy="7" r="1.25" /><circle cx="7" cy="7" r="1.25" /><circle cx="11" cy="7" r="1.25" />
+                <circle cx="3" cy="11" r="1.25" /><circle cx="7" cy="11" r="1.25" /><circle cx="11" cy="11" r="1.25" />
+              </svg>
             </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMinimized(true); }}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+              title="Minimize"
+            >
+              <XIcon size={14} />
+            </button>
+          </div>
+        </div>
 
+        {/* Body — hidden when minimized */}
+        {!minimized && (
+          <>
             {/* Compliance disclaimer */}
             <div className="flex-shrink-0 px-3 py-1.5 border-b border-neutral-100 bg-neutral-50/50">
               <p className="text-[10px] text-neutral-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
@@ -1073,14 +1164,21 @@ export const ChatPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Planning Defaults Modal */}
-            <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
-
-            {/* Property Library Modal */}
-            <AddToTimelineModal isOpen={showPropertyLibrary} onClose={() => setShowPropertyLibrary(false)} />
-          </motion.div>
+            {/* Resize handle — bottom-right corner */}
+            <div
+              onMouseDown={onResizeMouseDown}
+              className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-10 flex items-end justify-end p-1"
+              style={{ touchAction: 'none' }}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" className="text-neutral-300">
+                <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="9" y1="5" x2="5" y2="9" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </div>
+          </>
         )}
-      </AnimatePresence>
+      </div>
+      )}
     </>
   )
 }

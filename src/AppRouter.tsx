@@ -9,6 +9,7 @@ import { ClientScenarios } from './pages/ClientScenarios'
 import { Portfolio } from './pages/Portfolio'
 import Retirement from './pages/Retirement'
 import { SettingsHub } from './pages/SettingsHub'
+import Toolkit from './pages/Toolkit'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { EmailConfirmed } from './pages/EmailConfirmed'
@@ -169,6 +170,14 @@ export function AppRouter() {
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <SettingsHub />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/toolkit"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <Toolkit />
                                 </ProtectedRoute>
                               }
                             />

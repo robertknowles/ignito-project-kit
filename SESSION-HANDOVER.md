@@ -1,4 +1,4 @@
-# Session Handover — 2026-05-24 Real Charts + Portfolio Restyle
+# Session Handover — 2026-05-24 Sidebar Refinement + Chat Widget + Toolkit Page
 
 Read this at the start of the next session before responding to anything.
 
@@ -6,165 +6,176 @@ Read this at the start of the next session before responding to anything.
 
 ## What We Accomplished
 
-Three major outcomes this session:
+Four outcomes this session:
 
-1. **Built all real charts** replacing PlaceholderChart instances across Portfolio Plan, Next Purchase Brief, and Existing Portfolio
-2. **Restyled Existing Portfolio** to UUI — 3 charts in a single row, removed Graphs/Tables sub-tabs, matched KPI number format
-3. **Saved all work safely** to the `dashboard-redesign` branch on GitHub
+1. **Refined sidebar to match UUI specs** — added search bar, reduced width, removed dividers, updated logo and brand font
+2. **Rebuilt chat panel as a draggable/resizable Messenger-style widget** — click header to open/close, drag anywhere on screen, resize from bottom-right corner
+3. **Created Toolkit page** — moved Planning Defaults and Property Templates out of the chat header and into a standalone `/toolkit` page
+4. **Committed prior session's chart work** as `da80d48`
 
 ---
 
 ## Branch & Git State
 
-- **Branch**: `dashboard-redesign` (created this session, pushed to GitHub)
-- **Last commit**: `cec0314` — "UUI dashboard redesign — 5 sessions of work"
+- **Branch**: `dashboard-redesign`
+- **Last commit**: `da80d48` — "Real charts + Portfolio restyle — replace all PlaceholderCharts with live data"
 - **Uncommitted changes** (this session's work):
-  - `src/components/BriefTab.tsx` — PlaceholderChart replaced with real BriefPerformanceCharts
-  - `src/components/Dashboard.tsx` — new chart imports, removed portfolio sub-tabs, annual cashflow headlines
-  - `src/components/PortfolioTab.tsx` — restored 3 charts with UUI restyle, 3-col layout, formatCompact KPIs
-  - `src/components/ui/ChartCard.tsx` — flex layout fix (prevents grey overflow in grid), line legend variant
-  - `src/components/BriefPerformanceCharts.tsx` (NEW)
-  - `src/components/EquityMortgageChart.tsx` (NEW)
-  - `src/components/HoldingCostChart.tsx` (NEW)
-- **Build**: TypeScript `--noEmit` passes cleanly
+  - `src/components/AppSidebar.tsx` — search bar, width 256, no dividers, logo swap, font adjustments
+  - `src/components/ChatPanel.tsx` — full rewrite: Messenger-style draggable/resizable widget
+  - `src/AppRouter.tsx` — added Toolkit import and `/toolkit` route
+  - `src/pages/Toolkit.tsx` (NEW) — Toolkit page with Planning Defaults and Property Templates cards
+  - `public/images/proppath-icon.png` (NEW) — PropPath logo icon file
+- **Build**: TypeScript compiles cleanly
 - **Dev server**: `npm run dev` on port 8080
 
 ---
 
-## New Chart Components
+## AppSidebar.tsx Changes
 
-### EquityMortgageChart.tsx (Portfolio Plan > Growth tab)
-- Side-by-side bar chart: Market Value (brand-600) vs Loan Balance (brand-200)
-- Dotted LVR % line (neutral-500, strokeDasharray="6 4")
-- No YAxis elements — LVR is scaled to the value axis range to avoid hidden YAxis width issues
-- Custom tooltip filters out the scaled LVR data key, shows real percentage
-- Data from `useChartDataGenerator().portfolioGrowthData`
+### Width
+- `SIDEBAR_WIDTH` changed from 280 to **256**
 
-### HoldingCostChart.tsx (Portfolio Plan > Cashflow tab)
-- Stacked bar chart: Mortgage (brand-700) + Operating Expenses (brand-500) + Rental Income (neutral-200)
-- Data from `useHoldingCostTimeline`, aggregated per year, multiplied by 12 for annual values
-- Rounded top corners only on top stack: `radius={[6, 6, 0, 0]}`
-- Top bar in stack gets rounded corners, bottom bars get square corners
+### Logo
+- Replaced inline SVG purple square with `<img src="/images/proppath-icon.png" />`
+- Class: `w-7 h-7 rounded-md object-contain`
+- Brand text: `text-[14px] font-bold text-neutral-900 tracking-tight`
 
-### BriefPerformanceCharts.tsx (Brief > Performance tab, 4 mini charts)
-- **BriefCashflowChart**: AreaChart with brand-600 line, gradient opacity 0.08
-- **BriefEquityChart**: AreaChart with brand-600 line, gradient opacity 0.15
-- **BriefLoanChart**: ComposedChart with 2 lines (propertyValue brand-600, loanBalance brand-200) + dotted LVR (neutral-500, scaled to max value)
-- **BriefHoldingCostChart**: Stacked BarChart matching portfolio version colors
-- All show years 1-10 as calendar years (2025-2034 via `BASE_YEAR + r.year - 1`)
-- Shared XAxis config via `sharedXAxis` object
-- Data from `calculatePerPropertyProjection` (YearRow type)
+### Search bar (new)
+- Added between logo and nav list
+- Container: `px-5 mb-3 mt-1`
+- Button: `px-3 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50`
+- Shows SearchIcon + "Search" placeholder + `⌘K` kbd badge
+- Non-functional for now (onClick is empty)
+
+### Dividers removed
+- All `{ divider: true }` entries deleted from `navItems` array
+- Nav list padding changed from `px-4 pt-5` to `px-4`
 
 ---
 
-## Portfolio Plan Changes (Dashboard.tsx)
+## ChatPanel.tsx Changes (Major Rewrite)
 
-### KPIs
-- `totalDebt` added to kpis object
-- `netCashflowMonthly` → `netCashflowAnnual`
-- `rentalIncomeAnnual` and `holdingCostsAnnual` added
+### Messenger-style widget
+- Always visible at bottom-right as a minimized header bar ("PropPath AI")
+- Click header to expand/collapse (like Facebook Messenger)
+- Default state: **minimized** (just the header bar)
 
-### Growth sub-tab (was "Equity")
-- Tab label changed from "Equity" to "Growth" (internal state key remains `'equity'`)
-- Equity vs Mortgage ChartCard: headline shows LVR% ("32% LVR by 2045")
-- Legend uses `'line'` variant for LVR dotted line indicator
-- TimeRangeTabs controls shared `displayYears` state
+### Draggable
+- Drag the header to reposition anywhere on screen
+- Click vs drag distinction: 3px movement threshold
+- Uses refs (`dragState`, `chatPosRef`) for smooth performance during drag
+- Position persists across open/close — widget stays where you dragged it
 
-### Cashflow sub-tab
-- What It Costs to Hold ChartCard: headline shows coverage % (rent/costs × 100)
-- Both cashflow headlines changed from /mo to /yr
-- TimeRangeTabs shared with Growth tab
+### Resizable
+- Resize handle at bottom-right corner (cursor-nwse-resize)
+- Constraints: width 320–700px, height 360px to viewport-48px
+- Uses refs (`resizeState`, `chatSizeRef`) to avoid re-renders during resize
+- Transitions disabled during active drag/resize
 
----
+### Header
+- Purple dot + "PropPath AI" label
+- 3x3 dots SVG drag handle icon (visual indicator that header is draggable)
+- X close button (sets minimized = true)
+- `cursor-grab` / `cursor-grabbing` styling
 
-## Existing Portfolio Changes (PortfolioTab.tsx)
+### Removed from chat
+- FAB button (replaced by always-visible minimized header)
+- AnimatePresence/motion.div wrapper
+- PlanningDefaultsModal and AddToTimelineModal (moved to Toolkit)
+- Property library button and planning defaults button from header
+- Related state: `showPreferences`, `showPropertyLibrary`
+- Related imports: `Settings2Icon`, `BuildingIcon`, `GripVerticalIcon`, `PlanningDefaultsModal`, `AddToTimelineModal`
 
-### Removed
-- `mode` prop (`'graphs' | 'tables'`) — always shows combined view now
-- Graphs/Tables sub-tab toggle from Dashboard.tsx
-- `PortfolioSubTab` type, `portfolioSubTab` state, `hasPortfolioSubTabs` variable
-- `error400` (#F97066) color — replaced with purple tones
+### Key state/refs
+```
+minimized (default: true)
+chatSize ({width: 420, height: 640})
+chatPos ({x, y} | null — calculated on mount, bottom-right of viewport)
+dragState ref — tracks active drag, start position, whether mouse moved
+resizeState ref — tracks active resize, start size
+chatPosRef / chatSizeRef — mirrors of state for use in event handlers
+```
 
-### Added/Changed
-- 3 charts restored and restyled to UUI: Capital Composition, Income vs Expenses, Borrowable Equity
-- Layout: `grid-cols-3` single row instead of 2-col + full-width
-- Color palette: all-purple (brand-200, brand-300, brand-500, brand-600, brand-700) — no more coral red
-- KPI format: `formatCompact()` matching Dashboard style — `$500,000` not `$500k`, `$4.55M` not `$4.6M`
-- Capital Composition: brand-200 (loan) + brand-600 (equity)
-- Income vs Expenses: brand-600 (income) + brand-300 (expenses)
-- Borrowable Equity waterfall: brand-600, brand-300, brand-500
-
----
-
-## ChartCard.tsx Changes
-
-### Flex layout fix
-- Outer shell now uses `display: 'flex', flexDirection: 'column'`
-- Inner white card uses `flex: 1` to fill remaining height
-- Fixes: when ChartCards sit in a CSS grid row, shorter cards had FAFAFA grey strips at the bottom because the outer shell stretched to match the tallest card but the inner card didn't
-
-### Line legend variant
-- `LegendItem.variant` expanded: `'dot' | 'ring' | 'line'`
-- `'line'` renders: `<svg width="16" height="8"><line ... strokeDasharray="2 3" /></svg>`
-- Used for LVR dotted line legend in Equity vs Mortgage chart
+### Scroll behavior
+- When expanding from minimized, instantly scrolls to bottom of chat (`behavior: 'instant'`)
+- No animated scroll — just shows the latest message immediately
 
 ---
 
-## UUI Color Tokens (Reference)
+## Toolkit Page (New)
+
+### File: `src/pages/Toolkit.tsx`
+- Default export `Toolkit` component
+- Layout: `AppSidebar` + main content with `marginLeft: SIDEBAR_WIDTH`
+- Two cards in a responsive grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`):
+  - **Planning Defaults** (Settings2 icon) — opens `PlanningDefaultsModal`
+  - **Property Templates** (Home icon) — opens `AddToTimelineModal`
+- Cards: `rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50`
+- Icon containers: `w-10 h-10 rounded-lg bg-neutral-100`
+
+### Route: `src/AppRouter.tsx`
+- Import: `import Toolkit from './pages/Toolkit'`
+- Route: `/toolkit` wrapped in `<ProtectedRoute allowedRoles={['owner', 'agent']}>`
+- Added to sidebar nav items in AppSidebar (WrenchIcon, between Clients and Settings)
+
+---
+
+## UUI Color Tokens (Reference — unchanged from prior session)
 
 ```
-brand-700: #6941C6  (darkest purple — mortgage bars)
-brand-600: #7F56D9  (primary purple — main data series)
-brand-500: #9E77ED  (medium purple — secondary data)
+brand-700: #6941C6  (darkest purple)
+brand-600: #7F56D9  (primary purple)
+brand-500: #9E77ED  (medium purple)
 brand-400: #B692F6
-brand-300: #D6BBFB  (light purple — expenses, current debt)
-brand-200: #E9D7FE  (lightest purple — loan balance, backgrounds)
+brand-300: #D6BBFB  (light purple)
+brand-200: #E9D7FE  (lightest purple)
 neutral-900: #171717
 neutral-500: #737373  (axis text, labels)
+neutral-300: #D4D4D4  (search bar border)
 neutral-200: #E5E5E5  (borders, reference lines)
 neutral-100: #F5F5F5  (grid lines)
 ```
 
 ---
 
-## Known Issues
+## Design Decisions (Locked — Do Not Change)
 
-### Deferred: X-axis alignment between area charts and bar charts
-Bar charts have inherent category spacing that prevents pixel-perfect X-axis alignment with area charts above them. Tried adjusting `barCategoryGap` — didn't help. Accepted as a Recharts limitation for now.
+All decisions from prior sessions remain locked, plus:
 
-### Carried forward: Autosave race condition
-Dashboard can show skeleton forever for all clients. `propertyOrder` stays empty during `loadClientScenario` because autosave fires while state is temporarily cleared. See previous handover for fix approaches.
-
-### Existing Portfolio detail panels
-Still use old `gray-*` Tailwind classes. Need restyling to `neutral-*` UUI standard.
+- **Sidebar width 256px** — narrower than UUI default (276) to save space for dashboard content
+- **No dividers in nav** — cleaner look, matches UUI Dashboard 01 style
+- **Search bar with ⌘K badge** — matches UUI simple sidebar pattern (non-functional placeholder for now)
+- **PropPath brand font**: 14px bold — smaller and bolder than default for compact sidebar
+- **Chat widget always bottom-right** — messenger-style, always visible as minimized bar
+- **Click header to open/close** — not a separate FAB button
+- **3px drag threshold** — distinguishes click (toggle) from drag (reposition)
+- **Planning Defaults and Property Templates live in Toolkit** — not in chat header
+- **Toolkit page in sidebar nav** — between Clients and Settings, WrenchIcon
 
 ---
 
-## Design Decisions (Locked — Do Not Change)
+## Known Issues
 
-All decisions from the previous handover remain locked, plus:
+### Carried forward: Autosave race condition
+Dashboard can show skeleton forever for all clients. `propertyOrder` stays empty during `loadClientScenario` because autosave fires while state is temporarily cleared.
 
-- **No Graphs/Tables sub-tabs** on Existing Portfolio — single combined view with table + charts
-- **3-column chart row** on Existing Portfolio — Capital Composition, Income vs Expenses, Borrowable Equity side by side
-- **Purple-only chart palette** — no error/red colors for data visualization, use brand-300 for "negative" items
-- **formatCompact for KPIs** — `$500,000` for thousands, `$4.55M` for millions (2 decimal places)
-- **Growth tab** (not "Equity") — renamed for clearer client communication
-- **Annual not monthly** for cashflow headlines
-- **Coverage %** headline for "What It Costs to Hold" (rent ÷ costs × 100)
-- **LVR %** headline for "Equity vs Mortgage" (informational since total equity shown above)
-- **No YAxis elements** in charts — use scaled data trick for dual-axis needs (avoids Recharts width reservation bug)
-- **Gradient opacity varies by chart**: 0.08 for cashflow area, 0.15 for equity area (denser data fills = lighter gradient)
+### Carried forward: X-axis alignment between area and bar charts
+Bar charts have inherent category spacing that prevents pixel-perfect alignment with area charts. Accepted as Recharts limitation.
+
+### Carried forward: Existing Portfolio detail panels
+Still use old `gray-*` Tailwind classes. Need restyling to `neutral-*` UUI standard.
 
 ---
 
 ## What's Next (Prioritized)
 
 ### Immediate:
-1. **Commit this session's work** to the `dashboard-redesign` branch
-2. **Restyle Existing Portfolio detail panels** — replace `gray-*` with `neutral-*`, match UUI patterns
-3. **Fix the autosave race condition** — critical for app usability
+1. **Commit this session's work** to `dashboard-redesign` branch
+2. **Test Toolkit page modals** — verify Planning Defaults and Property Templates open correctly from the cards
+3. **Restyle Existing Portfolio detail panels** — replace `gray-*` with `neutral-*`, match UUI patterns
 
 ### Later:
+- Wire up search bar (⌘K command palette)
 - Purple-only palette pass across remaining app areas
-- Other pages needing UUI styling (Settings, Clients, etc.)
-- Remove unused `EQUITY_COLUMNS` and `CASHFLOW_COLUMNS` from PropertyCardRow if no longer needed
+- Other pages needing UUI styling (Settings, Clients, AgentHome, etc.)
+- Fix autosave race condition
