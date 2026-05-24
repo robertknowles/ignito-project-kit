@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import { Share2, Copy, RotateCcw } from 'lucide-react'
-import { SaveButton } from './SaveButton'
 import { ResetButton } from './ResetButton'
-import { useClientSwitching } from '@/hooks/useClientSwitching'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
@@ -46,9 +44,6 @@ export const TopBar = () => {
   // State for email prompt modal
   const [emailPromptOpen, setEmailPromptOpen] = useState(false)
   const [pendingEmail, setPendingEmail] = useState('')
-
-  // Initialize client switching logic
-  useClientSwitching()
 
   // Generate share link and open in new tab (Client Report functionality)
   const handleViewClientReport = async () => {
@@ -341,28 +336,25 @@ export const TopBar = () => {
   }
 
   return (
-    <div id="top-bar" className="sticky top-0 z-40 flex items-center justify-end w-full h-[52px] px-8 bg-white border-b border-gray-200">
-      {/* Right side: Reset, Share (client login), Save */}
+    <div id="top-bar" className="flex items-center gap-1.5">
       {!isClient && (
-        <div className="flex items-center gap-2">
-          <ResetButton />
+        <>
+          <ResetButton iconOnly />
           <button
             onClick={handleShareDashboard}
             disabled={isLoading || !scenarioId || hasUnsavedChanges}
-            className="flex items-center gap-1.5 bg-gray-600 text-white px-4 py-2 rounded-lg font-medium text-[13px] hover:bg-gray-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             title={
               !scenarioId
                 ? 'Save the scenario before sharing'
                 : hasUnsavedChanges
                   ? 'Save your changes before sharing'
-                  : 'Share dashboard with client (creates a view-only login)'
+                  : 'Share dashboard with client'
             }
           >
             <Share2 size={15} />
-            Share
           </button>
-          <SaveButton />
-        </div>
+        </>
       )}
 
       {/* Share Dashboard Credentials Modal */}

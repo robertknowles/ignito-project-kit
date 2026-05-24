@@ -159,7 +159,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart
           data={data}
-          margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+          margin={{ top: 10, right: 16, left: 16, bottom: 0 }}
         >
           <defs>
             {/* UUI striped vertical-line fill pattern */}
@@ -181,7 +181,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             dataKey="year"
             tick={{
               fontSize: 12,
-              fill: UUI.neutral600,
+              fontWeight: 600,
+              fill: UUI.neutral500,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}

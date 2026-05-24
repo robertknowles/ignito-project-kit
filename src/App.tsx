@@ -1,7 +1,6 @@
 import React from 'react';
 import { Dashboard } from './components/Dashboard';
 import { AppSidebar, SIDEBAR_WIDTH } from './components/AppSidebar';
-import { TopBar } from './components/TopBar';
 // InputDrawer hidden for NL pivot — component preserved in codebase for future use
 // import { InputDrawer } from './components/InputDrawer';
 import { ChatPanel } from './components/ChatPanel';
@@ -10,7 +9,6 @@ import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
 import { useBranding } from './contexts/BrandingContext';
 import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
-import { LayoutProvider, useLayout } from './contexts/LayoutContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -18,7 +16,6 @@ function AppContent() {
   const { role } = useAuth();
   const { clientScenarioLoading, noScenarioForClient } = useScenarioSave();
   const { branding } = useBranding();
-  const { drawerOpen, toggleDrawer, chatPanelWidth } = useLayout();
   
   const isClient = role === 'client';
   const showInputDrawer = !isClient || branding.isClientInteractiveEnabled;
@@ -26,10 +23,9 @@ function AppContent() {
   // Client empty state - no scenario shared yet
   if (isClient && noScenarioForClient) {
     return (
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
-          <TopBar />
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center max-w-md">
               <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
@@ -54,10 +50,9 @@ function AppContent() {
   // Client loading state
   if (isClient && clientScenarioLoading) {
     return (
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
-          <TopBar />
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
@@ -69,15 +64,11 @@ function AppContent() {
     );
   }
 
-  // Show InputDrawer based on role and company settings
-  // - Staff (owner/agent): always show InputDrawer
-  // - Client: show only if is_client_interactive_enabled is true
   if (!showInputDrawer) {
     return (
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
         <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
-          <TopBar />
           <div className="flex-1 overflow-hidden">
             <Dashboard key="client-scenario" />
           </div>
@@ -88,20 +79,16 @@ function AppContent() {
 
   return (
     <PropertyDragDropProvider>
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+      <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
-        {/* NL Chat Panel — replaces InputDrawer */}
-        <ChatPanel isOpen={drawerOpen} />
+        <ChatPanel />
 
-        {/* Main Content Area - margin adjusts based on drawer state */}
         <div
           id="main-content"
-          className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-          style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + chatPanelWidth : SIDEBAR_WIDTH }}
+          className="flex-1 flex flex-col overflow-hidden"
+          style={{ marginLeft: SIDEBAR_WIDTH }}
         >
-          <TopBar />
           <div className="flex-1 overflow-hidden">
-            {/* Force Dashboard to remount when client changes by using key prop */}
             <Dashboard key={activeClient?.id || 'no-client'} />
           </div>
         </div>
@@ -111,9 +98,5 @@ function AppContent() {
 }
 
 export function App() {
-  return (
-    <LayoutProvider>
-      <AppContent />
-    </LayoutProvider>
-  );
+  return <AppContent />;
 }

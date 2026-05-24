@@ -166,7 +166,7 @@ export const useScenarioSave = () => {
 
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient, updateClient } = useClient();
-  const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder } = usePropertySelection();
+  const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder, setAllSelections } = usePropertySelection();
   const { profile, updateProfile, setProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
   const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext, isDeletionInProgress } = useMultiScenario();
@@ -258,6 +258,12 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     if (!activeClient) {
+      return;
+    }
+
+    // Block saves while a load is in flight — the in-memory state is
+    // mid-transition and would overwrite the DB with partial/empty data.
+    if (loadInProgressRef.current) {
       return;
     }
 
@@ -575,13 +581,23 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ? translateSavedInstances(scenarioData.propertyInstances)
           : undefined;
 
-        // Apply property selections
-        resetSelections();
-        Object.entries(translatedSelections).forEach(([propertyId, quantity]) => {
-          if (quantity > 0) {
-            updatePropertyQuantity(propertyId, quantity);
-          }
-        });
+        // Build the order array first (needed for atomic setter below)
+        const resolvedOrder = (translatedOrder && translatedOrder.length > 0)
+          ? translatedOrder
+          : (() => {
+              const reconstructed: string[] = [];
+              Object.entries(translatedSelections).forEach(([propertyId, quantity]) => {
+                for (let i = 0; i < quantity; i++) {
+                  reconstructed.push(`${propertyId}_instance_${i}`);
+                }
+              });
+              return reconstructed;
+            })();
+
+        // Apply selections + propertyOrder atomically to avoid a window
+        // where resetSelections() has cleared state but setPropertyOrder()
+        // hasn't fired yet — that window let autosave write empty state.
+        setAllSelections(translatedSelections, resolvedOrder);
 
         // Apply investment profile
         if (scenarioData.investmentProfile) {
@@ -598,20 +614,6 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Load existing portfolio properties
         setExistingProperties(scenarioData.existingProperties ?? []);
 
-        // Restore property order (chronological order in which properties were added)
-        if (translatedOrder && translatedOrder.length > 0) {
-          setPropertyOrder(translatedOrder);
-        } else {
-          // Backwards compatibility: reconstruct order from translated selections.
-          const reconstructedOrder: string[] = [];
-          Object.entries(translatedSelections).forEach(([propertyId, quantity]) => {
-            for (let i = 0; i < quantity; i++) {
-              reconstructedOrder.push(`${propertyId}_instance_${i}`);
-            }
-          });
-          setPropertyOrder(reconstructedOrder);
-        }
-        
         // Restore NL chat history. On a same-client reload (recovery path),
         // only adopt the DB version if it's at least as long as what's in
         // memory — otherwise an autosave that hadn't fired yet would have
@@ -728,7 +730,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       loadInProgressRef.current = false;
       setIsLoadingScenario(false);
     }
-  }, [resetSelections, updateProfile, setProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setChatMessages]);
+  }, [resetSelections, updateProfile, setProfile, setAllSelections, propertyInstanceContext, setPropertyOrder, setChatMessages]);
   loadClientScenarioRef.current = loadClientScenario;
 
   // Reset scenario - clear all data and delete from database
@@ -984,6 +986,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     changeDetectionTimer.current = setTimeout(() => {
+      if (loadInProgressRef.current) return;
       if (activeClient && lastSavedData) {
         const currentData = getCurrentScenarioData();
         

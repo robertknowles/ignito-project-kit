@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronDownIcon, MoreHorizontal as MoreHorizontalIcon, Pencil as PencilIcon, Trash2 as TrashIcon, Wrench as WrenchIcon } from 'lucide-react';
+import { ChevronDownIcon, MoreHorizontal as MoreHorizontalIcon, Pencil as PencilIcon, Trash2 as TrashIcon, Wrench as WrenchIcon, User as UserIcon } from 'lucide-react';
 import { useClient, type Client } from '@/contexts/ClientContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { diagnoseScenario, repairScenario } from '@/utils/scenarioRepair';
@@ -174,21 +174,7 @@ export const ClientSelector: React.FC = () => {
 
   return (
     <div id="client-selector" className="relative" ref={dropdownRef}>
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-transparent hover:bg-[#F5F5F6] transition-colors duration-150">
-        <button
-          onClick={() => !triggerEditing && setDropdownOpen(!dropdownOpen)}
-          aria-label="Open client menu"
-          className="flex items-center justify-center"
-          disabled={triggerEditing}
-        >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold"
-            style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
-          >
-            {initials}
-          </div>
-        </button>
-
+      <div className="flex items-center gap-2 py-1.5 bg-transparent">
         {triggerEditing ? (
           <input
             ref={triggerInputRef}
@@ -198,7 +184,7 @@ export const ClientSelector: React.FC = () => {
             onKeyDown={handleTriggerKeyDown}
             onBlur={() => void commitTriggerEdit()}
             disabled={triggerSaving}
-            className="text-[13px] text-[#414651] font-medium bg-white border border-[#D5D7DA] rounded px-2 py-0.5 outline-none focus:border-[#A4A7AE] min-w-[120px] max-w-[260px]"
+            className="text-sm text-neutral-800 font-semibold bg-white border border-neutral-300 rounded px-2 py-0.5 outline-none focus:border-neutral-400 min-w-[120px] max-w-[180px]"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           />
@@ -210,15 +196,16 @@ export const ClientSelector: React.FC = () => {
               e.stopPropagation();
               startTriggerEdit();
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 rounded-md hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
             title="Double-click to rename"
           >
-            <span className="text-[13px] text-[#414651] font-medium select-none">
+            <UserIcon size={20} className="shrink-0 text-neutral-400" />
+            <span className="text-sm font-semibold text-neutral-700 select-none truncate">
               {activeClient ? activeClient.name : 'Select Client'}
             </span>
             <ChevronDownIcon
-              size={15}
-              className={`text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+              size={16}
+              className={`shrink-0 text-neutral-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
             />
           </button>
         )}

@@ -1,15 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { ChevronRight, ChevronDown, Plus, X } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
-import { CHART_COLORS } from '../constants/chartColors'
+import { PlaceholderChart } from './ui/PlaceholderChart'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, ReferenceLine,
-} from 'recharts'
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
@@ -37,6 +33,10 @@ const deriveMetrics = (p: ExistingProperty) => {
   const totalCapitalIn = p.stampDuty + p.legals + p.buildingPest + p.baFee + p.cashDeposit
   const roc = totalCapitalIn > 0 ? (equity / totalCapitalIn) * 100 : 0
   return { equity, annualRent, interest, mgmt, totalExpenses, netCashflow, capitalGrowth, growthPercent, yearsHeld, lvr, releasableEquity, totalCapitalIn, roc }
+}
+
+interface PortfolioTabProps {
+  mode?: 'graphs' | 'tables';
 }
 
 const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ property }) => {
@@ -112,7 +112,7 @@ const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ propert
   )
 }
 
-export const PortfolioTab: React.FC = () => {
+export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -155,39 +155,7 @@ export const PortfolioTab: React.FC = () => {
     return { combinedValue, totalEquity, totalCashflow, releasableEquity }
   }, [properties])
 
-  const capitalCompData = useMemo(() =>
-    properties.map(p => ({
-      name: p.address ? (p.address.split(' ').slice(1).join(' ').substring(0, 12) || p.address.substring(0, 12)) : `${p.state} ${p.boughtYear}`,
-      loanBalance: p.loan,
-      equity: p.currentValue - p.loan,
-    })),
-    [properties]
-  )
 
-  const incomeExpenseData = useMemo(() =>
-    properties.map(p => {
-      const m = deriveMetrics(p)
-      return {
-        name: p.address ? (p.address.split(' ').slice(1).join(' ').substring(0, 12) || p.address.substring(0, 12)) : `${p.state} ${p.boughtYear}`,
-        rentalIncome: m.annualRent,
-        expenses: -m.totalExpenses,
-      }
-    }),
-    [properties]
-  )
-
-  const borrowableEquityData = useMemo(() => {
-    const totalNewDebt = properties.reduce((s, p) => s + p.currentValue * 0.8, 0)
-    const currentDebt = properties.reduce((s, p) => s + p.loan, 0)
-    const borrowable = Math.max(0, totalNewDebt - currentDebt)
-    return { totalNewDebt, currentDebt, borrowable }
-  }, [properties])
-
-  const waterfallData = useMemo(() => [
-    { name: 'New debt @ 80%', value: borrowableEquityData.totalNewDebt, fill: CHART_COLORS.lineBlue },
-    { name: 'Current debt', value: -borrowableEquityData.currentDebt, fill: CHART_COLORS.barNegative },
-    { name: 'Borrowable equity', value: borrowableEquityData.borrowable, fill: CHART_COLORS.linePurple },
-  ], [borrowableEquityData])
 
   if (properties.length === 0) {
     return (
@@ -208,167 +176,130 @@ export const PortfolioTab: React.FC = () => {
     )
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* ── KPI CARDS ── */}
-      <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#717680]">Combined Value</span>
-          </div>
-          <div className="mt-0.5">
-            <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.combinedValue)}</span>
-          </div>
+  const kpiCards = (
+    <div className="grid grid-cols-4 gap-3">
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Combined Value</span>
         </div>
-        <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#717680]">Total Equity</span>
-          </div>
-          <div className="mt-0.5">
-            <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.totalEquity)}</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#717680]">Annual Cashflow</span>
-          </div>
-          <div className="mt-0.5">
-            <span className={`text-lg font-medium tracking-tight ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#181D27]' : 'text-gray-500'}`}>
-              {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtK(portfolioMetrics.totalCashflow)}
-            </span>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#717680]">Releasable Equity</span>
-          </div>
-          <div className="mt-0.5">
-            <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.releasableEquity)}</span>
-          </div>
+        <div className="mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.combinedValue)}</span>
         </div>
       </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Total Equity</span>
+        </div>
+        <div className="mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.totalEquity)}</span>
+        </div>
+      </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Annual Cashflow</span>
+        </div>
+        <div className="mt-0.5">
+          <span className={`text-lg font-medium tracking-tight ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#181D27]' : 'text-gray-500'}`}>
+            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtK(portfolioMetrics.totalCashflow)}
+          </span>
+        </div>
+      </div>
+      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#717680]">Releasable Equity</span>
+        </div>
+        <div className="mt-0.5">
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.releasableEquity)}</span>
+        </div>
+      </div>
+    </div>
+  )
 
-      {/* ── EXISTING PROPERTIES TABLE ── */}
-      <ChartCard title="Existing Properties" flush>
-        <table className="w-full text-[12px]">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="w-8 py-1.5 px-3 border-r border-gray-100"></th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Address</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">State</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Bought</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Purchase</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Current</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Loan</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Rent/wk</th>
-              <th className="text-left text-[11px] font-medium text-gray-400 py-1.5 px-3 border-r border-gray-100">Yield</th>
-              <th className="w-8 py-1.5 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {properties.map(p => {
-              const isExpanded = expandedId === p.id
-              return (
-                <React.Fragment key={p.id}>
-                  <tr
-                    onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                    className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${isExpanded ? 'bg-gray-50' : ''}`}
-                  >
-                    <td className="py-1.5 px-3 text-gray-400 border-r border-gray-100">
-                      {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    </td>
-                    <td className="py-1.5 px-3 font-medium text-gray-600 border-r border-gray-100">{p.address || '(no address)'}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{p.state}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{p.boughtYear}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{fmt(p.purchasePrice)}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{fmt(p.currentValue)}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{fmt(p.loan)}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">${p.rentPerWeek}</td>
-                    <td className="py-1.5 px-3 text-gray-600 border-r border-gray-100">{p.yield.toFixed(1)}%</td>
-                    <td className="py-1.5 px-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRemove(p.id) }}
-                        className="p-1 text-gray-300 hover:text-gray-500 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
+  const propertiesTable = (
+    <ChartCard title="Existing Properties" flush action={
+      <button
+        onClick={handleAdd}
+        className="flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors"
+      >
+        <Plus size={14} />
+        Add property
+      </button>
+    }>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-neutral-200">
+            <th className="w-8 py-2 px-3 border-r border-neutral-100"></th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Address</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">State</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Bought</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Purchase ($)</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Current ($)</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Loan ($)</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Rent/wk ($)</th>
+            <th className="text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100">Yield (%)</th>
+            <th className="w-8 py-2 px-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {properties.map(p => {
+            const isExpanded = expandedId === p.id
+            const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
+            return (
+              <React.Fragment key={p.id}>
+                <tr
+                  onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                  className={`border-b border-neutral-200 last:border-b-0 cursor-pointer transition-colors hover:bg-neutral-50/50 ${isExpanded ? 'bg-neutral-50' : ''}`}
+                >
+                  <td className="py-2 px-3 text-neutral-400 border-r border-neutral-100">
+                    {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  </td>
+                  <td className="py-2 px-3 text-sm font-medium text-neutral-900 border-r border-neutral-100">{p.address || '(no address)'}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.state}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.boughtYear}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.purchasePrice)}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.currentValue)}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{fmtNum(p.loan)}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.rentPerWeek}</td>
+                  <td className="py-2 px-3 text-sm text-neutral-600 border-r border-neutral-100">{p.yield.toFixed(1)}</td>
+                  <td className="py-2 px-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRemove(p.id) }}
+                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr>
+                    <td colSpan={10} className="p-0 bg-white">
+                      <PropertyDetailPanel property={p} />
                     </td>
                   </tr>
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan={10} className="p-0 bg-white">
-                        <PropertyDetailPanel property={p} />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 py-3 px-3 transition-colors"
-        >
-          <Plus size={14} />
-          Add existing property
-        </button>
-      </ChartCard>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </tbody>
+      </table>
+    </ChartCard>
+  )
 
-      {/* ── PORTFOLIO ANALYTICS ── */}
-      <div className="grid grid-cols-2 gap-4">
-        <ChartCard title="Capital Composition" legend={[
-          { color: CHART_COLORS.lineBlue, label: 'Loan balance' },
-          { color: CHART_COLORS.linePurple, label: 'Equity' },
-        ]}>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={capitalCompData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#717680' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#717680' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => fmtK(v)} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Bar dataKey="loanBalance" name="Loan balance" fill={CHART_COLORS.lineBlue} radius={[2, 2, 0, 0]} barSize={28} />
-              <Bar dataKey="equity" name="Equity" fill={CHART_COLORS.linePurple} radius={[2, 2, 0, 0]} barSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
 
-        <ChartCard title="Income vs Expenses · Per Property" legend={[
-          { color: CHART_COLORS.lineBlue, label: 'Rental income' },
-          { color: CHART_COLORS.barNegative, label: 'Expenses + repayments' },
-        ]}>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={incomeExpenseData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#717680' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#717680' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => fmtK(v)} />
-              <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} />
-              <ReferenceLine y={0} stroke="#e5e7eb" />
-              <Bar dataKey="rentalIncome" name="Rental income" fill={CHART_COLORS.lineBlue} radius={[2, 2, 0, 0]} barSize={28} />
-              <Bar dataKey="expenses" name="Expenses + repayments" fill={CHART_COLORS.barNegative} radius={[0, 0, 2, 2]} barSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+  if (mode === 'tables') {
+    return (
+      <div className="flex flex-col gap-6">
+        {propertiesTable}
       </div>
+    )
+  }
 
-      <ChartCard title="Borrowable Equity · Portfolio-wide">
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={waterfallData} barSize={80}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#717680' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: '#717680' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => fmtK(v)} />
-            <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} />
-            <ReferenceLine y={0} stroke="#e5e7eb" />
-            <Bar dataKey="value" radius={[4, 4, 4, 4]}>
-              {waterfallData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="text-center text-sm text-gray-600 mt-2">
-          {fmtK(borrowableEquityData.borrowable)} accessible for the next acquisition
-        </div>
+  return (
+    <div className="flex flex-col gap-6">
+      {kpiCards}
+      {propertiesTable}
+      <ChartCard title="Portfolio Snapshot">
+        <PlaceholderChart label="Macro-level current state overview" height={200} />
       </ChartCard>
     </div>
   )

@@ -166,7 +166,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
       <ResponsiveContainer width="100%" height={240}>
         <AreaChart
           data={data}
-          margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
+          margin={{ top: 12, right: 16, left: 16, bottom: 0 }}
         >
           <defs>
             {/* UUI LineChart04 gradient: brand-600 at 70% → 0% opacity */}
@@ -188,7 +188,8 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             dataKey="year"
             tick={{
               fontSize: 12,
-              fill: UUI.neutral600,
+              fontWeight: 600,
+              fill: UUI.neutral500,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}

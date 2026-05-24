@@ -5,19 +5,20 @@ export interface HighlightPeriod {
   endYear: number;
 }
 
+export type DashboardTab = 'plan' | 'brief' | 'portfolio';
+
 interface LayoutContextType {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
   toggleDrawer: () => void;
-  // NL pivot: signals that a plan is being generated (shows skeleton UI on Dashboard)
   planGenerating: boolean;
   setPlanGenerating: (generating: boolean) => void;
-  // Chart highlight for explanation flow
   highlightPeriod: HighlightPeriod | null;
   setHighlightPeriod: (period: HighlightPeriod | null) => void;
-  // Resizable chat panel width
   chatPanelWidth: number;
   setChatPanelWidth: (width: number) => void;
+  dashboardTab: DashboardTab;
+  setDashboardTab: (tab: DashboardTab) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -30,6 +31,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>('plan');
   const DEFAULT_CHAT_WIDTH = 360;
   const [chatPanelWidth, setChatPanelWidthState] = useState<number>(() => {
     const saved = localStorage.getItem('proppath-chat-width');
@@ -55,7 +57,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab }}>
       {children}
     </LayoutContext.Provider>
   );

@@ -21,19 +21,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   HomeIcon,
-  BarChart3Icon,
-  FileTextIcon,
-  PieChartIcon,
+  LayoutDashboardIcon,
   UsersIcon,
+  WrenchIcon,
   SettingsIcon,
   LogOutIcon,
-  UserIcon,
   ChevronDownIcon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranding } from '@/contexts/BrandingContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
+import { useClient } from '@/contexts/ClientContext';
+import { ClientSelector } from './ClientSelector';
 
 /** Matches UUI's MAIN_SIDEBAR_WIDTH (276) + 4px wrapper padding */
 export const SIDEBAR_WIDTH = 280;
@@ -44,6 +44,7 @@ interface NavItem {
   path: string;
   icon: React.FC<{ size?: number; className?: string }>;
   matchPaths?: string[];
+  tab?: DashboardTab;
 }
 
 interface NavDivider {
@@ -56,18 +57,6 @@ function isDivider(entry: NavEntry): entry is NavDivider {
   return 'divider' in entry && entry.divider === true;
 }
 
-// ── Navigation config ─────────────────────────────────────────────────────────
-const navItems: NavEntry[] = [
-  { label: 'Home', path: '/home', icon: HomeIcon },
-  { label: 'Plan', path: '/dashboard', icon: BarChart3Icon },
-  { label: 'Brief', path: '/portfolio', icon: FileTextIcon },
-  { label: 'Portfolio', path: '/retirement', icon: PieChartIcon },
-  { divider: true },
-  { label: 'Clients', path: '/clients', icon: UsersIcon },
-  { divider: true },
-  { label: 'Settings', path: '/settings', icon: SettingsIcon },
-];
-
 // ── Component ─────────────────────────────────────────────────────────────────
 export const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -75,6 +64,7 @@ export const AppSidebar: React.FC = () => {
   const { signOut, role, user } = useAuth();
   const { branding } = useBranding();
   const { isChatRequestInFlight } = useScenarioSave();
+  const { activeClient } = useClient();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -106,14 +96,20 @@ export const AppSidebar: React.FC = () => {
     return false;
   };
 
-  // Filter + clean dividers
-  const visibleItems = navItems.filter((entry) => {
-    if (isDivider(entry)) return true;
-    if (entry.label === 'Clients' && isClient) return false;
-    return true;
-  });
+  const isDashboard = location.pathname === '/dashboard';
 
-  const cleanedItems = visibleItems.filter((entry, i, arr) => {
+  const navItems: NavEntry[] = [
+    { label: 'Home', path: '/home', icon: HomeIcon },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
+    { divider: true },
+    ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
+    { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon },
+    { divider: true },
+    { label: 'Settings', path: '/settings', icon: SettingsIcon },
+  ];
+
+  // Filter + clean dividers
+  const cleanedItems = navItems.filter((entry, i, arr) => {
     if (!isDivider(entry)) return true;
     if (i === 0 || i === arr.length - 1) return false;
     if (isDivider(arr[i - 1])) return false;
@@ -154,11 +150,10 @@ export const AppSidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* ── Nav list ── matches UUI: <ul class="flex flex-col px-4 pt-5"> */}
+      {/* ── Nav list ── */}
       <ul className="flex flex-col px-4 pt-5 flex-1 list-none m-0">
         {cleanedItems.map((entry, i) => {
           if (isDivider(entry)) {
-            // UUI: <li class="w-full px-0.5 py-2"><hr class="h-px w-full border-none bg-border-secondary" /></li>
             return (
               <li key={`divider-${i}`} className="w-full px-0.5 py-2">
                 <hr className="h-px w-full border-none bg-neutral-200 m-0" />
@@ -168,40 +163,44 @@ export const AppSidebar: React.FC = () => {
 
           const active = isActive(entry);
           const disabled = isChatRequestInFlight && !active;
+          const isDashboardItem = entry.path === '/dashboard';
 
-          // UUI nav-item classes:
-          //   root:     "group relative flex max-h-9 w-full cursor-pointer items-center rounded-md bg-primary ... transition duration-100 ease-linear select-none hover:bg-primary_hover"
-          //   selected: "bg-secondary hover:bg-secondary_hover"
-          //   link:     "group/item p-2"
-          //   icon:     "mr-2 size-5 shrink-0 text-fg-quaternary" / active: "text-fg-quaternary_hover"
-          //   label:    "flex-1 text-sm font-semibold text-secondary" / active: "text-secondary_hover"
           return (
-            <li key={entry.path} className="py-px">
-              <button
-                onClick={() => !disabled && navigate(entry.path)}
-                disabled={disabled}
-                title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
-                  active
-                    ? 'bg-neutral-50 hover:bg-neutral-100'
-                    : 'bg-transparent hover:bg-neutral-50'
-                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <entry.icon
-                  size={20}
-                  className={`mr-2 shrink-0 transition duration-100 ${
-                    active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
-                  }`}
-                />
-                <span
-                  className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
-                    active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
-                  }`}
+            <React.Fragment key={entry.path}>
+              <li className="py-px">
+                <button
+                  onClick={() => !disabled && navigate(entry.path)}
+                  disabled={disabled}
+                  title={disabled ? 'Wait for the plan to finish generating' : undefined}
+                  className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
+                    active
+                      ? 'bg-neutral-50 hover:bg-neutral-100'
+                      : 'bg-transparent hover:bg-neutral-50'
+                  } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
-                  {entry.label}
-                </span>
-              </button>
-            </li>
+                  <entry.icon
+                    size={20}
+                    className={`mr-2 shrink-0 transition duration-100 ${
+                      active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
+                    }`}
+                  />
+                  <span
+                    className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
+                      active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
+                    }`}
+                  >
+                    {entry.label}
+                  </span>
+                </button>
+              </li>
+
+              {/* Client selector under Dashboard */}
+              {isDashboardItem && (
+                <li className="py-px pl-9">
+                  <ClientSelector />
+                </li>
+              )}
+            </React.Fragment>
           );
         })}
       </ul>
@@ -213,11 +212,6 @@ export const AppSidebar: React.FC = () => {
             onClick={() => setProfileOpen(!profileOpen)}
             className="group/item flex items-center gap-2.5 w-full p-2 rounded-md bg-transparent hover:bg-neutral-50 border-none cursor-pointer text-left transition duration-100"
           >
-            {/* Avatar */}
-            <div className="w-9 h-9 rounded-full bg-[#F3F0FF] flex items-center justify-center shrink-0">
-              <UserIcon size={18} className="text-[#7F56D9]" />
-            </div>
-
             {/* Name + email */}
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-neutral-800 leading-5 truncate">

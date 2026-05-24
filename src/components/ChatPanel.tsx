@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, Settings2Icon, BuildingIcon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, GripVerticalIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
@@ -27,10 +27,8 @@ import {
   mapUpdateProfileToUpdates,
 } from '@/utils/nlDataMapper'
 import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/types/nlParse'
-import { useBranding } from '@/contexts/BrandingContext'
 import { useLayout } from '@/contexts/LayoutContext'
 import { DISCLAIMER_D_TEXT } from '@/components/DisclaimerBlock'
-import { ClientSelector } from './ClientSelector'
 import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
@@ -42,23 +40,16 @@ import { CHAT_SEND_EVENT, type ChatSendDetail } from '@/utils/chatBus'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
-interface ChatPanelProps {
-  isOpen: boolean
-}
-
-export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
+export const ChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { branding } = useBranding()
-  const primaryColor = branding.primaryColor
-  const { setPlanGenerating, setHighlightPeriod, chatPanelWidth, setChatPanelWidth } = useLayout()
+  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer } = useLayout()
   const [showPreferences, setShowPreferences] = useState(false)
   const [showPropertyLibrary, setShowPropertyLibrary] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const isResizingRef = useRef(false)
   const { user } = useAuth()
 
   // Contexts we write into
@@ -915,199 +906,181 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen }) => {
     }, 50)
   }, [isLoading, activeClient?.id, clearMessages, sendMessage])
 
-  // Drag handle for resizing
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    isResizingRef.current = true
-    const startX = e.clientX
-    const startWidth = chatPanelWidth
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizingRef.current) return
-      const delta = moveEvent.clientX - startX
-      setChatPanelWidth(startWidth + delta)
-    }
-
-    const handleMouseUp = () => {
-      isResizingRef.current = false
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [chatPanelWidth, setChatPanelWidth])
-
-  const handleResizeDoubleClick = useCallback(() => {
-    setChatPanelWidth(360) // Reset to default
-  }, [setChatPanelWidth])
 
   return (
-    <div
-      className={`fixed top-0 h-screen bg-white border-r border-gray-200 z-30 flex flex-col transition-all duration-300 ease-in-out`}
-      style={{ left: 280, width: isOpen ? chatPanelWidth : 0 }}
-    >
-      <div className={`flex flex-col h-full ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Header — Client Selector + action icons */}
-        <div className="flex-shrink-0 flex items-center border-b border-gray-200 h-[52px] px-2">
-          <ClientSelector />
-          <div className="ml-auto flex items-center gap-0.5">
-            <button
-              onClick={() => setShowPropertyLibrary(true)}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
-              title="Browse Properties"
-            >
-              <BuildingIcon size={14} />
-            </button>
-            <button
-              onClick={() => setShowPreferences(true)}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors"
-              title="Planning Defaults"
-            >
-              <Settings2Icon size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Compliance disclaimer */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-b border-gray-100 bg-gray-50/50">
-          <p className="text-[10px] text-gray-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
-        </div>
-
-        {/* Messages area — min-h-0 is REQUIRED for flex-1 + overflow-y-auto to constrain
-            properly. Without it, content can push the container beyond its allocated
-            height and shove the input area below the viewport once the thread grows. */}
-        <div
-          className={`flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
+    <>
+      {/* FAB toggle — visible when chat is closed */}
+      {!isOpen && (
+        <button
+          onClick={toggleDrawer}
+          className="fixed bottom-6 z-50 w-12 h-12 rounded-full bg-[#7F56D9] hover:bg-[#6941C6] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+          style={{ left: 280 + 24 }}
         >
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center px-6">
-              <p className="text-[12px] text-[#181D27] leading-[1.6] font-medium">
-                Describe a client scenario to generate an investment roadmap.
-              </p>
-              <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
-                e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
-              </p>
-              <StrategyPresetSelector />
-            </div>
-          )}
-
-          <AnimatePresence mode="popLayout">
-            {messages.map((msg) =>
-              msg.type === 'loading' ? (
-                <ChatLoadingSteps
-                  key={msg.id}
-                  clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
-                  activeStep={loadingStep}
-                  isComplete={false}
-                />
-              ) : (
-                <ChatMessage
-                  key={msg.id}
-                  message={msg}
-                  onOptionSelect={handleOptionSelect}
-                  onFollowUpClick={handleFollowUpClick}
-                  onFeedback={handleFeedback}
-                  propertyCount={propertyOrder.length}
-                />
-              )
-            )}
-          </AnimatePresence>
-
-          {/* Input area — inside scroll container */}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input area — fixed at bottom. flex-shrink-0 guarantees it keeps its
-            intrinsic height even when messages above try to expand. */}
-        <div className="flex-shrink-0 px-3 pb-3 pt-2">
-          {/* File preview */}
-          {selectedFile && (
-            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[#F5F5F5] rounded-lg">
-              <FileTextIcon size={14} className="text-[#535862] flex-shrink-0" />
-              <span className="text-xs text-[#535862] truncate flex-1">{selectedFile.name}</span>
-              <span className="text-xs text-[#717680]">{formatFileSize(selectedFile.size)}</span>
-              <button
-                onClick={() => setSelectedFile(null)}
-                className="text-[#717680] hover:text-[#414651]"
-              >
-                <XIcon size={12} />
-              </button>
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
-          <div className="flex items-center gap-2.5 bg-white rounded-xl px-3.5 py-2.5 border border-gray-200 focus-within:border-gray-300 transition-colors">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 text-[#717680] hover:text-[#414651] transition-colors"
-              title="Attach PDF or transcript"
-              aria-label="Attach file"
-            >
-              <PaperclipIcon size={14} />
-            </button>
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              placeholder="Describe a client scenario..."
-              rows={1}
-              className="flex-1 bg-transparent text-[12px] text-[#181D27] placeholder-[#717680] resize-none outline-none leading-relaxed max-h-[120px]"
-              disabled={isLoading}
-            />
-            {(() => {
-              const isActive = Boolean(inputValue.trim() || selectedFile)
-              return (
-                <button
-                  onClick={handleSend}
-                  disabled={!isActive || isLoading}
-                  className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white"
-                  style={{
-                    opacity: !isActive && !isLoading ? 0.4 : 1,
-                  }}
-                >
-                  {isLoading ? (
-                    <Loader2Icon size={13} className="animate-spin" style={{ color: primaryColor }} />
-                  ) : (
-                    <SendIcon size={13} style={{ color: isActive ? primaryColor : '#717680' }} />
-                  )}
-                </button>
-              )
-            })()}
-          </div>
-        </div>
-      </div>
-
-      {/* Resize handle */}
-      {isOpen && (
-        <div
-          className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors group z-40"
-          onMouseDown={handleResizeStart}
-          onDoubleClick={handleResizeDoubleClick}
-        >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
+          <MessageCircleIcon size={20} />
+        </button>
       )}
 
-      {/* Planning Defaults Modal */}
-      <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
+      {/* Floating chat card */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed bottom-6 left-6 w-[420px] z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60"
+            style={{ height: 'min(640px, calc(100vh - 48px))' }}
+          >
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center h-[52px] px-3 border-b border-neutral-200">
+              <span className="text-sm font-semibold text-neutral-800 pl-1">PropPath AI</span>
+              <div className="ml-auto flex items-center gap-0.5">
+                <button
+                  onClick={() => setShowPropertyLibrary(true)}
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                  title="Browse Properties"
+                >
+                  <BuildingIcon size={14} />
+                </button>
+                <button
+                  onClick={() => setShowPreferences(true)}
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                  title="Planning Defaults"
+                >
+                  <Settings2Icon size={14} />
+                </button>
+                <button
+                  onClick={toggleDrawer}
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                  title="Close chat"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            </div>
 
-      {/* Property Library Modal */}
-      <AddToTimelineModal isOpen={showPropertyLibrary} onClose={() => setShowPropertyLibrary(false)} />
-    </div>
+            {/* Compliance disclaimer */}
+            <div className="flex-shrink-0 px-3 py-1.5 border-b border-neutral-100 bg-neutral-50/50">
+              <p className="text-[10px] text-neutral-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
+            </div>
+
+            {/* Messages area */}
+            <div
+              className={`flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8 space-y-4 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                  <p className="text-[12px] text-[#181D27] leading-[1.6] font-medium">
+                    Describe a client scenario to generate an investment roadmap.
+                  </p>
+                  <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.5]">
+                    e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
+                  </p>
+                  <StrategyPresetSelector />
+                </div>
+              )}
+
+              <AnimatePresence mode="popLayout">
+                {messages.map((msg) =>
+                  msg.type === 'loading' ? (
+                    <ChatLoadingSteps
+                      key={msg.id}
+                      clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                      activeStep={loadingStep}
+                      isComplete={false}
+                    />
+                  ) : (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      onOptionSelect={handleOptionSelect}
+                      onFollowUpClick={handleFollowUpClick}
+                      onFeedback={handleFeedback}
+                      propertyCount={propertyOrder.length}
+                    />
+                  )
+                )}
+              </AnimatePresence>
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input area */}
+            <div className="flex-shrink-0 px-3 pb-3 pt-2">
+              {/* File preview */}
+              {selectedFile && (
+                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-neutral-50 rounded-lg">
+                  <FileTextIcon size={14} className="text-neutral-500 flex-shrink-0" />
+                  <span className="text-xs text-neutral-500 truncate flex-1">{selectedFile.name}</span>
+                  <span className="text-xs text-neutral-400">{formatFileSize(selectedFile.size)}</span>
+                  <button
+                    onClick={() => setSelectedFile(null)}
+                    className="text-neutral-400 hover:text-neutral-600"
+                  >
+                    <XIcon size={12} />
+                  </button>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+              <div className="flex items-center gap-2.5 bg-white rounded-xl px-3.5 py-2.5 border border-neutral-200 focus-within:border-neutral-300 transition-colors">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors"
+                  title="Attach PDF or transcript"
+                  aria-label="Attach file"
+                >
+                  <PaperclipIcon size={14} />
+                </button>
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder="How can I help?"
+                  rows={1}
+                  className="flex-1 bg-transparent text-[12px] text-neutral-900 placeholder-neutral-400 resize-none outline-none leading-relaxed max-h-[120px]"
+                  disabled={isLoading}
+                />
+                {(() => {
+                  const isActive = Boolean(inputValue.trim() || selectedFile)
+                  return (
+                    <button
+                      onClick={handleSend}
+                      disabled={!isActive || isLoading}
+                      className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                      style={{
+                        opacity: !isActive && !isLoading ? 0.4 : 1,
+                      }}
+                    >
+                      {isLoading ? (
+                        <Loader2Icon size={13} className="animate-spin text-[#7F56D9]" />
+                      ) : (
+                        <SendIcon size={13} className={isActive ? 'text-[#7F56D9]' : 'text-neutral-400'} />
+                      )}
+                    </button>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* Planning Defaults Modal */}
+            <PlanningDefaultsModal isOpen={showPreferences} onClose={() => setShowPreferences(false)} />
+
+            {/* Property Library Modal */}
+            <AddToTimelineModal isOpen={showPropertyLibrary} onClose={() => setShowPropertyLibrary(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

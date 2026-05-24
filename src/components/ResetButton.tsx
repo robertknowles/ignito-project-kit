@@ -47,7 +47,7 @@ export const ResetButton: React.FC<ResetButtonProps> = ({ iconOnly = false }) =>
         <button
           onClick={handleResetClick}
           disabled={isLoading || !hasDataToClear}
-          className="w-8 h-8 text-gray-500 hover:text-gray-900 rounded-md flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           title="Clear scenario"
         >
           {isLoading ? (

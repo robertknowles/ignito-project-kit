@@ -50,6 +50,7 @@ export function AppRouter() {
       <CompanyProvider>
         <BrandingProvider>
           <ClientProvider>
+            <LayoutProvider>
             <DataAssumptionsProvider>
               <PropertySelectionProvider>
                 <InvestmentProfileProvider>
@@ -151,9 +152,7 @@ export function AppRouter() {
                               path="/portfolio"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <LayoutProvider>
-                                    <Portfolio />
-                                  </LayoutProvider>
+                                  <Portfolio />
                                 </ProtectedRoute>
                               }
                             />
@@ -161,9 +160,7 @@ export function AppRouter() {
                               path="/retirement"
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <LayoutProvider>
-                                    <Retirement />
-                                  </LayoutProvider>
+                                  <Retirement />
                                 </ProtectedRoute>
                               }
                             />
@@ -234,9 +231,7 @@ export function AppRouter() {
                               path="/portal"
                               element={
                                 <ProtectedRoute allowedRoles={['client']} requireSubscription={false}>
-                                  <LayoutProvider>
-                                    <PortalLayout />
-                                  </LayoutProvider>
+                                  <PortalLayout />
                                 </ProtectedRoute>
                               }
                             >
@@ -256,6 +251,7 @@ export function AppRouter() {
                 </InvestmentProfileProvider>
               </PropertySelectionProvider>
             </DataAssumptionsProvider>
+            </LayoutProvider>
           </ClientProvider>
         </BrandingProvider>
       </CompanyProvider>

@@ -1,17 +1,13 @@
 import React, { useEffect, useRef } from 'react'
 import { Building2 } from 'lucide-react'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
-import { TopBar } from '../components/TopBar'
 import { ChatPanel } from '../components/ChatPanel'
-import { useLayout } from '../contexts/LayoutContext'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { useClient } from '../contexts/ClientContext'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { PortfolioTab } from '../components/PortfolioTab'
 
 const Retirement: React.FC = () => {
-  const { chatPanelWidth } = useLayout()
-  const drawerOpen = true
   const { propertyOrder } = usePropertySelection()
   const { clients, activeClient } = useClient()
   const { loadClientScenario } = useScenarioSave()
@@ -33,13 +29,12 @@ const Retirement: React.FC = () => {
   return (
     <div className="main-app flex h-screen w-full bg-white">
       <AppSidebar />
-      <ChatPanel isOpen={drawerOpen} />
+      <ChatPanel />
 
       <div
-        className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + chatPanelWidth : SIDEBAR_WIDTH }}
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ marginLeft: SIDEBAR_WIDTH }}
       >
-        <TopBar />
 
         <div className="flex-1 overflow-auto bg-white">
           <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 0 80px 0', width: '80%', maxWidth: 1280, minWidth: 500 }}>

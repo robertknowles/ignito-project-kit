@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-linear-bg: #ffffff;
+  --color-linear-text: #000000;
+  --color-linear-muted: #6b7280;
+  --color-linear-border: rgba(0, 0, 0, 0.08);
+  --color-linear-primary: #000000;
+  --color-linear-glow: rgba(0, 0, 0, 0.05);
+}
+
+@layer base {
+  body {
+    @apply bg-linear-bg text-linear-text font-sans antialiased selection:bg-linear-text/10;
+  }
+  
+  h1, h2, h3 {
+    @apply tracking-[-0.02em];
+  }
+}
+
+@layer utilities {
+  .linear-border {
+    border: 1px solid var(--color-linear-border);
+  }
+  
+  .linear-glow {
+    box-shadow: 0 0 40px var(--color-linear-glow);
+  }
+  
+  .linear-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-black to-black/70;
+  }
+  
+  .glass-card {
+    @apply bg-black/[0.01] border border-black/[0.05] rounded-xl;
+  }
+
+  .mask-reveal {
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    mask-size: 100% 200%;
+    mask-position: 0 100%;
+    transition: mask-position 0.8s ease-out;
+  }
+
+  .mask-reveal:hover {
+    mask-position: 0 0;
+  }
+}
