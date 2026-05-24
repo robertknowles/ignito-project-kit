@@ -1,21 +1,35 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { ChevronRight, ChevronDown, Plus, X } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
-import { PlaceholderChart } from './ui/PlaceholderChart'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
+import {
+  BarChart as RechartsBarChart, Bar, XAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, ReferenceLine,
+} from 'recharts'
+
+const UUI = {
+  brand700: '#6941C6',
+  brand600: '#7F56D9',
+  brand500: '#9E77ED',
+  brand300: '#D6BBFB',
+  brand200: '#E9D7FE',
+  neutral500: '#737373',
+  neutral200: '#E5E5E5',
+  neutral100: '#F5F5F5',
+} as const
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
 
-const fmtK = (v: number) => {
+const formatCompact = (v: number): string => {
   const abs = Math.abs(v)
   const sign = v < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`
-  return `${sign}$${abs}`
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000) return `${sign}$${Math.round(abs).toLocaleString()}`
+  return `${sign}$${Math.round(abs)}`
 }
 
 const deriveMetrics = (p: ExistingProperty) => {
@@ -35,9 +49,7 @@ const deriveMetrics = (p: ExistingProperty) => {
   return { equity, annualRent, interest, mgmt, totalExpenses, netCashflow, capitalGrowth, growthPercent, yearsHeld, lvr, releasableEquity, totalCapitalIn, roc }
 }
 
-interface PortfolioTabProps {
-  mode?: 'graphs' | 'tables';
-}
+interface PortfolioTabProps {}
 
 const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ property }) => {
   const m = deriveMetrics(property)
@@ -100,7 +112,7 @@ const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ propert
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Releasable @ 80%</div>
-            <div className="text-base font-semibold text-gray-900">{fmtK(m.releasableEquity)}</div>
+            <div className="text-base font-semibold text-gray-900">{formatCompact(m.releasableEquity)}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">ROC</div>
@@ -112,7 +124,7 @@ const PropertyDetailPanel: React.FC<{ property: ExistingProperty }> = ({ propert
   )
 }
 
-export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) => {
+export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -155,7 +167,39 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
     return { combinedValue, totalEquity, totalCashflow, releasableEquity }
   }, [properties])
 
+  const capitalCompData = useMemo(() =>
+    properties.map(p => ({
+      name: p.address ? (p.address.split(' ').slice(1).join(' ').substring(0, 12) || p.address.substring(0, 12)) : `${p.state} ${p.boughtYear}`,
+      loanBalance: p.loan,
+      equity: p.currentValue - p.loan,
+    })),
+    [properties]
+  )
 
+  const incomeExpenseData = useMemo(() =>
+    properties.map(p => {
+      const m = deriveMetrics(p)
+      return {
+        name: p.address ? (p.address.split(' ').slice(1).join(' ').substring(0, 12) || p.address.substring(0, 12)) : `${p.state} ${p.boughtYear}`,
+        rentalIncome: m.annualRent,
+        expenses: -m.totalExpenses,
+      }
+    }),
+    [properties]
+  )
+
+  const borrowableEquityData = useMemo(() => {
+    const totalNewDebt = properties.reduce((s, p) => s + p.currentValue * 0.8, 0)
+    const currentDebt = properties.reduce((s, p) => s + p.loan, 0)
+    const borrowable = Math.max(0, totalNewDebt - currentDebt)
+    return { totalNewDebt, currentDebt, borrowable }
+  }, [properties])
+
+  const waterfallData = useMemo(() => [
+    { name: 'New debt @ 80%', value: borrowableEquityData.totalNewDebt, fill: UUI.brand600 },
+    { name: 'Current debt', value: -borrowableEquityData.currentDebt, fill: UUI.brand300 },
+    { name: 'Borrowable equity', value: borrowableEquityData.borrowable, fill: UUI.brand500 },
+  ], [borrowableEquityData])
 
   if (properties.length === 0) {
     return (
@@ -183,7 +227,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
           <span className="text-xs text-[#717680]">Combined Value</span>
         </div>
         <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.combinedValue)}</span>
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.combinedValue)}</span>
         </div>
       </div>
       <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
@@ -191,7 +235,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
           <span className="text-xs text-[#717680]">Total Equity</span>
         </div>
         <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.totalEquity)}</span>
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.totalEquity)}</span>
         </div>
       </div>
       <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
@@ -200,7 +244,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
         </div>
         <div className="mt-0.5">
           <span className={`text-lg font-medium tracking-tight ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#181D27]' : 'text-gray-500'}`}>
-            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtK(portfolioMetrics.totalCashflow)}
+            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{formatCompact(portfolioMetrics.totalCashflow)}
           </span>
         </div>
       </div>
@@ -209,7 +253,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
           <span className="text-xs text-[#717680]">Releasable Equity</span>
         </div>
         <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{fmtK(portfolioMetrics.releasableEquity)}</span>
+          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.releasableEquity)}</span>
         </div>
       </div>
     </div>
@@ -286,21 +330,65 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = ({ mode = 'graphs' }) =
   )
 
 
-  if (mode === 'tables') {
-    return (
-      <div className="flex flex-col gap-6">
-        {propertiesTable}
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-6">
       {kpiCards}
       {propertiesTable}
-      <ChartCard title="Portfolio Snapshot">
-        <PlaceholderChart label="Macro-level current state overview" height={200} />
-      </ChartCard>
+      <div className="grid grid-cols-3 gap-4">
+        <ChartCard title="Capital Composition" legend={[
+          { color: UUI.brand200, label: 'Loan balance' },
+          { color: UUI.brand600, label: 'Equity' },
+        ]}>
+          <ResponsiveContainer width="100%" height={180}>
+            <RechartsBarChart data={capitalCompData} barGap={4} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+              <Tooltip formatter={(v: number) => fmt(v)} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <Bar dataKey="loanBalance" name="Loan balance" fill={UUI.brand200} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
+              <Bar dataKey="equity" name="Equity" fill={UUI.brand600} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
+            </RechartsBarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Income vs Expenses" legend={[
+          { color: UUI.brand600, label: 'Rental income' },
+          { color: UUI.brand300, label: 'Expenses + repayments' },
+        ]}>
+          <ResponsiveContainer width="100%" height={180}>
+            <RechartsBarChart data={incomeExpenseData} barGap={4} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+              <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <ReferenceLine y={0} stroke={UUI.neutral200} />
+              <Bar dataKey="rentalIncome" name="Rental income" fill={UUI.brand600} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
+              <Bar dataKey="expenses" name="Expenses + repayments" fill={UUI.brand300} radius={[0, 0, 4, 4]} barSize={24} isAnimationActive={false} />
+            </RechartsBarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Borrowable Equity" legend={[
+          { color: UUI.brand600, label: 'New debt @ 80%' },
+          { color: UUI.brand300, label: 'Current debt' },
+          { color: UUI.brand500, label: 'Borrowable' },
+        ]}>
+          <ResponsiveContainer width="100%" height={180}>
+            <RechartsBarChart data={waterfallData} barSize={48} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+              <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <ReferenceLine y={0} stroke={UUI.neutral200} />
+              <Bar dataKey="value" radius={[4, 4, 4, 4]} isAnimationActive={false}>
+                {waterfallData.map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} />
+                ))}
+              </Bar>
+            </RechartsBarChart>
+          </ResponsiveContainer>
+          <div className="text-center text-xs text-neutral-500 mt-1">
+            {formatCompact(borrowableEquityData.borrowable)} accessible for the next acquisition
+          </div>
+        </ChartCard>
+      </div>
     </div>
   )
 }

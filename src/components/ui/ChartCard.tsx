@@ -4,8 +4,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 export interface LegendItem {
   color: string;
   label: string;
-  /** 'ring' renders an open circle outline instead of a filled dot */
-  variant?: 'dot' | 'ring';
+  /** 'ring' renders an open circle outline; 'line' renders a dotted line */
+  variant?: 'dot' | 'ring' | 'line';
 }
 
 interface ChartCardProps {
@@ -48,6 +48,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         borderRadius: 12,
         boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px`,
         overflow: 'visible',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* Header band — sits in the outer shell */}
@@ -83,7 +85,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {legend.map((item, idx) => (
                   <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {item.variant === 'ring' ? (
+                    {item.variant === 'line' ? (
+                      <svg width="16" height="8" style={{ flexShrink: 0 }}>
+                        <line x1="0" y1="4" x2="16" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray="2 3" strokeLinecap="round" />
+                      </svg>
+                    ) : item.variant === 'ring' ? (
                       <div
                         style={{
                           width: 8,
@@ -132,6 +138,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             margin: '12px 0 0 0',
             boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset`,
             padding: flush ? 0 : 20,
+            flex: 1,
           }}
         >
           {children}

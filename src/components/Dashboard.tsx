@@ -15,6 +15,8 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { PlaceholderChart } from '@/components/ui/PlaceholderChart';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
+import { EquityMortgageChart } from './EquityMortgageChart';
+import { HoldingCostChart } from './HoldingCostChart';
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
@@ -25,8 +27,6 @@ import { BASE_YEAR } from '../constants/financialParams';
 /* ── Tab components ──────────────────────────────────────────────── */
 
 type PlanSubTab = 'purchases' | 'equity' | 'cashflow' | 'projections';
-type PortfolioSubTab = 'graphs' | 'tables';
-
 interface TabItemProps {
   icon: React.ReactNode;
   label: string;
@@ -186,7 +186,6 @@ export const Dashboard = () => {
   // Tab state — must be before the early return to satisfy React hooks rules
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
-  const [portfolioSubTab, setPortfolioSubTab] = useState<PortfolioSubTab>('graphs');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   const kpis = useMemo(() => {
@@ -197,9 +196,12 @@ export const Dashboard = () => {
     return {
       portfolioValue: lastGrowth?.portfolioValue ?? 0,
       totalEquity: lastGrowth?.equity ?? 0,
-      netCashflowMonthly: lastCf
-        ? Math.round((lastCf.rentalIncome - lastCf.expenses - lastCf.loanRepayments) / 12)
+      totalDebt: lastGrowth?.totalDebt ?? 0,
+      netCashflowAnnual: lastCf
+        ? Math.round(lastCf.rentalIncome - lastCf.expenses - lastCf.loanRepayments)
         : 0,
+      rentalIncomeAnnual: lastCf ? Math.round(lastCf.rentalIncome) : 0,
+      holdingCostsAnnual: lastCf ? Math.round(lastCf.expenses + lastCf.loanRepayments) : 0,
     };
   }, [chartDataA]);
 
@@ -218,8 +220,6 @@ export const Dashboard = () => {
   if (!hasPlan) {
     return <DashboardSkeleton animate={planGenerating} />;
   }
-
-  const hasPortfolioSubTabs = activeTab === 'portfolio';
 
   return (
     <div className="h-full w-full overflow-y-auto bg-white relative">
@@ -269,7 +269,7 @@ export const Dashboard = () => {
             />
             <SubTabItem
               icon={<TrendingUpIcon size={14} />}
-              label="Equity"
+              label="Growth"
               active={planSubTab === 'equity'}
               onClick={() => setPlanSubTab('equity')}
             />
@@ -284,24 +284,6 @@ export const Dashboard = () => {
               label="Projections"
               active={planSubTab === 'projections'}
               onClick={() => setPlanSubTab('projections')}
-            />
-          </div>
-        )}
-
-        {/* ── Portfolio sub-tabs (Graphs | Tables) ── */}
-        {hasPortfolioSubTabs && (
-          <div className="flex items-center gap-1 -mt-3">
-            <SubTabItem
-              icon={<BarChart3Icon size={14} />}
-              label="Graphs"
-              active={portfolioSubTab === 'graphs'}
-              onClick={() => setPortfolioSubTab('graphs')}
-            />
-            <SubTabItem
-              icon={<TableIcon size={14} />}
-              label="Tables"
-              active={portfolioSubTab === 'tables'}
-              onClick={() => setPortfolioSubTab('tables')}
             />
           </div>
         )}
@@ -338,8 +320,26 @@ export const Dashboard = () => {
               </div>
               <TimelineColumn scenarioData={displayScenarioAData} />
             </ChartCard>
-            <ChartCard title="Loan / Borrowing Capacity">
-              <PlaceholderChart label="Loan & borrowing capacity with equity releases" height={200} />
+            <ChartCard
+              title="Equity vs Mortgage"
+              legend={[
+                { color: '#7F56D9', label: 'Market Value' },
+                { color: '#E9D7FE', label: 'Loan Balance' },
+                { color: '#737373', label: 'LVR', variant: 'line' },
+              ]}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    {kpis.portfolioValue > 0 ? `${Math.round((kpis.totalDebt / kpis.portfolioValue) * 100)}%` : '0%'}
+                  </span>
+                  <span className="text-sm text-neutral-500">
+                    LVR by {BASE_YEAR + displayYears - 1}
+                  </span>
+                </div>
+                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+              </div>
+              <EquityMortgageChart scenarioData={displayScenarioAData} />
             </ChartCard>
           </>
         )}
@@ -354,16 +354,34 @@ export const Dashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {formatCompact(kpis.netCashflowMonthly)}
+                    {formatCompact(kpis.netCashflowAnnual)}
                   </span>
-                  <span className="text-sm text-neutral-500">/mo by {BASE_YEAR + displayYears - 1}</span>
+                  <span className="text-sm text-neutral-500">/yr by {BASE_YEAR + displayYears - 1}</span>
                 </div>
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
               <CashflowChart scenarioData={displayScenarioAData} />
             </ChartCard>
-            <ChartCard title="What It Costs to Hold">
-              <PlaceholderChart label="Stacked holding costs breakdown over time" height={200} />
+            <ChartCard
+              title="What It Costs to Hold"
+              legend={[
+                { color: '#6941C6', label: 'Mortgage' },
+                { color: '#9E77ED', label: 'Operating Expenses' },
+                { color: '#E5E5E5', label: 'Rental Income' },
+              ]}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    {kpis.rentalIncomeAnnual > 0 && kpis.holdingCostsAnnual > 0
+                      ? `${Math.round((kpis.rentalIncomeAnnual / kpis.holdingCostsAnnual) * 100)}%`
+                      : '0%'}
+                  </span>
+                  <span className="text-sm text-neutral-500">coverage by {BASE_YEAR + displayYears - 1}</span>
+                </div>
+                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+              </div>
+              <HoldingCostChart scenarioData={displayScenarioAData} />
             </ChartCard>
           </>
         )}
@@ -379,7 +397,7 @@ export const Dashboard = () => {
         {activeTab === 'brief' && <BriefTab />}
 
         {/* Existing Portfolio */}
-        {activeTab === 'portfolio' && <PortfolioTab mode={portfolioSubTab} />}
+        {activeTab === 'portfolio' && <PortfolioTab />}
       </div>
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>

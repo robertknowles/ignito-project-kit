@@ -1,4 +1,4 @@
-# Session Handover — 2026-05-24 Table Styling + Architecture + Placeholders
+# Session Handover — 2026-05-24 Real Charts + Portfolio Restyle
 
 Read this at the start of the next session before responding to anything.
 
@@ -6,182 +6,165 @@ Read this at the start of the next session before responding to anything.
 
 ## What We Accomplished
 
-Two major outcomes this session:
+Three major outcomes this session:
 
-1. **Established a UUI table design standard** and applied it consistently to every table in the app
-2. **Resolved product architecture** — defined what belongs in each of the 3 main sections, restructured tabs accordingly, and placeholdered all future charts
-
----
-
-## Product Architecture (Locked Decision)
-
-The three main sections of the dashboard serve distinct purposes in the client relationship lifecycle:
-
-| Section | Purpose | Analogy |
-|---------|---------|---------|
-| **Portfolio Plan** | Multi-property strategy over full timeline | "Here's your 10-year roadmap" |
-| **Next Purchase Brief** | Single-property deep-dive (Compound Calculator equivalent) | "Here's why you should buy THIS one" |
-| **Existing Portfolio** | Current state snapshot — what you own today | "Here's where things sit right now" |
-
-### Portfolio Plan — Sub-tabs: `Purchases | Equity | Cashflow | Projections`
-
-- **Purchases** (NEW, default tab): Massive 30-column horizontally-scrollable editable table. ALL property parameters in one place — purchase/loan fields + income + annual expenses + one-off costs. This is the single source of truth for property inputs.
-- **Equity**: Total Equity chart + "Loan / Borrowing Capacity" chart (placeholder)
-- **Cashflow**: Net Cashflow chart + "What It Costs to Hold" chart (placeholder)
-- **Projections**: Financial Summary table (year-by-year multi-property projections)
-
-### Next Purchase Brief — Sub-tabs: `The Purchase | The Hold | The Performance`
-
-- **The Purchase**: 3 side-by-side tables (Property summary, Purchase costs, Funding source)
-- **The Hold**: 3 side-by-side tables (Annual cash in, Annual cash out, Net result)
-- **The Performance**: 2x2 grid of chart placeholders (Cashflow, Equity, Loan balance, What it costs to hold) + Year-by-year projections table
-
-### Existing Portfolio
-
-- KPI summary cards (Combined Value, Total Equity, Annual Cashflow, Releasable Equity)
-- Properties table (expandable rows with detail panels)
-- "Portfolio Snapshot" chart (placeholder)
-- Old complex multi-chart section (Capital Composition, Income vs Expenses, Borrowable Equity waterfall) has been **removed** — replaced with single placeholder
+1. **Built all real charts** replacing PlaceholderChart instances across Portfolio Plan, Next Purchase Brief, and Existing Portfolio
+2. **Restyled Existing Portfolio** to UUI — 3 charts in a single row, removed Graphs/Tables sub-tabs, matched KPI number format
+3. **Saved all work safely** to the `dashboard-redesign` branch on GitHub
 
 ---
 
-## UUI Table Design Standard (Locked)
+## Branch & Git State
 
-Every table in the app now follows this exact specification, extracted from UntitledUI's font system via Chrome DOM inspection:
-
-```
-Headers:     text-xs font-semibold text-neutral-500   (12px, weight 600, #737373)
-Primary:     text-sm font-medium text-neutral-900     (14px, weight 500, #171717)
-Secondary:   text-sm text-neutral-600                 (14px, weight 400, #525252)
-Row borders: border-b border-neutral-200
-Col borders: border-r border-neutral-100
-Row padding: py-2 px-3
-Last row:    last:border-b-0 (prevents border overlapping card corners)
-```
-
-### Number formatting rules:
-- Full numbers with commas: `Math.round(v).toLocaleString('en-AU')` → "1,250,000"
-- NO dollar signs in data cells
-- Dollar signs go in column headers: "Price ($)", "Rent/wk ($)"
-- Percentages same: value is just "5.2", header says "LVR (%)"
-
-### Color scale:
-- Always use `neutral-*` (NOT `gray-*`)
-- Key values: neutral-900 (#171717), neutral-700 (#404040), neutral-600 (#525252), neutral-500 (#737373), neutral-200 (#E5E5E5), neutral-100 (#F5F5F5)
-
-### KVRow helper (used in BriefTab):
-```tsx
-const KVRow: React.FC<{ label: string; value: string | number; bold?: boolean; border?: boolean }> = ({ label, value, bold, border = true }) => (
-  <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0 hover:bg-neutral-50/50 transition-colors`}>
-    <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-    <td className={`py-2 px-3 text-sm ${bold ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}>{value}</td>
-  </tr>
-)
-```
-
----
-
-## Chart Design Standard (Locked)
-
-Both main charts (InvestmentTimelineChart, CashflowChart) follow:
-- `margin={{ top: 10/12, right: 16, left: 16, bottom: 0 }}` — 16px inner padding
-- XAxis tick: `fontSize: 12, fontWeight: 600, fill: '#737373'` (matches table header style)
-- Brand color: `#7F56D9` (purple)
-- No Y-axis shown
-- Horizontal grid only: `neutral-100`
-
----
-
-## Placeholder Component
-
-New file: `src/components/ui/PlaceholderChart.tsx`
-
-A clean UUI-style empty state for charts that don't exist yet:
-- Dashed neutral-200 border, neutral-50 background
-- BarChart3 icon + label + "Coming soon" text
-- Used in: Equity tab, Cashflow tab, Brief Performance tab, Portfolio tab
-
----
-
-## Files Changed This Session
-
-### New files:
-- `src/components/ui/PlaceholderChart.tsx` — Placeholder component for future charts
-
-### Modified files:
-| File | What changed |
-|------|-------------|
-| `src/components/Dashboard.tsx` | Added Purchases sub-tab (first, default), PlaceholderChart import, removed duplicate Properties cards from Equity/Cashflow, added ListIcon import |
-| `src/components/PropertyCardRow.tsx` | Added `'purchases'` mode with 30 combined columns, updated type, minWidth logic |
-| `src/components/BriefTab.tsx` | Added PlaceholderChart import, rebuilt Performance tab (2x2 chart grid + table), removed MiniBarChart component, removed unused `fmt`/`CHART_COLORS` |
-| `src/components/PortfolioTab.tsx` | Added PlaceholderChart import, removed old multi-chart section + associated useMemo data + Recharts imports, replaced with single "Portfolio Snapshot" placeholder |
-| `src/components/FinancialSummaryTable.tsx` | Full restyle to UUI table standard (HTML table, neutral colors, full number format) |
-| `src/components/InvestmentTimelineChart.tsx` | Chart margin padding (16px), XAxis font weight 600 + neutral500 |
-| `src/components/CashflowChart.tsx` | Same chart changes as above |
-
----
-
-## State of the Codebase
-
-- **Branch**: `main` (all changes uncommitted)
-- **Build**: `npx vite build` passes cleanly, TypeScript `--noEmit` passes
+- **Branch**: `dashboard-redesign` (created this session, pushed to GitHub)
+- **Last commit**: `cec0314` — "UUI dashboard redesign — 5 sessions of work"
+- **Uncommitted changes** (this session's work):
+  - `src/components/BriefTab.tsx` — PlaceholderChart replaced with real BriefPerformanceCharts
+  - `src/components/Dashboard.tsx` — new chart imports, removed portfolio sub-tabs, annual cashflow headlines
+  - `src/components/PortfolioTab.tsx` — restored 3 charts with UUI restyle, 3-col layout, formatCompact KPIs
+  - `src/components/ui/ChartCard.tsx` — flex layout fix (prevents grey overflow in grid), line legend variant
+  - `src/components/BriefPerformanceCharts.tsx` (NEW)
+  - `src/components/EquityMortgageChart.tsx` (NEW)
+  - `src/components/HoldingCostChart.tsx` (NEW)
+- **Build**: TypeScript `--noEmit` passes cleanly
 - **Dev server**: `npm run dev` on port 8080
-- **No test failures** — project has no test suite
 
 ---
 
-## Critical Bug (Carried Forward From Previous Session)
+## New Chart Components
 
-### Data Not Loading — Autosave Race Condition
+### EquityMortgageChart.tsx (Portfolio Plan > Growth tab)
+- Side-by-side bar chart: Market Value (brand-600) vs Loan Balance (brand-200)
+- Dotted LVR % line (neutral-500, strokeDasharray="6 4")
+- No YAxis elements — LVR is scaled to the value axis range to avoid hidden YAxis width issues
+- Custom tooltip filters out the scaled LVR data key, shows real percentage
+- Data from `useChartDataGenerator().portfolioGrowthData`
 
-Dashboard shows skeleton for ALL clients. `propertyOrder` stays empty → `hasPlan` returns false → skeleton forever.
+### HoldingCostChart.tsx (Portfolio Plan > Cashflow tab)
+- Stacked bar chart: Mortgage (brand-700) + Operating Expenses (brand-500) + Rental Income (neutral-200)
+- Data from `useHoldingCostTimeline`, aggregated per year, multiplied by 12 for annual values
+- Rounded top corners only on top stack: `radius={[6, 6, 0, 0]}`
+- Top bar in stack gets rounded corners, bottom bars get square corners
 
-**Root cause**: Autosave fires during `loadClientScenario` while state is temporarily cleared by `resetSelections()`, writing empty state back to Supabase before the new data is set.
-
-**Key locations**:
-| What | File | ~Line |
-|---|---|---|
-| `loadClientScenario` | `ScenarioSaveContext.tsx` | 468 |
-| `saveScenario` | `ScenarioSaveContext.tsx` | 254 |
-| Self-heal effect | `ScenarioSaveContext.tsx` | 959 |
-| Change-detection / autosave | `ScenarioSaveContext.tsx` | 975 |
-
-**Fix approaches** (not yet implemented):
-1. Guard autosave with `loadInProgressRef.current` check
-2. Atomic state restoration (single setter instead of reset → set)
-3. Verify change-detection effect actually skips during loads
+### BriefPerformanceCharts.tsx (Brief > Performance tab, 4 mini charts)
+- **BriefCashflowChart**: AreaChart with brand-600 line, gradient opacity 0.08
+- **BriefEquityChart**: AreaChart with brand-600 line, gradient opacity 0.15
+- **BriefLoanChart**: ComposedChart with 2 lines (propertyValue brand-600, loanBalance brand-200) + dotted LVR (neutral-500, scaled to max value)
+- **BriefHoldingCostChart**: Stacked BarChart matching portfolio version colors
+- All show years 1-10 as calendar years (2025-2034 via `BASE_YEAR + r.year - 1`)
+- Shared XAxis config via `sharedXAxis` object
+- Data from `calculatePerPropertyProjection` (YearRow type)
 
 ---
 
-## What's Next (Prioritized)
+## Portfolio Plan Changes (Dashboard.tsx)
 
-### Immediate (next session):
-1. **Build the placeholder charts** — Replace PlaceholderChart instances with real Recharts visualizations:
-   - "Loan / Borrowing Capacity" chart (Equity tab) — show loan drawdown + borrowing capacity + equity release events
-   - "What It Costs to Hold" chart (Cashflow tab) — stacked area/bar showing expense breakdown over time
-   - Brief Performance charts (4x) — single-property cashflow, equity, loan balance, holding costs
-   - Portfolio Snapshot chart — macro current-state visualization
+### KPIs
+- `totalDebt` added to kpis object
+- `netCashflowMonthly` → `netCashflowAnnual`
+- `rentalIncomeAnnual` and `holdingCostsAnnual` added
 
-2. **Fix the autosave race condition** — The data-not-loading bug needs resolving for the app to be usable
+### Growth sub-tab (was "Equity")
+- Tab label changed from "Equity" to "Growth" (internal state key remains `'equity'`)
+- Equity vs Mortgage ChartCard: headline shows LVR% ("32% LVR by 2045")
+- Legend uses `'line'` variant for LVR dotted line indicator
+- TimeRangeTabs controls shared `displayYears` state
 
-### Later:
-- Purple-only palette pass across the app (replace any remaining blue accents)
-- Existing Portfolio detail panels need restyling to UUI standard (still using old `gray-*` classes)
-- Other pages needing UUI styling (Settings, Clients, etc.)
-- Remove the old `EQUITY_COLUMNS` and `CASHFLOW_COLUMNS` from PropertyCardRow if the separate modes are no longer used anywhere
+### Cashflow sub-tab
+- What It Costs to Hold ChartCard: headline shows coverage % (rent/costs × 100)
+- Both cashflow headlines changed from /mo to /yr
+- TimeRangeTabs shared with Growth tab
+
+---
+
+## Existing Portfolio Changes (PortfolioTab.tsx)
+
+### Removed
+- `mode` prop (`'graphs' | 'tables'`) — always shows combined view now
+- Graphs/Tables sub-tab toggle from Dashboard.tsx
+- `PortfolioSubTab` type, `portfolioSubTab` state, `hasPortfolioSubTabs` variable
+- `error400` (#F97066) color — replaced with purple tones
+
+### Added/Changed
+- 3 charts restored and restyled to UUI: Capital Composition, Income vs Expenses, Borrowable Equity
+- Layout: `grid-cols-3` single row instead of 2-col + full-width
+- Color palette: all-purple (brand-200, brand-300, brand-500, brand-600, brand-700) — no more coral red
+- KPI format: `formatCompact()` matching Dashboard style — `$500,000` not `$500k`, `$4.55M` not `$4.6M`
+- Capital Composition: brand-200 (loan) + brand-600 (equity)
+- Income vs Expenses: brand-600 (income) + brand-300 (expenses)
+- Borrowable Equity waterfall: brand-600, brand-300, brand-500
+
+---
+
+## ChartCard.tsx Changes
+
+### Flex layout fix
+- Outer shell now uses `display: 'flex', flexDirection: 'column'`
+- Inner white card uses `flex: 1` to fill remaining height
+- Fixes: when ChartCards sit in a CSS grid row, shorter cards had FAFAFA grey strips at the bottom because the outer shell stretched to match the tallest card but the inner card didn't
+
+### Line legend variant
+- `LegendItem.variant` expanded: `'dot' | 'ring' | 'line'`
+- `'line'` renders: `<svg width="16" height="8"><line ... strokeDasharray="2 3" /></svg>`
+- Used for LVR dotted line legend in Equity vs Mortgage chart
+
+---
+
+## UUI Color Tokens (Reference)
+
+```
+brand-700: #6941C6  (darkest purple — mortgage bars)
+brand-600: #7F56D9  (primary purple — main data series)
+brand-500: #9E77ED  (medium purple — secondary data)
+brand-400: #B692F6
+brand-300: #D6BBFB  (light purple — expenses, current debt)
+brand-200: #E9D7FE  (lightest purple — loan balance, backgrounds)
+neutral-900: #171717
+neutral-500: #737373  (axis text, labels)
+neutral-200: #E5E5E5  (borders, reference lines)
+neutral-100: #F5F5F5  (grid lines)
+```
+
+---
+
+## Known Issues
+
+### Deferred: X-axis alignment between area charts and bar charts
+Bar charts have inherent category spacing that prevents pixel-perfect X-axis alignment with area charts above them. Tried adjusting `barCategoryGap` — didn't help. Accepted as a Recharts limitation for now.
+
+### Carried forward: Autosave race condition
+Dashboard can show skeleton forever for all clients. `propertyOrder` stays empty during `loadClientScenario` because autosave fires while state is temporarily cleared. See previous handover for fix approaches.
+
+### Existing Portfolio detail panels
+Still use old `gray-*` Tailwind classes. Need restyling to `neutral-*` UUI standard.
 
 ---
 
 ## Design Decisions (Locked — Do Not Change)
 
-- **UUI active states**: `bg-neutral-50 text-neutral-800` — never purple for nav/tab active states
-- **Tab state in LayoutContext**: Shared between sidebar sub-nav and dashboard tab bar
-- **TopBar inline**: Inside tab bar with `ml-auto`, not floating fixed
-- **Sub-tab state local**: `planSubTab`/`portfolioSubTab` use local `useState` in Dashboard
-- **No capitalised group headers in tables** — Rob explicitly rejected INCOME/EXPENSES/etc. header rows
-- **Never use compact number format** ($200k) — always full: 200,000
-- **Dollar signs in headers only** — never in data cells
-- **neutral color scale** — never gray
-- **Tables use HTML `<table>`** — not CSS Grid (consistency + accessibility)
-- **ChartCard wraps everything** — all content sections use ChartCard with appropriate `flush`/`action` props
-- **Purchases tab is default** — lands on the big editable table first
+All decisions from the previous handover remain locked, plus:
+
+- **No Graphs/Tables sub-tabs** on Existing Portfolio — single combined view with table + charts
+- **3-column chart row** on Existing Portfolio — Capital Composition, Income vs Expenses, Borrowable Equity side by side
+- **Purple-only chart palette** — no error/red colors for data visualization, use brand-300 for "negative" items
+- **formatCompact for KPIs** — `$500,000` for thousands, `$4.55M` for millions (2 decimal places)
+- **Growth tab** (not "Equity") — renamed for clearer client communication
+- **Annual not monthly** for cashflow headlines
+- **Coverage %** headline for "What It Costs to Hold" (rent ÷ costs × 100)
+- **LVR %** headline for "Equity vs Mortgage" (informational since total equity shown above)
+- **No YAxis elements** in charts — use scaled data trick for dual-axis needs (avoids Recharts width reservation bug)
+- **Gradient opacity varies by chart**: 0.08 for cashflow area, 0.15 for equity area (denser data fills = lighter gradient)
+
+---
+
+## What's Next (Prioritized)
+
+### Immediate:
+1. **Commit this session's work** to the `dashboard-redesign` branch
+2. **Restyle Existing Portfolio detail panels** — replace `gray-*` with `neutral-*`, match UUI patterns
+3. **Fix the autosave race condition** — critical for app usability
+
+### Later:
+- Purple-only palette pass across remaining app areas
+- Other pages needing UUI styling (Settings, Clients, etc.)
+- Remove unused `EQUITY_COLUMNS` and `CASHFLOW_COLUMNS` from PropertyCardRow if no longer needed

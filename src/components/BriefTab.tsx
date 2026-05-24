@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Target, DollarSign, TrendingUp, Home } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
-import { PlaceholderChart } from './ui/PlaceholderChart'
+import { BriefCashflowChart, BriefEquityChart, BriefLoanChart, BriefHoldingCostChart } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -249,17 +249,25 @@ export const BriefTab: React.FC = () => {
     <div className="flex flex-col gap-4">
       {/* Charts — 2x2 grid */}
       <div className="grid grid-cols-2 gap-4">
-        <ChartCard title="Cashflow projection">
-          <PlaceholderChart label="Net cashflow over hold period" height={160} />
+        <ChartCard title="Cashflow projection" legend={[{ color: '#7F56D9', label: 'Net Cashflow' }]}>
+          <BriefCashflowChart yearRows={projection?.yearRows ?? []} />
         </ChartCard>
-        <ChartCard title="Equity growth">
-          <PlaceholderChart label="Property equity over time" height={160} />
+        <ChartCard title="Equity growth" legend={[{ color: '#7F56D9', label: 'Equity' }]}>
+          <BriefEquityChart yearRows={projection?.yearRows ?? []} />
         </ChartCard>
-        <ChartCard title="Loan balance">
-          <PlaceholderChart label="Loan balance drawdown over time" height={160} />
+        <ChartCard title="Loan balance" legend={[
+          { color: '#7F56D9', label: 'Value' },
+          { color: '#E9D7FE', label: 'Loan' },
+          { color: '#737373', label: 'LVR', variant: 'line' },
+        ]}>
+          <BriefLoanChart yearRows={projection?.yearRows ?? []} />
         </ChartCard>
-        <ChartCard title="What it costs to hold">
-          <PlaceholderChart label="Stacked holding costs breakdown" height={160} />
+        <ChartCard title="What it costs to hold" legend={[
+          { color: '#6941C6', label: 'Mortgage' },
+          { color: '#9E77ED', label: 'Expenses' },
+          { color: '#E5E5E5', label: 'Rent' },
+        ]}>
+          <BriefHoldingCostChart yearRows={projection?.yearRows ?? []} />
         </ChartCard>
       </div>
 
