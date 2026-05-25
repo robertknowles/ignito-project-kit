@@ -17,9 +17,9 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 const GROWTH_OPTIONS = [
-  { value: 'High', label: 'High (12.5% → 10% → 7.5% → 6%)' },
-  { value: 'Medium', label: 'Medium (6% → 5.5% → 5% → 5%)' },
-  { value: 'Low', label: 'Low (5% → 4% → 3.5% → 3%)' },
+  { value: 'High', label: 'High', dropdownLabel: 'High (12.5% → 10% → 7.5% → 6%)' },
+  { value: 'Medium', label: 'Medium', dropdownLabel: 'Medium (6% → 5.5% → 5% → 5%)' },
+  { value: 'Low', label: 'Low', dropdownLabel: 'Low (5% → 4% → 3.5% → 3%)' },
 ];
 const PRODUCT_OPTIONS = [
   { value: 'IO', label: 'IO' },
@@ -58,22 +58,71 @@ const NumberInput: React.FC<{
 
 const SelectInput: React.FC<{
   value: string;
-  options: { value: string; label: string }[] | string[];
+  options: { value: string; label: string; dropdownLabel?: string }[] | string[];
   onChange: (v: string) => void;
-}> = ({ value, options, onChange }) => (
-  <select
-    value={value}
-    onChange={e => onChange(e.target.value)}
-    className={`${cellBase} cursor-pointer`}
-    onClick={e => e.stopPropagation()}
-  >
-    {options.map(opt => {
-      const v = typeof opt === 'string' ? opt : opt.value;
-      const l = typeof opt === 'string' ? opt : opt.label;
-      return <option key={v} value={v}>{l}</option>;
-    })}
-  </select>
-);
+}> = ({ value, options, onChange }) => {
+  const hasDropdownLabels = options.some(opt => typeof opt !== 'string' && opt.dropdownLabel);
+
+  if (!hasDropdownLabels) {
+    return (
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className={`${cellBase} cursor-pointer`}
+        onClick={e => e.stopPropagation()}
+      >
+        {options.map(opt => {
+          const v = typeof opt === 'string' ? opt : opt.value;
+          const l = typeof opt === 'string' ? opt : opt.label;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    );
+  }
+
+  // For options with dropdownLabel: show short label in the cell,
+  // full label only in the open dropdown
+  const selectedOpt = (options as { value: string; label: string; dropdownLabel?: string }[]).find(o => o.value === value);
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative" onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`${cellBase} cursor-pointer text-left`}
+      >
+        {selectedOpt?.label ?? value}
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg min-w-[280px] py-0.5">
+          {(options as { value: string; label: string; dropdownLabel?: string }[]).map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors ${
+                opt.value === value ? 'bg-neutral-100 text-neutral-900 font-medium' : 'text-neutral-600 hover:bg-neutral-50'
+              }`}
+            >
+              {opt.dropdownLabel ?? opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CheckboxInput: React.FC<{
   checked: boolean;
