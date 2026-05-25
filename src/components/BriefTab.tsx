@@ -145,9 +145,9 @@ const LOAN_PRODUCT_OPTIONS = [
 ]
 
 const GROWTH_OPTIONS = [
-  { value: 'High', label: 'High' },
-  { value: 'Medium', label: 'Medium' },
-  { value: 'Low', label: 'Low' },
+  { value: 'High', label: 'High (12.5% → 10% → 7.5% → 6%)' },
+  { value: 'Medium', label: 'Medium (6% → 5.5% → 5% → 5%)' },
+  { value: 'Low', label: 'Low (5% → 4% → 3.5% → 3%)' },
 ]
 
 // ── Main component ──────────────────────────────────────────────────────────
