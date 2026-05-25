@@ -84,7 +84,7 @@ export const AppSidebar: React.FC = () => {
     setProfileOpen(false);
     try {
       await signOut();
-      navigate('/login');
+      navigate('/');
     } catch {
       // silent
     }

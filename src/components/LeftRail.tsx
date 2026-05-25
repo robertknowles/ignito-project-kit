@@ -51,7 +51,7 @@ export const LeftRail = () => {
     try {
       setProfileDropdownOpen(false)
       await signOut()
-      navigate('/login')
+      navigate('/')
     } catch (error) {
       // Logout failed
     }

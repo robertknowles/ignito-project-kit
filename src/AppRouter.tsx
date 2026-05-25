@@ -1,8 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { App } from './App'
-// Landing page import removed — bypassed for investor demo (redirect "/" → "/login")
-// import { Landing } from './landing/Landing'
+import { Landing } from './landing/Landing'
 import { AgentHome } from './pages/AgentHome'
 import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
@@ -61,11 +60,7 @@ export function AppRouter() {
                       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                         <TourManagerProvider>
                           <Routes>
-                            {/* Landing page bypassed — redirect to login for investor demo */}
-                            <Route
-                              path="/"
-                              element={<Navigate to="/login" replace />}
-                            />
+                            <Route path="/" element={<Landing />} />
                             
                             {/* Public auth pages - redirect to /clients if authenticated */}
                             <Route 
