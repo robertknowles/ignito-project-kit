@@ -16,7 +16,11 @@ import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
-const GROWTH_OPTIONS = ['High', 'Medium', 'Low'];
+const GROWTH_OPTIONS = [
+  { value: 'High', label: 'High (12.5% → 10% → 7.5% → 6%)' },
+  { value: 'Medium', label: 'Medium (6% → 5.5% → 5% → 5%)' },
+  { value: 'Low', label: 'Low (5% → 4% → 3.5% → 3%)' },
+];
 const PRODUCT_OPTIONS = [
   { value: 'IO', label: 'IO' },
   { value: 'PI', label: 'P&I' },
