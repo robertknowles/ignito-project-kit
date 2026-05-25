@@ -128,7 +128,7 @@ For goal changes: target \`equityGoal\` with \`params: { equityGoal: <number> }\
 ### Modification Pushback
 When a modification would make the plan infeasible:
 - Lead with the reason and real numbers
-- Offer exactly 3 alternatives as structured refinementOptions
+- Suggest alternatives in the message text (the BA can type whatever change they want)
 - Tone: matter-of-fact, not apologetic
 
 ### Adding properties — cell selection

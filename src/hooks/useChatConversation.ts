@@ -476,14 +476,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                   })
                   setMessages((prev) => [...prev, explMsg])
 
-                  if (explResponse.followUpSuggestions?.length) {
-                    setMessages((prev) => {
-                      const updated = [...prev]
-                      const last = [...updated].reverse().find((m) => m.role === 'assistant')
-                      if (last) last.followUpSuggestions = explResponse.followUpSuggestions
-                      return updated
-                    })
-                  }
                   optionsRef.current.onExplanation?.(explResponse)
                   break
                 }
@@ -529,36 +521,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           case 'property_suggestions': {
             const suggestMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, suggestMsg])
-            // Map property suggestions to refinement options format
-            // Build refinement option buttons from propertySuggestions or
-            // fall back to properties array (AI often populates one but not
-            // the other — without this fallback the user sees "here are 4
-            // options" with no buttons to click).
-            const suggestions = response.propertySuggestions?.length
-              ? response.propertySuggestions.map(s => ({
-                  label: `${s.label} — ${s.price}`,
-                  prompt: s.prompt,
-                }))
-              : response.properties?.length
-                ? response.properties.map((p, i) => {
-                    const typeLabel = p.type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-                    const priceK = `$${(p.purchasePrice / 1000).toFixed(0)}k`
-                    return {
-                      label: `${typeLabel} in ${p.state} — ${priceK}`,
-                      prompt: `Add a ${p.type} in ${p.state} at $${p.purchasePrice.toLocaleString()}`,
-                    }
-                  })
-                : null
-            if (suggestions?.length) {
-              setMessages((prev) => {
-                const updated = [...prev]
-                const last = [...updated].reverse().find((m) => m.role === 'assistant')
-                if (last) {
-                  last.refinementOptions = suggestions
-                }
-                return updated
-              })
-            }
             break
           }
 
@@ -580,22 +542,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           },
         ]
 
-        // Add follow-up suggestions and refinement options if present
-        if (response.followUpSuggestions?.length || response.refinementOptions?.length) {
-          setMessages((prev) => {
-            const updated = [...prev]
-            const lastAssistant = [...updated].reverse().find((m) => m.role === 'assistant')
-            if (lastAssistant) {
-              if (response.followUpSuggestions?.length) {
-                lastAssistant.followUpSuggestions = response.followUpSuggestions
-              }
-              if (response.refinementOptions?.length) {
-                lastAssistant.refinementOptions = response.refinementOptions
-              }
-            }
-            return updated
-          })
-        }
       } catch (err) {
         // Remove loading indicator (respects minimum-display floor)
         await removeLoading()

@@ -16,14 +16,11 @@ import { ChatOptionCard } from './ChatOptionCard'
 import { ChatSummaryCard } from './ChatSummaryCard'
 import { ChatPortfolioCard } from './ChatPortfolioCard'
 import { MicroConfirmationCard } from './MicroConfirmationCard'
-import { PostPlanRefinement } from './PostPlanRefinement'
 
 interface ChatMessageProps {
   message: ChatMessageType
   onOptionSelect?: (card: ChatOptionCardData) => void
-  onFollowUpClick?: (suggestion: string) => void
   onFeedback?: (messageId: string, rating: -1 | 1) => void
-  propertyCount?: number
 }
 
 const MISSING_INPUT_LABELS: Record<string, string> = {
@@ -46,7 +43,7 @@ const MISSING_INPUT_ORDER = [
   'goal',
 ]
 
-export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFollowUpClick, onFeedback, propertyCount }, ref) => {
+export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({ message, onOptionSelect, onFeedback }, ref) => {
   // Loading indicator with personalised text
   if (message.type === 'loading') {
     return (
@@ -211,30 +208,6 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
             )}
           </div>
 
-          {/* Post-plan refinement — outside bubble */}
-          {message.showRefinement && (
-            <div className="mt-2.5">
-              <PostPlanRefinement
-                propertyCount={propertyCount ?? 0}
-                onSelect={(prompt) => onFollowUpClick?.(prompt)}
-              />
-            </div>
-          )}
-
-          {/* Follow-up suggestions — outside bubble */}
-          {message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {message.followUpSuggestions.map((suggestion, i) => (
-                <button
-                  key={i}
-                  onClick={() => onFollowUpClick?.(suggestion)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-[#E9EAEB] text-[#535862] hover:bg-[#F5F5F5] hover:border-[#D5D7DA] transition-colors leading-tight"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

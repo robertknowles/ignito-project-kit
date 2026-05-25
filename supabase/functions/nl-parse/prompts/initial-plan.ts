@@ -210,21 +210,13 @@ Chase missing fields: end the message with a short paragraph asking for top 1-2 
 
 Your output is schema-constrained. Put your conversational response in the "message" field. Always set "strategyPreset" to "${preset}" in your response.
 
-Do NOT add a clarification/follow-up question at the end of the message. The refinementOptions buttons serve that purpose.
+Do NOT add a clarification/follow-up question at the end of the message. The BA can type whatever they want — the dashboard is fully editable. Do NOT include refinementOptions or followUpSuggestions arrays.
 
 The message should contain:
 1. What was built (number of properties, mix, locations).
 2. Key assumptions worth flagging.
 3. Qualitative goal verdict if relevant.
 4. "See the dashboard for the engine's exact projection."
-
-Include "refinementOptions" with 3-4 buttons specific to the plan:
-1. Number of properties — add/remove
-2. Property types — type mix changes
-3. Property prices — cheaper/higher
-4. Plus 1 more: state diversification, preset switch, or timeline change
-
-If the plan looks tight/stretch, bias refinementOptions toward gap-closers.
 
 ## Timeline Periods
 Semi-annual periods. Period 1 = first half of ${currentYear}. "In 2 years" = period 4-5. "Next year" = period 2-3.

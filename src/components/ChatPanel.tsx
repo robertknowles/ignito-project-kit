@@ -937,16 +937,6 @@ export const ChatPanel: React.FC = () => {
     [instances, propertyOrder, setInstances, setAllSelections, sendMessage, addSystemMessage]
   )
 
-  // Handle follow-up suggestion click — send as a new message
-  const handleFollowUpClick = useCallback(
-    (suggestion: string) => {
-      if (!isLoading) {
-        sendMessage(suggestion)
-      }
-    },
-    [isLoading, sendMessage]
-  )
-
   const handleFeedback = useCallback(
     (messageId: string, rating: -1 | 1) => {
       setMessageFeedback(messageId, rating)
@@ -1099,9 +1089,7 @@ export const ChatPanel: React.FC = () => {
                       key={msg.id}
                       message={msg}
                       onOptionSelect={handleOptionSelect}
-                      onFollowUpClick={handleFollowUpClick}
                       onFeedback={handleFeedback}
-                      propertyCount={propertyOrder.length}
                     />
                   )
                 )}

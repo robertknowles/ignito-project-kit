@@ -557,11 +557,8 @@ export function mapModificationToUpdates(
   }
 
   if ((target === 'rates' || target === 'interestRate') && params.interestRate !== undefined) {
-    // Apply interest rate change to all properties. Lets the chat answer
-    // hypotheticals like "what if rates rise 1%" with directional commentary,
-    // then offer a refinementOption that — if clicked — flips this to a real
-    // modification. Without a bulk target, the AI would have to emit one
-    // change per property which is fragile.
+    // Apply interest rate change to all properties. Bulk target so the AI
+    // can emit a single modification instead of one change per property.
     updates.instanceUpdates = currentOrder.map((instanceId) => ({
       instanceId,
       updates: { interestRate: params.interestRate as number },

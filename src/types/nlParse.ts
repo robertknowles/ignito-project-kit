@@ -154,7 +154,6 @@ export interface NLParseResponse {
   // Always present
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
-  followUpSuggestions?: string[]; // Optional suggested next prompts
 
   // Material inputs the BA did NOT provide — used to flag rows in amber and
   // surface a "for greater accuracy, share X" nudge. Canonical keys:
@@ -206,11 +205,6 @@ export interface NLParseResponse {
   /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 
-  // Post-plan refinement options — contextual buttons shown after initial plan generation
-  refinementOptions?: Array<{
-    label: string; // Short label (4-6 words)
-    prompt: string; // Full message to send when clicked
-  }>;
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────
@@ -239,9 +233,6 @@ export interface ChatMessage {
   optionCards?: ChatOptionCardData[];
   assumptions?: string[];
   missingInputs?: string[];
-  followUpSuggestions?: string[];
-  refinementOptions?: Array<{ label: string; prompt: string }>;
-  showRefinement?: boolean;
   feedback?: -1 | 1;
 }
 

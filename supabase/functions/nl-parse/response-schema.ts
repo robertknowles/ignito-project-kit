@@ -261,24 +261,9 @@ export const RESPONSE_TOOL = {
       },
 
       // Optional arrays
-      followUpSuggestions: {
-        type: "array" as const,
-        items: { type: "string" as const },
-      },
       missingInputs: {
         type: "array" as const,
         items: { type: "string" as const },
-      },
-      refinementOptions: {
-        type: "array" as const,
-        items: {
-          type: "object" as const,
-          properties: {
-            label: { type: "string" as const },
-            prompt: { type: "string" as const },
-          },
-          required: ["label", "prompt"],
-        },
       },
       propertySuggestions: {
         type: "array" as const,
