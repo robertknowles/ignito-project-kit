@@ -329,9 +329,9 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
                       onChange={(e) => setFormData({ ...formData, growthAssumption: e.target.value as 'High' | 'Medium' | 'Low' })}
                       className={inputClass}
                     >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
+                      <option value="High">High (12.5% → 10% → 7.5% → 6%)</option>
+                      <option value="Medium">Medium (6% → 5.5% → 5% → 5%)</option>
+                      <option value="Low">Low (5% → 4% → 3.5% → 3%)</option>
                     </select>
                   </div>
                 </div>

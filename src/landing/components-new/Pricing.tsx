@@ -81,7 +81,7 @@ const Pricing: React.FC = () => {
           </div>
           <div className="mb-10">
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-semibold text-gray-900">$999</span>
+              <span className="text-5xl font-semibold text-gray-900">$799</span>
               <span className="text-gray-400 text-sm">aud / year</span>
             </div>
           </div>
