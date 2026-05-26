@@ -35,9 +35,10 @@ interface AtAGlancePageProps {
   propertySelections: any[];
   chartData?: ChartData;
   companyDisplayName?: string;
+  existingProperties?: any[];
 }
 
-export function AtAGlancePage({ investmentProfile, propertySelections, chartData, companyDisplayName = 'PropPath' }: AtAGlancePageProps) {
+export function AtAGlancePage({ investmentProfile, propertySelections, chartData, companyDisplayName = 'PropPath', existingProperties = [] }: AtAGlancePageProps) {
   // Format currency helper
   const formatCurrency = (value: number): string => {
     if (value >= 1000000) {
@@ -73,7 +74,9 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   // Existing portfolio values from investment profile
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
-  const existingRentalYield = investmentProfile?.existingRentalYield || 0.04; // 4% default
+  const existingRentalYield = existingProperties.length > 0 && existingPortfolioValue > 0
+    ? existingProperties.reduce((sum: number, p: any) => sum + (p.rentPerWeek || 0) * 52, 0) / existingPortfolioValue
+    : 0.04;
   const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.05; // 5% default for mature properties (matches Gameplans calibration 2026-04-30)
 
   // Use pre-calculated chart data from dashboard if available (ensures exact match)

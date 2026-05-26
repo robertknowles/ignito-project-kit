@@ -7,7 +7,7 @@ import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { applyPropertyOverrides } from '../utils/applyPropertyOverrides';
 import { calculatePropertyGrowth } from '../utils/metricsCalculator';
-import { ANNUAL_INFLATION_RATE, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
+import { ANNUAL_INFLATION_RATE, BASE_YEAR, PERIODS_PER_YEAR, GROWTH_RATE_TIERS } from '../constants/financialParams';
 import type { GrowthCurve } from '../types/property';
 
 // Period conversion constants (aligned with calculator)
@@ -68,7 +68,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     const propertyInstance = getInstance(propertyInstanceId);
     
     // Get property data from assumptions
-    const propertyData = getPropertyData(timelineProperty.title);
+    const propertyData = getPropertyData(timelineProperty.title, propertyInstance?.growthAssumption);
     
     if (!propertyData) {
       return null;
@@ -89,8 +89,9 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
     const totalCashInvested = timelineProperty.upfrontCosts?.total ?? 
       (timelineProperty.depositRequired + (timelineProperty.acquisitionCosts?.total || 0));
     
-    // Use the profile's growth curve (same as portfolio growth chart)
-    const growthCurve = profile.growthCurve;
+    // Use instance-level growth assumption, falling back to profile default
+    const instanceGrowth = propertyInstance?.growthAssumption;
+    const growthCurve = (instanceGrowth && GROWTH_RATE_TIERS[instanceGrowth]) || profile.growthCurve;
     
     // Calculate projections based on timeline years
     const projectionYears = profile.timelineYears || 10;
@@ -236,7 +237,7 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
       purchasePeriod: timelineProperty.displayPeriod,
       purchaseYear: Math.floor(timelineProperty.affordableYear),
     };
-  }, [propertyInstanceId, timelineProperties, getInstance, getPropertyData, propertyAssumptions, profile.growthCurve]);
+  }, [propertyInstanceId, timelineProperties, getInstance, getPropertyData, propertyAssumptions, profile.growthCurve, profile.timelineYears]);
   
   return { trackingData };
 };

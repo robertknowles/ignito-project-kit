@@ -293,6 +293,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         const RETRY_BASE_DELAYS_MS = [400, 1500, 3500]
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+        // Fetch planning defaults for this user (set via PlanningDefaultsModal)
+        let planningDefaults: Record<string, unknown> | null = null
+        const userId = optionsRef.current.userId
+        if (userId) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('planning_defaults')
+            .eq('id', userId)
+            .single()
+          planningDefaults = (data?.planning_defaults as Record<string, unknown>) ?? null
+        }
+
         const callOnce = async (): Promise<NLParseResponse> => {
           const invokePromise = supabase.functions.invoke('nl-parse', {
             body: {
@@ -300,8 +312,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               conversationHistory,
               conversationSummary: conversationSummary || undefined,
               currentPlan,
-              userId: optionsRef.current.userId,
+              userId,
               strategyPreset: optionsRef.current.strategyPreset || 'eg-low',
+              planningDefaults: planningDefaults || undefined,
             },
           })
 

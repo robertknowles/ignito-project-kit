@@ -31,7 +31,7 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   
   // Get property instance data
   const propertyInstance = getInstance(instanceId);
-  const propertyDefaults = getPropertyData(propertyType);
+  const propertyDefaults = getPropertyData(propertyType, propertyInstance?.growthAssumption);
   
   // Fallback to safe defaults if both are undefined
   // Set valuationAtPurchase to purchasePrice by default

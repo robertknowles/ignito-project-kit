@@ -118,12 +118,13 @@ export function getPromptForIntent(
   currentPlan: CurrentPlanState | null,
   strategyPreset?: string,
   conversationSummary?: string,
+  planningDefaults?: Record<string, unknown> | null,
 ): string {
   let prompt: string;
 
   switch (intent) {
     case 'new_plan':
-      prompt = buildInitialPlanPrompt(strategyPreset);
+      prompt = buildInitialPlanPrompt(strategyPreset, undefined, planningDefaults);
       break;
 
     case 'preset_switch':
@@ -138,6 +139,7 @@ export function getPromptForIntent(
               timelineYears: currentPlan.investmentProfile.timelineYears,
             }
           : undefined,
+        planningDefaults,
       );
       break;
 

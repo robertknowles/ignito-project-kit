@@ -205,6 +205,7 @@ export function mapToPropertySelections(
       growthAssumption: prop.growthAssumption,
       loanProduct: prop.loanProduct,
       lvr: prop.lvr,
+      lmiCapitalized: prop.lmiCapitalized ?? false,
       mode: prop.mode ?? defaults.mode,
     };
 

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { calculateGrowthProjections } from '../utils/metricsCalculator';
 import type { PropertyPurchase, GrowthProjection } from '../types/property';
 
@@ -9,6 +10,7 @@ export const useGrowthProjections = () => {
   const { profile } = useInvestmentProfile();
   const { timelineProperties } = useAffordabilityCalculator();
   const { globalFactors, getPropertyData } = useDataAssumptions();
+  const { getInstance } = usePropertyInstance();
 
   const projections = useMemo((): GrowthProjection[] => {
     // Convert feasible properties to PropertyPurchase format
@@ -19,7 +21,8 @@ export const useGrowthProjections = () => {
     }
 
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
-      const propertyData = getPropertyData(property.title);
+      const gpInst = getInstance(property.instanceId);
+      const propertyData = getPropertyData(property.title, gpInst?.growthAssumption);
       // DEPRECATED: No longer using globalFactors - each property uses its own template values
       const defaultGrowthRate = 0.06; // Default 6% for projections
       const defaultInterestRate = 0.065; // Default 6.5% for projections
@@ -52,7 +55,7 @@ export const useGrowthProjections = () => {
       profile.timelineYears,
       profile.growthCurve
     );
-  }, [timelineProperties, profile, globalFactors, getPropertyData]);
+  }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance]);
 
   // Calculate key metrics for easier consumption
   const keyMetrics = useMemo(() => {

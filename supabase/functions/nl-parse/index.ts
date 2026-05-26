@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const { message, conversationHistory, conversationSummary, currentPlan, userId, strategyPreset } = await req.json();
+    const { message, conversationHistory, conversationSummary, currentPlan, userId, strategyPreset, planningDefaults } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Step 2: Extract + Respond ───────────────────────────────────
-    const focusedPrompt = getPromptForIntent(intent, currentPlan ?? null, strategyPreset, conversationSummary);
+    const focusedPrompt = getPromptForIntent(intent, currentPlan ?? null, strategyPreset, conversationSummary, planningDefaults);
 
     console.info(`nl-parse: calling Anthropic for "${intent}" (${messages.length} messages, prompt ${focusedPrompt.length} chars)`);
     let response;

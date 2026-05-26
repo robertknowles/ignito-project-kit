@@ -51,7 +51,7 @@ interface DataAssumptionsContextType {
   propertyAssumptions: PropertyAssumption[];
   updateGlobalFactor: (factor: keyof GlobalEconomicFactors, value: string) => void;
   updatePropertyAssumption: (index: number, field: keyof PropertyAssumption, value: string) => void;
-  getPropertyData: (propertyType: string) => PropertyAssumption | undefined;
+  getPropertyData: (propertyType: string, growthAssumptionOverride?: string) => PropertyAssumption | undefined;
 }
 
 const DataAssumptionsContext = createContext<DataAssumptionsContextType | undefined>(undefined);
@@ -383,13 +383,14 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
     });
   };
 
-  const getPropertyData = (propertyType: string): PropertyAssumption | undefined => {
+  const getPropertyData = (propertyType: string, growthAssumptionOverride?: string): PropertyAssumption | undefined => {
     // First try to get from propertyTypeTemplates (source of truth for editable values)
     const template = getPropertyTypeTemplate(propertyType);
-    
+
     if (template) {
       // Convert template to PropertyAssumption format
-      const growthTier = (template.growthAssumption || 'Medium') as GrowthAssumption;
+      // Use instance-level override when provided, otherwise fall back to template default
+      const growthTier = (growthAssumptionOverride || template.growthAssumption || 'Medium') as GrowthAssumption;
       const rates = GROWTH_RATE_TIERS[growthTier] || GROWTH_RATE_TIERS.Medium;
       
       return {

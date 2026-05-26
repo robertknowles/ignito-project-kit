@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Home } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -209,7 +209,8 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const syncAggregates = useCallback((props: ExistingProperty[]) => {
     const totalDebt = props.reduce((s, p) => s + p.loan, 0)
     const totalValue = props.reduce((s, p) => s + p.currentValue, 0)
-    updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue })
+    const existingAnnualRent = props.reduce((s, p) => s + (p.rentPerWeek || 0) * 52, 0)
+    updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
   }, [updateProfile])
 
   const handleAdd = useCallback(() => {
@@ -277,20 +278,26 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
 
   if (properties.length === 0) {
     return (
-      <ChartCard title="Existing Properties" flush>
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-xs text-gray-500 mb-4">
-            No existing properties yet — add one manually below.
+      <div className="border border-[#E9EAEB] rounded-xl">
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-12 h-12 rounded-lg border border-[#E9EAEB] shadow-xs flex items-center justify-center mb-4">
+            <Home size={24} className="text-[#717680]" />
+          </div>
+          <h3 className="text-base font-semibold text-[#181D27] mb-1">
+            No existing properties
+          </h3>
+          <p className="text-sm text-[#717680] text-center mb-6 max-w-xs">
+            Add your current properties to build a complete portfolio plan.
           </p>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-[#535862] hover:text-[#181D27] transition-colors"
           >
-            <Plus size={14} />
+            <Plus size={16} />
             Add existing property
           </button>
         </div>
-      </ChartCard>
+      </div>
     )
   }
 

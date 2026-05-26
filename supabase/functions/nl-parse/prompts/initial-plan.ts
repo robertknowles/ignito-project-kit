@@ -29,6 +29,7 @@ interface PresetSwitchContext {
 export function buildInitialPlanPrompt(
   strategyPreset: string | undefined,
   presetSwitchContext?: PresetSwitchContext,
+  planningDefaults?: Record<string, unknown> | null,
 ): string {
   const currentYear = new Date().getFullYear();
   const preset = (strategyPreset && strategyPreset in PRESET_LABELS ? strategyPreset : 'eg-low') as StrategyPresetId;
@@ -45,6 +46,19 @@ This is a strategy preset switch — reuse the existing client's details:
 Build a completely fresh property sequence biased toward the new preset's cells.`
     : '';
 
+  const planningDefaultsNote = planningDefaults
+    ? `\n\n## BA Planning Defaults
+The BA has configured these default preferences. Use them as starting points unless the client's message explicitly overrides them:
+${planningDefaults.preferredPropertyTypes && (planningDefaults.preferredPropertyTypes as string[]).length > 0 ? `- Preferred property types: ${(planningDefaults.preferredPropertyTypes as string[]).join(', ')}` : ''}
+${planningDefaults.preferredStates && (planningDefaults.preferredStates as string[]).length > 0 ? `- Preferred states: ${(planningDefaults.preferredStates as string[]).join(', ')}` : ''}
+${planningDefaults.defaultGrowthAssumption ? `- Default growth assumption: ${planningDefaults.defaultGrowthAssumption}` : ''}
+${planningDefaults.defaultLoanType ? `- Default loan type: ${planningDefaults.defaultLoanType}` : ''}
+${planningDefaults.defaultLvr ? `- Default LVR: ${planningDefaults.defaultLvr}%` : ''}
+${planningDefaults.defaultInterestRate ? `- Default interest rate: ${planningDefaults.defaultInterestRate}%` : ''}
+${planningDefaults.defaultTimeline ? `- Default timeline: ${planningDefaults.defaultTimeline} years` : ''}
+${planningDefaults.defaultOwnership ? `- Default ownership: ${planningDefaults.defaultOwnership}` : ''}`.replace(/\n\n+/g, '\n')
+    : '';
+
   return `${ROLE_AND_VOICE}
 
 ${COMPLIANCE}
@@ -54,6 +68,7 @@ ${CONVENTIONS}
 ## Current Strategy Preset: ${preset.toUpperCase()} — ${presetLabel}
 The BA has selected the "${presetLabel}" preset. This preset determines which property cells to bias toward (see "Strategy Presets and the 10-Cell Matrix" below). Unless the BA explicitly switches preset in their message, build the plan using this preset's cell biases.
 ${presetSwitchNote}
+${planningDefaultsNote}
 
 ## Strategy Presets and the 10-Cell Matrix
 

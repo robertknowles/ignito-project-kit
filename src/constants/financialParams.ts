@@ -304,6 +304,6 @@ export const yearToPeriod = (year: number): number => {
 /**
  * Calculate inflation factor for a given number of periods
  */
-export const calculateInflationFactor = (periodsOwned: number): number => {
-  return Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
+export const calculateInflationFactor = (periodsOwned: number, inflationRate: number = ANNUAL_INFLATION_RATE): number => {
+  return Math.pow(1 + inflationRate, periodsOwned / PERIODS_PER_YEAR);
 };

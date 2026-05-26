@@ -6,7 +6,6 @@ import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_VACANCY_RATE,
   ANNUAL_INFLATION_RATE,
-  ANNUAL_WAGE_GROWTH_RATE,
 } from '../constants/financialParams'
 
 const sliderClassName =
@@ -144,9 +143,6 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
   const interestPct = profile.interestRate * 100
   const vacancyPct = profile.vacancyRate * 100
   const inflationPct = profile.inflationRate * 100
-  const wageGrowthPct = profile.wageGrowthRate * 100
-  const valuationResPct = profile.valuationPremiumResidential * 100
-  const valuationComPct = profile.valuationPremiumCommercial * 100
   const existingGrowthPct = profile.existingPortfolioGrowthRate * 100
   const equityReleasePct = profile.equityReleaseFactor * 100
 
@@ -157,9 +153,6 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       interestRate: DEFAULT_INTEREST_RATE,
       vacancyRate: DEFAULT_VACANCY_RATE,
       inflationRate: ANNUAL_INFLATION_RATE,
-      wageGrowthRate: ANNUAL_WAGE_GROWTH_RATE,
-      valuationPremiumResidential: 0.03,
-      valuationPremiumCommercial: 0.05,
       maxPurchasesPerYear: 3,
       equityReleaseFactor: 0.7,
     })
@@ -251,39 +244,6 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           step={0.5}
           format="percent"
           description="Annual vacancy allowance reducing rental income. 4% ≈ 2 weeks/year, within typical lender consensus."
-        />
-        <DialTile
-          label="Wage Growth Rate"
-          value={wageGrowthPct}
-          defaultValue={ANNUAL_WAGE_GROWTH_RATE * 100}
-          onChange={(v) => updateProfile({ wageGrowthRate: v / 100 })}
-          min={0}
-          max={6}
-          step={0.25}
-          format="percent"
-          description="Annual increase in client's salary, applied to projected savings over the horizon."
-        />
-        <DialTile
-          label="Residential Valuation Premium"
-          value={valuationResPct}
-          defaultValue={3}
-          onChange={(v) => updateProfile({ valuationPremiumResidential: v / 100 })}
-          min={0}
-          max={10}
-          step={0.5}
-          format="percent"
-          description="Day-zero equity boost from buying residential under valuation. Reflects BA value-add through off-market sourcing or negotiation."
-        />
-        <DialTile
-          label="Commercial Valuation Premium"
-          value={valuationComPct}
-          defaultValue={5}
-          onChange={(v) => updateProfile({ valuationPremiumCommercial: v / 100 })}
-          min={0}
-          max={15}
-          step={0.5}
-          format="percent"
-          description="Commercial deals typically have more under-value opportunity from distressed sellers. Higher default than residential."
         />
         <DialTile
           label="Max Purchases / Year"

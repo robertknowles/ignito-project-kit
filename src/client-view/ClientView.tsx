@@ -153,10 +153,11 @@ export const ClientView = () => {
   return (
     <div className="min-h-screen bg-[#f9fafb] flex flex-col">
       {/* Dashboard Content */}
-      <ClientDashboard 
+      <ClientDashboard
         investmentProfile={scenario.investmentProfile}
         propertySelections={scenario.propertySelections}
         chartData={scenario.chartData}
+        existingProperties={scenario.existingProperties}
         clientDisplayName={scenario.client_display_name}
         agentDisplayName={scenario.agent_display_name}
         companyDisplayName={scenario.company_display_name}

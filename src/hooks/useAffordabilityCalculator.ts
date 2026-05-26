@@ -56,7 +56,6 @@ export const useAffordabilityCalculator = () => {
   const { globalFactors, getPropertyData, propertyAssumptions, getPropertyTypeTemplate, propertyTypeTemplates } = useDataAssumptions();
   const { activeClient } = useClient();
   const { getInstance, createInstance, instances } = usePropertyInstance();
-  
   // Per-instance loan type state (keyed by instanceId). In-memory only;
   // persists across a session but not across reloads. Saved scenarios
   // restore their own loan types via PropertyInstanceDetails.loanProduct.
@@ -357,18 +356,18 @@ export const useAffordabilityCalculator = () => {
         previousPurchases.forEach(purchase => {
           if (purchase.period < period) {
             const periodsOwned = period - purchase.period;
-            const propertyData = getPropertyData(purchase.title);
-            
+            const propertyInstance = getInstance(purchase.instanceId);
+            const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
+
             if (propertyData) {
               // Pass purchase.period as basePeriod for correct market correction event timing
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
-              const propertyInstance = getInstance(purchase.instanceId);
-              
+
               if (propertyInstance) {
                 const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
                 const growthFactor = currentValue / purchase.cost;
                 const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
-                const inflationFactor = calculateInflationFactor(periodsOwned);
+                const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
                 const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
                 periodNetCashflow += inflationAdjustedCashflow / PERIODS_PER_YEAR;
               } else {
@@ -378,7 +377,7 @@ export const useAffordabilityCalculator = () => {
                 const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
                 const growthFactor = currentValue / purchase.cost;
                 const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
-                const inflationFactor = calculateInflationFactor(periodsOwned);
+                const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
                 periodNetCashflow += (adjustedAnnualCashflow * inflationFactor) / PERIODS_PER_YEAR;
               }
             }
@@ -398,7 +397,8 @@ export const useAffordabilityCalculator = () => {
         let extractableEquityThisPeriod = existingPortfolioEquity;
         previousPurchases.forEach(purchase => {
           if (purchase.period < period) { // Only properties bought before this period have usable equity
-            const propertyData = getPropertyData(purchase.title);
+            const equityInstance = getInstance(purchase.instanceId);
+            const propertyData = getPropertyData(purchase.title, equityInstance?.growthAssumption);
             if (propertyData) {
               const periodsOwned = period - purchase.period;
               // Pass purchase.period as basePeriod for correct market correction event timing
@@ -417,8 +417,9 @@ export const useAffordabilityCalculator = () => {
           const cashNeeded = purchase.totalCashRequired || purchase.depositRequired;
           let remaining = cashNeeded;
           
-          // EQUITY-FIRST: 1. Use available equity first
-          const availableEquity = Math.max(0, extractableEquityThisPeriod - cumulativeEquityUsed);
+          // EQUITY-FIRST: 1. Use available equity first (scaled by equity release factor)
+          const rawEquity = Math.max(0, extractableEquityThisPeriod - cumulativeEquityUsed);
+          const availableEquity = rawEquity * (profile.equityReleaseFactor ?? 0.70);
           const fromEquity = Math.min(remaining, availableEquity);
           remaining -= fromEquity;
           cumulativeEquityUsed += fromEquity;
@@ -439,7 +440,8 @@ export const useAffordabilityCalculator = () => {
       let totalExtractableEquity = existingPortfolioEquity;
       previousPurchases.forEach(purchase => {
         if (purchase.period < currentPeriod) { // Only properties bought before current period
-          const propertyData = getPropertyData(purchase.title);
+          const eqInst = getInstance(purchase.instanceId);
+          const propertyData = getPropertyData(purchase.title, eqInst?.growthAssumption);
           if (propertyData) {
             const periodsOwned = currentPeriod - purchase.period;
             const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
@@ -451,7 +453,8 @@ export const useAffordabilityCalculator = () => {
       });
       
       // Calculate remaining balances
-      const equityRemaining = Math.max(0, totalExtractableEquity - cumulativeEquityUsed);
+      const rawEquityRemaining = Math.max(0, totalExtractableEquity - cumulativeEquityUsed);
+      const equityRemaining = rawEquityRemaining * (profile.equityReleaseFactor ?? 0.70);
       const cashRemaining = runningCashBalance;
       const savingsRemaining = runningSavingsBalance;
       
@@ -499,19 +502,26 @@ export const useAffordabilityCalculator = () => {
       let expenses = 0;
       
       // CRITICAL: Add rental income from EXISTING portfolio (before this scenario)
-      // The existing portfolio generates rental income that helps serviceability
+      // Uses pre-computed existingAnnualRent from profile (synced when existing properties change)
       if (profile.portfolioValue > 0) {
         const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
         const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, existingGrowthRate);
-        const existingRentalYield = profile.existingRentalYield || 0.04; // Default 4% yield
-        const existingAnnualRent = grownPortfolioValue * existingRentalYield;
-        // Apply flat 80% recognition rate (matches bank practice)
+
+        let existingAnnualRent = 0;
+        const baseRent = profile.existingAnnualRent;
+        if (baseRent && baseRent > 0) {
+          existingAnnualRent = baseRent;
+          const growthFactor = grownPortfolioValue / profile.portfolioValue;
+          existingAnnualRent *= growthFactor;
+        } else {
+          existingAnnualRent = grownPortfolioValue * 0.04;
+        }
         const existingRecognizedRent = existingAnnualRent * RENTAL_RECOGNITION_RATE;
         grossRentalIncome += existingRecognizedRent;
-        
+
         // Also add existing portfolio's loan interest to track
         if (profile.currentDebt > 0) {
-          const effectiveRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
+          const effectiveRate = getEffectiveInterestRate(currentPeriod, eventBlocks, profile.interestRate ?? DEFAULT_INTEREST_RATE);
           loanInterest += profile.currentDebt * effectiveRate;
         }
       }
@@ -528,16 +538,14 @@ export const useAffordabilityCalculator = () => {
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           const periodsOwned = currentPeriod - purchase.period;
-          const propertyData = getPropertyData(purchase.title);
-          
+          const propertyInstance = getInstance(purchase.instanceId);
+          const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
+
         if (propertyData) {
           // Calculate current property value with tiered growth
           // Pass purchase.period as basePeriod for correct market correction event timing
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
-          
-          // Get property instance for detailed cashflow calculation
-          const propertyInstance = getInstance(purchase.instanceId);
-          
+
           if (propertyInstance) {
             // Calculate detailed cashflow using all 39 inputs
             const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
@@ -547,7 +555,7 @@ export const useAffordabilityCalculator = () => {
             const adjustedIncome = cashflowBreakdown.adjustedIncome * growthFactor;
             
             // Apply inflation - expenses only grow with inflation, NOT property value
-            const inflationFactor = calculateInflationFactor(periodsOwned);
+            const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
             const inflationAdjustedIncome = adjustedIncome * inflationFactor;
             
             // BUG FIX: Operating expenses should NOT grow with property value (growthFactor)
@@ -591,7 +599,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             
             const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
             const growthFactor = currentValue / purchase.cost;
-            const inflationFactor = calculateInflationFactor(periodsOwned);
+            const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
             
             // Apply recognition rate and adjustments
             // Income grows with both property value AND inflation
@@ -646,12 +654,13 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
         previousPurchases.forEach(purchase => {
           if (purchase.period <= currentPeriod) {
             const periodsOwned = currentPeriod - purchase.period;
-            const propertyData = getPropertyData(purchase.title);
+            const pvInst = getInstance(purchase.instanceId);
+            const propertyData = getPropertyData(purchase.title, pvInst?.growthAssumption);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
               totalPortfolioValue += currentValue;
               propertyValues.push(currentValue);
-              
+
               // Continuous equity release - 80% LVR cap, no time constraint
               // Current loan = original loan + any equity released so far
               const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
@@ -687,23 +696,26 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           // Get property-specific effective rate (considers refinance events)
+          const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
           const purchaseEffectiveRate = getPropertyEffectiveRate(
             currentPeriod,
             eventBlocks,
-            purchase.instanceId
+            purchase.instanceId,
+            baseRate
           );
           const purchaseLoanType = purchase.loanType || 'IO';
           totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
         }
       });
-      
+
       // Get property instance for interest rate and LMI waiver
       const propertyInstance = getInstance(property.instanceId);
       // Get property-specific effective rate (considers refinance events)
       const propertyInterestRate = getPropertyEffectiveRate(
         currentPeriod,
         eventBlocks,
-        property.instanceId
+        property.instanceId,
+        profile.interestRate ?? DEFAULT_INTEREST_RATE
       );
       const lmiWaiver = propertyInstance?.lmiWaiver ?? false;
       
@@ -715,12 +727,12 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       // Calculate rental income from new property for DSR calculation
       // CRITICAL: Use instance rentPerWeek if available, not template yield
       const affordPropertyInstance = getInstance(property.instanceId);
-      const propertyData = getPropertyData(property.title);
+      const propertyData = getPropertyData(property.title, affordPropertyInstance?.growthAssumption);
       let newPropertyRentalIncome = 0;
       if (affordPropertyInstance) {
         // Use actual instance rent (agent-editable)
         const annualRent = affordPropertyInstance.rentPerWeek * 52;
-        const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
+        const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
         const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
         const recognitionRate = RENTAL_RECOGNITION_RATE;
         newPropertyRentalIncome = vacancyAdjusted * recognitionRate;
@@ -1111,7 +1123,8 @@ return { period: Infinity };
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
-            const propertyData = getPropertyData(purchase.title);
+            const phInst = getInstance(purchase.instanceId);
+            const propertyData = getPropertyData(purchase.title, phInst?.growthAssumption);
             if (propertyData) {
               portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
               // Current loan = original loan + any equity released so far
@@ -1143,20 +1156,18 @@ return { period: Infinity };
         // Calculate cashflow from all properties including this one (use correct purchase price from top of loop)
         [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
-          const propertyData = getPropertyData(purchase.title);
-          
+          const propertyInstance = getInstance(purchase.instanceId);
+          const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
+
           if (propertyData && purchase.period <= purchasePeriod) {
-            // Get property instance if it exists (user customizations)
-            const propertyInstance = getInstance(purchase.instanceId);
-            
             // Use instance data if available, otherwise use defaults
-            const propertyDetails = propertyInstance 
+            const propertyDetails = propertyInstance
               ? applyPropertyOverrides(propertyData, propertyInstance)
               : propertyData;
-            
+
             // Calculate current property value with tiered growth
             const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-            
+
             // Calculate land tax if not overridden
             const landTax = propertyDetails.landTaxOverride ?? calculateLandTax(
               propertyDetails.state,
@@ -1171,7 +1182,7 @@ return { period: Infinity };
             
             // 1. Calculate Growth & Inflation Factors
             const growthFactor = currentValue / purchase.cost;
-            const inflationFactor = calculateInflationFactor(periodsOwned);
+            const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
             
             // 2. Calculate Detailed Cashflow (Base)
             // This gets us the base rent and expenses for the property instance
@@ -1217,14 +1228,14 @@ return { period: Infinity };
         let totalPrincipalPayments = 0;
         [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
-          const propertyData = getPropertyData(purchase.title);
-          
+          const propertyInstance = getInstance(purchase.instanceId);
+          const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
+
           if (propertyData && purchase.period <= purchasePeriod) {
-            const propertyInstance = getInstance(purchase.instanceId);
-            const propertyDetails = propertyInstance 
+            const propertyDetails = propertyInstance
               ? applyPropertyOverrides(propertyData, propertyInstance)
               : propertyData;
-            
+
             const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
             const landTax = propertyDetails.landTaxOverride ?? calculateLandTax(
               propertyDetails.state,
@@ -1355,7 +1366,8 @@ return { period: Infinity };
         purchaseHistory.forEach(purchase => {
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
-            const propertyData = getPropertyData(purchase.title);
+            const erInst = getInstance(purchase.instanceId);
+            const propertyData = getPropertyData(purchase.title, erInst?.growthAssumption);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
               const maxLoan = currentValue * EQUITY_EXTRACTION_LVR_CAP;
@@ -1506,7 +1518,11 @@ return { period: Infinity };
     profile.existingPortfolioGrowthRate, // Trigger recalculation when growth rate changes
     profile.maxPurchasesPerYear, // Trigger recalculation when purchase limit changes
     calculatedValues.availableDeposit,
-    globalFactors.interestRate,
+    profile.interestRate,
+    profile.vacancyRate,
+    profile.inflationRate,
+    profile.equityReleaseFactor,
+    profile.existingAnnualRent,
     getPropertyData,
     propertyAssumptions,
     propertyTypeTemplates,
@@ -1591,15 +1607,15 @@ return { period: Infinity };
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
         const periodsOwned = period - purchase.period;
-        const propertyData = getPropertyData(purchase.title);
         const purchaseInstance = getInstance(purchase.instanceId);
-        
+        const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
+
         if (purchaseInstance && propertyData) {
           // Use instance rent with growth adjustment
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const growthFactor = currentValue / purchase.cost;
           const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
-          const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
+          const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
           const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
@@ -1613,14 +1629,14 @@ return { period: Infinity };
         }
       }
     });
-    
+
     // Add new property rental income
     const newPropertyInstance = getInstance(property.instanceId);
-    const propertyData = getPropertyData(property.title);
+    const propertyData = getPropertyData(property.title, newPropertyInstance?.growthAssumption);
     if (newPropertyInstance) {
       // Use instance rent (agent-editable)
       const annualRent = newPropertyInstance.rentPerWeek * 52;
-      const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
+      const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
       const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
       const recognitionRate = RENTAL_RECOGNITION_RATE;
       totalRentalIncome += vacancyAdjusted * recognitionRate;
@@ -1645,25 +1661,26 @@ return { period: Infinity };
     }
     
     // Previous purchases loan payments (use property-specific effective rates with refinance events)
+    const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
-        // Get property-specific effective rate (considers refinance events)
         const purchaseEffectiveRate = getPropertyEffectiveRate(
           period,
           eventBlocks,
-          purchase.instanceId
+          purchase.instanceId,
+          baseRate
         );
         const purchaseLoanType = purchase.loanType || 'IO';
         totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
       }
     });
-    
+
     // Add new property loan payment (use event-adjusted property interest rate)
-    // Get property-specific effective rate (considers refinance events)
     const propertyEffectiveRateForPeriod = getPropertyEffectiveRate(
       period,
       eventBlocks,
-      property.instanceId
+      property.instanceId,
+      baseRate
     );
     const newPropertyLoanType = property.loanType || 'IO';
     const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyEffectiveRateForPeriod, newPropertyLoanType);
@@ -1703,7 +1720,8 @@ return { period: Infinity };
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
         const periodsOwned = period - purchase.period;
-        const purchasePropertyData = getPropertyData(purchase.title);
+        const ppInst = getInstance(purchase.instanceId);
+        const purchasePropertyData = getPropertyData(purchase.title, ppInst?.growthAssumption);
         if (purchasePropertyData) {
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, purchasePropertyData);
           const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
@@ -1870,14 +1888,14 @@ createInstance(instanceId, propertyType, period);
     purchaseHistoryForValidation.forEach(purchase => {
       if (purchase.period <= targetPeriod) {
         const periodsOwned = targetPeriod - purchase.period;
-        const propertyData = getPropertyData(purchase.title);
         const purchaseInstance = getInstance(purchase.instanceId);
-        
+        const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
+
         if (purchaseInstance && propertyData) {
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const growthFactor = currentValue / purchase.cost;
           const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
-          const vacancyAdjusted = annualRent * (1 - DEFAULT_VACANCY_RATE);
+          const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
           const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
@@ -1890,7 +1908,7 @@ createInstance(instanceId, propertyType, period);
         }
       }
     });
-    
+
     // Calculate total debt from previous purchases
     let totalDebtFromPurchases = 0;
     purchaseHistoryForValidation.forEach(purchase => {
@@ -1900,7 +1918,7 @@ createInstance(instanceId, propertyType, period);
     });
     
     // Calculate total interest payments
-    const interestRate = parseFloat(globalFactors.interestRate) / 100;
+    const interestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
     const totalInterestPayments = (totalDebtFromPurchases + property.loanAmount) * interestRate;
     
     // Calculate serviceability
@@ -1916,7 +1934,8 @@ createInstance(instanceId, propertyType, period);
     purchaseHistoryForValidation.forEach(purchase => {
       if (purchase.period <= targetPeriod) {
         const periodsOwned = targetPeriod - purchase.period;
-        const propertyData = getPropertyData(purchase.title);
+        const bcInst = getInstance(purchase.instanceId);
+        const propertyData = getPropertyData(purchase.title, bcInst?.growthAssumption);
         if (propertyData && periodsOwned >= 2) {
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const maxLoan = currentValue * EQUITY_EXTRACTION_LVR_CAP;
@@ -1938,7 +1957,7 @@ createInstance(instanceId, propertyType, period);
       serviceabilityTestPass,
       borrowingCapacityPass,
     };
-  }, [calculateTimelineProperties, propertyOrder, calculateAvailableFunds, checkAffordability, getPropertyData, getInstance, globalFactors.interestRate, profile.borrowingCapacity, profile.equityFactor, calculatePropertyGrowth]);
+  }, [calculateTimelineProperties, propertyOrder, calculateAvailableFunds, checkAffordability, getPropertyData, getInstance, profile.interestRate, profile.borrowingCapacity, profile.equityFactor, calculatePropertyGrowth]);
 
   // Only expose the memoized result
   return {

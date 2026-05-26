@@ -123,9 +123,9 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     // Convert feasible properties to PropertyPurchase format
     const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
     const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
-      const propertyData = getPropertyData(property.title);
       const propertyInstance = getInstance(property.instanceId);
-      
+      const propertyData = getPropertyData(property.title, propertyInstance?.growthAssumption);
+
       // PRIORITY: Use instance growthAssumption if available, then template, then profile fallback
       // This ensures edits to the property card slider are reflected in charts
       let propertyGrowthCurve;
@@ -360,7 +360,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         
         // Get property instance for detailed cashflow calculation
         const propertyInstance = getInstance(property.instanceId);
-        const propertyData = getPropertyData(property.title);
+        const propertyData = getPropertyData(property.title, propertyInstance?.growthAssumption);
         
         // Get the effective interest rate for this property (considers property-specific refinance)
         const propertyEffectiveRate = getPropertyEffectiveRate(

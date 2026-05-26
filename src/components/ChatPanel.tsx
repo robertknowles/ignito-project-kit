@@ -319,6 +319,10 @@ export const ChatPanel: React.FC = () => {
       const existingProps = mapToExistingProperties(response)
       if (existingProps) {
         setExistingProperties(existingProps)
+        const totalDebt = existingProps.reduce((s, p) => s + (p.loan || 0), 0)
+        const totalValue = existingProps.reduce((s, p) => s + (p.currentValue || 0), 0)
+        const existingAnnualRent = existingProps.reduce((s, p) => s + (p.rentPerWeek || 0) * 52, 0)
+        updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
       }
 
       // Force a save right after the plan lands.
@@ -562,6 +566,10 @@ export const ChatPanel: React.FC = () => {
       const existingProps = mapToExistingProperties(response)
       if (existingProps) {
         setExistingProperties(existingProps)
+        const totalDebt = existingProps.reduce((s, p) => s + (p.loan || 0), 0)
+        const totalValue = existingProps.reduce((s, p) => s + (p.currentValue || 0), 0)
+        const existingAnnualRent = existingProps.reduce((s, p) => s + (p.rentPerWeek || 0) * 52, 0)
+        updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
       }
       flushSaveAfterStateUpdate()
     },

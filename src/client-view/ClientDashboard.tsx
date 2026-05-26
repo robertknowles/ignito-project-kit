@@ -77,6 +77,7 @@ interface ClientDashboardProps {
   clientId?: string | number;
   clientEmail?: string;
   companyId?: string;
+  existingProperties?: any[];
 }
 
 export function ClientDashboard({ 
@@ -97,6 +98,7 @@ export function ClientDashboard({
   clientId,
   clientEmail,
   companyId,
+  existingProperties = [],
 }: ClientDashboardProps) {
   
   // Share dashboard state
@@ -273,7 +275,9 @@ export function ClientDashboard({
   // Existing portfolio values from investment profile
   const existingPortfolioValue = investmentProfile?.existingPortfolioValue || 0;
   const existingDebt = investmentProfile?.existingDebt || 0;
-  const existingRentalYield = investmentProfile?.existingRentalYield || 0.04;
+  const existingRentalYield = existingProperties.length > 0 && existingPortfolioValue > 0
+    ? existingProperties.reduce((s: number, p: any) => s + (p.rentPerWeek || 0) * 52, 0) / existingPortfolioValue
+    : 0.04;
   const existingPortfolioGrowthRate = investmentProfile?.existingPortfolioGrowthRate || 0.05; // 5% default for mature properties (matches Gameplans calibration 2026-04-30)
 
   // Calculate chart data
@@ -481,7 +485,7 @@ export function ClientDashboard({
     const scenarioEndYear = scenarioStartYear + scenarioTimelineYears - 1;
     const scenarioExistingValue = profile?.existingPortfolioValue || 0;
     const scenarioExistingDebt = profile?.existingDebt || 0;
-    const scenarioExistingYield = profile?.existingRentalYield || 0.04;
+    const scenarioExistingYield = 0.04;
     const scenarioGrowthCurve = profile?.growthCurve || defaultGrowthCurve;
     
     // Convert selections to purchases
