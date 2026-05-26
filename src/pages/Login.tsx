@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { MailIcon, LockIcon, EyeIcon, EyeOffIcon, HomeIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function Login() {
@@ -24,151 +24,133 @@ export function Login() {
       setError(signInError.message)
       setLoading(false)
     } else {
-      // Pending-checkout handling removed while subscriptions are disabled.
-      // Drop any stale pending plan so it doesn't sit in localStorage.
       localStorage.removeItem('pending_subscription_plan')
       navigate('/home')
     }
   }
 
   return (
-    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb] relative">
-      {/* Home Button */}
-      <Link
-        to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-[#6b7280] hover:text-[#374151] transition-colors z-10"
-      >
-        <HomeIcon size={20} />
-        <span className="text-sm font-medium">Home</span>
-      </Link>
-      
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-white border-2 border-[#e5e7eb] rounded-lg flex items-center justify-center">
-                <LockIcon size={20} className="text-[#6b7280]" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-medium text-[#374151]">
-              Sign in to your account
-            </h2>
-            <p className="mt-2 text-sm text-[#6b7280]">
-              Or{' '}
-              <Link
-                to="/signup"
-                className="text-[#374151] hover:text-[#111827] font-medium underline"
-              >
-                create a new account
-              </Link>
-            </p>
-          </div>
-          <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-[#f3f4f6]">
-            {error && (
-              <div className="mb-4 p-3 bg-red-300/70 border border-red-300 rounded-md">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Email address
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MailIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Password
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="••••••••"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#9ca3af] hover:text-[#6b7280] focus:outline-none"
-                    >
-                      {showPassword ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 text-[#6b7280] focus:ring-[#9ca3af] border-[#e5e7eb] rounded"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-2 block text-sm text-[#6b7280]"
-                  >
-                    Remember me
-                  </label>
-                </div>
-                <div className="text-sm">
-                  <Link
-                    to="/forgot-password"
-                    className="font-medium text-[#374151] hover:text-[#111827] underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-              </div>
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#6b7280] hover:bg-[#374151] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Signing in...' : 'Sign in'}
-                </button>
-              </div>
-            </form>
+    <div className="flex min-h-screen items-center justify-center bg-white px-4">
+      <div className="w-full max-w-[360px]">
+        <div className="flex justify-center mb-6">
+          <Link to="/">
+            <img
+              src="/images/proppath-icon.png"
+              alt="PropPath"
+              className="w-10 h-10 rounded-lg"
+            />
+          </Link>
+        </div>
+
+        <h1 className="text-center text-[30px] font-semibold tracking-tight text-[#101828] mb-3">
+          Log in to your account
+        </h1>
+        <p className="text-center text-base text-[#667085] mb-8">
+          Welcome back! Please enter your details.
+        </p>
+
+        <div className="flex p-1 mb-8 bg-[#F9FAFB] border border-[#EAECF0] rounded-[10px]">
+          <Link
+            to="/signup"
+            className="flex-1 py-2 text-center text-sm font-semibold text-[#667085] rounded-md hover:text-[#344054] transition-colors"
+          >
+            Sign up
+          </Link>
+          <div className="flex-1 py-2 text-center text-sm font-semibold text-[#344054] bg-white rounded-md shadow-sm">
+            Log in
           </div>
         </div>
+
+        {error && (
+          <div className="mb-5 p-3 bg-[#FEF3F2] border border-[#FECDCA] rounded-lg">
+            <p className="text-sm text-[#B42318]">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="w-full px-3.5 py-2.5 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 pr-10 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#344054] focus:outline-none"
+              >
+                {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-[#D0D5DD] text-[#7F56D9] focus:ring-[#7F56D9]"
+              />
+              <span className="text-sm text-[#344054]">Remember for 30 days</span>
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-sm font-semibold text-[#6941C6] hover:text-[#53389E]"
+            >
+              Forgot password
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 px-4 bg-[#7F56D9] hover:bg-[#6941C6] text-white text-base font-semibold rounded-lg shadow-xs border border-[#7F56D9] focus:outline-none focus:ring-4 focus:ring-[#F4EBFF] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-sm text-[#667085]">
+          Don't have an account?{' '}
+          <Link
+            to="/signup"
+            className="font-semibold text-[#6941C6] hover:text-[#53389E]"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   )

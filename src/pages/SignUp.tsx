@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { MailIcon, LockIcon, UserIcon, EyeIcon, EyeOffIcon, HomeIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function SignUp() {
@@ -35,12 +35,11 @@ export function SignUp() {
     }
 
     const { error: signUpError } = await signUp(email, password, name)
-    
+
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
     } else {
-      // Mark this as a new user so they get redirected to /dashboard for the tour
       localStorage.setItem('ignito_is_new_user', 'true')
       setSuccess(true)
       setLoading(false)
@@ -48,208 +47,180 @@ export function SignUp() {
   }
 
   return (
-    <div className="main-app flex flex-col h-screen w-full bg-[#f9fafb] relative">
-      {/* Home Button */}
-      <Link
-        to="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-[#6b7280] hover:text-[#374151] transition-colors z-10"
-      >
-        <HomeIcon size={20} />
-        <span className="text-sm font-medium">Home</span>
-      </Link>
-      
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-white border-2 border-[#e5e7eb] rounded-lg flex items-center justify-center">
-                <UserIcon size={20} className="text-[#6b7280]" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-medium text-[#374151]">
-              Create your account
-            </h2>
-            <p className="mt-2 text-sm text-[#6b7280]">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="text-[#374151] hover:text-[#111827] font-medium underline"
-              >
-                Sign in
-              </Link>
+    <div className="flex min-h-screen items-center justify-center bg-white px-4">
+      <div className="w-full max-w-[360px]">
+        <div className="flex justify-center mb-6">
+          <Link to="/">
+            <img
+              src="/images/proppath-icon.png"
+              alt="PropPath"
+              className="w-10 h-10 rounded-lg"
+            />
+          </Link>
+        </div>
+
+        <h1 className="text-center text-[30px] font-semibold tracking-tight text-[#101828] mb-3">
+          Create your account
+        </h1>
+        <p className="text-center text-base text-[#667085] mb-8">
+          Start your free trial today.
+        </p>
+
+        <div className="flex p-1 mb-8 bg-[#F9FAFB] border border-[#EAECF0] rounded-[10px]">
+          <div className="flex-1 py-2 text-center text-sm font-semibold text-[#344054] bg-white rounded-md shadow-sm">
+            Sign up
+          </div>
+          <Link
+            to="/login"
+            className="flex-1 py-2 text-center text-sm font-semibold text-[#667085] rounded-md hover:text-[#344054] transition-colors"
+          >
+            Log in
+          </Link>
+        </div>
+
+        {error && (
+          <div className="mb-5 p-3 bg-[#FEF3F2] border border-[#FECDCA] rounded-lg">
+            <p className="text-sm text-[#B42318]">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="mb-5 p-3 bg-[#ECFDF3] border border-[#ABEFC6] rounded-lg">
+            <p className="text-sm text-[#067647]">
+              Account created successfully! Please check your email to verify your account.
             </p>
           </div>
-          <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-[#f3f4f6]">
-            {error && (
-              <div className="mb-4 p-3 bg-red-300/70 border border-red-300 rounded-md">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-            {success && (
-              <div className="mb-4 p-3 bg-green-300/70 border border-green-300 rounded-md">
-                <p className="text-sm text-green-700">
-                  Account created successfully! Please check your email to verify your account.
-                </p>
-              </div>
-            )}
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Full name
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <UserIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="John Doe"
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Email address
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MailIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Password
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="••••••••"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#9ca3af] hover:text-[#6b7280] focus:outline-none"
-                    >
-                      {showPassword ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-[#374151]"
-                >
-                  Confirm password
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockIcon size={16} className="text-[#9ca3af]" />
-                  </div>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-[#e5e7eb] rounded-md text-sm placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#9ca3af] focus:border-transparent"
-                    placeholder="••••••••"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="text-[#9ca3af] hover:text-[#6b7280] focus:outline-none"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <input
-                  id="agree-terms"
-                  name="agree-terms"
-                  type="checkbox"
-                  required
-                  checked={agreeToTerms}
-                  onChange={(e) => setAgreeToTerms(e.target.checked)}
-                  className="h-4 w-4 text-[#6b7280] focus:ring-[#9ca3af] border-[#e5e7eb] rounded"
-                />
-                <label
-                  htmlFor="agree-terms"
-                  className="ml-2 block text-sm text-[#6b7280]"
-                >
-                  I confirm I hold the appropriate real estate licence for the services I provide, and I agree to the{' '}
-                  <Link to="/terms" className="text-blue-600 hover:underline" target="_blank">
-                    Terms of Use
-                  </Link>
-                  . I understand PropPath is a modelling tool and does not provide financial product advice or credit assistance.
-                </label>
-              </div>
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading || success}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#6b7280] hover:bg-[#374151] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Creating account...' : success ? 'Account created!' : 'Create account'}
-                </button>
-              </div>
-            </form>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Full name
+            </label>
+            <input
+              id="name"
+              type="text"
+              autoComplete="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full px-3.5 py-2.5 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+            />
           </div>
-        </div>
+
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="w-full px-3.5 py-2.5 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
+                className="w-full px-3.5 py-2.5 pr-10 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#344054] focus:outline-none"
+              >
+                {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-[#344054] mb-1.5"
+            >
+              Confirm password
+            </label>
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                className="w-full px-3.5 py-2.5 pr-10 border border-[#D0D5DD] rounded-lg text-base text-[#101828] placeholder-[#667085] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#7F56D9] focus:border-[#7F56D9]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#344054] focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              required
+              checked={agreeToTerms}
+              onChange={(e) => setAgreeToTerms(e.target.checked)}
+              className="h-4 w-4 mt-0.5 rounded border-[#D0D5DD] text-[#7F56D9] focus:ring-[#7F56D9]"
+            />
+            <span className="text-sm text-[#667085]">
+              I confirm I hold the appropriate real estate licence for the services I provide, and I agree to the{' '}
+              <Link to="/terms" className="text-[#6941C6] hover:text-[#53389E] underline" target="_blank">
+                Terms of Use
+              </Link>
+              . I understand PropPath is a modelling tool and does not provide financial product advice or credit assistance.
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading || success}
+            className="w-full py-2.5 px-4 bg-[#7F56D9] hover:bg-[#6941C6] text-white text-base font-semibold rounded-lg shadow-xs border border-[#7F56D9] focus:outline-none focus:ring-4 focus:ring-[#F4EBFF] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Creating account...' : success ? 'Account created!' : 'Create account'}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-sm text-[#667085]">
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-semibold text-[#6941C6] hover:text-[#53389E]"
+          >
+            Log in
+          </Link>
+        </p>
       </div>
     </div>
   )
