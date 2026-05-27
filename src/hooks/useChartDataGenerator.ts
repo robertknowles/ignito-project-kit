@@ -41,6 +41,7 @@ export interface PortfolioGrowthDataPoint {
   availableFunds?: number;        // Deposit pool + cumulative savings + usable equity
   monthlyHoldingCost?: number;    // Net monthly cost to hold portfolio
   borrowingCapacity?: number;     // Remaining borrowing capacity
+  cashFromSales?: number;         // Cumulative net proceeds from sold existing properties
 }
 
 export interface CashflowDataPoint {
@@ -189,6 +190,8 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       purchaseSchedule[chartYear].push(purchase);
     });
 
+    let chartSalesProceedsCash = 0;
+
     for (let year = startYear; year <= endYear; year++) {
       const yearsElapsed = year - startYear;
       const periodsElapsed = yearsElapsed * PERIODS_PER_YEAR;
@@ -213,6 +216,21 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           epCurrentDebt += ep.loan;
         });
       }
+
+      // Accumulate sale proceeds in the year of sale
+      existingProperties.forEach(ep => {
+        if (!ep.saleYear || ep.saleYear <= 0) return;
+        if (year === ep.saleYear) {
+          const epGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
+          const yearsHeld = ep.saleYear - BASE_YEAR;
+          const grownValue = ep.currentValue * Math.pow(1 + epGrowthRate, yearsHeld);
+          const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
+          const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
+          const cgtLiability = capitalGain * 0.225;
+          const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
+          chartSalesProceedsCash += netProceeds;
+        }
+      });
 
       const existingMetrics = calculateExistingPortfolioMetrics(
         epPortfolioValue,
@@ -306,17 +324,18 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       data.push({
         year: year.toString(),
         portfolioValue: Math.round(totalMetrics.portfolioValue),
-        equity: Math.round(totalMetrics.totalEquity),
+        equity: Math.round(totalMetrics.totalEquity + chartSalesProceedsCash),
         properties: propertiesPurchased,
         doNothingBalance,
         totalDebt: Math.round(totalMetrics.totalDebt),
         availableFunds,
         borrowingCapacity,
+        cashFromSales: Math.round(chartSalesProceedsCash),
       });
     }
 
     return data;
-  }, [timelineProperties, profile, globalFactors, getPropertyData, eventBlocks, getInstance]);
+  }, [timelineProperties, profile, globalFactors, getPropertyData, eventBlocks, getInstance, existingProperties]);
 
   const cashflowData = useMemo((): CashflowDataPoint[] => {
     const data: CashflowDataPoint[] = [];

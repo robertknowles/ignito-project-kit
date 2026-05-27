@@ -171,6 +171,8 @@ export interface YearData {
   events?: EventSummary[];
   // Do-nothing baseline: savings-only compound growth (no property investment)
   doNothingBalance?: number;
+  // Cumulative cash from sold existing properties (no growth, carries forward)
+  cashFromSales: number;
 }
 
 export interface RoadmapData {
@@ -225,6 +227,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     let runningSavingsBalance = 0; // Accumulates each year, can be drawn down for purchases
     let cumulativeEquityUsed = 0; // Track total equity extracted across all purchases
     let cumulativeSavingsSpent = 0; // Track total savings used for purchases
+    let salesProceedsCash = 0; // Accumulates net proceeds from sold existing properties (no growth, carries forward)
     
     // Generate data for each year from BASE_YEAR to user's timeline end
     for (let year = BASE_YEAR; year <= endYear; year++) {
@@ -261,6 +264,20 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         portfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
         totalDebt = profile.currentDebt;
       }
+
+      // Accumulate sale proceeds in the year of sale (carries forward flat, no growth)
+      existingProperties.forEach(ep => {
+        if (!ep.saleYear || ep.saleYear <= 0) return;
+        if (year === ep.saleYear) {
+          const yearsHeld = ep.saleYear - BASE_YEAR;
+          const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsHeld);
+          const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
+          const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
+          const cgtLiability = capitalGain * 0.225;
+          const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
+          salesProceedsCash += netProceeds;
+        }
+      });
 
       let grossRentalIncome = 0;
       let totalLoanInterest = 0;
@@ -368,7 +385,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         }
       });
       
-      const totalEquity = portfolioValue - totalDebt;
+      const totalEquity = portfolioValue - totalDebt + salesProceedsCash;
       // CRITICAL: Extractable equity is based on portfolio BEFORE this year's purchases
       // You can't use equity from a property you haven't bought yet to fund that purchase!
       const extractableEquity = Math.max(0, (portfolioValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP) - totalDebtBeforeThisYear);
@@ -969,6 +986,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         yearBreakdownData,
         events: eventsThisYear.length > 0 ? eventsThisYear : undefined,
         doNothingBalance,
+        cashFromSales: Math.round(salesProceedsCash),
       });
     }
     

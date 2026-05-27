@@ -221,6 +221,18 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
+            {/* CASH FROM SALES ($) — only show if any existing property has a saleYear */}
+            {years.some(y => y.cashFromSales > 0) && (
+              <tr className={rowClass}>
+                <td className={subLabelClass}>Cash from sales</td>
+                {years.map((yearData, i) => (
+                  <td key={`sale-cash-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
+                    <span className={valClass}>{yearData.cashFromSales > 0 ? formatNumber(yearData.cashFromSales) : '–'}</span>
+                  </td>
+                ))}
+              </tr>
+            )}
+
             {/* INCOME ($) */}
             <tr className={rowClass}>
               <td className={labelClass}>Income ($)</td>
