@@ -668,7 +668,16 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       
       // Calculate total existing debt
       // CRITICAL: Include cumulative equity released (which increases loan amounts)
-      let totalExistingDebt = profile.currentDebt;
+      // Sale-aware: exclude sold existing properties' debt
+      let totalExistingDebt = 0;
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+          totalExistingDebt += ep.loan;
+        });
+      } else {
+        totalExistingDebt = profile.currentDebt;
+      }
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           // Current loan = original loan + any equity released from this property
@@ -677,20 +686,41 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
         }
       });
       
-      // Calculate portfolio value
-      let totalPortfolioValue = profile.portfolioValue;
+      // Calculate portfolio value (sale-aware: exclude sold existing properties)
+      let totalPortfolioValue = 0;
       let propertyValues: number[] = [];
       let usableEquityPerProperty: number[] = [];
-      
-        if (profile.portfolioValue > 0 && profile.useExistingEquity) {
-          // Use configurable flat rate for existing portfolio (mature properties)
+
+        if (profile.useExistingEquity) {
           const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-          const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
-          propertyValues.push(grownPortfolioValue);
-          
-          // Continuous equity release - LVR cap, no time constraint
-          const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-          usableEquityPerProperty.push(portfolioEquity);
+          if (existingProperties.length > 0) {
+            existingProperties.forEach(ep => {
+              if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+              const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
+              const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
+              totalPortfolioValue += grownValue;
+              propertyValues.push(grownValue);
+              const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
+              usableEquityPerProperty.push(equity);
+            });
+          } else if (profile.portfolioValue > 0) {
+            const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
+            totalPortfolioValue = grownPortfolioValue;
+            propertyValues.push(grownPortfolioValue);
+            const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
+            usableEquityPerProperty.push(portfolioEquity);
+          }
+        } else {
+          if (existingProperties.length > 0) {
+            existingProperties.forEach(ep => {
+              if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+              const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
+              const growthRate = profile.existingPortfolioGrowthRate || 0.05;
+              totalPortfolioValue += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
+            });
+          } else {
+            totalPortfolioValue = profile.portfolioValue;
+          }
         }
         
         previousPurchases.forEach(purchase => {
@@ -729,8 +759,15 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       // Get the effective interest rate for this period (market-wide adjustment)
       const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
       
-      // Existing debt payment (use event-adjusted market rate)
-      if (profile.currentDebt > 0) {
+      // Existing debt payment (use event-adjusted market rate, sale-aware)
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+          if (ep.loan > 0) {
+            totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRate, 'IO');
+          }
+        });
+      } else if (profile.currentDebt > 0) {
         totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRate, 'IO');
       }
       
@@ -1150,15 +1187,19 @@ return { period: Infinity };
       if (result.period !== Infinity) {
         const purchasePeriod = result.period;
         
-        // Calculate existing portfolio value (with growth)
-        // Uses configurable flat rate for mature properties
-        if (profile.portfolioValue > 0) {
-          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
+        // Calculate existing portfolio value (with growth, sale-aware)
+        const growthRate = profile.existingPortfolioGrowthRate || 0.05;
+        if (existingProperties.length > 0) {
+          existingProperties.forEach(ep => {
+            if (ep.saleYear && ep.saleYear > 0 && purchasePeriod >= yearToPeriod(ep.saleYear)) return;
+            const yearsElapsed = (purchasePeriod - 1) / PERIODS_PER_YEAR;
+            portfolioValueAfter += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
+            totalDebtAfter += ep.loan;
+          });
+        } else if (profile.portfolioValue > 0) {
           portfolioValueAfter += calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, purchasePeriod - 1, growthRate);
+          totalDebtAfter = profile.currentDebt;
         }
-        
-        // Calculate total debt from existing portfolio
-        totalDebtAfter = profile.currentDebt;
         
         // Add all previous purchases (with growth based on periods owned)
         // CRITICAL FIX: Only include purchases made by or before the current purchase period
@@ -1709,11 +1750,18 @@ return { period: Infinity };
     // Get the effective interest rate for this period (market-wide adjustment)
     const effectiveMarketRateForPeriod = getEffectiveInterestRate(period, eventBlocks);
     
-    // Existing debt payment (use event-adjusted market rate)
-    if (profile.currentDebt > 0) {
+    // Existing debt payment (use event-adjusted market rate, sale-aware)
+    if (existingProperties.length > 0) {
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
+        if (ep.loan > 0) {
+          totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRateForPeriod, 'IO');
+        }
+      });
+    } else if (profile.currentDebt > 0) {
       totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRateForPeriod, 'IO');
     }
-    
+
     // Previous purchases loan payments (use property-specific effective rates with refinance events)
     const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
     previousPurchases.forEach(purchase => {
@@ -1749,25 +1797,41 @@ return { period: Infinity };
     const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
     
     // BORROWING CAPACITY TEST
-    // Calculate total existing debt from previous purchases
-    let totalExistingDebt = profile.currentDebt;
+    // Calculate total existing debt from previous purchases (sale-aware)
+    let totalExistingDebt = 0;
+    if (existingProperties.length > 0) {
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
+        totalExistingDebt += ep.loan;
+      });
+    } else {
+      totalExistingDebt = profile.currentDebt;
+    }
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
         const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
         totalExistingDebt += currentLoanAmount;
       }
     });
-    
-    // Calculate usable equity from existing portfolio and previous purchases
+
+    // Calculate usable equity from existing portfolio and previous purchases (sale-aware)
     let totalUsableEquity = 0;
-    
-    // Existing portfolio equity - uses configurable flat rate for mature properties
-    // Only include if useExistingEquity toggle is enabled
-    if (profile.portfolioValue > 0 && profile.useExistingEquity) {
+
+    if (profile.useExistingEquity) {
       const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-      const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, period - 1, growthRate);
-      const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-      totalUsableEquity += portfolioEquity;
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
+          const yearsElapsed = (period - 1) / PERIODS_PER_YEAR;
+          const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
+          const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
+          totalUsableEquity += equity;
+        });
+      } else if (profile.portfolioValue > 0) {
+        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, period - 1, growthRate);
+        const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
+        totalUsableEquity += portfolioEquity;
+      }
     }
     
     // Previous purchases equity

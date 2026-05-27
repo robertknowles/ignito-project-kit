@@ -201,11 +201,22 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         ? applyGrowthAdjustment(profile.growthCurve, growthAdjustment)
         : profile.growthCurve;
       
-      // Calculate metrics for existing portfolio with event-adjusted growth
-      // Use profile's existingPortfolioGrowthRate for mature properties (default 3%)
+      // Calculate sale-aware portfolio value and debt for existing properties
+      let epPortfolioValue = profile.portfolioValue;
+      let epCurrentDebt = profile.currentDebt;
+      if (existingProperties.length > 0) {
+        epPortfolioValue = 0;
+        epCurrentDebt = 0;
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
+          epPortfolioValue += ep.currentValue;
+          epCurrentDebt += ep.loan;
+        });
+      }
+
       const existingMetrics = calculateExistingPortfolioMetrics(
-        profile.portfolioValue,
-        profile.currentDebt,
+        epPortfolioValue,
+        epCurrentDebt,
         yearsElapsed,
         profile.existingPortfolioGrowthRate || 0.05,
         adjustedProfileGrowthCurve,

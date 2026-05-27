@@ -246,17 +246,26 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // Get event-adjusted interest rate for this period
       const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks);
       
-      // Calculate existing portfolio value with configurable flat rate (mature properties)
+      // Calculate existing portfolio value and debt — sale-aware per-property when available
       const existingGrowthRate = profile.existingPortfolioGrowthRate || DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE;
-      let portfolioValue = profile.portfolioValue > 0 
-        ? calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate)
-        : 0;
-      
-      let totalDebt = profile.currentDebt;
+      let portfolioValue = 0;
+      let totalDebt = 0;
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
+          const yearsGrown = year - BASE_YEAR;
+          portfolioValue += ep.currentValue * Math.pow(1 + existingGrowthRate, yearsGrown);
+          totalDebt += ep.loan;
+        });
+      } else if (profile.portfolioValue > 0) {
+        portfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
+        totalDebt = profile.currentDebt;
+      }
+
       let grossRentalIncome = 0;
       let totalLoanInterest = 0;
       let totalExpenses = 0;
-      
+
       // Expense breakdown accumulators - accumulate ACTUAL values from each property
       let accCouncilRatesWater = 0;
       let accStrataFees = 0;
@@ -265,13 +274,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       let accRepairsMaintenance = 0;
       let accLandTax = 0;
       let accOther = 0;
-      
+
       // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
-      // Uses configurable flat rate for existing portfolio (mature properties)
-      let portfolioValueBeforeThisYear = profile.portfolioValue > 0 
-        ? calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate)
-        : 0;
-      let totalDebtBeforeThisYear = profile.currentDebt;
+      let portfolioValueBeforeThisYear = portfolioValue;
+      let totalDebtBeforeThisYear = totalDebt;
 
       // Per-property iteration for existing portfolio (income, expenses, cashflow)
       existingProperties.forEach(ep => {
