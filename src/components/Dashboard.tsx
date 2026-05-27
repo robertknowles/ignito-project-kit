@@ -195,7 +195,9 @@ export const Dashboard = () => {
     const lastCf = cfData[cfData.length - 1];
     return {
       portfolioValue: lastGrowth?.portfolioValue ?? 0,
+      propertyEquity: lastGrowth?.propertyEquity ?? 0,
       totalEquity: lastGrowth?.equity ?? 0,
+      cashFromSales: lastGrowth?.cashFromSales ?? 0,
       totalDebt: lastGrowth?.totalDebt ?? 0,
       netCashflowAnnual: lastCf
         ? Math.round(lastCf.rentalIncome - lastCf.expenses - lastCf.loanRepayments)
@@ -303,13 +305,17 @@ export const Dashboard = () => {
             <ChartCard
               title="Total Equity"
               legend={[
-                { color: '#7F56D9', label: 'Total Equity' },
+                { color: '#7F56D9', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
                 { color: '#737373', label: 'Portfolio Value' },
               ]}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  <span
+                    className="text-2xl font-semibold text-neutral-900"
+                    style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                    title={kpis.cashFromSales > 0 ? `Property equity ${formatCompact(kpis.propertyEquity)} + cash from sales ${formatCompact(kpis.cashFromSales)}` : undefined}
+                  >
                     {formatCompact(kpis.totalEquity)}
                   </span>
                   <span className="text-sm text-neutral-500">

@@ -30,7 +30,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     if (!finalPortfolioData) {
       return {
         portfolioValue: 0,
+        propertyEquity: 0,
         totalEquity: 0,
+        cashFromSales: 0,
         terminalYear: null as number | null,
       }
     }
@@ -38,7 +40,9 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     const parsedYear = parseInt(String(finalPortfolioData.year), 10)
     return {
       portfolioValue: finalPortfolioData.portfolioValue,
+      propertyEquity: finalPortfolioData.propertyEquity,
       totalEquity: finalPortfolioData.equity,
+      cashFromSales: finalPortfolioData.cashFromSales ?? 0,
       terminalYear: Number.isFinite(parsedYear) ? parsedYear : null,
     }
   }, [portfolioGrowthData])
@@ -135,7 +139,10 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
           <BarChartSquare02Icon size={14} color="#A4A7AE" />
         </div>
         <div className="flex items-baseline gap-1.5 mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">
+          <span
+            className="text-lg font-medium text-[#181D27] tracking-tight"
+            title={kpis.cashFromSales > 0 ? `Property equity ${formatCurrency(kpis.propertyEquity)} + cash from sales ${formatCurrency(kpis.cashFromSales)}` : undefined}
+          >
             {formatCurrency(kpis.totalEquity)}
           </span>
           {kpis.terminalYear && (

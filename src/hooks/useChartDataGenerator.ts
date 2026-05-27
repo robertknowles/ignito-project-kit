@@ -33,7 +33,8 @@ import {
 export interface PortfolioGrowthDataPoint {
   year: string; // Year label for chart display
   portfolioValue: number;
-  equity: number;
+  propertyEquity: number;         // portfolioValue - totalDebt (property equity only)
+  equity: number;                 // propertyEquity + cashFromSales (total equity)
   properties?: string[]; // Array of property titles purchased this year
   // Dashboard redesign fields (optional for backward compatibility)
   doNothingBalance?: number;      // Compound savings trajectory (no property investment)
@@ -324,6 +325,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       data.push({
         year: year.toString(),
         portfolioValue: Math.round(totalMetrics.portfolioValue),
+        propertyEquity: Math.round(totalMetrics.totalEquity),
         equity: Math.round(totalMetrics.totalEquity + chartSalesProceedsCash),
         properties: propertiesPurchased,
         doNothingBalance,

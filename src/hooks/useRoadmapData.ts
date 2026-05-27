@@ -152,7 +152,8 @@ export interface YearData {
   availableFunds: string;
   // Raw numeric values for calculations
   portfolioValueRaw: number;
-  totalEquityRaw: number;
+  propertyEquityRaw: number;  // portfolioValue - totalDebt (property equity only, no cash from sales)
+  totalEquityRaw: number;     // propertyEquity + cashFromSales
   availableFundsRaw: number;
   totalDebt: number;
   propertyCount: number;
@@ -973,6 +974,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         totalEquity: formatCurrency(totalEquity),
         availableFunds: formatCurrency(availableFunds),
         portfolioValueRaw: portfolioValue,
+        propertyEquityRaw: portfolioValue - totalDebt,
         totalEquityRaw: totalEquity,
         availableFundsRaw: availableFunds,
         totalDebt,

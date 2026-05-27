@@ -151,9 +151,23 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
           <p className="text-xs text-gray-500">
             Portfolio: {formatCurrency(data?.portfolioValue || 0)}
           </p>
-          <p className="text-xs text-blue-600 font-medium">
-            Equity: {formatCurrency(data?.totalEquity || 0)}
-          </p>
+          {data?.cashFromSales > 0 ? (
+            <>
+              <p className="text-xs text-gray-500">
+                Property Equity: {formatCurrency(data?.propertyEquity || 0)}
+              </p>
+              <p className="text-xs text-gray-500">
+                Cash from Sales: {formatCurrency(data?.cashFromSales || 0)}
+              </p>
+              <p className="text-xs text-blue-600 font-medium">
+                Total Equity: {formatCurrency(data?.totalEquity || 0)}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-blue-600 font-medium">
+              Equity: {formatCurrency(data?.totalEquity || 0)}
+            </p>
+          )}
           {data?.doNothingBalance > 0 && (
             <p className="text-xs text-gray-400 mt-1">
               Savings Only: {formatCurrency(data.doNothingBalance)}
@@ -806,7 +820,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const chartData = useMemo(() => years.map((yearData) => ({
     year: yearData.year,
     portfolioValue: yearData.portfolioValueRaw,
+    propertyEquity: yearData.propertyEquityRaw,
     totalEquity: yearData.totalEquityRaw,
+    cashFromSales: yearData.cashFromSales,
     purchaseInYear: yearData.purchaseInYear,
     purchaseDetails: yearData.purchaseDetails,
     doNothingBalance: yearData.doNothingBalance ?? 0,

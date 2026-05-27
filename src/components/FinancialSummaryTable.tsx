@@ -51,6 +51,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   };
 
   const yearCount = years.length;
+  const hasSales = years.some(y => y.cashFromSales > 0);
 
   // Shared cell classes — matched to PropertyCardRow sizing
   const thClass = 'text-center text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap';
@@ -211,23 +212,37 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* EQUITY ($) */}
+            {/* PROPERTY EQUITY ($) — portfolioValue - totalDebt */}
             <tr className={rowClass}>
-              <td className={labelClass}>Equity ($)</td>
+              <td className={hasSales ? subLabelClass : labelClass}>
+                {hasSales ? 'Property equity' : 'Equity ($)'}
+              </td>
               {years.map((yearData, i) => (
-                <td key={`equity-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
-                  <span className={valClass}>{yearData.totalEquityRaw > 0 ? formatNumber(yearData.totalEquityRaw) : '–'}</span>
+                <td key={`prop-equity-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
+                  <span className={valClass}>{yearData.propertyEquityRaw > 0 ? formatNumber(yearData.propertyEquityRaw) : '–'}</span>
                 </td>
               ))}
             </tr>
 
-            {/* CASH FROM SALES ($) — only show if any existing property has a saleYear */}
-            {years.some(y => y.cashFromSales > 0) && (
+            {/* CASH FROM SALES ($) — only show if any existing property has been sold */}
+            {hasSales && (
               <tr className={rowClass}>
                 <td className={subLabelClass}>Cash from sales</td>
                 {years.map((yearData, i) => (
                   <td key={`sale-cash-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
                     <span className={valClass}>{yearData.cashFromSales > 0 ? formatNumber(yearData.cashFromSales) : '–'}</span>
+                  </td>
+                ))}
+              </tr>
+            )}
+
+            {/* TOTAL EQUITY ($) — Property Equity + Cash from Sales (only show when sales exist) */}
+            {hasSales && (
+              <tr className={`${rowClass} border-t-2 border-neutral-300`}>
+                <td className={`${labelClass} font-bold text-neutral-700`}>Total Equity ($)</td>
+                {years.map((yearData, i) => (
+                  <td key={`total-equity-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
+                    <span className="text-xs font-semibold text-neutral-700">{yearData.totalEquityRaw > 0 ? formatNumber(yearData.totalEquityRaw) : '–'}</span>
                   </td>
                 ))}
               </tr>
