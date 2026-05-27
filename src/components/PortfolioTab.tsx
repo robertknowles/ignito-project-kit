@@ -95,6 +95,20 @@ const SelectCell: React.FC<{
   </select>
 )
 
+const CheckboxCell: React.FC<{
+  checked: boolean
+  onChange: (v: boolean) => void
+}> = ({ checked, onChange }) => (
+  <div className="flex justify-center">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={e => onChange(e.target.checked)}
+      className="h-3.5 w-3.5 rounded border-neutral-300 text-neutral-600 focus:ring-neutral-300 cursor-pointer"
+    />
+  </div>
+)
+
 const TextCell: React.FC<{
   value: string
   onChange: (v: string) => void
@@ -207,6 +221,10 @@ const COLUMNS: Column[] = [
   {
     key: 'saleYear', header: 'Sale Yr',
     render: (p, onChange) => <NumCell value={p.saleYear ?? 0} onChange={v => onChange(p.id, { saleYear: v || null })} />,
+  },
+  {
+    key: 'allowEquityRelease', header: 'Refi',
+    render: (p, onChange) => <CheckboxCell checked={p.allowEquityRelease !== false} onChange={v => onChange(p.id, { allowEquityRelease: v })} />,
   },
 ]
 
@@ -373,7 +391,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                   className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
                     i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
                   }`}
-                  title={col.key === 'saleYear' ? 'CGT applied at 22.5% of capital gain (personal entity, >12mo hold, 50% discount). Entity-aware rates coming.' : undefined}
+                  title={col.key === 'saleYear' ? 'CGT applied at 22.5% of capital gain (personal entity, >12mo hold, 50% discount). Entity-aware rates coming.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : undefined}
                 >
                   {col.header}
                 </th>

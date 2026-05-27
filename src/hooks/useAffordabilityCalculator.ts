@@ -346,6 +346,7 @@ export const useAffordabilityCalculator = () => {
           let epTotalDebt = 0;
           existingProperties.forEach(ep => {
             if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+            if (ep.allowEquityRelease === false) return; // per-property opt-out
             const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
             epTotalValue += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
             epTotalDebt += ep.loan;
@@ -700,8 +701,10 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
               const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
               totalPortfolioValue += grownValue;
               propertyValues.push(grownValue);
-              const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
-              usableEquityPerProperty.push(equity);
+              if (ep.allowEquityRelease !== false) { // per-property opt-out
+                const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
+                usableEquityPerProperty.push(equity);
+              }
             });
           } else if (profile.portfolioValue > 0) {
             const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
@@ -1822,6 +1825,7 @@ return { period: Infinity };
       if (existingProperties.length > 0) {
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
+          if (ep.allowEquityRelease === false) return; // per-property opt-out
           const yearsElapsed = (period - 1) / PERIODS_PER_YEAR;
           const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
           const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
@@ -1833,7 +1837,7 @@ return { period: Infinity };
         totalUsableEquity += portfolioEquity;
       }
     }
-    
+
     // Previous purchases equity
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {

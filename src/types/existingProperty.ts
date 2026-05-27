@@ -24,6 +24,7 @@ export interface ExistingProperty {
   strata?: number
   vacancyRate?: number
   saleYear?: number | null
+  allowEquityRelease?: boolean
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({
