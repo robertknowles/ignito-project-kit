@@ -61,6 +61,13 @@ export interface InvestmentProfileData {
    * ("let's be conservative" / "go aggressive").
    */
   pacingMode: 'conservative' | 'moderate' | 'aggressive';
+  existingAnnualRent: number;
+  // Single canonical rent escalation rate for all properties (existing and new).
+  // Decoupled from per-property growth tiers — rent escalates uniformly.
+  rentEscalationRate: number;
+  sellingCostsPercent: number;
+  lvrStrategy: 'client_comfort' | 'prudent_80' | 'custom';
+  lvrStrategyCustomPercent: number;
 }
 
 export interface CalculatedValues {
@@ -140,6 +147,11 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   ioToPiTransitionYears: 5,
   strategyPreset: 'eg-low',
   pacingMode: 'aggressive',
+  existingAnnualRent: 0,
+  rentEscalationRate: 0.05,
+  sellingCostsPercent: 3,
+  lvrStrategy: 'client_comfort',
+  lvrStrategyCustomPercent: 80,
 };
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {

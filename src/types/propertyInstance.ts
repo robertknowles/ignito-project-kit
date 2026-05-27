@@ -115,6 +115,8 @@ export interface PropertyInstanceDetails {
    * Optional during the pivot — defaults inferred from the cell ID via propertyCells.ts.
    */
   mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
+
+  saleYear?: number | null;
 }
 
 

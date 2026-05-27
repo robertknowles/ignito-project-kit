@@ -50,7 +50,7 @@ export const FundingSourcesChart: React.FC = () => {
     const donorTimelines = feasible.map(prop => {
       const propInstance = getInstance(prop.instanceId);
       const growthCurve = getGrowthCurveForTier(propInstance?.growthAssumption, profile.growthCurve);
-      return projectPropertyTimeline(prop, endYear, growthCurve, DEFAULT_INTEREST_RATE);
+      return projectPropertyTimeline(prop, endYear, growthCurve, DEFAULT_INTEREST_RATE, profile.rentEscalationRate ?? 0.05);
     });
 
     let foundBuyNext = false;

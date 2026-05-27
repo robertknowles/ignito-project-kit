@@ -106,6 +106,7 @@ export interface TimelinePropertyData {
 export interface ProjectionConfig {
   growthCurve: GrowthCurve;
   projectionYears?: number;
+  rentEscalationRate?: number;
 }
 
 // --- Main calculation function ---
@@ -176,11 +177,11 @@ export function calculatePerPropertyProjection(
       currentPropertyValue,
     );
 
-    const rentGrowthFactor = currentPropertyValue / purchasePrice;
+    const rentEscalationFactor = Math.pow(1 + (config.rentEscalationRate ?? 0.05), year);
     const adjustedProperty: PropertyInstanceDetails = {
       ...propertyDetails,
       landTaxOverride: propertyDetails.landTaxOverride ?? landTax,
-      rentPerWeek: propertyDetails.rentPerWeek * rentGrowthFactor,
+      rentPerWeek: propertyDetails.rentPerWeek * rentEscalationFactor,
     };
 
     const cashflowBreakdown = calculateDetailedCashflow(adjustedProperty, loanBalance);

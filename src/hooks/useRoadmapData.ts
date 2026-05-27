@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
 import { usePropertySelection, type EventBlock, type EventCategory } from '../contexts/PropertySelectionContext';
+import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
+import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
 import { getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import {
@@ -186,6 +189,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
   const { profile: contextProfile } = useInvestmentProfile();
   const { timelineProperties: contextTimelineProperties } = useAffordabilityCalculator();
   const { getInstance } = usePropertyInstance();
+  const existingProperties = useExistingPropertiesSafe();
   const { eventBlocks } = usePropertySelection();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
@@ -268,7 +272,28 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         ? calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate)
         : 0;
       let totalDebtBeforeThisYear = profile.currentDebt;
-      
+
+      // Per-property iteration for existing portfolio (income, expenses, cashflow)
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
+        const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+        const yearsElapsed = year - BASE_YEAR;
+        const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
+        const inflFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsElapsed);
+
+        const cashflow = calculateDetailedCashflow(epInstance, ep.loan);
+        grossRentalIncome += cashflow.adjustedIncome * rentEscFactor;
+        totalLoanInterest += cashflow.loanInterest;
+        totalExpenses += cashflow.totalOperatingExpenses * inflFactor;
+
+        accCouncilRatesWater += cashflow.councilRatesWater * inflFactor;
+        accStrataFees += cashflow.strata * inflFactor;
+        accInsurance += cashflow.buildingInsurance * inflFactor;
+        accManagementFees += cashflow.propertyManagementFee * rentEscFactor;
+        accRepairsMaintenance += cashflow.maintenance * inflFactor;
+        accLandTax += cashflow.landTax * inflFactor;
+      });
+
       // Add each property's contribution using pre-calculated values from timeline properties
       // These values already use the detailed cashflow calculator with all 39 property inputs
       propertiesPurchasedByYear.forEach(prop => {
@@ -307,15 +332,12 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           totalDebtBeforeThisYear += prop.loanAmount;
         }
         
-        // Use pre-calculated values from the timeline property (already computed via detailed cashflow)
-        // These include all 39 property inputs like management fees, strata, insurance, etc.
-        // Apply growth factor for income (rent grows with property value), inflation only for expenses
-        const growthFactor = yearsOwned > 0 ? currentValue / prop.cost : 1;
-        const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
-        
-        // Scale the pre-calculated values for time elapsed since purchase
-        // BUG FIX: Income grows with both property value AND inflation
-        grossRentalIncome += prop.grossRentalIncome * growthFactor * inflationFactor;
+        // Rent escalation uses flat profile rate, decoupled from property growth
+        const rmYearsOwned = periodsOwned / PERIODS_PER_YEAR;
+        const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, rmYearsOwned);
+        const rmRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), rmYearsOwned);
+
+        grossRentalIncome += prop.grossRentalIncome * rmRentEscalationFactor;
         totalLoanInterest += prop.loanInterest; // Interest doesn't scale with growth
         // BUG FIX: Expenses only grow with inflation, NOT property value
         totalExpenses += prop.expenses * inflationFactor;
@@ -334,7 +356,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           accCouncilRatesWater += propertyInstance.councilRatesWater * inflationFactor;
           accStrataFees += propertyInstance.strata * inflationFactor;
           accInsurance += propertyInstance.buildingInsuranceAnnual * inflationFactor;
-          accManagementFees += managementFee * inflationFactor;
+          accManagementFees += managementFee * rmRentEscalationFactor;
           accRepairsMaintenance += propertyInstance.maintenanceAllowanceAnnual * inflationFactor;
           accLandTax += (propertyInstance.landTaxOverride || 0) * inflationFactor;
         }
@@ -348,6 +370,20 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // Calculate net cashflow from properties owned BEFORE this year
       // (Properties bought this year don't generate cashflow until next year)
       let netCashflowFromExistingProperties = 0;
+
+      // Existing portfolio per-property cashflow contribution
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
+        const epInst = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+        const epYears = year - BASE_YEAR;
+        const epRentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), epYears);
+        const epInfl = Math.pow(1 + ANNUAL_INFLATION_RATE, epYears);
+        const epCashflow = calculateDetailedCashflow(epInst, ep.loan);
+        const epIncome = epCashflow.adjustedIncome * epRentEsc;
+        const epExp = epCashflow.totalOperatingExpenses * epInfl;
+        netCashflowFromExistingProperties += epIncome - epCashflow.loanInterest - epExp;
+      });
+
       propertiesPurchasedBeforeThisYear.forEach(prop => {
         const purchaseYear = Math.floor(prop.affordableYear);
         const yearsOwned = year - purchaseYear;
@@ -371,7 +407,8 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
         const growthFactor = yearsOwned > 0 ? currentValue / propGrowthBasis : 1;
         const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
         
-        const propRentalIncome = prop.grossRentalIncome * growthFactor * inflationFactor;
+        const propRentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), periodsOwned / PERIODS_PER_YEAR);
+        const propRentalIncome = prop.grossRentalIncome * propRentEscFactor;
         const propExpenses = prop.expenses * inflationFactor;
         // Use event-adjusted interest rate for property
         const propEffectiveRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, prop.instanceId);
@@ -934,7 +971,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       startYear: BASE_YEAR,
       endYear,
     };
-  }, [profile, timelineProperties, eventBlocks, getInstance]);
+  }, [profile, timelineProperties, eventBlocks, getInstance, existingProperties]);
   
   return roadmapData;
 };

@@ -143,6 +143,10 @@ export function mapToExistingProperties(
       councilWater: 2_500,
       insurance: 1_500,
       maintenance: 2_000,
+      growthAssumption: 'Medium' as const,
+      loanTerm: 30,
+      strata: 0,
+      vacancyRate: 2,
     }
   });
 }
@@ -165,7 +169,8 @@ interface PropertyMappingResult {
  * then overlays Claude's specific values (price, state, growth, LVR, loan type).
  */
 export function mapToPropertySelections(
-  response: NLParseResponse
+  response: NLParseResponse,
+  lvrOverride?: number,
 ): PropertyMappingResult {
   const selections: PropertySelection = {};
   const propertyOrder: string[] = [];
@@ -204,7 +209,7 @@ export function mapToPropertySelections(
       state: prop.state,
       growthAssumption: prop.growthAssumption,
       loanProduct: prop.loanProduct,
-      lvr: prop.lvr,
+      lvr: lvrOverride ?? prop.lvr,
       lmiCapitalized: prop.lmiCapitalized ?? false,
       mode: prop.mode ?? defaults.mode,
     };

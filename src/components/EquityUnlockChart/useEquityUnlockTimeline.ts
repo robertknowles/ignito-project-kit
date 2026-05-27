@@ -56,6 +56,7 @@ export function useEquityUnlockTimeline(
         endYear,
         propGrowthCurve,
         DEFAULT_INTEREST_RATE,
+        profile.rentEscalationRate ?? 0.05,
       );
 
       const timeline: EquityTimelinePoint[] = projected.snapshots.map(s => ({

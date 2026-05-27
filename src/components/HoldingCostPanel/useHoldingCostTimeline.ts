@@ -71,6 +71,7 @@ export function useHoldingCostTimeline(
         endYear,
         profile.growthCurve,
         DEFAULT_INTEREST_RATE,
+        profile.rentEscalationRate ?? 0.05,
       );
       return {
         ...timeline,

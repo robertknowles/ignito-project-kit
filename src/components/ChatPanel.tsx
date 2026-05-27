@@ -308,8 +308,12 @@ export const ChatPanel: React.FC = () => {
       }
 
       // Map to property selections/instances and update contexts
+      // Apply LVR strategy override: prudent_80 → 80, custom → profile value, client_comfort → undefined (use AI's proposed LVR)
+      const lvrOverride = profile.lvrStrategy === 'prudent_80' ? 80
+        : profile.lvrStrategy === 'custom' ? (profile.lvrStrategyCustomPercent ?? 80)
+        : undefined;
       const { selections: newSelections, propertyOrder: newOrder, instances: newInstances } =
-        mapToPropertySelections(response)
+        mapToPropertySelections(response, lvrOverride)
       if (newOrder.length > 0) {
         setAllSelections(newSelections, newOrder)
         setInstances(newInstances)

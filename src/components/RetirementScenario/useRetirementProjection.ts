@@ -94,6 +94,7 @@ export function useRetirementProjection(
         retirementYear,
         profile.growthCurve,
         DEFAULT_INTEREST_RATE,
+        profile.rentEscalationRate ?? 0.05,
       );
 
       // Get the last snapshot (retirement year)
@@ -132,16 +133,15 @@ export function useRetirementProjection(
           const detailedCashflow = calculateDetailedCashflow(instance, prop.loanAmount);
           const yearsOwned = retirementYear - propPurchaseYear;
           const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
-          const growthFactor = lastSnapshot.propertyValue / prop.cost;
           const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
+          const retRentEscalationFactor = Math.pow(1 + (profile?.rentEscalationRate ?? 0.05), yearsOwned);
 
-          // Grow the detailed cashflow to the retirement year
-          const adjustedIncome = detailedCashflow.adjustedIncome * growthFactor;
+          const adjustedIncome = detailedCashflow.adjustedIncome * retRentEscalationFactor;
           const adjustedLoanInterest = lastSnapshot.loanBalance > 0
             ? lastSnapshot.loanBalance * DEFAULT_INTEREST_RATE
             : 0;
           const adjustedOperatingExpenses = (
-            detailedCashflow.propertyManagementFee * growthFactor +
+            detailedCashflow.propertyManagementFee * retRentEscalationFactor +
             detailedCashflow.buildingInsurance * inflationFactor +
             detailedCashflow.councilRatesWater * inflationFactor +
             detailedCashflow.strata * inflationFactor +

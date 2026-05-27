@@ -164,6 +164,11 @@ export const useScenarioSave = () => {
   return context;
 };
 
+export const useExistingPropertiesSafe = () => {
+  const context = useContext(ScenarioSaveContext);
+  return context?.existingProperties ?? [];
+};
+
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient, updateClient } = useClient();
   const { selections, propertyOrder, resetSelections, updatePropertyQuantity, setPropertyOrder, setAllSelections } = usePropertySelection();
@@ -612,7 +617,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Load existing portfolio properties
-        setExistingProperties(scenarioData.existingProperties ?? []);
+        const loadedExistingProps = scenarioData.existingProperties ?? [];
+        setExistingProperties(loadedExistingProps);
+
+        // Sync existingAnnualRent on load so the Income display works
+        // without requiring the user to visit the Portfolio tab first.
+        if (loadedExistingProps.length > 0) {
+          const existingAnnualRent = loadedExistingProps.reduce(
+            (s: number, p: { rentPerWeek?: number }) => s + ((p.rentPerWeek || 0) * 52), 0
+          );
+          updateProfile({ existingAnnualRent });
+        }
 
         // Restore NL chat history. On a same-client reload (recovery path),
         // only adopt the DB version if it's at least as long as what's in

@@ -5,6 +5,8 @@ import { useDataAssumptions, type PropertyAssumption } from '../contexts/DataAss
 import type { TimelineProperty } from '../types/property';
 import { useClient } from '../contexts/ClientContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
+import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateOneOffCosts, calculateDepositBalance } from '../utils/oneOffCostsCalculator';
 import { calculateLMI, calculateLoanAmount } from '../utils/lmiCalculator';
@@ -56,6 +58,7 @@ export const useAffordabilityCalculator = () => {
   const { globalFactors, getPropertyData, propertyAssumptions, getPropertyTypeTemplate, propertyTypeTemplates } = useDataAssumptions();
   const { activeClient } = useClient();
   const { getInstance, createInstance, instances } = usePropertyInstance();
+  const existingProperties = useExistingPropertiesSafe();
   // Per-instance loan type state (keyed by instanceId). In-memory only;
   // persists across a session but not across reloads. Saved scenarios
   // restore their own loan types via PropertyInstanceDetails.loanProduct.
@@ -334,13 +337,25 @@ export const useAffordabilityCalculator = () => {
       let cumulativeEquityUsed = 0; // Tracks total equity extracted across all purchases
       
       // Calculate existing portfolio equity at current period (from existing properties before this scenario)
-      // Uses conservative flat rate for mature properties (configurable in profile)
-      // Only include if useExistingEquity toggle is enabled
+      // Per-property: exclude sold properties so their equity doesn't inflate extractable equity
       let existingPortfolioEquity = 0;
       if (periodProfile.portfolioValue > 0 && profile.useExistingEquity) {
-        const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(periodProfile.portfolioValue, currentPeriod - 1, growthRate);
-        existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
+        if (existingProperties.length > 0) {
+          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
+          let epTotalValue = 0;
+          let epTotalDebt = 0;
+          existingProperties.forEach(ep => {
+            if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+            const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
+            epTotalValue += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
+            epTotalDebt += ep.loan;
+          });
+          existingPortfolioEquity = Math.max(0, epTotalValue * EQUITY_EXTRACTION_LVR_CAP - epTotalDebt);
+        } else {
+          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
+          const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(periodProfile.portfolioValue, currentPeriod - 1, growthRate);
+          existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
+        }
       }
       
       // Process each period chronologically to track running balances.
@@ -384,6 +399,28 @@ export const useAffordabilityCalculator = () => {
           }
         });
         
+        // Sale proceeds from existing properties: when saleYear period is reached,
+        // add net proceeds (grown value - selling costs - loan - CGT) to cash balance.
+        // Proceeds land once and carry forward as cash.
+        // TODO: Entity-aware CGT rates (Trust 30%, Company 25%, Super 15%). Currently assumes personal entity.
+        existingProperties.forEach(ep => {
+          if (!ep.saleYear || ep.saleYear <= 0) return;
+          const salePeriod = yearToPeriod(ep.saleYear);
+          if (period === salePeriod) {
+            const epGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
+            const yearsHeld = ep.saleYear - BASE_YEAR;
+            const grownValue = ep.currentValue * Math.pow(1 + epGrowthRate, yearsHeld);
+            const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
+            const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
+            // 22.5% effective rate: 45% personal marginal × 50% CGT discount (>12mo hold)
+            // TODO: Holding period <12mo (no discount), pre-2027 grandfathered discount
+            const CGT_EFFECTIVE_RATE = 0.225;
+            const cgtLiability = capitalGain * CGT_EFFECTIVE_RATE;
+            const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
+            runningCashBalance += netProceeds;
+          }
+        });
+
         // Add this period's savings contribution
         // Only deduct negative cashflow (property shortfall you need to cover from savings)
         // Positive cashflow stays in the property portfolio, not added to savings
@@ -500,32 +537,7 @@ export const useAffordabilityCalculator = () => {
       let grossRentalIncome = 0;
       let loanInterest = 0;
       let expenses = 0;
-      
-      // CRITICAL: Add rental income from EXISTING portfolio (before this scenario)
-      // Uses pre-computed existingAnnualRent from profile (synced when existing properties change)
-      if (profile.portfolioValue > 0) {
-        const existingGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
-        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, existingGrowthRate);
 
-        let existingAnnualRent = 0;
-        const baseRent = profile.existingAnnualRent;
-        if (baseRent && baseRent > 0) {
-          existingAnnualRent = baseRent;
-          const growthFactor = grownPortfolioValue / profile.portfolioValue;
-          existingAnnualRent *= growthFactor;
-        } else {
-          existingAnnualRent = grownPortfolioValue * 0.04;
-        }
-        const existingRecognizedRent = existingAnnualRent * RENTAL_RECOGNITION_RATE;
-        grossRentalIncome += existingRecognizedRent;
-
-        // Also add existing portfolio's loan interest to track
-        if (profile.currentDebt > 0) {
-          const effectiveRate = getEffectiveInterestRate(currentPeriod, eventBlocks, profile.interestRate ?? DEFAULT_INTEREST_RATE);
-          loanInterest += profile.currentDebt * effectiveRate;
-        }
-      }
-      
       // Expense breakdown accumulators
       let accCouncilRatesWater = 0;
       let accStrataFees = 0;
@@ -534,7 +546,37 @@ export const useAffordabilityCalculator = () => {
       let accRepairsMaintenance = 0;
       let accLandTax = 0;
       let accOther = 0;
-      
+
+      // Per-property iteration over existing portfolio (replaces aggregate scalar approach)
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0) {
+          const salePeriod = yearToPeriod(ep.saleYear);
+          if (currentPeriod >= salePeriod) return;
+        }
+        const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+        const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
+        const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
+        const inflFactor = calculateInflationFactor(currentPeriod - 1, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
+
+        const cashflow = calculateDetailedCashflow(epInstance, ep.loan);
+        const adjustedIncome = cashflow.adjustedIncome * rentEscFactor;
+        const recognizedIncome = adjustedIncome * RENTAL_RECOGNITION_RATE;
+        const inflAdjExpenses = cashflow.totalOperatingExpenses * inflFactor;
+        const inflAdjNonDeductible = (cashflow.totalNonDeductibleExpenses - cashflow.principalPayments) * inflFactor;
+
+        grossRentalIncome += recognizedIncome;
+        loanInterest += cashflow.loanInterest;
+        expenses += inflAdjExpenses + inflAdjNonDeductible;
+        netCashflow += recognizedIncome - inflAdjExpenses - inflAdjNonDeductible - cashflow.loanInterest - cashflow.principalPayments;
+
+        accCouncilRatesWater += cashflow.councilRatesWater * inflFactor;
+        accStrataFees += cashflow.strata * inflFactor;
+        accInsurance += cashflow.buildingInsurance * inflFactor;
+        accManagementFees += cashflow.propertyManagementFee * rentEscFactor;
+        accRepairsMaintenance += cashflow.maintenance * inflFactor;
+        accLandTax += cashflow.landTax * inflFactor;
+      });
+
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           const periodsOwned = currentPeriod - purchase.period;
@@ -549,14 +591,15 @@ export const useAffordabilityCalculator = () => {
           if (propertyInstance) {
             // Calculate detailed cashflow using all 39 inputs
             const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
-            
-            // Adjust for property growth (rent increases with property value)
-            const growthFactor = currentValue / purchase.cost;
-            const adjustedIncome = cashflowBreakdown.adjustedIncome * growthFactor;
-            
-            // Apply inflation - expenses only grow with inflation, NOT property value
+
+            // Rent escalation uses flat profile rate, decoupled from property growth
+            const yearsOwned = periodsOwned / PERIODS_PER_YEAR;
+            const rentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
+            const adjustedIncome = cashflowBreakdown.adjustedIncome * rentEscalationFactor;
+
+            // Expenses grow with inflation only
             const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-            const inflationAdjustedIncome = adjustedIncome * inflationFactor;
+            const inflationAdjustedIncome = adjustedIncome;
             
             // BUG FIX: Operating expenses should NOT grow with property value (growthFactor)
             // Only rent grows with property value; expenses only grow with inflation
@@ -583,7 +626,7 @@ export const useAffordabilityCalculator = () => {
             accCouncilRatesWater += cashflowBreakdown.councilRatesWater * inflationFactor;
             accStrataFees += cashflowBreakdown.strata * inflationFactor;
             accInsurance += cashflowBreakdown.buildingInsurance * inflationFactor;
-            accManagementFees += cashflowBreakdown.propertyManagementFee * inflationFactor;
+            accManagementFees += cashflowBreakdown.propertyManagementFee * rentEscalationFactor;
             accRepairsMaintenance += cashflowBreakdown.maintenance * inflationFactor;
             accLandTax += cashflowBreakdown.landTax * inflationFactor;
           } else {
@@ -598,12 +641,11 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             fallbackInstance.rentPerWeek = (currentValue * yieldRate) / 52;
             
             const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
-            const growthFactor = currentValue / purchase.cost;
+            const fbYearsOwned = periodsOwned / PERIODS_PER_YEAR;
+            const fbRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), fbYearsOwned);
             const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-            
-            // Apply recognition rate and adjustments
-            // Income grows with both property value AND inflation
-            const adjustedIncome = fallbackCashflow.adjustedIncome * growthFactor * inflationFactor * recognitionRate;
+
+            const adjustedIncome = fallbackCashflow.adjustedIncome * fbRentEscalationFactor * recognitionRate;
             // Expenses only grow with inflation, NOT property value
             const adjustedExpenses = (fallbackCashflow.totalOperatingExpenses + fallbackCashflow.totalNonDeductibleExpenses - fallbackCashflow.principalPayments) * inflationFactor;
             
@@ -1191,9 +1233,10 @@ return { period: Infinity };
               purchase.loanAmount
             );
             
-            // 3. Apply Growth to Rent (Fixing the "Static Rent" bug)
-            // Rent should grow in proportion to property value
-            const adjustedRentalIncome = cashflowBreakdown.adjustedIncome * growthFactor;
+            // 3. Rent escalation via flat profile rate (decoupled from property growth)
+            const tlYearsOwned = periodsOwned / PERIODS_PER_YEAR;
+            const tlRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), tlYearsOwned);
+            const adjustedRentalIncome = cashflowBreakdown.adjustedIncome * tlRentEscalationFactor;
             
             // 4. Apply Inflation to Expenses
             // CRITICAL FIX: Separate Principal from Expenses to avoid double-counting
@@ -1216,7 +1259,7 @@ return { period: Infinity };
             timelineAccCouncilRatesWater += cashflowBreakdown.councilRatesWater * inflationFactor;
             timelineAccStrataFees += cashflowBreakdown.strata * inflationFactor;
             timelineAccInsurance += cashflowBreakdown.buildingInsurance * inflationFactor;
-            timelineAccManagementFees += cashflowBreakdown.propertyManagementFee * inflationFactor;
+            timelineAccManagementFees += cashflowBreakdown.propertyManagementFee * tlRentEscalationFactor;
             timelineAccRepairsMaintenance += cashflowBreakdown.maintenance * inflationFactor;
             timelineAccLandTax += cashflowBreakdown.landTax * inflationFactor;
           }
@@ -1523,6 +1566,7 @@ return { period: Infinity };
     profile.inflationRate,
     profile.equityReleaseFactor,
     profile.existingAnnualRent,
+    existingProperties,
     getPropertyData,
     propertyAssumptions,
     propertyTypeTemplates,
@@ -1604,6 +1648,20 @@ return { period: Infinity };
     
     // Calculate rental income for enhanced serviceability test
     let totalRentalIncome = 0;
+
+    // Existing portfolio per-property rental income for serviceability
+    existingProperties.forEach(ep => {
+      if (ep.saleYear && ep.saleYear > 0) {
+        const salePeriod = yearToPeriod(ep.saleYear);
+        if (period >= salePeriod) return;
+      }
+      const yearsElapsed = (period - 1) / PERIODS_PER_YEAR;
+      const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
+      const annualRent = ep.rentPerWeek * 52 * rentEscFactor;
+      const vacancyAdjusted = annualRent * (1 - (ep.vacancyRate ?? profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
+      totalRentalIncome += vacancyAdjusted * RENTAL_RECOGNITION_RATE;
+    });
+
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
         const periodsOwned = period - purchase.period;
@@ -1611,19 +1669,15 @@ return { period: Infinity };
         const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
 
         if (purchaseInstance && propertyData) {
-          // Use instance rent with growth adjustment
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-          const growthFactor = currentValue / purchase.cost;
-          const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
+          const svcYearsOwned = periodsOwned / PERIODS_PER_YEAR;
+          const svcRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), svcYearsOwned);
+          const annualRent = purchaseInstance.rentPerWeek * 52 * svcRentEscalationFactor;
           const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-          const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
         } else if (propertyData) {
-          // Fallback to template yield
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const yieldRate = parseFloat(propertyData.yield) / 100;
-          const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += currentValue * yieldRate * recognitionRate;
         }
@@ -1883,8 +1937,21 @@ createInstance(instanceId, propertyType, period);
     const depositTestPass = depositTestSurplus >= 0;
     
     // Calculate serviceability test
-    // Get total rental income from previous purchases
+    // Get total rental income from existing + previous purchases
     let totalRentalIncome = 0;
+
+    existingProperties.forEach(ep => {
+      if (ep.saleYear && ep.saleYear > 0) {
+        const salePeriod = yearToPeriod(ep.saleYear);
+        if (targetPeriod >= salePeriod) return;
+      }
+      const yearsElapsed = (targetPeriod - 1) / PERIODS_PER_YEAR;
+      const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
+      const annualRent = ep.rentPerWeek * 52 * rentEscFactor;
+      const vacancyAdjusted = annualRent * (1 - (ep.vacancyRate ?? profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
+      totalRentalIncome += vacancyAdjusted * RENTAL_RECOGNITION_RATE;
+    });
+
     purchaseHistoryForValidation.forEach(purchase => {
       if (purchase.period <= targetPeriod) {
         const periodsOwned = targetPeriod - purchase.period;
@@ -1892,17 +1959,15 @@ createInstance(instanceId, propertyType, period);
         const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
 
         if (purchaseInstance && propertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-          const growthFactor = currentValue / purchase.cost;
-          const annualRent = purchaseInstance.rentPerWeek * 52 * growthFactor;
+          const valYearsOwned = periodsOwned / PERIODS_PER_YEAR;
+          const valRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), valYearsOwned);
+          const annualRent = purchaseInstance.rentPerWeek * 52 * valRentEscalationFactor;
           const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-          const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += vacancyAdjusted * recognitionRate;
         } else if (propertyData) {
           const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
           const yieldRate = parseFloat(propertyData.yield) / 100;
-          const portfolioSize = purchaseHistoryForValidation.filter(p => p.period <= targetPeriod).length;
           const recognitionRate = RENTAL_RECOGNITION_RATE;
           totalRentalIncome += currentValue * yieldRate * recognitionRate;
         }

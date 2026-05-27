@@ -7,6 +7,8 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth, calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
+import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
+import { convertExistingToInstance, convertExistingToEngineEntry } from '../utils/existingPropertyAdapter';
 import {
   getGrowthRateAdjustment,
   getEffectiveInterestRate,
@@ -99,6 +101,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
   const { globalFactors, getPropertyData } = useDataAssumptions();
   const { getInstance } = usePropertyInstance();
   const { eventBlocks } = usePropertySelection();
+  const existingProperties = useExistingPropertiesSafe();
   
   // Use scenarioData if provided (multi-scenario mode), otherwise use global contexts
   const profile = scenarioData?.profile ?? contextProfile;
@@ -325,27 +328,41 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         ? applyGrowthAdjustment(profile.growthCurve, growthAdjustment)
         : profile.growthCurve;
       
-      // Existing portfolio cashflow contribution: zeroed.
-      //
-      // profile.portfolioValue is populated from the chat extraction's
-      // existingPropertyEquity field (typically a PPOR — owner-occupied
-      // home, NOT income-producing). The previous logic blindly applied
-      // DEFAULT_RENTAL_YIELD (4%) to portfolioValue, fabricating rental
-      // income on a property that doesn't generate any. For the cofounder's
-      // 2026-05-06 test case ($3.2M PPOR), that synthesised ~$128k/yr of
-      // phantom rent and made the overall cashflow chart disagree with the
-      // per-property page (which only counts real timeline-property rent).
-      //
-      // Genuine existing IPs should be modelled by adding them to the
-      // timeline as actual properties — that's the only path that gets
-      // their rent, expenses, and loan repayments calculated correctly
-      // and per-property visible.
-      const existingCashflow = 0;
-      const existingRentalIncome = 0;
-      const existingExpenses = 0;
-      const existingLoanPayments = 0;
+      // Per-property cashflow accumulators (existing + new properties unified)
+      let existingRentalIncome = 0;
+      let existingExpenses = 0;
+      let existingLoanPayments = 0;
+      let existingCashflow = 0;
 
-      // Calculate cashflow from new purchases using DETAILED property instance data
+      // Existing properties — per-property iteration (same logic as new properties)
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && year >= ep.saleYear) return;
+        const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+        const epYearsOwned = yearsElapsed;
+        const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), epYearsOwned);
+        const inflFactor = Math.pow(1 + profileInflation, epYearsOwned);
+
+        const cashflowBreakdown = calculateDetailedCashflow(epInstance, ep.loan, profileVacancyRate);
+        const adjustedGrossIncome = cashflowBreakdown.grossAnnualIncome * rentEscFactor;
+        const adjustedVacancy = cashflowBreakdown.vacancyAmount * rentEscFactor;
+        const adjustedIncome = adjustedGrossIncome - adjustedVacancy;
+
+        const adjustedManagement = cashflowBreakdown.propertyManagementFee * rentEscFactor;
+        const adjustedInsurance = cashflowBreakdown.buildingInsurance * inflFactor;
+        const adjustedCouncil = cashflowBreakdown.councilRatesWater * inflFactor;
+        const adjustedStrata = cashflowBreakdown.strata * inflFactor;
+        const adjustedMaintenance = cashflowBreakdown.maintenance * inflFactor;
+        const opExpenses = adjustedManagement + adjustedInsurance + adjustedCouncil + adjustedStrata + adjustedMaintenance;
+        const adjNonDeductible = cashflowBreakdown.totalNonDeductibleExpenses * inflFactor;
+        const totalExpenses = opExpenses + adjNonDeductible;
+        const loanInterest = cashflowBreakdown.loanInterest;
+
+        existingRentalIncome += adjustedIncome;
+        existingExpenses += totalExpenses;
+        existingLoanPayments += loanInterest;
+        existingCashflow += adjustedIncome - totalExpenses - loanInterest;
+      });
+
       let newPurchasesCashflow = 0;
       let newPurchasesRentalIncome = 0;
       let newPurchasesExpenses = 0;
@@ -410,18 +427,17 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           // Recalculate loan interest with event-adjusted rate
           const adjustedLoanInterest = property.loanAmount * propertyEffectiveRate;
           
-          // Adjust for property growth (rent increases with property value)
-          // Apply inflation to expenses
+          // Rent escalation uses profile.rentEscalationRate (flat %, decoupled from property growth)
           const inflationFactor = Math.pow(1 + profileInflation, yearsOwned);
-          
-          // Gross income grows with property value
-          const adjustedGrossIncome = cashflowBreakdown.grossAnnualIncome * growthFactor;
-          const adjustedVacancy = cashflowBreakdown.vacancyAmount * growthFactor;
+          const rentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
+
+          const adjustedGrossIncome = cashflowBreakdown.grossAnnualIncome * rentEscalationFactor;
+          const adjustedVacancy = cashflowBreakdown.vacancyAmount * rentEscalationFactor;
           const adjustedIncome = adjustedGrossIncome - adjustedVacancy;
-          
+
           // Operating expenses grow with inflation (not property value)
           // Note: Loan interest is tracked separately, not as an expense
-          const adjustedManagement = cashflowBreakdown.propertyManagementFee * growthFactor; // % of rent
+          const adjustedManagement = cashflowBreakdown.propertyManagementFee * rentEscalationFactor; // % of rent
           const adjustedInsurance = cashflowBreakdown.buildingInsurance * inflationFactor;
           const adjustedCouncil = cashflowBreakdown.councilRatesWater * inflationFactor;
           const adjustedStrata = cashflowBreakdown.strata * inflationFactor;
@@ -498,10 +514,11 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
             fallbackCashflow.potentialDeductions
           ) * inflationFactor;
           
-          const adjustedCashflow = (fallbackCashflow.netAnnualCashflow + fallbackCashflow.loanInterest) * growthFactor - adjustedLoanInterest;
-          
+          const fallbackRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
+          const adjustedCashflow = (fallbackCashflow.netAnnualCashflow + fallbackCashflow.loanInterest) * fallbackRentEscalationFactor - adjustedLoanInterest;
+
           newPurchasesCashflow += adjustedCashflow;
-          newPurchasesRentalIncome += fallbackCashflow.adjustedIncome * growthFactor;
+          newPurchasesRentalIncome += fallbackCashflow.adjustedIncome * fallbackRentEscalationFactor;
           newPurchasesExpenses += fallbackExpenses;
           newPurchasesLoanPayments += adjustedLoanInterest;
         }

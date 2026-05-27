@@ -153,11 +153,10 @@ export const usePerPropertyTracking = (propertyInstanceId: string | null) => {
         landTaxOverride: propertyDetails.landTaxOverride ?? landTax,
       };
       
-      // Update rent based on property value growth (assuming rent grows with value)
-      const rentGrowthFactor = currentPropertyValue / purchasePrice;
+      const rentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), year);
       const adjustedProperty = {
         ...propertyWithLandTax,
-        rentPerWeek: propertyDetails.rentPerWeek * rentGrowthFactor,
+        rentPerWeek: propertyDetails.rentPerWeek * rentEscalationFactor,
       };
       
       const cashflowBreakdown = calculateDetailedCashflow(

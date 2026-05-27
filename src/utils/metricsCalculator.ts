@@ -460,6 +460,7 @@ export const projectPropertyTimeline = (
   endYear: number,
   growthCurve: GrowthCurve,
   interestRate: number = 0.065,
+  rentEscalationRate: number = 0.05,
 ): ProjectedPropertyTimeline => {
   const buyYear = Math.floor(property.affordableYear);
   const snapshots: PropertyYearSnapshot[] = [];
@@ -503,10 +504,8 @@ export const projectPropertyTimeline = (
     const propertyGrowthBasis = property.growthBasis ?? property.cost;
     const propertyValue = calculatePropertyGrowth(propertyGrowthBasis, periodsOwned, growthCurve);
 
-    // Rent grows with the same compounding factor (not the manufactured-equity premium).
-    // rentGrowthFactor = pure compound factor applied to initial rent.
-    const rentGrowthFactor = propertyValue / propertyGrowthBasis;
-    const annualRent = initialAnnualRent * rentGrowthFactor;
+    const rentEscalationFactor = Math.pow(1 + rentEscalationRate, yearsOwned);
+    const annualRent = initialAnnualRent * rentEscalationFactor;
 
     // Expenses grow with inflation (fixed costs) or scale with rent/value
     const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);

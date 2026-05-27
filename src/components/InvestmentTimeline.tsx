@@ -1142,13 +1142,10 @@ function interpolateYearData(
       // Use tiered growth with period-based calculations
       const propertyValue = calculatePropertyGrowth(purchase.cost, periodsOwned, profile.growthCurve);
       
-      // Scale the pre-calculated values for time elapsed since purchase
-      const growthFactor = propertyValue / purchase.cost;
       const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, periodsOwned / PERIODS_PER_YEAR);
-      
-      // Use pre-calculated detailed cashflow values from the timeline property
-      // Income grows with both property value AND inflation
-      grossRental += purchase.grossRentalIncome * growthFactor * inflationFactor;
+      const itRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
+
+      grossRental += purchase.grossRentalIncome * itRentEscalationFactor;
       loanInterest += purchase.loanInterest; // Interest doesn't scale with property growth
       // Expenses only grow with inflation, NOT property value
       expenses += purchase.expenses * inflationFactor;

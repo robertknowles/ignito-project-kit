@@ -145,6 +145,7 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
   const inflationPct = profile.inflationRate * 100
   const existingGrowthPct = profile.existingPortfolioGrowthRate * 100
   const equityReleasePct = profile.equityReleaseFactor * 100
+  const rentEscalationPct = (profile.rentEscalationRate ?? 0.05) * 100
 
   const handleResetAll = () => {
     updateProfile({
@@ -155,6 +156,10 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       inflationRate: ANNUAL_INFLATION_RATE,
       maxPurchasesPerYear: 3,
       equityReleaseFactor: 0.7,
+      rentEscalationRate: 0.05,
+      sellingCostsPercent: 3,
+      lvrStrategy: 'client_comfort' as const,
+      lvrStrategyCustomPercent: 80,
     })
   }
 
@@ -212,6 +217,65 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           format="percent"
           description="Growth rate for mature properties already in the client's portfolio. Override if you know specific suburb performance."
         />
+        <DialTile
+          label="Rent Escalation"
+          value={rentEscalationPct}
+          defaultValue={5}
+          onChange={(v) => updateProfile({ rentEscalationRate: v / 100 })}
+          min={1}
+          max={10}
+          step={0.5}
+          format="percent"
+          description="Annual rent increase applied uniformly to all properties. Decoupled from property growth tiers. Gameplans default: 5%."
+        />
+        <DialTile
+          label="Selling Costs"
+          value={profile.sellingCostsPercent ?? 3}
+          defaultValue={3}
+          onChange={(v) => updateProfile({ sellingCostsPercent: v })}
+          min={0}
+          max={10}
+          step={0.5}
+          format="percent"
+          description="Agent commission + marketing + conveyancing deducted from sale proceeds. Gameplans default: 3%."
+        />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 flex flex-col gap-2">
+          <span className="text-xs font-medium text-neutral-700">AI Default LVR</span>
+          <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5">
+            {([
+              { value: 'client_comfort', label: 'Comfort' },
+              { value: 'prudent_80', label: '80%' },
+              { value: 'custom', label: 'Custom' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => updateProfile({ lvrStrategy: opt.value })}
+                className={`flex-1 text-[11px] py-1.5 rounded-md font-medium transition-colors ${
+                  (profile.lvrStrategy ?? 'client_comfort') === opt.value
+                    ? 'bg-white text-neutral-900 shadow-sm'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {(profile.lvrStrategy ?? 'client_comfort') === 'custom' && (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="number"
+                value={profile.lvrStrategyCustomPercent ?? 80}
+                onChange={e => updateProfile({ lvrStrategyCustomPercent: Number(e.target.value) })}
+                min={50} max={95} step={1}
+                className="w-16 text-xs px-2 py-1 border border-neutral-200 rounded-md text-center"
+              />
+              <span className="text-xs text-neutral-500">%</span>
+            </div>
+          )}
+          <span className="text-[10px] text-neutral-400 leading-tight">
+            LVR the AI proposes for new purchases. Per-row edits always override.
+          </span>
+        </div>
         <DialTile
           label="Inflation Rate"
           value={inflationPct}

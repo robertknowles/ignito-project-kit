@@ -19,6 +19,11 @@ export interface ExistingProperty {
   councilWater: number
   insurance: number
   maintenance: number
+  growthAssumption?: 'High' | 'Medium' | 'Low'
+  loanTerm?: number
+  strata?: number
+  vacancyRate?: number
+  saleYear?: number | null
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({

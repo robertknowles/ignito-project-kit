@@ -59,6 +59,11 @@ const PRODUCT_OPTIONS = [
   { value: 'IO', label: 'IO' },
   { value: 'PI', label: 'P&I' },
 ]
+const GROWTH_OPTIONS = [
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Med' },
+  { value: 'Low', label: 'Low' },
+]
 
 const NumCell: React.FC<{
   value: number
@@ -195,6 +200,14 @@ const COLUMNS: Column[] = [
     key: 'convey', header: 'Convey ($)',
     render: (p, onChange) => <NumCell value={p.legals} onChange={v => onChange(p.id, { legals: v })} />,
   },
+  {
+    key: 'growth', header: 'Growth',
+    render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
+  },
+  {
+    key: 'saleYear', header: 'Sale Yr',
+    render: (p, onChange) => <NumCell value={p.saleYear ?? 0} onChange={v => onChange(p.id, { saleYear: v || null })} />,
+  },
 ]
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -229,7 +242,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
     const next = existingProperties.map(p => p.id === id ? { ...p, ...updates } : p)
     setExistingProperties(next)
-    if ('loan' in updates || 'currentValue' in updates) {
+    if ('loan' in updates || 'currentValue' in updates || 'rentPerWeek' in updates) {
       syncAggregates(next)
     }
   }, [existingProperties, setExistingProperties, syncAggregates])
@@ -360,6 +373,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                   className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
                     i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
                   }`}
+                  title={col.key === 'saleYear' ? 'CGT applied at 22.5% of capital gain (personal entity, >12mo hold, 50% discount). Entity-aware rates coming.' : undefined}
                 >
                   {col.header}
                 </th>
