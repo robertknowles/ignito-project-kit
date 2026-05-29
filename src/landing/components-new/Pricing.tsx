@@ -110,8 +110,8 @@ const Pricing: React.FC = () => {
                   <p className="text-gray-400 text-[14px] italic mb-4">Price Increases</p>
                   <div className="space-y-3">
                     {[
-                      'White-label PDF exports with your branding',
-                      'Equity release modelling',
+                      'Scenario comparison tools',
+                      'BA toolkit (calculators & analysis)',
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3 text-[14px] text-gray-400">
                         <span className="text-gray-300">+</span>
@@ -134,8 +134,8 @@ const Pricing: React.FC = () => {
                   <p className="text-gray-300 text-[14px] italic mb-4">Price Increases</p>
                   <div className="space-y-3">
                     {[
-                      'Refinance sequencing engine',
-                      'Multi-scenario comparison reports',
+                      'Partner & referral management',
+                      'Team collaboration dashboard',
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3 text-[14px] text-gray-300">
                         <span className="text-gray-200">+</span>
