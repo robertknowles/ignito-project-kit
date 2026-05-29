@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ArrowRight,
-  Play,
   TrendingUp,
   Home,
   LayoutDashboard,
@@ -20,10 +19,8 @@ import {
   X,
   Grid3X3,
 } from 'lucide-react';
-import DemoVideoModal from './DemoVideoModal';
 
 const Hero: React.FC = () => {
-  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   const scrollToPricing = () => {
     const el = document.getElementById('pricing');
@@ -80,13 +77,6 @@ const Hero: React.FC = () => {
             >
               Get Early Access
               <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
-            <button
-              onClick={() => setIsDemoOpen(true)}
-              className="inline-flex items-center justify-center gap-2 text-[16px] font-semibold text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 px-[18px] py-[12px] rounded-lg transition-colors min-w-[120px]"
-            >
-              <Play size={14} fill="currentColor" className="opacity-70" />
-              Watch Demo
             </button>
           </div>
         </div>
@@ -378,7 +368,6 @@ const Hero: React.FC = () => {
         </div>
       </div>
 
-      <DemoVideoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </section>
   );
 };

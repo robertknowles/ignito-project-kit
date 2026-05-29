@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, Loader2, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { PlanKey } from '@/config/stripe';
 
 const Pricing: React.FC = () => {
@@ -20,102 +19,134 @@ const Pricing: React.FC = () => {
 
   return (
     <section id="pricing" className="py-24 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-      <div className="mb-16 md:mb-20">
-        <h2 className="text-3xl font-semibold text-gray-900 mb-4">Pricing that makes sense.</h2>
-        <p className="text-gray-500 text-[18px] leading-[28px] max-w-xl">Choose the plan that fits your agency's size.</p>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-start">
+        {/* Left — headline + deal card */}
+        <div>
+          <h2 className="text-4xl md:text-[44px] font-semibold text-gray-900 leading-[1.15] mb-5">
+            The "Compound Interest"<br />Pricing Model
+          </h2>
+          <p className="text-gray-500 text-[18px] leading-[28px] max-w-md mb-12">
+            Most tools charge more as they add features. This one rewards you for joining early. We're building this <em>live</em>.
+          </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-gray-200 border border-gray-200 rounded-2xl overflow-hidden">
-        {/* Starter */}
-        <div className="bg-white p-10 md:p-12 flex flex-col">
-          <div className="mb-10">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Starter</h3>
-            <p className="text-gray-500 text-[15px]">For solo buyers' agents and small teams</p>
-          </div>
-          <div className="mb-10">
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-semibold text-gray-900">$699</span>
-              <span className="text-gray-400 text-sm">aud / year</span>
+          <div className="border border-gray-200 rounded-2xl p-8">
+            <div className="flex items-center gap-2.5 mb-5">
+              <TrendingUp size={20} className="text-emerald-600" />
+              <span className="font-semibold text-gray-900 text-[17px]">The Deal</span>
             </div>
+            <p className="text-gray-700 text-[15px] leading-relaxed mb-4">
+              Get in now at <span className="font-semibold text-gray-900">$90/month</span> for 6 months, and you get <span className="font-bold text-gray-900">EVERY future update for free.</span>
+            </p>
+            <p className="text-gray-400 text-[14px] leading-relaxed italic">
+              You are investing in the ground floor of a platform that will eventually sell for $699+/month.
+            </p>
           </div>
-          <div className="flex-1 space-y-4 mb-12">
-            {[
-              'Unlimited internal simulations & drafts',
-              'Up to 3 client roadmaps per month',
-              'Visual multi-property roadmaps',
-              'Scenario comparison',
-              'Editable assumptions (growth, yield, cashflow)',
-              'Plan explanations and exports',
-              'Email support',
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 text-[14px] text-gray-700">
-                <CheckCircle2 size={16} className="text-gray-400 shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => handleSubscribe('starter')}
-            disabled={loadingPlan !== null}
-            className="w-full py-2.5 bg-white border border-gray-300 rounded-lg font-semibold text-gray-700 text-[14px] hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loadingPlan === 'starter' ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Get Started'
-            )}
-          </button>
         </div>
 
-        {/* Professional */}
-        <div className="bg-gray-50 p-10 md:p-12 flex flex-col relative">
-          <div className="absolute top-6 right-10 md:right-12 px-2.5 py-1 bg-gray-600 rounded-md text-[11px] font-semibold text-white uppercase tracking-wider">
-            Popular
-          </div>
-          <div className="mb-10">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Professional</h3>
-            <p className="text-gray-500 text-[15px]">For growing agencies and larger teams</p>
-          </div>
-          <div className="mb-10">
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-semibold text-gray-900">$799</span>
-              <span className="text-gray-400 text-sm">aud / year</span>
+        {/* Right — version timeline */}
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-[11px] top-[12px] bottom-4 w-px bg-gray-200 hidden md:block" />
+
+          {/* v1.0 — Current */}
+          <div className="relative mb-6">
+            <div className="flex items-start gap-6">
+              <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-gray-900 border-[3px] border-gray-900 shrink-0 mt-1 hidden md:block" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <div />
+                  <span className="px-2.5 py-0.5 bg-gray-900 text-white text-[11px] font-semibold uppercase tracking-wider rounded-md">
+                    Current
+                  </span>
+                </div>
+                <div className="border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">v1.0 (Today)</h3>
+                  <div className="flex items-baseline gap-2 mb-6">
+                    <span className="text-5xl font-semibold text-gray-900">$90</span>
+                    <span className="text-gray-400 text-sm">/ month</span>
+                  </div>
+                  <div className="space-y-3 mb-8">
+                    {[
+                      'Full planning engine',
+                      'Unlimited simulations & drafts',
+                      'Client-ready roadmap exports',
+                      'All future updates included',
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 text-[14px] text-gray-700">
+                        <Check size={16} className="text-emerald-500 shrink-0" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleSubscribe('starter')}
+                    disabled={loadingPlan !== null}
+                    className="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold text-[14px] hover:bg-gray-800 transition-all flex items-center justify-between px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingPlan === 'starter' ? (
+                      <span className="flex items-center gap-2 mx-auto">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading...
+                      </span>
+                    ) : (
+                      <>
+                        <span>Get Access Now</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex-1 space-y-4 mb-12">
-            {[
-              'Up to 10 client roadmaps per month',
-              'Unlimited client-ready roadmap exports',
-              'White-labelling',
-              'Equity release modelling',
-              'Refinance sequencing',
-              'Client milestone tracking',
-              'Greater control over assumptions and planning inputs',
-              'Priority support',
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 text-[14px] text-gray-700">
-                <CheckCircle2 size={16} className="text-gray-600 shrink-0 mt-0.5" />
-                <span>{item}</span>
+
+          {/* v1.1 — Next Month */}
+          <div className="relative mb-6">
+            <div className="flex items-start gap-6">
+              <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-white border-2 border-gray-300 shrink-0 mt-1 hidden md:block" />
+              <div className="flex-1">
+                <div className="border border-dashed border-gray-200 rounded-2xl p-8 bg-gray-50/50">
+                  <h3 className="text-lg font-semibold text-gray-400 mb-1">v1.1 (Next Month)</h3>
+                  <p className="text-gray-400 text-[14px] italic mb-4">Price Increases</p>
+                  <div className="space-y-3">
+                    {[
+                      'White-label PDF exports with your branding',
+                      'Equity release modelling',
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 text-[14px] text-gray-400">
+                        <span className="text-gray-300">+</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
-          <button
-            onClick={() => handleSubscribe('professional')}
-            disabled={loadingPlan !== null}
-            className="w-full py-2.5 bg-gray-600 text-white rounded-lg font-semibold text-[14px] hover:bg-gray-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loadingPlan === 'professional' ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Get Started'
-            )}
-          </button>
+
+          {/* v1.2 — Future */}
+          <div className="relative">
+            <div className="flex items-start gap-6">
+              <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-white border-2 border-gray-200 shrink-0 mt-1 hidden md:block" />
+              <div className="flex-1">
+                <div className="border border-dashed border-gray-100 rounded-2xl p-8">
+                  <h3 className="text-lg font-semibold text-gray-300 mb-1">v1.2 (Month After)</h3>
+                  <p className="text-gray-300 text-[14px] italic mb-4">Price Increases</p>
+                  <div className="space-y-3">
+                    {[
+                      'Refinance sequencing engine',
+                      'Multi-scenario comparison reports',
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 text-[14px] text-gray-300">
+                        <span className="text-gray-200">+</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
