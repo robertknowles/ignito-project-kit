@@ -230,8 +230,8 @@ Do NOT add a clarification/follow-up question at the end of the message. The BA 
 The message should contain:
 1. What was built (number of properties, mix, locations).
 2. Key assumptions worth flagging.
-3. Qualitative goal verdict if relevant.
-4. "See the dashboard for the engine's exact projection."
+3. Qualitative goal verdict if relevant (the server may inject a more precise verdict automatically).
+4. End with exactly: "See the dashboard for the engine's exact projection." (This line MUST appear exactly once — do not duplicate it.)
 
 ## Timeline Periods
 Semi-annual periods. Period 1 = first half of ${currentYear}. "In 2 years" = period 4-5. "Next year" = period 2-3.

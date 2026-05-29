@@ -64,7 +64,7 @@ export interface CurrentPlanState {
 // ── Edge Function Response ─────────────────────────────────────────
 
 export interface NLParseResponse {
-  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions' | 'update_profile';
+  type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions' | 'update_profile' | 'conversation';
 
   // For initial_plan — client financial details
   clientProfile?: {

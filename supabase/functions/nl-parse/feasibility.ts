@@ -98,16 +98,14 @@ export function injectFeasibilityDescriptor(
 ): string {
   const dashboardLine = "See the dashboard for the engine's exact projection.";
 
+  // Strip existing dashboardLine from the AI's message to prevent duplication.
+  // The AI is instructed to include it, but we re-append it in every branch
+  // below — without stripping, the ratio < 0.9 path produced a double.
+  const stripped = message.replace(dashboardLine, '').replace(/\n+$/, '').trimEnd();
+
   if (result.ratio < 0.9) {
-    return `${result.descriptor.charAt(0).toUpperCase() + result.descriptor.slice(1)}. ${message}\n\n${dashboardLine}`;
+    return `${result.descriptor.charAt(0).toUpperCase() + result.descriptor.slice(1)}. ${stripped}\n\n${dashboardLine}`;
   }
 
-  if (message.includes(dashboardLine)) {
-    return message.replace(
-      dashboardLine,
-      `Based on the inputs, ${result.descriptor}. ${dashboardLine}`,
-    );
-  }
-
-  return `${message}\n\nBased on the inputs, ${result.descriptor}. ${dashboardLine}`;
+  return `${stripped}\n\nBased on the inputs, ${result.descriptor}. ${dashboardLine}`;
 }

@@ -93,6 +93,6 @@ Return type "property_suggestions" with:
   - \`yield\`: expected yield range (e.g. "4.5-5.2%")
   - \`reason\`: one sentence why this fits
   - \`prompt\`: the full message to send if chosen (e.g. "Add a regional-house-cashflow in QLD at $480,000")
-- \`message\`: 2-3 sentence overview of the options
+- \`message\`: 2-3 sentence overview of the options in plain text. Describe each option briefly (type, price, state, why it fits) so the BA can read them and type which one they want. Do NOT say "click", "select", "choose from the options below", or reference buttons — just describe the properties and let the BA type their preference.
 - \`assumptions\`: empty array`;
 }
