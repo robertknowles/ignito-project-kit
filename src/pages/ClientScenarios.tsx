@@ -25,8 +25,6 @@ import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { ClientProfileModal } from '../components/ClientProfileModal'
-import { PropertyBlocksOnboardingModal } from '../components/PropertyBlocksOnboardingModal'
-import { PropertyOnboardingWarningBanner } from '../components/PropertyOnboardingWarningBanner'
 import { useClient, Client } from '@/contexts/ClientContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { generateClientReport } from '../utils/pdfGenerator'
@@ -89,9 +87,6 @@ interface ClientStatus {
   clientEmail: string | null;
 }
 
-// Storage key for tracking if user dismissed the warning banner this session
-const ONBOARDING_BANNER_DISMISSED_KEY = 'ignito_property_onboarding_banner_dismissed';
-
 export const ClientScenarios = () => {
   const navigate = useNavigate();
   // Drawer removed
@@ -112,12 +107,6 @@ export const ClientScenarios = () => {
   const [sendFormEmail, setSendFormEmail] = useState('');
   const [sendingForm, setSendingForm] = useState(false);
 
-  // Property onboarding state
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [hasCompletedPropertyOnboarding, setHasCompletedPropertyOnboarding] = useState<boolean | null>(null);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [onboardingLoading, setOnboardingLoading] = useState(true);
-  
   // Seat usage calculations
   const seatUsagePercent = seatLimit > 0 ? (activeSeats / seatLimit) * 100 : 0;
   const isNearLimit = seatUsagePercent >= 80;
@@ -270,83 +259,6 @@ export const ClientScenarios = () => {
 
     fetchClientStatuses();
   }, [clients]);
-
-  // Fetch property onboarding status on mount
-  useEffect(() => {
-    const fetchOnboardingStatus = async () => {
-      if (!user) {
-        setOnboardingLoading(false);
-        return;
-      }
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('has_completed_property_onboarding')
-          .eq('id', user.id)
-          .single();
-        
-        if (!error && data) {
-          const completed = data.has_completed_property_onboarding ?? false;
-          setHasCompletedPropertyOnboarding(completed);
-          // Don't auto-show the modal - just let the yellow warning banner show
-          // Users can click "Configure Now" on the banner to open the modal
-        }
-      } catch (error) {
-}
-      setOnboardingLoading(false);
-    };
-    
-    fetchOnboardingStatus();
-    
-    // Check if banner was dismissed this session
-    const dismissed = sessionStorage.getItem(ONBOARDING_BANNER_DISMISSED_KEY) === 'true';
-    setBannerDismissed(dismissed);
-  }, [user]);
-
-  // Handle completing the property onboarding
-  const handleOnboardingComplete = async () => {
-    setShowOnboardingModal(false);
-    setHasCompletedPropertyOnboarding(true);
-    
-    if (user) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({ has_completed_property_onboarding: true })
-          .eq('id', user.id);
-      } catch (error) {
-}
-    }
-  };
-  
-  // Handle skipping the property onboarding
-  const handleOnboardingSkip = () => {
-    setShowOnboardingModal(false);
-    // Don't mark as completed - just close the modal
-    // Banner will show since hasCompletedPropertyOnboarding is still false
-  };
-  
-  // Handle dismissing the warning banner
-  const handleBannerDismiss = () => {
-    setBannerDismissed(true);
-    sessionStorage.setItem(ONBOARDING_BANNER_DISMISSED_KEY, 'true');
-  };
-  
-  // Handle clicking "Configure Now" on the banner
-  const handleConfigureNow = () => {
-    setShowOnboardingModal(true);
-  };
-  
-  // Determine if we should show the warning banner
-  // Show banner if onboarding is NOT completed (false or null) - this covers:
-  // 1. New users who skipped the modal
-  // 2. Existing users who created accounts before this feature
-  // 3. Users returning after previously skipping
-  const showWarningBanner = !onboardingLoading && 
-    hasCompletedPropertyOnboarding !== true && 
-    !showOnboardingModal && 
-    !bannerDismissed;
 
   // Calculate dynamic stats from timelineData
   const currentYear = new Date().getFullYear();
@@ -1071,23 +983,9 @@ toast.error('Failed to create client invite');
 
   return (
     <TooltipProvider>
-      {/* Property Blocks Onboarding Modal */}
-      <PropertyBlocksOnboardingModal
-        isOpen={showOnboardingModal}
-        onComplete={handleOnboardingComplete}
-        onSkip={handleOnboardingSkip}
-      />
-      
       <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
         <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
-          {/* Warning Banner - shows if user hasn't completed property onboarding */}
-          {showWarningBanner && (
-            <PropertyOnboardingWarningBanner
-              onConfigureNow={handleConfigureNow}
-              onDismiss={handleBannerDismiss}
-            />
-          )}
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto p-8">
               {/* Client CRM Header */}
@@ -1221,16 +1119,18 @@ toast.error('Failed to create client invite');
                           <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
                             {/* Client name + strategy type */}
                             <td className="table-cell">
-                              <div className="flex items-center">
-                                <button
-                                  onClick={() => handleOpenProfile(client)}
-                                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
+                              <button
+                                className="flex items-center w-full text-left group"
+                                onClick={() => { setActiveClient(client); navigate('/dashboard'); }}
+                              >
+                                <span
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 group-hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
                                   style={{ backgroundColor: avatarBg, color: avatarText }}
                                 >
                                   {initials}
-                                </button>
+                                </span>
                                 <div className="min-w-0">
-                                  <div className="body-dark font-medium truncate">
+                                  <div className="body-dark font-medium truncate group-hover:underline">
                                     {client.name}
                                   </div>
                                   {strategyLabel ? (
@@ -1239,7 +1139,7 @@ toast.error('Failed to create client invite');
                                     <div className="meta truncate">{client.email}</div>
                                   ) : null}
                                 </div>
-                              </div>
+                              </button>
                             </td>
 
                             {/* Dashboard */}
@@ -1293,7 +1193,7 @@ toast.error('Failed to create client invite');
                               </div>
                             </td>
 
-                            {/* Details Request */}
+                            {/* Client Details */}
                             <td className="table-cell">
                               {(() => {
                                 const showUpdate = fs?.input_form === 'completed'
@@ -1302,10 +1202,18 @@ toast.error('Failed to create client invite');
 
                                 if (currentStatus === 'completed') {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
-                                      <CheckCircle2 size={11} className="text-[#717680]" />
-                                      Completed
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
+                                        <CheckCircle2 size={11} className="text-[#717680]" />
+                                        Completed
+                                      </span>
+                                      <button
+                                        onClick={() => handleOpenProfile(client)}
+                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
+                                      >
+                                        View
+                                      </button>
+                                    </div>
                                   )
                                 } else if (currentStatus === 'awaiting') {
                                   return (
@@ -1320,6 +1228,12 @@ toast.error('Failed to create client invite');
                                       >
                                         Resend
                                       </button>
+                                      <button
+                                        onClick={() => handleOpenProfile(client)}
+                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
+                                      >
+                                        View
+                                      </button>
                                     </div>
                                   )
                                 } else {
@@ -1332,7 +1246,13 @@ toast.error('Failed to create client invite');
                                         onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
                                         className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"
                                       >
-                                        Send
+                                        Update
+                                      </button>
+                                      <button
+                                        onClick={() => handleOpenProfile(client)}
+                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
+                                      >
+                                        View
                                       </button>
                                     </div>
                                   )
@@ -1385,6 +1305,9 @@ toast.error('Failed to create client invite');
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem onClick={() => handleOpenProfile(client)}>
+                                    Edit / view details
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleRenameClick(client)}>
                                     Rename
                                   </DropdownMenuItem>

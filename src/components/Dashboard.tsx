@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon } from 'lucide-react';
+import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
@@ -15,18 +16,18 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { PlaceholderChart } from '@/components/ui/PlaceholderChart';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
-import { EquityMortgageChart } from './EquityMortgageChart';
-import { HoldingCostChart } from './HoldingCostChart';
+// EquityMortgageChart and HoldingCostChart hidden for now — components preserved in their files
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
+import { ClientInputsTab } from './ClientInputsTab';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { BASE_YEAR } from '../constants/financialParams';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
-type PlanSubTab = 'purchases' | 'equity' | 'cashflow' | 'projections';
+type PlanSubTab = 'purchases' | 'projections';
 interface TabItemProps {
   icon: React.ReactNode;
   label: string;
@@ -187,6 +188,8 @@ export const Dashboard = () => {
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
+  const resetAssumptionsRef = useRef<() => void>(() => {});
 
   const kpis = useMemo(() => {
     const growthData = chartDataA.portfolioGrowthData;
@@ -255,10 +258,55 @@ export const Dashboard = () => {
             active={activeTab === 'portfolio'}
             onClick={() => setActiveTab('portfolio')}
           />
-          <div className="ml-auto">
+          <PrimaryTabItem
+            icon={<UserIcon size={16} />}
+            label="Client Inputs"
+            active={activeTab === 'inputs'}
+            onClick={() => setActiveTab('inputs')}
+          />
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setAssumptionsOpen(prev => !prev)}
+              title="Assumptions"
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors shadow-sm ${
+                assumptionsOpen
+                  ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
+                  : 'text-neutral-500 bg-white border-neutral-200 hover:text-neutral-700 hover:bg-neutral-50'
+              }`}
+            >
+              <SlidersHorizontalIcon size={15} />
+            </button>
             <TopBar />
           </div>
         </div>
+
+        {/* ── Assumptions panel (collapsible) ── */}
+        {assumptionsOpen && (
+          <div className="bg-[#F9FAFB] border border-[#E9EAEB] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-[#181D27]">Assumptions</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => resetAssumptionsRef.current?.()}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#535862] hover:text-[#414651] transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  Reset to defaults
+                </button>
+                <button
+                  onClick={() => setAssumptionsOpen(false)}
+                  className="w-6 h-6 inline-flex items-center justify-center rounded-md text-[#717680] hover:text-[#414651] hover:bg-[#F2F4F7] transition-colors"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            </div>
+            <AssumptionsGrid
+              showHeader={false}
+              onResetExposed={(fn) => { resetAssumptionsRef.current = fn; }}
+            />
+          </div>
+        )}
 
         {/* ── Plan sub-tabs (Equity | Cashflow | Projections) ── */}
         {activeTab === 'plan' && (
@@ -268,18 +316,6 @@ export const Dashboard = () => {
               label="Purchases"
               active={planSubTab === 'purchases'}
               onClick={() => setPlanSubTab('purchases')}
-            />
-            <SubTabItem
-              icon={<TrendingUpIcon size={14} />}
-              label="Growth"
-              active={planSubTab === 'equity'}
-              onClick={() => setPlanSubTab('equity')}
-            />
-            <SubTabItem
-              icon={<BarChart3Icon size={14} />}
-              label="Cashflow"
-              active={planSubTab === 'cashflow'}
-              onClick={() => setPlanSubTab('cashflow')}
             />
             <SubTabItem
               icon={<TableIcon size={14} />}
@@ -292,16 +328,12 @@ export const Dashboard = () => {
 
         {/* ── Tab content ── */}
 
-        {/* Portfolio Plan > Purchases: Full editable properties table */}
+        {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
-          <ChartCard title="Purchases" flush action={addPropertyBtn}>
-            <PropertyCardRow mode="purchases" onAddClick={() => setIsLibraryOpen(true)} />
-          </ChartCard>
-        )}
-
-        {/* Portfolio Plan > Equity: Investment Timeline with KPI header */}
-        {activeTab === 'plan' && planSubTab === 'equity' && (
           <>
+            <PropertyCardRow mode="blocks" onAddClick={() => setIsLibraryOpen(true)} />
+
+            {/* Total Equity chart */}
             <ChartCard
               title="Total Equity"
               legend={[
@@ -326,33 +358,8 @@ export const Dashboard = () => {
               </div>
               <TimelineColumn scenarioData={displayScenarioAData} />
             </ChartCard>
-            <ChartCard
-              title="Equity vs Mortgage"
-              legend={[
-                { color: '#7F56D9', label: 'Market Value' },
-                { color: '#E9D7FE', label: 'Loan Balance' },
-                { color: '#737373', label: 'LVR', variant: 'line' },
-              ]}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {kpis.portfolioValue > 0 ? `${Math.round((kpis.totalDebt / kpis.portfolioValue) * 100)}%` : '0%'}
-                  </span>
-                  <span className="text-sm text-neutral-500">
-                    LVR by {BASE_YEAR + displayYears - 1}
-                  </span>
-                </div>
-                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
-              </div>
-              <EquityMortgageChart scenarioData={displayScenarioAData} />
-            </ChartCard>
-          </>
-        )}
 
-        {/* Portfolio Plan > Cashflow: Cashflow Projection with KPI header */}
-        {activeTab === 'plan' && planSubTab === 'cashflow' && (
-          <>
+            {/* Net Cashflow chart */}
             <ChartCard
               title="Net Cashflow"
               legend={[{ color: '#7F56D9', label: 'Net Cashflow' }]}
@@ -368,27 +375,8 @@ export const Dashboard = () => {
               </div>
               <CashflowChart scenarioData={displayScenarioAData} />
             </ChartCard>
-            <ChartCard
-              title="What It Costs to Hold"
-              legend={[
-                { color: '#6941C6', label: 'Mortgage' },
-                { color: '#9E77ED', label: 'Operating Expenses' },
-                { color: '#E5E5E5', label: 'Rental Income' },
-              ]}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {kpis.rentalIncomeAnnual > 0 && kpis.holdingCostsAnnual > 0
-                      ? `${Math.round((kpis.rentalIncomeAnnual / kpis.holdingCostsAnnual) * 100)}%`
-                      : '0%'}
-                  </span>
-                  <span className="text-sm text-neutral-500">coverage by {BASE_YEAR + displayYears - 1}</span>
-                </div>
-                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
-              </div>
-              <HoldingCostChart scenarioData={displayScenarioAData} />
-            </ChartCard>
+
+            {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}
           </>
         )}
 
@@ -404,6 +392,9 @@ export const Dashboard = () => {
 
         {/* Existing Portfolio */}
         {activeTab === 'portfolio' && <PortfolioTab />}
+
+        {/* Client Inputs */}
+        {activeTab === 'inputs' && <ClientInputsTab />}
       </div>
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>

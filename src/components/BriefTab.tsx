@@ -1,5 +1,8 @@
-import React, { useMemo, useState } from 'react'
-import { Target, DollarSign, TrendingUp, Home } from 'lucide-react'
+import React, { useMemo, useState, useCallback } from 'react'
+import { Target, DollarSign, TrendingUp, Home, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
+import type { ExistingProperty } from '@/types/existingProperty'
 import { ChartCard } from './ui/ChartCard'
 import { BriefCashflowChart, BriefEquityChart, BriefLoanChart, BriefHoldingCostChart } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
@@ -160,8 +163,41 @@ export const BriefTab: React.FC = () => {
   const { instances } = usePropertyInstance()
   const { profile } = useInvestmentProfile()
 
+  const { existingProperties, setExistingProperties } = useScenarioSave()
+
   const nextProp = timelineProperties[0]
   const instanceData = nextProp ? instances[nextProp.instanceId] : null
+
+  const handleMarkPurchased = useCallback(() => {
+    if (!nextProp || !instanceData) return
+    const acqCosts = nextProp.acquisitionCosts
+    const newExisting: ExistingProperty = {
+      id: `ep-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      address: nextProp.title || '',
+      state: instanceData.state || 'NSW',
+      boughtYear: Math.floor(nextProp.affordableYear),
+      purchasePrice: instanceData.purchasePrice || nextProp.cost,
+      currentValue: instanceData.valuationAtPurchase || instanceData.purchasePrice || nextProp.cost,
+      loan: nextProp.loanAmount || 0,
+      rentPerWeek: instanceData.rentPerWeek || 0,
+      yield: instanceData.rentPerWeek ? (instanceData.rentPerWeek * 52) / (instanceData.purchasePrice || 1) * 100 : 0,
+      interestRate: instanceData.interestRate || 0,
+      loanType: instanceData.loanProduct === 'IO' ? 'IO' : 'PI',
+      stampDuty: acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0,
+      legals: instanceData.conveyancing || 0,
+      buildingPest: instanceData.buildingPestInspection || 0,
+      baFee: instanceData.engagementFee || 0,
+      cashDeposit: nextProp.depositRequired || 0,
+      propertyMgmtPercent: instanceData.propertyManagementPercent || 0,
+      councilWater: instanceData.councilRatesWater || 0,
+      insurance: instanceData.buildingInsuranceAnnual || 0,
+      maintenance: instanceData.maintenanceAllowanceAnnual || 0,
+      growthAssumption: instanceData.growthAssumption || 'Medium',
+      loanTerm: instanceData.loanTerm || 30,
+    }
+    setExistingProperties([...existingProperties, newExisting])
+    toast.success('Property marked as purchased and moved to Existing Portfolio')
+  }, [nextProp, instanceData, existingProperties, setExistingProperties])
 
   const growthCurve: GrowthCurve = useMemo(() => {
     if (!instanceData) return GROWTH_RATE_TIERS.Medium
@@ -226,8 +262,8 @@ export const BriefTab: React.FC = () => {
   // ── Tab 1: The Purchase ─────────────────────────────────────────────────
 
   const purchaseTab = (
-    <div className="grid grid-cols-3 gap-4 items-start">
-      {/* Property Summary */}
+    <div className="grid grid-cols-2 gap-4 items-start">
+      {/* Property Summary (includes funding source rows) */}
       <ChartCard title="Property summary" flush>
         <table className="w-full text-xs">
           <tbody>
@@ -243,6 +279,12 @@ export const BriefTab: React.FC = () => {
             <EditableSelectRow label="Growth assumption" value={instanceData.growthAssumption} field="growthAssumption" instanceId={iid} options={GROWTH_OPTIONS} />
             <EditableNumRow label="Rent/wk ($)" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
             <KVRow label="Gross yield (%)" value={grossYield} />
+            {/* Funding source */}
+            <tr><td colSpan={2} className="pt-3 pb-1 px-3 text-xs font-semibold text-neutral-500 bg-[#F9FAFB] border-t border-neutral-200">Funding source</td></tr>
+            <KVRow label="Cash ($)" value={fmtNum(nextProp.fundingBreakdown?.cash ?? 0)} />
+            <KVRow label="Savings ($)" value={fmtNum(nextProp.fundingBreakdown?.savings ?? 0)} />
+            <KVRow label="Equity release ($)" value={fmtNum(nextProp.fundingBreakdown?.equity ?? 0)} />
+            <KVRow label="Total funded ($)" value={fmtNum(nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} bold />
           </tbody>
         </table>
       </ChartCard>
@@ -268,17 +310,6 @@ export const BriefTab: React.FC = () => {
         </table>
       </ChartCard>
 
-      {/* Funding Source — all computed */}
-      <ChartCard title="Funding source" flush>
-        <table className="w-full text-xs">
-          <tbody>
-            <KVRow label="Cash ($)" value={fmtNum(nextProp.fundingBreakdown?.cash ?? 0)} />
-            <KVRow label="Savings ($)" value={fmtNum(nextProp.fundingBreakdown?.savings ?? 0)} />
-            <KVRow label="Equity release ($)" value={fmtNum(nextProp.fundingBreakdown?.equity ?? 0)} />
-            <KVRow label="Total funded ($)" value={fmtNum(nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} bold />
-          </tbody>
-        </table>
-      </ChartCard>
     </div>
   )
 
@@ -399,7 +430,8 @@ export const BriefTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Sub-tab navigation */}
+      {/* Sub-tab navigation + purchased button */}
+      <div className="flex items-center justify-between">
       <div className="flex items-center gap-1">
         <SubTabItem
           icon={<Home size={14} />}
@@ -419,6 +451,14 @@ export const BriefTab: React.FC = () => {
           active={subTab === 'performance'}
           onClick={() => setSubTab('performance')}
         />
+      </div>
+      <button
+        onClick={handleMarkPurchased}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors"
+      >
+        <CheckCircle2 size={14} />
+        Purchased property
+      </button>
       </div>
 
       {/* Tab content */}

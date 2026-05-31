@@ -264,9 +264,9 @@ export const AgentHome: React.FC = () => {
           style={{
             height: 620,
             background:
-              'radial-gradient(1100px 480px at 18% -100px, rgba(165, 180, 210, 0.15), transparent 68%),' +
-              'radial-gradient(1100px 480px at 82% -100px, rgba(185, 198, 222, 0.15), transparent 68%),' +
-              'linear-gradient(180deg, rgba(240, 244, 251, 0.55) 0%, rgba(255, 255, 255, 0) 92%)',
+              'radial-gradient(1100px 480px at 18% -100px, rgba(175, 165, 215, 0.10), transparent 68%),' +
+              'radial-gradient(1100px 480px at 82% -100px, rgba(190, 175, 225, 0.09), transparent 68%),' +
+              'linear-gradient(180deg, rgba(248, 245, 253, 0.45) 0%, rgba(255, 255, 255, 0) 92%)',
           }}
         />
 

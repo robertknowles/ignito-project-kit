@@ -27,7 +27,6 @@ import {
   SettingsIcon,
   LogOutIcon,
   ChevronDownIcon,
-  SearchIcon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -144,18 +143,6 @@ export const AppSidebar: React.FC = () => {
               </span>
             </>
           )}
-        </button>
-      </div>
-
-      {/* ── Search bar ── */}
-      <div className="px-5 mb-3 mt-1">
-        <button
-          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 cursor-pointer transition duration-100 text-left"
-          onClick={() => {}}
-        >
-          <SearchIcon size={16} className="text-neutral-400 shrink-0" />
-          <span className="flex-1 text-sm text-neutral-500">Search</span>
-          <kbd className="text-xs text-neutral-400 bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.5 font-sans">⌘K</kbd>
         </button>
       </div>
 

@@ -6,8 +6,9 @@
  *   cashflow → income, expenses, purchase costs columns
  */
 
-import React, { useMemo } from 'react';
-import { X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { X, Plus, Landmark } from 'lucide-react';
+import { ChartCard } from './ui/ChartCard';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
@@ -487,10 +488,131 @@ function buildGroupHeaders(columns: Column[]): { label: string; span: number }[]
   return hasGroups ? groups : null;
 }
 
+// ── Block cards — replicates BriefTab "Property summary" table style ────────
+
+const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU');
+
+const BlockKVRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
+  <tr className="border-b border-neutral-200 last:border-b-0">
+    <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
+    <td className="py-2 px-3 text-xs text-neutral-600">{value}</td>
+  </tr>
+);
+
+const BlockNumRow: React.FC<{
+  label: string;
+  value: number;
+  instanceId: string;
+  field: keyof PropertyInstanceDetails;
+  onChange: (id: string, field: keyof PropertyInstanceDetails, value: any) => void;
+  decimals?: number;
+}> = ({ label, value, instanceId, field, onChange, decimals }) => {
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
+  const display = decimals !== undefined ? value.toFixed(decimals) : fmtNum(value);
+
+  return (
+    <tr className="border-b border-neutral-200 last:border-b-0">
+      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
+      <td className="py-1.5 px-2">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={focused ? draft : display}
+          onFocus={() => { setFocused(true); setDraft(String(value)); }}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => {
+            setFocused(false);
+            const n = parseFloat(draft);
+            if (!isNaN(n) && n !== value) onChange(instanceId, field, n);
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300"
+        />
+      </td>
+    </tr>
+  );
+};
+
+const BlockSelectRow: React.FC<{
+  label: string;
+  value: string;
+  instanceId: string;
+  field: keyof PropertyInstanceDetails;
+  options: { value: string; label: string; dropdownLabel?: string }[];
+  onChange: (id: string, field: keyof PropertyInstanceDetails, value: any) => void;
+}> = ({ label, value, instanceId, field, options, onChange }) => {
+  const selectedOpt = options.find(o => o.value === value);
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+  return (
+    <tr className="border-b border-neutral-200 last:border-b-0">
+      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
+      <td className="py-1.5 px-2">
+        <div ref={ref} className="relative">
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="w-full bg-transparent text-left outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer"
+          >
+            {selectedOpt?.label ?? value}
+          </button>
+          {open && (
+            <div className="absolute z-50 top-full left-0 mt-0.5 bg-white border border-neutral-200 rounded-md shadow-lg min-w-[280px] py-0.5">
+              {options.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(instanceId, field, opt.value); setOpen(false); }}
+                  className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors ${
+                    opt.value === value ? 'bg-neutral-100 text-neutral-900 font-medium' : 'text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  {opt.dropdownLabel ?? opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+const BLOCK_STATE_OPTIONS = [
+  { value: 'NSW', label: 'NSW' }, { value: 'VIC', label: 'VIC' }, { value: 'QLD', label: 'QLD' },
+  { value: 'SA', label: 'SA' }, { value: 'WA', label: 'WA' }, { value: 'TAS', label: 'TAS' },
+  { value: 'NT', label: 'NT' }, { value: 'ACT', label: 'ACT' },
+];
+
+const BLOCK_LOAN_PRODUCT_OPTIONS = [
+  { value: 'IO', label: 'Interest only' },
+  { value: 'PI', label: 'Principal & interest' },
+];
+
+const BLOCK_GROWTH_OPTIONS = [
+  { value: 'High', label: 'High', dropdownLabel: 'High (12.5% → 10% → 7.5% → 6%)' },
+  { value: 'Medium', label: 'Medium', dropdownLabel: 'Medium (6% → 5.5% → 5% → 5%)' },
+  { value: 'Low', label: 'Low', dropdownLabel: 'Low (5% → 4% → 3.5% → 3%)' },
+];
+
+const BLOCK_ENTITY_OPTIONS = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'trust', label: 'Trust' },
+];
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 interface PropertyCardRowProps {
-  mode?: 'equity' | 'cashflow' | 'purchases';
+  mode?: 'equity' | 'cashflow' | 'purchases' | 'blocks';
   onAddClick?: () => void;
 }
 
@@ -570,7 +692,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     updateInstance(instanceId, { [field]: value });
   };
 
-  const columns = mode === 'purchases' ? PURCHASES_COLUMNS : mode === 'equity' ? EQUITY_COLUMNS : CASHFLOW_COLUMNS;
+  const columns = mode === 'purchases' || mode === 'blocks' ? PURCHASES_COLUMNS : mode === 'equity' ? EQUITY_COLUMNS : CASHFLOW_COLUMNS;
   const groupHeaders = buildGroupHeaders(columns);
 
   if (cards.length === 0) {
@@ -581,12 +703,132 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     );
   }
 
+  // ── Blocks mode: property cards matching BriefTab style ──
+  const [loanExpanded, setLoanExpanded] = useState<Record<string, boolean>>({});
+  const toggleLoan = (id: string) => setLoanExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  if (mode === 'blocks') {
+    return (
+      <div className="overflow-x-auto">
+        <div className="flex gap-4" style={{ minWidth: 'min-content' }}>
+          {cards.map((card, idx) => {
+            if (!card.instanceData) return null;
+            const d = card.instanceData;
+            const mgmtDollar = (d.propertyManagementPercent / 100) * d.rentPerWeek * 52;
+            const holdingTotal = Math.round(mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual);
+            const purchaseCosts = Math.round(
+              d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
+              d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
+            );
+            const loanSummary = `${d.lvr}% · ${d.interestRate.toFixed(1)}% · ${d.loanTerm}yr ${d.loanProduct === 'IO' ? 'IO' : 'P&I'}`;
+            const iid = card.instanceId;
+            const loanOpen = !!loanExpanded[iid];
+
+            return (
+              <div key={iid} style={{ width: 280, minWidth: 280, flexShrink: 0 }}>
+                <ChartCard
+                  title={`Property ${idx + 1}`}
+                  flush
+                  action={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button
+                        onClick={() => toggleLoan(iid)}
+                        className={`p-1 transition-colors bg-transparent border-none cursor-pointer ${loanOpen ? 'text-neutral-700' : 'text-neutral-300 hover:text-neutral-500'}`}
+                        title={loanOpen ? 'Hide loan details' : `Loan: ${loanSummary}`}
+                      >
+                        <Landmark size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleRemove(iid)}
+                        className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                        title="Remove property"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  }
+                >
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '—' : (card.purchaseYear ?? '—')} />
+                      <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
+                      <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
+                      <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
+                      <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
+                      <BlockKVRow label="Holding $/yr" value={fmtNum(holdingTotal)} />
+                      <BlockKVRow label="Purchase costs" value={fmtNum(purchaseCosts)} />
+                      <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
+                      <BlockNumRow label="Sale year" value={d.saleYear ?? 0} instanceId={iid} field="saleYear" onChange={(id, field, v) => handleFieldChange(id, field, v || null)} />
+                      {loanOpen && (
+                        <>
+                          <BlockNumRow label="LVR (%)" value={d.lvr} instanceId={iid} field="lvr" onChange={handleFieldChange} />
+                          <BlockNumRow label="Interest rate (%)" value={d.interestRate} instanceId={iid} field="interestRate" onChange={handleFieldChange} decimals={2} />
+                          <BlockNumRow label="Loan term (yrs)" value={d.loanTerm} instanceId={iid} field="loanTerm" onChange={handleFieldChange} />
+                          <BlockSelectRow label="Loan product" value={d.loanProduct} instanceId={iid} field="loanProduct" options={BLOCK_LOAN_PRODUCT_OPTIONS} onChange={handleFieldChange} />
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </ChartCard>
+              </div>
+            );
+          })}
+          {/* Add property card */}
+          <button
+            onClick={onAddClick}
+            style={{
+              background: '#FAFAFA',
+              borderRadius: 12,
+              boxShadow: '#E5E5E5 0px 0px 0px 1px inset',
+              width: 280,
+              minWidth: 280,
+              flexShrink: 0,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: 24,
+            }}
+            className="hover:bg-neutral-100 transition-colors"
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: '2px dashed #D4D4D4',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Plus size={18} className="text-neutral-400" />
+            </div>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#737373',
+                fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+              }}
+            >
+              Add property
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Table mode (equity / cashflow / purchases) ──
   return (
     <div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1400 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
           <thead>
-            {/* Column headers only — no group header row */}
             {/* Column headers */}
             <tr className="border-b border-neutral-200">
               {columns.map((col, i) => (
