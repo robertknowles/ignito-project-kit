@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2Icon,
   UsersIcon,
@@ -7,12 +7,16 @@ import {
   ImageIcon,
   CheckIcon,
   Loader2Icon,
+  UploadIcon,
+  XIcon,
 } from 'lucide-react';
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar';
 // HomeDrawer removed — navigation restructured
 import { useCompany, TeamMember } from '@/contexts/CompanyContext';
 import { useBranding } from '@/contexts/BrandingContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -35,6 +39,7 @@ export const CompanyManagement = () => {
   } = useCompany();
   
   const { branding, updateBranding, loading: brandingLoading } = useBranding();
+  const { companyId } = useAuth();
   const { toast } = useToast();
 
   // Drawer removed
@@ -48,6 +53,49 @@ export const CompanyManagement = () => {
   const [primaryColor, setPrimaryColor] = useState('#6b7280');
   const [savingBranding, setSavingBranding] = useState(false);
   const [brandingChanged, setBrandingChanged] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!companyId) {
+      toast({ title: 'No company found', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Logo must be under 2MB.', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingLogo(true);
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+    const filePath = `${companyId}/logo.${ext}`;
+
+    // Remove old logo if it exists in storage
+    if (logoUrl?.includes('company-assets')) {
+      const oldPath = logoUrl.split('/company-assets/')[1];
+      if (oldPath) await supabase.storage.from('company-assets').remove([oldPath]);
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('company-assets')
+      .upload(filePath, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
+      setUploadingLogo(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('company-assets').getPublicUrl(filePath);
+    const newUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    setLogoUrl(newUrl);
+    setUploadingLogo(false);
+    toast({ title: 'Logo uploaded', description: 'Click Save Branding to apply.' });
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl('');
+  };
 
   // Client interactivity state
   const [isClientInteractive, setIsClientInteractive] = useState(true);
@@ -294,37 +342,73 @@ export const CompanyManagement = () => {
                         />
                       </div>
 
-                      {/* Logo URL */}
+                      {/* Logo Upload */}
                       <div className="space-y-2">
-                        <Label htmlFor="logo-url" className="body-dark font-medium">
-                          Logo URL
+                        <Label className="body-dark font-medium">
+                          Company Logo
                         </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="logo-url"
-                            value={logoUrl}
-                            onChange={(e) => setLogoUrl(e.target.value)}
-                            placeholder="https://example.com/logo.png"
-                            className="h-10 flex-1"
-                          />
-                          {logoUrl && (
-                            <div className="w-10 h-10 rounded border border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLogoUpload(file);
+                            e.target.value = '';
+                          }}
+                        />
+                        {logoUrl ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-16 h-16 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
                               <img
                                 src={logoUrl}
-                                alt="Logo preview"
+                                alt="Company logo"
                                 className="w-full h-full object-contain"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = 'none';
                                 }}
                               />
                             </div>
-                          )}
-                          {!logoUrl && (
-                            <div className="w-10 h-10 rounded border border-gray-200 flex items-center justify-center bg-gray-50">
-                              <ImageIcon size={16} className="text-gray-400" />
+                            <div className="flex flex-col gap-1.5">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingLogo}
+                              >
+                                {uploadingLogo ? (
+                                  <><Loader2Icon size={14} className="animate-spin mr-1.5" />Uploading...</>
+                                ) : (
+                                  <><UploadIcon size={14} className="mr-1.5" />Replace</>
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRemoveLogo}
+                                className="text-gray-500 hover:text-red-600"
+                              >
+                                <XIcon size={14} className="mr-1.5" />Remove
+                              </Button>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingLogo}
+                            className="w-full h-24 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-gray-600 transition-colors cursor-pointer bg-gray-50 hover:bg-gray-100"
+                          >
+                            {uploadingLogo ? (
+                              <><Loader2Icon size={20} className="animate-spin" /><span className="text-sm">Uploading...</span></>
+                            ) : (
+                              <><UploadIcon size={20} /><span className="text-sm">Click to upload logo</span><span className="text-xs text-gray-400">PNG, JPG, SVG, or WebP (max 2MB)</span></>
+                            )}
+                          </button>
+                        )}
                       </div>
 
                       {/* Primary Color */}
