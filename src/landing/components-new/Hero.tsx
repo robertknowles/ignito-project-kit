@@ -60,13 +60,13 @@ const Hero: React.FC = () => {
 
           {/* Heading */}
           <h1 className="text-[36px] sm:text-[48px] md:text-[60px] font-semibold tracking-[-0.02em] leading-[1.2] md:leading-[72px] text-gray-900 mb-5 max-w-[900px]">
-            Build AI-powered portfolio <br className="hidden md:block" />
-            plan for every client
+            Build AI powered property <br className="hidden md:block" />
+            roadmaps. Made simple.
           </h1>
 
           {/* Subtitle */}
           <p className="text-[18px] sm:text-[20px] font-normal leading-[28px] sm:leading-[30px] text-gray-600 max-w-[640px] mb-10">
-            Purpose-built for planning and building portfolios. Designed for the modern agent.
+            Purpose-built for buyers agents and property professionals.
           </p>
 
           {/* CTA Buttons */}
