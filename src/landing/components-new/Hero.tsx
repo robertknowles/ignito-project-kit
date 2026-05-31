@@ -61,7 +61,7 @@ const Hero: React.FC = () => {
           {/* Heading */}
           <h1 className="text-[36px] sm:text-[48px] md:text-[60px] font-semibold tracking-[-0.02em] leading-[1.2] md:leading-[72px] text-gray-900 mb-5 max-w-[900px]">
             Build AI powered property <br className="hidden md:block" />
-            roadmaps. Made simple.
+            roadmaps.
           </h1>
 
           {/* Subtitle */}
