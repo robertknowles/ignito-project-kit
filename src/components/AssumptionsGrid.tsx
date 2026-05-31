@@ -126,6 +126,101 @@ const DialTile: React.FC<DialTileProps> = ({
   )
 }
 
+// ── LVR Tile (collapsed/expanded like DialTile) ────────────────────────────
+
+const LVR_OPTIONS = [
+  { value: 'client_comfort', label: 'Comfort' },
+  { value: 'prudent_80', label: '80%' },
+  { value: 'custom', label: 'Custom' },
+] as const
+
+const LvrTile: React.FC<{
+  value: string
+  customPercent: number
+  onChange: (strategy: string, customPct?: number) => void
+}> = ({ value, customPercent, onChange }) => {
+  const [expanded, setExpanded] = useState(false)
+  const tileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!expanded) return
+    const handler = (e: MouseEvent) => {
+      if (tileRef.current && !tileRef.current.contains(e.target as Node)) {
+        setExpanded(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [expanded])
+
+  const displayValue = value === 'custom'
+    ? `${customPercent}%`
+    : LVR_OPTIONS.find(o => o.value === value)?.label ?? 'Comfort'
+
+  return (
+    <div
+      ref={tileRef}
+      className={`bg-white rounded-lg border transition-all ${
+        expanded
+          ? 'border-blue-300 shadow-sm col-span-2'
+          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+      }`}
+      onClick={() => !expanded && setExpanded(true)}
+    >
+      <div className="px-4 py-4 flex flex-col items-center text-center">
+        <div className="text-xl font-semibold text-gray-700 leading-tight">
+          {displayValue}
+        </div>
+        <div className="text-[11px] text-gray-500 mt-1 leading-tight">AI Default LVR</div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-1 border-t border-gray-100">
+          <div className="flex justify-end mb-2">
+            <button
+              className="text-[11px] text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setExpanded(false) }}
+            >
+              Done
+            </button>
+          </div>
+          <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5">
+            {LVR_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={(e) => { e.stopPropagation(); onChange(opt.value) }}
+                className={`flex-1 text-[11px] py-1.5 rounded-md font-medium transition-colors ${
+                  value === opt.value
+                    ? 'bg-white text-neutral-900 shadow-sm'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {value === 'custom' && (
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="number"
+                value={customPercent}
+                onChange={e => { e.stopPropagation(); onChange('custom', Number(e.target.value)) }}
+                onClick={e => e.stopPropagation()}
+                min={50} max={95} step={1}
+                className="w-16 text-xs px-2 py-1 border border-neutral-200 rounded-md text-center"
+              />
+              <span className="text-xs text-neutral-500">%</span>
+            </div>
+          )}
+          <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+            LVR the AI proposes for new purchases. Per-row edits always override.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface AssumptionsGridProps {
   /** Whether to render an internal heading + reset button row. AgentHome supplies its own external header so passes false. */
   showHeader?: boolean
@@ -239,43 +334,16 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           format="percent"
           description="Agent commission + marketing + conveyancing deducted from sale proceeds. Gameplans default: 3%."
         />
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100 flex flex-col gap-2">
-          <span className="text-xs font-medium text-neutral-700">AI Default LVR</span>
-          <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5">
-            {([
-              { value: 'client_comfort', label: 'Comfort' },
-              { value: 'prudent_80', label: '80%' },
-              { value: 'custom', label: 'Custom' },
-            ] as const).map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => updateProfile({ lvrStrategy: opt.value })}
-                className={`flex-1 text-[11px] py-1.5 rounded-md font-medium transition-colors ${
-                  (profile.lvrStrategy ?? 'client_comfort') === opt.value
-                    ? 'bg-white text-neutral-900 shadow-sm'
-                    : 'text-neutral-500 hover:text-neutral-700'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {(profile.lvrStrategy ?? 'client_comfort') === 'custom' && (
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="number"
-                value={profile.lvrStrategyCustomPercent ?? 80}
-                onChange={e => updateProfile({ lvrStrategyCustomPercent: Number(e.target.value) })}
-                min={50} max={95} step={1}
-                className="w-16 text-xs px-2 py-1 border border-neutral-200 rounded-md text-center"
-              />
-              <span className="text-xs text-neutral-500">%</span>
-            </div>
-          )}
-          <span className="text-[10px] text-neutral-400 leading-tight">
-            LVR the AI proposes for new purchases. Per-row edits always override.
-          </span>
-        </div>
+        <LvrTile
+          value={profile.lvrStrategy ?? 'client_comfort'}
+          customPercent={profile.lvrStrategyCustomPercent ?? 80}
+          onChange={(strategy, customPct) => {
+            updateProfile({
+              lvrStrategy: strategy as any,
+              ...(customPct !== undefined ? { lvrStrategyCustomPercent: customPct } : {}),
+            })
+          }}
+        />
         <DialTile
           label="Inflation Rate"
           value={inflationPct}

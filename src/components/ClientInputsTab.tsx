@@ -4,8 +4,8 @@ import { ChartCard } from './ui/ChartCard'
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
 import type { InvestmentProfileData } from '@/hooks/useInvestmentProfile'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
-import type { EventCategory } from '@/contexts/PropertySelectionContext'
-import { getEventLabel } from '@/constants/eventTypes'
+import type { EventCategory, EventType } from '@/contexts/PropertySelectionContext'
+import { getEventLabel, EVENT_TYPES } from '@/constants/eventTypes'
 import { EventTypeIcon } from '@/utils/eventIcons'
 import { EventConfigModal } from './EventConfigModal'
 import { PERIODS_PER_YEAR, BASE_YEAR } from '@/constants/financialParams'
@@ -138,7 +138,14 @@ export const ClientInputsTab: React.FC = () => {
   const { eventBlocks, removeEvent } = usePropertySelection()
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [eventCategory, setEventCategory] = useState<EventCategory>('income')
+  const [eventInitialType, setEventInitialType] = useState<EventType | undefined>(undefined)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+
+  const DEFAULT_EVENT_SLOTS: { eventType: EventType; category: EventCategory }[] = [
+    { eventType: 'salary_change', category: 'income' },
+    { eventType: 'borrowing_capacity_change', category: 'income' },
+    { eventType: 'interest_rate_change', category: 'market' },
+  ]
 
   // Safe accessors — older scenarios may not have all fields
   const p = {
@@ -217,7 +224,7 @@ export const ClientInputsTab: React.FC = () => {
                 ]).map(cat => (
                   <button
                     key={cat.key}
-                    onClick={() => { setEventCategory(cat.key); setCategoryPickerOpen(false); setEventModalOpen(true) }}
+                    onClick={() => { setEventCategory(cat.key); setCategoryPickerOpen(false); setEventInitialType(undefined); setEventModalOpen(true) }}
                     className="w-full text-left px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 transition-colors border-none bg-transparent cursor-pointer"
                   >
                     {cat.label}
@@ -228,52 +235,76 @@ export const ClientInputsTab: React.FC = () => {
           </div>
         }
       >
-        {eventBlocks.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-sm text-neutral-400">
-            No events added yet
-          </div>
-        ) : (
-          <table className="w-full text-xs">
-            <tbody>
-              {eventBlocks
-                .slice()
-                .sort((a, b) => a.period - b.period)
-                .map(event => (
-                <tr
-                  key={event.id}
-                  className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 cursor-pointer transition-colors"
-                  onClick={() => setEventModalOpen(true)}
-                >
-                  <td className="py-2 px-3 border-r border-neutral-100" style={{ width: 32 }}>
-                    <EventTypeIcon eventType={event.eventType} size={14} className="text-neutral-400" />
-                  </td>
-                  <td className="py-2 px-3 text-xs font-semibold text-neutral-700 border-r border-neutral-100">
-                    {event.label || getEventLabel(event.eventType, event.payload)}
-                  </td>
-                  <td className="py-2 px-3 text-xs text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
-                    {periodToYear(event.period)}
-                  </td>
-                  <td className="py-2 px-1" style={{ width: 28 }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeEvent(event.id) }}
-                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
-                      title="Remove event"
-                    >
-                      <X size={12} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <table className="w-full text-xs">
+          <tbody>
+            {/* Configured events */}
+            {eventBlocks
+              .slice()
+              .sort((a, b) => a.period - b.period)
+              .map(event => (
+              <tr
+                key={event.id}
+                className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 cursor-pointer transition-colors"
+                onClick={() => setEventModalOpen(true)}
+              >
+                <td className="py-2 px-3 border-r border-neutral-100" style={{ width: 32 }}>
+                  <EventTypeIcon eventType={event.eventType} size={14} className="text-neutral-400" />
+                </td>
+                <td className="py-2 px-3 text-xs font-semibold text-neutral-700 border-r border-neutral-100">
+                  {event.label || getEventLabel(event.eventType, event.payload)}
+                </td>
+                <td className="py-2 px-3 text-xs text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
+                  {periodToYear(event.period)}
+                </td>
+                <td className="py-2 px-1" style={{ width: 28 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeEvent(event.id) }}
+                    className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                    title="Remove event"
+                  >
+                    <X size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {/* Default event slots — always visible for types not yet added */}
+            {DEFAULT_EVENT_SLOTS
+              .filter(slot => !eventBlocks.some(e => e.eventType === slot.eventType))
+              .map(slot => {
+                const typeDef = EVENT_TYPES[slot.eventType]
+                return (
+                  <tr
+                    key={slot.eventType}
+                    className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setEventCategory(slot.category)
+                      setEventInitialType(slot.eventType)
+                      setEventModalOpen(true)
+                    }}
+                  >
+                    <td className="py-2 px-3 border-r border-neutral-100" style={{ width: 32 }}>
+                      <EventTypeIcon eventType={slot.eventType} size={14} className="text-neutral-300" />
+                    </td>
+                    <td className="py-2 px-3 text-xs font-medium text-neutral-400 border-r border-neutral-100">
+                      {typeDef.label}
+                    </td>
+                    <td className="py-2 px-3 text-xs text-neutral-300 border-r border-neutral-100 whitespace-nowrap">
+                      Click to configure
+                    </td>
+                    <td className="py-2 px-1" style={{ width: 28 }} />
+                  </tr>
+                )
+              })}
+          </tbody>
+        </table>
       </ChartCard>
 
       {eventModalOpen && (
         <EventConfigModal
           isOpen={eventModalOpen}
-          onClose={() => setEventModalOpen(false)}
+          onClose={() => { setEventModalOpen(false); setEventInitialType(undefined) }}
           category={eventCategory}
+          initialEventType={eventInitialType}
         />
       )}
     </div>

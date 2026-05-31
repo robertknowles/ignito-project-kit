@@ -13,6 +13,7 @@ import {
   UserPlus,
   Percent,
   TrendingDown,
+  Landmark,
   type LucideIcon,
 } from 'lucide-react';
 import type { EventCategory, EventType } from '../contexts/PropertySelectionContext';
@@ -34,6 +35,7 @@ export const EVENT_TYPE_ICONS: Record<EventType, LucideIcon> = {
   // Income events
   salary_change: DollarSign,
   partner_income_change: Users,
+  borrowing_capacity_change: Landmark,
   bonus_windfall: Gift,
   // Portfolio events
   sell_property: Tag,

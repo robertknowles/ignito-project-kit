@@ -280,7 +280,7 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Rent/wk ($)" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
             <KVRow label="Gross yield (%)" value={grossYield} />
             {/* Funding source */}
-            <tr><td colSpan={2} className="pt-3 pb-1 px-3 text-xs font-semibold text-neutral-500 bg-[#F9FAFB] border-t border-neutral-200">Funding source</td></tr>
+            <tr><td colSpan={2} className="py-2 px-3 text-xs font-semibold text-neutral-500 bg-[#F9FAFB] border-t border-l border-r border-neutral-200">Funding source</td></tr>
             <KVRow label="Cash ($)" value={fmtNum(nextProp.fundingBreakdown?.cash ?? 0)} />
             <KVRow label="Savings ($)" value={fmtNum(nextProp.fundingBreakdown?.savings ?? 0)} />
             <KVRow label="Equity release ($)" value={fmtNum(nextProp.fundingBreakdown?.equity ?? 0)} />

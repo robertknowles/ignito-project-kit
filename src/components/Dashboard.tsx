@@ -291,31 +291,36 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* ── Assumptions panel (collapsible) ── */}
+        {/* ── Assumptions modal overlay ── */}
         {assumptionsOpen && (
-          <div className="bg-[#F9FAFB] border border-[#E9EAEB] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-[#181D27]">Assumptions</h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => resetAssumptionsRef.current?.()}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#535862] hover:text-[#414651] transition-colors"
-                >
-                  <RotateCcw size={12} />
-                  Reset to defaults
-                </button>
-                <button
-                  onClick={() => setAssumptionsOpen(false)}
-                  className="w-6 h-6 inline-flex items-center justify-center rounded-md text-[#717680] hover:text-[#414651] hover:bg-[#F2F4F7] transition-colors"
-                >
-                  <XIcon size={14} />
-                </button>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAssumptionsOpen(false)}>
+            <div
+              className="bg-[#F9FAFB] border border-[#E9EAEB] rounded-xl p-5 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-[#181D27]">Assumptions</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => resetAssumptionsRef.current?.()}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#535862] hover:text-[#414651] transition-colors"
+                  >
+                    <RotateCcw size={12} />
+                    Reset to defaults
+                  </button>
+                  <button
+                    onClick={() => setAssumptionsOpen(false)}
+                    className="w-6 h-6 inline-flex items-center justify-center rounded-md text-[#717680] hover:text-[#414651] hover:bg-[#F2F4F7] transition-colors"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                </div>
               </div>
+              <AssumptionsGrid
+                showHeader={false}
+                onResetExposed={(fn) => { resetAssumptionsRef.current = fn; }}
+              />
             </div>
-            <AssumptionsGrid
-              showHeader={false}
-              onResetExposed={(fn) => { resetAssumptionsRef.current = fn; }}
-            />
           </div>
         )}
 
@@ -368,7 +373,9 @@ export const Dashboard = () => {
         {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
           <>
-            <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
+            <ChartCard title="Purchases" flush>
+              <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
+            </ChartCard>
 
             {/* Total Equity chart */}
             <ChartCard

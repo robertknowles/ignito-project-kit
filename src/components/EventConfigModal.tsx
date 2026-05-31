@@ -28,6 +28,7 @@ interface EventConfigModalProps {
   onClose: () => void;
   category: EventCategory;
   editingEvent?: EventBlock | null;
+  initialEventType?: EventType;
 }
 
 // =============================================================================
@@ -266,6 +267,24 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         )}
         
+        {/* Borrowing Capacity Change */}
+        {eventType.id === 'borrowing_capacity_change' && (
+          <div>
+            <label className={labelClass}>New Borrowing Capacity ($)</label>
+            <input
+              type="number"
+              value={payload.newBorrowingCapacity || ''}
+              onChange={(e) => onPayloadChange({ ...payload, newBorrowingCapacity: parseInt(e.target.value) || 0 })}
+              placeholder="e.g., 800000"
+              step="10000"
+              className={inputClass}
+            />
+            <p className="text-[10px] text-gray-500 mt-1">
+              The new total borrowing capacity from this point forward
+            </p>
+          </div>
+        )}
+
         {/* Dependent Change */}
         {eventType.id === 'dependent_change' && (
           <div>
@@ -502,6 +521,7 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
   onClose,
   category,
   editingEvent,
+  initialEventType,
 }) => {
   const { addEvent, updateEvent, eventBlocks, propertyOrder } = usePropertySelection();
   const { timelineProperties } = useAffordabilityCalculator();
@@ -509,30 +529,35 @@ export const EventConfigModal: React.FC<EventConfigModalProps> = ({
   
   // State
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(
-    editingEvent?.eventType || null
+    editingEvent?.eventType || initialEventType || null
   );
   const [payload, setPayload] = useState<EventPayload>(
-    editingEvent?.payload || {}
+    editingEvent?.payload || (initialEventType ? getDefaultPayload(initialEventType) : {})
   );
   const [period, setPeriod] = useState<number>(
     editingEvent?.period || 1
   );
-  
+
   // Reset state when modal opens with a new event
   useEffect(() => {
     if (editingEvent) {
       setSelectedEventType(editingEvent.eventType);
       setPayload(editingEvent.payload);
       setPeriod(editingEvent.period);
+    } else if (initialEventType) {
+      setSelectedEventType(initialEventType);
+      setPayload(getDefaultPayload(initialEventType));
+      const currentYear = new Date().getFullYear();
+      const defaultPeriod = (currentYear - BASE_YEAR) * PERIODS_PER_YEAR + 1;
+      setPeriod(Math.max(1, defaultPeriod));
     } else {
       setSelectedEventType(null);
       setPayload({});
-      // Default to current year H1
       const currentYear = new Date().getFullYear();
       const defaultPeriod = (currentYear - BASE_YEAR) * PERIODS_PER_YEAR + 1;
       setPeriod(Math.max(1, defaultPeriod));
     }
-  }, [editingEvent]);
+  }, [editingEvent, initialEventType]);
   
   // Handle event type selection
   const handleEventTypeSelect = (eventType: EventType) => {

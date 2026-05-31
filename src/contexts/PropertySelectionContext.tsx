@@ -65,21 +65,22 @@ export interface PauseBlock {
 
 export type EventCategory = 'income' | 'portfolio' | 'life' | 'market';
 
-export type EventType = 
+export type EventType =
   // Income events
-  | 'salary_change' 
-  | 'partner_income_change' 
+  | 'salary_change'
+  | 'partner_income_change'
   | 'bonus_windfall'
-  // Portfolio events  
-  | 'sell_property' 
-  | 'refinance' 
+  | 'borrowing_capacity_change'
+  // Portfolio events
+  | 'sell_property'
+  | 'refinance'
   | 'renovate'
   // Life events
-  | 'inheritance' 
-  | 'major_expense' 
+  | 'inheritance'
+  | 'major_expense'
   | 'dependent_change'
   // Market events
-  | 'interest_rate_change' 
+  | 'interest_rate_change'
   | 'market_correction';
 
 export interface EventPayload {
@@ -98,6 +99,9 @@ export interface EventPayload {
   renovationCost?: number;
   valueIncrease?: number;
   
+  // Borrowing capacity events
+  newBorrowingCapacity?: number;
+
   // Life events
   cashAmount?: number;        // For inheritance/expense
   dependentChange?: number;   // +1 or -1

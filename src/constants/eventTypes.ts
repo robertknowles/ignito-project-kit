@@ -112,6 +112,20 @@ export const EVENT_TYPES: Record<EventType, EventTypeDefinition> = {
     optionalFields: ['previousPartnerSalary'],
     isPersistent: true,
   },
+  borrowing_capacity_change: {
+    id: 'borrowing_capacity_change',
+    category: 'income',
+    label: 'Borrowing Capacity Change',
+    shortLabel: 'Borrowing',
+    description: 'Direct change to borrowing capacity',
+    icon: '🏦',
+    effects: [
+      { field: 'Borrowing Capacity', description: 'Updated to new amount', direction: 'variable' },
+    ],
+    requiredFields: ['newBorrowingCapacity'],
+    optionalFields: [],
+    isPersistent: true,
+  },
   bonus_windfall: {
     id: 'bonus_windfall',
     category: 'income',
@@ -316,6 +330,10 @@ export const getEventLabel = (eventType: EventType, payload: EventPayload): stri
         return `Partner Income${direction}`;
       }
       return typeDef.label;
+    case 'borrowing_capacity_change':
+      return payload.newBorrowingCapacity
+        ? `Borrowing: $${payload.newBorrowingCapacity.toLocaleString()}`
+        : typeDef.label;
     case 'bonus_windfall':
       return payload.bonusAmount
         ? `Bonus: +$${payload.bonusAmount.toLocaleString()}`
@@ -419,6 +437,8 @@ export const getDefaultPayload = (eventType: EventType): EventPayload => {
       return { newSalary: 100000 };
     case 'partner_income_change':
       return { newPartnerSalary: 80000 };
+    case 'borrowing_capacity_change':
+      return { newBorrowingCapacity: 800000 };
     case 'bonus_windfall':
       return { bonusAmount: 50000 };
     case 'inheritance':
