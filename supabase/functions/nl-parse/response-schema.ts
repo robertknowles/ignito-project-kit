@@ -260,6 +260,26 @@ export const RESPONSE_TOOL = {
         enum: ["eg-low", "eg-high", "cf-low", "cf-high", "commercial-transition"],
       },
 
+      // Per-field confidence/source tagging (initial_plan)
+      clientProfileSources: {
+        type: "object" as const,
+        description: "Source for each clientProfile field. Values: user | assumed | derived.",
+        additionalProperties: { type: "string" as const, enum: ["user", "assumed", "derived"] },
+      },
+      investmentProfileSources: {
+        type: "object" as const,
+        description: "Source for each investmentProfile field.",
+        additionalProperties: { type: "string" as const, enum: ["user", "assumed", "derived"] },
+      },
+      propertySources: {
+        type: "array" as const,
+        description: "Source map for each property, parallel to properties array.",
+        items: {
+          type: "object" as const,
+          additionalProperties: { type: "string" as const, enum: ["user", "assumed", "derived"] },
+        },
+      },
+
       // Optional arrays
       missingInputs: {
         type: "array" as const,

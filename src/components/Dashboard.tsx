@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
@@ -23,11 +23,13 @@ import { PortfolioTab } from './PortfolioTab';
 import { ClientInputsTab } from './ClientInputsTab';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
+import { ConfirmationBrief } from './ConfirmationBrief';
 import { BASE_YEAR } from '../constants/financialParams';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
 type PlanSubTab = 'purchases' | 'projections';
+type PurchasesView = 'table' | 'blocks';
 interface TabItemProps {
   icon: React.ReactNode;
   label: string;
@@ -127,7 +129,7 @@ export const Dashboard = () => {
   const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
-  const { planGenerating } = useLayout();
+  const { planGenerating, pendingPlanResponse } = useLayout();
   const { propertyOrder: livePropertyOrder } = usePropertySelection();
   const { activeClient } = useClient();
 
@@ -187,6 +189,7 @@ export const Dashboard = () => {
   // Tab state — must be before the early return to satisfy React hooks rules
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
+  const [purchasesView, setPurchasesView] = useState<PurchasesView>('table');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const resetAssumptionsRef = useRef<() => void>(() => {});
@@ -222,6 +225,14 @@ export const Dashboard = () => {
   );
 
   const hasPlan = livePropertyOrder.length > 0 || liveTimelineProperties.length > 0;
+  if (pendingPlanResponse) {
+    return (
+      <div className="h-full w-full relative">
+        <DashboardSkeleton animate />
+        <ConfirmationBrief response={pendingPlanResponse} />
+      </div>
+    );
+  }
   if (!hasPlan) {
     return <DashboardSkeleton animate={planGenerating} />;
   }
@@ -323,6 +334,32 @@ export const Dashboard = () => {
               active={planSubTab === 'projections'}
               onClick={() => setPlanSubTab('projections')}
             />
+            {planSubTab === 'purchases' && (
+              <div className="ml-auto flex items-center rounded-lg border border-neutral-200 overflow-hidden">
+                <button
+                  onClick={() => setPurchasesView('table')}
+                  title="Table view"
+                  className={`flex items-center justify-center w-8 h-7 transition-colors ${
+                    purchasesView === 'table'
+                      ? 'bg-white text-neutral-800 shadow-sm'
+                      : 'bg-neutral-50 text-neutral-400 hover:text-neutral-600'
+                  }`}
+                >
+                  <TableIcon size={14} />
+                </button>
+                <button
+                  onClick={() => setPurchasesView('blocks')}
+                  title="Card view"
+                  className={`flex items-center justify-center w-8 h-7 border-l border-neutral-200 transition-colors ${
+                    purchasesView === 'blocks'
+                      ? 'bg-white text-neutral-800 shadow-sm'
+                      : 'bg-neutral-50 text-neutral-400 hover:text-neutral-600'
+                  }`}
+                >
+                  <LayoutGridIcon size={14} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -331,7 +368,7 @@ export const Dashboard = () => {
         {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
           <>
-            <PropertyCardRow mode="blocks" onAddClick={() => setIsLibraryOpen(true)} />
+            <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
 
             {/* Total Equity chart */}
             <ChartCard

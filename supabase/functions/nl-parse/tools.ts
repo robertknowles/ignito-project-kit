@@ -108,8 +108,26 @@ export const CREATE_PLAN_TOOL = {
         type: 'array' as const,
         items: { type: 'string' as const },
       },
+      clientProfileSources: {
+        type: 'object' as const,
+        description: 'Source for each clientProfile field. Keys match clientProfile field names. Values: "user" (extracted from input), "assumed" (defaulted/inferred), "derived" (calculated).',
+        additionalProperties: { type: 'string' as const, enum: ['user', 'assumed', 'derived'] },
+      },
+      investmentProfileSources: {
+        type: 'object' as const,
+        description: 'Source for each investmentProfile field. Keys match investmentProfile field names.',
+        additionalProperties: { type: 'string' as const, enum: ['user', 'assumed', 'derived'] },
+      },
+      propertySources: {
+        type: 'array' as const,
+        description: 'Source map for each property, parallel to the properties array.',
+        items: {
+          type: 'object' as const,
+          additionalProperties: { type: 'string' as const, enum: ['user', 'assumed', 'derived'] },
+        },
+      },
     },
-    required: ['clientProfile', 'investmentProfile', 'properties', 'strategyPreset', 'assumptions'],
+    required: ['clientProfile', 'investmentProfile', 'properties', 'strategyPreset', 'assumptions', 'clientProfileSources', 'investmentProfileSources', 'propertySources'],
   },
 } as const;
 

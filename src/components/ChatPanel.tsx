@@ -43,7 +43,7 @@ export const ChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer } = useLayout()
+  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer, setPendingPlanResponse, confirmPlanHandler, pendingPlanResponse } = useLayout()
   const [minimized, setMinimized] = useState(true)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -276,18 +276,13 @@ export const ChatPanel: React.FC = () => {
     }
   }, [profile, propertyOrder, instances, chartData])
 
-  // Handle plan generation — wire NL response into contexts
+  // Handle plan generation — store response for confirmation screen
   const handlePlanGenerated = useCallback(
     (response: NLParseResponse) => {
-      // Store client names
+      // Store client names immediately (needed for display)
       if (response.clientProfile?.members) {
         clientNamesRef.current = response.clientProfile.members.map((m) => m.name)
 
-        // If the active client still has the placeholder name from Home
-        // (Untitled Client) and the AI extracted real names from the prompt,
-        // update the client record so the selector / sidebar / breadcrumb
-        // stop saying "Untitled Client". Only fires for placeholder names so
-        // we don't overwrite a name the BA explicitly set elsewhere.
         const extracted = response.clientProfile.members
           .map((m) => m.name)
           .filter((n) => n && !/^client \d+$/i.test(n))
@@ -301,14 +296,20 @@ export const ChatPanel: React.FC = () => {
         }
       }
 
-      // Map to investment profile and update context
+      // Show confirmation screen instead of hydrating immediately
+      setPendingPlanResponse(response)
+    },
+    [activeClient, updateClient, setPendingPlanResponse]
+  )
+
+  // Confirm plan — hydrate contexts from the (possibly edited) response
+  const confirmPlan = useCallback(
+    (response: NLParseResponse) => {
       const profileUpdates = mapToInvestmentProfile(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
       }
 
-      // Map to property selections/instances and update contexts
-      // Apply LVR strategy override: prudent_80 → 80, custom → profile value, client_comfort → undefined (use AI's proposed LVR)
       const lvrOverride = profile.lvrStrategy === 'prudent_80' ? 80
         : profile.lvrStrategy === 'custom' ? (profile.lvrStrategyCustomPercent ?? 80)
         : undefined;
@@ -319,7 +320,6 @@ export const ChatPanel: React.FC = () => {
         setInstances(newInstances)
       }
 
-      // Map existing portfolio properties (AI-extracted from conversation)
       const existingProps = mapToExistingProperties(response)
       if (existingProps) {
         setExistingProperties(existingProps)
@@ -329,11 +329,17 @@ export const ChatPanel: React.FC = () => {
         updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
       }
 
-      // Force a save right after the plan lands.
+      setPendingPlanResponse(null)
       flushSaveAfterStateUpdate()
     },
-    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, activeClient, updateClient]
+    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent]
   )
+
+  // Expose confirmPlan to the confirmation screen via LayoutContext ref
+  React.useEffect(() => {
+    confirmPlanHandler.current = confirmPlan
+    return () => { confirmPlanHandler.current = null }
+  }, [confirmPlan, confirmPlanHandler])
 
   // Handle modifications — supports single modification or compound modifications array
   const handleModification = useCallback(
@@ -665,8 +671,10 @@ export const ChatPanel: React.FC = () => {
         clearMessages()
         loadedRef.current = false
       }
+      // Clear any pending confirmation from a previous client
+      setPendingPlanResponse(null)
     }
-  }, [activeClient?.id, clearMessages])
+  }, [activeClient?.id, clearMessages, setPendingPlanResponse])
 
   // Detected SYNCHRONOUSLY at component init (not in an effect) so that the
   // saved-chat-load effect below can suppress its first run and avoid a flash
@@ -1018,8 +1026,8 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <>
-      {/* Messenger-style chat widget — draggable & resizable */}
-      {chatPos && (
+      {/* Messenger-style chat widget — hidden during confirmation brief */}
+      {chatPos && !pendingPlanResponse && (
       <div
         className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60 overflow-hidden"
         style={{

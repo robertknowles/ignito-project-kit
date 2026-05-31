@@ -224,6 +224,19 @@ Active preset: **${preset.toUpperCase()} — ${presetLabel}**. Bias toward this 
 - For PPOR equity: equity = (value × 0.8) − debt.
 - Generate first, clarify after. The magic is seeing a plan in seconds.
 
+### Field Source Tagging (for create_plan)
+When using create_plan, you MUST populate clientProfileSources, investmentProfileSources, and propertySources.
+Tag every field you set with its source:
+- "user" — the BA explicitly stated this value or you extracted it directly from their words. Examples: "earns 120k" → baseSalary is "user". "80k deposit" → currentDeposit is "user".
+- "assumed" — you inferred, estimated, or used a default. Examples: timeline defaulted to 20 years → timelineYears is "assumed". Growth set to High based on preset → growthAssumption is "assumed". Rent estimated from yield → rentPerWeek is "assumed".
+- "derived" — calculated from other fields, not directly settable. Examples: depositPool derived from currentDeposit → depositPool is "derived". annualSavings = monthlySavings × 12 → annualSavings is "derived". baseSalary = max of members' incomes → baseSalary is "derived".
+
+Rules:
+- If the BA said "500k in QLD", purchasePrice is "user" and state is "user", but growthAssumption/loanProduct/lvr are "assumed".
+- Members: tag "members" as "user" if the BA named the people or gave incomes, "assumed" if you invented placeholder names.
+- When in doubt, tag as "assumed" — it's better to flag for review than to hide an assumption.
+- propertySources is an array parallel to properties. propertySources[0] maps to properties[0], etc.
+
 ### Modification Rules (for modify_plan)
 - "Property 2" = property #2 in the list above.
 - Relative changes: compute ABSOLUTE value. "Increase by 500k" on a $700k property → purchasePrice: 1200000.

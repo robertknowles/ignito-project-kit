@@ -174,6 +174,9 @@ Deno.serve(async (req: Request) => {
         parsedResponse.properties = data.properties;
         parsedResponse.strategyPreset = data.strategyPreset;
         parsedResponse.missingInputs = data.missingInputs || [];
+        parsedResponse.clientProfileSources = data.clientProfileSources || {};
+        parsedResponse.investmentProfileSources = data.investmentProfileSources || {};
+        parsedResponse.propertySources = data.propertySources || [];
 
         // Template the message (code writes it, not AI)
         parsedResponse.message = buildCreatePlanMessage(data as any);

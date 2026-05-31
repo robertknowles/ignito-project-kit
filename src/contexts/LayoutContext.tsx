@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode, MutableRefObject } from 'react';
+import type { NLParseResponse } from '@/types/nlParse';
 
 export interface HighlightPeriod {
   startYear: number;
   endYear: number;
 }
 
-export type DashboardTab = 'plan' | 'brief' | 'portfolio';
+export type DashboardTab = 'plan' | 'brief' | 'portfolio' | 'inputs';
 
 interface LayoutContextType {
   drawerOpen: boolean;
@@ -19,6 +20,9 @@ interface LayoutContextType {
   setChatPanelWidth: (width: number) => void;
   dashboardTab: DashboardTab;
   setDashboardTab: (tab: DashboardTab) => void;
+  pendingPlanResponse: NLParseResponse | null;
+  setPendingPlanResponse: (response: NLParseResponse | null) => void;
+  confirmPlanHandler: MutableRefObject<((r: NLParseResponse) => void) | null>;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -32,6 +36,8 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [planGenerating, setPlanGenerating] = useState(false);
   const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('plan');
+  const [pendingPlanResponse, setPendingPlanResponse] = useState<NLParseResponse | null>(null);
+  const confirmPlanHandler = useRef<((r: NLParseResponse) => void) | null>(null);
   const DEFAULT_CHAT_WIDTH = 360;
   const [chatPanelWidth, setChatPanelWidthState] = useState<number>(() => {
     const saved = localStorage.getItem('proppath-chat-width');
@@ -57,7 +63,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler }}>
       {children}
     </LayoutContext.Provider>
   );

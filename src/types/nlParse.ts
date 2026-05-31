@@ -6,6 +6,11 @@
  * calculations happen client-side in the existing engine.
  */
 
+// ── Field confidence / source tagging ─────────────────────────────
+
+export type FieldSource = 'user' | 'assumed' | 'derived';
+export type FieldSourceMap = Record<string, FieldSource>;
+
 // ── Edge Function Request ──────────────────────────────────────────
 
 export interface NLParseRequest {
@@ -205,6 +210,10 @@ export interface NLParseResponse {
   /** Strategy preset selected (or confirmed) by the chatbot. Drives cell selection. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
 
+  // Per-field confidence/source tagging (initial_plan only)
+  clientProfileSources?: FieldSourceMap;
+  investmentProfileSources?: FieldSourceMap;
+  propertySources?: FieldSourceMap[];
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────
