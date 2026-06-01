@@ -294,25 +294,27 @@ export const AgentHome: React.FC = () => {
               />
               <div className="flex items-end justify-between gap-3 px-3 pb-3 pt-1">
                 <StrategyPresetSelector variant="inline-chips" />
-                <button
-                  className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white border border-gray-200 hover:bg-gray-50"
-                  aria-label="Attach file"
-                >
-                  <PaperclipIcon size={15} className="text-[#9CA3AF]" />
-                </button>
-                <button
-                  onClick={handleSendClick}
-                  disabled={!isActive || submitting}
-                  className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white border border-gray-200 hover:bg-gray-50"
-                  style={{ opacity: !isActive && !submitting ? 0.4 : 1 }}
-                  aria-label="Generate plan"
-                >
-                  {submitting ? (
-                    <Loader2Icon size={15} className="animate-spin" style={{ color: primaryColor }} />
-                  ) : (
-                    <SendIcon size={15} style={{ color: isActive ? primaryColor : '#9CA3AF' }} />
-                  )}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white border border-gray-200 hover:bg-gray-50"
+                    aria-label="Attach file"
+                  >
+                    <PaperclipIcon size={15} className="text-[#9CA3AF]" />
+                  </button>
+                  <button
+                    onClick={handleSendClick}
+                    disabled={!isActive || submitting}
+                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed bg-white border border-gray-200 hover:bg-gray-50"
+                    style={{ opacity: !isActive && !submitting ? 0.4 : 1 }}
+                    aria-label="Generate plan"
+                  >
+                    {submitting ? (
+                      <Loader2Icon size={15} className="animate-spin" style={{ color: primaryColor }} />
+                    ) : (
+                      <SendIcon size={15} style={{ color: isActive ? primaryColor : '#9CA3AF' }} />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </section>
