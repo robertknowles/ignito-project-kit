@@ -257,6 +257,7 @@ export const CompanyManagement = () => {
                         </thead>
                         <tbody>
                           {teamMembers.map((member) => {
+                            const displayName = member.full_name || member.email || 'Team Member';
                             const initials = member.full_name
                               ? member.full_name
                                   .split(' ')
@@ -264,7 +265,7 @@ export const CompanyManagement = () => {
                                   .join('')
                                   .toUpperCase()
                                   .slice(0, 2)
-                              : 'U';
+                              : (member.email ? member.email[0].toUpperCase() : 'T');
 
                             return (
                               <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors last:border-b-0">
@@ -275,9 +276,9 @@ export const CompanyManagement = () => {
                                     </div>
                                     <div>
                                       <div className="body-dark font-medium">
-                                        {member.full_name || 'Unnamed User'}
+                                        {displayName}
                                       </div>
-                                      {member.email && (
+                                      {member.full_name && member.email && (
                                         <div className="meta">{member.email}</div>
                                       )}
                                     </div>

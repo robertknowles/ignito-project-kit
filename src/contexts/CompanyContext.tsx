@@ -95,27 +95,21 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       setCompany(companyData as Company);
 
-      // Fetch team members (profiles with matching company_id)
-      // Only owners can see all team members
-      if (role === 'owner') {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, role, created_at')
-          .eq('company_id', companyId)
-          .not('role', 'is', null);
+      // Fetch team members via RPC (joins profiles with auth.users for email)
+      if (role === 'owner' || role === 'agent') {
+        const { data: membersData, error: membersError } = await supabase
+          .rpc('get_team_members', { p_company_id: companyId });
 
-        if (profilesError) {
+        if (membersError) {
           // Don't treat this as a fatal error - permissions issue or user may not have access yet
         } else {
-          // Filter to only include owner, agent, and other roles
-          const members: TeamMember[] = (profilesData || [])
-            .filter((profile) => ['owner', 'agent', 'other'].includes(profile.role as string))
-            .map((profile) => ({
-              id: profile.id,
-              full_name: profile.full_name,
-              role: profile.role as 'owner' | 'agent' | 'other',
-              created_at: profile.created_at,
-            }));
+          const members: TeamMember[] = (membersData || []).map((m: any) => ({
+            id: m.id,
+            full_name: m.full_name,
+            email: m.email,
+            role: m.role as 'owner' | 'agent' | 'other',
+            created_at: m.created_at,
+          }));
 
           setTeamMembers(members);
         }
