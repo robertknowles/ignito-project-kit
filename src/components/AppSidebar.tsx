@@ -125,24 +125,17 @@ export const AppSidebar: React.FC = () => {
           onClick={() => navigate('/home')}
           className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none p-0"
         >
-          {branding.logoUrl ? (
-            <img
-              src={branding.logoUrl}
-              alt={branding.companyName}
-              className="h-7 w-auto object-contain"
-            />
-          ) : (
-            <>
-              <img
-                src="/images/proppath-icon.png"
-                alt="PropPath"
-                className="w-7 h-7 rounded-md object-contain"
-              />
-              <span className="text-[14px] font-bold text-neutral-900 tracking-tight">
-                {branding.companyName || 'PropPath'}
-              </span>
-            </>
-          )}
+          <img
+            src={branding.logoUrl || '/images/proppath-icon.png'}
+            alt={branding.companyName || 'PropPath'}
+            className="h-7 w-auto max-w-[28px] rounded-md object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/images/proppath-icon.png';
+            }}
+          />
+          <span className="text-[14px] font-bold text-neutral-900 tracking-tight">
+            {branding.companyName || 'PropPath'}
+          </span>
         </button>
       </div>
 
