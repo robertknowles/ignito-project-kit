@@ -311,7 +311,7 @@ export const SUGGEST_PROPERTIES_TOOL = {
 
 export const RESPOND_TOOL = {
   name: 'respond',
-  description: `Have a conversation — answer questions, clarify ambiguity, acknowledge input, explain plan data. This is the DEFAULT when no plan action is needed. Use for: greetings, follow-up questions, "what if" hypotheticals, clarification requests, acknowledgments, or any message that doesn't require changing data.`,
+  description: `Have a conversation — answer questions, clarify ambiguity, acknowledge input, explain plan data. This is the DEFAULT when no plan action is needed. Use for: greetings, follow-up questions, "what if" hypotheticals, clarification requests, acknowledgments, or any message that doesn't require changing data. IMPORTANT: Always give a substantive answer. For hypotheticals ("what if rates go up"), give a directional estimate using the plan data — never deflect with "that's a hypothetical" or "the engine handles that." The BA asked a question; answer it.`,
   input_schema: {
     type: 'object' as const,
     properties: {
