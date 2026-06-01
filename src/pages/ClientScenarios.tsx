@@ -303,13 +303,9 @@ export const ClientScenarios = () => {
 
   // Format relative time for "Last Active" column
   const formatRelativeTime = (client: Client) => {
-    const dateStr = client.last_active_at;
-    const status = clientStatuses[client.id];
-    const portalStatus = client.portal_status || 'not_invited';
-
-    if (portalStatus === 'not_invited') return 'Invite not sent';
-    if (portalStatus === 'invited' && !status?.clientHasLoggedIn) return 'Portal not used';
-    if (!dateStr) return 'Never';
+    // Use last_active_at, or fall back to updated_at / created_at
+    const dateStr = client.last_active_at || client.updated_at || client.created_at;
+    if (!dateStr) return '—';
 
     const date = new Date(dateStr);
     const now = new Date();
@@ -1071,9 +1067,7 @@ toast.error('Failed to create client invite');
                       <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
                         <th className="table-header">Client</th>
                         <th className="table-header">Dashboard</th>
-                        <th className="table-header">Review</th>
                         <th className="table-header">Client Details</th>
-                        <th className="table-header">Portal</th>
                         <th className="table-header">Last Active</th>
                         <th className="table-header">Last Action</th>
                         <th className="table-header w-12"></th>
@@ -1082,7 +1076,7 @@ toast.error('Failed to create client invite');
                     <tbody>
                       {filteredClients.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-6 py-12 text-center">
+                          <td colSpan={6} className="px-6 py-12 text-center">
                             <div className="body-secondary">
                               {searchQuery ? 'No clients match your search' : 'No clients in this category'}
                             </div>
@@ -1105,7 +1099,6 @@ toast.error('Failed to create client invite');
                         const hasClientUser = !!status?.clientUserId;
                         const hasLoggedIn = status?.clientHasLoggedIn || false;
                         const isFirstRow = clientIndex === 0;
-                        const reviewInfo = formatReviewDate(client.next_review_date);
                         const fs = formStatuses[client.id];
 
                         // Strategy type display
@@ -1148,8 +1141,8 @@ toast.error('Failed to create client invite');
                                 const cs = clientStatuses[client.id]
                                 if (cs?.shareId) {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-[#717680]" />
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-1 rounded-full">
+                                      <CheckCircle2 size={11} className="text-[#17B26A]" />
                                       Sent to client
                                     </span>
                                   )
@@ -1177,22 +1170,6 @@ toast.error('Failed to create client invite');
                               })()}
                             </td>
 
-                            {/* Review */}
-                            <td className="table-cell">
-                              <div>
-                                <span className={`text-sm font-medium ${reviewInfo.color}`}>
-                                  {reviewInfo.text}
-                                </span>
-                                {reviewInfo.badge && (
-                                  <div className="mt-0.5">
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${reviewInfo.badgeColor}`}>
-                                      {reviewInfo.badge}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-
                             {/* Client Details */}
                             <td className="table-cell">
                               {(() => {
@@ -1203,8 +1180,8 @@ toast.error('Failed to create client invite');
                                 if (currentStatus === 'completed') {
                                   return (
                                     <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
-                                        <CheckCircle2 size={11} className="text-[#717680]" />
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-0.5 rounded-full">
+                                        <CheckCircle2 size={11} className="text-[#17B26A]" />
                                         Completed
                                       </span>
                                       <button
@@ -1215,15 +1192,15 @@ toast.error('Failed to create client invite');
                                       </button>
                                     </div>
                                   )
-                                } else if (currentStatus === 'awaiting') {
+                                } else if (currentStatus === 'sent' || currentStatus === 'awaiting' || currentStatus === 'not_opened') {
                                   return (
                                     <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#A4A7AE]" />
-                                        Awaiting
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-0.5 rounded-full">
+                                        <CheckCircle2 size={11} className="text-[#17B26A]" />
+                                        Sent
                                       </span>
                                       <button
-                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
+                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
                                         className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
                                       >
                                         Resend
@@ -1243,7 +1220,7 @@ toast.error('Failed to create client invite');
                                         Not sent
                                       </span>
                                       <button
-                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormOpen(true); }}
+                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
                                         className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"
                                       >
                                         Update
@@ -1258,22 +1235,6 @@ toast.error('Failed to create client invite');
                                   )
                                 }
                               })()}
-                            </td>
-
-                            {/* Portal Status */}
-                            <td className="table-cell">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                  (client.portal_status || 'not_invited') === 'active' ? 'bg-[#535862]' :
-                                  (client.portal_status || 'not_invited') === 'invited' ? 'bg-[#A4A7AE]' :
-                                  'bg-[#D5D7DA]'
-                                }`} />
-                                <span className="text-sm text-[#414651]">
-                                  {(client.portal_status || 'not_invited') === 'active' ? 'Active' :
-                                   (client.portal_status || 'not_invited') === 'invited' ? 'Invited' :
-                                   'Not invited'}
-                                </span>
-                              </div>
                             </td>
 
                             {/* Last Active */}
@@ -1305,9 +1266,6 @@ toast.error('Failed to create client invite');
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-44">
-                                  <DropdownMenuItem onClick={() => handleOpenProfile(client)}>
-                                    Edit / view details
-                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleRenameClick(client)}>
                                     Rename
                                   </DropdownMenuItem>

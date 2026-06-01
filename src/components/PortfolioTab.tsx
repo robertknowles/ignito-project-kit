@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react'
-import { Plus, X, Home } from 'lucide-react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { Plus, X, Home, CalendarDays } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -127,6 +127,89 @@ const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
   <span className="text-xs text-neutral-600">{text}</span>
 )
 
+// ── Sale year toggle ────────────────────────────────────────────────────────
+
+const SaleYearTogglePortfolio: React.FC<{
+  value: number | null | undefined
+  onChange: (v: number | null) => void
+}> = ({ value, onChange }) => {
+  const isOn = !!value && value > 0
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleToggle = () => {
+    if (isOn) {
+      onChange(null)
+      setOpen(false)
+    } else {
+      setDraft(String(new Date().getFullYear() + 10))
+      setOpen(true)
+    }
+  }
+
+  const handleConfirm = () => {
+    const n = parseInt(draft, 10)
+    if (!isNaN(n) && n > 2000) {
+      onChange(n)
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`relative w-7 h-4 rounded-full transition-colors ${isOn ? 'bg-violet-500' : 'bg-neutral-200'}`}
+        style={{ flexShrink: 0 }}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${isOn ? 'translate-x-3' : ''}`}
+        />
+      </button>
+      {isOn && (
+        <button
+          type="button"
+          onClick={() => { setDraft(String(value)); setOpen(true) }}
+          className="text-xs text-violet-600 font-medium hover:text-violet-700 transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          {value}
+        </button>
+      )}
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ minWidth: 140 }}>
+          <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
+          <input
+            type="number"
+            autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false) }}
+            className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            placeholder="Year"
+          />
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
+          >
+            Set
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Column definitions ──────────────────────────────────────────────────────
 
 interface Column {
@@ -143,6 +226,14 @@ const COLUMNS: Column[] = [
   {
     key: 'year', header: 'Year',
     render: (p, onChange) => <NumCell value={p.boughtYear} onChange={v => onChange(p.id, { boughtYear: v })} />,
+  },
+  {
+    key: 'growth', header: 'Growth',
+    render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
+  },
+  {
+    key: 'entity', header: 'Entity',
+    render: (p, onChange) => <SelectCell value={p.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(p.id, { entity: v as any })} />,
   },
   {
     key: 'state', header: 'State',
@@ -215,16 +306,8 @@ const COLUMNS: Column[] = [
     render: (p, onChange) => <NumCell value={p.legals} onChange={v => onChange(p.id, { legals: v })} />,
   },
   {
-    key: 'growth', header: 'Growth',
-    render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
-  },
-  {
-    key: 'entity', header: 'Entity',
-    render: (p, onChange) => <SelectCell value={p.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(p.id, { entity: v as any })} />,
-  },
-  {
-    key: 'saleYear', header: 'Sale Yr',
-    render: (p, onChange) => <NumCell value={p.saleYear ?? 0} onChange={v => onChange(p.id, { saleYear: v || null })} />,
+    key: 'saleYear', header: 'Sell',
+    render: (p, onChange) => <SaleYearTogglePortfolio value={p.saleYear} onChange={v => onChange(p.id, { saleYear: v })} />,
   },
   {
     key: 'allowEquityRelease', header: 'Refi',

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Lock, Check, ChevronDown, Minus, Plus, X, Copy } from 'lucide-react';
+import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
 import type { NLParseResponse, FieldSource, FieldSourceMap } from '@/types/nlParse';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
@@ -195,6 +195,91 @@ const Dropdown: React.FC<{
   );
 };
 
+// ── Sale year toggle (brief blocks) ─────────────────────────────────────────
+
+const BriefSaleYearToggle: React.FC<{
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+}> = ({ value, onChange }) => {
+  const isOn = !!value && value > 0;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleToggle = () => {
+    if (isOn) {
+      onChange(null);
+      setOpen(false);
+    } else {
+      setDraft(String(new Date().getFullYear() + 10));
+      setOpen(true);
+    }
+  };
+
+  const handleConfirm = () => {
+    const n = parseInt(draft, 10);
+    if (!isNaN(n) && n > 2000) {
+      onChange(n);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative flex items-center gap-1.5" style={{ height: 30 }}>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`relative w-7 h-4 rounded-full transition-colors ${isOn ? 'bg-violet-500' : 'bg-neutral-200'}`}
+        style={{ flexShrink: 0 }}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${isOn ? 'translate-x-3' : ''}`}
+        />
+      </button>
+      {isOn && (
+        <button
+          type="button"
+          onClick={() => { setDraft(String(value)); setOpen(true); }}
+          style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: '#7C3AED' }}
+          className="hover:opacity-80 transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          {value}
+        </button>
+      )}
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ border: `1px solid ${UUI.neutral200}`, minWidth: 140 }}>
+          <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
+          <input
+            type="number"
+            autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false); }}
+            style={{ fontFamily: UUI.font, fontSize: 12, width: 64 }}
+            className="border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            placeholder="Year"
+          />
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
+          >
+            Set
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Client card field row ────────────────────────────────────────────────────
 
 const ClientRow: React.FC<{
@@ -277,6 +362,18 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
       </div>
 
+      {/* Growth + Entity side by side */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          {fieldLabel('Growth', 'growthAssumption')}
+          <Segmented options={[{ value: 'Low', label: 'Low' }, { value: 'Medium', label: 'Med' }, { value: 'High', label: 'High' }]} value={property.growthAssumption} onChange={v => onFieldChange('growthAssumption', v)} />
+        </div>
+        <div>
+          {fieldLabel('Entity', 'entity')}
+          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={v => onFieldChange('entity', v)} />
+        </div>
+      </div>
+
       {/* State + Year side by side */}
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -295,22 +392,16 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         <div>{fieldLabel('Rent / wk ($)', 'rentPerWeek')}{borderedInput(fmtNum(property.rentPerWeek ?? 0), 'rentPerWeek')}</div>
       </div>
 
-      {/* Entity + Loan side by side */}
+      {/* Loan + Sell side by side */}
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          {fieldLabel('Entity', 'entity')}
-          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={v => onFieldChange('entity', v)} />
-        </div>
         <div>
           {fieldLabel('Loan', 'loanProduct')}
           <Segmented options={[{ value: 'IO', label: 'IO' }, { value: 'PI', label: 'P&I' }]} value={property.loanProduct} onChange={v => onFieldChange('loanProduct', v)} />
         </div>
-      </div>
-
-      {/* Growth */}
-      <div>
-        {fieldLabel('Growth', 'growthAssumption')}
-        <Segmented options={[{ value: 'Low', label: 'Low' }, { value: 'Medium', label: 'Medium' }, { value: 'High', label: 'High' }]} value={property.growthAssumption} onChange={v => onFieldChange('growthAssumption', v)} />
+        <div>
+          <div style={{ fontFamily: UUI.font, fontSize: 10, color: UUI.neutral400, marginBottom: 4 }} className="flex items-center">Sell</div>
+          <BriefSaleYearToggle value={(property as any).saleYear} onChange={v => onFieldChange('saleYear', v)} />
+        </div>
       </div>
     </div>
   );
@@ -374,15 +465,27 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
         </div>
       </div>
 
-      {/* State + Bought year */}
+      {/* Entity + State side by side */}
       <div className="grid grid-cols-2 gap-2">
+        <div>
+          {fieldLabel('Entity')}
+          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={() => {}} />
+        </div>
         <div>
           {fieldLabel('State')}
           <Dropdown value={property.state} options={STATE_OPTIONS.map(s => ({ value: s, label: s }))} onChange={v => onFieldChange('state', v)} />
         </div>
+      </div>
+
+      {/* Bought year + Loan type */}
+      <div className="grid grid-cols-2 gap-2">
         <div>
           {fieldLabel('Bought year')}
           <YearStepper value={boughtYear} onChange={v => onFieldChange('boughtYear', v)} />
+        </div>
+        <div>
+          {fieldLabel('Loan type')}
+          <Segmented options={[{ value: 'IO', label: 'IO' }, { value: 'PI', label: 'P&I' }]} value={property.loanType ?? 'IO'} onChange={v => onFieldChange('loanType', v)} />
         </div>
       </div>
 
@@ -392,19 +495,7 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
         <div>{fieldLabel('Rent / wk ($)')}{borderedInput(fmtNum(property.rentPerWeek ?? 0), 'rentPerWeek')}</div>
       </div>
 
-      {/* Entity + Loan */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          {fieldLabel('Entity')}
-          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={() => {}} />
-        </div>
-        <div>
-          {fieldLabel('Loan type')}
-          <Segmented options={[{ value: 'IO', label: 'IO' }, { value: 'PI', label: 'P&I' }]} value={property.loanType ?? 'IO'} onChange={v => onFieldChange('loanType', v)} />
-        </div>
-      </div>
-
-      {/* Current value + Loan balance (replaces Growth) */}
+      {/* Current value + Loan balance */}
       <div className="grid grid-cols-2 gap-2">
         <div>{fieldLabel('Current value ($)')}{borderedInput(fmtNum(property.currentValue), 'currentValue')}</div>
         <div>{fieldLabel('Loan balance ($)')}{borderedInput(fmtNum(property.loan), 'loan')}</div>

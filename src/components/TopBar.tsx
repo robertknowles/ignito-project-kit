@@ -105,10 +105,18 @@ export const TopBar = () => {
         }
       }
 
+      // Update client portal_status to 'invited' so the clients page shows "Sent to client"
+      if (activeClient) {
+        await supabase
+          .from('clients')
+          .update({ portal_status: 'invited', last_active_at: new Date().toISOString() })
+          .eq('id', activeClient.id)
+      }
+
       // Open the client report in a new tab with the share_id
       const reportUrl = `${window.location.origin}/client-view?share_id=${shareId}`
       window.open(reportUrl, '_blank')
-      
+
       toast({
         title: 'Opening Report',
         description: 'Client report opened in new tab',
@@ -193,6 +201,12 @@ export const TopBar = () => {
           shareId = refreshed?.share_id
         }
       }
+
+      // Update client portal_status so clients page reflects the share
+      await supabase
+        .from('clients')
+        .update({ portal_status: 'invited', last_active_at: new Date().toISOString() })
+        .eq('id', activeClient.id)
 
       // Check if client already has a user account
       if (scenario?.client_user_id) {

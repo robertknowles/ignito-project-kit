@@ -6,8 +6,8 @@
  *   cashflow → income, expenses, purchase costs columns
  */
 
-import React, { useMemo, useState } from 'react';
-import { X, Plus, Landmark } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { X, Plus, Landmark, CalendarDays } from 'lucide-react';
 import { ChartCard } from './ui/ChartCard';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
@@ -138,6 +138,89 @@ const CheckboxInput: React.FC<{
   />
 );
 
+// ── Sale year toggle ────────────────────────────────────────────────────────
+
+const SaleYearToggle: React.FC<{
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+}> = ({ value, onChange }) => {
+  const isOn = !!value && value > 0;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleToggle = () => {
+    if (isOn) {
+      onChange(null);
+      setOpen(false);
+    } else {
+      setDraft(String(new Date().getFullYear() + 10));
+      setOpen(true);
+    }
+  };
+
+  const handleConfirm = () => {
+    const n = parseInt(draft, 10);
+    if (!isNaN(n) && n > 2000) {
+      onChange(n);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`relative w-7 h-4 rounded-full transition-colors ${isOn ? 'bg-violet-500' : 'bg-neutral-200'}`}
+        style={{ flexShrink: 0 }}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${isOn ? 'translate-x-3' : ''}`}
+        />
+      </button>
+      {isOn && (
+        <button
+          type="button"
+          onClick={() => { setDraft(String(value)); setOpen(true); }}
+          className="text-xs text-violet-600 font-medium hover:text-violet-700 transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          {value}
+        </button>
+      )}
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ minWidth: 140 }}>
+          <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
+          <input
+            type="number"
+            autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false); }}
+            className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            placeholder="Year"
+          />
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
+          >
+            Set
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Column definitions ───────────────────────────────────────────────────────
 
 interface CardData {
@@ -172,15 +255,21 @@ const yearCell: RenderFn = (card) =>
 const EQUITY_COLUMNS: Column[] = [
   { key: 'year', header: 'Year', render: yearCell },
   {
-    key: 'state', header: 'State',
-    render: (c, onChange) => c.instanceData
-      ? <SelectInput value={c.instanceData.state} options={STATE_OPTIONS} onChange={v => onChange(c.instanceId, 'state', v)} />
-      : null,
-  },
-  {
     key: 'growth', header: 'Growth',
     render: (c, onChange) => c.instanceData
       ? <SelectInput value={c.instanceData.growthAssumption} options={GROWTH_OPTIONS} onChange={v => onChange(c.instanceId, 'growthAssumption', v)} />
+      : null,
+  },
+  {
+    key: 'entity', header: 'Entity',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
+      : null,
+  },
+  {
+    key: 'state', header: 'State',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.state} options={STATE_OPTIONS} onChange={v => onChange(c.instanceId, 'state', v)} />
       : null,
   },
   {
@@ -352,15 +441,21 @@ const PURCHASES_COLUMNS: Column[] = [
   // ── Identity ──
   { key: 'year', header: 'Year', render: yearCell },
   {
-    key: 'state', header: 'State',
-    render: (c, onChange) => c.instanceData
-      ? <SelectInput value={c.instanceData.state} options={STATE_OPTIONS} onChange={v => onChange(c.instanceId, 'state', v)} />
-      : null,
-  },
-  {
     key: 'growth', header: 'Growth',
     render: (c, onChange) => c.instanceData
       ? <SelectInput value={c.instanceData.growthAssumption} options={GROWTH_OPTIONS} onChange={v => onChange(c.instanceId, 'growthAssumption', v)} />
+      : null,
+  },
+  {
+    key: 'entity', header: 'Entity',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
+      : null,
+  },
+  {
+    key: 'state', header: 'State',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.state} options={STATE_OPTIONS} onChange={v => onChange(c.instanceId, 'state', v)} />
       : null,
   },
   // ── Financing ──
@@ -430,17 +525,11 @@ const PURCHASES_COLUMNS: Column[] = [
       return readonlyCell(total.toLocaleString());
     },
   },
-  // ── Entity & Sale ──
+  // ── Sale ──
   {
-    key: 'entity', header: 'Entity',
+    key: 'saleYear', header: 'Sell',
     render: (c, onChange) => c.instanceData
-      ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
-      : null,
-  },
-  {
-    key: 'saleYear', header: 'Sale Yr',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.saleYear ?? 0} onChange={v => onChange(c.instanceId, 'saleYear', v || null)} />
+      ? <SaleYearToggle value={c.instanceData.saleYear} onChange={v => onChange(c.instanceId, 'saleYear', v as any)} />
       : null,
   },
   // ── Purchase Costs (rolled up, matching blocks view) ──
@@ -747,15 +836,20 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                     <tbody>
                       <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '—' : (card.purchaseYear ?? '—')} />
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
+                      <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
+                      <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
                       <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
-                      <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
                       <BlockKVRow label="Yield (%)" value={d.purchasePrice > 0 ? `${((d.rentPerWeek * 52) / d.purchasePrice * 100).toFixed(1)}%` : '—'} />
                       <BlockKVRow label="Holding $/yr" value={fmtNum(holdingTotal)} />
                       <BlockKVRow label="Purchase costs" value={fmtNum(purchaseCosts)} />
-                      <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
-                      <BlockNumRow label="Sale year" value={d.saleYear ?? 0} instanceId={iid} field="saleYear" onChange={(id, field, v) => handleFieldChange(id, field, v || null)} />
+                      <tr className="border-b border-neutral-200 last:border-b-0">
+                        <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Sell</td>
+                        <td className="py-1.5 px-2">
+                          <SaleYearToggle value={d.saleYear} onChange={v => handleFieldChange(iid, 'saleYear', v)} />
+                        </td>
+                      </tr>
                       {loanOpen && (
                         <>
                           <BlockNumRow label="LVR (%)" value={d.lvr} instanceId={iid} field="lvr" onChange={handleFieldChange} />
