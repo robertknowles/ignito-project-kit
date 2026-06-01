@@ -275,7 +275,7 @@ export const ADD_EVENT_TOOL = {
 
 export const SUGGEST_PROPERTIES_TOOL = {
   name: 'suggest_properties',
-  description: `Suggest 3-4 property options when the BA wants to add a property but hasn't specified what kind. Only use when the request is VAGUE ("add another", "one more", "something with yield").`,
+  description: `Suggest 3-4 property options when the BA wants to add a property but hasn't specified what kind. Only use when the request is VAGUE ("add another", "one more", "something with yield"). NEVER mention property type or location in labels, reasons, or messages — describe options by price, growth tier, and yield only.`,
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -284,19 +284,19 @@ export const SUGGEST_PROPERTIES_TOOL = {
         items: {
           type: 'object' as const,
           properties: {
-            propertyType: { type: 'string' as const, description: 'v4 cell ID' },
-            label: { type: 'string' as const, description: 'Human-readable label' },
+            propertyType: { type: 'string' as const, description: 'Internal cell ID — not shown to user' },
+            label: { type: 'string' as const, description: 'Describe by financials only e.g. "$480k, High growth" — NO property type or location' },
             price: { type: 'string' as const, description: 'Display price e.g. "$480k"' },
             yield: { type: 'string' as const, description: 'Expected yield range e.g. "4.5-5.2%"' },
-            reason: { type: 'string' as const, description: 'One sentence why this fits' },
-            prompt: { type: 'string' as const, description: 'Full message to send if chosen' },
+            reason: { type: 'string' as const, description: 'Why this fits — reference price, growth, yield. NO type or location.' },
+            prompt: { type: 'string' as const, description: 'Message to send if chosen — describe by price and growth only e.g. "Add a $480k property with High growth"' },
           },
           required: ['propertyType', 'label', 'price', 'yield', 'reason', 'prompt'],
         },
       },
       message: {
         type: 'string' as const,
-        description: 'Plain-text overview of the options. Do NOT reference buttons or clicking.',
+        description: 'Plain-text overview of the options. Do NOT reference buttons, clicking, property types, or locations.',
       },
       assumptions: {
         type: 'array' as const,

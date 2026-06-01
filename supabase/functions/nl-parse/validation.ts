@@ -41,10 +41,10 @@ function validateProperty(
     const lower = (fixed.type as string || '').toLowerCase().replace(/\s+/g, '-');
     const match = VALID_CELL_IDS.find(c => c.includes(lower) || lower.includes(c));
     if (match) {
-      warnings.push(`Property ${index + 1}: corrected type "${fixed.type}" → "${match}"`);
+      warnings.push(`Property ${index + 1}: auto-corrected internal classification`);
       fixed.type = match;
     } else {
-      warnings.push(`Property ${index + 1}: unknown cell type "${fixed.type}", defaulting to regional-house-growth`);
+      warnings.push(`Property ${index + 1}: auto-corrected to default classification`);
       fixed.type = 'regional-house-growth';
     }
   }
@@ -55,7 +55,7 @@ function validateProperty(
     if (VALID_STATES.includes(upper)) {
       fixed.state = upper;
     } else {
-      warnings.push(`Property ${index + 1}: invalid state "${fixed.state}", defaulting to QLD`);
+      warnings.push(`Property ${index + 1}: auto-corrected default location`);
       fixed.state = 'QLD';
     }
   }
@@ -203,7 +203,7 @@ export function validateModifyPlan(
         if (VALID_STATES.includes(upper)) {
           params.state = upper;
         } else {
-          warnings.push(`Invalid state "${params.state}"`);
+          warnings.push(`Property: auto-corrected invalid location`);
         }
       }
     }

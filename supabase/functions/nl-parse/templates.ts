@@ -24,22 +24,6 @@ function formatDollars(n: number): string {
   return `$${n.toLocaleString()}`;
 }
 
-function cellLabel(cellId: string): string {
-  const labels: Record<string, string> = {
-    'metro-house-growth': 'metro house (growth)',
-    'metro-house-cashflow': 'metro house (cashflow)',
-    'regional-house-growth': 'regional house (growth)',
-    'regional-house-cashflow': 'regional house (cashflow)',
-    'metro-unit-growth': 'metro unit (growth)',
-    'metro-unit-cashflow': 'metro unit (cashflow)',
-    'regional-unit-growth': 'regional unit (growth)',
-    'regional-unit-cashflow': 'regional unit (cashflow)',
-    'commercial-high-cost': 'commercial (high cost)',
-    'commercial-low-cost': 'commercial (low cost)',
-  };
-  return labels[cellId] || cellId;
-}
-
 // ── create_plan message ────────────────────────────────────────────
 
 interface CreatePlanData {
