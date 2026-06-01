@@ -242,6 +242,13 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
   const equityReleasePct = profile.equityReleaseFactor * 100
   const rentEscalationPct = (profile.rentEscalationRate ?? 0.05) * 100
 
+  const marginalTaxPct = (profile.marginalTaxRate ?? 0.45) * 100
+  const companyTaxPct = (profile.companyTaxRate ?? 0.25) * 100
+  const trustTaxPct = (profile.trustTaxRate ?? 0.30) * 100
+  const smsfTaxPct = (profile.smsfTaxRate ?? 0.15) * 100
+  const consolidationTaxPct = (profile.marginalTaxRateAtConsolidation ?? 0.39) * 100
+  const cgtDiscountPct = (profile.cgtOneYearDiscount ?? 0.50) * 100
+
   const handleResetAll = () => {
     updateProfile({
       growthCurve: { year1: 6, years2to3: 5.5, year4: 5, year5plus: 5 },
@@ -255,6 +262,12 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       sellingCostsPercent: 3,
       lvrStrategy: 'client_comfort' as const,
       lvrStrategyCustomPercent: 80,
+      marginalTaxRate: 0.45,
+      companyTaxRate: 0.25,
+      trustTaxRate: 0.30,
+      smsfTaxRate: 0.15,
+      marginalTaxRateAtConsolidation: 0.39,
+      cgtOneYearDiscount: 0.50,
     })
   }
 
@@ -398,6 +411,72 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           step={5}
           format="percent"
           description="What percentage of extractable equity gets recycled into new deposits. Higher = faster portfolio building."
+        />
+        <DialTile
+          label="Marginal Tax Rate"
+          value={marginalTaxPct}
+          defaultValue={45}
+          onChange={(v) => updateProfile({ marginalTaxRate: v / 100 })}
+          min={0}
+          max={47}
+          step={0.5}
+          format="percent"
+          description="Personal marginal tax rate. Used for Individual entity CGT and income tax calculations."
+        />
+        <DialTile
+          label="Company Tax Rate"
+          value={companyTaxPct}
+          defaultValue={25}
+          onChange={(v) => updateProfile({ companyTaxRate: v / 100 })}
+          min={15}
+          max={30}
+          step={0.5}
+          format="percent"
+          description="Corporate tax rate for properties held in a company entity. No CGT discount applies."
+        />
+        <DialTile
+          label="Trust Tax Rate"
+          value={trustTaxPct}
+          defaultValue={30}
+          onChange={(v) => updateProfile({ trustTaxRate: v / 100 })}
+          min={15}
+          max={47}
+          step={0.5}
+          format="percent"
+          description="Tax rate for trust-held properties. CGT discount applies when distributed to individual beneficiaries."
+        />
+        <DialTile
+          label="SMSF Tax Rate"
+          value={smsfTaxPct}
+          defaultValue={15}
+          onChange={(v) => updateProfile({ smsfTaxRate: v / 100 })}
+          min={0}
+          max={15}
+          step={0.5}
+          format="percent"
+          description="Concessional super fund tax rate. SMSF receives a 33.3% CGT discount on assets held over 12 months."
+        />
+        <DialTile
+          label="Tax at Consolidation"
+          value={consolidationTaxPct}
+          defaultValue={39}
+          onChange={(v) => updateProfile({ marginalTaxRateAtConsolidation: v / 100 })}
+          min={0}
+          max={47}
+          step={0.5}
+          format="percent"
+          description="Expected marginal tax rate at the consolidation year. Often lower than current rate if client plans to reduce work income."
+        />
+        <DialTile
+          label="CGT 1-Year Discount"
+          value={cgtDiscountPct}
+          defaultValue={50}
+          onChange={(v) => updateProfile({ cgtOneYearDiscount: v / 100 })}
+          min={0}
+          max={50}
+          step={5}
+          format="percent"
+          description="Capital gains tax discount for assets held over 12 months. Standard Australian discount is 50% for individuals."
         />
       </div>
     </div>

@@ -430,38 +430,31 @@ const PURCHASES_COLUMNS: Column[] = [
       return readonlyCell(total.toLocaleString());
     },
   },
-  // ── Upfront Purchase Costs ──
+  // ── Entity & Sale ──
   {
-    key: 'engage', header: 'Engage ($)',
+    key: 'entity', header: 'Entity',
     render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.engagementFee} onChange={v => onChange(c.instanceId, 'engagementFee', v)} />
+      ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
       : null,
   },
   {
-    key: 'inspections', header: 'Inspect ($)',
+    key: 'saleYear', header: 'Sale Yr',
+    render: (c, onChange) => c.instanceData
+      ? <NumberInput value={c.instanceData.saleYear ?? 0} onChange={v => onChange(c.instanceId, 'saleYear', v || null)} />
+      : null,
+  },
+  // ── Purchase Costs (rolled up, matching blocks view) ──
+  {
+    key: 'purchaseCosts', header: 'Purchase Costs',
     render: (c) => {
       if (!c.instanceData) return null;
-      const total = (c.instanceData.buildingPestInspection ?? 0) + (c.instanceData.plumbingElectricalInspections ?? 0);
+      const d = c.instanceData;
+      const total = Math.round(
+        d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
+        d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
+      );
       return readonlyCell(total.toLocaleString());
     },
-  },
-  {
-    key: 'insUp', header: 'Ins Up ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.buildingInsuranceUpfront} onChange={v => onChange(c.instanceId, 'buildingInsuranceUpfront', v)} />
-      : null,
-  },
-  {
-    key: 'mortFees', header: 'Mort ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.mortgageFees} onChange={v => onChange(c.instanceId, 'mortgageFees', v)} />
-      : null,
-  },
-  {
-    key: 'convey', header: 'Convey ($)',
-    render: (c, onChange) => c.instanceData
-      ? <NumberInput value={c.instanceData.conveyancing} onChange={v => onChange(c.instanceId, 'conveyancing', v)} />
-      : null,
   },
 ];
 
@@ -607,6 +600,8 @@ const BLOCK_GROWTH_OPTIONS = [
 const BLOCK_ENTITY_OPTIONS = [
   { value: 'individual', label: 'Individual' },
   { value: 'trust', label: 'Trust' },
+  { value: 'company', label: 'Company' },
+  { value: 'smsf', label: 'SMSF' },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -753,8 +748,10 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '—' : (card.purchaseYear ?? '—')} />
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
+                      <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
                       <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
+                      <BlockKVRow label="Yield (%)" value={d.purchasePrice > 0 ? `${((d.rentPerWeek * 52) / d.purchasePrice * 100).toFixed(1)}%` : '—'} />
                       <BlockKVRow label="Holding $/yr" value={fmtNum(holdingTotal)} />
                       <BlockKVRow label="Purchase costs" value={fmtNum(purchaseCosts)} />
                       <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />

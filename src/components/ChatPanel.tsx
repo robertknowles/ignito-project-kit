@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { StrategyPresetSelector } from './StrategyPresetSelector'
-import { extractTextFromPdf } from '@/utils/pdfExtractor'
+import { extractTextFromDocument, isSupportedFile } from '@/utils/documentExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
@@ -828,12 +828,12 @@ export const ChatPanel: React.FC = () => {
     // If a file is attached, extract text and prepend to message
     if (selectedFile) {
       try {
-        const pdfText = await extractTextFromPdf(selectedFile)
-        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded PDF document. Extract any relevant financial data from it — look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${pdfText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
+        const docText = await extractTextFromDocument(selectedFile)
+        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded document (${selectedFile.name}). Extract any relevant financial data from it — look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${docText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
       } catch (err) {
         const errMsg = err instanceof Error && err.message === 'SCAN_PDF'
-          ? "Couldn't read that document clearly. Try uploading a text-based PDF — scanned documents aren't supported yet."
-          : 'Upload failed. Please try again.'
+          ? "Couldn't read that document clearly. Try a text-based file — scanned documents aren't supported yet."
+          : 'Could not read the file. Please try a different one.'
         // Show error as system message — don't send to AI
         addSystemMessage(errMsg)
         setSelectedFile(null)
@@ -862,11 +862,11 @@ export const ChatPanel: React.FC = () => {
 
   // File upload handlers
   const handleFileSelect = useCallback((file: File) => {
-    if (file.type !== 'application/pdf') {
-      return // Only accept PDFs
+    if (!isSupportedFile(file)) {
+      return
     }
     if (file.size > 10 * 1024 * 1024) {
-      return // 10MB limit
+      return
     }
     setSelectedFile(file)
   }, [])
@@ -1137,7 +1137,7 @@ export const ChatPanel: React.FC = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.txt,.csv,.docx,.xlsx"
                 onChange={handleFileInputChange}
                 className="hidden"
               />

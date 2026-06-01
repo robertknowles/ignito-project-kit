@@ -25,6 +25,7 @@ export interface ExistingProperty {
   vacancyRate?: number
   saleYear?: number | null
   allowEquityRelease?: boolean
+  entity?: 'individual' | 'trust' | 'company' | 'smsf'
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({

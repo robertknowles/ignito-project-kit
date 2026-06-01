@@ -21,6 +21,7 @@ import { PropertySelectionProvider } from './contexts/PropertySelectionContext'
 import { InvestmentProfileProvider } from './contexts/InvestmentProfileContext'
 import { PropertyInstanceProvider } from './contexts/PropertyInstanceContext'
 import { ClientProvider } from './contexts/ClientContext'
+import { ClientAssumptionsProvider } from './contexts/ClientAssumptionsContext'
 import { CompanyProvider } from './contexts/CompanyContext'
 import { BrandingProvider } from './contexts/BrandingContext'
 import { ScenarioSaveProvider } from './contexts/ScenarioSaveContext'
@@ -50,6 +51,7 @@ export function AppRouter() {
       <CompanyProvider>
         <BrandingProvider>
           <ClientProvider>
+            <ClientAssumptionsProvider>
             <LayoutProvider>
             <DataAssumptionsProvider>
               <PropertySelectionProvider>
@@ -256,6 +258,7 @@ export function AppRouter() {
               </PropertySelectionProvider>
             </DataAssumptionsProvider>
             </LayoutProvider>
+            </ClientAssumptionsProvider>
           </ClientProvider>
         </BrandingProvider>
       </CompanyProvider>

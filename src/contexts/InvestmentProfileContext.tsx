@@ -68,6 +68,12 @@ export interface InvestmentProfileData {
   sellingCostsPercent: number;
   lvrStrategy: 'client_comfort' | 'prudent_80' | 'custom';
   lvrStrategyCustomPercent: number;
+  marginalTaxRate: number;
+  companyTaxRate: number;
+  trustTaxRate: number;
+  smsfTaxRate: number;
+  marginalTaxRateAtConsolidation: number;
+  cgtOneYearDiscount: number;
 }
 
 export interface CalculatedValues {
@@ -152,6 +158,12 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   sellingCostsPercent: 3,
   lvrStrategy: 'client_comfort',
   lvrStrategyCustomPercent: 80,
+  marginalTaxRate: 0.45,
+  companyTaxRate: 0.25,
+  trustTaxRate: 0.30,
+  smsfTaxRate: 0.15,
+  marginalTaxRateAtConsolidation: 0.39,
+  cgtOneYearDiscount: 0.50,
 };
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {

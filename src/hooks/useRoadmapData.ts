@@ -6,6 +6,7 @@ import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
 import { usePropertySelection, type EventBlock, type EventCategory } from '../contexts/PropertySelectionContext';
 import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
+import { getEffectiveCgtRate } from '../utils/cgtCalculator';
 import { EVENT_TYPES, getEventLabel } from '../constants/eventTypes';
 import { getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import {
@@ -267,6 +268,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       }
 
       // Accumulate sale proceeds in the year of sale (carries forward flat, no growth)
+      const roadmapConsolidationYear = BASE_YEAR + (profile.timelineYears || 20) - (profile.ioToPiTransitionYears ?? 5);
       existingProperties.forEach(ep => {
         if (!ep.saleYear || ep.saleYear <= 0) return;
         if (year === ep.saleYear) {
@@ -274,7 +276,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
           const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsHeld);
           const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
           const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
-          const cgtLiability = capitalGain * 0.225;
+          const cgtLiability = capitalGain * getEffectiveCgtRate(ep.entity, profile, ep.saleYear >= roadmapConsolidationYear);
           const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
           salesProceedsCash += netProceeds;
         }

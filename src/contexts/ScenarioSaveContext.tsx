@@ -3,6 +3,7 @@ import { useClient } from './ClientContext';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile, INITIAL_INVESTMENT_PROFILE } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
+import { useClientAssumptions, extractAssumptionOverrides } from './ClientAssumptionsContext';
 import { useMultiScenario, Scenario } from './MultiScenarioContext';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -175,6 +176,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { profile, updateProfile, setProfile } = useInvestmentProfile();
   const propertyInstanceContext = usePropertyInstance();
   const { scenarios, isMultiScenarioMode, syncCurrentScenarioFromContext, isDeletionInProgress } = useMultiScenario();
+  const { clientAssumptions, updateClientAssumptions } = useClientAssumptions();
   const { user, role } = useAuth();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -559,7 +561,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           resetSelections();
           setPropertyOrder([]);
           propertyInstanceContext.setInstances({});
-          setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+          setProfile({ ...INITIAL_INVESTMENT_PROFILE, ...clientAssumptions });
           setHasUnsavedChanges(false);
           setTimelineSnapshot([]);
           setChartData(undefined);
@@ -726,7 +728,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         resetSelections();
         setPropertyOrder([]);
         propertyInstanceContext.setInstances({});
-        setProfile({ ...INITIAL_INVESTMENT_PROFILE });
+        setProfile({ ...INITIAL_INVESTMENT_PROFILE, ...clientAssumptions });
         setChatMessages([]);
         setExistingProperties([]);
         setTimelineSnapshot([]);
@@ -747,6 +749,18 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [resetSelections, updateProfile, setProfile, setAllSelections, propertyInstanceContext, setPropertyOrder, setChatMessages]);
   loadClientScenarioRef.current = loadClientScenario;
+
+  // Sync assumption changes back to client_assumptions table.
+  // Debounced via updateClientAssumptions (1s internal debounce).
+  const prevAssumptionsRef = useRef<string>('');
+  useEffect(() => {
+    if (!activeClient || loadInProgressRef.current) return;
+    const overrides = extractAssumptionOverrides(profile);
+    const key = JSON.stringify(overrides);
+    if (key === prevAssumptionsRef.current) return;
+    prevAssumptionsRef.current = key;
+    updateClientAssumptions(overrides);
+  }, [profile, activeClient, updateClientAssumptions]);
 
   // Reset scenario - clear all data and delete from database
   const resetScenario = useCallback(async () => {

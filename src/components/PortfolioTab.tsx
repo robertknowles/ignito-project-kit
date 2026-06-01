@@ -219,6 +219,10 @@ const COLUMNS: Column[] = [
     render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
   },
   {
+    key: 'entity', header: 'Entity',
+    render: (p, onChange) => <SelectCell value={p.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(p.id, { entity: v as any })} />,
+  },
+  {
     key: 'saleYear', header: 'Sale Yr',
     render: (p, onChange) => <NumCell value={p.saleYear ?? 0} onChange={v => onChange(p.id, { saleYear: v || null })} />,
   },
@@ -391,7 +395,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                   className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
                     i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
                   }`}
-                  title={col.key === 'saleYear' ? 'CGT applied at 22.5% of capital gain (personal entity, >12mo hold, 50% discount). Entity-aware rates coming.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : undefined}
+                  title={col.key === 'saleYear' ? 'CGT rate varies by entity: Individual/Trust use marginal rate with CGT discount, Company uses flat rate (no discount), SMSF uses 15% with 33.3% discount. Configurable in Assumptions.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : undefined}
                 >
                   {col.header}
                 </th>

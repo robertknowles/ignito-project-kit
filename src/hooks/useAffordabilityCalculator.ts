@@ -8,6 +8,7 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
 import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
+import { getEffectiveCgtRate } from '../utils/cgtCalculator';
 import { calculateOneOffCosts, calculateDepositBalance } from '../utils/oneOffCostsCalculator';
 import { calculateLMI, calculateLoanAmount } from '../utils/lmiCalculator';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
@@ -403,7 +404,7 @@ export const useAffordabilityCalculator = () => {
         // Sale proceeds from existing properties: when saleYear period is reached,
         // add net proceeds (grown value - selling costs - loan - CGT) to cash balance.
         // Proceeds land once and carry forward as cash.
-        // TODO: Entity-aware CGT rates (Trust 30%, Company 25%, Super 15%). Currently assumes personal entity.
+        const consolidationYear = BASE_YEAR + (profile.timelineYears || 20) - (profile.ioToPiTransitionYears ?? 5);
         existingProperties.forEach(ep => {
           if (!ep.saleYear || ep.saleYear <= 0) return;
           const salePeriod = yearToPeriod(ep.saleYear);
@@ -413,10 +414,9 @@ export const useAffordabilityCalculator = () => {
             const grownValue = ep.currentValue * Math.pow(1 + epGrowthRate, yearsHeld);
             const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
             const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
-            // 22.5% effective rate: 45% personal marginal × 50% CGT discount (>12mo hold)
-            // TODO: Holding period <12mo (no discount), pre-2027 grandfathered discount
-            const CGT_EFFECTIVE_RATE = 0.225;
-            const cgtLiability = capitalGain * CGT_EFFECTIVE_RATE;
+            const isConsolidation = ep.saleYear >= consolidationYear;
+            const cgtEffectiveRate = getEffectiveCgtRate(ep.entity, profile, isConsolidation);
+            const cgtLiability = capitalGain * cgtEffectiveRate;
             const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
             runningCashBalance += netProceeds;
           }

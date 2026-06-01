@@ -19,7 +19,11 @@ import {
   Paperclip as PaperclipIcon,
   RotateCcw,
   MoreHorizontal as MoreHorizontalIcon,
+  SlidersHorizontal as SlidersHorizontalIcon,
+  X as XIcon,
+  FileText as FileTextIcon,
 } from 'lucide-react'
+import { extractTextFromDocument, isSupportedFile, getSupportedExtensions } from '@/utils/documentExtractor'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
@@ -99,7 +103,10 @@ export const AgentHome: React.FC = () => {
 
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const resetAssumptionsRef = useRef<() => void>(() => {})
 
   // Per-client preview data (final equity, equity series, property count,
@@ -158,6 +165,27 @@ export const AgentHome: React.FC = () => {
     }
   }, [clients])
 
+  const handleFileSelect = useCallback((file: File) => {
+    if (!isSupportedFile(file)) {
+      toast.error(`Supported formats: ${getSupportedExtensions()}`)
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10 MB')
+      return
+    }
+    setSelectedFile(file)
+  }, [])
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) handleFileSelect(file)
+      e.target.value = ''
+    },
+    [handleFileSelect]
+  )
+
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
     setPrompt(el.value)
@@ -168,14 +196,30 @@ export const AgentHome: React.FC = () => {
   const launchScenario = useCallback(
     async (text: string) => {
       const trimmed = text.trim()
-      if (!trimmed || submitting) return
+      if (!trimmed && !selectedFile) return
+      if (submitting) return
       setSubmitting(true)
       try {
-        // Home is the "new scenario" entry point. Always create a fresh
-        // client and switch to it — DO NOT reuse activeClient or clients[0].
-        // Cofounder report 2026-05-06: typing on Home was launching against
-        // the previously-active client, leaving the user "trapped" in that
-        // client's plan with the previous chat history still visible.
+        let finalPrompt = trimmed || 'Please extract the relevant data and build a plan.'
+
+        if (selectedFile) {
+          try {
+            const docText = await extractTextFromDocument(selectedFile)
+            finalPrompt = `[UPLOADED DOCUMENT START]\nFilename: ${selectedFile.name}\nSize: ${(selectedFile.size / 1024).toFixed(0)} KB\n\n${docText}\n[UPLOADED DOCUMENT END]\n\n${finalPrompt}`
+          } catch (err: any) {
+            const msg = err?.message
+            if (msg === 'SCAN_PDF') {
+              toast.error('This file appears to be a scanned image — text could not be extracted.')
+            } else if (msg === 'UNSUPPORTED_FORMAT') {
+              toast.error(`Supported formats: ${getSupportedExtensions()}`)
+            } else {
+              toast.error('Could not read the file. Please try a different one.')
+            }
+            setSubmitting(false)
+            return
+          }
+        }
+
         const created = await createClient({
           name: 'Untitled Client',
           stage: 'onboarding',
@@ -188,22 +232,17 @@ export const AgentHome: React.FC = () => {
           return
         }
 
-        // The previous in-memory plan state (propertyOrder, profile,
-        // instances) is wiped by loadClientScenario's no-data path when it
-        // detects a client switch — see ScenarioSaveContext. Doing the reset
-        // there (vs synchronously here) avoids racing the outgoing client's
-        // autosave timer, which would otherwise see in-memory state cleared
-        // and write empty data to the row that just generated a plan.
         setActiveClient(created)
+        setSelectedFile(null)
 
-        sessionStorage.setItem(PENDING_PROMPT_KEY, trimmed)
+        sessionStorage.setItem(PENDING_PROMPT_KEY, finalPrompt)
         navigate('/dashboard')
       } catch {
         toast.error('Something went wrong starting the scenario')
         setSubmitting(false)
       }
     },
-    [createClient, navigate, setActiveClient, submitting]
+    [createClient, navigate, setActiveClient, submitting, selectedFile]
   )
 
   const handleKeyDown = useCallback(
@@ -242,7 +281,7 @@ export const AgentHome: React.FC = () => {
     [navigate, setActiveClient]
   )
 
-  const isActive = prompt.trim().length > 0
+  const isActive = prompt.trim().length > 0 || !!selectedFile
 
   const formatEquity = (n: number) => {
     if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
@@ -281,7 +320,18 @@ export const AgentHome: React.FC = () => {
               Build a property plan
             </h1>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
+              <button
+                onClick={() => setAssumptionsOpen(prev => !prev)}
+                className={`absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
+                  assumptionsOpen
+                    ? 'text-[#414651] bg-[#ECECED] border-[#D5D7DA]'
+                    : 'text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]'
+                }`}
+              >
+                <SlidersHorizontalIcon size={13} />
+                Assumptions
+              </button>
               <textarea
                 ref={textareaRef}
                 value={prompt}
@@ -292,15 +342,32 @@ export const AgentHome: React.FC = () => {
                 disabled={submitting}
                 className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
               />
+              {selectedFile && (
+                <div className="flex items-center gap-2 px-4 pb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F5F5F6] rounded-lg border border-[#E9EAEB]">
+                    <FileTextIcon size={13} className="text-[#535862]" />
+                    <span className="text-[11px] text-[#414651] font-medium truncate max-w-[200px]">{selectedFile.name}</span>
+                    <span className="text-[10px] text-[#717680]">({(selectedFile.size / 1024).toFixed(0)} KB)</span>
+                    <button
+                      onClick={() => setSelectedFile(null)}
+                      className="ml-0.5 text-[#717680] hover:text-[#414651] transition-colors"
+                    >
+                      <XIcon size={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex items-end justify-between gap-3 px-3 pb-3 pt-1">
                 <StrategyPresetSelector variant="inline-chips" />
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => fileInputRef.current?.click()}
                     className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white border border-gray-200 hover:bg-gray-50"
                     aria-label="Attach file"
                   >
                     <PaperclipIcon size={15} className="text-[#9CA3AF]" />
                   </button>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.txt,.csv,.docx,.xlsx" onChange={handleFileInputChange} className="hidden" />
                   <button
                     onClick={handleSendClick}
                     disabled={!isActive || submitting}
@@ -316,6 +383,24 @@ export const AgentHome: React.FC = () => {
                   </button>
                 </div>
               </div>
+              {assumptionsOpen && (
+                <div className="border-t border-gray-100 px-4 pt-3 pb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[12px] font-medium text-[#414651]">Assumptions</span>
+                    <button
+                      onClick={() => resetAssumptionsRef.current?.()}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#717680] hover:text-[#414651] transition-colors"
+                    >
+                      <RotateCcw size={11} />
+                      Reset to defaults
+                    </button>
+                  </div>
+                  <AssumptionsGrid
+                    showHeader={false}
+                    onResetExposed={(fn) => { resetAssumptionsRef.current = fn }}
+                  />
+                </div>
+              )}
             </div>
           </section>
 
@@ -463,28 +548,7 @@ export const AgentHome: React.FC = () => {
             </ChartCard>
           </section>
 
-          {/* ── Assumptions (inlined, replaces /assumptions page) ── */}
-          <section>
-            <ChartCard
-              title="Assumptions"
-              action={
-                <button
-                  onClick={() => resetAssumptionsRef.current?.()}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  <RotateCcw size={12} />
-                  Reset to defaults
-                </button>
-              }
-            >
-              <AssumptionsGrid
-                showHeader={false}
-                onResetExposed={(fn) => {
-                  resetAssumptionsRef.current = fn
-                }}
-              />
-            </ChartCard>
-          </section>
+          {/* Assumptions now live in the pill-triggered modal above */}
         </div>
       </div>
 

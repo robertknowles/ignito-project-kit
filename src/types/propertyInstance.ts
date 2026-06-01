@@ -117,6 +117,8 @@ export interface PropertyInstanceDetails {
   mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
 
   saleYear?: number | null;
+
+  entity?: 'individual' | 'trust' | 'company' | 'smsf';
 }
 
 

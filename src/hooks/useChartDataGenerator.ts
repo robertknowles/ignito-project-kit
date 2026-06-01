@@ -6,6 +6,7 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth, calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
+import { getEffectiveCgtRate } from '../utils/cgtCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
 import { convertExistingToInstance, convertExistingToEngineEntry } from '../utils/existingPropertyAdapter';
@@ -219,6 +220,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       }
 
       // Accumulate sale proceeds in the year of sale
+      const chartConsolidationYear = BASE_YEAR + (profile.timelineYears || 20) - (profile.ioToPiTransitionYears ?? 5);
       existingProperties.forEach(ep => {
         if (!ep.saleYear || ep.saleYear <= 0) return;
         if (year === ep.saleYear) {
@@ -227,7 +229,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
           const grownValue = ep.currentValue * Math.pow(1 + epGrowthRate, yearsHeld);
           const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
           const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
-          const cgtLiability = capitalGain * 0.225;
+          const cgtLiability = capitalGain * getEffectiveCgtRate(ep.entity, profile, ep.saleYear >= chartConsolidationYear);
           const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
           chartSalesProceedsCash += netProceeds;
         }

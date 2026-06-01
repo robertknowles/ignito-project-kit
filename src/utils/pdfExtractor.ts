@@ -5,14 +5,18 @@
 
 import * as pdfjsLib from 'pdfjs-dist'
 
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
-
 /**
  * Extract text from a PDF file.
  * Returns the full text content or throws on failure.
  */
 export async function extractTextFromPdf(file: File): Promise<string> {
+  // Set worker source lazily — ensures it's set on the same module instance
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString()
+  }
   const arrayBuffer = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
 
