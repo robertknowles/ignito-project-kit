@@ -147,10 +147,21 @@ Deno.serve(async (req: Request) => {
       throw new Error('No tool_use response from Claude');
     }
 
-    const toolName = toolBlock.name;
+    let toolName = toolBlock.name;
     const toolInput = toolBlock.input as Record<string, any>;
-    const responseType = toolToResponseType(toolName);
 
+    // ── Server-side guard: no plan → no update/modify ─────────────
+    // If the AI picks update_profile or modify_plan but no plan exists,
+    // there's nothing to update. Fall back to a helpful response.
+    const hasPlan = !!currentPlan;
+    if (!hasPlan && (toolName === 'update_profile' || toolName === 'modify_plan' || toolName === 'suggest_properties' || toolName === 'add_event')) {
+      console.warn(`nl-parse: tool="${toolName}" chosen but no plan exists — falling back to respond`);
+      toolName = 'respond';
+      // Rewrite the message to guide the user
+      toolInput.message = toolInput.message || 'Send a client brief with financial details (income, deposit, savings, borrowing capacity) and I\'ll build a plan.';
+    }
+
+    const responseType = toolToResponseType(toolName);
     console.info(`nl-parse: tool="${toolName}" → type="${responseType}"`);
 
     // ── Validate + Template + Build response ───────────────────────

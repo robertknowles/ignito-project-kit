@@ -135,7 +135,7 @@ export const CREATE_PLAN_TOOL = {
 
 export const MODIFY_PLAN_TOOL = {
   name: 'modify_plan',
-  description: `Modify the existing plan — change a property's price/state/LVR/timing, add or remove a property, or change a profile-level field (savings, income, timeline, goals). Use for ANY concrete change instruction with a clear target and value.`,
+  description: `Modify the existing plan — change a property's price/state/LVR/timing, add or remove a property, or change a profile-level field (savings, income, timeline, goals). Use for ANY concrete change instruction with a clear target and value. ONLY valid when a plan already exists.`,
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -195,7 +195,7 @@ export const MODIFY_PLAN_TOOL = {
 
 export const UPDATE_PROFILE_TOOL = {
   name: 'update_profile',
-  description: `Update client financial details without rebuilding the plan. Use when the BA corrects or adds income, savings, deposit, borrowing capacity, existing property info, or goals. Only include fields being changed.`,
+  description: `Update client financial details without rebuilding the plan. Use when the BA corrects or adds income, savings, deposit, borrowing capacity, existing property info, or goals. Only include fields being changed. ONLY valid when a plan already exists — if no plan exists, use create_plan instead.`,
   input_schema: {
     type: 'object' as const,
     properties: {

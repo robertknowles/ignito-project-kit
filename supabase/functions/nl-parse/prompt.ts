@@ -123,10 +123,11 @@ ${currentPlan.properties.map((p, i) => {
 
 ## Tool Selection Guidance
 - **If you're not sure what the user means, use "respond" and ask them.** Don't guess. Don't refuse. Clarify.
+${!hasPlan ? `- **No plan exists. ANY message with financial details (income, deposit, savings, capacity, goals) = create_plan. Always.** Even if the message is terse, missing a name, or oddly formatted — if it has numbers that describe a client, use create_plan. Do NOT use update_profile or modify_plan when no plan exists — there is nothing to update or modify.` : ''}
 - For new client briefs with financial details (no plan exists): use **create_plan**.
-- For concrete changes to existing plan ("change property 2 to 500k", "savings are 5k/month"): use **modify_plan**.
-- For correcting/adding client financial details ("he actually earns 150k", "capacity is 800k"): use **update_profile**.
-- For adding timeline events with a specific year ("refinance in 2030 at 5.5%"): use **add_event**.
+- For concrete changes to existing plan: use **modify_plan**.
+- For correcting/adding client financial details on an existing plan: use **update_profile**.
+- For adding timeline events with a specific year: use **add_event**.
 - For vague "add a property" without specifics: use **suggest_properties**.
 - For everything else — questions, clarifications, hypotheticals, greetings, acknowledgments: use **respond**.
 ${hasPlan ? `
