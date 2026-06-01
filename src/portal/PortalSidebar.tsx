@@ -18,9 +18,7 @@ const PropPathLogo = ({ color }: { color: string }) => (
 )
 
 const navItems = [
-  { path: '/portal', icon: HomeIcon, label: 'Home', exact: true },
-  { path: '/portal/property-plan', icon: SparklesIcon, label: 'Property Plan' },
-  { path: '/portal/portfolio', icon: LayoutGridIcon, label: 'Portfolio' },
+  { path: '/portal', icon: SparklesIcon, label: 'Property Plan', exact: true },
   { path: '/portal/profile', icon: UserCircleIcon, label: 'Profile' },
 ]
 

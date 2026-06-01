@@ -241,9 +241,7 @@ export function AppRouter() {
                                 </ProtectedRoute>
                               }
                             >
-                              <Route index element={<PortalHome />} />
-                              <Route path="property-plan" element={<PortalPropertyPlan />} />
-                              <Route path="portfolio" element={<PortalPortfolio />} />
+                              <Route index element={<PortalPropertyPlan />} />
                               <Route path="profile" element={<PortalProfile />} />
                             </Route>
                           </Routes>
