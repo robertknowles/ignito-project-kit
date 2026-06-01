@@ -1,28 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-/* ─────────────── Illustration wrapper ─────────────── */
-const IllustrationBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
-    {children}
-  </div>
-);
-
 /* ═══════════════════════════════════════════════════════════════════════
-   ILLUSTRATIONS — one per feature card
+   ILLUSTRATIONS — scaled up for clarity
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ─── 1. AI-POWERED PLANNING ─── */
 const AIPlanningIllustration: React.FC = () => (
-  <IllustrationBox>
+  <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0.95, 1] }}
       transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-      className="w-[260px] h-[180px] relative p-4 flex flex-col"
+      className="w-full max-w-[420px] relative px-6 py-4 flex flex-col"
     >
-      <div className="flex flex-col gap-3 flex-grow overflow-hidden relative">
-        <div className="relative h-8 flex items-end justify-end">
+      <div className="flex flex-col gap-4 flex-grow overflow-hidden relative">
+        {/* User chat bubbles */}
+        <div className="relative h-10 flex items-end justify-end">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{
@@ -34,9 +28,9 @@ const AIPlanningIllustration: React.FC = () => (
               duration: 10,
               repeat: Infinity,
             }}
-            className="absolute bg-gray-900 text-white px-3 py-1.5 rounded-[6px] rounded-tr-none shadow-sm"
+            className="absolute bg-gray-900 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm"
           >
-            <span className="text-[8px] font-medium leading-tight tracking-tight">What if they save $20K/yr?</span>
+            <span className="text-[13px] font-medium leading-tight">What if they save $20K/yr?</span>
           </motion.div>
 
           <motion.div
@@ -50,13 +44,14 @@ const AIPlanningIllustration: React.FC = () => (
               duration: 10,
               repeat: Infinity,
             }}
-            className="absolute bg-gray-900 text-white px-3 py-1.5 rounded-[6px] rounded-tr-none shadow-sm"
+            className="absolute bg-gray-900 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm"
           >
-            <span className="text-[8px] font-medium leading-tight tracking-tight">Rates go up 1.5%?</span>
+            <span className="text-[13px] font-medium leading-tight">Rates go up 1.5%?</span>
           </motion.div>
         </div>
 
-        <div className="relative h-4 mt-1">
+        {/* Processing indicators */}
+        <div className="relative h-5 mt-1">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0, 1, 1, 0, 0, 0, 0] }}
@@ -67,17 +62,17 @@ const AIPlanningIllustration: React.FC = () => (
             }}
             className="absolute flex items-center gap-2 px-1"
           >
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {[0, 1, 2].map((dot) => (
                 <motion.div
                   key={dot}
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1, repeat: Infinity, delay: dot * 0.2 }}
-                  className="w-0.5 h-0.5 rounded-full bg-gray-500"
+                  className="w-1 h-1 rounded-full bg-gray-500"
                 />
               ))}
             </div>
-            <span className="text-[7px] font-mono text-gray-400 italic tracking-tight uppercase">Adjusting timeline...</span>
+            <span className="text-[11px] font-mono text-gray-400 italic tracking-tight uppercase">Adjusting timeline...</span>
           </motion.div>
 
           <motion.div
@@ -93,13 +88,14 @@ const AIPlanningIllustration: React.FC = () => (
             <motion.div
               animate={{ opacity: [1, 0.4, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
-              className="w-1 h-1 rounded-full bg-gray-700"
+              className="w-1.5 h-1.5 rounded-full bg-gray-700"
             />
-            <span className="text-[7px] font-mono text-gray-400 italic tracking-tight uppercase">Stress testing...</span>
+            <span className="text-[11px] font-mono text-gray-400 italic tracking-tight uppercase">Stress testing...</span>
           </motion.div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-[6px] p-3 shadow-sm flex flex-col gap-2.5 mt-2">
+        {/* Results table */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-3.5 mt-2">
           {[
             { label: 'Purchase 1', years: ['2026', '2026', '2026'] },
             { label: 'Equity Release', years: ['2029', '2031', '2031'] },
@@ -107,11 +103,11 @@ const AIPlanningIllustration: React.FC = () => (
             { label: 'Purchase 3', years: ['2036', '2042', '2044'] },
           ].map((item, i) => (
             <div key={i} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-1 rounded-full bg-gray-700" />
-                <span className="text-[8px] text-gray-400 font-medium tracking-tight uppercase">{item.label}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-gray-700" />
+                <span className="text-[13px] text-gray-400 font-medium tracking-tight uppercase">{item.label}</span>
               </div>
-              <div className="relative w-8 h-3 flex items-center justify-end overflow-hidden">
+              <div className="relative w-10 h-5 flex items-center justify-end overflow-hidden">
                 {item.years.map((year, yearIdx) => (
                   <motion.span
                     key={yearIdx}
@@ -129,7 +125,7 @@ const AIPlanningIllustration: React.FC = () => (
                       duration: 10,
                       repeat: Infinity,
                     }}
-                    className="absolute text-[8px] font-mono font-bold text-gray-900 tabular-nums"
+                    className="absolute text-[14px] font-mono font-bold text-gray-900 tabular-nums"
                   >
                     {year}
                   </motion.span>
@@ -140,29 +136,29 @@ const AIPlanningIllustration: React.FC = () => (
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2 opacity-30">
-        <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-        <span className="text-[7px] text-gray-900 font-medium tracking-tight">Ask about this plan...</span>
+      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-3 opacity-30">
+        <div className="w-2 h-2 rounded-full bg-gray-300" />
+        <span className="text-[12px] text-gray-900 font-medium tracking-tight">Ask about this plan...</span>
       </div>
     </motion.div>
-  </IllustrationBox>
+  </div>
 );
 
 /* ─── 2. THE ROADMAP ─── */
 const RoadmapIllustration: React.FC = () => (
-  <IllustrationBox>
+  <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
       transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
-      className="w-[280px] h-[180px] relative p-4 flex flex-col justify-center"
+      className="w-full max-w-[460px] relative px-6 py-4 flex flex-col justify-center"
     >
-      <div className="relative h-24">
+      <div className="relative h-32">
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.3, duration: 0.8, repeat: Infinity, repeatDelay: 6.9, ease: 'easeOut' }}
-          className="absolute top-1/2 left-4 right-4 h-[1.5px] bg-gray-200 origin-left"
+          className="absolute top-1/2 left-6 right-6 h-[2px] bg-gray-200 origin-left"
         />
         {[
           { label: '$450k QLD', x: '10%', delay: 1.0, color: '#7F56D9' },
@@ -175,21 +171,21 @@ const RoadmapIllustration: React.FC = () => (
             initial={{ opacity: 0, y: -15, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: node.delay, duration: 0.5, repeat: Infinity, repeatDelay: 8 - node.delay - 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
             style={{ left: node.x }}
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: node.delay + 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.5 }}
-              className="w-3 h-3 rounded-full border-2 bg-white"
+              className="w-5 h-5 rounded-full border-[2.5px] bg-white"
               style={{ borderColor: node.color }}
             />
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: node.delay + 0.4, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.7 }}
-              className="text-[7px] font-bold text-gray-700 whitespace-nowrap mt-1"
+              className="text-[12px] font-bold text-gray-700 whitespace-nowrap mt-1"
             >
               {node.label}
             </motion.span>
@@ -197,7 +193,7 @@ const RoadmapIllustration: React.FC = () => (
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: node.delay + 0.5, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.8 }}
-              className="text-[6px] text-gray-400"
+              className="text-[11px] text-gray-400"
             >
               {2026 + i * 3}
             </motion.span>
@@ -213,45 +209,45 @@ const RoadmapIllustration: React.FC = () => (
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ delay: seg.delay, duration: 0.4, repeat: Infinity, repeatDelay: 8 - seg.delay - 0.4 }}
-            className="absolute top-1/2 h-[1.5px] bg-gray-400 origin-left"
+            className="absolute top-1/2 h-[2px] bg-gray-400 origin-left"
             style={{ left: seg.left, width: seg.width }}
           />
         ))}
       </div>
 
-      {/* "Not a static PDF" tagline */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 4.5, duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
-        className="mt-3 flex justify-center"
+        className="mt-4 flex justify-center"
       >
-        <span className="text-[6px] text-gray-400 font-medium tracking-wide uppercase">Not a static PDF — a living roadmap</span>
+        <span className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">Not a static PDF — a living roadmap</span>
       </motion.div>
     </motion.div>
-  </IllustrationBox>
+  </div>
 );
 
 /* ─── 3. SCENARIO PLANNING ─── */
 const ScenarioIllustration: React.FC = () => (
-  <IllustrationBox>
+  <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
       transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
-      className="w-[260px] h-[170px] relative p-3 flex gap-3"
+      className="w-full max-w-[380px] relative px-4 py-3 flex gap-4"
     >
+      {/* Scenario A */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3, duration: 0.5, repeat: Infinity, repeatDelay: 7.2 }}
-        className="flex-1 border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col"
+        className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col"
       >
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#7F56D9]" />
-          <span className="text-[7px] font-bold text-gray-700">Scenario A</span>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#7F56D9]" />
+          <span className="text-[13px] font-bold text-gray-700">Scenario A</span>
         </div>
-        <div className="flex flex-col gap-1.5 flex-1">
+        <div className="flex flex-col gap-2.5 flex-1">
           {[
             { label: 'Properties', val: '4' },
             { label: 'Equity', val: '$1.8M' },
@@ -265,8 +261,8 @@ const ScenarioIllustration: React.FC = () => (
               transition={{ delay: 0.8 + i * 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 6.6 - i * 0.2 }}
               className="flex justify-between items-center"
             >
-              <span className="text-[6px] text-gray-400">{row.label}</span>
-              <span className="text-[7px] font-bold text-gray-900 tabular-nums">{row.val}</span>
+              <span className="text-[11px] text-gray-400">{row.label}</span>
+              <span className="text-[13px] font-bold text-gray-900 tabular-nums">{row.val}</span>
             </motion.div>
           ))}
         </div>
@@ -274,21 +270,22 @@ const ScenarioIllustration: React.FC = () => (
           initial={{ width: 0 }}
           animate={{ width: '100%' }}
           transition={{ delay: 2, duration: 0.6, repeat: Infinity, repeatDelay: 5.4 }}
-          className="h-1 bg-[#7F56D9]/20 rounded-full mt-2"
+          className="h-1.5 bg-[#7F56D9]/20 rounded-full mt-3"
         />
       </motion.div>
 
+      {/* Scenario B */}
       <motion.div
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 2.5, duration: 0.5, repeat: Infinity, repeatDelay: 5 }}
-        className="flex-1 border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col"
+        className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col"
       >
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-          <span className="text-[7px] font-bold text-gray-700">Scenario B</span>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
+          <span className="text-[13px] font-bold text-gray-700">Scenario B</span>
         </div>
-        <div className="flex flex-col gap-1.5 flex-1">
+        <div className="flex flex-col gap-2.5 flex-1">
           {[
             { label: 'Properties', val: '3' },
             { label: 'Equity', val: '$2.1M' },
@@ -302,8 +299,8 @@ const ScenarioIllustration: React.FC = () => (
               transition={{ delay: 3 + i * 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 4.4 - i * 0.2 }}
               className="flex justify-between items-center"
             >
-              <span className="text-[6px] text-gray-400">{row.label}</span>
-              <span className="text-[7px] font-bold text-gray-900 tabular-nums">{row.val}</span>
+              <span className="text-[11px] text-gray-400">{row.label}</span>
+              <span className="text-[13px] font-bold text-gray-900 tabular-nums">{row.val}</span>
             </motion.div>
           ))}
         </div>
@@ -311,60 +308,63 @@ const ScenarioIllustration: React.FC = () => (
           initial={{ width: 0 }}
           animate={{ width: '100%' }}
           transition={{ delay: 4.2, duration: 0.6, repeat: Infinity, repeatDelay: 3.2 }}
-          className="h-1 bg-gray-300 rounded-full mt-2"
+          className="h-1.5 bg-gray-300 rounded-full mt-3"
         />
       </motion.div>
 
+      {/* Compare line */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0, 1, 1, 0] }}
         transition={{ times: [0, 0.55, 0.6, 0.9, 0.95], duration: 8, repeat: Infinity }}
-        className="absolute top-3 bottom-3 left-1/2 w-[1px] bg-gray-300"
+        className="absolute top-4 bottom-4 left-1/2 w-[1px] bg-gray-300"
       />
     </motion.div>
-  </IllustrationBox>
+  </div>
 );
 
 /* ─── 4. THE TOOLKIT ─── */
 const ToolkitIllustration: React.FC = () => (
-  <IllustrationBox>
+  <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
       transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
-      className="w-[240px] h-[160px] relative p-3 flex flex-col gap-2.5"
+      className="w-full max-w-[340px] relative px-4 py-3 flex flex-col gap-3"
     >
+      {/* Input row */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.4, repeat: Infinity, repeatDelay: 7.3 }}
-        className="bg-white border border-gray-200 rounded-lg p-2.5 flex items-center gap-2"
+        className="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3"
       >
-        <span className="text-[7px] text-gray-400">State</span>
+        <span className="text-[12px] text-gray-400">State</span>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.3, repeat: Infinity, repeatDelay: 6.9 }}
-          className="bg-gray-100 rounded px-2 py-0.5"
+          className="bg-gray-100 rounded-lg px-3 py-1"
         >
-          <span className="text-[7px] font-bold text-gray-700">QLD</span>
+          <span className="text-[12px] font-bold text-gray-700">QLD</span>
         </motion.div>
-        <span className="text-[7px] text-gray-400 ml-2">Price</span>
+        <span className="text-[12px] text-gray-400 ml-3">Price</span>
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3, duration: 0.3, repeat: Infinity, repeatDelay: 6.4 }}
-          className="text-[8px] font-bold text-gray-900 tabular-nums"
+          className="text-[13px] font-bold text-gray-900 tabular-nums"
         >
           $450,000
         </motion.span>
       </motion.div>
 
+      {/* Results */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2, duration: 0.5, repeat: Infinity, repeatDelay: 5.5, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2"
+        className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3"
       >
         {[
           { label: 'Stamp Duty', value: '$15,925' },
@@ -379,8 +379,8 @@ const ToolkitIllustration: React.FC = () => (
             transition={{ delay: 2.5 + i * 0.3, duration: 0.3, repeat: Infinity, repeatDelay: 5 - i * 0.3 }}
             className="flex items-center justify-between"
           >
-            <span className="text-[7px] text-gray-400">{row.label}</span>
-            <span className="text-[8px] font-bold text-gray-900 tabular-nums">{row.value}</span>
+            <span className="text-[12px] text-gray-400">{row.label}</span>
+            <span className="text-[13px] font-bold text-gray-900 tabular-nums">{row.value}</span>
           </motion.div>
         ))}
         <motion.div
@@ -395,70 +395,72 @@ const ToolkitIllustration: React.FC = () => (
           transition={{ delay: 4.2, duration: 0.3, repeat: Infinity, repeatDelay: 3.5 }}
           className="flex items-center justify-between"
         >
-          <span className="text-[7px] font-bold text-gray-700">Total upfront</span>
-          <span className="text-[9px] font-bold text-gray-900 tabular-nums">$21,495</span>
+          <span className="text-[13px] font-bold text-gray-700">Total upfront</span>
+          <span className="text-[15px] font-bold text-gray-900 tabular-nums">$21,495</span>
         </motion.div>
       </motion.div>
     </motion.div>
-  </IllustrationBox>
+  </div>
 );
 
 /* ─── 5. THE CLIENT PORTAL ─── */
 const ClientPortalIllustration: React.FC = () => (
-  <IllustrationBox>
+  <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
       transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
-      className="w-[240px] h-[160px] relative p-4 flex flex-col items-center justify-center gap-3"
+      className="w-full max-w-[360px] relative px-4 py-3 flex flex-col items-center justify-center gap-3.5"
     >
+      {/* URL bar */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4, repeat: Infinity, repeatDelay: 7.3 }}
-        className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm w-full"
+        className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm w-full"
       >
-        <div className="w-2 h-2 rounded-full bg-green-400" />
+        <div className="w-3 h-3 rounded-full bg-green-400" />
         <motion.span
           initial={{ width: 0 }}
           animate={{ width: 'auto' }}
           transition={{ delay: 0.8, duration: 0.6, repeat: Infinity, repeatDelay: 6.6 }}
-          className="text-[8px] text-gray-500 font-mono overflow-hidden whitespace-nowrap"
+          className="text-[13px] text-gray-500 font-mono overflow-hidden whitespace-nowrap"
         >
           proppath.co/client/john
         </motion.span>
       </motion.div>
 
+      {/* Portal card */}
       <motion.div
         initial={{ opacity: 0, scaleY: 0, originY: 0 }}
         animate={{ opacity: 1, scaleY: 1 }}
         transition={{ delay: 1.8, duration: 0.6, repeat: Infinity, repeatDelay: 5.6, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm w-full"
+        className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm w-full"
       >
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-4 h-4 rounded bg-gray-100 flex items-center justify-center">
-            <span className="text-[6px] font-bold text-gray-500">JP</span>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-gray-500">JP</span>
           </div>
           <div>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 2.5, duration: 0.3, repeat: Infinity, repeatDelay: 5.2 }}
-              className="text-[7px] font-bold text-gray-900"
+              className="text-[13px] font-bold text-gray-900"
             >
               John's Portfolio Roadmap
             </motion.div>
-            <div className="text-[6px] text-gray-400">4 properties · 15 year plan</div>
+            <div className="text-[11px] text-gray-400">4 properties · 15 year plan</div>
           </div>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           {[70, 55, 40, 85].map((w, i) => (
             <motion.div
               key={i}
               initial={{ width: 0 }}
               animate={{ width: `${w}%` }}
               transition={{ delay: 3 + i * 0.25, duration: 0.5, repeat: Infinity, repeatDelay: 4.5 - i * 0.25 }}
-              className="h-1 bg-gray-200 rounded-full"
+              className="h-1.5 bg-gray-200 rounded-full"
             />
           ))}
         </div>
@@ -469,14 +471,14 @@ const ClientPortalIllustration: React.FC = () => (
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 4.5, duration: 0.4, repeat: Infinity, repeatDelay: 3.1 }}
-        className="flex flex-wrap gap-1 justify-center"
+        className="flex flex-wrap gap-1.5 justify-center"
       >
         {['Portfolio', 'Property', 'Plan', 'Brief', 'Progress', 'Deal'].map((tag) => (
-          <span key={tag} className="text-[5px] font-medium text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">{tag}</span>
+          <span key={tag} className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">{tag}</span>
         ))}
       </motion.div>
     </motion.div>
-  </IllustrationBox>
+  </div>
 );
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -542,7 +544,7 @@ const HowItWorks: React.FC = () => (
             <h3 className="text-[16px] font-semibold text-gray-900 mb-1.5">{feature.title}</h3>
             <p className="text-[13px] text-gray-500 leading-relaxed">{feature.desc}</p>
           </div>
-          <div className="h-[240px] flex items-center justify-center p-4">
+          <div className="h-[340px] flex items-center justify-center p-4">
             {feature.illustration}
           </div>
         </div>
@@ -556,7 +558,7 @@ const HowItWorks: React.FC = () => (
             <h3 className="text-[15px] font-semibold text-gray-900 mb-1">{feature.title}</h3>
             <p className="text-[13px] text-gray-500 leading-relaxed">{feature.desc}</p>
           </div>
-          <div className="h-[200px] flex items-center justify-center p-3">
+          <div className="h-[280px] flex items-center justify-center p-3">
             {feature.illustration}
           </div>
         </div>
