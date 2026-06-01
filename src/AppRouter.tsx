@@ -198,7 +198,7 @@ export function AppRouter() {
                             <Route
                               path="/company"
                               element={
-                                <ProtectedRoute allowedRoles={['owner']}>
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <CompanyManagement />
                                 </ProtectedRoute>
                               }
