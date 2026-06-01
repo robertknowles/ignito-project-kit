@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Loader2 as Loader2Icon,
   Send as SendIcon,
+  Paperclip as PaperclipIcon,
   RotateCcw,
   MoreHorizontal as MoreHorizontalIcon,
 } from 'lucide-react'
@@ -293,6 +294,12 @@ export const AgentHome: React.FC = () => {
               />
               <div className="flex items-end justify-between gap-3 px-3 pb-3 pt-1">
                 <StrategyPresetSelector variant="inline-chips" />
+                <button
+                  className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white border border-gray-200 hover:bg-gray-50"
+                  aria-label="Attach file"
+                >
+                  <PaperclipIcon size={15} className="text-[#9CA3AF]" />
+                </button>
                 <button
                   onClick={handleSendClick}
                   disabled={!isActive || submitting}
