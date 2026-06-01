@@ -79,22 +79,11 @@ export function buildCreatePlanMessage(data: CreatePlanData): string {
   const names = data.clientProfile.members.map(m => m.name).filter(n => n && n !== 'Client');
   const nameStr = names.length > 0 ? ` for ${names.join(' & ')}` : '';
 
-  // Describe property mix
-  const typeCounts: Record<string, number> = {};
-  for (const p of data.properties) {
-    const label = cellLabel(p.type);
-    typeCounts[label] = (typeCounts[label] || 0) + 1;
-  }
-  const mixParts = Object.entries(typeCounts).map(([label, c]) =>
-    c > 1 ? `${c} ${label} properties` : `a ${label}`
-  );
-  const mixStr = mixParts.length <= 2
-    ? mixParts.join(' and ')
-    : mixParts.slice(0, -1).join(', ') + ', and ' + mixParts[mixParts.length - 1];
-
-  // States used
-  const states = [...new Set(data.properties.map(p => p.state))];
-  const stateStr = states.join(', ');
+  // Price range
+  const prices = data.properties.map(p => p.purchasePrice).sort((a, b) => a - b);
+  const priceRange = prices.length === 1
+    ? `at ${formatDollars(prices[0])}`
+    : `from ${formatDollars(prices[0])} to ${formatDollars(prices[prices.length - 1])}`;
 
   // LVR/LMI
   const lvrs = [...new Set(data.properties.map(p => p.lvr))];
@@ -114,7 +103,7 @@ export function buildCreatePlanMessage(data: CreatePlanData): string {
     ? ''
     : ` Default 20-year horizon applied.`;
 
-  let msg = `Built a ${count}-property plan${nameStr} across ${stateStr} — ${mixStr}. Modelled at ${lvrStr} LVR${lmiNote} with ${loanStr} loans, biased toward ${presetStr}.${timelineNote}`;
+  let msg = `Built a ${count}-property plan${nameStr}, priced ${priceRange}. Modelled at ${lvrStr} LVR${lmiNote} with ${loanStr} loans, biased toward ${presetStr}.${timelineNote}`;
 
   // Missing inputs nudge
   if (data.missingInputs && data.missingInputs.length > 0) {
@@ -164,7 +153,6 @@ function describeModification(mod: ModificationEntry, currentPlan?: Record<strin
       const propNum = target.replace('property-', '');
       const changes: string[] = [];
       if (params.purchasePrice !== undefined) changes.push(`price to ${formatDollars(params.purchasePrice as number)}`);
-      if (params.state !== undefined) changes.push(`state to ${params.state}`);
       if (params.lvr !== undefined) changes.push(`LVR to ${params.lvr}%`);
       if (params.loanProduct !== undefined) changes.push(`loan type to ${params.loanProduct}`);
       if (params.growthAssumption !== undefined) changes.push(`growth to ${params.growthAssumption}`);
