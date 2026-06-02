@@ -8,222 +8,177 @@ import { motion } from 'framer-motion';
 /* ─── 1. AI-POWERED PLANNING ─── */
 const AIPlanningIllustration: React.FC = () => (
   <div className="w-full h-full flex items-center justify-center overflow-hidden">
-    <motion.div
-      initial={{ opacity: 1 }}
-      animate={{ opacity: [1, 1, 0.95, 1] }}
-      transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-      className="w-full max-w-[420px] relative px-6 py-4 flex flex-col"
-    >
-      <div className="flex flex-col gap-4 flex-grow overflow-hidden relative">
-        {/* User chat bubbles */}
-        <div className="relative h-10 flex items-end justify-end">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{
-              opacity: [0, 1, 1, 0, 0, 0, 0, 0],
-              x: [20, 0, 0, -10, -10, -10, -10, -10],
-            }}
-            transition={{
-              times: [0, 0.05, 0.45, 0.5, 0.55, 0.85, 0.95, 1],
-              duration: 10,
-              repeat: Infinity,
-            }}
-            className="absolute bg-gray-900 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm"
-          >
-            <span className="text-[13px] font-medium leading-tight">What if they save $20K/yr?</span>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{
-              opacity: [0, 0, 0, 0, 0, 1, 1, 0],
-              x: [20, 20, 20, 20, 20, 0, 0, -10],
-            }}
-            transition={{
-              times: [0, 0.45, 0.5, 0.55, 0.6, 0.65, 0.95, 1],
-              duration: 10,
-              repeat: Infinity,
-            }}
-            className="absolute bg-gray-900 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm"
-          >
-            <span className="text-[13px] font-medium leading-tight">Rates go up 1.5%?</span>
-          </motion.div>
+    <div className="w-full max-w-[400px] mx-auto">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        {/* Chat window header */}
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+            <span className="text-[9px] font-bold text-white">PP</span>
+          </div>
+          <span className="text-[13px] font-semibold text-gray-900">PropPath</span>
+          <div className="ml-auto flex gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          </div>
         </div>
 
-        {/* Processing indicators */}
-        <div className="relative h-5 mt-1">
+        {/* Chat body */}
+        <div className="px-4 py-4 flex flex-col gap-3 min-h-[240px]">
+          {/* User message 1 */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0, 1, 1, 0, 0, 0, 0] }}
-            transition={{
-              times: [0, 0.08, 0.12, 0.45, 0.5, 0.6, 0.95, 1],
-              duration: 10,
-              repeat: Infinity,
-            }}
-            className="absolute flex items-center gap-2 px-1"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: [0, 1, 1, 1, 1, 1, 1, 0] }}
+            transition={{ times: [0, 0.04, 0.35, 0.38, 0.5, 0.85, 0.92, 0.97], duration: 16, repeat: Infinity }}
+            className="flex justify-end"
           >
-            <div className="flex gap-1.5">
-              {[0, 1, 2].map((dot) => (
-                <motion.div
-                  key={dot}
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: dot * 0.2 }}
-                  className="w-1 h-1 rounded-full bg-gray-500"
-                />
-              ))}
+            <div className="bg-gray-900 text-white px-3.5 py-2 rounded-2xl rounded-tr-sm max-w-[75%]">
+              <span className="text-[12.5px] leading-snug">What if they save $20K/yr?</span>
             </div>
-            <span className="text-[11px] font-mono text-gray-400 italic tracking-tight uppercase">Adjusting timeline...</span>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0, 0, 0, 0, 0, 1, 1, 0] }}
-            transition={{
-              times: [0, 0.5, 0.55, 0.6, 0.65, 0.68, 0.72, 0.95, 1],
-              duration: 10,
-              repeat: Infinity,
-            }}
-            className="absolute flex items-center gap-2 px-1"
-          >
-            <motion.div
-              animate={{ opacity: [1, 0.4, 1] }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-              className="w-1.5 h-1.5 rounded-full bg-gray-700"
-            />
-            <span className="text-[11px] font-mono text-gray-400 italic tracking-tight uppercase">Stress testing...</span>
-          </motion.div>
-        </div>
-
-        {/* Results table */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-3.5 mt-2">
-          {[
-            { label: 'Purchase 1', years: ['2026', '2026', '2026'] },
-            { label: 'Equity Release', years: ['2029', '2031', '2031'] },
-            { label: 'Purchase 2', years: ['2031', '2035', '2036'] },
-            { label: 'Purchase 3', years: ['2036', '2042', '2044'] },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-gray-700" />
-                <span className="text-[13px] text-gray-400 font-medium tracking-tight uppercase">{item.label}</span>
-              </div>
-              <div className="relative w-10 h-5 flex items-center justify-end overflow-hidden">
-                {item.years.map((year, yearIdx) => (
-                  <motion.span
-                    key={yearIdx}
-                    initial={{ opacity: 0 }}
-                    animate={{
-                      opacity:
-                        yearIdx === 0
-                          ? [1, 1, 0, 0, 0, 0, 1]
-                          : yearIdx === 1
-                          ? [0, 0, 1, 1, 0, 0, 0]
-                          : [0, 0, 0, 0, 1, 1, 0],
-                    }}
-                    transition={{
-                      times: [0, 0.45, 0.5, 0.65, 0.7, 0.95, 1],
-                      duration: 10,
-                      repeat: Infinity,
-                    }}
-                    className="absolute text-[14px] font-mono font-bold text-gray-900 tabular-nums"
-                  >
-                    {year}
-                  </motion.span>
+          {/* Typing indicator → AI response 1 */}
+          <div className="flex justify-start">
+            <div className="max-w-[80%]">
+              {/* Typing dots */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0, 1, 1, 0, 0, 0, 0] }}
+                transition={{ times: [0, 0.05, 0.07, 0.14, 0.16, 0.5, 0.9, 1], duration: 16, repeat: Infinity }}
+                className="bg-gray-100 px-3.5 py-2.5 rounded-2xl rounded-tl-sm inline-flex gap-1"
+              >
+                {[0, 1, 2].map((dot) => (
+                  <motion.div
+                    key={dot}
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                  />
                 ))}
-              </div>
+              </motion.div>
+              {/* AI response */}
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: [0, 0, 0, 1, 1, 1, 1, 0] }}
+                transition={{ times: [0, 0.1, 0.15, 0.18, 0.35, 0.85, 0.92, 0.97], duration: 16, repeat: Infinity }}
+                className="bg-gray-100 px-3.5 py-2.5 rounded-2xl rounded-tl-sm"
+              >
+                <span className="text-[12.5px] text-gray-700 leading-snug">Purchase 2 moves from 2031 to 2029. Equity release unlocks 18 months earlier.</span>
+              </motion.div>
             </div>
-          ))}
+          </div>
+
+          {/* User message 2 */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: [0, 0, 0, 0, 0, 1, 1, 0] }}
+            transition={{ times: [0, 0.3, 0.35, 0.38, 0.4, 0.43, 0.85, 0.92], duration: 16, repeat: Infinity }}
+            className="flex justify-end"
+          >
+            <div className="bg-gray-900 text-white px-3.5 py-2 rounded-2xl rounded-tr-sm max-w-[75%]">
+              <span className="text-[12.5px] leading-snug">Rates go up 1.5%?</span>
+            </div>
+          </motion.div>
+
+          {/* Typing indicator → AI response 2 */}
+          <div className="flex justify-start">
+            <div className="max-w-[80%]">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0, 0, 0, 0, 1, 1, 0, 0, 0] }}
+                transition={{ times: [0, 0.4, 0.43, 0.46, 0.48, 0.5, 0.56, 0.58, 0.9, 1], duration: 16, repeat: Infinity }}
+                className="bg-gray-100 px-3.5 py-2.5 rounded-2xl rounded-tl-sm inline-flex gap-1"
+              >
+                {[0, 1, 2].map((dot) => (
+                  <motion.div
+                    key={dot}
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                  />
+                ))}
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: [0, 0, 0, 0, 0, 0, 0, 1, 1, 0] }}
+                transition={{ times: [0, 0.4, 0.5, 0.53, 0.56, 0.58, 0.6, 0.63, 0.85, 0.92], duration: 16, repeat: Infinity }}
+                className="bg-gray-100 px-3.5 py-2.5 rounded-2xl rounded-tl-sm"
+              >
+                <span className="text-[12.5px] text-gray-700 leading-snug">Still feasible. Purchase 3 delays by 2 years. Serviceability buffer stays above 5%.</span>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat input bar */}
+        <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2">
+          <div className="flex-1 bg-gray-50 rounded-xl px-3.5 py-2">
+            <span className="text-[12px] text-gray-400">Ask about this plan...</span>
+          </div>
+          <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 1.5L5.5 6.5M10.5 1.5L7 10.5L5.5 6.5M10.5 1.5L1.5 5L5.5 6.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
         </div>
       </div>
-
-      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-3 opacity-30">
-        <div className="w-2 h-2 rounded-full bg-gray-300" />
-        <span className="text-[12px] text-gray-900 font-medium tracking-tight">Ask about this plan...</span>
-      </div>
-    </motion.div>
+    </div>
   </div>
 );
 
 /* ─── 2. THE ROADMAP ─── */
+const roadmapSteps = [
+  { year: '2026', label: 'Purchase 1', detail: '$450k · QLD', icon: '1' },
+  { year: '2029', label: 'Equity Release', detail: '$82k unlocked', icon: '↗' },
+  { year: '2031', label: 'Purchase 2', detail: '$520k · NSW', icon: '2' },
+  { year: '2036', label: 'Purchase 3', detail: '$610k · QLD', icon: '3' },
+];
+
 const RoadmapIllustration: React.FC = () => (
   <div className="w-full h-full flex items-center justify-center overflow-hidden">
-    <motion.div
-      initial={{ opacity: 1 }}
-      animate={{ opacity: [1, 1, 0] }}
-      transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
-      className="w-full max-w-[460px] relative px-6 py-4 flex flex-col justify-center"
-    >
-      <div className="relative h-32">
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 0.3, duration: 0.8, repeat: Infinity, repeatDelay: 6.9, ease: 'easeOut' }}
-          className="absolute top-1/2 left-6 right-6 h-[2px] bg-gray-200 origin-left"
-        />
-        {[
-          { label: '$450k QLD', x: '10%', delay: 1.0, color: '#7F56D9' },
-          { label: '$520k NSW', x: '35%', delay: 1.8, color: '#6B7280' },
-          { label: '$380k VIC', x: '60%', delay: 2.6, color: '#7F56D9' },
-          { label: '$610k QLD', x: '85%', delay: 3.4, color: '#6B7280' },
-        ].map((node, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: -15, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: node.delay, duration: 0.5, repeat: Infinity, repeatDelay: 8 - node.delay - 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
-            style={{ left: node.x }}
-          >
+    <div className="w-full max-w-[380px] px-6 py-3">
+      <div className="relative flex flex-col gap-0">
+        {roadmapSteps.map((step, i) => (
+          <div key={i} className="flex items-stretch gap-4">
+            {/* Vertical line + node */}
+            <div className="flex flex-col items-center w-8 shrink-0">
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 1.2 + i * 1.8, duration: 0.5, repeat: Infinity, repeatDelay: 16 - (1.2 + i * 1.8) - 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                  i === 0 ? 'bg-gray-900 text-white' : 'bg-white border-2 border-gray-300 text-gray-500'
+                }`}
+              >
+                <span className="text-[11px] font-bold">{step.icon}</span>
+              </motion.div>
+              {i < roadmapSteps.length - 1 && (
+                <motion.div
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ delay: 1.8 + i * 1.8, duration: 0.8, repeat: Infinity, repeatDelay: 16 - (1.8 + i * 1.8) - 0.8, ease: 'easeOut' }}
+                  className="w-[2px] bg-gray-200 flex-1 origin-top min-h-[16px]"
+                />
+              )}
+            </div>
+
+            {/* Card */}
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: node.delay + 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.5 }}
-              className="w-5 h-5 rounded-full border-[2.5px] bg-white"
-              style={{ borderColor: node.color }}
-            />
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: node.delay + 0.4, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.7 }}
-              className="text-[12px] font-bold text-gray-700 whitespace-nowrap mt-1"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1.4 + i * 1.8, duration: 0.5, repeat: Infinity, repeatDelay: 16 - (1.4 + i * 1.8) - 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 pb-4"
             >
-              {node.label}
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: node.delay + 0.5, duration: 0.3, repeat: Infinity, repeatDelay: 8 - node.delay - 0.8 }}
-              className="text-[11px] text-gray-400"
-            >
-              {2026 + i * 3}
-            </motion.span>
-          </motion.div>
-        ))}
-        {[
-          { left: '10%', width: '25%', delay: 1.8 },
-          { left: '35%', width: '25%', delay: 2.6 },
-          { left: '60%', width: '25%', delay: 3.4 },
-        ].map((seg, i) => (
-          <motion.div
-            key={i}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: seg.delay, duration: 0.4, repeat: Infinity, repeatDelay: 8 - seg.delay - 0.4 }}
-            className="absolute top-1/2 h-[2px] bg-gray-400 origin-left"
-            style={{ left: seg.left, width: seg.width }}
-          />
+              <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[13px] font-semibold text-gray-900">{step.label}</span>
+                    <span className="text-[12px] text-gray-400 ml-2">{step.detail}</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-gray-400 tabular-nums">{step.year}</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         ))}
       </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 4.5, duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
-        className="mt-4 flex justify-center"
-      >
-        <span className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">Not a static PDF — a living roadmap</span>
-      </motion.div>
-    </motion.div>
+    </div>
   </div>
 );
 
@@ -233,14 +188,14 @@ const ScenarioIllustration: React.FC = () => (
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
-      transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
+      transition={{ duration: 16, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
       className="w-full max-w-[380px] relative px-4 py-3 flex gap-4"
     >
       {/* Scenario A */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.3, duration: 0.5, repeat: Infinity, repeatDelay: 7.2 }}
+        transition={{ delay: 0.6, duration: 0.8, repeat: Infinity, repeatDelay: 14.6 }}
         className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col"
       >
         <div className="flex items-center gap-2 mb-3">
@@ -258,7 +213,7 @@ const ScenarioIllustration: React.FC = () => (
               key={i}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 + i * 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 6.6 - i * 0.2 }}
+              transition={{ delay: 1.6 + i * 0.4, duration: 0.5, repeat: Infinity, repeatDelay: 13.5 - i * 0.4 }}
               className="flex justify-between items-center"
             >
               <span className="text-[11px] text-gray-400">{row.label}</span>
@@ -269,7 +224,7 @@ const ScenarioIllustration: React.FC = () => (
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: '100%' }}
-          transition={{ delay: 2, duration: 0.6, repeat: Infinity, repeatDelay: 5.4 }}
+          transition={{ delay: 4, duration: 1, repeat: Infinity, repeatDelay: 11 }}
           className="h-1.5 bg-[#7F56D9]/20 rounded-full mt-3"
         />
       </motion.div>
@@ -278,7 +233,7 @@ const ScenarioIllustration: React.FC = () => (
       <motion.div
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 2.5, duration: 0.5, repeat: Infinity, repeatDelay: 5 }}
+        transition={{ delay: 5, duration: 0.8, repeat: Infinity, repeatDelay: 10.2 }}
         className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col"
       >
         <div className="flex items-center gap-2 mb-3">
@@ -296,7 +251,7 @@ const ScenarioIllustration: React.FC = () => (
               key={i}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 3 + i * 0.2, duration: 0.3, repeat: Infinity, repeatDelay: 4.4 - i * 0.2 }}
+              transition={{ delay: 6 + i * 0.4, duration: 0.5, repeat: Infinity, repeatDelay: 9 - i * 0.4 }}
               className="flex justify-between items-center"
             >
               <span className="text-[11px] text-gray-400">{row.label}</span>
@@ -307,7 +262,7 @@ const ScenarioIllustration: React.FC = () => (
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: '100%' }}
-          transition={{ delay: 4.2, duration: 0.6, repeat: Infinity, repeatDelay: 3.2 }}
+          transition={{ delay: 8.4, duration: 1, repeat: Infinity, repeatDelay: 6.6 }}
           className="h-1.5 bg-gray-300 rounded-full mt-3"
         />
       </motion.div>
@@ -316,7 +271,7 @@ const ScenarioIllustration: React.FC = () => (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0, 1, 1, 0] }}
-        transition={{ times: [0, 0.55, 0.6, 0.9, 0.95], duration: 8, repeat: Infinity }}
+        transition={{ times: [0, 0.55, 0.6, 0.9, 0.95], duration: 16, repeat: Infinity }}
         className="absolute top-4 bottom-4 left-1/2 w-[1px] bg-gray-300"
       />
     </motion.div>
@@ -329,21 +284,21 @@ const ToolkitIllustration: React.FC = () => (
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
-      transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
+      transition={{ duration: 16, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
       className="w-full max-w-[340px] relative px-4 py-3 flex flex-col gap-3"
     >
       {/* Input row */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.4, repeat: Infinity, repeatDelay: 7.3 }}
+        transition={{ delay: 0.6, duration: 0.6, repeat: Infinity, repeatDelay: 14.8 }}
         className="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3"
       >
         <span className="text-[12px] text-gray-400">State</span>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.3, repeat: Infinity, repeatDelay: 6.9 }}
+          transition={{ delay: 1.6, duration: 0.5, repeat: Infinity, repeatDelay: 13.9 }}
           className="bg-gray-100 rounded-lg px-3 py-1"
         >
           <span className="text-[12px] font-bold text-gray-700">QLD</span>
@@ -352,7 +307,7 @@ const ToolkitIllustration: React.FC = () => (
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.3, duration: 0.3, repeat: Infinity, repeatDelay: 6.4 }}
+          transition={{ delay: 2.6, duration: 0.5, repeat: Infinity, repeatDelay: 12.9 }}
           className="text-[13px] font-bold text-gray-900 tabular-nums"
         >
           $450,000
@@ -363,7 +318,7 @@ const ToolkitIllustration: React.FC = () => (
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2, duration: 0.5, repeat: Infinity, repeatDelay: 5.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ delay: 4, duration: 0.8, repeat: Infinity, repeatDelay: 11.2, ease: [0.16, 1, 0.3, 1] }}
         className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3"
       >
         {[
@@ -376,7 +331,7 @@ const ToolkitIllustration: React.FC = () => (
             key={i}
             initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 2.5 + i * 0.3, duration: 0.3, repeat: Infinity, repeatDelay: 5 - i * 0.3 }}
+            transition={{ delay: 5 + i * 0.6, duration: 0.5, repeat: Infinity, repeatDelay: 10 - i * 0.6 }}
             className="flex items-center justify-between"
           >
             <span className="text-[12px] text-gray-400">{row.label}</span>
@@ -386,13 +341,13 @@ const ToolkitIllustration: React.FC = () => (
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ delay: 3.8, duration: 0.4, repeat: Infinity, repeatDelay: 3.8 }}
+          transition={{ delay: 7.8, duration: 0.6, repeat: Infinity, repeatDelay: 7.6 }}
           className="h-[1px] bg-gray-200 origin-left"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 4.2, duration: 0.3, repeat: Infinity, repeatDelay: 3.5 }}
+          transition={{ delay: 8.6, duration: 0.5, repeat: Infinity, repeatDelay: 6.9 }}
           className="flex items-center justify-between"
         >
           <span className="text-[13px] font-bold text-gray-700">Total upfront</span>
@@ -409,21 +364,21 @@ const ClientPortalIllustration: React.FC = () => (
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: [1, 1, 0] }}
-      transition={{ duration: 8, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
+      transition={{ duration: 16, times: [0, 0.95, 1], repeat: Infinity, ease: 'linear' }}
       className="w-full max-w-[360px] relative px-4 py-3 flex flex-col items-center justify-center gap-3.5"
     >
       {/* URL bar */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.4, repeat: Infinity, repeatDelay: 7.3 }}
+        transition={{ delay: 0.6, duration: 0.6, repeat: Infinity, repeatDelay: 14.8 }}
         className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm w-full"
       >
         <div className="w-3 h-3 rounded-full bg-green-400" />
         <motion.span
           initial={{ width: 0 }}
           animate={{ width: 'auto' }}
-          transition={{ delay: 0.8, duration: 0.6, repeat: Infinity, repeatDelay: 6.6 }}
+          transition={{ delay: 1.6, duration: 1, repeat: Infinity, repeatDelay: 13.4 }}
           className="text-[13px] text-gray-500 font-mono overflow-hidden whitespace-nowrap"
         >
           proppath.co/client/john
@@ -434,7 +389,7 @@ const ClientPortalIllustration: React.FC = () => (
       <motion.div
         initial={{ opacity: 0, scaleY: 0, originY: 0 }}
         animate={{ opacity: 1, scaleY: 1 }}
-        transition={{ delay: 1.8, duration: 0.6, repeat: Infinity, repeatDelay: 5.6, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ delay: 3.6, duration: 0.8, repeat: Infinity, repeatDelay: 11.6, ease: [0.16, 1, 0.3, 1] }}
         className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm w-full"
       >
         <div className="flex items-center gap-3 mb-3">
@@ -445,7 +400,7 @@ const ClientPortalIllustration: React.FC = () => (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 2.5, duration: 0.3, repeat: Infinity, repeatDelay: 5.2 }}
+              transition={{ delay: 5, duration: 0.5, repeat: Infinity, repeatDelay: 10.5 }}
               className="text-[13px] font-bold text-gray-900"
             >
               John's Portfolio Roadmap
@@ -459,7 +414,7 @@ const ClientPortalIllustration: React.FC = () => (
               key={i}
               initial={{ width: 0 }}
               animate={{ width: `${w}%` }}
-              transition={{ delay: 3 + i * 0.25, duration: 0.5, repeat: Infinity, repeatDelay: 4.5 - i * 0.25 }}
+              transition={{ delay: 6 + i * 0.5, duration: 0.8, repeat: Infinity, repeatDelay: 9 - i * 0.5 }}
               className="h-1.5 bg-gray-200 rounded-full"
             />
           ))}
@@ -470,7 +425,7 @@ const ClientPortalIllustration: React.FC = () => (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 4.5, duration: 0.4, repeat: Infinity, repeatDelay: 3.1 }}
+        transition={{ delay: 9, duration: 0.6, repeat: Infinity, repeatDelay: 6.4 }}
         className="flex flex-wrap gap-1.5 justify-center"
       >
         {['Portfolio', 'Property', 'Plan', 'Brief', 'Progress', 'Deal'].map((tag) => (
