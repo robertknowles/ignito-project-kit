@@ -431,9 +431,18 @@ export const BorrowingPowerModal: React.FC<BorrowingPowerModalProps> = ({
                 </div>
 
                 <div>
+                  <p className="font-semibold text-gray-700 mb-1">Income tax</p>
+                  <p>
+                    Lenders assess your ability to repay from after-tax income, not gross. Your gross assessable
+                    income of {fmt(result.totalAssessableIncome)} has estimated PAYG tax + Medicare of {fmt(result.annualTax)},
+                    leaving {fmt(result.afterTaxIncome)} after tax.
+                  </p>
+                </div>
+
+                <div>
                   <p className="font-semibold text-gray-700 mb-1">The calculation</p>
                   <p>
-                    Assessable income ({fmt(result.totalAssessableIncome)}) minus living expenses ({fmt(result.annualLivingExpenses)})
+                    After-tax income ({fmt(result.afterTaxIncome)}) minus living expenses ({fmt(result.annualLivingExpenses)})
                     minus existing commitments ({fmt(result.annualExistingCommitments)}) = net surplus ({fmt(result.netSurplus)}/year).
                     The max loan is the amount whose annual repayment at the assessment rate equals this surplus.
                     Loan term: {DEFAULT_LOAN_TERM} years {repaymentType === 'pi' ? 'principal & interest' : 'interest only'}.
