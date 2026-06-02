@@ -34,6 +34,7 @@ import { useBranding } from '@/contexts/BrandingContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useClient } from '@/contexts/ClientContext';
 import { ClientSelector } from './ClientSelector';
+import { BetaFeedbackWidget } from './BetaFeedbackWidget';
 
 export const SIDEBAR_WIDTH = 256;
 
@@ -192,6 +193,9 @@ export const AppSidebar: React.FC = () => {
             </React.Fragment>
           );
         })}
+        <li className="py-px">
+          <BetaFeedbackWidget />
+        </li>
       </ul>
 
       {/* ── Footer: User profile ── matches UUI: mt-auto px-2 py-4 lg:px-4 */}
