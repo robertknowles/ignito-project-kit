@@ -174,7 +174,7 @@ export const ClientSelector: React.FC = () => {
 
   return (
     <div id="client-selector" className="relative" ref={dropdownRef}>
-      <div className="flex items-center gap-2 py-1.5 bg-transparent">
+      <div className="flex items-center bg-transparent">
         {triggerEditing ? (
           <input
             ref={triggerInputRef}
@@ -196,16 +196,16 @@ export const ClientSelector: React.FC = () => {
               e.stopPropagation();
               startTriggerEdit();
             }}
-            className="flex items-center gap-1.5 rounded-md hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
+            className="flex items-center p-2 rounded-md hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
             title="Double-click to rename"
           >
-            <UserIcon size={20} className="shrink-0 text-neutral-400" />
+            <UserIcon size={20} className="mr-2 shrink-0 text-neutral-400" />
             <span className="text-sm font-semibold text-neutral-700 select-none truncate">
               {activeClient ? activeClient.name : 'Select Client'}
             </span>
             <ChevronDownIcon
               size={16}
-              className={`shrink-0 text-neutral-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+              className={`ml-1 shrink-0 text-neutral-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
             />
           </button>
         )}
