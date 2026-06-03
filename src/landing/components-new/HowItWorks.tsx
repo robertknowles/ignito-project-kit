@@ -156,76 +156,57 @@ const chatThread = [
   { role: 'ai', text: 'It offsets the rise. Purchase 2 moves up to 2028.' },
 ];
 
-const msgVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0 },
-};
-
 const ConversationIllustration: React.FC = () => (
   <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-40px' }}
-      variants={{ visible: { transition: { staggerChildren: 0.14 } } }}
-      className="w-full max-w-[360px]"
-    >
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        {/* header */}
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-100">
-          <div className="w-6 h-6 rounded-md bg-[#ede9fe] flex items-center justify-center shrink-0">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3l1.7 4.5L18 9.2l-4.3 1.7L12 15l-1.7-4.1L6 9.2l4.3-1.7L12 3z" fill="#7c3aed" />
-            </svg>
-          </div>
-          <span className="text-[12.5px] font-semibold text-gray-900">PropPath Assistant</span>
+    <div className="w-full max-w-[360px]">
+      {/* header */}
+      <div className="flex items-center gap-2.5 px-1 pb-3 mb-1 border-b border-gray-100">
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#c4b5fd] via-[#a855f7] to-[#7c3aed] flex items-center justify-center shrink-0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3l1.7 4.5L18 9.2l-4.3 1.7L12 15l-1.7-4.1L6 9.2l4.3-1.7L12 3z" fill="#ffffff" />
+          </svg>
         </div>
-
-        {/* thread */}
-        <div className="flex flex-col gap-2 px-4 py-3.5">
-          {chatThread.map((m, i) =>
-            m.role === 'user' ? (
-              <motion.div
-                key={i}
-                variants={msgVariants}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="self-end max-w-[82%] bg-gray-900 text-white text-[12px] leading-snug rounded-2xl rounded-br-sm px-3 py-2"
-              >
-                {m.text}
-              </motion.div>
-            ) : (
-              <motion.div
-                key={i}
-                variants={msgVariants}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="self-start max-w-[88%] bg-gray-50 border border-gray-200 text-gray-600 text-[12px] leading-snug rounded-2xl rounded-bl-sm px-3 py-2"
-              >
-                {m.text}
-              </motion.div>
-            )
-          )}
-        </div>
-
-        {/* input box — next question being typed */}
-        <motion.div variants={msgVariants} transition={{ duration: 0.45 }} className="px-4 pb-4">
-          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-            <span className="flex-1 inline-flex items-center text-[12px] text-gray-600">
-              What if we add a 5th property?
-              <motion.span
-                animate={{ opacity: [1, 1, 0, 0] }}
-                transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
-                className="ml-0.5 w-[1.5px] h-3.5 bg-gray-500 inline-block"
-              />
-            </span>
-            <div className="w-6 h-6 rounded-md bg-[#7c3aed] flex items-center justify-center shrink-0">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h13M12 6l6 6-6 6" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </div>
-        </motion.div>
+        <span className="text-[12.5px] font-semibold text-gray-900">PropPath Assistant</span>
       </div>
-    </motion.div>
+
+      {/* thread */}
+      <div className="flex flex-col gap-2 py-3.5">
+        {chatThread.map((m, i) =>
+          m.role === 'user' ? (
+            <div
+              key={i}
+              className="self-end max-w-[82%] bg-gray-900 text-white text-[12px] leading-snug rounded-2xl rounded-br-sm px-3 py-2"
+            >
+              {m.text}
+            </div>
+          ) : (
+            <div
+              key={i}
+              className="self-start max-w-[88%] bg-gray-50 border border-gray-200 text-gray-600 text-[12px] leading-snug rounded-2xl rounded-bl-sm px-3 py-2"
+            >
+              {m.text}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* input box — next question being typed */}
+      <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+        <span className="flex-1 inline-flex items-center text-[12px] text-gray-600">
+          What if we add a 5th property?
+          <motion.span
+            animate={{ opacity: [1, 1, 0, 0] }}
+            transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
+            className="ml-0.5 w-[1.5px] h-3.5 bg-gray-500 inline-block"
+          />
+        </span>
+        <div className="w-6 h-6 rounded-md bg-[#7c3aed] flex items-center justify-center shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h13M12 6l6 6-6 6" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -308,7 +289,7 @@ const ScenarioIllustration: React.FC = () => (
       {/* Scenario A */}
       <div className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#7F56D9]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
           <span className="text-[13px] font-bold text-gray-700">Scenario A</span>
         </div>
         <div className="flex flex-col gap-2.5 flex-1">
@@ -324,13 +305,13 @@ const ScenarioIllustration: React.FC = () => (
             </div>
           ))}
         </div>
-        <div className="h-1.5 bg-[#7F56D9]/20 rounded-full mt-3" />
+        <div className="h-1.5 bg-gray-300 rounded-full mt-3" />
       </div>
 
       {/* Scenario B */}
       <div className="flex-1 border border-gray-200 rounded-xl p-4 bg-white flex flex-col">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#7F56D9]" />
           <span className="text-[13px] font-bold text-gray-700">Scenario B</span>
         </div>
         <div className="flex flex-col gap-2.5 flex-1">
@@ -346,7 +327,7 @@ const ScenarioIllustration: React.FC = () => (
             </div>
           ))}
         </div>
-        <div className="h-1.5 bg-gray-300 rounded-full mt-3" />
+        <div className="h-1.5 bg-[#7F56D9]/20 rounded-full mt-3" />
       </div>
 
       {/* Compare line — subtle pulse */}
@@ -360,6 +341,52 @@ const ScenarioIllustration: React.FC = () => (
 );
 
 /* ─── 4. THE TOOLKIT ─── */
+const toolkitTools = [
+  {
+    label: 'Borrowing Power',
+    icon: (
+      <path d="M3 10l9-5 9 5M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18" />
+    ),
+    accent: true,
+  },
+  {
+    label: 'Stamp Duty',
+    icon: (
+      <>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M9 8h6M9 12h6M9 16h3" />
+      </>
+    ),
+  },
+  {
+    label: 'Land Tax',
+    icon: (
+      <path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2zM9 4v14M15 6v14" />
+    ),
+  },
+  {
+    label: 'LMI',
+    icon: (
+      <path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z" />
+    ),
+  },
+  {
+    label: 'Loan Repayments',
+    icon: (
+      <path d="M20 11a8 8 0 0 0-14-4M4 6v3h3M4 13a8 8 0 0 0 14 4M20 18v-3h-3" />
+    ),
+  },
+  {
+    label: 'Cashflow',
+    icon: (
+      <>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M8 7h8M8 11h2M11 11h2M14 11h2M8 15h2M14 15h2M11 15v3" />
+      </>
+    ),
+  },
+];
+
 const ToolkitIllustration: React.FC = () => (
   <div className="w-full h-full flex items-center justify-center overflow-hidden">
     <motion.div
@@ -367,45 +394,34 @@ const ToolkitIllustration: React.FC = () => (
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-[340px] relative px-4 py-3 flex flex-col gap-3"
+      className="w-full max-w-[320px] px-4 py-3 grid grid-cols-2 gap-2.5"
     >
-      {/* Input row */}
-      <div className="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3">
-        <span className="text-[12px] text-gray-400">State</span>
-        <div className="bg-gray-100 rounded-lg px-3 py-1">
-          <span className="text-[12px] font-bold text-gray-700">QLD</span>
-        </div>
-        <span className="text-[12px] text-gray-400 ml-3">Price</span>
-        <span className="text-[13px] font-bold text-gray-900 tabular-nums inline-flex items-center">
-          $450,000
-          {/* Blinking caret — the single subtle animation */}
-          <motion.span
-            animate={{ opacity: [1, 1, 0, 0] }}
-            transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
-            className="ml-0.5 w-[1.5px] h-3.5 bg-gray-900 inline-block"
-          />
-        </span>
-      </div>
-
-      {/* Results */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
-        {[
-          { label: 'Stamp Duty', value: '$15,925' },
-          { label: 'Transfer Fee', value: '$1,370' },
-          { label: 'Land Tax (annual)', value: '$0' },
-          { label: 'LMI', value: '$4,200' },
-        ].map((row, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <span className="text-[12px] text-gray-400">{row.label}</span>
-            <span className="text-[13px] font-bold text-gray-900 tabular-nums">{row.value}</span>
+      {toolkitTools.map((tool) => (
+        <div
+          key={tool.label}
+          className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3 py-2.5"
+        >
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              tool.accent ? 'bg-[#ede9fe]' : 'bg-gray-50'
+            }`}
+          >
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={tool.accent ? '#7c3aed' : '#374151'}
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {tool.icon}
+            </svg>
           </div>
-        ))}
-        <div className="h-[1px] bg-gray-200" />
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-bold text-gray-700">Total upfront</span>
-          <span className="text-[15px] font-bold text-gray-900 tabular-nums">$21,495</span>
+          <span className="text-[11.5px] font-semibold text-gray-700 leading-tight">{tool.label}</span>
         </div>
-      </div>
+      ))}
     </motion.div>
   </div>
 );
@@ -451,7 +467,7 @@ const ClientPortalIllustration: React.FC = () => (
 
       {/* Feature tags */}
       <div className="flex flex-wrap gap-1.5 justify-center">
-        {['Portfolio', 'Property', 'Plan', 'Brief', 'Progress', 'Deal'].map((tag) => (
+        {['Roadmap', 'Next Purchase', 'Portfolio', 'Progress'].map((tag) => (
           <span key={tag} className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">{tag}</span>
         ))}
       </div>
@@ -479,13 +495,13 @@ const features = [
   {
     label: 'SCENARIO PLANNING',
     title: 'Side-by-side comparison',
-    desc: 'Acquisition order matters. State matters. Timing matters. Compare scenarios side by side before anyone signs a contract. The right plan is obvious when both are on the same screen.',
+    desc: 'Acquisition order matters. State matters. Strategy matters. Compare scenarios side by side before anyone signs a contract. The right plan is obvious when both are on the same screen.',
     illustration: <ScenarioIllustration />,
   },
   {
     label: 'THE TOOLKIT',
     title: 'Every calculator, one platform',
-    desc: 'Borrowing Power. Stamp Duty. Land Tax. LMI. Loan Repayments. The tools BAs reach for every day, built into the same platform as the plan.',
+    desc: 'Borrowing Power. Stamp Duty. Land Tax. LMI. Loan Repayments. The tools BAs reach for every day, accessible at any time.',
     illustration: <ToolkitIllustration />,
   },
   {
