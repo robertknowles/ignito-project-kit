@@ -442,7 +442,7 @@ const ClientPortalIllustration: React.FC = () => (
         <motion.div
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-3 h-3 rounded-full bg-green-400 shrink-0"
+          className="w-3 h-3 rounded-full bg-[#c4b5fd] shrink-0"
         />
         <span className="text-[13px] text-gray-500 font-mono">proppath.co/client/john</span>
       </div>

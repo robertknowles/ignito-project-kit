@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
           <p className="text-[20px] text-gray-400 font-medium mb-10">Start building today.</p>
           <button
             onClick={scrollToPricing}
-            className="bg-gray-600 text-white px-[18px] py-[12px] rounded-lg font-semibold text-[16px] hover:bg-gray-700 transition-colors shadow-sm"
+            className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-[18px] py-[12px] rounded-lg font-semibold text-[16px] hover:from-[#6d28d9] hover:to-[#9333ea] transition-all shadow-sm"
           >
             Get Early Access
           </button>

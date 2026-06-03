@@ -73,7 +73,7 @@ const Pricing: React.FC = () => {
                       'All future updates included',
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3 text-[14px] text-gray-700">
-                        <Check size={16} className="text-emerald-500 shrink-0" />
+                        <Check size={16} className="text-[#a855f7] shrink-0" />
                         <span>{item}</span>
                       </div>
                     ))}
@@ -81,7 +81,7 @@ const Pricing: React.FC = () => {
                   <button
                     onClick={() => handleSubscribe('starter')}
                     disabled={loadingPlan !== null}
-                    className="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold text-[14px] hover:bg-gray-800 transition-all flex items-center justify-between px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-xl font-semibold text-[14px] hover:from-[#6d28d9] hover:to-[#9333ea] transition-all flex items-center justify-between px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loadingPlan === 'starter' ? (
                       <span className="flex items-center gap-2 mx-auto">
