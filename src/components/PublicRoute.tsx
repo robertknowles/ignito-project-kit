@@ -36,7 +36,7 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     }
 
     // Clients go to the portal; agents/owners go to the home page.
-    const redirectPath = role === 'client' ? '/portal' : '/home';
+    const redirectPath = role === 'client' ? '/portal' : '/dashboard';
     return <Navigate to={redirectPath} replace />;
   }
 

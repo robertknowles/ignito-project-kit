@@ -55,7 +55,9 @@ export function buildSystemPrompt(
   conversationSummary?: string,
 ): string {
   const currentYear = new Date().getFullYear();
-  const hasPlan = !!currentPlan;
+  // A plan only "exists" if it has actual properties. The frontend may send
+  // a currentPlan object with empty properties from stale/default state.
+  const hasPlan = !!currentPlan && Array.isArray(currentPlan.properties) && currentPlan.properties.length > 0;
   const preset = strategyPreset || currentPlan?.investmentProfile?.strategyPreset || 'eg-low';
   const presetLabel = PRESET_LABELS[preset] || 'Equity Growth, Low Price Point';
 

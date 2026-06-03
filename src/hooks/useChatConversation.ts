@@ -58,6 +58,10 @@ interface UseChatConversationOptions {
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
   /** True when a plan already exists — used to reject misclassified initial_plan rebuilds. */
   hasExistingPlan?: boolean
+  /** When true, force currentPlan to null on the next sendMessage call.
+   *  Used by pending-prompt (home page → dashboard) to prevent stale plan state
+   *  from causing the AI to misroute a fresh client brief as update_profile. */
+  forceNewPlan?: boolean
 }
 
 interface ConversationAction {
@@ -261,7 +265,11 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // setTimeout) before loadClientScenario reset state for the new
         // client. Sending a stale currentPlan was causing the AI to
         // classify fresh prompts as modifications of the previous client.
-        const currentPlan = optionsRef.current.getCurrentPlan?.() ?? null
+        // If forceNewPlan is set (pending-prompt from home page), send null
+        // to guarantee the AI creates a new plan instead of updating stale state.
+        const currentPlan = optionsRef.current.forceNewPlan
+          ? null
+          : (optionsRef.current.getCurrentPlan?.() ?? null)
 
         // Build conversation history (text messages only, for context).
         // Sliding window: keep only the last 20 entries (~10 user/assistant turns).

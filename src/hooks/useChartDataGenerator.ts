@@ -575,7 +575,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     }
 
     return data;
-  }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance, eventBlocks]);
+  }, [timelineProperties, profile, globalFactors, getPropertyData, getInstance, eventBlocks, existingProperties]);
 
   // Enrich portfolio data with monthly holding cost from cashflow data
   const enrichedPortfolioData = useMemo((): PortfolioGrowthDataPoint[] => {

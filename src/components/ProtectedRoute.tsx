@@ -78,7 +78,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check role restrictions - redirect unauthorized roles appropriately
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     // Clients go to portal, agents/owners go to home
-    const fallback = role === 'client' ? '/portal' : '/home';
+    const fallback = role === 'client' ? '/portal' : '/dashboard';
     return <Navigate to={fallback} replace />;
   }
 

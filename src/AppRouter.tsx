@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { App } from './App'
 import { Landing } from './landing/Landing'
-import { AgentHome } from './pages/AgentHome'
+// AgentHome removed — content now lives in NewClientView inside Dashboard
 import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { Portfolio } from './pages/Portfolio'
@@ -123,15 +123,8 @@ export function AppRouter() {
                             {/* Public client onboarding form - no authentication required */}
                             <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
                             
-                            {/* BA Home - agent/owner overview page */}
-                            <Route
-                              path="/home"
-                              element={
-                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
-                                  <AgentHome />
-                                </ProtectedRoute>
-                              }
-                            />
+                            {/* /home removed — redirect to dashboard */}
+                            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
 
                             {/* Protected app routes - require authentication */}
                             {/* /dashboard is owner/agent only. Clients shared via
@@ -188,7 +181,7 @@ export function AppRouter() {
                                 </ProtectedRoute>
                               }
                             />
-                            <Route path="/assumptions" element={<Navigate to="/home" replace />} />
+                            <Route path="/assumptions" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="/forms"
                               element={

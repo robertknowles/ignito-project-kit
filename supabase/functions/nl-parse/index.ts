@@ -153,7 +153,9 @@ Deno.serve(async (req: Request) => {
     // ── Server-side guard: no plan → no update/modify ─────────────
     // If the AI picks update_profile or modify_plan but no plan exists,
     // there's nothing to update. Fall back to a helpful response.
-    const hasPlan = !!currentPlan;
+    // Check for a MEANINGFUL plan — not just a truthy currentPlan.
+    // The frontend may send a currentPlan with empty properties from stale state.
+    const hasPlan = !!currentPlan && Array.isArray(currentPlan.properties) && currentPlan.properties.length > 0;
     if (!hasPlan && (toolName === 'update_profile' || toolName === 'modify_plan' || toolName === 'suggest_properties' || toolName === 'add_event')) {
       console.warn(`nl-parse: tool="${toolName}" chosen but no plan exists — falling back to respond`);
       toolName = 'respond';

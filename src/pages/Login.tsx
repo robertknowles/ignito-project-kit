@@ -25,7 +25,7 @@ export function Login() {
       setLoading(false)
     } else {
       localStorage.removeItem('pending_subscription_plan')
-      navigate('/home')
+      navigate('/dashboard')
     }
   }
 

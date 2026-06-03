@@ -596,6 +596,10 @@ export const ChatPanel: React.FC = () => {
     [setHighlightPeriod]
   )
 
+  // Tracks whether we're in a pending-prompt (home page) flow so the
+  // chat hook sends currentPlan: null, preventing stale plan misrouting.
+  const forceNewPlanRef = useRef(false)
+
   // Chat conversation hook
   const { messages, isLoading, sendMessage, showOptionCards, addSystemMessage, loadMessages, clearMessages, setMessageFeedback } = useChatConversation({
     onPlanGenerated: handlePlanGenerated,
@@ -615,6 +619,7 @@ export const ChatPanel: React.FC = () => {
     // selections in memory until loadClientScenario settles, causing the
     // initial_plan downgrade guard to misfire (founder report 2026-05-06).
     hasExistingPlan: propertyOrder.length > 0 && !!scenarioId,
+    forceNewPlan: forceNewPlanRef.current,
   })
 
   // Keep the forward-ref pointed at the latest addSystemMessage so callbacks
@@ -1017,9 +1022,14 @@ export const ChatPanel: React.FC = () => {
     sessionStorage.removeItem('proppath:pending-prompt')
 
     clearMessages()
+    // Force null currentPlan for this send — prevents stale plan state from
+    // causing the AI to misroute a fresh client brief as update_profile.
+    forceNewPlanRef.current = true
     // Defer one tick so the cleared state lands before the new send.
     setTimeout(() => {
       sendMessage(pending)
+      // Clear the flag after the send so subsequent messages use normal plan state.
+      forceNewPlanRef.current = false
     }, 50)
   }, [isLoading, activeClient?.id, clearMessages, sendMessage])
 

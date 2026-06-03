@@ -4,6 +4,7 @@ import { AppSidebar, SIDEBAR_WIDTH } from './components/AppSidebar';
 // InputDrawer hidden for NL pivot — component preserved in codebase for future use
 // import { InputDrawer } from './components/InputDrawer';
 import { ChatPanel } from './components/ChatPanel';
+import { NewClientView } from './components/NewClientView';
 import { useClient } from './contexts/ClientContext';
 import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
@@ -81,17 +82,29 @@ function AppContent() {
     <PropertyDragDropProvider>
       <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
-        <ChatPanel />
 
-        <div
-          id="main-content"
-          className="flex-1 flex flex-col overflow-hidden"
-          style={{ marginLeft: SIDEBAR_WIDTH }}
-        >
-          <div className="flex-1 overflow-hidden">
-            <Dashboard key={activeClient?.id || 'no-client'} />
+        {activeClient ? (
+          <>
+            <ChatPanel />
+            <div
+              id="main-content"
+              className="flex-1 flex flex-col overflow-hidden"
+              style={{ marginLeft: SIDEBAR_WIDTH }}
+            >
+              <div className="flex-1 overflow-hidden">
+                <Dashboard key={activeClient.id} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div
+            id="main-content"
+            className="flex-1 flex flex-col overflow-hidden"
+            style={{ marginLeft: SIDEBAR_WIDTH }}
+          >
+            <NewClientView />
           </div>
-        </div>
+        )}
       </div>
     </PropertyDragDropProvider>
   );
