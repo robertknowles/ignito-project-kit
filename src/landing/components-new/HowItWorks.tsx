@@ -475,19 +475,12 @@ const features = [
 
 const HowItWorks: React.FC = () => (
   <section id="how-it-works" className="py-24 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-    {/* Section intro */}
-    <div className="max-w-none mb-16 md:mb-20">
-      <h2 className="text-3xl md:text-[36px] font-semibold tracking-tight leading-[1.2] mb-4">
-        <span className="text-gray-900">A new standard for portfolio planning.</span>{' '}
-        <span className="text-gray-400">
-          PropPath gives agents the ability to build property roadmaps in minutes.
-        </span>
-      </h2>
-    </div>
-
     {/* Sub-heading */}
-    <div className="mb-12 md:mb-16 border-t border-gray-200 pt-12">
-      <h2 className="text-3xl font-semibold text-gray-900 mb-4">Everything you need to build, manage, and share property plans with speed and clarity.</h2>
+    <div className="mb-12 md:mb-16">
+      <h2 className="text-3xl md:text-[36px] font-semibold tracking-tight leading-[1.2] mb-4">
+        <span className="text-gray-900">Everything you need</span>{' '}
+        <span className="text-gray-400">to build, manage, and share property plans with speed and clarity.</span>
+      </h2>
     </div>
 
     {/* Bento grid — 2 large top, 3 small bottom */}

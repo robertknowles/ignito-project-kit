@@ -46,16 +46,11 @@ const Hero: React.FC = () => {
           {/* Announcement badge — matches UUI pattern exactly */}
           <button
             onClick={scrollToPricing}
-            className="inline-flex items-center gap-3 mb-4 pl-1 pr-2.5 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer group"
+            className="inline-flex items-center gap-2 mb-4 pl-3 pr-2.5 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer group"
           >
-            <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-gray-700 bg-white border border-gray-200 rounded-md px-2 py-[2px] shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Founding agencies
-            </span>
-            <span className="text-[14px] font-medium text-gray-600 flex items-center gap-1">
-              Become a founding agency
-              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-            </span>
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[14px] font-medium text-gray-700">Become a founding agency</span>
+            <ArrowRight size={14} className="text-gray-600 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
           {/* Heading */}
@@ -66,7 +61,7 @@ const Hero: React.FC = () => {
 
           {/* Subtitle */}
           <p className="text-[18px] sm:text-[20px] font-normal leading-[28px] sm:leading-[30px] text-gray-600 max-w-[640px] mb-10">
-            Purpose-built for buyers agents and property professionals.
+            PropPath gives buyers agents and property professionals the ability to build property roadmaps in minutes.
           </p>
 
           {/* CTA Buttons */}
