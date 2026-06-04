@@ -188,6 +188,48 @@ export const calculateUpdatedBorrowingCapacity = (
   return baseCapacity;
 };
 
+export const calculateRemainingLoanBalance = (
+  loanAmount: number,
+  yearsOwned: number,
+  interestRate: number,
+  loanType: 'IO' | 'PI' = 'IO',
+  loanTerm: number = 30,
+  ioTermYears: number = 5,
+): number => {
+  if (loanAmount <= 0 || yearsOwned < 0) return Math.max(0, loanAmount);
+
+  const safeRate = Math.max(0.001, interestRate);
+  const monthlyRate = safeRate / 12;
+
+  if (loanType === 'PI') {
+    const totalMonths = loanTerm * 12;
+    const monthsPaid = Math.min(yearsOwned * 12, totalMonths);
+    if (monthsPaid >= totalMonths) return 0;
+    const monthlyPayment = loanAmount *
+      (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
+      (Math.pow(1 + monthlyRate, totalMonths) - 1);
+    const remaining = loanAmount * Math.pow(1 + monthlyRate, monthsPaid) -
+      monthlyPayment * (Math.pow(1 + monthlyRate, monthsPaid) - 1) / monthlyRate;
+    return Math.max(0, remaining);
+  }
+
+  if (yearsOwned < ioTermYears) return loanAmount;
+
+  const piYearsRemaining = loanTerm - ioTermYears;
+  if (piYearsRemaining <= 0) return loanAmount;
+  const yearsIntoPi = yearsOwned - ioTermYears;
+  if (yearsIntoPi >= piYearsRemaining) return 0;
+
+  const piTotalMonths = piYearsRemaining * 12;
+  const piMonthsPaid = yearsIntoPi * 12;
+  const monthlyPayment = loanAmount *
+    (monthlyRate * Math.pow(1 + monthlyRate, piTotalMonths)) /
+    (Math.pow(1 + monthlyRate, piTotalMonths) - 1);
+  const remaining = loanAmount * Math.pow(1 + monthlyRate, piMonthsPaid) -
+    monthlyPayment * (Math.pow(1 + monthlyRate, piMonthsPaid) - 1) / monthlyRate;
+  return Math.max(0, remaining);
+};
+
 export const calculatePortfolioMetrics = (
   purchases: PropertyPurchase[],
   currentYear: number,
@@ -211,8 +253,14 @@ export const calculatePortfolioMetrics = (
     // Use detailed cash flow analysis with property-specific growth
     const cashFlowAnalysis = analyzeCashFlow(purchase, currentYear, effectiveGrowthCurve, expenses);
 
-    // Simplified debt model - no principal reduction
-    const remainingDebt = purchase.loanAmount;
+    const remainingDebt = calculateRemainingLoanBalance(
+      purchase.loanAmount,
+      yearsHeld,
+      purchase.interestRate ?? interestRate,
+      purchase.loanType ?? 'IO',
+      purchase.loanTerm ?? 30,
+      purchase.ioTermYears ?? 5,
+    );
     const propertyEquity = Math.max(0, currentValue - remainingDebt);
 
     return {

@@ -40,6 +40,9 @@ export interface PropertyInstanceDetails {
   /** Loan term in years (typically 30 for residential, 20-25 for commercial) */
   loanTerm: number;
 
+  /** Years of interest-only before rolling to P&I (default 5, industry standard) */
+  ioTermYears?: number;
+
   // Section D: One-Off Purchase Costs (11 fields)
   
   /** Buyer's agent engagement fee */

@@ -309,6 +309,12 @@ const EQUITY_COLUMNS: Column[] = [
       : null,
   },
   {
+    key: 'ioTerm', header: 'IO Term',
+    render: (c, onChange) => c.instanceData
+      ? <NumberInput value={c.instanceData.ioTermYears ?? 5} onChange={v => onChange(c.instanceId, 'ioTermYears', v)} />
+      : null,
+  },
+  {
     key: 'lmi', header: 'LMI Waiver',
     render: (c, onChange) => c.instanceData
       ? <CheckboxInput checked={c.instanceData.lmiWaiver} onChange={v => onChange(c.instanceId, 'lmiWaiver', v)} />
@@ -493,6 +499,12 @@ const PURCHASES_COLUMNS: Column[] = [
     key: 'product', header: 'Product',
     render: (c, onChange) => c.instanceData
       ? <SelectInput value={c.instanceData.loanProduct} options={PRODUCT_OPTIONS} onChange={v => onChange(c.instanceId, 'loanProduct', v as any)} />
+      : null,
+  },
+  {
+    key: 'ioTerm', header: 'IO Term',
+    render: (c, onChange) => c.instanceData
+      ? <NumberInput value={c.instanceData.ioTermYears ?? 5} onChange={v => onChange(c.instanceId, 'ioTermYears', v)} />
       : null,
   },
   // ── Income ──

@@ -16,6 +16,7 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { PlaceholderChart } from '@/components/ui/PlaceholderChart';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
+import { BorrowingCapacityChart } from './BorrowingCapacityChart';
 // EquityMortgageChart and HoldingCostChart hidden for now — components preserved in their files
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
@@ -24,7 +25,11 @@ import { ClientInputsTab } from './ClientInputsTab';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { ConfirmationBrief } from './ConfirmationBrief';
-import { BASE_YEAR } from '../constants/financialParams';
+import {
+  BASE_YEAR,
+  ANNUAL_WAGE_GROWTH_RATE,
+  RENTAL_RECOGNITION_RATE,
+} from '../constants/financialParams';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
@@ -210,8 +215,22 @@ export const Dashboard = () => {
         : 0,
       rentalIncomeAnnual: lastCf ? Math.round(lastCf.rentalIncome) : 0,
       holdingCostsAnnual: lastCf ? Math.round(lastCf.expenses + lastCf.loanRepayments) : 0,
+      borrowingHeadroom: (() => {
+        const profile = displayScenarioAData?.profile;
+        if (!lastGrowth || !profile) return 0;
+        const yearsElapsed = displayYears - 1;
+        const wageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
+        const multiplier = profile.salaryServiceabilityMultiplier ?? 6.0;
+        const baseSalary = profile.baseSalary ?? 60000;
+        const projectedSalary = baseSalary * Math.pow(1 + wageGrowth, yearsElapsed);
+        const grossRental = lastCf?.rentalIncome ?? 0;
+        const capturedRental = grossRental * RENTAL_RECOGNITION_RATE;
+        const capacity = Math.round((projectedSalary + capturedRental) * multiplier);
+        const debt = lastGrowth.totalDebt ?? 0;
+        return capacity - debt;
+      })(),
     };
-  }, [chartDataA]);
+  }, [chartDataA, displayScenarioAData, displayYears]);
 
   const addPropertyBtn = (
     <button
@@ -418,6 +437,27 @@ export const Dashboard = () => {
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
               <CashflowChart scenarioData={displayScenarioAData} />
+            </ChartCard>
+
+            {/* Borrowing Capacity chart */}
+            <ChartCard
+              title="Borrowing Capacity"
+              legend={[
+                { color: '#7F56D9', label: 'Borrowing Capacity' },
+                { color: '#414651', label: 'Total Liabilities' },
+                { color: '#9E77ED', label: 'Offset Debt' },
+              ]}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    {formatCompact(kpis.borrowingHeadroom)}
+                  </span>
+                  <span className="text-sm text-neutral-500">headroom by {BASE_YEAR + displayYears - 1}</span>
+                </div>
+                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+              </div>
+              <BorrowingCapacityChart scenarioData={displayScenarioAData} />
             </ChartCard>
 
             {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}
