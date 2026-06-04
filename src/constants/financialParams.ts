@@ -32,12 +32,6 @@ export const BASE_YEAR = new Date().getFullYear();
 export const SERVICEABILITY_FACTOR = 0.10;
 
 /**
- * APRA-mandated assessment rate buffer above actual interest rate.
- * Banks assess loan serviceability at actual rate + 3% buffer.
- */
-export const ASSESSMENT_RATE_BUFFER = 0.03;
-
-/**
  * Rental Income Contribution Rate for Serviceability
  *
  * Aggressive Pacing default. Tier-linked:

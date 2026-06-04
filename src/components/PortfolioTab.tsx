@@ -267,10 +267,6 @@ const COLUMNS: Column[] = [
     render: (p, onChange) => <SelectCell value={p.loanType} options={PRODUCT_OPTIONS} onChange={v => onChange(p.id, { loanType: v as 'IO' | 'PI' })} />,
   },
   {
-    key: 'ioTerm', header: 'IO Term',
-    render: (p, onChange) => <NumCell value={p.ioTermYears ?? 5} onChange={v => onChange(p.id, { ioTermYears: v })} />,
-  },
-  {
     key: 'rent', header: 'Rent/wk ($)',
     render: (p, onChange) => <NumCell value={p.rentPerWeek} onChange={v => onChange(p.id, { rentPerWeek: v })} />,
   },

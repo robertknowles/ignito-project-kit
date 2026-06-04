@@ -2,29 +2,20 @@ import React, { useMemo } from 'react';
 import {
   ComposedChart,
   Area,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ReferenceDot,
-  Label,
   ResponsiveContainer,
 } from 'recharts';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
-import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { CHART_STYLE } from '../constants/chartColors';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
   RENTAL_RECOGNITION_RATE,
-  PERIODS_PER_YEAR,
 } from '../constants/financialParams';
-import {
-  getEffectiveSalary,
-  getEffectivePartnerIncome,
-} from '../utils/eventProcessing';
-import { getPropertyIconPath } from './icons/PropertyIconPaths';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
@@ -35,79 +26,13 @@ interface BorrowingCapacityChartProps {
   };
 }
 
-const UUI = {
-  brand600: '#7F56D9',
-  brand200: '#E9D7FE',
-  brand300: '#D6BBFB',
-  neutral900: '#171717',
-  neutral700: '#404040',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
-  neutral100: '#F5F5F5',
-  white: '#FFFFFF',
-  success: '#00A63E',
-  fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-} as const;
-
-const CAPACITY_STROKE = UUI.brand600;
-const DEBT_STROKE = '#414651';
-const OFFSET_STROKE = '#9E77ED';
-
-const PurchaseDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null;
-  if (!payload?.properties?.length) return null;
-
-  const iconSize = 14;
-  const bgSize = 26;
-  const stackGap = 2;
-
-  return (
-    <g>
-      {payload.properties.map((title: string, idx: number) => {
-        const iconPath = getPropertyIconPath(title);
-        const iconCy = cy - idx * (bgSize + stackGap);
-        return (
-          <g key={`${payload.year}-${idx}`}>
-            <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="#FFFFFF" stroke="#E5E5E5" strokeWidth={1} />
-            <svg
-              x={cx - iconSize / 2}
-              y={iconCy - iconSize / 2}
-              width={iconSize}
-              height={iconSize}
-              viewBox="0 0 24 24"
-              fill="none"
-              style={{ pointerEvents: 'none' }}
-            >
-              <path d={iconPath} stroke="#171717" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </g>
-        );
-      })}
-    </g>
-  );
-};
-
-const DebtFreeMarker = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
-  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
-  const badgeY = 4;
-  return (
-    <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.brand600} strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill={UUI.brand600} />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
-        Debt Free ✓
-      </text>
-    </g>
-  );
-};
+const CAPACITY_STROKE = '#2563EB';
+const DEBT_STROKE = '#8B5CF6';
+const OFFSET_STROKE = '#06B6D4';
 
 export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ scenarioData }) => {
   const { portfolioGrowthData, cashflowData } = useChartDataGenerator(scenarioData);
   const { profile: contextProfile } = useInvestmentProfile();
-  const { eventBlocks } = usePropertySelection();
   const profile = scenarioData?.profile ?? contextProfile;
 
   const data = useMemo(() => {
@@ -115,75 +40,48 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
     const wageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
     const multiplier = profile.salaryServiceabilityMultiplier ?? 6.0;
     const baseSalary = profile.baseSalary ?? 60000;
-    const statedBC = profile.borrowingCapacity ?? 0;
 
     return portfolioGrowthData
       .filter(d => Number(d.year) <= endYear)
       .map(d => {
         const year = Number(d.year);
         const yearsElapsed = year - BASE_YEAR;
-        const period = yearsElapsed * PERIODS_PER_YEAR + 1;
 
-        const projectedSalary = baseSalary * Math.pow(1 + wageGrowth, yearsElapsed);
-        const effectiveSalary = getEffectiveSalary(period, projectedSalary, eventBlocks);
-        const partnerIncome = getEffectivePartnerIncome(period, eventBlocks);
-        const totalIncome = effectiveSalary + partnerIncome;
+        const employmentIncome = baseSalary * Math.pow(1 + wageGrowth, yearsElapsed);
 
         const cfPoint = cashflowData.find(c => c.year === d.year);
         const grossRentalIncome = cfPoint?.rentalIncome ?? 0;
         const capturedRental = grossRentalIncome * RENTAL_RECOGNITION_RATE;
 
+        const borrowingCeiling = Math.round(
+          (employmentIncome + capturedRental) * multiplier
+        );
+
         const totalDebt = d.totalDebt ?? 0;
 
-        // If a broker-assessed BC is stated, use it as year-1 anchor and grow
-        // with wage growth. Otherwise fall back to 6× (income + rental).
-        // Commitments shown separately via the Total Liabilities area.
-        let borrowingCeiling: number;
-        if (statedBC > 0) {
-          borrowingCeiling = Math.round(statedBC * Math.pow(1 + wageGrowth, yearsElapsed));
-        } else {
-          borrowingCeiling = Math.round(
-            Math.max(0, (totalIncome + capturedRental) * multiplier)
-          );
-        }
-
-        // "Offset Debt" = net debt exposure (gross debt minus offset cash).
-        // Starts near gross debt (little cash), declines to 0 as savings accumulate.
-        const cashOffset = Math.min(d.cashOffset ?? 0, totalDebt);
-        const offsetDebt = Math.round(Math.max(0, totalDebt - cashOffset));
+        // Offset debt: cash savings that could sit in an offset account
+        // Uses availableFunds minus usable equity (we only want pure cash, not equity)
+        // availableFunds = depositPool + cumulativeSavings + usableEquity - depositsUsed
+        // We approximate offset as: availableFunds data point, capped at totalDebt
+        // (can't offset more than you owe)
+        const offsetDebt = Math.round(Math.min(d.availableFunds ?? 0, totalDebt));
 
         return {
           year: d.year,
           borrowingCeiling,
           totalDebt,
           offsetDebt,
-          properties: d.properties,
         };
       });
-  }, [portfolioGrowthData, cashflowData, profile, eventBlocks]);
-
-  const debtFreePoint = useMemo(() => {
-    const hasDebt = data.some(d => d.offsetDebt > 0);
-    if (!hasDebt) return null;
-
-    let lastDebtIndex = -1;
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].offsetDebt > 0) {
-        lastDebtIndex = i;
-        break;
-      }
-    }
-    if (lastDebtIndex < 0 || lastDebtIndex >= data.length - 1) return null;
-    return data[lastDebtIndex + 1];
-  }, [data]);
+  }, [portfolioGrowthData, cashflowData, profile]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
 
     const ceiling = payload.find((p: any) => p.dataKey === 'borrowingCeiling')?.value ?? 0;
     const debt = payload.find((p: any) => p.dataKey === 'totalDebt')?.value ?? 0;
-    const netExposure = payload.find((p: any) => p.dataKey === 'offsetDebt')?.value ?? 0;
-    const offsetCash = debt - netExposure;
+    const offset = payload.find((p: any) => p.dataKey === 'offsetDebt')?.value ?? 0;
+    const netDebt = debt - offset;
     const headroom = ceiling - debt;
 
     return (
@@ -214,9 +112,9 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
         <div className="flex justify-between gap-6 mb-1">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: OFFSET_STROKE }} />
-            <span className="text-gray-500">Debt not Offset</span>
+            <span className="text-gray-500">Offset Debt</span>
           </span>
-          <span className="font-medium text-gray-700">${netExposure.toLocaleString()}</span>
+          <span className="font-medium text-gray-700">${offset.toLocaleString()}</span>
         </div>
         <div
           className="flex justify-between gap-6 pt-2 mt-1"
@@ -228,11 +126,20 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
           </span>
         </div>
         <div className="flex justify-between gap-6 mt-0.5">
-          <span className="text-gray-400 text-xs">Offset Cash</span>
-          <span className="text-gray-400 text-xs">${offsetCash.toLocaleString()}</span>
+          <span className="text-gray-400 text-xs">Net Debt</span>
+          <span className="text-gray-400 text-xs">${netDebt.toLocaleString()}</span>
         </div>
       </div>
     );
+  };
+
+  const formatYAxis = (value: number) => {
+    if (value === 0) return '$0';
+    if (Math.abs(value) >= 1_000_000) {
+      const m = value / 1_000_000;
+      return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
+    }
+    return `$${(value / 1000).toFixed(0)}K`;
   };
 
   return (
@@ -240,92 +147,63 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart
           data={data}
-          margin={{ top: 20, right: 16, left: 16, bottom: 0 }}
+          margin={{ top: 10, right: 0, left: -10, bottom: 0 }}
         >
           <defs>
-            <linearGradient id="bcCapacityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={UUI.brand200} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={UUI.brand200} stopOpacity={0.02} />
+            <linearGradient id="bcCapacityFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.10} />
+              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.02} />
             </linearGradient>
-            <pattern id="bcOffsetStripes" width="8" height="100%" patternUnits="userSpaceOnUse">
-              <line x1="4" y1="0" x2="4" y2="100%" stroke={OFFSET_STROKE} strokeWidth="1" strokeOpacity="0.3" />
-            </pattern>
+            <linearGradient id="bcDebtFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.12} />
+              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.03} />
+            </linearGradient>
+            <linearGradient id="bcOffsetFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.14} />
+              <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.03} />
+            </linearGradient>
           </defs>
 
-          <CartesianGrid
-            strokeDasharray="0"
-            stroke={UUI.neutral100}
-            strokeOpacity={0.8}
-            vertical={false}
-          />
-
-          <XAxis
-            dataKey="year"
-            tick={{
-              fontSize: 12,
-              fontWeight: 600,
-              fill: UUI.neutral500,
-              fontFamily: UUI.fontFamily,
-            }}
-            axisLine={false}
-            tickLine={false}
-            tickMargin={10}
-            padding={{ left: 20, right: 10 }}
-          />
-          <YAxis hide />
+          <CartesianGrid {...CHART_STYLE.grid} />
+          <XAxis dataKey="year" {...CHART_STYLE.xAxis} padding={{ left: 20, right: 10 }} />
+          <YAxis tickFormatter={formatYAxis} {...CHART_STYLE.yAxis} />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Capacity envelope — solid line + soft gradient */}
+          {/* Capacity filled area — the ceiling */}
           <Area
             type="monotone"
             dataKey="borrowingCeiling"
             name="Borrowing Capacity"
             stroke={CAPACITY_STROKE}
-            strokeWidth={2}
-            fill="url(#bcCapacityGradient)"
-            dot={<PurchaseDot />}
-            activeDot={false}
+            strokeWidth={2.5}
+            fill="url(#bcCapacityFill)"
+            dot={false}
             isAnimationActive={false}
           />
 
-          {/* Total Liabilities — dashed line, no area fill */}
-          <Line
+          {/* Total liabilities filled area */}
+          <Area
             type="monotone"
             dataKey="totalDebt"
             name="Total Liabilities"
             stroke={DEBT_STROKE}
-            strokeWidth={1.5}
-            strokeDasharray="6 4"
+            strokeWidth={2}
+            fill="url(#bcDebtFill)"
             dot={false}
-            activeDot={false}
             isAnimationActive={false}
           />
 
-          {/* Offset Debt — vertical stripe pattern (real exposure) */}
+          {/* Offset debt — savings reducing net debt */}
           <Area
             type="monotone"
             dataKey="offsetDebt"
             name="Offset Debt"
             stroke={OFFSET_STROKE}
-            strokeWidth={1.5}
-            fill="url(#bcOffsetStripes)"
+            strokeWidth={2}
+            fill="url(#bcOffsetFill)"
             dot={false}
             isAnimationActive={false}
           />
-
-          {/* Debt Free milestone */}
-          {debtFreePoint && (
-            <ReferenceDot
-              x={debtFreePoint.year}
-              y={debtFreePoint.offsetDebt}
-              r={6}
-              fill={UUI.brand600}
-              stroke="white"
-              strokeWidth={2.5}
-            >
-              <Label content={<DebtFreeMarker />} />
-            </ReferenceDot>
-          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

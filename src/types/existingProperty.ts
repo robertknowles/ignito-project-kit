@@ -21,7 +21,6 @@ export interface ExistingProperty {
   maintenance: number
   growthAssumption?: 'High' | 'Medium' | 'Low'
   loanTerm?: number
-  ioTermYears?: number
   strata?: number
   vacancyRate?: number
   saleYear?: number | null
