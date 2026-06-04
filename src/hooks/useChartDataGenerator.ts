@@ -4,7 +4,7 @@ import { useAffordabilityCalculator } from './useAffordabilityCalculator';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
-import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth, calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
+import { calculatePortfolioMetrics, calculateExistingPortfolioMetrics, combineMetrics, DEFAULT_PROPERTY_EXPENSES, calculatePropertyGrowth, calculateExistingPortfolioGrowthByPeriod, calculateRemainingLoanBalance } from '../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { getEffectiveCgtRate } from '../utils/cgtCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
@@ -44,6 +44,7 @@ export interface PortfolioGrowthDataPoint {
   monthlyHoldingCost?: number;    // Net monthly cost to hold portfolio
   borrowingCapacity?: number;     // Remaining borrowing capacity
   cashFromSales?: number;         // Cumulative net proceeds from sold existing properties
+  cashOffset?: number;            // Pure cash offset (deposit pool + savings - deposits used, no equity)
 }
 
 export interface CashflowDataPoint {
@@ -173,11 +174,14 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         loanAmount: property.loanAmount,
         depositRequired: property.depositRequired,
         title: property.title,
-        instanceId: property.instanceId, // Include instanceId for renovation tracking
+        instanceId: property.instanceId,
         rentalYield: rentalYield,
-        growthRate: defaultGrowthRate, // DEPRECATED: kept for backward compatibility
-        growthCurve: propertyGrowthCurve, // Use instance-specific tiered growth rates
-        interestRate: defaultInterestRate
+        growthRate: defaultGrowthRate,
+        growthCurve: propertyGrowthCurve,
+        interestRate: defaultInterestRate,
+        loanType: propertyInstance?.loanProduct ?? 'IO',
+        loanTerm: propertyInstance?.loanTerm ?? 30,
+        ioTermYears: propertyInstance?.ioTermYears ?? 5,
       };
     });
 
@@ -209,14 +213,33 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       // Calculate sale-aware portfolio value and debt for existing properties
       let epPortfolioValue = profile.portfolioValue;
       let epCurrentDebt = profile.currentDebt;
+      let epRefiValue = 0;
+      let epRefiDebt = 0;
       if (existingProperties.length > 0) {
         epPortfolioValue = 0;
         epCurrentDebt = 0;
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
           epPortfolioValue += ep.currentValue;
-          epCurrentDebt += ep.loan;
+          const yearsFromPurchase = Math.max(0, year - (ep.boughtYear || BASE_YEAR));
+          const epRate = ep.interestRate ? ep.interestRate / 100 : defaultInterestRate;
+          const amortisedLoan = calculateRemainingLoanBalance(
+            ep.loan,
+            yearsFromPurchase,
+            epRate,
+            ep.loanType ?? 'IO',
+            ep.loanTerm ?? 30,
+            ep.ioTermYears ?? 5,
+          );
+          epCurrentDebt += amortisedLoan;
+          if (ep.allowEquityRelease !== false) {
+            epRefiValue += ep.currentValue;
+            epRefiDebt += amortisedLoan;
+          }
         });
+      } else {
+        epRefiValue = epPortfolioValue;
+        epRefiDebt = epCurrentDebt;
       }
 
       // Accumulate sale proceeds in the year of sale
@@ -313,12 +336,17 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       // Available funds: deposit pool + cumulative wage-grown savings + usable equity from portfolio.
       // Cumulative savings = sum of geometric series annualSavings × (1+wageGrowth)^i for i in [0, yearsElapsed).
       // Closed form: annualSavings × ((1+wageGrowth)^yearsElapsed − 1) / wageGrowth
-      const usableEquity = Math.max(0, totalMetrics.portfolioValue * EQUITY_EXTRACTION_LVR_CAP - totalMetrics.totalDebt);
+      // Only include equity from existing properties with allowEquityRelease enabled
+      const refiExistingGrown = epRefiValue * Math.pow(1 + (profile.existingPortfolioGrowthRate || 0.05), yearsElapsed);
+      const refiPortfolioValue = refiExistingGrown + newPurchasesMetrics.portfolioValue;
+      const refiTotalDebt = epRefiDebt + newPurchasesMetrics.totalDebt;
+      const usableEquity = Math.max(0, refiPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - refiTotalDebt);
       const cumulativeSavings = yearsElapsed > 0 && profileWageGrowth > 0
         ? profile.annualSavings * (Math.pow(1 + profileWageGrowth, yearsElapsed) - 1) / profileWageGrowth
         : profile.annualSavings * yearsElapsed;
       const depositsUsed = relevantPurchases.reduce((sum, p) => sum + p.depositRequired, 0);
       const availableFunds = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
+      const cashOffset = Math.round(Math.max(0, profile.depositPool + cumulativeSavings - depositsUsed + chartSalesProceedsCash));
 
       // Remaining borrowing capacity
       const loansUsed = relevantPurchases.reduce((sum, p) => sum + p.loanAmount, 0);
@@ -335,6 +363,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         availableFunds,
         borrowingCapacity,
         cashFromSales: Math.round(chartSalesProceedsCash),
+        cashOffset,
       });
     }
 

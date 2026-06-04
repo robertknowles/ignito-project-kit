@@ -306,3 +306,32 @@ export const getEventsAffectingPeriod = (period: number, events: EventBlock[]): 
   
   return { oneTimeEvents, ongoingEffects, activeMarketCorrections };
 };
+
+// =============================================================================
+// SALARY / PARTNER INCOME EVENT PROCESSING
+// =============================================================================
+
+export const getEffectiveSalary = (
+  period: number,
+  baseSalary: number,
+  events: EventBlock[],
+): number => {
+  let salary = baseSalary;
+  events
+    .filter(e => e.eventType === 'salary_change' && e.period <= period)
+    .sort((a, b) => a.period - b.period)
+    .forEach(e => { salary = e.payload.newSalary ?? salary; });
+  return salary;
+};
+
+export const getEffectivePartnerIncome = (
+  period: number,
+  events: EventBlock[],
+): number => {
+  let salary = 0;
+  events
+    .filter(e => e.eventType === 'partner_income_change' && e.period <= period)
+    .sort((a, b) => a.period - b.period)
+    .forEach(e => { salary = e.payload.newPartnerSalary ?? salary; });
+  return salary;
+};

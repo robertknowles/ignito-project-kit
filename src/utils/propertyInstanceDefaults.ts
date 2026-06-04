@@ -112,6 +112,7 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     loanProduct: 'IO',
     interestRate: 6.5,
     loanTerm: 30,
+    ioTermYears: 5,
     engagementFee: 8000,
     conditionalHoldingDeposit: 8400,
     buildingInsuranceUpfront: 1500,

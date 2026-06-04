@@ -22,6 +22,9 @@ export interface PropertyPurchase {
   growthRate: number; // DEPRECATED: Use growthCurve instead
   growthCurve?: GrowthCurve; // Property-specific tiered growth rates
   interestRate?: number;
+  loanType?: 'IO' | 'PI';
+  loanTerm?: number;
+  ioTermYears?: number;
   state?: string; // 'NSW', 'VIC', 'QLD', etc.
 }
 
