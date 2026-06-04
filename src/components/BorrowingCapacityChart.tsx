@@ -17,13 +17,9 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
-  RENTAL_RECOGNITION_RATE,
   PERIODS_PER_YEAR,
 } from '../constants/financialParams';
-import {
-  getEffectiveSalary,
-  getEffectivePartnerIncome,
-} from '../utils/eventProcessing';
+import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
 import { getPropertyIconPath } from './icons/PropertyIconPaths';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
@@ -113,9 +109,6 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
   const data = useMemo(() => {
     const endYear = BASE_YEAR + profile.timelineYears - 1;
     const wageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
-    const multiplier = profile.salaryServiceabilityMultiplier ?? 6.0;
-    const baseSalary = profile.baseSalary ?? 60000;
-    const statedBC = profile.borrowingCapacity ?? 0;
 
     return portfolioGrowthData
       .filter(d => Number(d.year) <= endYear)
@@ -124,28 +117,20 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
         const yearsElapsed = year - BASE_YEAR;
         const period = yearsElapsed * PERIODS_PER_YEAR + 1;
 
-        const projectedSalary = baseSalary * Math.pow(1 + wageGrowth, yearsElapsed);
-        const effectiveSalary = getEffectiveSalary(period, projectedSalary, eventBlocks);
-        const partnerIncome = getEffectivePartnerIncome(period, eventBlocks);
-        const totalIncome = effectiveSalary + partnerIncome;
-
         const cfPoint = cashflowData.find(c => c.year === d.year);
         const grossRentalIncome = cfPoint?.rentalIncome ?? 0;
-        const capturedRental = grossRentalIncome * RENTAL_RECOGNITION_RATE;
 
         const totalDebt = d.totalDebt ?? 0;
 
-        // If a broker-assessed BC is stated, use it as year-1 anchor and grow
-        // with wage growth. Otherwise fall back to 6× (income + rental).
-        // Commitments shown separately via the Total Liabilities area.
-        let borrowingCeiling: number;
-        if (statedBC > 0) {
-          borrowingCeiling = Math.round(statedBC * Math.pow(1 + wageGrowth, yearsElapsed));
-        } else {
-          borrowingCeiling = Math.round(
-            Math.max(0, (totalIncome + capturedRental) * multiplier)
-          );
-        }
+        // SINGLE SOURCE OF TRUTH: same function used by the affordability calculator
+        const borrowingCeiling = calculateBorrowingCeiling(period, {
+          statedBC: profile.borrowingCapacity ?? 0,
+          baseSalary: profile.baseSalary ?? 60000,
+          salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+          wageGrowth,
+          grossRentalIncome,
+          eventBlocks,
+        });
 
         // "Offset Debt" = net debt exposure (gross debt minus offset cash).
         // Starts near gross debt (little cash), declines to 0 as savings accumulate.

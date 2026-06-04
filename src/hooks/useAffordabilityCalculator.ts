@@ -43,6 +43,7 @@ import {
   calculateInflationFactor,
   ENTITY_SERVICEABILITY_FACTORS,
 } from '../constants/financialParams';
+import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 
 export interface AffordabilityResult {
@@ -752,9 +753,17 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       
       const totalUsableEquity = usableEquityPerProperty.reduce((sum, equity) => sum + equity, 0);
       
-      // Calculate DYNAMIC borrowing capacity based on equity
-      const equityBoost = totalUsableEquity * profile.equityFactor; // Use equityFactor from profile (typically 0.70-0.75)
-      const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
+      // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
+      // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
+      // Equity boost is NOT added — equity is a funding mechanism, not a lending ceiling
+      const effectiveBorrowingCapacity = calculateBorrowingCeiling(currentPeriod, {
+        statedBC: profile.borrowingCapacity ?? 0,
+        baseSalary: profile.baseSalary ?? 60000,
+        salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+        wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
+        grossRentalIncome,
+        eventBlocks,
+      });
       
       const newLoanAmount = property.cost - property.depositRequired;
       const newPropertyIsSmsf = getInstance(property.instanceId)?.entity === 'smsf';
@@ -888,6 +897,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
       const perLoanBCPass = newPropertyIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
       const cumulativeBCPass = newPropertyIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
+
       const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
       const borrowingCapacityTestSurplus = newPropertyIsSmsf
         ? effectiveBorrowingCapacity - totalDebtAfterPurchase // Show remaining personal capacity
@@ -949,7 +959,7 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       if (!canAffordDeposit) {
         return { canAfford: false };
       }
-      
+
       // Check if all tests pass
       if (canAffordServiceability && canAffordBorrowingCapacity) {
         return { canAfford: true };
@@ -1170,11 +1180,14 @@ return { period: Infinity };
       // If so, use the manual placement period instead of auto-calculating
       let result: { period: number };
       
+      // Track whether this placement passes affordability checks (used for status)
+      let manualPlacementAffordable = true;
+
       if (propertyInstance?.isManuallyPlaced && propertyInstance?.manualPlacementPeriod !== undefined) {
-        // Use the manually specified period
+        // Use the manually specified period but STILL validate against BC gate
         result = { period: propertyInstance.manualPlacementPeriod };
-        if (DEBUG_MODE) {
-          }
+        const manualAffordability = checkAffordability(propertyWithInstance, calculateAvailableFunds(propertyInstance.manualPlacementPeriod, purchaseHistory).total, purchaseHistory, propertyInstance.manualPlacementPeriod);
+        manualPlacementAffordable = manualAffordability.canAfford;
       } else {
         // Auto-calculate the purchase period based on affordability
         result = determineNextPurchasePeriod(propertyWithInstance, purchaseHistory, globalIndex);
@@ -1483,9 +1496,16 @@ return { period: Infinity };
         });
       }
       
-      // Calculate effective borrowing capacity for timeline display
-      const timelineEquityBoost = equityRelease * profile.equityFactor;
-      const timelineEffectiveBorrowingCapacity = profile.borrowingCapacity + timelineEquityBoost;
+      // BORROWING CAPACITY CEILING for timeline display — SINGLE SOURCE OF TRUTH
+      const purchasePeriodForCeiling = result.period !== Infinity ? result.period : 1;
+      const timelineEffectiveBorrowingCapacity = calculateBorrowingCeiling(purchasePeriodForCeiling, {
+        statedBC: profile.borrowingCapacity ?? 0,
+        baseSalary: profile.baseSalary ?? 60000,
+        salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+        wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
+        grossRentalIncome,
+        eventBlocks,
+      });
       
       // Get the loan type for this specific instance (default to 'IO' if not set)
       const instanceLoanType = timelineLoanTypes[instanceId] || 'IO';
@@ -1500,7 +1520,7 @@ return { period: Infinity };
         period: result.period !== Infinity ? result.period : Infinity,
         affordableYear: result.period !== Infinity ? periodToYear(result.period) : Infinity,
         displayPeriod: result.period !== Infinity ? periodToDisplay(result.period) : 'N/A',
-        status: result.period === Infinity ? 'challenging' : 'feasible',
+        status: (result.period === Infinity || !manualPlacementAffordable) ? 'challenging' : 'feasible',
         propertyIndex: index,
         portfolioValueAfter: portfolioValueAfter,
         totalEquityAfter: totalEquityAfter,
@@ -1628,6 +1648,9 @@ return { period: Infinity };
     profile.inflationRate,
     profile.equityReleaseFactor,
     profile.existingAnnualRent,
+    profile.baseSalary,
+    profile.wageGrowthRate,
+    profile.salaryServiceabilityMultiplier,
     existingProperties,
     getPropertyData,
     propertyAssumptions,
@@ -1843,45 +1866,16 @@ return { period: Infinity };
       }
     });
 
-    // Calculate usable equity from existing portfolio and previous purchases (sale-aware)
-    let totalUsableEquity = 0;
-
-    if (profile.useExistingEquity) {
-      const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-      if (existingProperties.length > 0) {
-        existingProperties.forEach(ep => {
-          if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
-          if (ep.allowEquityRelease === false) return; // per-property opt-out
-          const yearsElapsed = (period - 1) / PERIODS_PER_YEAR;
-          const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
-          const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
-          totalUsableEquity += equity;
-        });
-      } else if (profile.portfolioValue > 0) {
-        const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, period - 1, growthRate);
-        const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-        totalUsableEquity += portfolioEquity;
-      }
-    }
-
-    // Previous purchases equity
-    previousPurchases.forEach(purchase => {
-      if (purchase.period <= period) {
-        const periodsOwned = period - purchase.period;
-        const ppInst = getInstance(purchase.instanceId);
-        const purchasePropertyData = getPropertyData(purchase.title, ppInst?.growthAssumption);
-        if (purchasePropertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, purchasePropertyData);
-          const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-          const usableEquity = Math.max(0, currentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
-          totalUsableEquity += usableEquity;
-        }
-      }
+    // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
+    // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
+    const effectiveBorrowingCapacity = calculateBorrowingCeiling(period, {
+      statedBC: profile.borrowingCapacity ?? 0,
+      baseSalary: profile.baseSalary ?? 60000,
+      salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+      wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
+      grossRentalIncome: totalRentalIncome,
+      eventBlocks,
     });
-
-    // Calculate effective borrowing capacity with equity boost
-    const equityBoost = totalUsableEquity * profile.equityFactor;
-    const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
 
     // Borrowing capacity test: per-loan AND cumulative debt must not exceed effective capacity
     // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
@@ -2116,23 +2110,17 @@ createInstance(instanceId, propertyType, period);
     
     // Calculate borrowing capacity test
     const newLoanAmount = property.loanAmount;
-    let totalUsableEquity = 0;
-    purchaseHistoryForValidation.forEach(purchase => {
-      if (purchase.period <= targetPeriod) {
-        const periodsOwned = targetPeriod - purchase.period;
-        const bcInst = getInstance(purchase.instanceId);
-        const propertyData = getPropertyData(purchase.title, bcInst?.growthAssumption);
-        if (propertyData && periodsOwned >= 2) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-          const maxLoan = currentValue * EQUITY_EXTRACTION_LVR_CAP;
-          const usableEquity = Math.max(0, maxLoan - purchase.loanAmount);
-          totalUsableEquity += usableEquity;
-        }
-      }
+
+    // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
+    // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
+    const effectiveBorrowingCapacity = calculateBorrowingCeiling(targetPeriod, {
+      statedBC: profile.borrowingCapacity ?? 0,
+      baseSalary: profile.baseSalary ?? 60000,
+      salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+      wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
+      grossRentalIncome: totalRentalIncome,
+      eventBlocks,
     });
-    
-    const equityBoost = totalUsableEquity * profile.equityFactor;
-    const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
 
     // Per-loan AND cumulative BC test (SMSF-aware)
     const dragPropIsSmsf = newPropInst?.entity === 'smsf';
