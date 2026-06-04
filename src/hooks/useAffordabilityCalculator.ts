@@ -41,6 +41,7 @@ import {
   DEPENDENT_SAVINGS_PENALTY,
   DEFAULT_VACANCY_RATE,
   calculateInflationFactor,
+  ENTITY_SERVICEABILITY_FACTORS,
 } from '../constants/financialParams';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 
@@ -670,10 +671,12 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       // Calculate total existing debt
       // CRITICAL: Include cumulative equity released (which increases loan amounts)
       // Sale-aware: exclude sold existing properties' debt
+      // SMSF-aware: SMSF debt is limited recourse, does not count against personal BC ceiling
       let totalExistingDebt = 0;
       if (existingProperties.length > 0) {
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
+          if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
           totalExistingDebt += ep.loan;
         });
       } else {
@@ -681,6 +684,8 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       }
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
+          const purchaseInst = getInstance(purchase.instanceId);
+          if (purchaseInst?.entity === 'smsf') return; // SMSF debt excluded from personal BC
           // Current loan = original loan + any equity released from this property
           const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
           totalExistingDebt += currentLoanAmount;
@@ -752,7 +757,8 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
       
       const newLoanAmount = property.cost - property.depositRequired;
-      const totalDebtAfterPurchase = totalExistingDebt + newLoanAmount;
+      const newPropertyIsSmsf = getInstance(property.instanceId)?.entity === 'smsf';
+      const totalDebtAfterPurchase = totalExistingDebt + (newPropertyIsSmsf ? 0 : newLoanAmount);
       
       // NEW SERVICEABILITY-BASED DEBT TEST
       // Calculate annual loan payments for all properties (IO or P&I)
@@ -762,19 +768,20 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       // Get the effective interest rate for this period (market-wide adjustment)
       const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
       
-      // Existing debt payment (use event-adjusted market rate, sale-aware)
+      // Existing debt payment (use event-adjusted market rate, sale-aware, entity-discounted)
       if (existingProperties.length > 0) {
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
           if (ep.loan > 0) {
-            totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRate, 'IO');
+            const entityFactor = ENTITY_SERVICEABILITY_FACTORS[ep.entity ?? 'individual'] ?? 1.0;
+            totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRate, 'IO') * entityFactor;
           }
         });
       } else if (profile.currentDebt > 0) {
         totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRate, 'IO');
       }
       
-      // Previous purchases loan payments (use their instance interest rates + refinance events)
+      // Previous purchases loan payments (use their instance interest rates + refinance events, entity-discounted)
       previousPurchases.forEach(purchase => {
         if (purchase.period <= currentPeriod) {
           // Get property-specific effective rate (considers refinance events)
@@ -786,7 +793,9 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
             baseRate
           );
           const purchaseLoanType = purchase.loanType || 'IO';
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
+          const purchaseInstance = getInstance(purchase.instanceId);
+          const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInstance?.entity ?? 'individual'] ?? 1.0;
+          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType) * entityFactor;
         }
       });
 
@@ -801,10 +810,11 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       );
       const lmiWaiver = propertyInstance?.lmiWaiver ?? false;
       
-      // Add new property loan payment (use event-adjusted property interest rate)
+      // Add new property loan payment (use event-adjusted property interest rate, entity-discounted)
       const newPropertyLoanType = property.loanType || 'IO';
       const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
-      totalAnnualLoanPayment += newPropertyLoanPayment;
+      const newPropertyEntityFactor = ENTITY_SERVICEABILITY_FACTORS[propertyInstance?.entity ?? 'individual'] ?? 1.0;
+      totalAnnualLoanPayment += newPropertyLoanPayment * newPropertyEntityFactor;
       
       // Calculate rental income from new property for DSR calculation
       // CRITICAL: Use instance rentPerWeek if available, not template yield
@@ -874,9 +884,17 @@ const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
       const serviceabilityTestSurplus = maxAnnualPayment - totalAnnualLoanPayment;
       const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
       
-      // BORROWING CAPACITY TEST: New loan amount cannot exceed EFFECTIVE (dynamic) borrowing capacity
-      const borrowingCapacityTestPass = newLoanAmount <= effectiveBorrowingCapacity;
-      const borrowingCapacityTestSurplus = effectiveBorrowingCapacity - newLoanAmount;
+      // BORROWING CAPACITY TEST: per-loan AND cumulative debt must not exceed effective capacity
+      // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
+      const perLoanBCPass = newPropertyIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
+      const cumulativeBCPass = newPropertyIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
+      const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
+      const borrowingCapacityTestSurplus = newPropertyIsSmsf
+        ? effectiveBorrowingCapacity - totalDebtAfterPurchase // Show remaining personal capacity
+        : Math.min(
+            effectiveBorrowingCapacity - newLoanAmount,
+            effectiveBorrowingCapacity - totalDebtAfterPurchase
+          );
       
       // DEPOSIT TEST: Available funds must cover deposit + all acquisition costs
       const canAffordDeposit = availableFunds >= totalCashRequired;
@@ -1753,19 +1771,20 @@ return { period: Infinity };
     // Get the effective interest rate for this period (market-wide adjustment)
     const effectiveMarketRateForPeriod = getEffectiveInterestRate(period, eventBlocks);
     
-    // Existing debt payment (use event-adjusted market rate, sale-aware)
+    // Existing debt payment (use event-adjusted market rate, sale-aware, entity-discounted)
     if (existingProperties.length > 0) {
       existingProperties.forEach(ep => {
         if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
         if (ep.loan > 0) {
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRateForPeriod, 'IO');
+          const entityFactor = ENTITY_SERVICEABILITY_FACTORS[ep.entity ?? 'individual'] ?? 1.0;
+          totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRateForPeriod, 'IO') * entityFactor;
         }
       });
     } else if (profile.currentDebt > 0) {
       totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRateForPeriod, 'IO');
     }
 
-    // Previous purchases loan payments (use property-specific effective rates with refinance events)
+    // Previous purchases loan payments (use property-specific effective rates with refinance events, entity-discounted)
     const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
@@ -1776,11 +1795,13 @@ return { period: Infinity };
           baseRate
         );
         const purchaseLoanType = purchase.loanType || 'IO';
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType);
+        const purchaseInst = getInstance(purchase.instanceId);
+        const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInst?.entity ?? 'individual'] ?? 1.0;
+        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType) * entityFactor;
       }
     });
 
-    // Add new property loan payment (use event-adjusted property interest rate)
+    // Add new property loan payment (use event-adjusted property interest rate, entity-discounted)
     const propertyEffectiveRateForPeriod = getPropertyEffectiveRate(
       period,
       eventBlocks,
@@ -1789,7 +1810,9 @@ return { period: Infinity };
     );
     const newPropertyLoanType = property.loanType || 'IO';
     const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyEffectiveRateForPeriod, newPropertyLoanType);
-    totalAnnualLoanPayment += newPropertyLoanPayment;
+    const newPropInstance = getInstance(property.instanceId);
+    const newPropEntityFactor = ENTITY_SERVICEABILITY_FACTORS[newPropInstance?.entity ?? 'individual'] ?? 1.0;
+    totalAnnualLoanPayment += newPropertyLoanPayment * newPropEntityFactor;
     
     // Enhanced serviceability test with rental income contribution
     const baseCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
@@ -1800,11 +1823,12 @@ return { period: Infinity };
     const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
     
     // BORROWING CAPACITY TEST
-    // Calculate total existing debt from previous purchases (sale-aware)
+    // Calculate total existing debt from previous purchases (sale-aware, SMSF-excluded)
     let totalExistingDebt = 0;
     if (existingProperties.length > 0) {
       existingProperties.forEach(ep => {
         if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
+        if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
         totalExistingDebt += ep.loan;
       });
     } else {
@@ -1812,6 +1836,8 @@ return { period: Infinity };
     }
     previousPurchases.forEach(purchase => {
       if (purchase.period <= period) {
+        const purchaseInst = getInstance(purchase.instanceId);
+        if (purchaseInst?.entity === 'smsf') return; // SMSF debt excluded from personal BC
         const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
         totalExistingDebt += currentLoanAmount;
       }
@@ -1852,14 +1878,24 @@ return { period: Infinity };
         }
       }
     });
-    
+
     // Calculate effective borrowing capacity with equity boost
     const equityBoost = totalUsableEquity * profile.equityFactor;
     const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
-    
-    // Borrowing capacity test: new loan must not exceed effective capacity
-    const borrowingCapacityTestPass = newLoanAmount <= effectiveBorrowingCapacity;
-    const borrowingCapacityRemaining = effectiveBorrowingCapacity - newLoanAmount;
+
+    // Borrowing capacity test: per-loan AND cumulative debt must not exceed effective capacity
+    // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
+    const newPropIsSmsf = newPropInstance?.entity === 'smsf';
+    const perLoanBCPass = newPropIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
+    const totalDebtAfterPurchase = totalExistingDebt + (newPropIsSmsf ? 0 : newLoanAmount);
+    const cumulativeBCPass = newPropIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
+    const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
+    const borrowingCapacityRemaining = newPropIsSmsf
+      ? effectiveBorrowingCapacity - totalDebtAfterPurchase // Show remaining personal capacity
+      : Math.min(
+          effectiveBorrowingCapacity - newLoanAmount,
+          effectiveBorrowingCapacity - totalDebtAfterPurchase
+        );
     
     return {
       canAfford: affordabilityResult.canAfford,
@@ -2042,22 +2078,39 @@ createInstance(instanceId, propertyType, period);
       }
     });
 
-    // Calculate total debt from previous purchases
+    // Calculate total debt from previous purchases (SMSF-excluded for BC ceiling)
     let totalDebtFromPurchases = 0;
     purchaseHistoryForValidation.forEach(purchase => {
       if (purchase.period <= targetPeriod) {
-        totalDebtFromPurchases += purchase.loanAmount;
+        const purchaseInst = getInstance(purchase.instanceId);
+        if (purchaseInst?.entity !== 'smsf') {
+          totalDebtFromPurchases += purchase.loanAmount;
+        }
       }
     });
-    
-    // Calculate total interest payments
+
+    // Calculate total interest payments (entity-discounted for serviceability)
+    // NOTE: This preview path only counts new purchases (not existing properties) in interest,
+    // matching the original formula where existing debt capacity is implicitly handled via
+    // profile.borrowingCapacity / SERVICEABILITY_FACTOR in the adjustedIncome term.
     const interestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
-    const totalInterestPayments = (totalDebtFromPurchases + property.loanAmount) * interestRate;
-    
+    let totalEntityAdjustedInterest = 0;
+    purchaseHistoryForValidation.forEach(purchase => {
+      if (purchase.period <= targetPeriod) {
+        const purchaseInst = getInstance(purchase.instanceId);
+        const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInst?.entity ?? 'individual'] ?? 1.0;
+        totalEntityAdjustedInterest += purchase.loanAmount * interestRate * entityFactor;
+      }
+    });
+    // Add new property interest (entity-discounted)
+    const newPropInst = getInstance(property.instanceId);
+    const newPropEntityFactor = ENTITY_SERVICEABILITY_FACTORS[newPropInst?.entity ?? 'individual'] ?? 1.0;
+    totalEntityAdjustedInterest += property.loanAmount * interestRate * newPropEntityFactor;
+
     // Calculate serviceability
     const effectiveRentalIncome = totalRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
     const adjustedIncome = profile.borrowingCapacity / SERVICEABILITY_FACTOR + effectiveRentalIncome;
-    const assessmentInterestPayments = totalInterestPayments * SERVICEABILITY_FACTOR;
+    const assessmentInterestPayments = totalEntityAdjustedInterest * SERVICEABILITY_FACTOR;
     const serviceabilitySurplus = adjustedIncome - assessmentInterestPayments;
     const serviceabilityTestPass = serviceabilitySurplus >= 0;
     
@@ -2080,7 +2133,23 @@ createInstance(instanceId, propertyType, period);
     
     const equityBoost = totalUsableEquity * profile.equityFactor;
     const effectiveBorrowingCapacity = profile.borrowingCapacity + equityBoost;
-    const borrowingCapacityPass = newLoanAmount <= effectiveBorrowingCapacity;
+
+    // Per-loan AND cumulative BC test (SMSF-aware)
+    const dragPropIsSmsf = newPropInst?.entity === 'smsf';
+    const perLoanBCPass = dragPropIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
+    let totalExistingDebtForBC = 0;
+    if (existingProperties.length > 0) {
+      existingProperties.forEach(ep => {
+        if (ep.saleYear && ep.saleYear > 0 && targetPeriod >= yearToPeriod(ep.saleYear)) return;
+        if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
+        totalExistingDebtForBC += ep.loan;
+      });
+    } else {
+      totalExistingDebtForBC = profile.currentDebt;
+    }
+    const totalDebtAfterPurchase = totalExistingDebtForBC + totalDebtFromPurchases + (dragPropIsSmsf ? 0 : newLoanAmount);
+    const cumulativeBCPass = dragPropIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
+    const borrowingCapacityPass = perLoanBCPass && cumulativeBCPass;
     
     const isValid = affordabilityResult.canAfford && depositTestPass && serviceabilityTestPass && borrowingCapacityPass;
     

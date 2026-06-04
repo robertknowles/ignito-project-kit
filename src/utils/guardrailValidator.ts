@@ -123,7 +123,7 @@ export const validatePropertyPlacement = (
     violations.push({
       type: 'borrowing',
       severity: 'error',
-      message: `Insufficient borrowing capacity. Need ${formatCurrency(property.loanAmount)}, capacity exceeded by ${formatCurrency(shortfall)}`,
+      message: `Borrowing capacity exceeded. Total debt surpasses capacity by ${formatCurrency(shortfall)}`,
       shortfall,
       currentValue: property.loanAmount + borrowingCapacityRemaining,
       requiredValue: property.loanAmount,

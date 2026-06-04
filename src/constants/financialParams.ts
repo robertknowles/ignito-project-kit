@@ -94,6 +94,35 @@ export const EQUITY_EXTRACTION_LVR_CAP = 0.80;
 export const DEFAULT_EQUITY_FACTOR = 0.80;
 
 // =============================================================================
+// ENTITY-BASED SERVICEABILITY DISCOUNTS
+// =============================================================================
+
+/**
+ * Serviceability discount factors by entity type.
+ *
+ * When assessing personal serviceability, lenders treat debt held in different
+ * entities differently:
+ *
+ * - Individual / Company: 100% of loan payments count (personal guarantee, full exposure)
+ * - Trust: 70% of loan payments count. Many lenders discount trust debt because
+ *   the trust's rental income self-services the loan. Range in practice: 50-80%.
+ *   70% is a mid-market consensus across major Australian lenders.
+ * - SMSF: 0% — Limited Recourse Borrowing Arrangement (LRBA) means the lender
+ *   cannot access personal assets. SMSF debt is assessed purely on the fund's
+ *   own cashflow and does not count against personal serviceability.
+ *
+ * These factors apply ONLY to the serviceability test (annual payment capacity).
+ * The cumulative BC ceiling still counts trust debt at 100% (personal guarantee).
+ * SMSF debt is excluded from both serviceability AND cumulative BC ceiling.
+ */
+export const ENTITY_SERVICEABILITY_FACTORS: Record<string, number> = {
+  individual: 1.0,
+  trust: 0.70,
+  company: 1.0,
+  smsf: 0.0,
+};
+
+// =============================================================================
 // INTEREST RATE DEFAULTS
 // =============================================================================
 
