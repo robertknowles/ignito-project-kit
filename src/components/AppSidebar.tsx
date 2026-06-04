@@ -45,6 +45,7 @@ interface NavItem {
   icon: React.FC<{ size?: number; className?: string }>;
   matchPaths?: string[];
   tab?: string;
+  badge?: string;
 }
 
 interface NavDivider {
@@ -101,7 +102,7 @@ export const AppSidebar: React.FC = () => {
   const navItems: NavEntry[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
     ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
-    { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon },
+    { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon, badge: 'BETA' },
     { label: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
@@ -180,6 +181,11 @@ export const AppSidebar: React.FC = () => {
                   >
                     {entry.label}
                   </span>
+                  {entry.badge && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">
+                      {entry.badge}
+                    </span>
+                  )}
                 </button>
               </li>
 

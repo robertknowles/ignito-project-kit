@@ -22,7 +22,10 @@ const Toolkit: React.FC = () => {
               <DollarSign size={20} className="text-neutral-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-neutral-900">Borrowing Power</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-neutral-900">Borrowing Power</p>
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">BETA</span>
+              </div>
               <p className="text-xs text-neutral-500 mt-1">Estimate max borrowing capacity based on income, expenses and debts.</p>
             </div>
           </button>
