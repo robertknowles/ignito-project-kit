@@ -127,6 +127,11 @@ export const RESPONSE_TOOL = {
             lmiCapitalized: { type: "boolean" as const },
             rentPerWeek: { type: "number" as const },
             targetPeriod: { type: "number" as const },
+            entity: {
+              type: "string" as const,
+              enum: ["individual", "trust", "company", "smsf"],
+              description: "Ownership entity. Use trust when serviceability is tight (trust debt discounted 30% for serviceability). Default: individual.",
+            },
           },
           required: ["type", "purchasePrice", "state", "growthAssumption", "loanProduct", "lvr"],
         },

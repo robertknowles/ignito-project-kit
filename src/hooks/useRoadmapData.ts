@@ -211,7 +211,7 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
     // Build a map of years to purchases
     const purchasesByYear = new Map<number, typeof timelineProperties>();
     timelineProperties
-      .filter(p => p.affordableYear !== Infinity)
+      .filter(p => p.affordableYear !== Infinity && p.period !== Infinity)
       .forEach(prop => {
         const year = Math.floor(prop.affordableYear);
         if (!purchasesByYear.has(year)) {
@@ -238,12 +238,12 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       
       // Get all properties purchased by this year
       const propertiesPurchasedByYear = timelineProperties.filter(
-        p => p.affordableYear !== Infinity && Math.floor(p.affordableYear) <= year
+        p => p.affordableYear !== Infinity && p.period !== Infinity && Math.floor(p.affordableYear) <= year
       );
-      
+
       // Get properties purchased BEFORE this year (for cashflow calculation)
       const propertiesPurchasedBeforeThisYear = timelineProperties.filter(
-        p => p.affordableYear !== Infinity && Math.floor(p.affordableYear) < year
+        p => p.affordableYear !== Infinity && p.period !== Infinity && Math.floor(p.affordableYear) < year
       );
       
       const propertyCount = propertiesPurchasedByYear.length;
@@ -255,16 +255,25 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       const existingGrowthRate = profile.existingPortfolioGrowthRate || DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE;
       let portfolioValue = 0;
       let totalDebt = 0;
+      let refiEligibleValue = 0;
+      let refiEligibleDebt = 0;
       if (existingProperties.length > 0) {
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
           const yearsGrown = year - BASE_YEAR;
-          portfolioValue += ep.currentValue * Math.pow(1 + existingGrowthRate, yearsGrown);
+          const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsGrown);
+          portfolioValue += grownValue;
           totalDebt += ep.loan;
+          if (ep.allowEquityRelease !== false) {
+            refiEligibleValue += grownValue;
+            refiEligibleDebt += ep.loan;
+          }
         });
       } else if (profile.portfolioValue > 0) {
         portfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, periodsElapsed, existingGrowthRate);
         totalDebt = profile.currentDebt;
+        refiEligibleValue = portfolioValue;
+        refiEligibleDebt = totalDebt;
       }
 
       // Accumulate sale proceeds in the year of sale (carries forward flat, no growth)
@@ -298,6 +307,8 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       // Track portfolio value BEFORE this year's purchases (for extractable equity calculation)
       let portfolioValueBeforeThisYear = portfolioValue;
       let totalDebtBeforeThisYear = totalDebt;
+      let refiEligibleValueBeforeThisYear = refiEligibleValue;
+      let refiEligibleDebtBeforeThisYear = refiEligibleDebt;
 
       // Per-property iteration for existing portfolio (income, expenses, cashflow)
       existingProperties.forEach(ep => {
@@ -391,7 +402,10 @@ export const useRoadmapData = (scenarioData?: ScenarioDataInput): RoadmapData =>
       const totalEquity = portfolioValue - totalDebt + salesProceedsCash;
       // CRITICAL: Extractable equity is based on portfolio BEFORE this year's purchases
       // You can't use equity from a property you haven't bought yet to fund that purchase!
-      const extractableEquity = Math.max(0, (portfolioValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP) - totalDebtBeforeThisYear);
+      // Only include properties with allowEquityRelease enabled (refi-eligible)
+      const extractableEquity = profile.useExistingEquity
+        ? Math.max(0, (refiEligibleValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP) - refiEligibleDebtBeforeThisYear)
+        : 0;
       
       // Calculate net cashflow from properties owned BEFORE this year
       // (Properties bought this year don't generate cashflow until next year)

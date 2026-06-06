@@ -1,0 +1,3292 @@
+{
+  "summary": {
+    "timestamp": "2026-05-29T03:45:13.367Z",
+    "totalTests": 50,
+    "pass": 46,
+    "warn": 0,
+    "fail": 4,
+    "error": 0,
+    "categories": {
+      "new_plan": {
+        "total": 10,
+        "pass": 9,
+        "warn": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "follow_up": {
+        "total": 10,
+        "pass": 10,
+        "warn": 0,
+        "fail": 0,
+        "error": 0
+      },
+      "profile_update": {
+        "total": 8,
+        "pass": 6,
+        "warn": 0,
+        "fail": 2,
+        "error": 0
+      },
+      "modification": {
+        "total": 8,
+        "pass": 8,
+        "warn": 0,
+        "fail": 0,
+        "error": 0
+      },
+      "edge_case": {
+        "total": 14,
+        "pass": 13,
+        "warn": 0,
+        "fail": 1,
+        "error": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "NP-01",
+      "category": "new_plan",
+      "description": "Standard single client brief",
+      "input": "I have a client earning 120k with 80k deposit, saving 2k a month. Borrowing capacity of 600k.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should extract 120k salary",
+        "should extract 80k deposit",
+        "should extract 2k/month savings = 24k annual",
+        "should extract 600k borrowing capacity"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 17432,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan using regional houses and metro units — the right cells for an equity-growth, low price point approach. Given the $600k borrowing capacity, properties are modelled at 88% LVR with LMI capitalised, keeping acquisition costs manageable. Priced in the $380k–$500k range across QLD and NSW to stay within serviceability. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income: $120,000/year (single earner)",
+          "Deposit: $80,000",
+          "Monthly savings: $2,000/month ($24,000/year)",
+          "Borrowing capacity: $600,000 (low-capacity — 88% LVR with LMI capitalised applied)",
+          "Loan type: Interest Only (IO)",
+          "Timeline: 20 years (not specified)",
+          "No existing properties assumed",
+          "Growth assumption: High for regional houses, Medium for metro units",
+          "Preset: Equity Growth — Low Price Point (eg-low)"
+        ],
+        "missingInputs": [
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 80000,
+          "borrowingCapacity": 600000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 80000,
+          "annualSavings": 24000,
+          "baseSalary": 120000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false,
+          "borrowingCapacity": 600000
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 420000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 390000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-02",
+      "category": "new_plan",
+      "description": "Couple with casual language",
+      "input": "Got a young couple, Tom and Sarah. Both earning about 120k, saving 3500 a month between them, got 150k sitting in the bank. Pre-approved for 1.2m.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should have 2 members",
+        "should be 120k EACH not combined",
+        "savings should be 3500/month = 42000/year",
+        "deposit 150k",
+        "borrowing capacity 1.2m"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 16492,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan for Tom and Sarah using regional house and metro unit cells — the right fit for their capacity and the equity-growth, low-price-point preset. Modelled at 80% LVR with IO loans across the board. Growth assumptions are High for regional houses, Medium for metro units. No existing property debt assumed. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Both earners on $120,000/yr each ($240,000 combined)",
+          "Monthly savings $3,500/month ($42,000/yr)",
+          "Deposit pool $150,000",
+          "Borrowing capacity $1,200,000 (pre-approval)",
+          "No existing investment properties or PPOR debt",
+          "IO loans at 80% LVR (mid-capacity profile)",
+          "20-year horizon (not specified)",
+          "Equity growth goal (~2× deposit pool) used as default target"
+        ],
+        "missingInputs": [
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Tom",
+              "annualIncome": 120000
+            },
+            {
+              "name": "Sarah",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 3500,
+          "currentDeposit": 150000,
+          "borrowingCapacity": 1200000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 150000,
+          "annualSavings": 42000,
+          "baseSalary": 240000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-03",
+      "category": "new_plan",
+      "description": "Minimal information - just income",
+      "input": "Client on 90k, wants to get into property.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate a plan despite missing info",
+        "should flag missing inputs",
+        "should NOT ask clarifying questions before generating"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 16313,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan for a single income earner at $90k/year. Used regional house growth and metro unit growth cells — affordable entry points suited to the eg-low preset. Modelled at 88% LVR with LMI capitalised given the likely borrowing capacity on this income. Two missing inputs would sharpen the model significantly: deposit available and borrowing capacity. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner — $90,000/year",
+          "Monthly savings estimated at $2,000/month (Australian average)",
+          "Deposit estimated at $50,000 (no deposit stated)",
+          "Borrowing capacity not provided — assumed ~$500k–$600k on $90k income; 88% LVR with LMI capitalised applied",
+          "No existing properties assumed",
+          "20-year horizon (not specified)",
+          "IO loans throughout",
+          "eg-low preset: regional house growth and metro unit growth cells",
+          "Growth tier: High for regional-house-growth, Medium for metro-unit-growth"
+        ],
+        "missingInputs": [
+          "borrowing_capacity",
+          "deposit",
+          "savings"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 90000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 50000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 50000,
+          "annualSavings": 24000,
+          "baseSalary": 90000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 460000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 440000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 9
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 400000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 13
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 470000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 17
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-04",
+      "category": "new_plan",
+      "description": "Australian slang heavy",
+      "input": "Got a bloke in Brissy, earns about 95k, got 60k deposit. Wants a couple of IPs, nothing too flash. No existing properties. Saving about 1500 a month.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should use he/him pronouns",
+        "should interpret Brissy as Brisbane/QLD",
+        "should interpret \"couple of IPs\" as ~2 properties",
+        "savings 1500/month = 18000/year"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 13143,
+        "type": "initial_plan",
+        "message": "Built a 2-property plan for him using regional Queensland houses — affordable price points that suit his deposit and capacity. Modelled with IO loans at 88% LVR with LMI capitalised, given the borrowing capacity profile on a $95k income. Growth assumption set to High for both properties. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income: $95,000/year",
+          "Deposit: $60,000",
+          "Monthly savings: $1,500/month ($18,000/year)",
+          "No existing properties or debt",
+          "2 investment properties as requested",
+          "IO loans, 88% LVR with LMI capitalised (low-capacity profile)",
+          "Regional QLD houses — price-scaled to capacity (~$450k each)",
+          "High growth assumption",
+          "20-year modelling horizon",
+          "Borrowing capacity not provided — flagged"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 95000
+            }
+          ],
+          "monthlySavings": 1500,
+          "currentDeposit": 60000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 60000,
+          "annualSavings": 18000,
+          "baseSalary": 95000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 2,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 450000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 450000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-05",
+      "category": "new_plan",
+      "description": "High capacity client",
+      "input": "Power couple - combined income 450k, 300k deposit, saving 8k a month. Borrowing capacity 2.5m. Want to build a serious portfolio over 15 years.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should use high-price cells",
+        "should respect 15yr timeline",
+        "should set timelineYearsExplicit true",
+        "high capacity pricing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 19852,
+        "type": "initial_plan",
+        "message": "Built a 6-property plan across 15 years for this couple. High borrowing capacity puts them firmly in the high-capacity tier, so pricing is scaled up within the eg-low preset — regional house growth assets in QLD and metro units in VIC/NSW. All modelled at 80% LVR, IO loans, high-growth tier. Combined $450k income and $96k/yr in savings gives the engine strong serviceability to pace acquisitions across the timeline. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Combined income split as $225k each",
+          "Saving $8,000/month ($96,000/year)",
+          "$300,000 deposit as starting pool",
+          "Borrowing capacity $2,500,000 (high-capacity tier)",
+          "80% LVR, IO loans, no LMI",
+          "High-growth tier applied to all properties",
+          "15-year timeline (explicit)",
+          "No existing properties assumed — first-time investors",
+          "eg-low preset: regional-house-growth (QLD) and metro-unit-growth (VIC/NSW) cells",
+          "Prices scaled up 15-20% from cell defaults given high capacity"
+        ],
+        "missingInputs": [
+          "existing_debt"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Partner 1",
+              "annualIncome": 225000
+            },
+            {
+              "name": "Partner 2",
+              "annualIncome": 225000
+            }
+          ],
+          "monthlySavings": 8000,
+          "currentDeposit": 300000,
+          "borrowingCapacity": 2500000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 300000,
+          "annualSavings": 96000,
+          "baseSalary": 450000,
+          "timelineYears": 15,
+          "timelineYearsExplicit": true,
+          "borrowingCapacity": 2500000
+        },
+        "propertyCount": 6,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 720000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 680000,
+            "state": "VIC",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 750000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 670000,
+            "state": "NSW",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 780000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 10
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 520000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 13
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-06",
+      "category": "new_plan",
+      "description": "Very low deposit, challenging financials",
+      "input": "Young guy, first job out of uni. Earning 65k, only got 20k saved. Saving 800 a month. No idea about borrowing yet.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should still generate a plan",
+        "should use cheapest cells",
+        "should flag borrowing_capacity as missing",
+        "savings 800/month NOT substituted"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 15642,
+        "type": "initial_plan",
+        "message": "Built a starting plan for a first-time investor on a graduate income. Given the low deposit and no confirmed borrowing capacity, modelled with 88% LVR and LMI capitalised to stretch the deposit further. Two regional house growth properties over a 20-year horizon — affordable entry points that suit the deposit pool as it builds. Borrowing capacity is the key unknown here; once that's confirmed, the plan can be tightened considerably. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner, $65,000/year",
+          "Monthly savings of $800 ($9,600/year)",
+          "Current deposit of $20,000",
+          "No existing properties or debt",
+          "No borrowing capacity provided — flagged as missing",
+          "88% LVR with LMI capitalised (low-capacity profile)",
+          "IO loan product",
+          "20-year horizon (default — not specified)",
+          "Equity growth goal defaulted to ~2x deposit pool",
+          "Regional house growth cells selected for affordability at this deposit level"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 65000
+            }
+          ],
+          "monthlySavings": 800,
+          "currentDeposit": 20000,
+          "existingProperties": "none",
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 20000,
+          "annualSavings": 9600,
+          "baseSalary": 65000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 2,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 420000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 450000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-07",
+      "category": "new_plan",
+      "description": "Cashflow focused request",
+      "input": "Client wants passive income. Earning 130k, 100k deposit, saving 3k/month. Wants 80k a year in rental income eventually. Capacity about 900k.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should bias toward cashflow cells",
+        "should set cashflowGoal to 80000",
+        "should extract all numbers correctly"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 20309,
+        "type": "initial_plan",
+        "message": "Built a 6-property cashflow-focused plan using regional units and regional houses — the lower price points suit the 900k borrowing capacity. Modelled at 88% LVR with LMI capitalised on each acquisition, given capacity is under $1M. Target is $80k/yr in net rental income. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner at $130,000/yr",
+          "Deposit pool: $100,000",
+          "Monthly savings: $3,000/month ($36,000/yr)",
+          "Borrowing capacity: $900,000 (low-capacity tier — 88% LVR with LMI capitalised)",
+          "Target net rental income: $80,000/yr",
+          "IO loans at 6.25% across all properties",
+          "20-year modelling horizon (not specified — default applied)",
+          "CF-Low preset: regional-unit-cashflow and regional-house-cashflow cells",
+          "Growth assumption: Low-to-Medium per cell defaults",
+          "No existing properties assumed — first-time investor"
+        ],
+        "missingInputs": [
+          "existing_debt"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 130000
+            }
+          ],
+          "monthlySavings": 3000,
+          "currentDeposit": 100000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0,
+          "borrowingCapacity": 900000
+        },
+        "investmentProfile": {
+          "depositPool": 100000,
+          "annualSavings": 36000,
+          "baseSalary": 130000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false,
+          "targetPassiveIncome": 80000,
+          "cashflowGoal": 80000
+        },
+        "propertyCount": 6,
+        "properties": [
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 420,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 480000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 520,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 390000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 430,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 490000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 530,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 440,
+            "targetPeriod": 9
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 500000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "rentPerWeek": 540,
+            "targetPeriod": 11
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "cf-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-08",
+      "category": "new_plan",
+      "description": "Existing property with PPOR",
+      "input": "Couple earning 200k combined, saving 4k a month, 90k deposit. They own their PPOR worth 900k with 400k owing. Capacity 1.1m.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should calculate PPOR equity: (900k * 0.8) - 400k = 320k",
+        "should extract existing property data",
+        "should NOT flag existing_debt as missing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 21167,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan using regional house (growth) and metro unit (growth) cells — the primary cells for this preset. Priced in the $500–620k range to suit mid-capacity. Modelled with IO loans at 80% LVR, no LMI. PPOR equity of ~$320k (80% of $900k minus $400k debt) is available as an additional equity source alongside the $90k cash deposit. Borrowing capacity of $1.1M sits in the mid-range, so standard 80% LVR applies. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Combined income split as $100k each",
+          "Savings of $4,000/month = $48,000/year",
+          "PPOR valued at $900k with $400k owing — usable equity ~$320k at 80% LVR",
+          "IO loans at 80% LVR, no LMI (mid-capacity client)",
+          "20-year horizon (not specified)",
+          "Growth-focused cells: regional-house-growth (QLD) and metro-unit-growth (VIC)",
+          "Default goal: equity growth (~2x deposit pool)",
+          "No existing investment properties"
+        ],
+        "missingInputs": [
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Partner 1",
+              "annualIncome": 100000
+            },
+            {
+              "name": "Partner 2",
+              "annualIncome": 100000
+            }
+          ],
+          "monthlySavings": 4000,
+          "currentDeposit": 90000,
+          "borrowingCapacity": 1100000,
+          "existingPropertyDebt": 400000,
+          "existingPropertyEquity": 320000,
+          "existingPortfolio": [
+            {
+              "state": "NSW",
+              "purchasePrice": 900000,
+              "currentValue": 900000,
+              "loan": 400000,
+              "loanType": "PI"
+            }
+          ]
+        },
+        "investmentProfile": {
+          "depositPool": 90000,
+          "annualSavings": 48000,
+          "baseSalary": 200000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-09",
+      "category": "new_plan",
+      "description": "Almost no info - should still try",
+      "input": "I have a client who wants to invest.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "may ask up to 2 questions OR generate with defaults",
+        "should NOT block entirely",
+        "should NOT ask 3+ questions"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6597,
+        "type": "explanation",
+        "message": "Happy to build a model. What's their income and how much do they have saved for a deposit?",
+        "assumptions": [],
+        "missingInputs": [
+          "income",
+          "deposit amount"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "FAIL",
+        "issues": [
+          "WRONG TYPE: expected \"initial_plan\", got \"explanation\""
+        ]
+      }
+    },
+    {
+      "id": "NP-10",
+      "category": "new_plan",
+      "description": "Numbers without units",
+      "input": "Client earns 140, deposit 100, saves 2500 a month, capacity 800.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should interpret 140 as 140k",
+        "deposit 100 as 100k",
+        "savings 2500/month",
+        "capacity 800 as 800k"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 17328,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan using regional houses and metro units — the right cells for an equity-growth, low price-point approach. Given the $800k borrowing capacity, modelled at 88% LVR with LMI capitalised on each acquisition to stretch the deposit pool further. Properties priced in the $400–500k range across QLD and NSW. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income is $140,000/year (single earner)",
+          "Deposit pool is $100,000",
+          "Monthly savings is $2,500/month ($30,000/year)",
+          "Borrowing capacity is $800,000 (low-capacity — 88% LVR with LMI capitalised applied)",
+          "No existing properties assumed",
+          "IO loans throughout",
+          "20-year horizon (not specified)",
+          "Equity growth goal (~2× deposit pool) assumed as no goal was stated",
+          "Growth tier: High for regional-house-growth, Medium for metro-unit-growth"
+        ],
+        "missingInputs": [
+          "existing_debt",
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 140000
+            }
+          ],
+          "monthlySavings": 2500,
+          "currentDeposit": 100000,
+          "borrowingCapacity": 800000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 100000,
+          "annualSavings": 30000,
+          "baseSalary": 140000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 450000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 400000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-01",
+      "category": "follow_up",
+      "description": "Simple question about the plan",
+      "input": "What interest rate are you using?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should answer the question directly",
+        "should NOT try to modify the plan",
+        "should reference actual rates from plan"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7496,
+        "type": "explanation",
+        "message": "The plan is modelled with IO loans at 6.25% across all three properties. This is a standard assumption for investment lending in the current rate environment — if Tom's broker has a different rate in mind, I can update it.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-02",
+      "category": "follow_up",
+      "description": "Question about a specific property",
+      "input": "Why did you pick QLD for property 1?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should explain reasoning",
+        "should NOT modify anything",
+        "should NOT block the question"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 8533,
+        "type": "explanation",
+        "message": "QLD was selected for property 1 as a high-growth regional market — the model uses it to target stronger capital appreciation in the early acquisition period. Regional QLD has historically shown solid growth relative to price point, which suits an 88% LVR entry at $450,000. If you'd prefer a different state or market type, I can remodel property 1 with an alternative location.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-03",
+      "category": "follow_up",
+      "description": "Question about timeline",
+      "input": "When does the first property get purchased?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should reference period/timeline",
+        "should NOT block or refuse"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6591,
+        "type": "explanation",
+        "message": "The first property — a regional QLD house at $450,000 — is targeted for H1 2026. That's the engine's earliest modelled settlement based on the current deposit pool and savings rate.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-04",
+      "category": "follow_up",
+      "description": "Vague follow-up",
+      "input": "Looks good. Tell me more.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should provide more detail about the plan",
+        "should NOT treat as new plan",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7864,
+        "type": "explanation",
+        "message": "Happy to go deeper — what aspect would you like to explore? A few common ones: how the cashflow tracks year by year, when the equity target is reached, how the LVR and LMI assumptions affect the numbers, or whether a different property mix could change the outcome. Just point me in a direction.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-05",
+      "category": "follow_up",
+      "description": "Question that sounds like it could be a modification",
+      "input": "Can we do better in NSW?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should either explain NSW options or suggest change",
+        "should be conversational"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 9028,
+        "type": "explanation",
+        "message": "That's a hypothetical — the current plan uses QLD and VIC, and swapping properties to NSW would change the growth and cashflow projections depending on which market and price point. NSW metro markets (Sydney) tend to carry higher entry prices, which at 88% LVR means larger LMI and tighter cashflow early on. Regional NSW can offer comparable entry prices to the current QLD properties (~$450–470k range) with reasonable growth assumptions. If you want to see how NSW compares, let me know which property you'd like to swap and a target price or region, and I'll rebuild that scenario.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-06",
+      "category": "follow_up",
+      "description": "Question about feasibility",
+      "input": "Is this realistic?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should reference plan data",
+        "should NOT refuse to answer",
+        "should frame as modelling not advice"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 8986,
+        "type": "explanation",
+        "message": "The plan is within normal modelling parameters for a 20-year horizon. Three properties across QLD and VIC at 88% LVR with IO loans is a common structure for a $120k income and $80k deposit pool — the engine projects $1.8M equity by 2046, with the equity target reached as early as 2038. The main variables that could shift that outcome are growth assumptions (property 1 and 3 are modelled at high growth, property 2 at medium) and whether Tom's savings rate of $24k/year holds over time. See the dashboard for the engine's exact projection.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-07",
+      "category": "follow_up",
+      "description": "Question about LMI",
+      "input": "How much LMI are we paying on these?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should explain LMI in context",
+        "should NOT attempt to calculate (engine does that)",
+        "should reference the dashboard"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7231,
+        "type": "explanation",
+        "message": "LMI figures are calculated by the engine and displayed on the dashboard against each property — check the property detail cards there for the exact amounts. All three properties are modelled at 88% LVR, so LMI applies to each. The engine can also model LMI capitalised into the loan if you'd like to adjust that.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-08",
+      "category": "follow_up",
+      "description": "Off-topic question",
+      "input": "What do you think about the Brisbane market right now?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should acknowledge but stay in modelling lane",
+        "should NOT provide market advice",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6579,
+        "type": "explanation",
+        "message": "That's outside what I can help with — I'm a modelling tool, not a market analyst. I don't provide views on market conditions, timing, or locations. If you want to test how a Brisbane property performs within Tom's plan, I can model a specific purchase — just give me a price point and property type.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-09",
+      "category": "follow_up",
+      "description": "Single word follow-up",
+      "input": "Why?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should attempt to answer based on context",
+        "should NOT block or refuse",
+        "should NOT treat as new plan"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6331,
+        "type": "explanation",
+        "message": "Could you clarify what you're asking about? For example, are you asking why the equity goal is reached in 2038, why cashflow is projected at $25,000/yr at year 20, or something else on the dashboard?",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-10",
+      "category": "follow_up",
+      "description": "Thanks / acknowledgment",
+      "input": "Thanks, that looks great.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should acknowledge naturally",
+        "should NOT modify anything",
+        "should NOT ask follow-up questions"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6277,
+        "type": "explanation",
+        "message": "Glad it's looking good. Let me know if you'd like to adjust any of the inputs — purchase prices, LVRs, loan types, or the timeline — and the engine will update the projections instantly.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-01",
+      "category": "profile_update",
+      "description": "Income correction",
+      "input": "Actually he makes 150k not 120k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update baseSalary to 150000",
+        "should NOT rebuild plan",
+        "should NOT touch other fields"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6085,
+        "type": "update_profile",
+        "message": "Updated Tom's income to $150k (was $120k). The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Previous salary was $120,000 — updated to $150,000 as corrected"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 150000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-02",
+      "category": "profile_update",
+      "description": "Multiple updates at once",
+      "input": "He makes 150k and has 600k capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update baseSalary AND borrowingCapacity",
+        "should NOT rebuild plan",
+        "should NOT treat as new client"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 5863,
+        "type": "update_profile",
+        "message": "Updated Tom's income to $150k and borrowing capacity to $600k. The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Income interpreted as $150,000/year",
+          "Borrowing capacity interpreted as $600,000"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 150000,
+          "borrowingCapacity": 600000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-03",
+      "category": "profile_update",
+      "description": "Savings correction",
+      "input": "He actually saves 3k a month, not 2k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update annualSavings to 36000",
+        "should convert monthly to annual"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6505,
+        "type": "modification",
+        "message": "Annual savings updated to $36,000 (was $24,000). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Savings stated as $3,000/month = $36,000/year annual savings"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "savings",
+          "action": "change",
+          "params": {
+            "annualSavings": 36000
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "FAIL",
+        "issues": [
+          "WRONG TYPE: expected \"update_profile\", got \"modification\""
+        ]
+      }
+    },
+    {
+      "id": "PU-04",
+      "category": "profile_update",
+      "description": "Adding borrowing capacity that was missing",
+      "input": "Just got the pre-approval back - 750k borrowing capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should set borrowingCapacity to 750000",
+        "should NOT rebuild plan"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6189,
+        "type": "update_profile",
+        "message": "Updated Tom's borrowing capacity to $750k. The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Borrowing capacity set to $750,000 based on pre-approval figure provided"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "borrowingCapacity": 750000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-05",
+      "category": "profile_update",
+      "description": "Deposit update",
+      "input": "Deposit is actually 120k, they got a gift from parents.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update depositPool to 120000",
+        "should NOT touch other fields"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 5728,
+        "type": "update_profile",
+        "message": "Updated Tom's deposit pool to $120k (was $80k). The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Gift from parents treated as immediately available cash, added to the deposit pool"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "depositPool": 120000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-06",
+      "category": "profile_update",
+      "description": "Adding a partner (couple names issue)",
+      "input": "Oh and his partner Sarah is also earning 110k.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT treat as new client",
+        "should NOT glitch out on adding a name",
+        "should update income or acknowledge partner"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6342,
+        "type": "update_profile",
+        "message": "Updated Tom's income to $120k and added Sarah at $110k — combined household income is now $230k. The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Tom's existing income of $120k remains unchanged",
+          "Sarah's $110k is annual salary",
+          "Both incomes combined for borrowing capacity modelling"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 230000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-07",
+      "category": "profile_update",
+      "description": "Timeline change",
+      "input": "Make it 15 years instead of 20.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should update timeline to 15",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 5852,
+        "type": "modification",
+        "message": "Timeline updated to 15 years (was 20). The dashboard now shows the updated trajectory to 2041.",
+        "assumptions": [
+          "Timeline shortened from 20 years to 15 years",
+          "All other inputs unchanged"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "timeline",
+          "action": "change",
+          "params": {
+            "timelineYears": 15
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PU-08",
+      "category": "profile_update",
+      "description": "Goal update",
+      "input": "He wants 3 million in equity, not 160k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update equityGoal to 3000000",
+        "should NOT rebuild plan"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6582,
+        "type": "modification",
+        "message": "Equity target updated to $3,000,000 (was $160,000). The dashboard now shows the updated trajectory against the new target.",
+        "assumptions": [
+          "Equity goal changed from $160,000 to $3,000,000"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "equityGoal",
+          "action": "change",
+          "params": {
+            "equityGoal": 3000000
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "FAIL",
+        "issues": [
+          "WRONG TYPE: expected \"update_profile\", got \"modification\""
+        ]
+      }
+    },
+    {
+      "id": "PM-01",
+      "category": "modification",
+      "description": "Change price of specific property",
+      "input": "Make property 2 600k instead.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 2",
+        "should set price to 600000",
+        "should cite new absolute value in message"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 9926,
+        "type": "modification",
+        "message": "Property 2 is now $600,000 (was $420,000). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Purchase price for property 2 (metro-unit-growth, VIC) updated from $420,000 to $600,000",
+          "All other parameters unchanged"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "property-2",
+          "action": "change",
+          "params": {
+            "purchasePrice": 600000
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-02",
+      "category": "modification",
+      "description": "Change state of a property",
+      "input": "Move property 1 to NSW.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 1",
+        "should change state to NSW"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6419,
+        "type": "modification",
+        "message": "Property 1 is now in NSW (was QLD). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "State changed from QLD to NSW for property 1",
+          "All other parameters for property 1 remain unchanged: $450,000 purchase price, High growth, IO, 88% LVR"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "property-1",
+          "action": "change",
+          "params": {
+            "state": "NSW"
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-03",
+      "category": "modification",
+      "description": "Remove a property",
+      "input": "Drop the last property.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 3 (last)",
+        "should remove it"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6253,
+        "type": "modification",
+        "message": "Property 3 (QLD regional house, $470k) has been removed. The dashboard now shows the updated trajectory with two properties.",
+        "assumptions": [
+          "Removed property 3 — regional house at $470,000 in QLD targeting H1 2030"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "property-3",
+          "action": "remove",
+          "params": {}
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-04",
+      "category": "modification",
+      "description": "Add a property",
+      "input": "Add a metro unit in Sydney around 550k.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should add a new property",
+        "should be metro-unit type",
+        "state NSW",
+        "price ~550k"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 9006,
+        "type": "modification",
+        "message": "Added a metro unit in NSW at $550,000 as property 4. The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Metro unit mapped to metro-unit-growth cell to match the active EG-LOW preset bias",
+          "Purchase price set to $550,000",
+          "State set to NSW (Sydney)",
+          "IO loan at 88% LVR applied, consistent with existing properties",
+          "Medium growth assumption applied",
+          "Target period set to H1 2032 (next available period after property 3)"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": [
+          {
+            "target": "portfolio",
+            "action": "add",
+            "params": {
+              "properties": [
+                {
+                  "type": "metro-unit-growth",
+                  "purchasePrice": 550000,
+                  "state": "NSW",
+                  "growthAssumption": "Medium",
+                  "loanProduct": "IO",
+                  "lvr": 88,
+                  "targetPeriod": 13
+                }
+              ]
+            }
+          }
+        ],
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-05",
+      "category": "modification",
+      "description": "Change loan type",
+      "input": "Switch property 1 to P&I.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 1",
+        "should change loanProduct to PI"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6747,
+        "type": "modification",
+        "message": "Property 1 is now modelled with a P&I loan (was IO). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Loan product changed from IO to PI for property 1 only"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "property-1",
+          "action": "change",
+          "params": {
+            "loanProduct": "PI"
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-06",
+      "category": "modification",
+      "description": "Vague modification request",
+      "input": "Can we make the portfolio cheaper overall?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should either suggest changes or make them",
+        "should be helpful"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7590,
+        "type": "explanation",
+        "message": "A few ways to reduce the overall cost of the portfolio — but I want to make sure I'm modelling what you're after. Are you looking to lower the purchase prices (e.g. target cheaper markets), reduce LVR to avoid LMI, switch to lower-cost states with less stamp duty, or something else? Once I know which lever you want to pull, I can apply it.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-07",
+      "category": "modification",
+      "description": "Multiple changes in one message",
+      "input": "Bump property 1 to 500k and move property 2 to QLD.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should handle both changes",
+        "should cite new values in message"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6975,
+        "type": "modification",
+        "message": "Done. Property 1 is now $500k (was $450k), and property 2 moves to QLD (was VIC). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Property 1 purchase price increased from $450,000 to $500,000",
+          "Property 2 state changed from VIC to QLD",
+          "All other parameters for both properties remain unchanged"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": [
+          {
+            "target": "property-1",
+            "action": "change",
+            "params": {
+              "purchasePrice": 500000
+            }
+          },
+          {
+            "target": "property-2",
+            "action": "change",
+            "params": {
+              "state": "QLD"
+            }
+          }
+        ],
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "PM-08",
+      "category": "modification",
+      "description": "Change growth assumption",
+      "input": "Set property 2 to high growth.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 2",
+        "should change growthAssumption to High"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 5701,
+        "type": "modification",
+        "message": "Property 2 is now set to high growth (was medium). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Growth assumption for property 2 changed from Medium to High"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": {
+          "target": "property-2",
+          "action": "change",
+          "params": {
+            "growthAssumption": "High"
+          }
+        },
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-01",
+      "category": "edge_case",
+      "description": "Repeated sentence (known bug)",
+      "input": "I have a client I have a client earning 120k with 80k deposit.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should NOT fail or produce garbage",
+        "should handle repeated text gracefully",
+        "should extract data from the repeated input"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 16242,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan using regional houses and metro units — the primary cells for the Equity Growth, Low Price Point preset. Priced in the $430–500k range to suit the deposit and estimated borrowing capacity. Modelled with IO loans at 88% LVR with LMI capitalised, given the deposit size. What's the borrowing capacity and monthly savings figure? Those two inputs will sharpen the projection considerably. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner at $120,000/year",
+          "Deposit of $80,000",
+          "No existing properties (first-time investor assumed)",
+          "Monthly savings estimated at $2,000/month (not provided)",
+          "Borrowing capacity estimated — not confirmed",
+          "IO loans at 88% LVR with LMI capitalised (low-capacity profile)",
+          "20-year horizon (not specified)",
+          "4 properties derived from default equity growth goal",
+          "Equity Growth — Low Price Point preset applied"
+        ],
+        "missingInputs": [
+          "borrowing_capacity",
+          "savings"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 80000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 80000,
+          "annualSavings": 24000,
+          "baseSalary": 120000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 450000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 9
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 13
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-02",
+      "category": "edge_case",
+      "description": "Typos and bad grammar",
+      "input": "clent earns 100k, hes got like 50k deposit n saves bout 2k a mnth. capacity probs around 700k",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should parse despite typos",
+        "should extract correct numbers",
+        "should not refuse"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 16163,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan for this client using regional houses and metro units — the right cells for an equity-growth, low-price-point approach on a $700k capacity profile. Modelled at 88% LVR with LMI capitalised given the sub-$1M borrowing capacity, keeping entry costs manageable on a $50k deposit. Properties are priced in the $400–500k range across QLD and NSW. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner at $100,000/year",
+          "Deposit of $50,000",
+          "Monthly savings of $2,000 ($24,000/year)",
+          "Borrowing capacity of $700,000 (low-capacity — 88% LVR with LMI capitalised applied)",
+          "IO loans throughout",
+          "20-year horizon (not specified)",
+          "No existing properties (not mentioned — flagged)",
+          "Equity growth goal defaulted to ~2x deposit pool",
+          "Properties priced $400–500k to suit low-capacity profile",
+          "High growth assumption on regional-house-growth cells, medium on metro-unit-growth"
+        ],
+        "missingInputs": [
+          "borrowing_capacity",
+          "existing_debt",
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 100000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 50000,
+          "borrowingCapacity": 700000
+        },
+        "investmentProfile": {
+          "depositPool": 50000,
+          "annualSavings": 24000,
+          "baseSalary": 100000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 440000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 420000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 8
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-03",
+      "category": "edge_case",
+      "description": "Message that could be new plan or update",
+      "input": "Tom earns 150k and has 600k capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should recognize Tom is the EXISTING client",
+        "should NOT treat as new client",
+        "should update profile"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6022,
+        "type": "update_profile",
+        "message": "Updated Tom's income to $150k and borrowing capacity to $600k. The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Income interpreted as $150,000/year",
+          "Borrowing capacity interpreted as $600,000"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 150000,
+          "borrowingCapacity": 600000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-04",
+      "category": "edge_case",
+      "description": "Message with two new names (couple glitch test)",
+      "input": "New client - Rob and Emily, both earning 110k, 200k deposit, saving 5k a month, 1.5m capacity.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should create 2 members",
+        "should NOT glitch on two names",
+        "should have both names in members array"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 17595,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan for Rob and Emily across regional and metro markets. Mix is three regional-house-growth (QLD) and two metro-unit-growth (VIC), all modelled at 80% LVR with IO loans. Mid-capacity profile at $1.5M, so standard LVR applies with no LMI. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Both incomes at $110,000/year each ($220,000 combined)",
+          "Monthly savings: $5,000/month ($60,000/year)",
+          "Deposit pool: $200,000",
+          "Borrowing capacity: $1,500,000 (mid-capacity — 80% LVR, no LMI)",
+          "IO loans across all properties",
+          "20-year horizon (not specified)",
+          "No existing properties (not mentioned — assumed first-time investors)",
+          "Growth assumption: High for regional-house-growth, Medium for metro-unit-growth",
+          "Goal: equity growth (EG-Low preset)"
+        ],
+        "missingInputs": [
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Rob",
+              "annualIncome": 110000
+            },
+            {
+              "name": "Emily",
+              "annualIncome": 110000
+            }
+          ],
+          "monthlySavings": 5000,
+          "currentDeposit": 200000,
+          "borrowingCapacity": 1500000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 200000,
+          "annualSavings": 60000,
+          "baseSalary": 220000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-05",
+      "category": "edge_case",
+      "description": "Two names with existing single-name plan",
+      "input": "Actually Tom and Sarah are a couple. Sarah earns 100k too.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT treat as entirely new client",
+        "should recognize Tom is existing",
+        "should add Sarah as partner"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6490,
+        "type": "update_profile",
+        "message": "Updated Tom's income to $120k and added Sarah at $100k — combined household income is now $220k. The dashboard reflects the new numbers.",
+        "assumptions": [
+          "Tom's income remains $120k as previously entered",
+          "Sarah's $100k is annual income",
+          "Both incomes are combined for borrowing capacity and serviceability modelling"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 220000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-06",
+      "category": "edge_case",
+      "description": "Entirely different client when plan exists",
+      "input": "New client - completely different person. Jake, 95k income, 40k deposit, saving 1500/month, 500k capacity.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should recognize this is a NEW client",
+        "should suggest clearing current plan",
+        "should NOT overwrite Tom with Jake"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7270,
+        "type": "update_profile",
+        "message": "Switched to Jake. Income set to $95k, deposit pool $40k, savings $1,500/month ($18k/year), borrowing capacity $500k. The dashboard reflects the updated numbers.",
+        "assumptions": [
+          "Savings of $1,500/month converted to $18,000/year annual savings",
+          "All other profile fields (timeline, equity goal, cashflow goal) carried over from previous plan — let me know if these need updating for Jake"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "baseSalary": 95000,
+          "depositPool": 40000,
+          "annualSavings": 18000,
+          "borrowingCapacity": 500000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "FAIL",
+        "issues": [
+          "WRONG TYPE: expected \"explanation\", got \"update_profile\""
+        ]
+      }
+    },
+    {
+      "id": "EC-07",
+      "category": "edge_case",
+      "description": "Just a greeting",
+      "input": "Hey",
+      "hasPlan": false,
+      "expectedType": null,
+      "checks": [
+        "should NOT block or error",
+        "should respond conversationally",
+        "should NOT generate a plan from nothing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 5270,
+        "type": "explanation",
+        "message": "Hey — ready to build a plan. Give me a client brief and I'll get a model up in seconds.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-08",
+      "category": "edge_case",
+      "description": "Request with conflicting numbers",
+      "input": "Client earns 90k but wants 10 properties in 5 years with only 30k deposit.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate BEST realistic plan",
+        "should note the gap",
+        "should NOT just refuse"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 22091,
+        "type": "initial_plan",
+        "message": "Built a 5-year, 10-property scenario on this profile — the inputs create a significant feasibility gap. On $90k income with a $30k deposit, borrowing capacity is likely in the $500k–$700k range, which means acquiring 10 properties in 5 years is well outside what the engine can model as viable. The plan below uses the best realistic path: affordable regional cells at 88% LVR with LMI capitalised to stretch the deposit as far as possible. Borrowing capacity is the binding constraint here — without it confirmed, the engine is working with an estimate. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner at $90,000/year",
+          "Deposit of $30,000 — low-capacity profile, modelled at 88% LVR with LMI capitalised",
+          "Monthly savings estimated at $1,500/month (not provided — please confirm)",
+          "Borrowing capacity estimated at ~$600k based on income — not confirmed",
+          "No existing properties assumed",
+          "IO loans throughout",
+          "10-property count used as requested, but capacity likely supports far fewer in a 5-year window",
+          "Timeline of 5 years set as explicit",
+          "Equity Growth — Low Price Point preset applied",
+          "Regional house and metro unit cells used at lowest viable price points (~$380k–$430k)"
+        ],
+        "missingInputs": [
+          "borrowing_capacity",
+          "savings"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 90000
+            }
+          ],
+          "monthlySavings": 1500,
+          "currentDeposit": 30000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0,
+          "borrowingCapacity": 600000
+        },
+        "investmentProfile": {
+          "depositPool": 30000,
+          "annualSavings": 18000,
+          "baseSalary": 90000,
+          "timelineYears": 5,
+          "timelineYearsExplicit": true
+        },
+        "propertyCount": 10,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 2
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 4
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 6
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 8
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 400000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 9
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 10
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-09",
+      "category": "edge_case",
+      "description": "Follow-up that is actually a new plan request",
+      "input": "Start fresh. New plan - client earning 180k, 200k deposit, 4k/month savings, 1.3m capacity.",
+      "hasPlan": true,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate fresh plan",
+        "should NOT mix with existing plan data"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 17444,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan using the Equity Growth — Low Price Point preset. Mix of regional house (growth) and metro unit (growth) cells across QLD and NSW, priced in the $500–620k range to suit mid-capacity. Modelled with IO loans at 80% LVR, no LMI. Borrowing capacity of $1.3M puts this in the mid-capacity band. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Single income earner at $180,000/year",
+          "Monthly savings of $4,000 ($48,000/year)",
+          "Deposit pool of $200,000",
+          "Borrowing capacity of $1,300,000 (mid-capacity — 80% LVR, no LMI)",
+          "IO loans across all properties",
+          "20-year horizon (not specified)",
+          "Growth tier: High for regional-house-growth, Medium for metro-unit-growth",
+          "No existing properties assumed — not specified",
+          "Goal: equity growth (preset-driven, ~2x deposit pool as default target)"
+        ],
+        "missingInputs": [
+          "existing_debt"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 180000
+            }
+          ],
+          "monthlySavings": 4000,
+          "currentDeposit": 200000,
+          "borrowingCapacity": 1300000
+        },
+        "investmentProfile": {
+          "depositPool": 200000,
+          "annualSavings": 48000,
+          "baseSalary": 180000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-10",
+      "category": "edge_case",
+      "description": "Emotional / frustrated user",
+      "input": "This doesnt look right at all. The numbers are way off. Can you just redo the whole thing properly?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT be defensive",
+        "should ask what looks wrong OR offer to rebuild",
+        "should be helpful not blocking"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 7497,
+        "type": "explanation",
+        "message": "Happy to revisit the plan — but to rebuild it properly, it helps to know what looks off. Are the property prices wrong, the timeline, the deposit, or something else? Let me know what to correct and I'll rebuild it from there.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-11",
+      "category": "edge_case",
+      "description": "Instruction-like message",
+      "input": "Show me what 5 properties looks like for this client.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should interpret as wanting 5-property scenario"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 20112,
+        "type": "property_suggestions",
+        "message": "Tom already has 3 properties in the plan, so these 2 additions would bring the portfolio to 5. Options are weighted toward diversification — complementing the existing QLD regional houses and VIC metro unit. Pick any two, or mix and match.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": [
+          {
+            "propertyType": "metro-house-cashflow",
+            "label": "Metro House — Cashflow",
+            "price": "$750k",
+            "yield": "4.8–5.5%",
+            "reason": "Adds a capital city cashflow asset to balance the growth-focused QLD regionals already in the plan.",
+            "prompt": "Add a metro-house-cashflow in QLD at $750,000"
+          },
+          {
+            "propertyType": "regional-unit-cashflow",
+            "label": "Regional Unit — Cashflow",
+            "price": "$380k",
+            "yield": "5.5–6.2%",
+            "reason": "Lower entry price preserves deposit pool and adds income-oriented exposure without duplicating existing holdings.",
+            "prompt": "Add a regional-unit-cashflow in QLD at $380,000"
+          },
+          {
+            "propertyType": "metro-unit-cashflow",
+            "label": "Metro Unit — Cashflow",
+            "price": "$440k",
+            "yield": "5.0–5.8%",
+            "reason": "Mid-range metro unit diversifies geographically and adds cashflow to offset the growth-heavy existing portfolio.",
+            "prompt": "Add a metro-unit-cashflow in NSW at $440,000"
+          },
+          {
+            "propertyType": "regional-house-cashflow",
+            "label": "Regional House — Cashflow",
+            "price": "$500k",
+            "yield": "5.2–6.0%",
+            "reason": "Keeps the price point accessible while adding a cashflow-oriented house to complement the growth assets already held in QLD.",
+            "prompt": "Add a regional-house-cashflow in NSW at $500,000"
+          }
+        ],
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-12",
+      "category": "edge_case",
+      "description": "Message with only savings mentioned",
+      "input": "She saves 2500 a month.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update annualSavings to 30000",
+        "should use she/her pronouns",
+        "should NOT flag savings as missing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 6556,
+        "type": "update_profile",
+        "message": "Annual savings updated to $30,000 (from $24,000). The dashboard now shows the updated trajectory.",
+        "assumptions": [
+          "Savings stated as $2,500/month = $30,000/year annual savings"
+        ],
+        "missingInputs": null,
+        "profileUpdates": {
+          "annualSavings": 30000
+        },
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-13",
+      "category": "edge_case",
+      "description": "Very long rambling input",
+      "input": "So I was talking to this client yesterday and he mentioned he works in mining and earns pretty good money, like around 160k or so, and his wife works part time at a school earning maybe 45k, they have been saving for a while and have about 200k in the bank, they want to build a portfolio over the next maybe 10 to 15 years, nothing crazy but they want some growth. They own their house outright worth about 700k. Borrowing capacity around 1m I think.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should extract 160k + 45k incomes",
+        "should get 200k deposit",
+        "should calculate PPOR equity (700k * 0.8 = 560k)",
+        "should handle timeline range (10-15)"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 19948,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan for this couple across a 12-year horizon (midpoint of their 10-15 year range), using regional house growth and metro unit growth cells — the right fit for equity-focused, lower-price-point acquisition given the ~$1M borrowing capacity. Modelled at 88% LVR with LMI capitalised on each purchase, which stretches the $200k deposit pool further across multiple acquisitions. Their PPOR ($700k, unencumbered) adds meaningful equity backing. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Combined household income: $205,000/yr ($160k mining + $45k part-time)",
+          "Deposit pool: $200,000 cash savings",
+          "PPOR value: $700,000, owned outright (no debt)",
+          "Borrowing capacity: ~$1,000,000 (BA estimate)",
+          "Monthly savings: $2,000/month (Australian average — not stated, flag for confirmation)",
+          "Timeline: 12 years (midpoint of 10-15 year range stated)",
+          "LVR: 88% with LMI capitalised (low-capacity override applied)",
+          "Loan product: Interest Only on all investment properties",
+          "Growth tier: High on regional house, Medium on metro unit",
+          "No existing investment properties assumed"
+        ],
+        "missingInputs": [
+          "monthly_savings",
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Husband",
+              "annualIncome": 160000
+            },
+            {
+              "name": "Wife",
+              "annualIncome": 45000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 200000,
+          "borrowingCapacity": 1000000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 700000,
+          "existingPortfolio": [
+            {
+              "state": "NSW",
+              "purchasePrice": 700000,
+              "currentValue": 700000,
+              "loan": 0,
+              "loanType": "PI"
+            }
+          ]
+        },
+        "investmentProfile": {
+          "depositPool": 200000,
+          "annualSavings": 24000,
+          "baseSalary": 205000,
+          "timelineYears": 12,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 460000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 9
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 400000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 13
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "EC-14",
+      "category": "edge_case",
+      "description": "Preset switch request",
+      "input": "Switch to cashflow focus.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should recognize preset change request",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 15783,
+        "type": "initial_plan",
+        "message": "Rebuilt Tom's plan under the Cash Flow — Low Price Point preset. Four properties modelled across regional QLD and NSW, biased toward regional units and houses with stronger income yields. Prices sit in the $380k–$500k range to suit the borrowing profile. Modelled at 88% LVR with LMI capitalised given the capacity level, IO loans throughout. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Reused existing client details: $120k income, $80k deposit, $24k annual savings, 20-year timeline",
+          "Switched preset to cf-low (Cash Flow — Low Price Point)",
+          "Borrowing capacity estimated ≤$1.0M based on $120k income and $80k deposit — applied 88% LVR with LMI capitalised",
+          "IO loans on all properties",
+          "4 properties modelled to reach cashflow target",
+          "No existing property debt assumed"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Tom",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 80000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 80000,
+          "annualSavings": 24000,
+          "baseSalary": 120000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false,
+          "cashflowGoal": 50000
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 500000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 390000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 8
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "cf-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    }
+  ]
+}

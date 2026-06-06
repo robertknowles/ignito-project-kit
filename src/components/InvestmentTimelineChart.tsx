@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import { useRoadmapData } from '../hooks/useRoadmapData'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { BASE_YEAR } from '../constants/financialParams'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
 import type { TimelineProperty } from '../types/property'
@@ -73,6 +74,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
   const navigate = useNavigate()
   const { profile: contextProfile } = useInvestmentProfile()
   const { timelineProperties: contextTimelineProps } = useAffordabilityCalculator()
+  const { instances } = usePropertyInstance()
 
   const profile = scenarioData?.profile ?? contextProfile
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProps
@@ -286,6 +288,8 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                       const instanceId = instanceIds[idx]
                       const label = labels[idx] || pt.purchaseLabel || 'property'
                       const iconCy = cy - idx * (bgSize + stackGap)
+                      const tlProp = instanceId ? timelineProperties.find(p => p.instanceId === instanceId) : undefined
+                      const isChallenging = tlProp?.status === 'challenging' && !(instanceId && instances[instanceId]?.alertDismissed)
                       const handleClick = () => {
                         if (instanceId) {
                           navigate('/portfolio', { state: { propertyInstanceId: instanceId } })
@@ -302,7 +306,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                           aria-label={`Open ${label} in Per-Property view`}
                         >
                           <title>{`Open ${label}`}</title>
-                          <circle cx={cx} cy={iconCy} r={bgSize / 2} fill={UUI.white} stroke={UUI.neutral200} strokeWidth={1} />
+                          <circle cx={cx} cy={iconCy} r={bgSize / 2} fill={UUI.white} stroke={isChallenging ? '#EF4444' : UUI.neutral200} strokeWidth={isChallenging ? 2 : 1} />
                           <svg
                             x={cx - iconSize / 2}
                             y={iconCy - iconSize / 2}
@@ -312,7 +316,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                             fill="none"
                             style={{ pointerEvents: 'none' }}
                           >
-                            <path d={iconPath} stroke={UUI.neutral900} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d={iconPath} stroke={isChallenging ? '#EF4444' : UUI.neutral900} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </g>
                       )

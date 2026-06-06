@@ -31,6 +31,7 @@ import { DISCLAIMER_D_TEXT } from '@/components/DisclaimerBlock'
 import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
+import { runPlanPreCheck, autoFixPlan } from '@/engine/planPreCheck'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useClient } from '@/contexts/ClientContext'
@@ -50,6 +51,9 @@ export const ChatPanel: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const location = useLocation()
+
+  // Ref for sendMessage so auto-fix can send explanation to AI
+  const sendMessageRef = useRef<((text: string) => void) | null>(null)
 
   // ── Drag & resize state ──
   const DEFAULT_SIZE = { width: 380, height: 420 }
@@ -260,6 +264,7 @@ export const ChatPanel: React.FC = () => {
       },
       properties: propertyOrder.map((instanceId, i) => {
         const inst = instances[instanceId]
+        const engineProp = timelineProperties.find(tp => tp.instanceId === instanceId)
         return {
           instanceId,
           type: instanceId.replace(/_instance_\d+$/, ''),
@@ -269,12 +274,15 @@ export const ChatPanel: React.FC = () => {
           growthAssumption: (inst?.growthAssumption ?? 'High') as 'High' | 'Medium' | 'Low',
           loanProduct: (inst?.loanProduct ?? 'IO') as 'IO' | 'PI',
           lvr: inst?.lvr ?? 88,
+          entity: inst?.entity,
+          engineStatus: engineProp?.status as 'feasible' | 'challenging' | undefined,
+          borrowingCapacityRemaining: engineProp?.borrowingCapacityRemaining,
         }
       }),
       clientNames: clientNamesRef.current,
       enginePlanState,
     }
-  }, [profile, propertyOrder, instances, chartData])
+  }, [profile, propertyOrder, instances, chartData, timelineProperties])
 
   // Handle plan generation — store response for confirmation screen
   const handlePlanGenerated = useCallback(
@@ -296,15 +304,37 @@ export const ChatPanel: React.FC = () => {
         }
       }
 
-      // Show confirmation screen instead of hydrating immediately
-      setPendingPlanResponse(response)
+      // Run affordability pre-check and auto-fix before showing confirmation brief
+      let finalResponse = response
+      try {
+        const preCheck = runPlanPreCheck(response, profile)
+        console.info('[ChatPanel] Pre-check result:', { allFeasible: preCheck.allFeasible, failureCount: preCheck.failures.length })
+
+        if (!preCheck.allFeasible) {
+          // Auto-fix: flip entities to trust, reduce prices if needed
+          const fix = autoFixPlan(response, preCheck, profile)
+          console.info('[ChatPanel] Auto-fix result:', { fixed: fix.fixed, changeCount: fix.changes.length, changes: fix.changes.map(c => c.detail) })
+
+          if (fix.fixed) {
+            finalResponse = fix.fixedResponse
+            // Attach change details so the confirmation brief can show them
+            finalResponse._autoFixChanges = fix.changes
+          }
+        }
+      } catch (err) {
+        console.error('[ChatPanel] Pre-check/auto-fix threw, showing original brief:', err)
+      }
+
+      // Show confirmation screen (immediately, no delay)
+      setPendingPlanResponse(finalResponse)
     },
-    [activeClient, updateClient, setPendingPlanResponse]
+    [activeClient, updateClient, setPendingPlanResponse, profile]
   )
 
   // Confirm plan — hydrate contexts from the (possibly edited) response
   const confirmPlan = useCallback(
     (response: NLParseResponse) => {
+      console.warn('[ConfirmPlan] Properties:', response.properties?.map((p, i) => `P${i+1} targetPeriod=${p.targetPeriod} alertDismissed=${p.alertDismissed}`).join(' | '))
       const profileUpdates = mapToInvestmentProfile(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
@@ -315,6 +345,7 @@ export const ChatPanel: React.FC = () => {
         : undefined;
       const { selections: newSelections, propertyOrder: newOrder, instances: newInstances } =
         mapToPropertySelections(response, lvrOverride)
+      console.warn('[ConfirmPlan] Instances:', Object.entries(newInstances).map(([id, inst]) => `${id} period=${inst.manualPlacementPeriod} manual=${inst.isManuallyPlaced} dismissed=${inst.alertDismissed}`).join(' | '))
       if (newOrder.length > 0) {
         setAllSelections(newSelections, newOrder)
         setInstances(newInstances)
@@ -621,6 +652,9 @@ export const ChatPanel: React.FC = () => {
     hasExistingPlan: propertyOrder.length > 0 && !!scenarioId,
     forceNewPlan: forceNewPlanRef.current,
   })
+
+  // Keep sendMessage ref current for pre-check feedback loop
+  sendMessageRef.current = sendMessage
 
   // Keep the forward-ref pointed at the latest addSystemMessage so callbacks
   // declared above this hook (handleModification) can post into the chat.

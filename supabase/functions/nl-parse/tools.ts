@@ -18,7 +18,7 @@
 
 export const CREATE_PLAN_TOOL = {
   name: 'create_plan',
-  description: `Generate a new property investment plan from a client brief. Use when the BA describes a new client's financial situation. NEVER use when a plan already exists — unless the BA explicitly says "start fresh", "new plan", or "rebuild".`,
+  description: `Generate a new property investment plan from a client brief. Use when the BA describes a new client's financial situation. NEVER use when a plan already exists — unless the BA explicitly says "start fresh", "new plan", or "rebuild". IMPORTANT: When proposing 3+ properties on ≤$1.5M borrowing capacity, set entity to "trust" on properties 2+ to avoid serviceability blocks. Mention this in the message.`,
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -91,6 +91,7 @@ export const CREATE_PLAN_TOOL = {
             lmiCapitalized: { type: 'boolean' as const },
             rentPerWeek: { type: 'number' as const },
             targetPeriod: { type: 'number' as const },
+            entity: { type: 'string' as const, enum: ['individual', 'trust', 'company', 'smsf'], description: 'REQUIRED for properties 2+ when total loans exceed borrowing capacity or when proposing 3+ properties on ≤$1.5M capacity. Set to "trust" to reduce serviceability impact by 75%. Property 1 = "individual", properties 2+ = "trust".' },
           },
           required: ['type', 'purchasePrice', 'state', 'growthAssumption', 'loanProduct', 'lvr'],
         },
@@ -178,6 +179,7 @@ export const MODIFY_PLAN_TOOL = {
             lmiCapitalized: { type: 'boolean' as const },
             rentPerWeek: { type: 'number' as const },
             targetPeriod: { type: 'number' as const },
+            entity: { type: 'string' as const, enum: ['individual', 'trust', 'company', 'smsf'] },
           },
           required: ['type', 'purchasePrice', 'state', 'growthAssumption', 'loanProduct', 'lvr'],
         },

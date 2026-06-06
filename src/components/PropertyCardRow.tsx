@@ -7,14 +7,17 @@
  */
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { X, Plus, Landmark, CalendarDays } from 'lucide-react';
+import { X, Plus, Minus, Landmark, CalendarDays } from 'lucide-react';
 import { ChartCard } from './ui/ChartCard';
+import { AffordabilityAlert } from './ui/AffordabilityAlert';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
+import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import type { TimelineProperty } from '../types/property';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 const GROWTH_OPTIONS = [
@@ -229,6 +232,8 @@ interface CardData {
   propertyType: string;
   purchaseYear: number | undefined;
   isUnplaceable: boolean;
+  isBCBlocked: boolean;
+  timelineProp?: TimelineProperty;
 }
 
 type RenderFn = (
@@ -247,13 +252,10 @@ const readonlyCell = (text: string | number | undefined) => (
   <span className="text-xs text-neutral-600">{text ?? '—'}</span>
 );
 
-const yearCell: RenderFn = (card) =>
-  card.isUnplaceable
-    ? <span className="text-amber-600 text-xs" title="Doesn't fit in current timeline">—</span>
-    : readonlyCell(card.purchaseYear);
+const yearCellPlaceholder: RenderFn = (card) => readonlyCell(card.purchaseYear);
 
 const EQUITY_COLUMNS: Column[] = [
-  { key: 'year', header: 'Year', render: yearCell },
+  { key: 'year', header: 'Year', render: yearCellPlaceholder },
   {
     key: 'growth', header: 'Growth',
     render: (c, onChange) => c.instanceData
@@ -323,7 +325,7 @@ const EQUITY_COLUMNS: Column[] = [
 ];
 
 const CASHFLOW_COLUMNS: Column[] = [
-  { key: 'year', header: 'Year', render: yearCell },
+  { key: 'year', header: 'Year', render: yearCellPlaceholder },
   // ── Income ──
   {
     key: 'rent', header: 'Rent/wk ($)', group: 'Income',
@@ -445,7 +447,7 @@ const CASHFLOW_COLUMNS: Column[] = [
 
 const PURCHASES_COLUMNS: Column[] = [
   // ── Identity ──
-  { key: 'year', header: 'Year', render: yearCell },
+  { key: 'year', header: 'Year', render: yearCellPlaceholder },
   {
     key: 'growth', header: 'Growth',
     render: (c, onChange) => c.instanceData
@@ -731,12 +733,13 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
       const rawYear = timelineProp?.affordableYear;
       const purchaseYear = Number.isFinite(rawYear) ? Math.floor(rawYear as number) : undefined;
       const isUnplaceable = rawYear === Infinity && profile.timelineYearsExplicit === true;
+      const isBCBlocked = timelineProp?.status === 'challenging' && rawYear !== Infinity;
 
       const parsed = parseInstanceId(instanceId);
       const propertyTypeMeta = parsed ? propertyTypes.find(p => p.id === parsed.propertyId) : undefined;
       const propertyType = propertyTypeMeta?.title ?? timelineProp?.title ?? getCellDisplayLabel(DEFAULT_NEW_CELL_ID);
 
-      return { instanceId, instanceData, propertyType, purchaseYear, isUnplaceable, orderIdx };
+      return { instanceId, instanceData, propertyType, purchaseYear, isUnplaceable, isBCBlocked, timelineProp, orderIdx };
     });
 
     return items.sort((a, b) => {
@@ -785,10 +788,71 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   };
 
   const handleFieldChange = (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => {
-    updateInstance(instanceId, { [field]: value });
+    updateInstance(instanceId, { [field]: value, alertDismissed: false });
   };
 
-  const columns = mode === 'purchases' || mode === 'blocks' ? PURCHASES_COLUMNS : mode === 'equity' ? EQUITY_COLUMNS : CASHFLOW_COLUMNS;
+  const handleYearChange = (instanceId: string, year: number) => {
+    updateInstance(instanceId, { isManuallyPlaced: true, manualPlacementPeriod: yearToPeriod(year), alertDismissed: false });
+  };
+
+  const handleDismissAlert = (instanceId: string) => {
+    updateInstance(instanceId, { alertDismissed: true });
+  };
+
+  const yearCellEditable: RenderFn = (card) => {
+    if (card.isUnplaceable) {
+      return <span className="text-amber-600 text-xs" title="Doesn't fit in current timeline">—</span>;
+    }
+
+    const year = card.purchaseYear ?? BASE_YEAR;
+    const isDismissed = card.instanceData?.alertDismissed === true;
+    const tp = card.timelineProp;
+
+    const stepper = (
+      <div className="flex items-center gap-0">
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); handleYearChange(card.instanceId, year - 1); }}
+          className="p-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+        >
+          <Minus size={10} />
+        </button>
+        <span className={`text-xs font-medium tabular-nums px-0.5 ${card.isBCBlocked && !isDismissed ? 'text-red-500' : 'text-neutral-600'}`}>
+          {year}
+        </span>
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); handleYearChange(card.instanceId, year + 1); }}
+          className="p-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+    );
+
+    if (card.isBCBlocked && !isDismissed && tp) {
+      return (
+        <AffordabilityAlert
+          depositTestPass={tp.depositTestPass}
+          serviceabilityTestPass={tp.serviceabilityTestPass}
+          borrowingCapacityRemaining={tp.borrowingCapacityRemaining}
+          depositTestSurplus={tp.depositTestSurplus}
+          serviceabilityTestSurplus={tp.serviceabilityTestSurplus}
+          onDismiss={() => handleDismissAlert(card.instanceId)}
+        >
+          {stepper}
+        </AffordabilityAlert>
+      );
+    }
+
+    return stepper;
+  };
+
+  const baseColumns = mode === 'purchases' || mode === 'blocks' ? PURCHASES_COLUMNS : mode === 'equity' ? EQUITY_COLUMNS : CASHFLOW_COLUMNS;
+  const columns = useMemo(() =>
+    baseColumns.map(col => col.key === 'year' ? { ...col, render: yearCellEditable } : col),
+    [baseColumns, instances, timelineProperties]
+  );
   const groupHeaders = buildGroupHeaders(columns);
 
   if (cards.length === 0) {

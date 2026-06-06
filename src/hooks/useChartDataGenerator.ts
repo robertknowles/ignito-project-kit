@@ -29,7 +29,9 @@ import {
   ANNUAL_WAGE_GROWTH_RATE,
   SAVINGS_INTEREST_RATE,
   EQUITY_EXTRACTION_LVR_CAP,
+  ENTITY_SERVICEABILITY_FACTORS,
 } from '../constants/financialParams';
+import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
 
 export interface PortfolioGrowthDataPoint {
   year: string; // Year label for chart display
@@ -45,6 +47,7 @@ export interface PortfolioGrowthDataPoint {
   borrowingCapacity?: number;     // Remaining borrowing capacity
   cashFromSales?: number;         // Cumulative net proceeds from sold existing properties
   cashOffset?: number;            // Pure cash offset (deposit pool + savings - deposits used, no equity)
+  entityDiscountedDebt?: number;  // Debt weighted by entity factors (trust=25%, SMSF=0%) — what lenders count
 }
 
 export interface CashflowDataPoint {
@@ -127,9 +130,10 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     // DEPRECATED: No longer using globalFactors - each property uses its own template values
     const defaultGrowthRate = 0.06; // Default 6% for chart calculations
 
-    // Convert feasible properties to PropertyPurchase format
-    const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
-    const purchases: PropertyPurchase[] = feasibleProperties.map(property => {
+    // Include all properties with a valid period (feasible AND challenging)
+    // Challenging properties still appear on the chart with red icons — the BA can override
+    const plottableProperties = timelineProperties.filter(property => property.period !== Infinity);
+    const purchases: PropertyPurchase[] = plottableProperties.map(property => {
       const propertyInstance = getInstance(property.instanceId);
       const propertyData = getPropertyData(property.title, propertyInstance?.growthAssumption);
 
@@ -348,9 +352,51 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
       const availableFunds = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
       const cashOffset = Math.round(Math.max(0, profile.depositPool + cumulativeSavings - depositsUsed + chartSalesProceedsCash));
 
-      // Remaining borrowing capacity
-      const loansUsed = relevantPurchases.reduce((sum, p) => sum + p.loanAmount, 0);
-      const borrowingCapacity = Math.round(Math.max(0, profile.borrowingCapacity - loansUsed));
+      // Remaining borrowing capacity — entity-discounted debt vs wage-grown ceiling
+      // Estimate gross rental income inline (can't reference cashflowData — it's a later useMemo)
+      let grossRentalIncome = 0;
+      relevantPurchases.forEach(p => {
+        const inst = getInstance(p.instanceId);
+        if (inst?.rentPerWeek) {
+          const yearsHeld = Math.max(0, year - p.year);
+          const rentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsHeld);
+          grossRentalIncome += inst.rentPerWeek * 52 * rentEsc;
+        }
+      });
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
+          const rentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
+          grossRentalIncome += ep.rentPerWeek * 52 * rentEsc;
+        });
+      }
+      const wageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
+      const chartPeriod = yearsElapsed * PERIODS_PER_YEAR + 1;
+      const borrowingCeiling = calculateBorrowingCeiling(chartPeriod, {
+        statedBC: profile.borrowingCapacity ?? 0,
+        baseSalary: profile.baseSalary ?? 60000,
+        salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+        wageGrowth,
+        grossRentalIncome,
+        eventBlocks,
+      });
+      let entityDiscountedDebt = 0;
+      relevantPurchases.forEach(p => {
+        const inst = getInstance(p.instanceId);
+        const factor = ENTITY_SERVICEABILITY_FACTORS[inst?.entity ?? 'individual'] ?? 1.0;
+        entityDiscountedDebt += p.loanAmount * factor;
+      });
+      if (existingProperties.length > 0) {
+        existingProperties.forEach(ep => {
+          if (ep.saleYear && ep.saleYear > 0 && chartPeriod >= (ep.saleYear - BASE_YEAR) * PERIODS_PER_YEAR + 1) return;
+          if (ep.entity === 'smsf') return;
+          const factor = ENTITY_SERVICEABILITY_FACTORS[ep.entity ?? 'individual'] ?? 1.0;
+          entityDiscountedDebt += ep.loan * factor;
+        });
+      } else {
+        entityDiscountedDebt += profile.currentDebt;
+      }
+      const borrowingCapacity = Math.round(Math.max(0, borrowingCeiling - entityDiscountedDebt));
 
       data.push({
         year: year.toString(),
@@ -364,6 +410,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
         borrowingCapacity,
         cashFromSales: Math.round(chartSalesProceedsCash),
         cashOffset,
+        entityDiscountedDebt: Math.round(entityDiscountedDebt),
       });
     }
 
@@ -375,8 +422,8 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
     const startYear = BASE_YEAR;
     const endYear = startYear + Math.max(profile.timelineYears, 20) - 1;
 
-    // Get feasible properties with their detailed cashflow data
-    const feasibleProperties = timelineProperties.filter(property => property.status === 'feasible');
+    // Include all properties with a valid period for cashflow projections
+    const feasibleProperties = timelineProperties.filter(property => property.period !== Infinity);
 
     for (let year = startYear; year <= endYear; year++) {
       const yearsElapsed = year - startYear;
@@ -620,7 +667,7 @@ export const useChartDataGenerator = (scenarioData?: ScenarioDataInput) => {
 
   // Monthly holding cost summary for SummaryBar (total + per-property breakdown)
   const monthlyHoldingCost = useMemo(() => {
-    const feasibleProperties = timelineProperties.filter(p => p.status === 'feasible');
+    const feasibleProperties = timelineProperties.filter(p => p.period !== Infinity);
     const finalCashflow = cashflowData[cashflowData.length - 1];
 
     const byProperty = feasibleProperties.map(property => {

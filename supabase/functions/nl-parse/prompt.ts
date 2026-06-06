@@ -29,6 +29,9 @@ interface CurrentPlanState {
     loanProduct: 'IO' | 'PI';
     lvr: number;
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    engineStatus?: 'feasible' | 'challenging';
+    borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
   enginePlanState?: {
@@ -87,7 +90,9 @@ ${ep ? `
 ${currentPlan.properties.map((p, i) => {
   const approxYear = currentYear + Math.floor((p.period - 1) / 2);
   const halfLabel = (p.period % 2 === 1) ? 'H1' : 'H2';
-  return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, ~${halfLabel} ${approxYear}, ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR (ID: ${p.instanceId})`;
+  const entityLabel = p.entity && p.entity !== 'individual' ? `, entity: ${p.entity}` : '';
+  const statusLabel = p.engineStatus === 'challenging' ? ` ⚠️ BLOCKED (BC remaining: $${(p.borrowingCapacityRemaining ?? 0).toLocaleString()})` : '';
+  return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, ~${halfLabel} ${approxYear}, ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR${entityLabel} (ID: ${p.instanceId})${statusLabel}`;
 }).join('\n')}`;
   }
 
@@ -223,6 +228,7 @@ Active preset: **${preset.toUpperCase()} — ${presetLabel}**. Bias toward this 
 - Count: derive from goal. eg-low: 4-7, eg-high: 2-4, cf-low: 4-7, cf-high: 3-4.
 - Default goal: Equity Growth → ~2x deposit pool. Cash Flow → ~$50k/yr income.
 - Capacity sanity check: total acquisition ≤ ~2x borrowing capacity.
+- **If BC not stated: derive from income.** Set \`clientProfile.borrowingCapacity\` to combined income × 8. E.g. $120k income → $960k BC. Still flag "borrowing_capacity" in missingInputs so the BA knows it was estimated, but ALWAYS set a value — never leave it blank.
 - Always include missingInputs for data the BA didn't provide. Priority: borrowing_capacity, existing_debt.
 - "No existing properties" / "first-time investor" → set existingPropertyDebt: 0, existingPropertyEquity: 0. Do NOT flag existing_debt.
 - For PPOR equity: equity = (value × 0.8) − debt.
@@ -241,10 +247,26 @@ Rules:
 - When in doubt, tag as "assumed" — it's better to flag for review than to hide an assumption.
 - propertySources is an array parallel to properties. propertySources[0] maps to properties[0], etc.
 
+### Entity Types (Ownership Structures) — CRITICAL for plan feasibility
+Each property can be held in a different entity: \`individual\` (default), \`trust\`, \`company\`, or \`smsf\`. Entity type directly affects whether the engine marks a property as feasible or blocked.
+
+- **Individual** — 100% of loan repayments count toward serviceability.
+- **Trust** — only 25% of loan repayments count toward serviceability (lenders heavily discount trust debt because the trust's rental income self-services the loan). This is the PRIMARY lever for fitting more properties within borrowing capacity.
+- **Company** — same as individual for serviceability.
+- **SMSF** — 0% of loan repayments count toward serviceability (LRBA). Excluded from cumulative BC ceiling.
+
+**PROACTIVE TRUST ASSIGNMENT ON create_plan (MANDATORY):**
+When generating an initial plan, do a rough serviceability check: sum up all property loan amounts. If total loans exceed the stated borrowing capacity (or if you're proposing 3+ properties on a ≤$1.5M capacity client), set \`"entity": "trust"\` on properties 2 and onward. Property 1 stays as individual. This prevents the engine from blocking later purchases.
+
+When you assign trusts, mention it in the chat message: "Properties 2+ are modelled in trusts to fit within the $Xk borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases."
+
+If the BA mentions trusts/SMSF, respect their preference. If they say "all individual", respect that too — but warn that later properties may not fit.
+
 ### Modification Rules (for modify_plan)
 - "Property 2" = property #2 in the list above.
 - Relative changes: compute ABSOLUTE value. "Increase by 500k" on a $700k property → purchasePrice: 1200000.
 - Valid targets: property-1 through property-N, savings, income, timeline, equityGoal, cashflowGoal, portfolio (for add/remove).
+- Supported \`change\` params: \`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`, \`entity\`.
 - Adding properties: include ONLY new properties in the properties array.
 - For "add" with a clear type/price/state: use modify_plan. For vague "add another": use suggest_properties.
 

@@ -80,6 +80,10 @@ export function mapToInvestmentProfile(
 
     if (typeof borrowingCapacity === 'number' && borrowingCapacity > 0) {
       updates.borrowingCapacity = borrowingCapacity;
+    } else if (members.length > 0) {
+      // Derive BC from income when not stated: 8x combined income
+      const combinedIncome = members.reduce((sum, m) => sum + m.annualIncome, 0);
+      updates.borrowingCapacity = combinedIncome * 8;
     }
 
     // baseSalary = highest individual earner (used for serviceability)
@@ -220,10 +224,19 @@ export function mapToPropertySelections(
       instance.rentPerWeek = prop.rentPerWeek;
     }
 
+    // Optional: entity type (individual, trust, company, smsf)
+    if (prop.entity !== undefined) {
+      instance.entity = prop.entity;
+    }
+
     // Optional: manual placement if Claude suggested a specific period
     if (prop.targetPeriod !== undefined) {
       instance.isManuallyPlaced = true;
       instance.manualPlacementPeriod = prop.targetPeriod;
+    }
+
+    if (prop.alertDismissed) {
+      instance.alertDismissed = true;
     }
 
     instances[instanceId] = instance;
@@ -311,6 +324,7 @@ const SUPPORTED_CHANGE_FIELDS = new Set([
   'growthAssumption',
   'rentPerWeek',
   'interestRate',
+  'entity',
 ]);
 
 /**
@@ -386,6 +400,9 @@ export function mapModificationToUpdates(
         }
         if (params.interestRate !== undefined) {
           instanceChanges.interestRate = params.interestRate as number;
+        }
+        if (params.entity !== undefined) {
+          instanceChanges.entity = params.entity as 'individual' | 'trust' | 'company' | 'smsf';
         }
 
         // Surface any params Claude tried to set that we don't actually

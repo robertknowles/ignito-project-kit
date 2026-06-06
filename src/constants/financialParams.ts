@@ -111,13 +111,13 @@ export const DEFAULT_EQUITY_FACTOR = 0.80;
  *   cannot access personal assets. SMSF debt is assessed purely on the fund's
  *   own cashflow and does not count against personal serviceability.
  *
- * These factors apply ONLY to the serviceability test (annual payment capacity).
- * The cumulative BC ceiling still counts trust debt at 100% (personal guarantee).
+ * These factors apply to BOTH the serviceability test (annual payment capacity)
+ * AND the cumulative BC ceiling test (entity-discounted debt vs capacity).
  * SMSF debt is excluded from both serviceability AND cumulative BC ceiling.
  */
 export const ENTITY_SERVICEABILITY_FACTORS: Record<string, number> = {
   individual: 1.0,
-  trust: 0.70,
+  trust: 0.25,
   company: 1.0,
   smsf: 0.0,
 };

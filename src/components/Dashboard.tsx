@@ -164,6 +164,12 @@ export const Dashboard = () => {
   const chartDataA = useChartDataGenerator(displayScenarioAData);
   const chartDataB = useChartDataGenerator(displayScenarioBData);
 
+  const blockedProperties = useMemo(() => {
+    return liveTimelineProperties.filter(p => p.status === 'challenging' && p.affordableYear !== Infinity);
+  }, [liveTimelineProperties]);
+  const totalProperties = livePropertyOrder.length;
+  const hasBlockedProperties = blockedProperties.length > 0 && totalProperties > 0;
+
   const scenarioAForComparison = useMemo(() => {
     if (scenarios.length < 1) return null;
     const isActive = scenarios[0].id === activeScenarioId;
@@ -386,6 +392,8 @@ export const Dashboard = () => {
             )}
           </div>
         )}
+
+        {/* Blocked properties: no banner — indicated inline via red year text and red chart icons */}
 
         {/* ── Tab content ── */}
 

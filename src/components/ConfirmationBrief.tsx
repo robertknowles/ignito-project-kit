@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
+import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
+import { AffordabilityAlert } from '@/components/ui/AffordabilityAlert';
+import { runPlanPreCheck, type PreCheckFailure } from '@/engine/planPreCheck';
 import type { NLParseResponse, FieldSource, FieldSourceMap } from '@/types/nlParse';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
+import { BASE_YEAR, PERIODS_PER_YEAR } from '@/constants/financialParams';
 
 // ── UUI Design Tokens (matching ChartCard / Dashboard) ───────────────────────
 const UUI = {
@@ -313,12 +317,15 @@ interface PropertyBlockProps {
   sources: FieldSourceMap;
   onFieldChange: (field: string, value: any) => void;
   onRemove: () => void;
+  failure?: PreCheckFailure;
+  isDismissed?: boolean;
+  onDismissAlert?: () => void;
 }
 
-const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, sources, onFieldChange, onRemove }) => {
+const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, sources, onFieldChange, onRemove, failure, isDismissed, onDismissAlert }) => {
   const purchaseYear = property.targetPeriod
-    ? 2025 + Math.floor((property.targetPeriod - 1) / 2)
-    : 2025 + index;
+    ? BASE_YEAR + Math.floor((property.targetPeriod - 1) / PERIODS_PER_YEAR)
+    : BASE_YEAR + index;
   const blockDelay = 400 + index * 100;
 
   const fieldLabel = (text: string, sourceKey: string) => (
@@ -336,6 +343,8 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
     />
   );
 
+  const hasActiveFailure = failure && !isDismissed;
+
   return (
     <div
       style={{
@@ -344,7 +353,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         minWidth: 200,
         background: UUI.white,
         borderRadius: 12,
-        border: `1px solid ${UUI.neutral200}`,
+        border: `1px solid ${hasActiveFailure ? '#EF4444' : UUI.neutral200}`,
         padding: '12px 14px',
         animation: 'briefBlockIn 0.35s ease-out both',
         animationDelay: `${blockDelay}ms`,
@@ -370,7 +379,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
         <div>
           {fieldLabel('Entity', 'entity')}
-          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={v => onFieldChange('entity', v)} />
+          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value={property.entity ?? 'individual'} onChange={v => onFieldChange('entity', v)} />
         </div>
       </div>
 
@@ -382,7 +391,22 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
         <div>
           {fieldLabel('Purchase year', 'targetPeriod')}
-          <YearStepper value={purchaseYear} onChange={v => onFieldChange('targetPeriod', ((v - 2025) * 2) + 1)} />
+          {hasActiveFailure && onDismissAlert ? (
+            <AffordabilityAlert
+              depositTestPass={failure.depositTestPass}
+              serviceabilityTestPass={failure.serviceabilityTestPass}
+              borrowingCapacityRemaining={failure.borrowingCapacityRemaining}
+              depositTestSurplus={failure.depositTestSurplus}
+              serviceabilityTestSurplus={failure.serviceabilityTestSurplus}
+              onDismiss={onDismissAlert}
+            >
+              <div style={{ border: '1px solid #EF4444', borderRadius: 8 }}>
+                <YearStepper value={purchaseYear} onChange={v => onFieldChange('targetPeriod', ((v - BASE_YEAR) * PERIODS_PER_YEAR) + 1)} />
+              </div>
+            </AffordabilityAlert>
+          ) : (
+            <YearStepper value={purchaseYear} onChange={v => onFieldChange('targetPeriod', ((v - BASE_YEAR) * PERIODS_PER_YEAR) + 1)} />
+          )}
         </div>
       </div>
 
@@ -469,7 +493,7 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
       <div className="grid grid-cols-2 gap-2">
         <div>
           {fieldLabel('Entity')}
-          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value="individual" onChange={() => {}} />
+          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value={(property as any).entity ?? 'individual'} onChange={v => onFieldChange('entity', v)} />
         </div>
         <div>
           {fieldLabel('State')}
@@ -531,6 +555,8 @@ function enrichProperties(response: NLParseResponse): NLParseResponse {
 export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }) => {
   const { confirmPlanHandler } = useLayout();
   const [editedResponse, setEditedResponse] = useState<NLParseResponse>(() => enrichProperties(response));
+  const editedResponseRef = useRef(editedResponse);
+  editedResponseRef.current = editedResponse;
   const [editedClientSources, setEditedClientSources] = useState<FieldSourceMap>(() => ({ ...(response.clientProfileSources ?? {}) }));
   const [editedProfileSources, setEditedProfileSources] = useState<FieldSourceMap>(() => ({ ...(response.investmentProfileSources ?? {}) }));
   const [editedPropertySources, setEditedPropertySources] = useState<FieldSourceMap[]>(() => (response.propertySources ?? []).map(s => ({ ...s })));
@@ -550,10 +576,28 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     setEditedResponse(prev => ({ ...prev, strategyPreset: value as any }));
     setEditedProfileSources(prev => ({ ...prev, strategyPreset: 'user' }));
   };
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
+  const { profile } = useInvestmentProfile();
+
+  const preCheckResult = useMemo(
+    () => runPlanPreCheck(editedResponse, profile),
+    [editedResponse, profile]
+  );
+  const failureByIndex = useMemo(() => {
+    const map = new Map<number, PreCheckFailure>();
+    preCheckResult.failures.forEach(f => map.set(f.propertyIndex - 1, f));
+    return map;
+  }, [preCheckResult]);
+
   const updatePropertyField = (index: number, field: string, value: any) => {
+    console.warn(`[Brief] updatePropertyField(${index}, ${field}, ${value})`);
+    if (field !== 'alertDismissed') {
+      setDismissedAlerts(prev => { const next = new Set(prev); next.delete(index); return next; });
+    }
     setEditedResponse(prev => {
       const props = [...(prev.properties ?? [])];
       props[index] = { ...props[index], [field]: value };
+      console.warn(`[Brief] setEditedResponse: P${index+1} targetPeriod=${props[index].targetPeriod}`);
       return { ...prev, properties: props };
     });
     setEditedPropertySources(prev => {
@@ -583,9 +627,11 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const addExisting = () => setExistingProps(prev => [...prev, { ...EMPTY_EXISTING }]);
 
   const handleConfirm = () => {
+    const current = editedResponseRef.current;
+    console.warn('[Brief] handleConfirm targetPeriods:', (current.properties ?? []).map((p, i) => `P${i+1}=${p.targetPeriod}`).join(', '));
     const finalResponse = {
-      ...editedResponse,
-      clientProfile: editedResponse.clientProfile ? { ...editedResponse.clientProfile, existingPortfolio: existingProps.length > 0 ? existingProps : undefined } : editedResponse.clientProfile,
+      ...current,
+      clientProfile: current.clientProfile ? { ...current.clientProfile, existingPortfolio: existingProps.length > 0 ? existingProps : undefined } : current.clientProfile,
       clientProfileSources: editedClientSources,
       investmentProfileSources: editedProfileSources,
       propertySources: editedPropertySources,
@@ -759,6 +805,24 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
             )}
           </div>
 
+          {/* ── AI strategy explanation ── */}
+          {editedResponse.message && (
+            <div
+              style={{
+                background: UUI.neutral50,
+                borderRadius: 10,
+                boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset`,
+                padding: '10px 14px',
+                fontFamily: UUI.font,
+                animation: 'briefBlockIn 0.35s ease-out both',
+              }}
+            >
+              <div style={{ fontSize: 11, color: UUI.neutral500, lineHeight: '17px' }}>
+                {editedResponse.message}
+              </div>
+            </div>
+          )}
+
           {/* ── Planned property blocks ── */}
           <div>
             <div className="mb-2">
@@ -774,6 +838,12 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   sources={editedPropertySources[i] ?? {}}
                   onFieldChange={(field, value) => updatePropertyField(i, field, value)}
                   onRemove={() => removeProperty(i)}
+                  failure={failureByIndex.get(i)}
+                  isDismissed={dismissedAlerts.has(i)}
+                  onDismissAlert={() => {
+                    setDismissedAlerts(prev => new Set(prev).add(i));
+                    updatePropertyField(i, 'alertDismissed', true);
+                  }}
                 />
               ))}
               <button

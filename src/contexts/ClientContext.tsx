@@ -120,17 +120,9 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       setClients(data || []);
 
-      // Set active client: prefer the one we last had focus on (persisted across refreshes),
-      // falling back to the most-recent client if the saved one no longer exists.
-      if (!activeClient && data && data.length > 0) {
-        const savedId = typeof window !== 'undefined'
-          ? Number(localStorage.getItem('proppath:activeClientId'))
-          : NaN;
-        const savedClient = Number.isFinite(savedId)
-          ? data.find(c => c.id === savedId)
-          : null;
-        setActiveClient(savedClient ?? data[0]);
-      }
+      // On page load, always start with no active client (New Client view).
+      // User selects a client from the sidebar to load their scenario.
+      // activeClient is only set during the SPA session, never restored from localStorage.
     } catch (error) {
       // Failed to fetch clients
     } finally {
@@ -239,13 +231,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user, authLoading, role, companyId]);
 
-  // Persist the active client across refreshes so refresh lands the user back where they were.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (activeClient) {
-      localStorage.setItem('proppath:activeClientId', String(activeClient.id));
-    }
-  }, [activeClient?.id]);
+  // No longer persisting activeClient — reload always goes to New Client view.
 
   const value = {
     clients,

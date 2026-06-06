@@ -45,6 +45,16 @@ import {
 } from '../constants/financialParams';
 import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
+import {
+  checkAffordability as engineCheckAffordability,
+  calculateAvailableFunds as engineCalculateAvailableFunds,
+  calculateEntityDiscountedDebt,
+  calculateTotalRentalIncome,
+  calculateAnnualLoanPayment as engineCalculateAnnualLoanPayment,
+  type EngineDeps,
+  type PurchaseRecord,
+  type AvailableFundsResult,
+} from '../engine/affordabilityEngine';
 
 export interface AffordabilityResult {
   period: number;
@@ -91,28 +101,8 @@ export const useAffordabilityCalculator = () => {
   // Debug flag - set to true to enable detailed debugging
   const DEBUG_MODE = false; // Disabled for performance
 
-  // Calculate annual loan payment (IO vs P&I)
-  const calculateAnnualLoanPayment = (
-    loanAmount: number,
-    interestRate: number,
-    loanType: 'IO' | 'PI',
-    loanTermYears: number = 30
-  ): number => {
-    if (loanType === 'IO') {
-      // Interest only - just pay interest
-      return loanAmount * interestRate;
-    } else {
-      // Principal & Interest - use amortization formula
-      const monthlyRate = interestRate / 12;
-      const numPayments = loanTermYears * 12;
-      
-      const monthlyPayment = loanAmount * 
-        (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
-        (Math.pow(1 + monthlyRate, numPayments) - 1);
-      
-      return monthlyPayment * 12;
-    }
-  };
+  // Delegate to engine for loan payment calculation
+  const calculateAnnualLoanPayment = engineCalculateAnnualLoanPayment;
 
   // Move helper functions outside useMemo so they can be accessed by other functions
   // This function now optionally accepts a basePeriod to apply market correction events
@@ -309,664 +299,60 @@ export const useAffordabilityCalculator = () => {
   // NOTE: getInterestRateAdjustment and getGrowthRateAdjustment are now imported from '../utils/eventProcessing'
   // They are used throughout this file to apply market events to calculations
 
+  // Engine dependency bridge — passes React context values into pure engine functions
+  const engineDeps: EngineDeps = {
+    getInstance,
+    getPropertyData,
+    calculatePropertyGrowth,
+  };
+
   const calculateAvailableFunds = (
-      currentPeriod: number, 
-      previousPurchases: Array<{ period: number; cost: number; depositRequired: number; totalCashRequired?: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>
-    ): {
-      total: number;
-      baseDeposit: number;
-      cumulativeSavings: number;
-      cashflowReinvestment: number;
-      equityRelease: number;
-      depositsUsed: number;
-      // New: Track remaining balances after equity-first allocation
-      cashRemaining: number;
-      savingsRemaining: number;
-      equityRemaining: number;
-    } => {
-      // ============================================================================
-      // EQUITY-FIRST FUNDING ALLOCATION
-      // Strategy: Leverage portfolio equity before using cash/savings
-      // This matches how BAs help investors accelerate property acquisition
-      // ============================================================================
-      
-      // Get the event-modified profile for this period
-      // This applies salary changes, one-time cash events (inheritance, expense), etc.
-      const periodProfile = getProfileAtPeriod(currentPeriod, profile, eventBlocks);
-      
-      // Initialize running balances using event-modified profile
-      let runningCashBalance = periodProfile.depositPool; // Starting cash pool (may be modified by events)
-      let runningSavingsBalance = 0; // Accumulates over time
-      let cumulativeEquityUsed = 0; // Tracks total equity extracted across all purchases
-      
-      // Calculate existing portfolio equity at current period (from existing properties before this scenario)
-      // Per-property: exclude sold properties so their equity doesn't inflate extractable equity
-      let existingPortfolioEquity = 0;
-      if (periodProfile.portfolioValue > 0 && profile.useExistingEquity) {
-        if (existingProperties.length > 0) {
-          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-          let epTotalValue = 0;
-          let epTotalDebt = 0;
-          existingProperties.forEach(ep => {
-            if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
-            if (ep.allowEquityRelease === false) return; // per-property opt-out
-            const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
-            epTotalValue += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
-            epTotalDebt += ep.loan;
-          });
-          existingPortfolioEquity = Math.max(0, epTotalValue * EQUITY_EXTRACTION_LVR_CAP - epTotalDebt);
-        } else {
-          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-          const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(periodProfile.portfolioValue, currentPeriod - 1, growthRate);
-          existingPortfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - periodProfile.currentDebt);
-        }
-      }
-      
-      // Process each period chronologically to track running balances.
-      // Only SAVINGS_DEPLOYMENT_RATE of annual savings flows into the
-      // "available for investment" pool — the rest stays liquid.
-      const periodSavings = (periodProfile.annualSavings * SAVINGS_DEPLOYMENT_RATE) / PERIODS_PER_YEAR;
-      let totalBaseSavings = 0;
-      let totalCashflowReinvestment = 0;
-      
-      for (let period = 1; period <= currentPeriod; period++) {
-        // Calculate net cashflow from properties owned BEFORE this period
-        let periodNetCashflow = 0;
-        previousPurchases.forEach(purchase => {
-          if (purchase.period < period) {
-            const periodsOwned = period - purchase.period;
-            const propertyInstance = getInstance(purchase.instanceId);
-            const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
-
-            if (propertyData) {
-              // Pass purchase.period as basePeriod for correct market correction event timing
-              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
-
-              if (propertyInstance) {
-                const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
-                const growthFactor = currentValue / purchase.cost;
-                const adjustedAnnualCashflow = cashflowBreakdown.netAnnualCashflow * growthFactor;
-                const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-                const inflationAdjustedCashflow = adjustedAnnualCashflow * inflationFactor;
-                periodNetCashflow += inflationAdjustedCashflow / PERIODS_PER_YEAR;
-              } else {
-                const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
-                fallbackInstance.purchasePrice = purchase.cost;
-                fallbackInstance.rentPerWeek = (currentValue * (parseFloat(propertyData.yield) / 100)) / 52;
-                const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
-                const growthFactor = currentValue / purchase.cost;
-                const adjustedAnnualCashflow = fallbackCashflow.netAnnualCashflow * growthFactor;
-                const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-                periodNetCashflow += (adjustedAnnualCashflow * inflationFactor) / PERIODS_PER_YEAR;
-              }
-            }
-          }
-        });
-        
-        // Sale proceeds from existing properties: when saleYear period is reached,
-        // add net proceeds (grown value - selling costs - loan - CGT) to cash balance.
-        // Proceeds land once and carry forward as cash.
-        const consolidationYear = BASE_YEAR + (profile.timelineYears || 20) - (profile.ioToPiTransitionYears ?? 5);
-        existingProperties.forEach(ep => {
-          if (!ep.saleYear || ep.saleYear <= 0) return;
-          const salePeriod = yearToPeriod(ep.saleYear);
-          if (period === salePeriod) {
-            const epGrowthRate = profile.existingPortfolioGrowthRate || 0.05;
-            const yearsHeld = ep.saleYear - BASE_YEAR;
-            const grownValue = ep.currentValue * Math.pow(1 + epGrowthRate, yearsHeld);
-            const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
-            const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
-            const isConsolidation = ep.saleYear >= consolidationYear;
-            const cgtEffectiveRate = getEffectiveCgtRate(ep.entity, profile, isConsolidation);
-            const cgtLiability = capitalGain * cgtEffectiveRate;
-            const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
-            runningCashBalance += netProceeds;
-          }
-        });
-
-        // Add this period's savings contribution
-        // Only deduct negative cashflow (property shortfall you need to cover from savings)
-        // Positive cashflow stays in the property portfolio, not added to savings
-        const cashflowDeduction = periodNetCashflow < 0 ? periodNetCashflow : 0;
-        const periodContribution = periodSavings + cashflowDeduction;
-        runningSavingsBalance = Math.max(0, runningSavingsBalance + periodContribution);
-        totalBaseSavings += periodSavings;
-        totalCashflowReinvestment += cashflowDeduction; // Only track negative cashflow impact
-        
-        // Calculate extractable equity at this period (from properties bought BEFORE this period)
-        let extractableEquityThisPeriod = existingPortfolioEquity;
-        previousPurchases.forEach(purchase => {
-          if (purchase.period < period) { // Only properties bought before this period have usable equity
-            const equityInstance = getInstance(purchase.instanceId);
-            const propertyData = getPropertyData(purchase.title, equityInstance?.growthAssumption);
-            if (propertyData) {
-              const periodsOwned = period - purchase.period;
-              // Pass purchase.period as basePeriod for correct market correction event timing
-              const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
-              const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-              const usableEquity = Math.max(0, propertyCurrentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
-              extractableEquityThisPeriod += usableEquity;
-            }
-          }
-        });
-        
-        // Process purchases made in this period
-        const purchasesInThisPeriod = previousPurchases.filter(p => p.period === period);
-        purchasesInThisPeriod.forEach(purchase => {
-          // Use totalCashRequired (deposit + stamp duty + fees) if available, otherwise depositRequired
-          const cashNeeded = purchase.totalCashRequired || purchase.depositRequired;
-          let remaining = cashNeeded;
-          
-          // EQUITY-FIRST: 1. Use available equity first (scaled by equity release factor)
-          const rawEquity = Math.max(0, extractableEquityThisPeriod - cumulativeEquityUsed);
-          const availableEquity = rawEquity * (profile.equityReleaseFactor ?? 0.70);
-          const fromEquity = Math.min(remaining, availableEquity);
-          remaining -= fromEquity;
-          cumulativeEquityUsed += fromEquity;
-          
-          // 2. Then use cash (depletes permanently)
-          const fromCash = Math.min(remaining, runningCashBalance);
-          remaining -= fromCash;
-          runningCashBalance = Math.max(0, runningCashBalance - fromCash);
-          
-          // 3. Finally use savings - use all accumulated savings (already only 25% of total)
-          const savingsAvailableForPurchase = runningSavingsBalance;
-          const fromSavings = Math.min(remaining, savingsAvailableForPurchase);
-          runningSavingsBalance = Math.max(0, runningSavingsBalance - fromSavings);
-        });
-      }
-      
-      // Calculate extractable equity at current period (for availability display)
-      let totalExtractableEquity = existingPortfolioEquity;
-      previousPurchases.forEach(purchase => {
-        if (purchase.period < currentPeriod) { // Only properties bought before current period
-          const eqInst = getInstance(purchase.instanceId);
-          const propertyData = getPropertyData(purchase.title, eqInst?.growthAssumption);
-          if (propertyData) {
-            const periodsOwned = currentPeriod - purchase.period;
-            const propertyCurrentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-            const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-            const usableEquity = Math.max(0, propertyCurrentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
-            totalExtractableEquity += usableEquity;
-          }
-        }
-      });
-      
-      // Calculate remaining balances
-      const rawEquityRemaining = Math.max(0, totalExtractableEquity - cumulativeEquityUsed);
-      const equityRemaining = rawEquityRemaining * (profile.equityReleaseFactor ?? 0.70);
-      const cashRemaining = runningCashBalance;
-      const savingsRemaining = runningSavingsBalance;
-      
-      // Total available = remaining from each source
-      const totalAvailable = cashRemaining + savingsRemaining + equityRemaining;
-      
-      // Calculate total deposits used (for backwards compatibility)
-      const totalDepositsUsed = previousPurchases.reduce((sum, purchase) => {
-        if (purchase.period <= currentPeriod) {
-          return sum + (purchase.totalCashRequired || purchase.depositRequired);
-        }
-        return sum;
-      }, 0);
-      
-      return {
-        total: totalAvailable,
-        baseDeposit: cashRemaining, // Now reflects actual remaining cash
-        cumulativeSavings: totalBaseSavings,
-        cashflowReinvestment: totalCashflowReinvestment,
-        equityRelease: totalExtractableEquity,
-        depositsUsed: totalDepositsUsed,
-        // New fields for accurate tracking
-        cashRemaining,
-        savingsRemaining,
-        equityRemaining,
-        totalEquityUsed: cumulativeEquityUsed, // Total equity used across all purchases
-      };
+      currentPeriod: number,
+      previousPurchases: PurchaseRecord[],
+    ): AvailableFundsResult => {
+      return engineCalculateAvailableFunds(currentPeriod, previousPurchases, profile, existingProperties, engineDeps);
     };
+
+  // OLD calculateAvailableFunds body removed — now delegated to engine.
+  // OLD checkAffordability body removed — now delegated to engine.
+  // See src/engine/affordabilityEngine.ts for the single source of truth.
+
 
   const checkAffordability = (
     property: any,
-    availableFunds: number,
-    previousPurchases: Array<{ period: number; cost: number; depositRequired: number; loanAmount: number; title: string; instanceId: string; loanType?: 'IO' | 'PI'; cumulativeEquityReleased?: number }>,
-    currentPeriod: number
+    availableFunds: AvailableFundsResult | number,
+    previousPurchases: PurchaseRecord[],
+    currentPeriod: number,
+    totalCashRequired?: number,
   ): { canAfford: boolean } => {
-      
-      // Calculate key financial metrics for debugging
-      const baseDeposit = calculatedValues.availableDeposit;
-      const annualSavings = profile.annualSavings;
-      
-      // Calculate net cashflow from all current properties
-      let netCashflow = 0;
-      let grossRentalIncome = 0;
-      let loanInterest = 0;
-      let expenses = 0;
+    const funds: AvailableFundsResult = typeof availableFunds === 'number'
+      ? calculateAvailableFunds(currentPeriod, previousPurchases)
+      : availableFunds;
 
-      // Expense breakdown accumulators
-      let accCouncilRatesWater = 0;
-      let accStrataFees = 0;
-      let accInsurance = 0;
-      let accManagementFees = 0;
-      let accRepairsMaintenance = 0;
-      let accLandTax = 0;
-      let accOther = 0;
+    // Derive loanAmount if not on the property object (main loop doesn't set it)
+    const loanAmount = property.loanAmount ?? (property.cost - property.depositRequired);
 
-      // Per-property iteration over existing portfolio (replaces aggregate scalar approach)
-      existingProperties.forEach(ep => {
-        if (ep.saleYear && ep.saleYear > 0) {
-          const salePeriod = yearToPeriod(ep.saleYear);
-          if (currentPeriod >= salePeriod) return;
-        }
-        const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
-        const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
-        const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
-        const inflFactor = calculateInflationFactor(currentPeriod - 1, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
+    // Compute totalCashRequired if not passed (main loop doesn't pass it)
+    let cashRequired = totalCashRequired;
+    if (cashRequired === undefined) {
+      const inst = getInstance(property.instanceId);
+      const instForCosts = inst ?? getPropertyInstanceDefaults(property.title || property.id || 'Default');
+      const lvr = inst?.lvr ?? ((loanAmount / property.cost) * 100);
+      const stampDuty = instForCosts.stampDutyOverride ?? calculateStampDuty(instForCosts.state, property.cost, false);
+      const lmi = calculateLMI(loanAmount, lvr, inst?.lmiWaiver ?? false, inst?.valuationAtPurchase, property.cost);
+      const isLmiCap = inst?.lmiCapitalized ?? false;
+      const depBal = calculateDepositBalance(property.cost, lvr, instForCosts.conditionalHoldingDeposit);
+      const oneOff = calculateOneOffCosts(instForCosts, stampDuty, depBal);
+      cashRequired = oneOff.totalCashRequired + (isLmiCap ? 0 : lmi);
+    }
 
-        const cashflow = calculateDetailedCashflow(epInstance, ep.loan);
-        const adjustedIncome = cashflow.adjustedIncome * rentEscFactor;
-        const recognizedIncome = adjustedIncome * RENTAL_RECOGNITION_RATE;
-        const inflAdjExpenses = cashflow.totalOperatingExpenses * inflFactor;
-        const inflAdjNonDeductible = (cashflow.totalNonDeductibleExpenses - cashflow.principalPayments) * inflFactor;
-
-        grossRentalIncome += recognizedIncome;
-        loanInterest += cashflow.loanInterest;
-        expenses += inflAdjExpenses + inflAdjNonDeductible;
-        netCashflow += recognizedIncome - inflAdjExpenses - inflAdjNonDeductible - cashflow.loanInterest - cashflow.principalPayments;
-
-        accCouncilRatesWater += cashflow.councilRatesWater * inflFactor;
-        accStrataFees += cashflow.strata * inflFactor;
-        accInsurance += cashflow.buildingInsurance * inflFactor;
-        accManagementFees += cashflow.propertyManagementFee * rentEscFactor;
-        accRepairsMaintenance += cashflow.maintenance * inflFactor;
-        accLandTax += cashflow.landTax * inflFactor;
-      });
-
-      previousPurchases.forEach(purchase => {
-        if (purchase.period <= currentPeriod) {
-          const periodsOwned = currentPeriod - purchase.period;
-          const propertyInstance = getInstance(purchase.instanceId);
-          const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
-
-        if (propertyData) {
-          // Calculate current property value with tiered growth
-          // Pass purchase.period as basePeriod for correct market correction event timing
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData, purchase.period);
-
-          if (propertyInstance) {
-            // Calculate detailed cashflow using all 39 inputs
-            const cashflowBreakdown = calculateDetailedCashflow(propertyInstance, purchase.loanAmount);
-
-            // Rent escalation uses flat profile rate, decoupled from property growth
-            const yearsOwned = periodsOwned / PERIODS_PER_YEAR;
-            const rentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
-            const adjustedIncome = cashflowBreakdown.adjustedIncome * rentEscalationFactor;
-
-            // Expenses grow with inflation only
-            const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-            const inflationAdjustedIncome = adjustedIncome;
-            
-            // BUG FIX: Operating expenses should NOT grow with property value (growthFactor)
-            // Only rent grows with property value; expenses only grow with inflation
-            const inflationAdjustedOperatingExpenses = cashflowBreakdown.totalOperatingExpenses * inflationFactor;
-            
-            // CRITICAL FIX: Exclude principal payments from non-deductible expenses
-            // Non-deductible expenses (like land tax) also only grow with inflation
-            const inflationAdjustedNonDeductible = (cashflowBreakdown.totalNonDeductibleExpenses - cashflowBreakdown.principalPayments) * inflationFactor;
-            
-            // Apply progressive rental recognition based on portfolio size
-            const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
-            const recognitionRate = RENTAL_RECOGNITION_RATE;
-            const recognizedIncome = inflationAdjustedIncome * recognitionRate;
-            
-            // Calculate net cashflow (income - expenses - interest - principal)
-            const propertyCashflow = recognizedIncome - inflationAdjustedOperatingExpenses - inflationAdjustedNonDeductible - cashflowBreakdown.loanInterest - cashflowBreakdown.principalPayments;
-            
-            grossRentalIncome += recognizedIncome;
-            loanInterest += cashflowBreakdown.loanInterest;
-            expenses += (inflationAdjustedOperatingExpenses + inflationAdjustedNonDeductible); // Operating + Land Tax ONLY (no principal)
-            netCashflow += propertyCashflow;
-            
-            // Accumulate expense breakdown components (only inflation, NOT property growth)
-            accCouncilRatesWater += cashflowBreakdown.councilRatesWater * inflationFactor;
-            accStrataFees += cashflowBreakdown.strata * inflationFactor;
-            accInsurance += cashflowBreakdown.buildingInsurance * inflationFactor;
-            accManagementFees += cashflowBreakdown.propertyManagementFee * rentEscalationFactor;
-            accRepairsMaintenance += cashflowBreakdown.maintenance * inflationFactor;
-            accLandTax += cashflowBreakdown.landTax * inflationFactor;
-          } else {
-            // Fallback: Use property type defaults for detailed cashflow (shouldn't happen normally)
-const fallbackInstance = getPropertyInstanceDefaults(purchase.title);
-            const yieldRate = parseFloat(propertyData.yield) / 100;
-            const portfolioSize = previousPurchases.filter(p => p.period < currentPeriod).length;
-            const recognitionRate = RENTAL_RECOGNITION_RATE;
-            
-            // Override with actual purchase values
-            fallbackInstance.purchasePrice = purchase.cost;
-            fallbackInstance.rentPerWeek = (currentValue * yieldRate) / 52;
-            
-            const fallbackCashflow = calculateDetailedCashflow(fallbackInstance, purchase.loanAmount);
-            const fbYearsOwned = periodsOwned / PERIODS_PER_YEAR;
-            const fbRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), fbYearsOwned);
-            const inflationFactor = calculateInflationFactor(periodsOwned, profile.inflationRate ?? ANNUAL_INFLATION_RATE);
-
-            const adjustedIncome = fallbackCashflow.adjustedIncome * fbRentEscalationFactor * recognitionRate;
-            // Expenses only grow with inflation, NOT property value
-            const adjustedExpenses = (fallbackCashflow.totalOperatingExpenses + fallbackCashflow.totalNonDeductibleExpenses - fallbackCashflow.principalPayments) * inflationFactor;
-            
-            grossRentalIncome += adjustedIncome;
-            loanInterest += fallbackCashflow.loanInterest;
-            expenses += adjustedExpenses;
-            netCashflow += (adjustedIncome - fallbackCashflow.loanInterest - adjustedExpenses - fallbackCashflow.principalPayments);
-            
-            // Accumulate expense breakdown from fallback (only inflation, NOT property growth)
-            accCouncilRatesWater += fallbackCashflow.councilRatesWater * inflationFactor;
-            accStrataFees += fallbackCashflow.strata * inflationFactor;
-            accInsurance += fallbackCashflow.buildingInsurance * inflationFactor;
-            accManagementFees += fallbackCashflow.propertyManagementFee * inflationFactor;
-            accRepairsMaintenance += fallbackCashflow.maintenance * inflationFactor;
-            accLandTax += fallbackCashflow.landTax * inflationFactor;
-          }
-          }
-        }
-      });
-      
-      // Calculate total existing debt
-      // CRITICAL: Include cumulative equity released (which increases loan amounts)
-      // Sale-aware: exclude sold existing properties' debt
-      // SMSF-aware: SMSF debt is limited recourse, does not count against personal BC ceiling
-      let totalExistingDebt = 0;
-      if (existingProperties.length > 0) {
-        existingProperties.forEach(ep => {
-          if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
-          if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
-          totalExistingDebt += ep.loan;
-        });
-      } else {
-        totalExistingDebt = profile.currentDebt;
-      }
-      previousPurchases.forEach(purchase => {
-        if (purchase.period <= currentPeriod) {
-          const purchaseInst = getInstance(purchase.instanceId);
-          if (purchaseInst?.entity === 'smsf') return; // SMSF debt excluded from personal BC
-          // Current loan = original loan + any equity released from this property
-          const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-          totalExistingDebt += currentLoanAmount;
-        }
-      });
-      
-      // Calculate portfolio value (sale-aware: exclude sold existing properties)
-      let totalPortfolioValue = 0;
-      let propertyValues: number[] = [];
-      let usableEquityPerProperty: number[] = [];
-
-        if (profile.useExistingEquity) {
-          const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-          if (existingProperties.length > 0) {
-            existingProperties.forEach(ep => {
-              if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
-              const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
-              const grownValue = ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
-              totalPortfolioValue += grownValue;
-              propertyValues.push(grownValue);
-              if (ep.allowEquityRelease !== false) { // per-property opt-out
-                const equity = Math.max(0, grownValue * EQUITY_EXTRACTION_LVR_CAP - ep.loan);
-                usableEquityPerProperty.push(equity);
-              }
-            });
-          } else if (profile.portfolioValue > 0) {
-            const grownPortfolioValue = calculateExistingPortfolioGrowthByPeriod(profile.portfolioValue, currentPeriod - 1, growthRate);
-            totalPortfolioValue = grownPortfolioValue;
-            propertyValues.push(grownPortfolioValue);
-            const portfolioEquity = Math.max(0, grownPortfolioValue * EQUITY_EXTRACTION_LVR_CAP - profile.currentDebt);
-            usableEquityPerProperty.push(portfolioEquity);
-          }
-        } else {
-          if (existingProperties.length > 0) {
-            existingProperties.forEach(ep => {
-              if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
-              const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
-              const growthRate = profile.existingPortfolioGrowthRate || 0.05;
-              totalPortfolioValue += ep.currentValue * Math.pow(1 + growthRate, yearsElapsed);
-            });
-          } else {
-            totalPortfolioValue = profile.portfolioValue;
-          }
-        }
-        
-        previousPurchases.forEach(purchase => {
-          if (purchase.period <= currentPeriod) {
-            const periodsOwned = currentPeriod - purchase.period;
-            const pvInst = getInstance(purchase.instanceId);
-            const propertyData = getPropertyData(purchase.title, pvInst?.growthAssumption);
-            if (propertyData) {
-              const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-              totalPortfolioValue += currentValue;
-              propertyValues.push(currentValue);
-
-              // Continuous equity release - 80% LVR cap, no time constraint
-              // Current loan = original loan + any equity released so far
-              const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-              const usableEquity = Math.max(0, currentValue * EQUITY_EXTRACTION_LVR_CAP - currentLoanAmount);
-              usableEquityPerProperty.push(usableEquity);
-            }
-          }
-        });
-      
-      const totalUsableEquity = usableEquityPerProperty.reduce((sum, equity) => sum + equity, 0);
-      
-      // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
-      // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
-      // Equity boost is NOT added — equity is a funding mechanism, not a lending ceiling
-      const effectiveBorrowingCapacity = calculateBorrowingCeiling(currentPeriod, {
-        statedBC: profile.borrowingCapacity ?? 0,
-        baseSalary: profile.baseSalary ?? 60000,
-        salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
-        wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
-        grossRentalIncome,
-        eventBlocks,
-      });
-      
-      const newLoanAmount = property.cost - property.depositRequired;
-      const newPropertyIsSmsf = getInstance(property.instanceId)?.entity === 'smsf';
-      const totalDebtAfterPurchase = totalExistingDebt + (newPropertyIsSmsf ? 0 : newLoanAmount);
-      
-      // NEW SERVICEABILITY-BASED DEBT TEST
-      // Calculate annual loan payments for all properties (IO or P&I)
-      // Apply market-wide interest rate adjustments from events
-      let totalAnnualLoanPayment = 0;
-      
-      // Get the effective interest rate for this period (market-wide adjustment)
-      const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
-      
-      // Existing debt payment (use event-adjusted market rate, sale-aware, entity-discounted)
-      if (existingProperties.length > 0) {
-        existingProperties.forEach(ep => {
-          if (ep.saleYear && ep.saleYear > 0 && currentPeriod >= yearToPeriod(ep.saleYear)) return;
-          if (ep.loan > 0) {
-            const entityFactor = ENTITY_SERVICEABILITY_FACTORS[ep.entity ?? 'individual'] ?? 1.0;
-            totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRate, 'IO') * entityFactor;
-          }
-        });
-      } else if (profile.currentDebt > 0) {
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRate, 'IO');
-      }
-      
-      // Previous purchases loan payments (use their instance interest rates + refinance events, entity-discounted)
-      previousPurchases.forEach(purchase => {
-        if (purchase.period <= currentPeriod) {
-          // Get property-specific effective rate (considers refinance events)
-          const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
-          const purchaseEffectiveRate = getPropertyEffectiveRate(
-            currentPeriod,
-            eventBlocks,
-            purchase.instanceId,
-            baseRate
-          );
-          const purchaseLoanType = purchase.loanType || 'IO';
-          const purchaseInstance = getInstance(purchase.instanceId);
-          const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInstance?.entity ?? 'individual'] ?? 1.0;
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType) * entityFactor;
-        }
-      });
-
-      // Get property instance for interest rate and LMI waiver
-      const propertyInstance = getInstance(property.instanceId);
-      // Get property-specific effective rate (considers refinance events)
-      const propertyInterestRate = getPropertyEffectiveRate(
-        currentPeriod,
-        eventBlocks,
-        property.instanceId,
-        profile.interestRate ?? DEFAULT_INTEREST_RATE
-      );
-      const lmiWaiver = propertyInstance?.lmiWaiver ?? false;
-      
-      // Add new property loan payment (use event-adjusted property interest rate, entity-discounted)
-      const newPropertyLoanType = property.loanType || 'IO';
-      const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyInterestRate, newPropertyLoanType);
-      const newPropertyEntityFactor = ENTITY_SERVICEABILITY_FACTORS[propertyInstance?.entity ?? 'individual'] ?? 1.0;
-      totalAnnualLoanPayment += newPropertyLoanPayment * newPropertyEntityFactor;
-      
-      // Calculate rental income from new property for DSR calculation
-      // CRITICAL: Use instance rentPerWeek if available, not template yield
-      const affordPropertyInstance = getInstance(property.instanceId);
-      const propertyData = getPropertyData(property.title, affordPropertyInstance?.growthAssumption);
-      let newPropertyRentalIncome = 0;
-      if (affordPropertyInstance) {
-        // Use actual instance rent (agent-editable)
-        const annualRent = affordPropertyInstance.rentPerWeek * 52;
-        const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-        const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
-        const recognitionRate = RENTAL_RECOGNITION_RATE;
-        newPropertyRentalIncome = vacancyAdjusted * recognitionRate;
-      } else if (propertyData) {
-        // Fallback to template yield
-        const yieldRate = parseFloat(propertyData.yield) / 100;
-        const portfolioSize = previousPurchases.filter(p => p.period <= currentPeriod).length;
-        const recognitionRate = RENTAL_RECOGNITION_RATE;
-        newPropertyRentalIncome = property.cost * yieldRate * recognitionRate;
-      }
-      
-      // Total rental income including new property
-      const totalRentalIncome = grossRentalIncome + newPropertyRentalIncome;
-      const affordPropertyInstanceForCosts = affordPropertyInstance ?? getPropertyInstanceDefaults(property.title || 'Default');
-      
-      // Use LVR from instance
-      const affordInstanceLvr = affordPropertyInstance?.lvr ?? ((newLoanAmount / property.cost) * 100);
-      
-      // Calculate stamp duty (with override support)
-      const affordStampDuty = affordPropertyInstanceForCosts.stampDutyOverride ?? calculateStampDuty(
-        affordPropertyInstanceForCosts.state,
-        property.cost,
-        false
-      );
-      
-      // Calculate LMI (using valuationAtPurchase for effective LVR calculation)
-      const affordLmi = calculateLMI(
-        newLoanAmount,
-        affordInstanceLvr,
-        lmiWaiver,
-        affordPropertyInstanceForCosts.valuationAtPurchase,
-        property.cost
-      );
-      
-      // Calculate deposit balance
-      const affordDepositBalance = calculateDepositBalance(
-        property.cost,
-        affordInstanceLvr,
-        affordPropertyInstanceForCosts.conditionalHoldingDeposit
-      );
-      
-      // Calculate all one-off costs using property instance
-      const affordOneOffCosts = calculateOneOffCosts(
-        affordPropertyInstanceForCosts,
-        affordStampDuty,
-        affordDepositBalance
-      );
-      
-      // Add LMI to total cash required
-      const totalCashRequired = affordOneOffCosts.totalCashRequired + affordLmi;
-      
-      // Enhanced serviceability test with rental income contribution
-      const baseCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
-      const rentalContribution = totalRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
-      const enhancedCapacity = baseCapacity + rentalContribution;
-      const maxAnnualPayment = enhancedCapacity;
-      const serviceabilityTestSurplus = maxAnnualPayment - totalAnnualLoanPayment;
-      const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
-      
-      // BORROWING CAPACITY TEST: per-loan AND cumulative debt must not exceed effective capacity
-      // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
-      const perLoanBCPass = newPropertyIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
-      const cumulativeBCPass = newPropertyIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
-
-      const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
-      const borrowingCapacityTestSurplus = newPropertyIsSmsf
-        ? effectiveBorrowingCapacity - totalDebtAfterPurchase // Show remaining personal capacity
-        : Math.min(
-            effectiveBorrowingCapacity - newLoanAmount,
-            effectiveBorrowingCapacity - totalDebtAfterPurchase
-          );
-      
-      // DEPOSIT TEST: Available funds must cover deposit + all acquisition costs
-      const canAffordDeposit = availableFunds >= totalCashRequired;
-      const canAffordServiceability = serviceabilityTestPass;
-      const canAffordBorrowingCapacity = borrowingCapacityTestPass;
-      
-      // Debug trace output
-      if (DEBUG_MODE) {
-        const timelineDisplay = periodToDisplay(currentPeriod);
-        const timelineYear = periodToYear(currentPeriod);
-        const depositPool = availableFunds;
-        const equityFreed = 0;
-        const rentalIncome = grossRentalIncome;
-        const adjustedCapacity = effectiveBorrowingCapacity;
-        const baseCapacity = profile.borrowingCapacity;
-        const serviceabilityMethod = 'borrowing-capacity';
-        const existingDebt = totalExistingDebt;
-        const newLoan = newLoanAmount;
-        const totalDebt = totalDebtAfterPurchase;
-        const depositPass = canAffordDeposit;
-        const serviceabilityPass = canAffordServiceability;
-        const purchaseDecision = canAffordServiceability && canAffordDeposit ? timelineDisplay : '❌';
-        const requiredDeposit = property.depositRequired;
-
-        // === AVAILABLE FUNDS BREAKDOWN ===
-        const cumulativeSavings = annualSavings * (currentPeriod / PERIODS_PER_YEAR);
-        const continuousEquityAccess = totalUsableEquity;
-        const totalAnnualSavings = profile.annualSavings + netCashflow; // Self-funding flywheel
-        
-        // === SELF-FUNDING FLYWHEEL ===
-        // === EQUITY BREAKDOWN ===
-        propertyValues.forEach((value, i) => {
-          const equity = usableEquityPerProperty[i];
-          });
-
-        // === CASHFLOW BREAKDOWN ===
-        // === SERVICEABILITY TEST ===
-        const annualLoanPayment = totalAnnualLoanPayment;
-        const maxAnnualPaymentValue = maxAnnualPayment;
-        const serviceabilitySurplus = serviceabilityTestSurplus;
-        
-        // === DYNAMIC BORROWING CAPACITY ===
-// === DEBT POSITION ===
-        // === BORROWING CAPACITY CHECK ===
-// === STRATEGY INSIGHTS ===
-        const portfolioScalingVelocity = previousPurchases.filter(p => p.period <= currentPeriod).length;
-        const selfFundingEfficiency = netCashflow > 0 ? (netCashflow / totalAnnualSavings * 100) : 0;
-        const equityRecyclingImpact = continuousEquityAccess > 0 ? (continuousEquityAccess / depositPool * 100) : 0;
-// === FINAL DECISION ===
-}
-      
-      if (!canAffordDeposit) {
-        return { canAfford: false };
-      }
-
-      // Check if all tests pass
-      if (canAffordServiceability && canAffordBorrowingCapacity) {
-        return { canAfford: true };
-      }
-      
-      return { canAfford: false };
-    };
+    const title = property.title || property.id || '';
+    return engineCheckAffordability(
+      { cost: property.cost, depositRequired: property.depositRequired, loanAmount, instanceId: property.instanceId, title, loanType: property.loanType },
+      funds, previousPurchases, currentPeriod, cashRequired,
+      profile, existingProperties, eventBlocks, engineDeps,
+    );
+  };
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
     // Helper function to check if a period falls within any pause block
@@ -1174,7 +560,7 @@ return { period: Infinity };
       const correctLoanAmount = isLmiCapitalized ? baseLoanAmount + earlyLmi : baseLoanAmount;
       
       // Attach instanceId to property for use in determineNextPurchasePeriod
-      const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired };
+      const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: correctLoanAmount };
       
       // MANUAL PLACEMENT MODE: Check if property has been manually placed via drag-and-drop
       // If so, use the manual placement period instead of auto-calculating
@@ -1628,6 +1014,14 @@ return { period: Infinity };
     
     // Return properties in user-defined order (FIFO - as they were added)
     // No longer sorting by period - properties stay in the order they were added
+    // DEBUG: compare with pre-check
+    if (timelineProperties.some(p => p.status === 'challenging')) {
+      console.warn('[Dashboard Engine] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
+      timelineProperties.forEach((p, i) => {
+        const inst = getInstance(p.instanceId);
+        console.warn(`  [${i}] ${p.title} period=${p.period} status=${p.status} BC_rem=${Math.round(p.borrowingCapacityRemaining/1000)}k entity=${inst?.entity ?? 'n/a'} cost=${Math.round(p.cost/1000)}k loan=${Math.round(p.loanAmount/1000)}k`);
+      });
+    }
     return timelineProperties;
   }, [
     // Only re-calculate when these specific values change
@@ -1727,178 +1121,21 @@ return { period: Infinity };
     // This allows the modal to pass pre-calculated values including adjusted costs and LMI capitalization
     const totalCashRequired = property.totalCashRequired !== undefined ? property.totalCashRequired : calculatedTotalCashRequired;
     
-    // Calculate test results even if affordability fails
-    const depositTestSurplus = availableFunds.total - totalCashRequired;
-    const depositTestPass = depositTestSurplus >= 0;
-    
-    // Calculate rental income for enhanced serviceability test
-    let totalRentalIncome = 0;
-
-    // Existing portfolio per-property rental income for serviceability
-    existingProperties.forEach(ep => {
-      if (ep.saleYear && ep.saleYear > 0) {
-        const salePeriod = yearToPeriod(ep.saleYear);
-        if (period >= salePeriod) return;
-      }
-      const yearsElapsed = (period - 1) / PERIODS_PER_YEAR;
-      const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
-      const annualRent = ep.rentPerWeek * 52 * rentEscFactor;
-      const vacancyAdjusted = annualRent * (1 - (ep.vacancyRate ?? profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-      totalRentalIncome += vacancyAdjusted * RENTAL_RECOGNITION_RATE;
-    });
-
-    previousPurchases.forEach(purchase => {
-      if (purchase.period <= period) {
-        const periodsOwned = period - purchase.period;
-        const purchaseInstance = getInstance(purchase.instanceId);
-        const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
-
-        if (purchaseInstance && propertyData) {
-          const svcYearsOwned = periodsOwned / PERIODS_PER_YEAR;
-          const svcRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), svcYearsOwned);
-          const annualRent = purchaseInstance.rentPerWeek * 52 * svcRentEscalationFactor;
-          const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-          const recognitionRate = RENTAL_RECOGNITION_RATE;
-          totalRentalIncome += vacancyAdjusted * recognitionRate;
-        } else if (propertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-          const yieldRate = parseFloat(propertyData.yield) / 100;
-          const recognitionRate = RENTAL_RECOGNITION_RATE;
-          totalRentalIncome += currentValue * yieldRate * recognitionRate;
-        }
-      }
-    });
-
-    // Add new property rental income
-    const newPropertyInstance = getInstance(property.instanceId);
-    const propertyData = getPropertyData(property.title, newPropertyInstance?.growthAssumption);
-    if (newPropertyInstance) {
-      // Use instance rent (agent-editable)
-      const annualRent = newPropertyInstance.rentPerWeek * 52;
-      const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-      const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-      const recognitionRate = RENTAL_RECOGNITION_RATE;
-      totalRentalIncome += vacancyAdjusted * recognitionRate;
-    } else if (propertyData) {
-      // Fallback to template yield
-      const yieldRate = parseFloat(propertyData.yield) / 100;
-      const portfolioSize = previousPurchases.filter(p => p.period <= period).length;
-      const recognitionRate = RENTAL_RECOGNITION_RATE;
-      totalRentalIncome += property.cost * yieldRate * recognitionRate;
-    }
-    
-    // Calculate total loan payment for serviceability test
-    // Apply market-wide interest rate adjustments from events
-    let totalAnnualLoanPayment = 0;
-    
-    // Get the effective interest rate for this period (market-wide adjustment)
-    const effectiveMarketRateForPeriod = getEffectiveInterestRate(period, eventBlocks);
-    
-    // Existing debt payment (use event-adjusted market rate, sale-aware, entity-discounted)
-    if (existingProperties.length > 0) {
-      existingProperties.forEach(ep => {
-        if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
-        if (ep.loan > 0) {
-          const entityFactor = ENTITY_SERVICEABILITY_FACTORS[ep.entity ?? 'individual'] ?? 1.0;
-          totalAnnualLoanPayment += calculateAnnualLoanPayment(ep.loan, effectiveMarketRateForPeriod, 'IO') * entityFactor;
-        }
-      });
-    } else if (profile.currentDebt > 0) {
-      totalAnnualLoanPayment += calculateAnnualLoanPayment(profile.currentDebt, effectiveMarketRateForPeriod, 'IO');
-    }
-
-    // Previous purchases loan payments (use property-specific effective rates with refinance events, entity-discounted)
-    const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
-    previousPurchases.forEach(purchase => {
-      if (purchase.period <= period) {
-        const purchaseEffectiveRate = getPropertyEffectiveRate(
-          period,
-          eventBlocks,
-          purchase.instanceId,
-          baseRate
-        );
-        const purchaseLoanType = purchase.loanType || 'IO';
-        const purchaseInst = getInstance(purchase.instanceId);
-        const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInst?.entity ?? 'individual'] ?? 1.0;
-        totalAnnualLoanPayment += calculateAnnualLoanPayment(purchase.loanAmount, purchaseEffectiveRate, purchaseLoanType) * entityFactor;
-      }
-    });
-
-    // Add new property loan payment (use event-adjusted property interest rate, entity-discounted)
-    const propertyEffectiveRateForPeriod = getPropertyEffectiveRate(
-      period,
-      eventBlocks,
-      property.instanceId,
-      baseRate
+    // Run all three tests via the engine (single source of truth)
+    const engineResult = engineCheckAffordability(
+      { cost: property.cost, depositRequired: property.depositRequired, loanAmount: newLoanAmount, instanceId: property.instanceId, title: property.title, loanType: property.loanType },
+      availableFunds, previousPurchases, period, totalCashRequired,
+      profile, existingProperties, eventBlocks, engineDeps,
     );
-    const newPropertyLoanType = property.loanType || 'IO';
-    const newPropertyLoanPayment = calculateAnnualLoanPayment(newLoanAmount, propertyEffectiveRateForPeriod, newPropertyLoanType);
-    const newPropInstance = getInstance(property.instanceId);
-    const newPropEntityFactor = ENTITY_SERVICEABILITY_FACTORS[newPropInstance?.entity ?? 'individual'] ?? 1.0;
-    totalAnnualLoanPayment += newPropertyLoanPayment * newPropEntityFactor;
-    
-    // Enhanced serviceability test with rental income contribution
-    const baseCapacity = profile.borrowingCapacity * SERVICEABILITY_FACTOR;
-    const rentalContribution = totalRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
-    const enhancedCapacity = baseCapacity + rentalContribution;
-    const maxAnnualPayment = enhancedCapacity;
-    const serviceabilityTestSurplus = maxAnnualPayment - totalAnnualLoanPayment;
-    const serviceabilityTestPass = serviceabilityTestSurplus >= 0;
-    
-    // BORROWING CAPACITY TEST
-    // Calculate total existing debt from previous purchases (sale-aware, SMSF-excluded)
-    let totalExistingDebt = 0;
-    if (existingProperties.length > 0) {
-      existingProperties.forEach(ep => {
-        if (ep.saleYear && ep.saleYear > 0 && period >= yearToPeriod(ep.saleYear)) return;
-        if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
-        totalExistingDebt += ep.loan;
-      });
-    } else {
-      totalExistingDebt = profile.currentDebt;
-    }
-    previousPurchases.forEach(purchase => {
-      if (purchase.period <= period) {
-        const purchaseInst = getInstance(purchase.instanceId);
-        if (purchaseInst?.entity === 'smsf') return; // SMSF debt excluded from personal BC
-        const currentLoanAmount = purchase.loanAmount + (purchase.cumulativeEquityReleased || 0);
-        totalExistingDebt += currentLoanAmount;
-      }
-    });
 
-    // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
-    // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
-    const effectiveBorrowingCapacity = calculateBorrowingCeiling(period, {
-      statedBC: profile.borrowingCapacity ?? 0,
-      baseSalary: profile.baseSalary ?? 60000,
-      salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
-      wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
-      grossRentalIncome: totalRentalIncome,
-      eventBlocks,
-    });
-
-    // Borrowing capacity test: per-loan AND cumulative debt must not exceed effective capacity
-    // SMSF properties bypass personal BC test entirely (limited recourse, separate lending)
-    const newPropIsSmsf = newPropInstance?.entity === 'smsf';
-    const perLoanBCPass = newPropIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
-    const totalDebtAfterPurchase = totalExistingDebt + (newPropIsSmsf ? 0 : newLoanAmount);
-    const cumulativeBCPass = newPropIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
-    const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
-    const borrowingCapacityRemaining = newPropIsSmsf
-      ? effectiveBorrowingCapacity - totalDebtAfterPurchase // Show remaining personal capacity
-      : Math.min(
-          effectiveBorrowingCapacity - newLoanAmount,
-          effectiveBorrowingCapacity - totalDebtAfterPurchase
-        );
-    
     return {
-      canAfford: affordabilityResult.canAfford,
-      depositTestSurplus,
-      depositTestPass,
-      serviceabilityTestSurplus,
-      serviceabilityTestPass,
-      borrowingCapacityPass: borrowingCapacityTestPass,
-      borrowingCapacityRemaining,
+      canAfford: engineResult.canAfford,
+      depositTestSurplus: engineResult.depositTestSurplus,
+      depositTestPass: engineResult.depositTestPass,
+      serviceabilityTestSurplus: engineResult.serviceabilityTestSurplus,
+      serviceabilityTestPass: engineResult.serviceabilityTestPass,
+      borrowingCapacityPass: engineResult.borrowingCapacityTestPass,
+      borrowingCapacityRemaining: engineResult.borrowingCapacityRemaining,
       availableFunds: availableFunds.total
     };
   }, [profile, globalFactors, calculatedValues, getPropertyData, propertyAssumptions, propertyTypeTemplates]);
@@ -2019,133 +1256,20 @@ createInstance(instanceId, propertyType, period);
       return propertyOrder.indexOf(a.instanceId) - propertyOrder.indexOf(b.instanceId);
     });
     
-    // Now calculate available funds at the target period with this purchase history
+    // Run all three tests via the engine (single source of truth)
+    // This fixes the previous entity discount bug where drag-drop used raw debt
     const availableFunds = calculateAvailableFunds(targetPeriod, purchaseHistoryForValidation);
-    
-    // Check affordability using the same function as the auto-placer
-    const affordabilityResult = checkAffordability(
-      { cost: property.cost, depositRequired: property.depositRequired, instanceId: property.instanceId, title: property.title },
-      availableFunds.total,
-      purchaseHistoryForValidation,
-      targetPeriod
+    const engineResult = engineCheckAffordability(
+      { cost: property.cost, depositRequired: property.depositRequired, loanAmount: property.loanAmount, instanceId: property.instanceId, title: property.title, loanType: property.loanType },
+      availableFunds, purchaseHistoryForValidation, targetPeriod, property.totalCashRequired,
+      profile, existingProperties, eventBlocks, engineDeps,
     );
-    
-    // Calculate deposit test
-    const depositTestSurplus = availableFunds.total - property.totalCashRequired;
-    const depositTestPass = depositTestSurplus >= 0;
-    
-    // Calculate serviceability test
-    // Get total rental income from existing + previous purchases
-    let totalRentalIncome = 0;
 
-    existingProperties.forEach(ep => {
-      if (ep.saleYear && ep.saleYear > 0) {
-        const salePeriod = yearToPeriod(ep.saleYear);
-        if (targetPeriod >= salePeriod) return;
-      }
-      const yearsElapsed = (targetPeriod - 1) / PERIODS_PER_YEAR;
-      const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
-      const annualRent = ep.rentPerWeek * 52 * rentEscFactor;
-      const vacancyAdjusted = annualRent * (1 - (ep.vacancyRate ?? profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-      totalRentalIncome += vacancyAdjusted * RENTAL_RECOGNITION_RATE;
-    });
-
-    purchaseHistoryForValidation.forEach(purchase => {
-      if (purchase.period <= targetPeriod) {
-        const periodsOwned = targetPeriod - purchase.period;
-        const purchaseInstance = getInstance(purchase.instanceId);
-        const propertyData = getPropertyData(purchase.title, purchaseInstance?.growthAssumption);
-
-        if (purchaseInstance && propertyData) {
-          const valYearsOwned = periodsOwned / PERIODS_PER_YEAR;
-          const valRentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), valYearsOwned);
-          const annualRent = purchaseInstance.rentPerWeek * 52 * valRentEscalationFactor;
-          const vacancyAdjusted = annualRent * (1 - (profile.vacancyRate ?? DEFAULT_VACANCY_RATE));
-          const recognitionRate = RENTAL_RECOGNITION_RATE;
-          totalRentalIncome += vacancyAdjusted * recognitionRate;
-        } else if (propertyData) {
-          const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
-          const yieldRate = parseFloat(propertyData.yield) / 100;
-          const recognitionRate = RENTAL_RECOGNITION_RATE;
-          totalRentalIncome += currentValue * yieldRate * recognitionRate;
-        }
-      }
-    });
-
-    // Calculate total debt from previous purchases (SMSF-excluded for BC ceiling)
-    let totalDebtFromPurchases = 0;
-    purchaseHistoryForValidation.forEach(purchase => {
-      if (purchase.period <= targetPeriod) {
-        const purchaseInst = getInstance(purchase.instanceId);
-        if (purchaseInst?.entity !== 'smsf') {
-          totalDebtFromPurchases += purchase.loanAmount;
-        }
-      }
-    });
-
-    // Calculate total interest payments (entity-discounted for serviceability)
-    // NOTE: This preview path only counts new purchases (not existing properties) in interest,
-    // matching the original formula where existing debt capacity is implicitly handled via
-    // profile.borrowingCapacity / SERVICEABILITY_FACTOR in the adjustedIncome term.
-    const interestRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
-    let totalEntityAdjustedInterest = 0;
-    purchaseHistoryForValidation.forEach(purchase => {
-      if (purchase.period <= targetPeriod) {
-        const purchaseInst = getInstance(purchase.instanceId);
-        const entityFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInst?.entity ?? 'individual'] ?? 1.0;
-        totalEntityAdjustedInterest += purchase.loanAmount * interestRate * entityFactor;
-      }
-    });
-    // Add new property interest (entity-discounted)
-    const newPropInst = getInstance(property.instanceId);
-    const newPropEntityFactor = ENTITY_SERVICEABILITY_FACTORS[newPropInst?.entity ?? 'individual'] ?? 1.0;
-    totalEntityAdjustedInterest += property.loanAmount * interestRate * newPropEntityFactor;
-
-    // Calculate serviceability
-    const effectiveRentalIncome = totalRentalIncome * RENTAL_SERVICEABILITY_CONTRIBUTION_RATE;
-    const adjustedIncome = profile.borrowingCapacity / SERVICEABILITY_FACTOR + effectiveRentalIncome;
-    const assessmentInterestPayments = totalEntityAdjustedInterest * SERVICEABILITY_FACTOR;
-    const serviceabilitySurplus = adjustedIncome - assessmentInterestPayments;
-    const serviceabilityTestPass = serviceabilitySurplus >= 0;
-    
-    // Calculate borrowing capacity test
-    const newLoanAmount = property.loanAmount;
-
-    // BORROWING CAPACITY CEILING — SINGLE SOURCE OF TRUTH
-    // Same formula as BorrowingCapacityChart: stated BC × wage growth, OR 6× DTI
-    const effectiveBorrowingCapacity = calculateBorrowingCeiling(targetPeriod, {
-      statedBC: profile.borrowingCapacity ?? 0,
-      baseSalary: profile.baseSalary ?? 60000,
-      salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
-      wageGrowth: profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE,
-      grossRentalIncome: totalRentalIncome,
-      eventBlocks,
-    });
-
-    // Per-loan AND cumulative BC test (SMSF-aware)
-    const dragPropIsSmsf = newPropInst?.entity === 'smsf';
-    const perLoanBCPass = dragPropIsSmsf || newLoanAmount <= effectiveBorrowingCapacity;
-    let totalExistingDebtForBC = 0;
-    if (existingProperties.length > 0) {
-      existingProperties.forEach(ep => {
-        if (ep.saleYear && ep.saleYear > 0 && targetPeriod >= yearToPeriod(ep.saleYear)) return;
-        if (ep.entity === 'smsf') return; // SMSF debt excluded from personal BC
-        totalExistingDebtForBC += ep.loan;
-      });
-    } else {
-      totalExistingDebtForBC = profile.currentDebt;
-    }
-    const totalDebtAfterPurchase = totalExistingDebtForBC + totalDebtFromPurchases + (dragPropIsSmsf ? 0 : newLoanAmount);
-    const cumulativeBCPass = dragPropIsSmsf || totalDebtAfterPurchase <= effectiveBorrowingCapacity;
-    const borrowingCapacityPass = perLoanBCPass && cumulativeBCPass;
-    
-    const isValid = affordabilityResult.canAfford && depositTestPass && serviceabilityTestPass && borrowingCapacityPass;
-    
     return {
-      isValid,
-      depositTestPass,
-      serviceabilityTestPass,
-      borrowingCapacityPass,
+      isValid: engineResult.canAfford,
+      depositTestPass: engineResult.depositTestPass,
+      serviceabilityTestPass: engineResult.serviceabilityTestPass,
+      borrowingCapacityPass: engineResult.borrowingCapacityTestPass,
     };
   }, [calculateTimelineProperties, propertyOrder, calculateAvailableFunds, checkAffordability, getPropertyData, getInstance, profile.interestRate, profile.borrowingCapacity, profile.equityFactor, calculatePropertyGrowth]);
 

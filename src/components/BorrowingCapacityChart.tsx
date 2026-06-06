@@ -132,10 +132,12 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
           eventBlocks,
         });
 
-        // "Offset Debt" = net debt exposure (gross debt minus offset cash).
-        // Starts near gross debt (little cash), declines to 0 as savings accumulate.
-        const cashOffset = Math.min(d.cashOffset ?? 0, totalDebt);
-        const offsetDebt = Math.round(Math.max(0, totalDebt - cashOffset));
+        // "Offset Debt" = what lenders count against your capacity.
+        // Entity-discounted (trust=25%, SMSF=0%) minus cash reserves.
+        // This ensures offset debt never exceeds the borrowing ceiling for feasible properties.
+        const lenderDebt = d.entityDiscountedDebt ?? totalDebt;
+        const cashOffset = Math.min(d.cashOffset ?? 0, lenderDebt);
+        const offsetDebt = Math.round(Math.max(0, lenderDebt - cashOffset));
 
         return {
           year: d.year,
@@ -168,8 +170,8 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
     const ceiling = payload.find((p: any) => p.dataKey === 'borrowingCeiling')?.value ?? 0;
     const debt = payload.find((p: any) => p.dataKey === 'totalDebt')?.value ?? 0;
     const netExposure = payload.find((p: any) => p.dataKey === 'offsetDebt')?.value ?? 0;
-    const offsetCash = debt - netExposure;
-    const headroom = ceiling - debt;
+    const entityDiscount = debt - netExposure;
+    const headroom = ceiling - netExposure;
 
     return (
       <div
@@ -212,10 +214,12 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
             ${Math.abs(headroom).toLocaleString()}
           </span>
         </div>
+        {entityDiscount > 0 && (
         <div className="flex justify-between gap-6 mt-0.5">
-          <span className="text-gray-400 text-xs">Offset Cash</span>
-          <span className="text-gray-400 text-xs">${offsetCash.toLocaleString()}</span>
+          <span className="text-gray-400 text-xs">Entity + Cash Offset</span>
+          <span className="text-gray-400 text-xs">${entityDiscount.toLocaleString()}</span>
         </div>
+        )}
       </div>
     );
   };

@@ -44,6 +44,7 @@ interface CreatePlanData {
     lvr: number;
     lmiCapitalized?: boolean;
     loanProduct: string;
+    entity?: string;
   }>;
   strategyPreset: string;
   missingInputs?: string[];
@@ -87,7 +88,13 @@ export function buildCreatePlanMessage(data: CreatePlanData): string {
     ? ''
     : ` Default 20-year horizon applied.`;
 
-  let msg = `Built a ${count}-property plan${nameStr}, priced ${priceRange}. Modelled at ${lvrStr} LVR${lmiNote} with ${loanStr} loans, biased toward ${presetStr}.${timelineNote}`;
+  // Trust entities
+  const trustProps = data.properties.filter(p => p.entity === 'trust');
+  const trustNote = trustProps.length > 0
+    ? ` Properties ${data.properties.map((p, i) => p.entity === 'trust' ? i + 1 : null).filter(Boolean).join(', ')} held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases.`
+    : '';
+
+  let msg = `Built a ${count}-property plan${nameStr}, priced ${priceRange}. Modelled at ${lvrStr} LVR${lmiNote} with ${loanStr} loans, biased toward ${presetStr}.${trustNote}${timelineNote}`;
 
   // Missing inputs nudge
   if (data.missingInputs && data.missingInputs.length > 0) {

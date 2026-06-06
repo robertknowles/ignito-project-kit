@@ -44,6 +44,9 @@ interface CurrentPlanState {
     loanProduct: 'IO' | 'PI';
     lvr: number;
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    engineStatus?: 'feasible' | 'challenging';
+    borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
   enginePlanState?: {
@@ -480,10 +483,25 @@ Pick only the highest-priority missing items (borrowing_capacity > existing_debt
 8. Existing investment properties:
    If the BA mentions properties they already own, note it in assumptions but still generate new properties for the portfolio. The engine handles existing debt serviceability.
 
+## Entity Types (Ownership Structures)
+
+Each property can be held in a different entity: \`individual\` (default), \`trust\`, \`company\`, or \`smsf\`. Entity type affects serviceability and borrowing capacity:
+
+- **Individual** — 100% of loan repayments count toward serviceability. Standard.
+- **Trust** — only 70% of loan repayments count toward serviceability (lenders discount trust debt because the trust's rental income self-services the loan). The cumulative BC ceiling still counts trust debt at 100% (personal guarantee). Use trusts when serviceability is the binding constraint.
+- **Company** — same as individual for serviceability purposes.
+- **SMSF** — 0% of loan repayments count toward serviceability (Limited Recourse Borrowing Arrangement). SMSF debt is excluded from both serviceability AND cumulative BC ceiling. However, SMSF has separate regulatory constraints.
+
+**When to suggest entity changes:**
+- If properties are marked ⚠️ BLOCKED with negative borrowingCapacityRemaining, and serviceability is the binding constraint, suggest putting later properties in a trust to free up serviceability headroom.
+- If the BA mentions trusts, SMSF, or company structures, set the \`entity\` field on the relevant properties.
+- Default to \`individual\` unless there's a specific reason to use a different entity.
+- Include entity in the property output: \`"entity": "trust"\`. The mapper will set it on the property instance.
+
 ## Modification Pushback
 When a modification makes the plan infeasible (the engine returns a constraint failure):
 - Lead with the specific reason and real numbers: "Can't do [requested change] — [client] only has $Xk available and needs $Yk."
-- Suggest 2-3 alternatives as plain text in the message (e.g. "To make this work: lower the price to ~$380k, extend the horizon to 18 years, or drop a property."). Do NOT format alternatives as structured JSON, numbered options, or clickable items — just weave them into the sentence.
+- Suggest 2-3 alternatives as plain text in the message (e.g. "To make this work: lower the price to ~$380k, extend the horizon to 18 years, or drop a property."). Do NOT format alternatives as structured JSON, numbered options, or clickable items — just weave them into the sentence. If serviceability is the bottleneck, include "hold later properties in a trust to reduce serviceability impact" as one of the alternatives.
 - Tone: matter-of-fact, not apologetic. The engine is doing its job. This is information, not an error.
 
 ## Property Suggestions
@@ -1184,7 +1202,9 @@ ${currentPlan.enginePlanState ? `
 ${currentPlan.properties.map((p, i) => {
   const approxYear = currentYear + Math.floor((p.period - 1) / 2);
   const halfLabel = (p.period % 2 === 1) ? 'H1' : 'H2';
-  return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, target ~${halfLabel} ${approxYear} (period ${p.period}), ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR (ID: ${p.instanceId})`;
+  const entityLabel = p.entity && p.entity !== 'individual' ? `, entity: ${p.entity}` : '';
+  const statusLabel = p.engineStatus === 'challenging' ? ` ⚠️ BLOCKED (BC remaining: $${(p.borrowingCapacityRemaining ?? 0).toLocaleString()})` : '';
+  return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, target ~${halfLabel} ${approxYear} (period ${p.period}), ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR${entityLabel} (ID: ${p.instanceId})${statusLabel}`;
 }).join('\n')}
 
 When the BA says "property 2" or "the second one", they mean property #2 in the list above. When they say "make it cheaper" without specifying which, ask which property. When they say "all of them", apply the change to every property.
@@ -1221,7 +1241,7 @@ When the BA asks to change a specific property field, return a modification with
 - "Move property 1 to NSW" → modify property-1, action: "change", params: { "state": "NSW" }
 
 **Supported \`change\` params (this is the full set — do NOT invent others):**
-\`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`.
+\`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`, \`entity\`.
 
 If the BA asks for something outside this list (e.g. offset accounts, vacancy rates, building insurance, loan term), do NOT return a \`change\` modification with that field. Instead, respond with type "explanation" and tell them in plain English that this field isn't editable from chat yet — they can adjust it in the property defaults panel.
 

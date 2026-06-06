@@ -41,6 +41,11 @@ export interface CurrentPlanState {
     lvr: number;
     /** v4 mode of the cell ("Growth"/"Cashflow" for residential; "HighCost"/"LowCost" for Commercial). */
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    /** Engine result — 'feasible' or 'challenging'. Only populated after engine runs. */
+    engineStatus?: 'feasible' | 'challenging';
+    /** Engine result — remaining BC after this purchase. Negative = BC exceeded. */
+    borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
   /**
@@ -121,6 +126,8 @@ export interface NLParseResponse {
     lvr: number; // 0-100 (e.g. 80, 88, 90)
     rentPerWeek?: number;
     targetPeriod?: number; // Preferred timing (period number, semi-annual)
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    alertDismissed?: boolean; // Buyer's agent dismissed the affordability alert
   }>;
 
   // For modification — what to change (single or multiple)
@@ -214,6 +221,15 @@ export interface NLParseResponse {
   clientProfileSources?: FieldSourceMap;
   investmentProfileSources?: FieldSourceMap;
   propertySources?: FieldSourceMap[];
+
+  /** Auto-fix changes applied by the engine pre-check (client-side only, never from API) */
+  _autoFixChanges?: Array<{
+    propertyIndex: number;
+    propertyLabel: string;
+    changeType: 'entity_to_trust' | 'price_reduced' | 'period_pushed';
+    reason: string;
+    detail: string;
+  }>;
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────

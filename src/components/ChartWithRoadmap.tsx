@@ -279,8 +279,11 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
   });
 
   const isHouse = isHouseType(property.title);
-  const borderColor = hasViolations ? '#ef4444' : CHART_COLORS.annotationText; // Grey border, red for violations
-  const borderWidth = hasViolations ? 2 : 1;
+  const isChallenging = property.status === 'challenging';
+  const borderColor = (hasViolations || isChallenging) ? '#ef4444' : CHART_COLORS.annotationText;
+  const borderWidth = (hasViolations || isChallenging) ? 2 : 1;
+  const iconColor = isChallenging ? 'text-red-500' : isHouse ? 'text-green-600' : 'text-blue-600';
+
 
   const style: React.CSSProperties = {
     position: 'absolute',
@@ -321,12 +324,15 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
               style={{ border: `${borderWidth}px solid ${borderColor}` }}
               onClick={handleClick}
             >
-              <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
+              <div style={{
+                transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)',
+                ...(isChallenging ? { filter: 'grayscale(1) brightness(0.5) sepia(1) hue-rotate(-30deg) saturate(5)' } : {}),
+              }}>
                 {getPropertyTypeIcon(property.title, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
               </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top" className="bg-white border border-gray-200 shadow-md rounded-md p-3 max-w-[220px]">
+          <TooltipContent side="top" className="bg-white border border-gray-200 shadow-md rounded-md p-3 max-w-[240px]">
             <p className="text-xs font-semibold text-gray-900 mb-1.5">{getSimplifiedDisplayLabel(property.title)}</p>
             <div className="space-y-0.5 text-[11px]">
               <div className="flex justify-between gap-4">
@@ -347,6 +353,20 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
                   {property.netCashflow >= 0 ? '+' : ''}{fmtK(property.netCashflow)}/yr
                 </span>
               </div>
+              {isChallenging && (
+                <div className="pt-1.5 mt-1.5 border-t border-red-100">
+                  {!property.depositTestPass && (
+                    <p className="text-red-500 font-medium">Deposit shortfall {fmtK(Math.abs(property.depositTestSurplus))}</p>
+                  )}
+                  {!property.serviceabilityTestPass && (
+                    <p className="text-red-500 font-medium">Serviceability exceeded {fmtK(Math.abs(property.serviceabilityTestSurplus))}/yr</p>
+                  )}
+                  {property.borrowingCapacityRemaining < 0 && (
+                    <p className="text-red-500 font-medium">BC ceiling exceeded {fmtK(Math.abs(property.borrowingCapacityRemaining))}</p>
+                  )}
+                  <p className="text-gray-400 mt-0.5">Try a trust entity or lower price</p>
+                </div>
+              )}
             </div>
           </TooltipContent>
         </UITooltip>
@@ -761,10 +781,9 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
   // Check if a property has guardrail violations (for displaying warning icon)
   const hasGuardrailViolations = useCallback((property: TimelineProperty): boolean => {
+    if (property.status === 'challenging') return true;
     const instance = getInstance(property.instanceId);
     if (!instance?.isManuallyPlaced) return false;
-    
-    // Check if any test fails for manually placed properties
     return !property.depositTestPass || !property.serviceabilityTestPass || property.borrowingCapacityRemaining < 0;
   }, [getInstance]);
 

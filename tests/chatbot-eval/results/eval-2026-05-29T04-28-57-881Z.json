@@ -1,0 +1,2528 @@
+{
+  "summary": {
+    "timestamp": "2026-05-29T04:28:57.876Z",
+    "totalTests": 50,
+    "pass": 12,
+    "warn": 0,
+    "fail": 1,
+    "error": 37,
+    "categories": {
+      "new_plan": {
+        "total": 10,
+        "pass": 9,
+        "warn": 0,
+        "fail": 1,
+        "error": 0
+      },
+      "follow_up": {
+        "total": 10,
+        "pass": 3,
+        "warn": 0,
+        "fail": 0,
+        "error": 7
+      },
+      "profile_update": {
+        "total": 8,
+        "pass": 0,
+        "warn": 0,
+        "fail": 0,
+        "error": 8
+      },
+      "modification": {
+        "total": 8,
+        "pass": 0,
+        "warn": 0,
+        "fail": 0,
+        "error": 8
+      },
+      "edge_case": {
+        "total": 14,
+        "pass": 0,
+        "warn": 0,
+        "fail": 0,
+        "error": 14
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "NP-01",
+      "category": "new_plan",
+      "description": "Standard single client brief",
+      "input": "I have a client earning 120k with 80k deposit, saving 2k a month. Borrowing capacity of 600k.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should extract 120k salary",
+        "should extract 80k deposit",
+        "should extract 2k/month savings = 24k annual",
+        "should extract 600k borrowing capacity"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 14596,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan across QLD, NSW, VIC — a regional house (growth), a regional unit (growth), a regional house (cashflow), and a metro unit (growth). Modelled at 88% LVR with LMI capitalised with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Borrowing capacity of $600k — modelled with 88% LVR and LMI capitalised across all properties",
+          "Deposit pool of $80k with $2,000/month ($24,000/year) in savings",
+          "No existing property portfolio assumed — first-time investor",
+          "Timeline defaulted to 20 years as none was specified",
+          "EG-LOW preset applied — equity growth focus at lower price points",
+          "All loans modelled as Interest Only",
+          "Property prices scaled to $350k–$500k range to suit borrowing capacity",
+          "LMI capitalised to preserve deposit pool across acquisitions"
+        ],
+        "missingInputs": [
+          "existing_debt"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 80000,
+          "borrowingCapacity": 600000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 80000,
+          "annualSavings": 24000,
+          "baseSalary": 120000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 450000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 420000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 480000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-02",
+      "category": "new_plan",
+      "description": "Couple with casual language",
+      "input": "Got a young couple, Tom and Sarah. Both earning about 120k, saving 3500 a month between them, got 150k sitting in the bank. Pre-approved for 1.2m.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should have 2 members",
+        "should be 120k EACH not combined",
+        "savings should be 3500/month = 42000/year",
+        "deposit 150k",
+        "borrowing capacity 1.2m"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 12797,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan for Tom & Sarah across QLD, VIC, NSW — 2 regional house (growth) properties, 2 metro unit (growth) properties, and a regional unit (growth). Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share existing property details and goal. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Both incomes taken as $120,000 each — combined $240,000/year",
+          "Savings of $3,500/month = $42,000/year",
+          "Deposit pool of $150,000 as stated",
+          "Borrowing capacity of $1,200,000 as per pre-approval",
+          "20-year timeline applied as default — not specified by BA",
+          "EG-Low preset applied — equity growth, lower price point",
+          "All properties modelled with IO loans at 80% LVR",
+          "No existing property portfolio assumed — first-time investors",
+          "No investment goal specified — defaulting to equity growth (~2x deposit pool)"
+        ],
+        "missingInputs": [
+          "existing_debt",
+          "goal"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Tom",
+              "annualIncome": 120000
+            },
+            {
+              "name": "Sarah",
+              "annualIncome": 120000
+            }
+          ],
+          "monthlySavings": 3500,
+          "currentDeposit": 150000,
+          "borrowingCapacity": 1200000
+        },
+        "investmentProfile": {
+          "depositPool": 150000,
+          "annualSavings": 42000,
+          "baseSalary": 240000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-03",
+      "category": "new_plan",
+      "description": "Minimal information - just income",
+      "input": "Client on 90k, wants to get into property.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate a plan despite missing info",
+        "should flag missing inputs",
+        "should NOT ask clarifying questions before generating"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 10775,
+        "type": "initial_plan",
+        "message": "Built a 3-property plan across QLD, NSW, VIC — a regional house (growth), a regional unit (growth), and a metro unit (growth). Modelled at 88% LVR with LMI capitalised with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share borrowing capacity and deposit. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income $90,000/year",
+          "Monthly savings estimated at $2,000 — not confirmed",
+          "No deposit amount provided — modelled as $0",
+          "Borrowing capacity not confirmed — modelled at low-capacity tier (88% LVR, LMI capitalised)",
+          "No existing properties mentioned",
+          "Timeline defaulted to 20 years",
+          "EG-Low preset applied — equity growth, lower price point"
+        ],
+        "missingInputs": [
+          "borrowing_capacity",
+          "deposit",
+          "savings"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 90000
+            }
+          ],
+          "monthlySavings": 2000,
+          "currentDeposit": 0
+        },
+        "investmentProfile": {
+          "depositPool": 0,
+          "annualSavings": 24000,
+          "baseSalary": 90000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 3,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 500000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 480000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-04",
+      "category": "new_plan",
+      "description": "Australian slang heavy",
+      "input": "Got a bloke in Brissy, earns about 95k, got 60k deposit. Wants a couple of IPs, nothing too flash. No existing properties. Saving about 1500 a month.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should use he/him pronouns",
+        "should interpret Brissy as Brisbane/QLD",
+        "should interpret \"couple of IPs\" as ~2 properties",
+        "savings 1500/month = 18000/year"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 11935,
+        "type": "initial_plan",
+        "message": "Built a 2-property plan across QLD — a regional house (growth) and a regional unit (growth). Modelled at 88% LVR with LMI capitalised with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share borrowing capacity. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income of $95,000/year used as base salary",
+          "Deposit pool of $60,000 at plan start",
+          "Monthly savings of $1,500 ($18,000/year) applied to deposit accumulation",
+          "No existing property debt or equity",
+          "Two properties modelled per client brief ('a couple')",
+          "88% LVR with LMI capitalised — borrowing capacity estimated as low given single income and deposit size",
+          "Both properties in QLD to align with Brisbane/regional market familiarity",
+          "IO loans applied across both properties",
+          "Property 2 staged to Period 3 to allow savings accumulation between purchases",
+          "20-year timeline applied as default (not specified by BA)",
+          "Borrowing capacity not provided — flagged as missing"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 95000
+            }
+          ],
+          "monthlySavings": 1500,
+          "currentDeposit": 60000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 60000,
+          "annualSavings": 18000,
+          "baseSalary": 95000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 2,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 450000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-05",
+      "category": "new_plan",
+      "description": "High capacity client",
+      "input": "Power couple - combined income 450k, 300k deposit, saving 8k a month. Borrowing capacity 2.5m. Want to build a serious portfolio over 15 years.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should use high-price cells",
+        "should respect 15yr timeline",
+        "should set timelineYearsExplicit true",
+        "high capacity pricing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 14455,
+        "type": "initial_plan",
+        "message": "Built a 6-property plan for Partner 1 & Partner 2 across NSW, VIC, QLD — 2 metro house (growth) properties, 2 regional house (growth) properties, and 2 metro unit (growth) properties. Modelled at 80% LVR with IO loans, biased toward equity growth, high price point. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Combined income split evenly at $225k each",
+          "Borrowing capacity of $2.5M used as the acquisition ceiling per purchase cycle — equity recycling assumed to fund later acquisitions",
+          "Monthly savings of $8,000 ($96,000/year) contribute to deposit pool between purchases",
+          "All loans modelled as Interest Only at 80% LVR — no LMI required",
+          "Growth-focused plan across metro and regional markets over 15 years",
+          "No existing investment properties assumed — first-time investors",
+          "Timeline is 15 years, explicitly stated by client",
+          "Equity recycling assumed from Year 3 onward to fund subsequent purchases",
+          "No existing property debt or equity recorded"
+        ],
+        "missingInputs": [],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Partner 1",
+              "annualIncome": 225000
+            },
+            {
+              "name": "Partner 2",
+              "annualIncome": 225000
+            }
+          ],
+          "monthlySavings": 8000,
+          "currentDeposit": 300000,
+          "borrowingCapacity": 2500000
+        },
+        "investmentProfile": {
+          "depositPool": 300000,
+          "annualSavings": 96000,
+          "baseSalary": 450000,
+          "timelineYears": 15,
+          "timelineYearsExplicit": true
+        },
+        "propertyCount": 6,
+        "properties": [
+          {
+            "type": "metro-house-growth",
+            "purchasePrice": 900000,
+            "state": "NSW",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "metro-house-growth",
+            "purchasePrice": 900000,
+            "state": "VIC",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 620000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 580000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 650000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 9
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 600000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 11
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-high",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-06",
+      "category": "new_plan",
+      "description": "Very low deposit, challenging financials",
+      "input": "Young guy, first job out of uni. Earning 65k, only got 20k saved. Saving 800 a month. No idea about borrowing yet.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should still generate a plan",
+        "should use cheapest cells",
+        "should flag borrowing_capacity as missing",
+        "savings 800/month NOT substituted"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 12982,
+        "type": "initial_plan",
+        "message": "Built a 3-property plan across QLD, NSW, VIC — a regional house (growth), a regional unit (growth), and a metro unit (growth). Modelled at 88% LVR with LMI capitalised with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share borrowing capacity. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Borrowing capacity not yet assessed — modelled conservatively at sub-$1M; 88% LVR with LMI capitalised applied across all properties",
+          "First-time investor, no existing property debt or equity",
+          "Income of $65,000/year with $800/month savings ($9,600/year)",
+          "Deposit pool of $20,000 at plan start",
+          "20-year timeline applied as default — not client-specified",
+          "EG-Low preset applied: regional and metro units at lower price points to suit limited deposit and unconfirmed borrowing capacity",
+          "All properties modelled with IO loans",
+          "Property prices scaled to $380k–$440k range to reflect low deposit and likely constrained borrowing capacity",
+          "LMI capitalised into loan balance for all purchases"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 65000
+            }
+          ],
+          "monthlySavings": 800,
+          "currentDeposit": 20000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 20000,
+          "annualSavings": 9600,
+          "baseSalary": 65000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 3,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 420000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 380000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 440000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 9
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-07",
+      "category": "new_plan",
+      "description": "Cashflow focused request",
+      "input": "Client wants passive income. Earning 130k, 100k deposit, saving 3k/month. Wants 80k a year in rental income eventually. Capacity about 900k.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should bias toward cashflow cells",
+        "should set cashflowGoal to 80000",
+        "should extract all numbers correctly"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 14652,
+        "type": "initial_plan",
+        "message": "Built a 5-property plan across NSW, QLD — 2 regional house (cashflow) properties, 2 regional unit (cashflow) properties, and a commercial (low cost). Modelled at 70-88% LVR with LMI capitalised with IO loans, biased toward cashflow, low price point. Default 20-year horizon applied. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Income is $130,000 per year",
+          "Monthly savings of $3,000 ($36,000/year)",
+          "Starting deposit pool of $100,000",
+          "Borrowing capacity approximately $900,000",
+          "All residential properties modelled at 88% LVR with LMI capitalised given capacity under $1M",
+          "Commercial property modelled at 70% LVR in later phase once equity has grown",
+          "Target rental income of $80,000/year — modelled across the portfolio over a 20-year horizon",
+          "Timeline set to 20 years as none was specified",
+          "CF-Low preset applied — bias toward lower price point, higher-income regional assets",
+          "No existing property portfolio — existingPropertyDebt and existingPropertyEquity set to zero",
+          "Loan product: Interest Only across all properties"
+        ],
+        "missingInputs": [],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 130000
+            }
+          ],
+          "monthlySavings": 3000,
+          "currentDeposit": 100000,
+          "borrowingCapacity": 900000
+        },
+        "investmentProfile": {
+          "depositPool": 100000,
+          "annualSavings": 36000,
+          "baseSalary": 130000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false,
+          "targetPassiveIncome": 80000
+        },
+        "propertyCount": 5,
+        "properties": [
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 500000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "mode": "Cashflow",
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 380000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "mode": "Cashflow",
+            "targetPeriod": 3
+          },
+          {
+            "type": "regional-house-cashflow",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "mode": "Cashflow",
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-cashflow",
+            "purchasePrice": 370000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "mode": "Cashflow",
+            "targetPeriod": 7
+          },
+          {
+            "type": "commercial-low-cost",
+            "purchasePrice": 750000,
+            "state": "QLD",
+            "growthAssumption": "Low",
+            "loanProduct": "IO",
+            "lvr": 70,
+            "lmiCapitalized": false,
+            "mode": "Cashflow",
+            "targetPeriod": 11
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "cf-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-08",
+      "category": "new_plan",
+      "description": "Existing property with PPOR",
+      "input": "Couple earning 200k combined, saving 4k a month, 90k deposit. They own their PPOR worth 900k with 400k owing. Capacity 1.1m.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should calculate PPOR equity: (900k * 0.8) - 400k = 320k",
+        "should extract existing property data",
+        "should NOT flag existing_debt as missing"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 14762,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan for Client 1 & Client 2 across QLD, VIC, NSW — 2 regional house (growth) properties, a metro unit (growth), and a regional unit (growth). Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share borrowing capacity. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Combined income split evenly at $100k each",
+          "Monthly savings of $4,000 ($48,000/year)",
+          "Deposit pool of $90,000 cash plus $320,000 usable PPOR equity (80% of $900k value minus $400k debt)",
+          "PPOR modelled at current value — no growth applied to owner-occupied property",
+          "Borrowing capacity of $1.1M applied across the portfolio",
+          "All investment properties modelled with IO loans at 80% LVR",
+          "20-year timeline applied as default — no explicit timeline provided",
+          "EG-Low preset applied — equity growth focus at lower price points",
+          "Total acquisition across 4 properties kept within ~2x borrowing capacity",
+          "No explicit income or equity goal provided — default equity growth target applied"
+        ],
+        "missingInputs": [
+          "borrowing_capacity"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client 1",
+              "annualIncome": 100000
+            },
+            {
+              "name": "Client 2",
+              "annualIncome": 100000
+            }
+          ],
+          "monthlySavings": 4000,
+          "currentDeposit": 90000,
+          "borrowingCapacity": 1100000,
+          "existingPropertyEquity": 320000,
+          "existingPropertyDebt": 400000,
+          "existingPortfolio": [
+            {
+              "state": "NSW",
+              "purchasePrice": 900000,
+              "currentValue": 900000,
+              "loan": 400000,
+              "loanType": "PPOR"
+            }
+          ]
+        },
+        "investmentProfile": {
+          "depositPool": 410000,
+          "annualSavings": 48000,
+          "baseSalary": 200000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 550000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 530000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 3
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 560000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 430000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 80,
+            "lmiCapitalized": false,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "NP-09",
+      "category": "new_plan",
+      "description": "Almost no info - should still try",
+      "input": "I have a client who wants to invest.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "may ask up to 2 questions OR generate with defaults",
+        "should NOT block entirely",
+        "should NOT ask 3+ questions"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 4340,
+        "type": "explanation",
+        "message": "Happy to build a plan. A few details to get started:\n\n- Name(s) and annual income(s)\n- Monthly savings\n- Current deposit or cash available\n- Any existing properties (address, value, loan balance)\n- Borrowing capacity (if known)\n- What they're aiming for — equity growth, rental income, or both\n\nShare whatever you have and I'll model from there.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "FAIL",
+        "issues": [
+          "WRONG TYPE: expected \"initial_plan\", got \"explanation\""
+        ]
+      }
+    },
+    {
+      "id": "NP-10",
+      "category": "new_plan",
+      "description": "Numbers without units",
+      "input": "Client earns 140, deposit 100, saves 2500 a month, capacity 800.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should interpret 140 as 140k",
+        "deposit 100 as 100k",
+        "savings 2500/month",
+        "capacity 800 as 800k"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 12557,
+        "type": "initial_plan",
+        "message": "Built a 4-property plan across QLD, VIC, NSW — 2 regional house (growth) properties, a metro unit (growth), and a regional unit (growth). Modelled at 88% LVR with LMI capitalised with IO loans, biased toward equity growth, low price point. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.",
+        "assumptions": [
+          "Borrowing capacity of $800k applied — 88% LVR with LMI capitalised across all properties",
+          "Total acquisition kept within ~2x borrowing capacity (~$1.84M)",
+          "IO loans modelled across all properties",
+          "Monthly savings of $2,500 ($30,000/year) used to fund subsequent deposits",
+          "No existing property debt or equity — first-time investor assumed",
+          "20-year timeline applied as default (not specified by BA)",
+          "EG-Low preset applied — regional house growth and metro/regional unit growth cells",
+          "Property prices scaled to $400–500k range to suit borrowing capacity"
+        ],
+        "missingInputs": [
+          "existing_debt"
+        ],
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": {
+          "members": [
+            {
+              "name": "Client",
+              "annualIncome": 140000
+            }
+          ],
+          "monthlySavings": 2500,
+          "currentDeposit": 100000,
+          "borrowingCapacity": 800000,
+          "existingPropertyDebt": 0,
+          "existingPropertyEquity": 0
+        },
+        "investmentProfile": {
+          "depositPool": 100000,
+          "annualSavings": 30000,
+          "baseSalary": 140000,
+          "timelineYears": 20,
+          "timelineYearsExplicit": false
+        },
+        "propertyCount": 4,
+        "properties": [
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 480000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 1
+          },
+          {
+            "type": "regional-house-growth",
+            "purchasePrice": 460000,
+            "state": "QLD",
+            "growthAssumption": "High",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 3
+          },
+          {
+            "type": "metro-unit-growth",
+            "purchasePrice": 500000,
+            "state": "VIC",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 5
+          },
+          {
+            "type": "regional-unit-growth",
+            "purchasePrice": 400000,
+            "state": "NSW",
+            "growthAssumption": "Medium",
+            "loanProduct": "IO",
+            "lvr": 88,
+            "lmiCapitalized": true,
+            "targetPeriod": 7
+          }
+        ],
+        "propertySuggestions": null,
+        "strategyPreset": "eg-low",
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-01",
+      "category": "follow_up",
+      "description": "Simple question about the plan",
+      "input": "What interest rate are you using?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should answer the question directly",
+        "should NOT try to modify the plan",
+        "should reference actual rates from plan"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 4752,
+        "type": "explanation",
+        "message": "The PropPath engine applies its own internal interest rate assumptions — the modelling tool handles that calculation, not the inputs here. The plan shows IO loans at 88% LVR across all three properties. If you want to model a specific rate, I can add a refinance event at a nominated year and rate.",
+        "assumptions": [
+          "Interest rate is managed internally by the PropPath engine",
+          "All three properties are modelled as IO loans at 88% LVR"
+        ],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-02",
+      "category": "follow_up",
+      "description": "Question about a specific property",
+      "input": "Why did you pick QLD for property 1?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should explain reasoning",
+        "should NOT modify anything",
+        "should NOT block the question"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 3977,
+        "type": "explanation",
+        "message": "The EG-LOW preset favours regional-house-growth as its primary cell. QLD is the default state for that cell type in the matrix — it fits the lower price point and carries a High growth assumption, which aligns with Tom's equity growth focus on an $80k deposit pool.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-03",
+      "category": "follow_up",
+      "description": "Question about timeline",
+      "input": "When does the first property get purchased?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should reference period/timeline",
+        "should NOT block or refuse"
+      ],
+      "response": {
+        "status": 200,
+        "elapsed": 3050,
+        "type": "explanation",
+        "message": "The first property — a regional house in QLD at $450,000 — is modelled for purchase in H1 2026.",
+        "assumptions": [],
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "PASS",
+        "issues": []
+      }
+    },
+    {
+      "id": "FQ-04",
+      "category": "follow_up",
+      "description": "Vague follow-up",
+      "input": "Looks good. Tell me more.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should provide more detail about the plan",
+        "should NOT treat as new plan",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 588,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-05",
+      "category": "follow_up",
+      "description": "Question that sounds like it could be a modification",
+      "input": "Can we do better in NSW?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should either explain NSW options or suggest change",
+        "should be conversational"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 514,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-06",
+      "category": "follow_up",
+      "description": "Question about feasibility",
+      "input": "Is this realistic?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should reference plan data",
+        "should NOT refuse to answer",
+        "should frame as modelling not advice"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 457,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-07",
+      "category": "follow_up",
+      "description": "Question about LMI",
+      "input": "How much LMI are we paying on these?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should explain LMI in context",
+        "should NOT attempt to calculate (engine does that)",
+        "should reference the dashboard"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 472,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-08",
+      "category": "follow_up",
+      "description": "Off-topic question",
+      "input": "What do you think about the Brisbane market right now?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should acknowledge but stay in modelling lane",
+        "should NOT provide market advice",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 474,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-09",
+      "category": "follow_up",
+      "description": "Single word follow-up",
+      "input": "Why?",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should attempt to answer based on context",
+        "should NOT block or refuse",
+        "should NOT treat as new plan"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 469,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "FQ-10",
+      "category": "follow_up",
+      "description": "Thanks / acknowledgment",
+      "input": "Thanks, that looks great.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should acknowledge naturally",
+        "should NOT modify anything",
+        "should NOT ask follow-up questions"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 489,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-01",
+      "category": "profile_update",
+      "description": "Income correction",
+      "input": "Actually he makes 150k not 120k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update baseSalary to 150000",
+        "should NOT rebuild plan",
+        "should NOT touch other fields"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 480,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-02",
+      "category": "profile_update",
+      "description": "Multiple updates at once",
+      "input": "He makes 150k and has 600k capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update baseSalary AND borrowingCapacity",
+        "should NOT rebuild plan",
+        "should NOT treat as new client"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 465,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-03",
+      "category": "profile_update",
+      "description": "Savings correction",
+      "input": "He actually saves 3k a month, not 2k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update annualSavings to 36000",
+        "should convert monthly to annual"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 554,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-04",
+      "category": "profile_update",
+      "description": "Adding borrowing capacity that was missing",
+      "input": "Just got the pre-approval back - 750k borrowing capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should set borrowingCapacity to 750000",
+        "should NOT rebuild plan"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 481,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-05",
+      "category": "profile_update",
+      "description": "Deposit update",
+      "input": "Deposit is actually 120k, they got a gift from parents.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update depositPool to 120000",
+        "should NOT touch other fields"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 492,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-06",
+      "category": "profile_update",
+      "description": "Adding a partner (couple names issue)",
+      "input": "Oh and his partner Sarah is also earning 110k.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT treat as new client",
+        "should NOT glitch out on adding a name",
+        "should update income or acknowledge partner"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 513,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-07",
+      "category": "profile_update",
+      "description": "Timeline change",
+      "input": "Make it 15 years instead of 20.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should update timeline to 15",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 476,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PU-08",
+      "category": "profile_update",
+      "description": "Goal update",
+      "input": "He wants 3 million in equity, not 160k.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update equityGoal to 3000000",
+        "should NOT rebuild plan"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 655,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-01",
+      "category": "modification",
+      "description": "Change price of specific property",
+      "input": "Make property 2 600k instead.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 2",
+        "should set price to 600000",
+        "should cite new absolute value in message"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 503,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-02",
+      "category": "modification",
+      "description": "Change state of a property",
+      "input": "Move property 1 to NSW.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 1",
+        "should change state to NSW"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 551,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-03",
+      "category": "modification",
+      "description": "Remove a property",
+      "input": "Drop the last property.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 3 (last)",
+        "should remove it"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 528,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-04",
+      "category": "modification",
+      "description": "Add a property",
+      "input": "Add a metro unit in Sydney around 550k.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should add a new property",
+        "should be metro-unit type",
+        "state NSW",
+        "price ~550k"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 487,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-05",
+      "category": "modification",
+      "description": "Change loan type",
+      "input": "Switch property 1 to P&I.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 1",
+        "should change loanProduct to PI"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 552,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-06",
+      "category": "modification",
+      "description": "Vague modification request",
+      "input": "Can we make the portfolio cheaper overall?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should either suggest changes or make them",
+        "should be helpful"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 595,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-07",
+      "category": "modification",
+      "description": "Multiple changes in one message",
+      "input": "Bump property 1 to 500k and move property 2 to QLD.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should handle both changes",
+        "should cite new values in message"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 543,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "PM-08",
+      "category": "modification",
+      "description": "Change growth assumption",
+      "input": "Set property 2 to high growth.",
+      "hasPlan": true,
+      "expectedType": "modification",
+      "checks": [
+        "should target property 2",
+        "should change growthAssumption to High"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 543,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-01",
+      "category": "edge_case",
+      "description": "Repeated sentence (known bug)",
+      "input": "I have a client I have a client earning 120k with 80k deposit.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should NOT fail or produce garbage",
+        "should handle repeated text gracefully",
+        "should extract data from the repeated input"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 499,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-02",
+      "category": "edge_case",
+      "description": "Typos and bad grammar",
+      "input": "clent earns 100k, hes got like 50k deposit n saves bout 2k a mnth. capacity probs around 700k",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should parse despite typos",
+        "should extract correct numbers",
+        "should not refuse"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 493,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-03",
+      "category": "edge_case",
+      "description": "Message that could be new plan or update",
+      "input": "Tom earns 150k and has 600k capacity.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should recognize Tom is the EXISTING client",
+        "should NOT treat as new client",
+        "should update profile"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 512,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-04",
+      "category": "edge_case",
+      "description": "Message with two new names (couple glitch test)",
+      "input": "New client - Rob and Emily, both earning 110k, 200k deposit, saving 5k a month, 1.5m capacity.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should create 2 members",
+        "should NOT glitch on two names",
+        "should have both names in members array"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 499,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-05",
+      "category": "edge_case",
+      "description": "Two names with existing single-name plan",
+      "input": "Actually Tom and Sarah are a couple. Sarah earns 100k too.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT treat as entirely new client",
+        "should recognize Tom is existing",
+        "should add Sarah as partner"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 500,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-06",
+      "category": "edge_case",
+      "description": "Entirely different client when plan exists",
+      "input": "New client - completely different person. Jake, 95k income, 40k deposit, saving 1500/month, 500k capacity.",
+      "hasPlan": true,
+      "expectedType": "explanation",
+      "checks": [
+        "should recognize this is a NEW client",
+        "should suggest clearing current plan",
+        "should NOT overwrite Tom with Jake"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 464,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-07",
+      "category": "edge_case",
+      "description": "Just a greeting",
+      "input": "Hey",
+      "hasPlan": false,
+      "expectedType": null,
+      "checks": [
+        "should NOT block or error",
+        "should respond conversationally",
+        "should NOT generate a plan from nothing"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 501,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-08",
+      "category": "edge_case",
+      "description": "Request with conflicting numbers",
+      "input": "Client earns 90k but wants 10 properties in 5 years with only 30k deposit.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate BEST realistic plan",
+        "should note the gap",
+        "should NOT just refuse"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 413,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-09",
+      "category": "edge_case",
+      "description": "Follow-up that is actually a new plan request",
+      "input": "Start fresh. New plan - client earning 180k, 200k deposit, 4k/month savings, 1.3m capacity.",
+      "hasPlan": true,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should generate fresh plan",
+        "should NOT mix with existing plan data"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 479,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-10",
+      "category": "edge_case",
+      "description": "Emotional / frustrated user",
+      "input": "This doesnt look right at all. The numbers are way off. Can you just redo the whole thing properly?",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT be defensive",
+        "should ask what looks wrong OR offer to rebuild",
+        "should be helpful not blocking"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 608,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-11",
+      "category": "edge_case",
+      "description": "Instruction-like message",
+      "input": "Show me what 5 properties looks like for this client.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should NOT block",
+        "should interpret as wanting 5-property scenario"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 517,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-12",
+      "category": "edge_case",
+      "description": "Message with only savings mentioned",
+      "input": "She saves 2500 a month.",
+      "hasPlan": true,
+      "expectedType": "update_profile",
+      "checks": [
+        "should update annualSavings to 30000",
+        "should use she/her pronouns",
+        "should NOT flag savings as missing"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 457,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-13",
+      "category": "edge_case",
+      "description": "Very long rambling input",
+      "input": "So I was talking to this client yesterday and he mentioned he works in mining and earns pretty good money, like around 160k or so, and his wife works part time at a school earning maybe 45k, they have been saving for a while and have about 200k in the bank, they want to build a portfolio over the next maybe 10 to 15 years, nothing crazy but they want some growth. They own their house outright worth about 700k. Borrowing capacity around 1m I think.",
+      "hasPlan": false,
+      "expectedType": "initial_plan",
+      "checks": [
+        "should extract 160k + 45k incomes",
+        "should get 200k deposit",
+        "should calculate PPOR equity (700k * 0.8 = 560k)",
+        "should handle timeline range (10-15)"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 457,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    },
+    {
+      "id": "EC-14",
+      "category": "edge_case",
+      "description": "Preset switch request",
+      "input": "Switch to cashflow focus.",
+      "hasPlan": true,
+      "expectedType": null,
+      "checks": [
+        "should recognize preset change request",
+        "should NOT block"
+      ],
+      "response": {
+        "status": 502,
+        "elapsed": 522,
+        "type": null,
+        "message": null,
+        "assumptions": null,
+        "missingInputs": null,
+        "profileUpdates": null,
+        "modification": null,
+        "modifications": null,
+        "clientProfile": null,
+        "investmentProfile": null,
+        "propertyCount": 0,
+        "properties": null,
+        "propertySuggestions": null,
+        "strategyPreset": null,
+        "error": null
+      },
+      "analysis": {
+        "verdict": "ERROR",
+        "issues": [
+          "HTTP 502: {\"error\":\"AI service error: 400 {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"invalid_request_error\\\",\\\"message\\\":\\\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing"
+        ]
+      }
+    }
+  ]
+}

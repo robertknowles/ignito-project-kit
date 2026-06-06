@@ -153,6 +153,13 @@ const GROWTH_OPTIONS = [
   { value: 'Low', label: 'Low (5% → 4% → 3.5% → 3%)' },
 ]
 
+const ENTITY_OPTIONS = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'trust', label: 'Trust' },
+  { value: 'company', label: 'Company' },
+  { value: 'smsf', label: 'SMSF' },
+]
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 type BriefSubTab = 'purchase' | 'hold' | 'performance'
@@ -165,7 +172,7 @@ export const BriefTab: React.FC = () => {
 
   const { existingProperties, setExistingProperties } = useScenarioSave()
 
-  const nextProp = timelineProperties[0]
+  const nextProp = timelineProperties.find(p => p.status === 'feasible')
   const instanceData = nextProp ? instances[nextProp.instanceId] : null
 
   const handleMarkPurchased = useCallback(() => {
@@ -268,6 +275,7 @@ export const BriefTab: React.FC = () => {
         <table className="w-full text-xs">
           <tbody>
             <EditableSelectRow label="State" value={instanceData.state} field="state" instanceId={iid} options={STATE_OPTIONS} />
+            <EditableSelectRow label="Entity" value={instanceData.entity ?? 'individual'} field="entity" instanceId={iid} options={ENTITY_OPTIONS} />
             <KVRow label="Purchase year" value={Math.floor(nextProp.affordableYear)} />
             <EditableNumRow label="Purchase price ($)" value={instanceData.purchasePrice} field="purchasePrice" instanceId={iid} />
             <EditableNumRow label="Valuation ($)" value={instanceData.valuationAtPurchase} field="valuationAtPurchase" instanceId={iid} />
