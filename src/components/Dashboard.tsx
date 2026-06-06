@@ -17,6 +17,7 @@ import { PlaceholderChart } from '@/components/ui/PlaceholderChart';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
 import { BorrowingCapacityChart } from './BorrowingCapacityChart';
+import { PropertyRoadmapChart, PropertyRoadmapSummary, ROADMAP_LEGEND } from './PropertyRoadmapChart/PropertyRoadmapChart';
 // EquityMortgageChart and HoldingCostChart hidden for now — components preserved in their files
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
@@ -466,6 +467,18 @@ export const Dashboard = () => {
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
               <BorrowingCapacityChart scenarioData={displayScenarioAData} />
+            </ChartCard>
+
+            {/* Property Roadmap — Gantt chart */}
+            <ChartCard
+              title="Property Roadmap"
+              legend={[...ROADMAP_LEGEND]}
+              action={<PropertyRoadmapSummary />}
+            >
+              <div className="flex items-center justify-end mb-4">
+                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+              </div>
+              <PropertyRoadmapChart displayYears={displayYears} />
             </ChartCard>
 
             {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}
