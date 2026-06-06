@@ -68,6 +68,8 @@ import { Button } from '@/components/ui/button'
 import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge as StatusBadgePill } from '@/components/StatusBadge'
+import { FormTemplateEditor, getGlobalTemplate, getClientTemplate } from '@/components/FormTemplateEditor'
+import { ClientFormModal } from '@/components/ClientFormModal'
 
 // Track client status for CRM display
 interface ClientStatus {
@@ -106,6 +108,14 @@ export const ClientScenarios = () => {
   const [sendFormClientId, setSendFormClientId] = useState<number | null>(null);
   const [sendFormEmail, setSendFormEmail] = useState('');
   const [sendingForm, setSendingForm] = useState(false);
+
+  // Edit Form template modal
+  const [editFormOpen, setEditFormOpen] = useState(false);
+
+  // Per-client Form modal
+  const [clientFormOpen, setClientFormOpen] = useState(false);
+  const [clientFormClient, setClientFormClient] = useState<Client | null>(null);
+  const [clientFormType, setClientFormType] = useState<'input_form' | 'profile_update'>('input_form');
 
   // Seat usage calculations
   const seatUsagePercent = seatLimit > 0 ? (activeSeats / seatLimit) * 100 : 0;
@@ -409,12 +419,25 @@ export const ClientScenarios = () => {
   }, [clients, activeFilter, searchQuery]);
 
   // CSV export
+  // Open the per-client form modal
+  const handleOpenClientForm = (client: Client) => {
+    const fs = formStatuses[client.id];
+    const formType = fs?.input_form === 'completed' ? 'profile_update' : 'input_form';
+    setClientFormClient(client);
+    setClientFormType(formType);
+    setClientFormOpen(true);
+  };
+
   // Send form handler
   const handleSendForm = async () => {
     if (!sendFormClientId || !user || !sendFormEmail.trim()) return;
     const client = clients.find(c => c.id === sendFormClientId);
     if (!client) return;
     const emailToSend = sendFormEmail.trim();
+
+    // Resolve questions: client-specific override > global template
+    const formQuestions = getClientTemplate(sendFormClientId) || getGlobalTemplate();
+
     setSendingForm(true);
     try {
       // 1. Ensure an onboarding_id exists for this client's scenario
@@ -491,6 +514,7 @@ export const ClientScenarios = () => {
           sent_by: user.id,
           form_type: sendFormType,
           status: 'sent',
+          questions: formQuestions,
           sent_at: new Date().toISOString(),
         });
       if (error) throw error;
@@ -1017,6 +1041,20 @@ toast.error('Failed to create client invite');
                       <p>Export clients to CSV</p>
                     </TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setEditFormOpen(true)}
+                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
+                      >
+                        <Edit2Icon size={16} className="text-[#717680]" />
+                        <span>Edit Form</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit the client details form template</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <TourStep
                     id="clients-new-client"
                     title="Add a New Client"
@@ -1177,63 +1215,28 @@ toast.error('Failed to create client invite');
                                 const currentStatus = showUpdate ? fs?.profile_update : fs?.input_form
                                 const formType = showUpdate ? 'profile_update' : 'input_form'
 
-                                if (currentStatus === 'completed') {
-                                  return (
-                                    <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-0.5 rounded-full">
-                                        <CheckCircle2 size={11} className="text-[#17B26A]" />
-                                        Completed
-                                      </span>
-                                      <button
-                                        onClick={() => handleOpenProfile(client)}
-                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
-                                      >
-                                        View
-                                      </button>
-                                    </div>
-                                  )
-                                } else if (currentStatus === 'sent' || currentStatus === 'awaiting' || currentStatus === 'not_opened') {
-                                  return (
-                                    <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-0.5 rounded-full">
-                                        <CheckCircle2 size={11} className="text-[#17B26A]" />
-                                        Sent
-                                      </span>
-                                      <button
-                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
-                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
-                                      >
-                                        Resend
-                                      </button>
-                                      <button
-                                        onClick={() => handleOpenProfile(client)}
-                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
-                                      >
-                                        View
-                                      </button>
-                                    </div>
-                                  )
-                                } else {
-                                  return (
-                                    <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-0.5 rounded-full">
-                                        Not sent
-                                      </span>
-                                      <button
-                                        onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
-                                        className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"
-                                      >
-                                        Update
-                                      </button>
-                                      <button
-                                        onClick={() => handleOpenProfile(client)}
-                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] transition-colors duration-150"
-                                      >
-                                        View
-                                      </button>
-                                    </div>
-                                  )
-                                }
+                                const sendLabel = currentStatus === 'completed'
+                                  ? 'Update'
+                                  : (currentStatus === 'sent' || currentStatus === 'awaiting' || currentStatus === 'not_opened')
+                                  ? 'Resend'
+                                  : 'Send'
+
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleOpenClientForm(client)}
+                                      className="text-xs font-medium text-[#717680] hover:text-[#414651] hover:underline transition-colors duration-150"
+                                    >
+                                      Form
+                                    </button>
+                                    <button
+                                      onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
+                                      className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"
+                                    >
+                                      {sendLabel}
+                                    </button>
+                                  </div>
+                                )
                               })()}
                             </td>
 
@@ -1574,6 +1577,22 @@ toast.error('Failed to create client invite');
           </DialogContent>
         </Dialog>
       </div>
+      {/* Edit Form Template Modal */}
+      <FormTemplateEditor open={editFormOpen} onOpenChange={setEditFormOpen} />
+
+      {/* Per-client Form Modal */}
+      {clientFormClient && (
+        <ClientFormModal
+          open={clientFormOpen}
+          onOpenChange={(open) => {
+            setClientFormOpen(open);
+            if (!open) setClientFormClient(null);
+          }}
+          client={clientFormClient}
+          formType={clientFormType}
+        />
+      )}
+
       {/* Send Form Modal */}
       <Dialog open={sendFormOpen} onOpenChange={setSendFormOpen}>
         <DialogContent className="sm:max-w-md">
