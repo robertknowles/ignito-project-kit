@@ -16,6 +16,7 @@ import { ChartCard } from '@/components/ui/ChartCard';
 import { PlaceholderChart } from '@/components/ui/PlaceholderChart';
 import { compareScenarios } from '@/utils/comparisonCalculator';
 import { CashflowChart } from './CashflowChart';
+import { PortfolioCashflow } from './PortfolioCashflow';
 import { BorrowingCapacityChart } from './BorrowingCapacityChart';
 import { PropertyRoadmapChart, PropertyRoadmapSummary, ROADMAP_LEGEND } from './PropertyRoadmapChart/PropertyRoadmapChart';
 // EquityMortgageChart and HoldingCostChart hidden for now — components preserved in their files
@@ -479,6 +480,17 @@ export const Dashboard = () => {
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
               <PropertyRoadmapChart displayYears={displayYears} />
+            </ChartCard>
+
+            {/* Portfolio Cashflow — per-property IN vs OUT with year slider */}
+            <ChartCard
+              title="Portfolio Cashflow"
+              legend={[
+                { color: '#7F56D9', label: 'Rental Income (IN)' },
+                { color: 'rgba(127, 86, 217, 0.25)', label: 'Total Outgoings (OUT)' },
+              ]}
+            >
+              <PortfolioCashflow />
             </ChartCard>
 
             {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}
