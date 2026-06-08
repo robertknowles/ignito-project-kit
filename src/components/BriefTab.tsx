@@ -280,7 +280,7 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Purchase price ($)" value={instanceData.purchasePrice} field="purchasePrice" instanceId={iid} />
             <EditableNumRow label="Valuation ($)" value={instanceData.valuationAtPurchase} field="valuationAtPurchase" instanceId={iid} />
             <EditableNumRow label="LVR (%)" value={instanceData.lvr} field="lvr" instanceId={iid} />
-            <KVRow label="Loan amount ($)" value={fmtNum(nextProp.loanAmount)} />
+            <EditableNumRow label="Loan amount ($)" value={instanceData.loanAmountOverride ?? nextProp.loanAmount} field="loanAmountOverride" instanceId={iid} />
             <EditableNumRow label="Interest rate (%)" value={instanceData.interestRate} field="interestRate" instanceId={iid} decimals={2} />
             <EditableSelectRow label="Loan product" value={instanceData.loanProduct} field="loanProduct" instanceId={iid} options={LOAN_PRODUCT_OPTIONS} />
             <EditableNumRow label="Loan term (yrs)" value={instanceData.loanTerm} field="loanTerm" instanceId={iid} />
@@ -289,10 +289,10 @@ export const BriefTab: React.FC = () => {
             <KVRow label="Gross yield (%)" value={grossYield} />
             {/* Funding source */}
             <tr><td colSpan={2} className="py-2 px-3 text-xs font-semibold text-neutral-500 bg-[#F9FAFB] border-t border-l border-r border-neutral-200">Funding source</td></tr>
-            <KVRow label="Cash ($)" value={fmtNum(nextProp.fundingBreakdown?.cash ?? 0)} />
-            <KVRow label="Savings ($)" value={fmtNum(nextProp.fundingBreakdown?.savings ?? 0)} />
-            <KVRow label="Equity release ($)" value={fmtNum(nextProp.fundingBreakdown?.equity ?? 0)} />
-            <KVRow label="Total funded ($)" value={fmtNum(nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} bold />
+            <EditableNumRow label="Cash ($)" value={instanceData.fundingCashOverride ?? (nextProp.fundingBreakdown?.cash ?? 0)} field="fundingCashOverride" instanceId={iid} />
+            <EditableNumRow label="Savings ($)" value={instanceData.fundingSavingsOverride ?? (nextProp.fundingBreakdown?.savings ?? 0)} field="fundingSavingsOverride" instanceId={iid} />
+            <EditableNumRow label="Equity release ($)" value={instanceData.fundingEquityOverride ?? (nextProp.fundingBreakdown?.equity ?? 0)} field="fundingEquityOverride" instanceId={iid} />
+            <EditableNumRow label="Total funded ($)" value={instanceData.fundingTotalOverride ?? (nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} field="fundingTotalOverride" instanceId={iid} />
           </tbody>
         </table>
       </ChartCard>
@@ -301,9 +301,9 @@ export const BriefTab: React.FC = () => {
       <ChartCard title="Purchase costs" flush>
         <table className="w-full text-xs">
           <tbody>
-            <KVRow label="Deposit ($)" value={fmtNum(nextProp.depositRequired)} />
+            <EditableNumRow label="Deposit ($)" value={instanceData.depositOverride ?? nextProp.depositRequired} field="depositOverride" instanceId={iid} />
             <EditableNumRow label="Stamp duty ($)" value={acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0} field="stampDutyOverride" instanceId={iid} />
-            <KVRow label="LMI ($)" value={fmtNum(acqCosts?.lmi ?? 0)} />
+            <EditableNumRow label="LMI ($)" value={instanceData.lmiOverride ?? (acqCosts?.lmi ?? 0)} field="lmiOverride" instanceId={iid} />
             <EditableNumRow label="Engagement fee ($)" value={instanceData.engagementFee} field="engagementFee" instanceId={iid} />
             <EditableNumRow label="Holding deposit ($)" value={instanceData.conditionalHoldingDeposit} field="conditionalHoldingDeposit" instanceId={iid} />
             <EditableNumRow label="Insurance upfront ($)" value={instanceData.buildingInsuranceUpfront} field="buildingInsuranceUpfront" instanceId={iid} />
@@ -313,7 +313,7 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Mortgage fees ($)" value={instanceData.mortgageFees} field="mortgageFees" instanceId={iid} />
             <EditableNumRow label="Conveyancing ($)" value={instanceData.conveyancing} field="conveyancing" instanceId={iid} />
             <EditableNumRow label="Post-sett. maint ($)" value={instanceData.maintenanceAllowancePostSettlement} field="maintenanceAllowancePostSettlement" instanceId={iid} />
-            <KVRow label="Total cash required ($)" value={fmtNum(nextProp.totalCashRequired)} bold />
+            <EditableNumRow label="Total cash required ($)" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" instanceId={iid} />
           </tbody>
         </table>
       </ChartCard>
@@ -330,9 +330,9 @@ export const BriefTab: React.FC = () => {
         <table className="w-full text-xs">
           <tbody>
             <EditableNumRow label="Rent/wk ($)" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
-            <KVRow label="Gross annual income ($)" value={fmtNum(cashflow.grossAnnualIncome)} />
-            <KVRow label="Vacancy ($)" value={fmtNum(cashflow.vacancyAmount)} />
-            <KVRow label="Adjusted income ($)" value={fmtNum(cashflow.adjustedIncome)} bold />
+            <EditableNumRow label="Gross annual income ($)" value={instanceData.grossAnnualIncomeOverride ?? cashflow.grossAnnualIncome} field="grossAnnualIncomeOverride" instanceId={iid} />
+            <EditableNumRow label="Vacancy ($)" value={instanceData.vacancyRate ?? cashflow.vacancyAmount} field="vacancyRate" instanceId={iid} />
+            <EditableNumRow label="Adjusted income ($)" value={instanceData.adjustedIncomeOverride ?? cashflow.adjustedIncome} field="adjustedIncomeOverride" instanceId={iid} />
           </tbody>
         </table>
       </ChartCard>
@@ -341,7 +341,7 @@ export const BriefTab: React.FC = () => {
       <ChartCard title="Annual cash out" flush>
         <table className="w-full text-xs">
           <tbody>
-            <KVRow label="Loan interest ($)" value={fmtNum(cashflow.loanInterest)} />
+            <EditableNumRow label="Loan interest ($)" value={instanceData.loanInterestOverride ?? cashflow.loanInterest} field="loanInterestOverride" instanceId={iid} />
             <EditableNumRow label="Prop. mgmt (%)" value={instanceData.propertyManagementPercent} field="propertyManagementPercent" instanceId={iid} decimals={1} />
             <EditableNumRow label="Building insurance ($)" value={instanceData.buildingInsuranceAnnual} field="buildingInsuranceAnnual" instanceId={iid} />
             <EditableNumRow label="Council rates + water ($)" value={instanceData.councilRatesWater} field="councilRatesWater" instanceId={iid} />
@@ -349,20 +349,20 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Maintenance ($)" value={instanceData.maintenanceAllowanceAnnual} field="maintenanceAllowanceAnnual" instanceId={iid} />
             <EditableNumRow label="Land tax ($)" value={cashflow.landTax} field="landTaxOverride" instanceId={iid} />
             {cashflow.principalPayments > 0 && (
-              <KVRow label="Principal payments ($)" value={fmtNum(cashflow.principalPayments)} />
+              <EditableNumRow label="Principal payments ($)" value={cashflow.principalPayments} field="totalExpensesOverride" instanceId={iid} />
             )}
-            <KVRow label="Total expenses ($)" value={fmtNum(totalHoldingCosts)} bold />
+            <EditableNumRow label="Total expenses ($)" value={instanceData.totalExpensesOverride ?? totalHoldingCosts} field="totalExpensesOverride" instanceId={iid} />
           </tbody>
         </table>
       </ChartCard>
 
-      {/* Net Result — all computed */}
+      {/* Net Result */}
       <ChartCard title="Net result" flush>
         <table className="w-full text-xs">
           <tbody>
-            <KVRow label="Net annual cashflow ($)" value={fmtNum(cashflow.netAnnualCashflow)} bold />
-            <KVRow label="Net monthly ($)" value={fmtNum(cashflow.netMonthlyCashflow)} />
-            <KVRow label="Net weekly ($)" value={fmtNum(cashflow.netWeeklyCashflow)} />
+            <EditableNumRow label="Net annual cashflow ($)" value={instanceData.netAnnualCashflowOverride ?? cashflow.netAnnualCashflow} field="netAnnualCashflowOverride" instanceId={iid} />
+            <EditableNumRow label="Net monthly ($)" value={instanceData.netMonthlyCashflowOverride ?? cashflow.netMonthlyCashflow} field="netMonthlyCashflowOverride" instanceId={iid} />
+            <EditableNumRow label="Net weekly ($)" value={instanceData.netWeeklyCashflowOverride ?? cashflow.netWeeklyCashflow} field="netWeeklyCashflowOverride" instanceId={iid} />
           </tbody>
         </table>
       </ChartCard>

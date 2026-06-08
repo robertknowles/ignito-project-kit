@@ -253,9 +253,10 @@ const COLUMNS: Column[] = [
   },
   {
     key: 'lvr', header: 'LVR (%)',
-    render: (p) => {
-      const lvr = p.currentValue > 0 ? (p.loan / p.currentValue * 100) : 0
-      return <ReadonlyCell text={lvr > 0 ? `${lvr.toFixed(0)}` : '—'} />
+    render: (p, onChange) => {
+      const computed = p.currentValue > 0 ? parseFloat((p.loan / p.currentValue * 100).toFixed(0)) : 0
+      const display = p.lvrOverride ?? computed
+      return <NumCell value={display} onChange={v => onChange(p.id, { lvrOverride: v || null })} />
     },
   },
   {
@@ -276,9 +277,10 @@ const COLUMNS: Column[] = [
   },
   {
     key: 'yield', header: 'Yield (%)',
-    render: (p) => {
-      const y = p.purchasePrice > 0 ? ((p.rentPerWeek * 52) / p.purchasePrice * 100).toFixed(1) : '0.0'
-      return <ReadonlyCell text={`${y}%`} />
+    render: (p, onChange) => {
+      const computed = p.purchasePrice > 0 ? parseFloat(((p.rentPerWeek * 52) / p.purchasePrice * 100).toFixed(1)) : 0
+      const display = p.yieldOverride ?? computed
+      return <NumCell value={display} onChange={v => onChange(p.id, { yieldOverride: v || null })} />
     },
   },
   {

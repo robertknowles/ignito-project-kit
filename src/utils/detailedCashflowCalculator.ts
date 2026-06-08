@@ -50,22 +50,25 @@ export function calculateDetailedCashflow(
   //   2. Profile-level profileVacancyDefault (Assumptions page) — decimal form
   //   3. Platform DEFAULT_VACANCY_RATE — decimal form
   const weeklyRent = property.rentPerWeek;
-  const grossAnnualIncome = weeklyRent * 52;
+  const computedGrossAnnualIncome = weeklyRent * 52;
+  const grossAnnualIncome = property.grossAnnualIncomeOverride ?? computedGrossAnnualIncome;
   const effectiveVacancyRate = (property.vacancyRate !== undefined && property.vacancyRate !== null && property.vacancyRate >= 0)
     ? property.vacancyRate / 100
     : (profileVacancyDefault ?? DEFAULT_VACANCY_RATE);
   const vacancyAmount = grossAnnualIncome * effectiveVacancyRate;
-  const adjustedIncome = grossAnnualIncome - vacancyAmount;
+  const computedAdjustedIncome = grossAnnualIncome - vacancyAmount;
+  const adjustedIncome = property.adjustedIncomeOverride ?? computedAdjustedIncome;
 
   // Expenses
-  const loanInterest = loanAmount * (property.interestRate / 100);
+  const computedLoanInterest = loanAmount * (property.interestRate / 100);
+  const loanInterest = property.loanInterestOverride ?? computedLoanInterest;
   const propertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
   const buildingInsurance = property.buildingInsuranceAnnual;
   const councilRatesWater = property.councilRatesWater;
   const strata = property.strata;
   const maintenance = property.maintenanceAllowanceAnnual;
 
-  const totalOperatingExpenses =
+  const computedTotalOperatingExpenses =
     loanInterest +
     propertyManagementFee +
     buildingInsurance +
@@ -74,19 +77,21 @@ export function calculateDetailedCashflow(
     maintenance;
 
   // Non-deductible (will be calculated by other utilities)
-  const landTax = property.landTaxOverride ?? 0; // Will be calculated by landTaxCalculator
+  const landTax = property.landTaxOverride ?? 0;
   const principalPayments = property.loanProduct === 'PI'
     ? calculatePrincipalPayment(loanAmount, property.interestRate, property.loanTerm)
     : 0;
 
   const totalNonDeductibleExpenses = landTax + principalPayments;
+  const totalOperatingExpenses = property.totalExpensesOverride ?? computedTotalOperatingExpenses;
 
   const potentialDeductions = 0;
 
   // Net cashflow
-  const netAnnualCashflow = adjustedIncome - totalOperatingExpenses - totalNonDeductibleExpenses;
-  const netMonthlyCashflow = netAnnualCashflow / 12;
-  const netWeeklyCashflow = netAnnualCashflow / 52;
+  const computedNetAnnualCashflow = adjustedIncome - totalOperatingExpenses - totalNonDeductibleExpenses;
+  const netAnnualCashflow = property.netAnnualCashflowOverride ?? computedNetAnnualCashflow;
+  const netMonthlyCashflow = property.netMonthlyCashflowOverride ?? (netAnnualCashflow / 12);
+  const netWeeklyCashflow = property.netWeeklyCashflowOverride ?? (netAnnualCashflow / 52);
 
   return {
     weeklyRent,

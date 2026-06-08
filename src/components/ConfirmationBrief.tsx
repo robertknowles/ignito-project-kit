@@ -714,11 +714,8 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   <ClientRow label="Annual savings" source={getSource(editedProfileSources, 'annualSavings')} delay={230}>
                     <NumInput value={ip?.annualSavings ?? 0} prefix="$" onChange={v => updateProfileField('annualSavings', v)} />
                   </ClientRow>
-                  <ClientRow label="Usable equity" source="derived" delay={280}>
-                    <span style={{ fontFamily: UUI.font, fontSize: 12, color: UUI.neutral400 }} className="flex items-center gap-1.5">
-                      {fmtDollar(Math.max(0, ((cp?.existingPropertyEquity ?? 0) * 0.8) - (cp?.existingPropertyDebt ?? 0)))}
-                      <span style={{ fontFamily: UUI.font, fontSize: 9, fontWeight: 500, color: UUI.neutral400, backgroundColor: UUI.neutral100, borderRadius: 3, padding: '1px 5px' }}>auto</span>
-                    </span>
+                  <ClientRow label="Usable equity" source={getSource(editedClientSources, 'usableEquityOverride')} delay={280}>
+                    <NumInput value={(cp as any)?.usableEquityOverride ?? Math.max(0, ((cp?.existingPropertyEquity ?? 0) * 0.8) - (cp?.existingPropertyDebt ?? 0))} prefix="$" onChange={v => updateClientField('usableEquityOverride', v)} />
                   </ClientRow>
                 </div>
 

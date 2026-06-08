@@ -335,12 +335,13 @@ const CASHFLOW_COLUMNS: Column[] = [
   },
   {
     key: 'yield', header: 'Yield (%)', group: 'Income',
-    render: (c) => {
+    render: (c, onChange) => {
       if (!c.instanceData) return null;
-      const y = c.instanceData.purchasePrice > 0
-        ? ((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1)
-        : '0.0';
-      return readonlyCell(`${y}%`);
+      const computed = c.instanceData.purchasePrice > 0
+        ? parseFloat(((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1))
+        : 0;
+      const display = c.instanceData.yieldOverride ?? computed;
+      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
     },
   },
   // ── Annual Expenses ──
@@ -518,25 +519,27 @@ const PURCHASES_COLUMNS: Column[] = [
   },
   {
     key: 'yield', header: 'Yield (%)',
-    render: (c) => {
+    render: (c, onChange) => {
       if (!c.instanceData) return null;
-      const y = c.instanceData.purchasePrice > 0
-        ? ((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1)
-        : '0.0';
-      return readonlyCell(`${y}%`);
+      const computed = c.instanceData.purchasePrice > 0
+        ? parseFloat(((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1))
+        : 0;
+      const display = c.instanceData.yieldOverride ?? computed;
+      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
     },
   },
   // ── Annual Holding Cost (merged total) ──
   {
     key: 'holdingCost', header: 'Holding $/yr',
-    render: (c) => {
+    render: (c, onChange) => {
       if (!c.instanceData) return null;
       const d = c.instanceData;
       const mgmtDollar = (d.propertyManagementPercent / 100) * d.rentPerWeek * 52;
-      const total = Math.round(
+      const computed = Math.round(
         mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual
       );
-      return readonlyCell(total.toLocaleString());
+      const display = d.holdingCostOverride ?? computed;
+      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'holdingCostOverride', v || null)} />;
     },
   },
   // ── Sale ──
@@ -549,14 +552,15 @@ const PURCHASES_COLUMNS: Column[] = [
   // ── Purchase Costs (rolled up, matching blocks view) ──
   {
     key: 'purchaseCosts', header: 'Purchase Costs',
-    render: (c) => {
+    render: (c, onChange) => {
       if (!c.instanceData) return null;
       const d = c.instanceData;
-      const total = Math.round(
+      const computed = Math.round(
         d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
         d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
       );
-      return readonlyCell(total.toLocaleString());
+      const display = d.purchaseCostsOverride ?? computed;
+      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'purchaseCostsOverride', v || null)} />;
     },
   },
 ];
@@ -917,9 +921,9 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
                       <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
-                      <BlockKVRow label="Yield (%)" value={d.purchasePrice > 0 ? `${((d.rentPerWeek * 52) / d.purchasePrice * 100).toFixed(1)}%` : '—'} />
-                      <BlockKVRow label="Holding $/yr" value={fmtNum(holdingTotal)} />
-                      <BlockKVRow label="Purchase costs" value={fmtNum(purchaseCosts)} />
+                      <BlockNumRow label="Yield (%)" value={d.yieldOverride ?? (d.purchasePrice > 0 ? parseFloat(((d.rentPerWeek * 52) / d.purchasePrice * 100).toFixed(1)) : 0)} instanceId={iid} field="yieldOverride" onChange={handleFieldChange} />
+                      <BlockNumRow label="Holding $/yr" value={d.holdingCostOverride ?? holdingTotal} instanceId={iid} field="holdingCostOverride" onChange={handleFieldChange} />
+                      <BlockNumRow label="Purchase costs" value={d.purchaseCostsOverride ?? purchaseCosts} instanceId={iid} field="purchaseCostsOverride" onChange={handleFieldChange} />
                       <tr className="border-b border-neutral-200 last:border-b-0">
                         <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Sell</td>
                         <td className="py-1.5 px-2">

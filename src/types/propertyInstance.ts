@@ -125,6 +125,27 @@ export interface PropertyInstanceDetails {
   saleYear?: number | null;
 
   entity?: 'individual' | 'trust' | 'company' | 'smsf';
+
+  // ── Display overrides (BA can override computed summaries) ──
+
+  yieldOverride?: number | null;
+  holdingCostOverride?: number | null;
+  purchaseCostsOverride?: number | null;
+  loanAmountOverride?: number | null;
+  depositOverride?: number | null;
+  lmiOverride?: number | null;
+  totalCashRequiredOverride?: number | null;
+  grossAnnualIncomeOverride?: number | null;
+  adjustedIncomeOverride?: number | null;
+  loanInterestOverride?: number | null;
+  totalExpensesOverride?: number | null;
+  netAnnualCashflowOverride?: number | null;
+  netMonthlyCashflowOverride?: number | null;
+  netWeeklyCashflowOverride?: number | null;
+  fundingCashOverride?: number | null;
+  fundingSavingsOverride?: number | null;
+  fundingEquityOverride?: number | null;
+  fundingTotalOverride?: number | null;
 }
 
 

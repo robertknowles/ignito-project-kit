@@ -541,23 +541,25 @@ return { period: Infinity };
       // This ensures agent edits to LVR are reflected in calculations
       const instanceLvr = propertyInstance?.lvr ?? ((property.cost - property.depositRequired) / property.cost * 100);
       const baseLoanAmount = correctPurchasePrice * (instanceLvr / 100);
-      const correctDepositRequired = correctPurchasePrice - baseLoanAmount;
-      
+      const computedDepositRequired = correctPurchasePrice - baseLoanAmount;
+      const correctDepositRequired = propertyInstance?.depositOverride ?? computedDepositRequired;
+
       // Calculate LMI early to determine if it affects loan amount (when capitalized)
       // LMI is based on the base loan amount before capitalization
-      const earlyLmi = calculateLMI(
+      const earlyLmi = propertyInstance?.lmiOverride ?? calculateLMI(
         baseLoanAmount,
         instanceLvr,
         propertyInstance?.lmiWaiver ?? false,
         propertyInstance?.valuationAtPurchase,
         correctPurchasePrice
       );
-      
+
       // Check if LMI is being capitalized into the loan
       const isLmiCapitalized = propertyInstance?.lmiCapitalized ?? false;
-      
+
       // Final loan amount includes LMI if capitalized (increases debt but reduces upfront cash)
-      const correctLoanAmount = isLmiCapitalized ? baseLoanAmount + earlyLmi : baseLoanAmount;
+      const computedLoanAmount = isLmiCapitalized ? baseLoanAmount + earlyLmi : baseLoanAmount;
+      const correctLoanAmount = propertyInstance?.loanAmountOverride ?? computedLoanAmount;
       
       // Attach instanceId to property for use in determineNextPurchasePeriod
       const propertyWithInstance = { ...property, instanceId, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: correctLoanAmount };
@@ -797,7 +799,7 @@ return { period: Infinity };
       // Add LMI to total cash required ONLY if not capitalized into the loan
       // When LMI is capitalized, it's added to the loan amount instead of paid upfront
       const lmiCashRequired = isLmiCapitalized ? 0 : lmi;
-      const totalCashRequired = oneOffCosts.totalCashRequired + lmiCashRequired;
+      const totalCashRequired = propertyInstance?.totalCashRequiredOverride ?? (oneOffCosts.totalCashRequired + lmiCashRequired);
       
       // Calculate test results
       const depositTestSurplus = availableFundsUsed - totalCashRequired;
@@ -976,10 +978,10 @@ return { period: Infinity };
         // FUNDING BREAKDOWN - SINGLE SOURCE OF TRUTH
         // Calculated here, consumed by useRoadmapData for display
         fundingBreakdown: {
-          cash: fundingFromCash,
-          savings: fundingFromSavings,
-          equity: fundingFromEquity,
-          total: fundingFromCash + fundingFromSavings + fundingFromEquity,
+          cash: propertyInstance?.fundingCashOverride ?? fundingFromCash,
+          savings: propertyInstance?.fundingSavingsOverride ?? fundingFromSavings,
+          equity: propertyInstance?.fundingEquityOverride ?? fundingFromEquity,
+          total: propertyInstance?.fundingTotalOverride ?? (fundingFromCash + fundingFromSavings + fundingFromEquity),
         },
         
         // RUNNING BALANCES AFTER PURCHASE - SINGLE SOURCE OF TRUTH
