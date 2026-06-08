@@ -173,8 +173,8 @@ export const ClientSelector: React.FC = () => {
   const initials = activeClient ? getInitials(activeClient.name) : '?';
 
   return (
-    <div id="client-selector" className="relative" ref={dropdownRef}>
-      <div className="flex items-center bg-transparent">
+    <div id="client-selector" className="relative w-full" ref={dropdownRef}>
+      <div className="flex items-center w-full">
         {triggerEditing ? (
           <input
             ref={triggerInputRef}
@@ -184,7 +184,7 @@ export const ClientSelector: React.FC = () => {
             onKeyDown={handleTriggerKeyDown}
             onBlur={() => void commitTriggerEdit()}
             disabled={triggerSaving}
-            className="text-sm text-neutral-800 font-semibold bg-white border border-neutral-300 rounded px-2 py-0.5 outline-none focus:border-neutral-400 min-w-[120px] max-w-[180px]"
+            className="w-full text-sm text-neutral-800 font-semibold bg-white border border-neutral-300 rounded-lg px-3 py-2.5 outline-none focus:border-neutral-400"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           />
@@ -196,12 +196,12 @@ export const ClientSelector: React.FC = () => {
               e.stopPropagation();
               startTriggerEdit();
             }}
-            className="flex items-center p-2 rounded-md hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
+            className="flex items-center w-full px-3 py-2.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
             title="Double-click to rename"
           >
-            <UserIcon size={20} className="mr-2 shrink-0 text-neutral-400" />
-            <span className="text-sm font-semibold text-neutral-700 select-none truncate">
-              {activeClient ? activeClient.name : 'Select Client'}
+            <UserIcon size={16} className="mr-2.5 shrink-0 text-neutral-500" />
+            <span className="flex-1 text-sm font-semibold text-neutral-800 select-none truncate text-left">
+              {activeClient ? activeClient.name : 'Select client'}
             </span>
             <ChevronDownIcon
               size={16}

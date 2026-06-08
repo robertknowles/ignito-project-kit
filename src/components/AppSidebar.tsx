@@ -160,71 +160,78 @@ export const AppSidebar: React.FC = () => {
           return (
             <React.Fragment key={entry.path}>
               <li className="py-px">
-                <button
-                  onClick={() => !disabled && navigate(entry.path)}
-                  disabled={disabled}
-                  title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                  className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
-                    active
-                      ? 'bg-neutral-50 hover:bg-neutral-100'
-                      : 'bg-transparent hover:bg-neutral-50'
-                  } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                >
-                  <entry.icon
-                    size={20}
-                    className={`mr-2 shrink-0 transition duration-100 ${
-                      active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
-                    }`}
-                  />
-                  <span
-                    className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
-                      active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
-                    }`}
-                  >
-                    {entry.label}
-                  </span>
-                  {entry.badge && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">
-                      {entry.badge}
-                    </span>
-                  )}
-                </button>
-              </li>
-
-              {/* New Client + Client selector under Dashboard */}
-              {isDashboardItem && (
-                <>
-                  <li className="py-px pl-6">
+                {isDashboardItem ? (
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => {
-                        setActiveClient(null);
-                        navigate('/dashboard');
-                      }}
-                      className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
-                        isDashboard && !activeClient
+                      onClick={() => !disabled && navigate(entry.path)}
+                      disabled={disabled}
+                      title={disabled ? 'Wait for the plan to finish generating' : undefined}
+                      className={`group/item p-2 relative flex flex-1 max-h-9 cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
+                        active
                           ? 'bg-neutral-50 hover:bg-neutral-100'
                           : 'bg-transparent hover:bg-neutral-50'
-                      }`}
+                      } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
-                      <PlusIcon
+                      <entry.icon
                         size={20}
                         className={`mr-2 shrink-0 transition duration-100 ${
-                          isDashboard && !activeClient ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
+                          active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
                         }`}
                       />
                       <span
                         className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
-                          isDashboard && !activeClient ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
+                          active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
                         }`}
                       >
-                        New Client
+                        {entry.label}
                       </span>
                     </button>
-                  </li>
-                  <li className="py-px pl-6">
-                    <ClientSelector />
-                  </li>
-                </>
+                    <button
+                      onClick={() => { setActiveClient(null); navigate('/dashboard'); }}
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-50 transition-colors text-neutral-500"
+                      title="New client"
+                    >
+                      <PlusIcon size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => !disabled && navigate(entry.path)}
+                    disabled={disabled}
+                    title={disabled ? 'Wait for the plan to finish generating' : undefined}
+                    className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
+                      active
+                        ? 'bg-neutral-50 hover:bg-neutral-100'
+                        : 'bg-transparent hover:bg-neutral-50'
+                    } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    <entry.icon
+                      size={20}
+                      className={`mr-2 shrink-0 transition duration-100 ${
+                        active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
+                      }`}
+                    />
+                    <span
+                      className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
+                        active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
+                      }`}
+                    >
+                      {entry.label}
+                    </span>
+                    {entry.badge && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">
+                        {entry.badge}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </li>
+
+              {/* Client selector under Dashboard */}
+              {isDashboardItem && (
+                <li className="py-px">
+                  <ClientSelector />
+                </li>
               )}
             </React.Fragment>
           );
