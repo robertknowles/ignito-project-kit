@@ -22,6 +22,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboardIcon,
   UsersIcon,
+  ArrowLeftRightIcon,
   WrenchIcon,
   SettingsIcon,
   LogOutIcon,
@@ -102,6 +103,7 @@ export const AppSidebar: React.FC = () => {
   const navItems: NavEntry[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
     ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
+    ...(isClient ? [] : [{ label: 'Compare', path: '/compare', icon: ArrowLeftRightIcon } as NavItem]),
     { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon, badge: 'BETA' },
     { label: 'Settings', path: '/settings', icon: SettingsIcon },
   ];

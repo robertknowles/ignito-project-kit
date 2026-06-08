@@ -9,6 +9,7 @@ import { Portfolio } from './pages/Portfolio'
 import Retirement from './pages/Retirement'
 import { SettingsHub } from './pages/SettingsHub'
 import Toolkit from './pages/Toolkit'
+import { Compare } from './pages/Compare'
 import { Login } from './pages/Login'
 import { SignUp } from './pages/SignUp'
 import { EmailConfirmed } from './pages/EmailConfirmed'
@@ -178,6 +179,14 @@ export function AppRouter() {
                               element={
                                 <ProtectedRoute allowedRoles={['owner', 'agent']}>
                                   <ClientScenarios />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/compare"
+                              element={
+                                <ProtectedRoute allowedRoles={['owner', 'agent']}>
+                                  <Compare />
                                 </ProtectedRoute>
                               }
                             />
