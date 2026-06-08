@@ -184,7 +184,7 @@ export const ClientSelector: React.FC = () => {
             onKeyDown={handleTriggerKeyDown}
             onBlur={() => void commitTriggerEdit()}
             disabled={triggerSaving}
-            className="w-full text-sm text-neutral-800 font-semibold bg-white border border-neutral-300 rounded-lg px-3 py-2.5 outline-none focus:border-neutral-400"
+            className="w-full text-sm text-neutral-800 font-semibold bg-white border border-neutral-300 rounded-lg px-3 py-2 outline-none focus:border-neutral-400"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           />
@@ -196,7 +196,7 @@ export const ClientSelector: React.FC = () => {
               e.stopPropagation();
               startTriggerEdit();
             }}
-            className="flex items-center w-full px-3 py-2.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
+            className="flex items-center w-full px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors duration-100 cursor-pointer"
             title="Double-click to rename"
           >
             <UserIcon size={16} className="mr-2.5 shrink-0 text-neutral-500" />

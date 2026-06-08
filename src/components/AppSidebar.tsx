@@ -161,16 +161,16 @@ export const AppSidebar: React.FC = () => {
             <React.Fragment key={entry.path}>
               <li className="py-px">
                 {isDashboardItem ? (
-                  <div className="flex items-center gap-1">
+                  <div
+                    className={`group/item flex items-center w-full rounded-md transition duration-100 ease-linear ${
+                      active ? 'bg-neutral-50 hover:bg-neutral-100' : 'bg-transparent hover:bg-neutral-50'
+                    } ${disabled ? 'opacity-40' : ''}`}
+                  >
                     <button
                       onClick={() => !disabled && navigate(entry.path)}
                       disabled={disabled}
                       title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                      className={`group/item p-2 relative flex flex-1 max-h-9 cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
-                        active
-                          ? 'bg-neutral-50 hover:bg-neutral-100'
-                          : 'bg-transparent hover:bg-neutral-50'
-                      } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className="p-2 relative flex flex-1 max-h-9 cursor-pointer items-center text-left border-none bg-transparent select-none"
                     >
                       <entry.icon
                         size={20}
@@ -188,7 +188,8 @@ export const AppSidebar: React.FC = () => {
                     </button>
                     <button
                       onClick={() => { setActiveClient(null); navigate('/dashboard'); }}
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md border border-neutral-200 hover:bg-neutral-50 transition-colors text-neutral-500"
+                      disabled={disabled}
+                      className="pr-2 py-2 flex items-center justify-center border-none bg-transparent cursor-pointer text-neutral-400 hover:text-neutral-600 transition-colors"
                       title="New client"
                     >
                       <PlusIcon size={16} />
