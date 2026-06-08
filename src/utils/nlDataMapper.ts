@@ -152,6 +152,7 @@ export function mapToExistingProperties(
       strata: 0,
       vacancyRate: 2,
       allowEquityRelease: p.allowEquityRelease !== false,
+      saleYear: p.saleYear ?? null,
     }
   });
 }

@@ -525,10 +525,16 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
         <div>{fieldLabel('Loan balance ($)')}{borderedInput(fmtNum(property.loan), 'loan')}</div>
       </div>
 
-      {/* Refinance toggle */}
-      <div>
-        {fieldLabel('Refinance')}
-        <Segmented options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]} value={(property as any).allowEquityRelease !== false ? 'yes' : 'no'} onChange={v => onFieldChange('allowEquityRelease', v === 'yes')} />
+      {/* Refinance + Sell side by side */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          {fieldLabel('Refinance')}
+          <Segmented options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]} value={(property as any).allowEquityRelease !== false ? 'yes' : 'no'} onChange={v => onFieldChange('allowEquityRelease', v === 'yes')} />
+        </div>
+        <div>
+          {fieldLabel('Sell')}
+          <BriefSaleYearToggle value={(property as any).saleYear} onChange={v => onFieldChange('saleYear', v)} />
+        </div>
       </div>
     </div>
   );

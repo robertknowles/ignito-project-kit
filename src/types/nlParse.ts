@@ -101,6 +101,7 @@ export interface NLParseResponse {
       interestRate?: number;
       loanType?: 'IO' | 'PI';
       allowEquityRelease?: boolean;
+      saleYear?: number | null;
     }>;
   };
 
@@ -213,6 +214,7 @@ export interface NLParseResponse {
       interestRate?: number;
       loanType?: 'IO' | 'PI';
       allowEquityRelease?: boolean;
+      saleYear?: number | null;
     }>;
   };
 
