@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export const CompanyManagement = () => {
+export const CompanyManagementContent = () => {
   const {
     company,
     teamMembers,
@@ -213,11 +213,7 @@ export const CompanyManagement = () => {
   const loading = companyLoading || brandingLoading;
 
   return (
-    <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-      <AppSidebar />
-      <div className="flex-1 overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
-        <div className="h-full overflow-auto">
-          <div className="flex-1 overflow-auto p-8">
+    <>
             {/* Header */}
             <div className="mb-8">
               <h1 className="page-title">Company Management</h1>
@@ -519,11 +515,20 @@ export const CompanyManagement = () => {
                 </section>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-    </div>
+    </>
   );
 };
+
+export const CompanyManagement = () => (
+  <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+    <AppSidebar />
+    <div className="flex-1 overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+      <div className="h-full overflow-auto">
+        <div className="flex-1 overflow-auto p-8">
+          <CompanyManagementContent />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 

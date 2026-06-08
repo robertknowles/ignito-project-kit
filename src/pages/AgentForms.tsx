@@ -7,6 +7,7 @@ import {
   Eye,
   UserPlus,
   RefreshCw,
+  Edit2,
 } from 'lucide-react'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { useClient, Client } from '@/contexts/ClientContext'
@@ -16,6 +17,7 @@ import { toast } from 'sonner'
 import {
   TooltipProvider,
 } from '@/components/ui/tooltip'
+import { FormTemplateEditor } from '@/components/FormTemplateEditor'
 
 // ------ Standardised fields (what the calculation engine actually uses) ------
 
@@ -105,7 +107,7 @@ interface FormSubmission {
 }
 
 // ------ Main component ------
-export const AgentForms = () => {
+export const AgentFormsContent = () => {
   const { clients } = useClient()
   const { user, companyId } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -116,6 +118,7 @@ export const AgentForms = () => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'input_form' | 'profile_update'>('all')
+  const [editFormOpen, setEditFormOpen] = useState(false)
 
   // Read URL params and pre-select template/client
   useEffect(() => {
@@ -292,11 +295,7 @@ export const AgentForms = () => {
 
   return (
     <TooltipProvider>
-      <div className="main-app flex h-screen w-full bg-[#f9fafb]">
-        <AppSidebar />
-        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
-          <div className="flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8">
+      <>
               {/* Header */}
               <div className="mb-2">
                 <h2 className="page-title">Forms</h2>
@@ -308,11 +307,11 @@ export const AgentForms = () => {
                 {FORM_TEMPLATES.map(template => {
                   const isInputForm = template.key === 'input_form'
                   const badgeLabel = isInputForm ? 'Onboarding' : '6-month review'
-                  const badgeColor = isInputForm ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-blue-100 text-blue-700 border-blue-200'
+                  const badgeColor = isInputForm ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-neutral-100 text-neutral-600 border-neutral-200'
                   const isSelected = selectedTemplate?.key === template.key
                   const borderColor = isSelected
-                    ? 'border-[#2563EB] ring-1 ring-[#2563EB]/20'
-                    : isInputForm ? 'border-orange-300' : 'border-blue-300'
+                    ? 'border-neutral-400 ring-1 ring-neutral-200'
+                    : isInputForm ? 'border-orange-300' : 'border-neutral-200'
                   const awaiting = awaitingCounts[template.key] || 0
                   const questionCount = template.questions.filter(q => q.type !== 'toggle').length
 
@@ -321,31 +320,40 @@ export const AgentForms = () => {
                       key={template.key}
                       className={`bg-white border rounded-lg p-5 transition-all ${borderColor}`}
                     >
-                      {/* Top: name + badge + count */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <h3 className="section-heading">{template.name}</h3>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                            {badgeLabel}
-                          </span>
-                          <span className="meta">{questionCount} questions</span>
-                        </div>
+                      {/* Top: name row */}
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="section-heading">{template.name}</h3>
                         {awaiting > 0 && (
-                          <span className="text-[11px] font-medium text-amber-700">
+                          <span className="text-[11px] font-medium text-amber-700 flex-shrink-0 ml-2">
                             {awaiting} awaiting
                           </span>
                         )}
+                      </div>
+
+                      {/* Badge + question count row */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                          {badgeLabel}
+                        </span>
+                        <span className="meta">{questionCount} questions</span>
                       </div>
 
                       <p className="meta leading-relaxed mb-4">
                         {template.description}
                       </p>
 
-                      {/* Send section */}
+                      {/* Actions row */}
                       <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => setEditFormOpen(true)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-neutral-600 border border-neutral-200 px-2.5 py-1.5 rounded hover:bg-neutral-50 transition-colors whitespace-nowrap"
+                        >
+                          <Edit2 size={12} />
+                          Edit Form
+                        </button>
                         <span className="meta whitespace-nowrap">Send to:</span>
                         <select
-                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+                          className="flex-1 min-w-0 text-sm border border-gray-200 rounded px-2 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-neutral-400"
                           value={isSelected && selectedClientId ? selectedClientId : ''}
                           onChange={(e) => {
                             setSelectedTemplate(template)
@@ -364,9 +372,9 @@ export const AgentForms = () => {
                             }
                           }}
                           disabled={!selectedClientId || !isSelected || sending}
-                          className="text-sm text-[#6b7280] hover:text-[#374151] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="text-sm text-[#6b7280] hover:text-[#374151] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                         >
-                          Send {template.name} →
+                          Send →
                         </button>
                       </div>
                     </div>
@@ -379,7 +387,7 @@ export const AgentForms = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <h3 className="section-heading">Send history</h3>
-                    <span className="text-xs text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full font-medium">
                       {submissions.length} forms sent
                     </span>
                   </div>
@@ -394,7 +402,7 @@ export const AgentForms = () => {
                           onClick={() => setFilterType(key)}
                           className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                             isActive
-                              ? 'bg-[#2563EB] text-white border-[#2563EB]'
+                              ? 'bg-neutral-800 text-white border-neutral-800'
                               : 'bg-white text-[#374151] border-gray-200 hover:bg-gray-50'
                           }`}
                         >
@@ -501,7 +509,7 @@ export const AgentForms = () => {
                             </td>
                             <td className="table-cell">
                               {submission.status === 'completed' ? (
-                                <button className="text-xs font-medium text-[#2563EB] hover:underline">
+                                <button className="text-xs font-medium text-neutral-600 hover:underline">
                                   View
                                 </button>
                               ) : (
@@ -527,10 +535,22 @@ export const AgentForms = () => {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
+      <FormTemplateEditor open={editFormOpen} onOpenChange={setEditFormOpen} />
+      </>
     </TooltipProvider>
   )
 }
+
+export const AgentForms = () => (
+  <div className="main-app flex h-screen w-full bg-[#f9fafb]">
+    <AppSidebar />
+    <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
+      <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto p-8">
+          <AgentFormsContent />
+        </div>
+      </div>
+    </div>
+  </div>
+)

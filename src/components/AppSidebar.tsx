@@ -102,9 +102,9 @@ export const AppSidebar: React.FC = () => {
 
   const navItems: NavEntry[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
-    ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
     ...(isClient ? [] : [{ label: 'Compare', path: '/compare', icon: ArrowLeftRightIcon } as NavItem]),
     { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon, badge: 'BETA' },
+    ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
     { label: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
