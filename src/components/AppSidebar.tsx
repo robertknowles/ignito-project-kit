@@ -229,7 +229,7 @@ export const AppSidebar: React.FC = () => {
 
               {/* Client selector under Dashboard */}
               {isDashboardItem && (
-                <li className="py-px">
+                <li className="py-px pl-6">
                   <ClientSelector />
                 </li>
               )}
