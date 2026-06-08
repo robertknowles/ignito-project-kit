@@ -189,9 +189,10 @@ If not mentioned, omit the field. Flag in missingInputs as "borrowing_capacity".
 ### existingPortfolio (array of objects — per-property breakdown)
 When the BA mentions specific existing properties (e.g. "they own a $500k unit in QLD with $300k owing"), extract each one into the clientProfile.existingPortfolio array:
 - Required: state, purchasePrice, currentValue, loan
-- Optional: address, boughtYear, rentPerWeek, interestRate, loanType ("IO" or "PI")
+- Optional: address, boughtYear, rentPerWeek, interestRate, loanType ("IO" or "PI"), allowEquityRelease (boolean)
 - If currentValue not mentioned, use purchasePrice as a conservative estimate
 - If rentPerWeek not mentioned, estimate from a ~4% yield on currentValue
+- allowEquityRelease: set to true (default) if the property's equity can be used to fund future purchases. Set to false if the BA says "don't refinance this one", "exclude from refi", "no equity release", "PPOR — don't touch", etc.
 - "first-time investor" / "no existing properties" → omit existingPortfolio entirely (empty = no properties)
 - This array populates the Portfolio tab's existing properties table
 

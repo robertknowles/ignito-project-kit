@@ -435,7 +435,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
 
 type ExistingProp = NonNullable<NonNullable<NLParseResponse['clientProfile']>['existingPortfolio']>[0];
 
-const EMPTY_EXISTING: ExistingProp = { state: 'NSW', purchasePrice: 0, currentValue: 0, loan: 0 };
+const EMPTY_EXISTING: ExistingProp = { state: 'NSW', purchasePrice: 0, currentValue: 0, loan: 0, allowEquityRelease: true };
 
 interface ExistingBlockProps {
   index: number;
@@ -523,6 +523,12 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
       <div className="grid grid-cols-2 gap-2">
         <div>{fieldLabel('Current value ($)')}{borderedInput(fmtNum(property.currentValue), 'currentValue')}</div>
         <div>{fieldLabel('Loan balance ($)')}{borderedInput(fmtNum(property.loan), 'loan')}</div>
+      </div>
+
+      {/* Refinance toggle */}
+      <div>
+        {fieldLabel('Refinance')}
+        <Segmented options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]} value={(property as any).allowEquityRelease !== false ? 'yes' : 'no'} onChange={v => onFieldChange('allowEquityRelease', v === 'yes')} />
       </div>
     </div>
   );

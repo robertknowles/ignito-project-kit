@@ -151,7 +151,7 @@ export function mapToExistingProperties(
       loanTerm: 30,
       strata: 0,
       vacancyRate: 2,
-      allowEquityRelease: true,
+      allowEquityRelease: p.allowEquityRelease !== false,
     }
   });
 }

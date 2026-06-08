@@ -100,6 +100,7 @@ export interface NLParseResponse {
       rentPerWeek?: number;
       interestRate?: number;
       loanType?: 'IO' | 'PI';
+      allowEquityRelease?: boolean;
     }>;
   };
 
@@ -211,6 +212,7 @@ export interface NLParseResponse {
       rentPerWeek?: number;
       interestRate?: number;
       loanType?: 'IO' | 'PI';
+      allowEquityRelease?: boolean;
     }>;
   };
 
