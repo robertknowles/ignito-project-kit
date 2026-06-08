@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
@@ -457,6 +457,14 @@ export const Dashboard = () => {
                 { color: '#414651', label: 'Total Liabilities' },
                 { color: '#9E77ED', label: 'Offset Debt' },
               ]}
+              action={
+                <div className="relative group">
+                  <AlertTriangle size={14} className="text-neutral-400 cursor-help" />
+                  <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block w-56 px-3 py-2 rounded-lg bg-neutral-800 text-white text-xs leading-relaxed shadow-lg">
+                    If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.
+                  </div>
+                </div>
+              }
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-baseline gap-2">
