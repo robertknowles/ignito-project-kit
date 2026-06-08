@@ -15,7 +15,7 @@ import { FileQuestion, Loader2 } from 'lucide-react';
 function AppContent() {
   const { activeClient } = useClient();
   const { role } = useAuth();
-  const { clientScenarioLoading, noScenarioForClient } = useScenarioSave();
+  const { clientScenarioLoading, noScenarioForClient, isLoadingScenario, loadedScenarioClientId } = useScenarioSave();
   const { branding } = useBranding();
   
   const isClient = role === 'client';
@@ -84,18 +84,30 @@ function AppContent() {
         <AppSidebar />
 
         {activeClient ? (
-          <>
-            <ChatPanel />
+          (isLoadingScenario || loadedScenarioClientId !== activeClient.id) ? (
             <div
               id="main-content"
               className="flex-1 flex flex-col overflow-hidden"
               style={{ marginLeft: SIDEBAR_WIDTH }}
             >
-              <div className="flex-1 overflow-hidden">
-                <Dashboard key={activeClient.id} />
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-neutral-300" />
               </div>
             </div>
-          </>
+          ) : (
+            <>
+              <ChatPanel />
+              <div
+                id="main-content"
+                className="flex-1 flex flex-col overflow-hidden"
+                style={{ marginLeft: SIDEBAR_WIDTH }}
+              >
+                <div className="flex-1 overflow-hidden">
+                  <Dashboard key={activeClient.id} />
+                </div>
+              </div>
+            </>
+          )
         ) : (
           <div
             id="main-content"
