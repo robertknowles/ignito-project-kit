@@ -411,6 +411,29 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
       }
       fixedResponse.properties.splice(idx, 1);
     }
+
+    // Regenerate the message text to match the remaining property count.
+    // The original message was built server-side before auto-fix, so it
+    // references the pre-drop count (e.g. "4-property plan" when only 1
+    // survived). Patch the count, price range, and strip stale references
+    // to dropped properties (e.g. "Properties 2, 3 held in trusts…").
+    if (fixedResponse.message && fixedResponse.properties.length > 0) {
+      const remaining = fixedResponse.properties;
+      const count = remaining.length;
+      const prices = remaining.map(p => p.purchasePrice).sort((a, b) => a - b);
+      const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
+      const priceRange = prices.length === 1
+        ? `at ${fmt(prices[0])}`
+        : `from ${fmt(prices[0])} to ${fmt(prices[prices.length - 1])}`;
+
+      fixedResponse.message = fixedResponse.message
+        .replace(/\b\d+-property plan/, `${count}-property plan`)
+        .replace(/(?:at|from) \$[\d,]+k(?:\s+to\s+\$[\d,]+k)?/, priceRange)
+        // Remove "Properties X, Y held in trusts …" sentence — may reference dropped properties
+        .replace(/\s*Properties\s+[\d,\s]+held in trusts[^.]*\./g, '')
+        // Remove "trust structures reduce serviceability…" fragment if orphaned
+        .replace(/\s*—\s*trust structures reduce serviceability impact so the engine can place all purchases\./g, '');
+    }
   }
 
   const finalCheck = runPlanPreCheck(fixedResponse, baseProfile);

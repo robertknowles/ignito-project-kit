@@ -832,6 +832,29 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
             </div>
           )}
 
+          {/* ── Dropped-property notice (auto-fix removed infeasible properties) ── */}
+          {editedResponse._autoFixChanges?.some(c => c.changeType === 'dropped') && (() => {
+            const dropped = editedResponse._autoFixChanges!.filter(c => c.changeType === 'dropped');
+            const labels = dropped.map(c => c.propertyLabel);
+            const listStr = labels.length === 1 ? labels[0] : labels.slice(0, -1).join(', ') + ' and ' + labels[labels.length - 1];
+            return (
+              <div
+                style={{
+                  background: '#FEF3C7',
+                  borderRadius: 10,
+                  boxShadow: '#F59E0B33 0px 0px 0px 1px inset',
+                  padding: '10px 14px',
+                  fontFamily: UUI.font,
+                  animation: 'briefBlockIn 0.35s ease-out both',
+                }}
+              >
+                <div style={{ fontSize: 11, color: '#92400E', lineHeight: '17px' }}>
+                  {listStr} removed — could not fit within borrowing capacity even after adjusting timing and entity structures. You can add properties back using the + button below.
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── Planned property blocks ── */}
           <div>
             <div className="mb-2">

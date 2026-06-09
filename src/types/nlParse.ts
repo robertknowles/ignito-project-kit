@@ -230,7 +230,7 @@ export interface NLParseResponse {
   _autoFixChanges?: Array<{
     propertyIndex: number;
     propertyLabel: string;
-    changeType: 'entity_to_trust' | 'price_reduced' | 'period_pushed';
+    changeType: 'entity_to_trust' | 'price_reduced' | 'period_pushed' | 'dropped';
     reason: string;
     detail: string;
   }>;
