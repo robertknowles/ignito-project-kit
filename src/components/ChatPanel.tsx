@@ -25,6 +25,7 @@ import {
   mapToExistingProperties,
   mapModificationToUpdates,
   mapUpdateProfileToUpdates,
+  forceRefinanceOn,
 } from '@/utils/nlDataMapper'
 import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/types/nlParse'
 import { useLayout } from '@/contexts/LayoutContext'
@@ -163,7 +164,7 @@ export const ChatPanel: React.FC = () => {
   const { activeClient, updateClient } = useClient()
 
   // Scenario persistence — sync chat messages
-  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId, setExistingProperties } = useScenarioSave()
+  const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId, existingProperties, setExistingProperties } = useScenarioSave()
 
   // Explicit save trigger — bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
@@ -289,6 +290,9 @@ export const ChatPanel: React.FC = () => {
   // Handle plan generation — store response for confirmation screen
   const handlePlanGenerated = useCallback(
     (response: NLParseResponse) => {
+      // Refinancing is always on for AI-supplied existing properties
+      response = forceRefinanceOn(response)
+
       // Store client names immediately (needed for display)
       if (response.clientProfile?.members) {
         clientNamesRef.current = response.clientProfile.members.map((m) => m.name)
@@ -309,12 +313,12 @@ export const ChatPanel: React.FC = () => {
       // Run affordability pre-check and auto-fix before showing confirmation brief
       let finalResponse = response
       try {
-        const preCheck = runPlanPreCheck(response, profile)
+        const preCheck = runPlanPreCheck(response, profile, existingProperties)
         console.info('[ChatPanel] Pre-check result:', { allFeasible: preCheck.allFeasible, failureCount: preCheck.failures.length })
 
         if (!preCheck.allFeasible) {
           // Auto-fix: flip entities to trust, reduce prices if needed
-          const fix = autoFixPlan(response, preCheck, profile)
+          const fix = autoFixPlan(response, preCheck, profile, existingProperties)
           console.info('[ChatPanel] Auto-fix result:', { fixed: fix.fixed, changeCount: fix.changes.length, changes: fix.changes.map(c => c.detail) })
 
           if (fix.fixed) {
@@ -330,7 +334,7 @@ export const ChatPanel: React.FC = () => {
       // Show confirmation screen (immediately, no delay)
       setPendingPlanResponse(finalResponse)
     },
-    [activeClient, updateClient, setPendingPlanResponse, profile]
+    [activeClient, updateClient, setPendingPlanResponse, profile, existingProperties]
   )
 
   // Confirm plan — hydrate contexts from the (possibly edited) response
@@ -602,6 +606,8 @@ export const ChatPanel: React.FC = () => {
   // Handle update_profile — apply partial profile updates without rebuilding
   const handleUpdateProfile = useCallback(
     (response: NLParseResponse) => {
+      // Refinancing is always on for AI-supplied existing properties
+      response = forceRefinanceOn(response)
       const profileUpdates = mapUpdateProfileToUpdates(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)

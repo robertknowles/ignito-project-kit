@@ -114,6 +114,33 @@ export function mapToInvestmentProfile(
 }
 
 /**
+ * Force refinancing (equity release) ON for every AI-extracted existing
+ * property. The AI sometimes returns allowEquityRelease: false, which
+ * silently removes that property's equity from all funding calculations.
+ * Product decision: plans always arrive with refinancing on — the BA can
+ * still turn it off per property in the confirmation brief or Portfolio tab.
+ */
+export function forceRefinanceOn(response: NLParseResponse): NLParseResponse {
+  const forceOn = <T extends { allowEquityRelease?: boolean }>(list: T[]): T[] =>
+    list.map(p => ({ ...p, allowEquityRelease: true }));
+
+  let result = response;
+  if (result.clientProfile?.existingPortfolio?.length) {
+    result = {
+      ...result,
+      clientProfile: { ...result.clientProfile, existingPortfolio: forceOn(result.clientProfile.existingPortfolio) },
+    };
+  }
+  if (result.profileUpdates?.existingPortfolio?.length) {
+    result = {
+      ...result,
+      profileUpdates: { ...result.profileUpdates, existingPortfolio: forceOn(result.profileUpdates.existingPortfolio) },
+    };
+  }
+  return result;
+}
+
+/**
  * Map AI-extracted existing portfolio to ExistingProperty[].
  * Returns null if no existing portfolio data was extracted.
  */

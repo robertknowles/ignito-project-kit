@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
+import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext';
 import { AffordabilityAlert } from '@/components/ui/AffordabilityAlert';
 import { runPlanPreCheck, type PreCheckFailure } from '@/engine/planPreCheck';
 import type { NLParseResponse, FieldSource, FieldSourceMap } from '@/types/nlParse';
@@ -590,11 +591,27 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   };
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
   const { profile } = useInvestmentProfile();
+  const contextExistingProps = useExistingPropertiesSafe();
 
-  const preCheckResult = useMemo(
-    () => runPlanPreCheck(editedResponse, profile),
-    [editedResponse, profile]
+  // Existing portfolio — declared before the pre-check so edits to it
+  // immediately re-test affordability.
+  const [existingProps, setExistingProps] = useState<ExistingProp[]>(
+    () => cp?.existingPortfolio ? structuredClone(cp.existingPortfolio) : []
   );
+
+  // Pre-check the exact response handleConfirm will submit: the edited
+  // existing portfolio merged in, falling back to the dashboard's existing
+  // properties when neither the AI nor the user supplied any — the same data
+  // the dashboard will test with after confirm.
+  const preCheckResult = useMemo(() => {
+    const responseForCheck: NLParseResponse = {
+      ...editedResponse,
+      clientProfile: editedResponse.clientProfile
+        ? { ...editedResponse.clientProfile, existingPortfolio: existingProps.length > 0 ? existingProps : undefined }
+        : editedResponse.clientProfile,
+    };
+    return runPlanPreCheck(responseForCheck, profile, contextExistingProps);
+  }, [editedResponse, existingProps, profile, contextExistingProps]);
   const failureByIndex = useMemo(() => {
     const map = new Map<number, PreCheckFailure>();
     preCheckResult.failures.forEach(f => map.set(f.propertyIndex - 1, f));
@@ -624,10 +641,6 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     setEditedPropertySources(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Existing portfolio
-  const [existingProps, setExistingProps] = useState<ExistingProp[]>(
-    () => cp?.existingPortfolio ? structuredClone(cp.existingPortfolio) : []
-  );
   const updateExistingField = (index: number, field: string, value: any) => {
     setExistingProps(prev => {
       const updated = [...prev];

@@ -102,7 +102,7 @@ const INITIAL_PROFILE_DEFAULTS: Partial<InvestmentProfileData> = {
   growthCurve: { growthYear1: '8', growthYears2to3: '6', growthYear4: '5', growthYear5plus: '4' },
 };
 
-export function runPlanPreCheck(response: NLParseResponse, baseProfile?: InvestmentProfileData): PreCheckResult {
+export function runPlanPreCheck(response: NLParseResponse, baseProfile?: InvestmentProfileData, fallbackExistingProps?: ExistingProperty[]): PreCheckResult {
   if (!response.properties || response.properties.length === 0) {
     return { allFeasible: true, failures: [], feedbackMessage: '' };
   }
@@ -115,7 +115,12 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
     ...profileUpdates,
   } as InvestmentProfileData;
 
-  const existingProps = mapToExistingProperties(response) ?? [];
+  // When the AI response omits the existing portfolio, fall back to what the
+  // dashboard already holds — confirmPlan keeps the context's existing
+  // properties when the response has none, so the dashboard tests with their
+  // equity. Without the same fallback here, the pre-check sees less available
+  // funding than the dashboard and rejects placements the dashboard accepts.
+  const existingProps = mapToExistingProperties(response) ?? fallbackExistingProps ?? [];
   if (existingProps.length > 0) {
     const totalDebt = existingProps.reduce((s, p) => s + (p.loan || 0), 0);
     const totalValue = existingProps.reduce((s, p) => s + (p.currentValue || 0), 0);
@@ -125,7 +130,12 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
     profile.existingAnnualRent = existingAnnualRent;
   }
 
-  const { propertyOrder, instances } = mapToPropertySelections(response);
+  // Apply the same LVR strategy override confirmPlan uses, so the pre-check
+  // tests the LVR the dashboard will actually run with.
+  const lvrOverride = profile.lvrStrategy === 'prudent_80' ? 80
+    : profile.lvrStrategy === 'custom' ? (profile.lvrStrategyCustomPercent ?? 80)
+    : undefined;
+  const { propertyOrder, instances } = mapToPropertySelections(response, lvrOverride);
 
   console.info('[PreCheck] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
 
@@ -265,7 +275,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
  *
  * Returns the original response if no fixes were needed or possible.
  */
-export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckResult, baseProfile?: InvestmentProfileData): AutoFixResult {
+export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckResult, baseProfile?: InvestmentProfileData, fallbackExistingProps?: ExistingProperty[]): AutoFixResult {
   if (!response.properties || initialResult.allFeasible) {
     return { fixed: false, fixedResponse: response, changes: [], explanationPrompt: '' };
   }
@@ -303,7 +313,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
   }
 
   // Re-check
-  let recheck = runPlanPreCheck(fixedResponse, baseProfile);
+  let recheck = runPlanPreCheck(fixedResponse, baseProfile, fallbackExistingProps);
   if (recheck.allFeasible) {
     return { fixed: changes.length > 0, fixedResponse, changes, explanationPrompt: buildExplanationPrompt(changes) };
   }
@@ -335,7 +345,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
         const testPeriod = currentPeriod + push;
         prop.targetPeriod = testPeriod;
 
-        const testResult = runPlanPreCheck(fixedResponse, baseProfile);
+        const testResult = runPlanPreCheck(fixedResponse, baseProfile, fallbackExistingProps);
         const stillFailing = testResult.failures.find(f => f.propertyIndex === failure.propertyIndex);
 
         if (!stillFailing) {
@@ -363,7 +373,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
   }
 
   // Re-check
-  recheck = runPlanPreCheck(fixedResponse, baseProfile);
+  recheck = runPlanPreCheck(fixedResponse, baseProfile, fallbackExistingProps);
   if (recheck.allFeasible) {
     return { fixed: changes.length > 0, fixedResponse, changes, explanationPrompt: buildExplanationPrompt(changes) };
   }
@@ -396,7 +406,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
   }
 
   // Re-check after price reductions
-  recheck = runPlanPreCheck(fixedResponse, baseProfile);
+  recheck = runPlanPreCheck(fixedResponse, baseProfile, fallbackExistingProps);
   if (recheck.allFeasible) {
     return { fixed: changes.length > 0, fixedResponse, changes, explanationPrompt: buildExplanationPrompt(changes) };
   }
@@ -443,7 +453,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
     }
   }
 
-  const finalCheck = runPlanPreCheck(fixedResponse, baseProfile);
+  const finalCheck = runPlanPreCheck(fixedResponse, baseProfile, fallbackExistingProps);
   return {
     fixed: changes.length > 0,
     fixedResponse,
