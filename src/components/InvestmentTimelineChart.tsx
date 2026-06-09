@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
-import { useRoadmapData } from '../hooks/useRoadmapData'
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
@@ -79,7 +79,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
   const profile = scenarioData?.profile ?? contextProfile
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProps
 
-  const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined)
+  const { roadmapData: { years } } = usePortfolioProjection(scenarioData)
 
   const data = useMemo(() => {
     if (years.length === 0) {

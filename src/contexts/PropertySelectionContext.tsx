@@ -3,6 +3,7 @@ import { useDataAssumptions } from './DataAssumptionsContext';
 import { useClient } from './ClientContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
+import { calcGrossYield } from '../utils/sharedFinancialCalcs';
 
 /**
  * Persistence model
@@ -229,7 +230,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   // engine ID with chatbot output and persisted scenario data.
   const propertyTypes = useMemo(() => {
     const predefinedTypes = propertyTypeTemplates.map((template) => {
-      const yieldPercent = (template.rentPerWeek * 52 / template.purchasePrice) * 100;
+      const yieldPercent = calcGrossYield(template.rentPerWeek, template.purchasePrice);
       const depositPercent = 100 - template.lvr;
       const growthTier = (template.growthAssumption || 'Medium') as keyof typeof GROWTH_RATE_TIERS;
       const rates = GROWTH_RATE_TIERS[growthTier] || GROWTH_RATE_TIERS.Medium;

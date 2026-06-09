@@ -2,6 +2,7 @@ import type { TimelineProperty } from '@/types/property';
 import type { GuardrailViolation } from '@/utils/guardrailValidator';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 import type { EventType, EventCategory, EventPayload } from '@/contexts/PropertySelectionContext';
+import { calcLoanAmount, calcAnnualRent } from '@/utils/sharedFinancialCalcs';
 
 /**
  * A suggested fix for a guardrail violation
@@ -262,7 +263,7 @@ const calculateBorrowingFixes = (
 
   // Fix 2: Reduce LVR (smaller loan, but need more deposit)
   // This only works if they have sufficient deposit
-  const currentLoan = purchasePrice * (lvr / 100);
+  const currentLoan = calcLoanAmount(purchasePrice, lvr);
   const maxLoan = currentLoan - shortfall;
   // Add 5% buffer to ensure we pass
   const requiredLvr = ((maxLoan * 0.95) / purchasePrice) * 100;
@@ -350,7 +351,7 @@ const calculateServiceabilityFixes = (
   // We need to reduce by shortfall, so new interest = current - shortfall
   // new loan = (current interest - shortfall) / assessmentRate
   // new LVR = new loan / price * 100
-  const currentAnnualInterest = purchasePrice * (lvr / 100) * ASSESSMENT_RATE;
+  const currentAnnualInterest = calcLoanAmount(purchasePrice, lvr) * ASSESSMENT_RATE;
   const targetAnnualInterest = currentAnnualInterest - (shortfall * 1.15);
   const targetLoan = targetAnnualInterest / ASSESSMENT_RATE;
   const targetLvr = Math.floor((targetLoan / purchasePrice) * 100);
@@ -452,23 +453,6 @@ const deduplicateFixes = (fixes: SuggestedFix[]): SuggestedFix[] => {
   }
 
   return Array.from(seen.values());
-};
-
-/**
- * Calculate the rental yield percentage based on rent and price
- */
-export const calculateRentalYield = (rentPerWeek: number, purchasePrice: number): number => {
-  if (purchasePrice <= 0) return 0;
-  const annualRent = rentPerWeek * 52;
-  return (annualRent / purchasePrice) * 100;
-};
-
-/**
- * Calculate required weekly rent for a target yield
- */
-export const calculateRentForYield = (purchasePrice: number, targetYield: number): number => {
-  const annualRent = purchasePrice * (targetYield / 100);
-  return Math.round(annualRent / 52);
 };
 
 /**

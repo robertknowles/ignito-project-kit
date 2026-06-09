@@ -7,9 +7,8 @@ import {
   Customized,
   ResponsiveContainer,
 } from 'recharts';
-import { usePortfolioCashflow } from '../hooks/usePortfolioCashflow';
+import { usePortfolioProjection, type YearCashflowSnapshot, type PropertyCashflowEntry } from '../hooks/usePortfolioProjection';
 import { getPropertyIconPath } from './icons/PropertyIconPaths';
-import type { YearCashflowSnapshot, PropertyCashflowEntry } from '../hooks/usePortfolioCashflow';
 
 // ── UUI Design Tokens (matched to PropertyRoadmapChart) ──────────────────
 const UUI = {
@@ -39,7 +38,7 @@ const fmt = (v: number) => {
 const fmtNet = (v: number) => `${v < 0 ? '-' : v > 0 ? '+' : ''}${fmt(v)}`;
 
 export const PortfolioCashflow: React.FC = () => {
-  const data = usePortfolioCashflow();
+  const { portfolioCashflow: data } = usePortfolioProjection();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const dummyData = useMemo(() => [{ v: 0 }], []);
 

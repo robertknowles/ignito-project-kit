@@ -11,7 +11,7 @@ import {
   Label,
   ResponsiveContainer,
 } from 'recharts'
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { BASE_YEAR } from '../constants/financialParams'
@@ -64,7 +64,7 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
  * Net cashflow as single visible line. Income/expenses available in tooltip.
  */
 export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) => {
-  const { cashflowData } = useChartDataGenerator(scenarioData)
+  const { cashflowData } = usePortfolioProjection(scenarioData)
   const { profile: contextProfile } = useInvestmentProfile()
   const profile = scenarioData?.profile ?? contextProfile
 

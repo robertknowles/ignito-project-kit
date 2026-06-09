@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-import { useRoadmapData } from '../hooks/useRoadmapData';
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import type { TimelineProperty } from '../types/property';
@@ -30,8 +29,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const profile = scenarioData?.profile ?? contextProfile;
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
 
-  const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
-  const { cashflowData } = useChartDataGenerator(scenarioData);
+  const { roadmapData: { years }, cashflowData } = usePortfolioProjection(scenarioData);
 
   const cashflowByYear = useMemo(() => {
     const map = new Map<number, { rentalIncome: number; expenses: number; loanRepayments: number; cashflow: number }>();

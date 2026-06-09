@@ -1,3 +1,5 @@
+import { calcLoanAmount } from './sharedFinancialCalcs';
+
 /**
  * Calculate Lenders Mortgage Insurance (LMI) based on LVR
  * Note: LMI rates vary by lender. These are industry estimates.
@@ -52,7 +54,7 @@ export function calculateLoanAmount(
   lmi: number,
   capitalizeLMI: boolean = true
 ): number {
-  const baseLoan = purchasePrice * (lvr / 100);
+  const baseLoan = calcLoanAmount(purchasePrice, lvr);
   return capitalizeLMI ? baseLoan + lmi : baseLoan;
 }
 

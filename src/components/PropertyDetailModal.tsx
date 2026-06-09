@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { calculateLMI } from '../utils/lmiCalculator';
+import { calcGrossYield, calcAnnualRent } from '../utils/sharedFinancialCalcs';
 
 // Helper to safely parse numeric input (prevents NaN bugs)
 const parseNumericInput = (value: string, defaultValue: number = 0): number => {
@@ -165,7 +166,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   
   // Calculate yield from current form data
   const calculatedYield = formData 
-    ? ((formData.rentPerWeek * 52) / formData.purchasePrice) * 100
+    ? calcGrossYield(formData.rentPerWeek, formData.purchasePrice)
     : 0;
 
   // Update local state when field changes
@@ -411,7 +412,7 @@ const errorMessage = error instanceof Error ? error.message : 'Unknown error occ
   // Calculate annual expenses total
   const totalAnnualExpenses = useMemo(() => {
     if (!formData) return 0;
-    const annualRentalIncome = formData.rentPerWeek * 52;
+    const annualRentalIncome = calcAnnualRent(formData.rentPerWeek);
     const managementFees = (annualRentalIncome * formData.propertyManagementPercent) / 100;
     return (
       formData.buildingInsuranceAnnual +

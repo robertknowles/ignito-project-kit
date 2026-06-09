@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { Home } from 'lucide-react';
 import { CHART_COLORS, CHART_STYLE } from '../../constants/chartColors';
-import type { ComparisonPortfolioDataPoint } from '../../hooks/useChartDataGenerator';
+import type { ComparisonPortfolioDataPoint } from '../../hooks/usePortfolioProjection';
 
 const COLORS = {
   portfolioStrokeA: CHART_COLORS.scenarioA,

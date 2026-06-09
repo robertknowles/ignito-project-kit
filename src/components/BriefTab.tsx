@@ -8,10 +8,9 @@ import { BriefCashflowChart, BriefEquityChart, BriefLoanChart, BriefHoldingCostC
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { calculatePerPropertyProjection, type TimelinePropertyData } from '../utils/perPropertyProjections'
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
-import { GROWTH_RATE_TIERS } from '../constants/financialParams'
-import type { GrowthCurve } from '../types/property'
+import { calcGrossYield } from '../utils/sharedFinancialCalcs'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
@@ -171,6 +170,7 @@ export const BriefTab: React.FC = () => {
   const { profile } = useInvestmentProfile()
 
   const { existingProperties, setExistingProperties } = useScenarioSave()
+  const { propertyProjections } = usePortfolioProjection()
 
   const nextProp = timelineProperties.find(p => p.status === 'feasible')
   const instanceData = nextProp ? instances[nextProp.instanceId] : null
@@ -187,7 +187,7 @@ export const BriefTab: React.FC = () => {
       currentValue: instanceData.valuationAtPurchase || instanceData.purchasePrice || nextProp.cost,
       loan: nextProp.loanAmount || 0,
       rentPerWeek: instanceData.rentPerWeek || 0,
-      yield: instanceData.rentPerWeek ? (instanceData.rentPerWeek * 52) / (instanceData.purchasePrice || 1) * 100 : 0,
+      yield: instanceData.rentPerWeek ? calcGrossYield(instanceData.rentPerWeek, instanceData.purchasePrice || 1) : 0,
       interestRate: instanceData.interestRate || 0,
       loanType: instanceData.loanProduct === 'IO' ? 'IO' : 'PI',
       stampDuty: acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0,
@@ -206,31 +206,10 @@ export const BriefTab: React.FC = () => {
     toast.success('Property marked as purchased and moved to Existing Portfolio')
   }, [nextProp, instanceData, existingProperties, setExistingProperties])
 
-  const growthCurve: GrowthCurve = useMemo(() => {
-    if (!instanceData) return GROWTH_RATE_TIERS.Medium
-    return GROWTH_RATE_TIERS[instanceData.growthAssumption] || GROWTH_RATE_TIERS.Medium
-  }, [instanceData])
-
   const projection = useMemo(() => {
-    if (!nextProp || !instanceData) return null
-    try {
-      const tpData: TimelinePropertyData = {
-        title: nextProp.title,
-        cost: nextProp.cost,
-        loanAmount: nextProp.loanAmount,
-        depositRequired: nextProp.depositRequired,
-        period: nextProp.period,
-        affordableYear: nextProp.affordableYear,
-        displayPeriod: nextProp.displayPeriod,
-        loanType: nextProp.loanType || instanceData.loanProduct || 'IO',
-        acquisitionCosts: nextProp.acquisitionCosts,
-      }
-      return calculatePerPropertyProjection(tpData, instanceData, { growthCurve, projectionYears: 20 })
-    } catch (e) {
-      console.error('[BriefTab] projection error:', e)
-      return null
-    }
-  }, [nextProp, instanceData, growthCurve])
+    if (!nextProp) return null
+    return propertyProjections.get(nextProp.instanceId) ?? null
+  }, [nextProp, propertyProjections])
 
   const cashflow = useMemo(() => {
     if (!instanceData || !nextProp) return null
@@ -261,7 +240,7 @@ export const BriefTab: React.FC = () => {
   const acqCosts = nextProp.acquisitionCosts
   const totalHoldingCosts = cashflow.totalOperatingExpenses + cashflow.totalNonDeductibleExpenses
   const grossYield = instanceData.purchasePrice > 0
-    ? ((instanceData.rentPerWeek * 52) / instanceData.purchasePrice * 100).toFixed(1)
+    ? calcGrossYield(instanceData.rentPerWeek, instanceData.purchasePrice).toFixed(1)
     : '0.0'
 
   const iid = nextProp.instanceId

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import type { Scenario } from '../contexts/MultiScenarioContext';
+import { calcGrossYield } from '../utils/sharedFinancialCalcs';
 
 interface InvestmentProfile {
   [key: string]: any;
@@ -181,11 +182,11 @@ propertySelections.push(...rawPropertySelections);
                 purchaseYear: estimatedYear,
                 affordableYear: estimatedYear,
                 status: 'feasible',
-                rentalYield: instanceData.rentPerWeek && instanceData.purchasePrice 
-                  ? (instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100) 
+                rentalYield: instanceData.rentPerWeek && instanceData.purchasePrice
+                  ? calcGrossYield(instanceData.rentPerWeek, instanceData.purchasePrice)
                   : 4.0,
                 yield: instanceData.rentPerWeek && instanceData.purchasePrice
-                  ? `${(instanceData.rentPerWeek * 52 / instanceData.purchasePrice * 100).toFixed(1)}%`
+                  ? `${calcGrossYield(instanceData.rentPerWeek, instanceData.purchasePrice).toFixed(1)}%`
                   : '4.0%',
                 growth: instanceData.growthAssumption === 'High' ? '7' : instanceData.growthAssumption === 'Low' ? '4' : '6',
               });

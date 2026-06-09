@@ -25,7 +25,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { Info } from 'lucide-react';
-import { usePerPropertyTracking } from '../hooks/usePerPropertyTracking';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import type { TimelineProperty } from '../types/property';
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
 
@@ -92,8 +92,9 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // Get tracking data for the property
-  const { trackingData } = usePerPropertyTracking(property?.instanceId || null);
+  // Get tracking data for the property from the unified engine
+  const { propertyProjections } = usePortfolioProjection();
+  const trackingData = property?.instanceId ? propertyProjections.get(property.instanceId) ?? null : null;
   
   // Prepare chart data from tracking data
   const chartData = useMemo(() => {

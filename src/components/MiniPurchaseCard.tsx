@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2, Home } from 'lucide-react';
-import type { FundingBreakdown } from '../hooks/useRoadmapData';
+import type { FundingBreakdown } from '../hooks/usePortfolioProjection';
 
 interface MiniPurchaseCardProps {
   propertyTitle: string;

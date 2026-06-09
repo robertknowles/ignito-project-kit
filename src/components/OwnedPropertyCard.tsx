@@ -14,7 +14,8 @@ import { getPropertyIcon } from './icons/PropertyIcons'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { EQUITY_EXTRACTION_LVR_CAP } from '../constants/financialParams'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
-import type { PerPropertyProjection, TimelinePropertyData } from '../utils/perPropertyProjections'
+import type { PerPropertyProjection } from '../hooks/usePortfolioProjection'
+import type { TimelinePropertyData } from '../types/property'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
 // --- Types ---

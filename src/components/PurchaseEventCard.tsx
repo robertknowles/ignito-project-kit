@@ -4,6 +4,7 @@ import { PropertyDetailModal } from './PropertyDetailModal';
 import { usePropertyInstance } from '@/contexts/PropertyInstanceContext';
 import { useDataAssumptions } from '@/contexts/DataAssumptionsContext';
 import { calculateLMI } from '@/utils/lmiCalculator';
+import { calcGrossYield, calcLoanAmount } from '@/utils/sharedFinancialCalcs';
 import type { YearBreakdownData } from '@/types/property';
 
 interface PurchaseEventCardProps {
@@ -49,10 +50,10 @@ export const PurchaseEventCard: React.FC<PurchaseEventCardProps> = ({
   };
   
   // Calculate derived values using centralised LMI calculator
-  const loanAmountForLmi = propertyData.purchasePrice * (propertyData.lvr / 100);
+  const loanAmountForLmi = calcLoanAmount(propertyData.purchasePrice, propertyData.lvr);
   const lmi = calculateLMI(loanAmountForLmi, propertyData.lvr, propertyData.lmiWaiver);
-  const loanAmountCalc = (propertyData.purchasePrice * (propertyData.lvr / 100)) + lmi;
-  const yieldCalc = (propertyData.rentPerWeek * 52 / propertyData.purchasePrice * 100).toFixed(1);
+  const loanAmountCalc = calcLoanAmount(propertyData.purchasePrice, propertyData.lvr) + lmi;
+  const yieldCalc = calcGrossYield(propertyData.rentPerWeek, propertyData.purchasePrice).toFixed(1);
   const mvDiff = ((propertyData.purchasePrice / propertyData.valuationAtPurchase - 1) * 100).toFixed(1);
   
   // Static display field component (read-only, no editing)

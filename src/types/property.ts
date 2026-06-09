@@ -1,3 +1,23 @@
+export interface TimelinePropertyData {
+  title: string;
+  cost: number;
+  loanAmount: number;
+  depositRequired: number;
+  period: number;
+  affordableYear: number;
+  displayPeriod: string;
+  loanType?: 'IO' | 'PI';
+  acquisitionCosts?: {
+    stampDuty: number;
+    lmi: number;
+    legalFees: number;
+    inspectionFees: number;
+    otherFees: number;
+    total: number;
+  };
+  upfrontCosts?: { total: number };
+}
+
 export interface GrowthCurve {
   // Medium tier defaults per 2026-04-30 Gameplans-replication calibration
   // (~5.4% avg). High tier (12.5/10/7.5/6) and Low tier (5/4/3.5/3) available

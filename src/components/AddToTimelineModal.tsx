@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Home, CalendarClock, ChevronRight, MapPin, Plus, Minus, Pause, Copy } from 'lucide-react';
 import { usePropertySelection, type EventCategory } from '../contexts/PropertySelectionContext';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
+import { calcGrossYield } from '../utils/sharedFinancialCalcs';
 import { 
   EVENT_CATEGORIES, 
   EVENT_TYPES, 
@@ -356,7 +357,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
                     ? `$${template.purchasePrice.toLocaleString()}`
                     : property.priceRange;
                   const displayYield = template?.purchasePrice && template?.rentPerWeek
-                    ? `${((template.rentPerWeek * 52 / template.purchasePrice) * 100).toFixed(1)}%`
+                    ? `${calcGrossYield(template.rentPerWeek, template.purchasePrice).toFixed(1)}%`
                     : property.yield;
                     
                   return (

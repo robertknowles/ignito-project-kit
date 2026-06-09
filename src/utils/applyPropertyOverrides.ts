@@ -3,6 +3,7 @@ import { calculateLMI, calculateLoanAmount } from './lmiCalculator';
 import { calculateStampDuty } from './stampDutyCalculator';
 import { calculateLandTax } from './landTaxCalculator';
 import { calculateDepositBalance } from './oneOffCostsCalculator';
+import { calcAnnualRent } from './sharedFinancialCalcs';
 
 /**
  * Merge property defaults with user overrides and calculate derived fields
@@ -74,12 +75,4 @@ export function validatePropertyInstance(property: PropertyInstanceDetails): str
   return errors;
 }
 
-/**
- * Calculate the actual yield of a property based on instance values
- */
-export function calculatePropertyYield(property: PropertyInstanceDetails): number {
-  if (property.purchasePrice <= 0) return 0;
-  const annualRent = property.rentPerWeek * 52;
-  return (annualRent / property.purchasePrice) * 100;
-}
 

@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   BarChart,
 } from 'recharts';
-import type { YearRow } from '../utils/perPropertyProjections';
+import type { YearRow } from '../hooks/usePortfolioProjection';
 import { BASE_YEAR } from '../constants/financialParams';
 
 const UUI = {

@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { BASE_YEAR } from '../constants/financialParams';
 import type { TimelineProperty } from '../types/property';
@@ -64,7 +64,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const EquityMortgageChart: React.FC<EquityMortgageChartProps> = ({ scenarioData }) => {
-  const { portfolioGrowthData } = useChartDataGenerator(scenarioData);
+  const { portfolioGrowthData } = usePortfolioProjection(scenarioData);
   const { profile: contextProfile } = useInvestmentProfile();
   const profile = scenarioData?.profile ?? contextProfile;
 

@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useRoadmapData, YearData, FundingBreakdown, EventSummary } from '../hooks/useRoadmapData';
+import { usePortfolioProjection, type YearData, type FundingBreakdown, type EventSummary } from '../hooks/usePortfolioProjection';
 import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
@@ -528,7 +528,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
   
   // Pass scenario data to useRoadmapData so it uses the correct data source
-  const { years } = useRoadmapData(scenarioData ? { profile, timelineProperties } : undefined);
+  const { roadmapData: { years } } = usePortfolioProjection(scenarioData);
   
   // Drag-and-drop state management (from shared context)
   const {

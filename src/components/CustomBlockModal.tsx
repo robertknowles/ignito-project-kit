@@ -4,6 +4,7 @@ import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
+import { calcGrossYield, calcLoanAmount, calcAnnualRent } from '../utils/sharedFinancialCalcs';
 
 interface CustomBlockModalProps {
   isOpen: boolean;
@@ -132,7 +133,7 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
   // Pre-fill form data from sourceTemplate when duplicating
   React.useEffect(() => {
     if (isOpen && sourceTemplate) {
-      const yieldPercent = ((sourceTemplate.rentPerWeek * 52) / sourceTemplate.purchasePrice) * 100;
+      const yieldPercent = calcGrossYield(sourceTemplate.rentPerWeek, sourceTemplate.purchasePrice);
       const scaledDefaults = scaleDefaultsForPrice(sourceTemplate.purchasePrice);
       
       setFormData(prev => ({
@@ -227,9 +228,9 @@ export const CustomBlockModal: React.FC<CustomBlockModalProps> = ({
   };
 
   // Calculated preview values
-  const loanAmount = (formData.purchasePrice * formData.lvr) / 100;
+  const loanAmount = calcLoanAmount(formData.purchasePrice, formData.lvr);
   const depositRequired = formData.purchasePrice - loanAmount;
-  const annualRentalIncome = formData.rentPerWeek * 52;
+  const annualRentalIncome = calcAnnualRent(formData.rentPerWeek);
   const totalOneOffCosts = useMemo(() => {
     return (
       formData.engagementFee +

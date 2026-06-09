@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import propertyDefaults from '../data/property-defaults.json';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
+import { calcGrossYield } from '../utils/sharedFinancialCalcs';
 import {
   CELL_IDS,
   type CellId,
@@ -96,7 +97,7 @@ const convertToPropertyAssumption = (key: string, defaults: PropertyInstanceDeta
     // Existing fields (for backward compatibility)
     type: keyToDisplayName(key),
     averageCost: defaults.purchasePrice.toString(),
-    yield: ((defaults.rentPerWeek * 52 / defaults.purchasePrice) * 100).toFixed(1),
+    yield: calcGrossYield(defaults.rentPerWeek, defaults.purchasePrice).toFixed(1),
     growthYear1: rates.year1.toString(),
     growthYears2to3: rates.years2to3.toString(),
     growthYear4: rates.year4.toString(),
@@ -397,7 +398,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
         // Legacy fields (derived from template)
         type: template.propertyType,
         averageCost: template.purchasePrice.toString(),
-        yield: ((template.rentPerWeek * 52 / template.purchasePrice) * 100).toFixed(1),
+        yield: calcGrossYield(template.rentPerWeek, template.purchasePrice).toFixed(1),
         growthYear1: rates.year1.toString(),
         growthYears2to3: rates.years2to3.toString(),
         growthYear4: rates.year4.toString(),

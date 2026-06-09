@@ -15,6 +15,7 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { getPropertyTypeImagePath } from '../utils/propertyTypeIcon';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
+import { calcGrossYield, calcLoanAmount, calcAnnualRent } from '../utils/sharedFinancialCalcs';
 
 // Convert period to year for display
 const periodToYear = (period: number): number => {
@@ -206,7 +207,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
   
   const annualExpensesTotal = useMemo(() => {
     if (!instanceData) return 0;
-    const annualRent = instanceData.rentPerWeek * 52;
+    const annualRent = calcAnnualRent(instanceData.rentPerWeek);
     const managementFees = (annualRent * instanceData.propertyManagementPercent) / 100;
     return (
       instanceData.councilRatesWater +
@@ -554,7 +555,7 @@ const PropertyExpandedDetails: React.FC<PropertyExpandedDetailsProps> = ({
                       </div>
                       <div className="flex justify-between gap-4">
                         <span>Mgmt ({instanceData.propertyManagementPercent}%):</span>
-                        <span className="font-medium">${Math.round((instanceData.rentPerWeek * 52 * instanceData.propertyManagementPercent) / 100).toLocaleString()}</span>
+                        <span className="font-medium">${Math.round((calcAnnualRent(instanceData.rentPerWeek) * instanceData.propertyManagementPercent) / 100).toLocaleString()}</span>
                       </div>
                     </div>
                   }>
@@ -890,13 +891,13 @@ const TimelineItemCard: React.FC<TimelineItemCardProps> = ({
   
   // Calculate yield
   const yieldDisplay = instanceData?.purchasePrice && instanceData?.rentPerWeek
-    ? `${((instanceData.rentPerWeek * 52 / instanceData.purchasePrice) * 100).toFixed(1)}%`
+    ? `${calcGrossYield(instanceData.rentPerWeek, instanceData.purchasePrice).toFixed(1)}%`
     : null;
 
   // Calculate monthly holding cost
   const monthlyCostDisplay = (() => {
     if (!instanceData?.purchasePrice || !instanceData?.lvr) return null;
-    const loanAmount = instanceData.purchasePrice * (instanceData.lvr / 100);
+    const loanAmount = calcLoanAmount(instanceData.purchasePrice, instanceData.lvr);
     const cashflow = calculateDetailedCashflow(instanceData, loanAmount);
     const monthly = Math.round(cashflow.netWeeklyCashflow * 52 / 12);
     const abs = Math.abs(monthly);

@@ -9,7 +9,7 @@
  * Claude MUST reference real engine numbers — never make up figures.
  */
 
-import type { PortfolioGrowthDataPoint, CashflowDataPoint } from '@/hooks/useChartDataGenerator'
+import type { PortfolioGrowthDataPoint, CashflowDataPoint } from '@/hooks/usePortfolioProjection'
 import type { TimelineProperty } from '@/types/property'
 import { BASE_YEAR } from '@/constants/financialParams'
 

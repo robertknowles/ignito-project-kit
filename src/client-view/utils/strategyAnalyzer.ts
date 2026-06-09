@@ -53,7 +53,8 @@ const isCommercialProperty = (property: PropertyData): boolean => {
 };
 
 /**
- * Calculate equity for a property based on growth over time
+ * Calculate equity for a property. Uses pre-computed engine values when available,
+ * falling back to simplified calculation for legacy data.
  */
 const calculatePropertyEquity = (
   property: PropertyData,
@@ -61,28 +62,20 @@ const calculatePropertyEquity = (
   purchaseYear: number
 ): number => {
   const yearsHeld = Math.max(0, currentYear - purchaseYear);
-  const growthRate = parseFloat(property.growth || '6') / 100; // Default 6%
   const purchasePrice = property.cost || 0;
-  const lvrRate = 0.8; // 80% LVR
-  
-  // Calculate current value with growth
+  const loanAmount = property.loanAmount || purchasePrice * 0.8;
+  const growthRate = parseFloat(property.growth || '6') / 100;
   const currentValue = purchasePrice * Math.pow(1 + growthRate, yearsHeld);
-  
-  // Calculate loan amount (assuming IO loan, so principal unchanged)
-  const loanAmount = purchasePrice * lvrRate;
-  
-  // Equity = Current Value - Loan Amount
-  const equity = currentValue - loanAmount;
-  
-  return Math.max(0, equity);
+  return Math.max(0, currentValue - loanAmount);
 };
 
 /**
- * Calculate annual rental income for a property
+ * Calculate annual rental income using pre-computed values when available.
  */
 const calculateRentalIncome = (property: PropertyData): number => {
+  if (property.grossRentalIncome != null) return property.grossRentalIncome;
   const purchasePrice = property.cost || 0;
-  const yieldRate = parseFloat(property.yield || '4') / 100; // Default 4%
+  const yieldRate = parseFloat(property.yield || '4') / 100;
   return purchasePrice * yieldRate;
 };
 

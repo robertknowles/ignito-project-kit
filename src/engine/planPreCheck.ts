@@ -8,6 +8,7 @@
 
 import type { NLParseResponse } from '../types/nlParse';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
+import { calcLoanAmount } from '../utils/sharedFinancialCalcs';
 import type { ExistingProperty } from '../types/existingProperty';
 import { mapToInvestmentProfile, mapToPropertySelections, mapToExistingProperties } from '../utils/nlDataMapper';
 import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
@@ -169,7 +170,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
 
     const purchasePrice = instance.purchasePrice;
     const lvr = instance.lvr ?? 80;
-    const baseLoanAmount = purchasePrice * (lvr / 100);
+    const baseLoanAmount = calcLoanAmount(purchasePrice, lvr);
     const depositRequired = purchasePrice - baseLoanAmount;
 
     // Calculate LMI
@@ -309,8 +310,9 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
   currentFailures = recheck.failures;
 
   // ── Pass 2: push failing properties to later periods ──
-  // For BC/serviceability failures where trust is already set, give the portfolio
-  // more time to grow (wages increase → BC ceiling rises, equity accumulates)
+  // For ANY failing property, give the portfolio more time to grow:
+  //  - BC/serviceability: wages increase → BC ceiling rises
+  //  - Deposit: savings accumulate + equity released from earlier properties
   const MAX_PERIOD_PUSH = 20; // up to 10 years later (20 semi-annual periods)
   for (const failure of currentFailures) {
     const propIdx = failure.propertyIndex - 1;
@@ -319,8 +321,12 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
 
     const hasBCIssue = !failure.borrowingCapacityTestPass;
     const hasServiceabilityIssue = !failure.serviceabilityTestPass;
+    const hasDepositIssue = !failure.depositTestPass;
 
-    if ((hasBCIssue || hasServiceabilityIssue) && prop.entity === 'trust') {
+    // Push for BC/serviceability (trust only) OR deposit shortfalls (any entity)
+    const shouldPush = ((hasBCIssue || hasServiceabilityIssue) && prop.entity === 'trust') || hasDepositIssue;
+
+    if (shouldPush) {
       const currentPeriod = prop.targetPeriod ?? (propIdx * 2 + 1);
       let bestPeriod = currentPeriod;
 
@@ -344,12 +350,13 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
         const oldYear = Math.ceil(currentPeriod / PERIODS_PER_YEAR) + 2024;
         const newYear = Math.ceil(bestPeriod / PERIODS_PER_YEAR) + 2024;
 
+        const reason = hasDepositIssue ? 'deposit accumulation' : hasBCIssue ? 'borrowing capacity' : 'serviceability';
         changes.push({
           propertyIndex: failure.propertyIndex,
           propertyLabel: failure.propertyLabel,
           changeType: 'period_pushed',
-          reason: hasBCIssue ? 'borrowing capacity' : 'serviceability',
-          detail: `Moved from ${oldYear} to ${newYear} to allow capacity to grow`,
+          reason,
+          detail: `Moved from ${oldYear} to ${newYear} to allow ${reason === 'deposit accumulation' ? 'savings to accumulate' : 'capacity to grow'}`,
         });
       }
     }

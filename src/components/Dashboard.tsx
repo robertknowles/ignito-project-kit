@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
@@ -163,8 +163,8 @@ export const Dashboard = () => {
     return { ...scenarioBData, profile: { ...scenarioBData.profile, timelineYears: displayYears } };
   }, [scenarioBData, displayYears]);
 
-  const chartDataA = useChartDataGenerator(displayScenarioAData);
-  const chartDataB = useChartDataGenerator(displayScenarioBData);
+  const chartDataA = usePortfolioProjection(displayScenarioAData);
+  const chartDataB = usePortfolioProjection(displayScenarioBData);
 
   const blockedProperties = useMemo(() => {
     return liveTimelineProperties.filter(p => p.status === 'challenging' && p.affordableYear !== Infinity);

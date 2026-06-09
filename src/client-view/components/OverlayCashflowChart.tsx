@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { CHART_COLORS, CHART_STYLE } from '../../constants/chartColors';
-import type { ComparisonCashflowDataPoint } from '../../hooks/useChartDataGenerator';
+import type { ComparisonCashflowDataPoint } from '../../hooks/usePortfolioProjection';
 
 const COLORS = {
   positiveA: CHART_COLORS.barPositive,

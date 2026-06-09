@@ -82,8 +82,8 @@ const formatCashflow = (value: number): string => {
 };
 
 /**
- * Calculate simple equity growth over time
- * This is a simplified calculation for the client view
+ * Calculate cumulative equity using pre-computed engine values when available,
+ * falling back to simplified calculation for legacy data.
  */
 const calculateEquity = (
   properties: PropertySelection[],
@@ -91,50 +91,47 @@ const calculateEquity = (
   investmentProfile: any
 ): number => {
   let totalEquity = investmentProfile?.depositPool || 0;
-  
-  // Add cumulative equity from properties up to this index
+
   for (let i = 0; i <= propertyIndex; i++) {
     const property = properties[i];
+    if (property.totalEquityAfter != null && i === propertyIndex) {
+      return property.totalEquityAfter;
+    }
     const purchasePrice = property.cost || 0;
+    const loanAmount = property.loanAmount || purchasePrice * 0.8;
     const yearsHeld = propertyIndex - i + 1;
-    const growthRate = parseFloat(property.growth || '6') / 100; // Default 6%
-    
-    // Simple equity calculation: property value growth minus debt
+    const growthRate = parseFloat(property.growth || '6') / 100;
     const currentValue = purchasePrice * Math.pow(1 + growthRate, yearsHeld);
-    const loanAmount = purchasePrice * 0.8; // Assume 80% LVR
-    const propertyEquity = currentValue - loanAmount;
-    
-    totalEquity += propertyEquity;
+    totalEquity += currentValue - loanAmount;
   }
-  
+
   return totalEquity;
 };
 
 /**
- * Calculate simple cashflow
+ * Calculate cumulative cashflow using pre-computed engine values when available.
  */
 const calculateCashflow = (
   properties: PropertySelection[],
   propertyIndex: number
 ): number => {
   let totalCashflow = 0;
-  
-  // Sum cashflow from all properties up to this index
+
   for (let i = 0; i <= propertyIndex; i++) {
     const property = properties[i];
-    const purchasePrice = property.cost || 0;
-    const rentalYield = parseFloat(property.yield || '4') / 100; // Default 4%
-    const interestRate = 0.065; // 6.5% interest rate
-    
-    const rentalIncome = purchasePrice * rentalYield;
-    const loanAmount = purchasePrice * 0.8;
-    const interestPayment = loanAmount * interestRate;
-    const expenses = purchasePrice * 0.01; // 1% for rates, insurance, etc.
-    
-    const propertyCashflow = rentalIncome - interestPayment - expenses;
-    totalCashflow += propertyCashflow;
+    if (property.netCashflow != null) {
+      totalCashflow += property.netCashflow;
+    } else {
+      const purchasePrice = property.cost || 0;
+      const rentalYield = parseFloat(property.yield || '4') / 100;
+      const rentalIncome = property.grossRentalIncome || purchasePrice * rentalYield;
+      const loanAmount = property.loanAmount || purchasePrice * 0.8;
+      const interestPayment = property.loanInterest || loanAmount * 0.065;
+      const expenses = property.expenses || purchasePrice * 0.01;
+      totalCashflow += rentalIncome - interestPayment - expenses;
+    }
   }
-  
+
   return totalCashflow;
 };
 

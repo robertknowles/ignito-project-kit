@@ -18,6 +18,7 @@ import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { TimelineProperty } from '../types/property';
+import { calcGrossYield, calcAnnualRent } from '../utils/sharedFinancialCalcs';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 const GROWTH_OPTIONS = [
@@ -338,7 +339,7 @@ const CASHFLOW_COLUMNS: Column[] = [
     render: (c, onChange) => {
       if (!c.instanceData) return null;
       const computed = c.instanceData.purchasePrice > 0
-        ? parseFloat(((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1))
+        ? parseFloat(calcGrossYield(c.instanceData.rentPerWeek, c.instanceData.purchasePrice).toFixed(1))
         : 0;
       const display = c.instanceData.yieldOverride ?? computed;
       return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
@@ -522,7 +523,7 @@ const PURCHASES_COLUMNS: Column[] = [
     render: (c, onChange) => {
       if (!c.instanceData) return null;
       const computed = c.instanceData.purchasePrice > 0
-        ? parseFloat(((c.instanceData.rentPerWeek * 52) / c.instanceData.purchasePrice * 100).toFixed(1))
+        ? parseFloat(calcGrossYield(c.instanceData.rentPerWeek, c.instanceData.purchasePrice).toFixed(1))
         : 0;
       const display = c.instanceData.yieldOverride ?? computed;
       return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
@@ -534,7 +535,7 @@ const PURCHASES_COLUMNS: Column[] = [
     render: (c, onChange) => {
       if (!c.instanceData) return null;
       const d = c.instanceData;
-      const mgmtDollar = (d.propertyManagementPercent / 100) * d.rentPerWeek * 52;
+      const mgmtDollar = (d.propertyManagementPercent / 100) * calcAnnualRent(d.rentPerWeek);
       const computed = Math.round(
         mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual
       );
@@ -878,7 +879,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
           {cards.map((card, idx) => {
             if (!card.instanceData) return null;
             const d = card.instanceData;
-            const mgmtDollar = (d.propertyManagementPercent / 100) * d.rentPerWeek * 52;
+            const mgmtDollar = (d.propertyManagementPercent / 100) * calcAnnualRent(d.rentPerWeek);
             const holdingTotal = Math.round(mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual);
             const purchaseCosts = Math.round(
               d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
@@ -921,7 +922,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
                       <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
-                      <BlockNumRow label="Yield (%)" value={d.yieldOverride ?? (d.purchasePrice > 0 ? parseFloat(((d.rentPerWeek * 52) / d.purchasePrice * 100).toFixed(1)) : 0)} instanceId={iid} field="yieldOverride" onChange={handleFieldChange} />
+                      <BlockNumRow label="Yield (%)" value={d.yieldOverride ?? (d.purchasePrice > 0 ? parseFloat(calcGrossYield(d.rentPerWeek, d.purchasePrice).toFixed(1)) : 0)} instanceId={iid} field="yieldOverride" onChange={handleFieldChange} />
                       <BlockNumRow label="Holding $/yr" value={d.holdingCostOverride ?? holdingTotal} instanceId={iid} field="holdingCostOverride" onChange={handleFieldChange} />
                       <BlockNumRow label="Purchase costs" value={d.purchaseCostsOverride ?? purchaseCosts} instanceId={iid} field="purchaseCostsOverride" onChange={handleFieldChange} />
                       <tr className="border-b border-neutral-200 last:border-b-0">

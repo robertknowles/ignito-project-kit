@@ -13,6 +13,7 @@
 import React, { useMemo, useState } from 'react';
 import { Info } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
+import { calcAnnualRent } from '../utils/sharedFinancialCalcs';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import {
   CELL_IDS,
@@ -189,7 +190,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
   }, [instanceData, calculatedStampDuty]);
 
   const annualExpensesTotal = useMemo(() => {
-    const annualRent = instanceData.rentPerWeek * 52;
+    const annualRent = calcAnnualRent(instanceData.rentPerWeek);
     const managementFees = (annualRent * instanceData.propertyManagementPercent) / 100;
     return (
       instanceData.councilRatesWater +

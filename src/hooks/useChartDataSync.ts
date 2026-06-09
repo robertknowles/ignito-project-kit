@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useChartDataGenerator } from './useChartDataGenerator';
+import { usePortfolioProjection } from './usePortfolioProjection';
 import { useInvestmentProfile } from './useInvestmentProfile';
 import { useScenarioSave } from '../contexts/ScenarioSaveContext';
 
@@ -9,7 +9,7 @@ import { useScenarioSave } from '../contexts/ScenarioSaveContext';
  * the exact same data as the Dashboard.
  */
 export const useChartDataSync = () => {
-  const { portfolioGrowthData, cashflowData } = useChartDataGenerator();
+  const { portfolioGrowthData, cashflowData } = usePortfolioProjection();
   const { profile } = useInvestmentProfile();
   const { setChartData } = useScenarioSave();
 

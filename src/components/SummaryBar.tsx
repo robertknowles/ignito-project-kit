@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator'
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
@@ -21,7 +21,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
   const profile = scenarioData?.profile ?? contextProfile
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProps
 
-  const { portfolioGrowthData, cashflowData } = useChartDataGenerator(scenarioData)
+  const { portfolioGrowthData, cashflowData } = usePortfolioProjection(scenarioData)
 
   // Final year values from charts
   const kpis = useMemo(() => {

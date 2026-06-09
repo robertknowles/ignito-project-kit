@@ -11,7 +11,7 @@ import {
   Label,
   ResponsiveContainer,
 } from 'recharts';
-import { useChartDataGenerator } from '../hooks/useChartDataGenerator';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import {
@@ -101,7 +101,7 @@ const DebtFreeMarker = ({ viewBox }: any) => {
 };
 
 export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ scenarioData }) => {
-  const { portfolioGrowthData, cashflowData } = useChartDataGenerator(scenarioData);
+  const { portfolioGrowthData, cashflowData } = usePortfolioProjection(scenarioData);
   const { profile: contextProfile } = useInvestmentProfile();
   const { eventBlocks } = usePropertySelection();
   const profile = scenarioData?.profile ?? contextProfile;

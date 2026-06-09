@@ -2,6 +2,7 @@ import React from 'react'
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon'
 import type { PropertyTypeTemplate } from '../contexts/DataAssumptionsContext'
 import { GROWTH_RATE_TIERS } from '../constants/financialParams'
+import { calcGrossYield, calcLoanAmount } from '../utils/sharedFinancialCalcs'
 
 // Property images mapping - matches PropertyBlocksPanel.tsx
 const PROPERTY_IMAGES: Record<string, string> = {
@@ -79,8 +80,8 @@ interface TitleDeedCardProps {
 
 export const TitleDeedCard: React.FC<TitleDeedCardProps> = ({ template, onEdit }) => {
   // Calculate derived values
-  const yieldPercent = ((template.rentPerWeek * 52) / template.purchasePrice) * 100
-  const mortgageValue = (template.purchasePrice * template.lvr) / 100
+  const yieldPercent = calcGrossYield(template.rentPerWeek, template.purchasePrice)
+  const mortgageValue = calcLoanAmount(template.purchasePrice, template.lvr)
   const growthRates = GROWTH_RATE_TIERS[template.growthAssumption] || GROWTH_RATE_TIERS.Medium
   
   // Format currency

@@ -13,6 +13,7 @@ import {
   Wallet,
   Eye,
 } from 'lucide-react'
+import { calcGrossYield, calcLoanAmount, calcDeposit, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { LibraryDrawer } from '../components/LibraryDrawer'
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext'
@@ -199,12 +200,12 @@ export const DataAssumptions = () => {
             const purchasePrice = instance.purchasePrice || cost || 0
             const rentPerWeek = instance.rentPerWeek || 0
             const lvr = instance.lvr || 80
-            const loanAmount = purchasePrice * (lvr / 100)
-            const deposit = purchasePrice * ((100 - lvr) / 100)
+            const loanAmount = calcLoanAmount(purchasePrice, lvr)
+            const deposit = calcDeposit(purchasePrice, lvr)
             const interestRate = instance.interestRate || 6.5
             const annualInterest = loanAmount * (interestRate / 100)
-            const annualRent = rentPerWeek * 52
-            const grossYield = purchasePrice > 0 ? (annualRent / purchasePrice) * 100 : 0
+            const annualRent = calcAnnualRent(rentPerWeek)
+            const grossYield = calcGrossYield(rentPerWeek, purchasePrice)
             const growthRate = instance.growthAssumption === 'High' ? 7 : instance.growthAssumption === 'Low' ? 4 : 5.5
             const yearsHeld = Math.max(0, new Date().getFullYear() - Math.round(affordableYear))
             const estimatedValue = purchasePrice * Math.pow(1 + growthRate / 100, yearsHeld)
@@ -880,7 +881,7 @@ export const DataAssumptions = () => {
                       const growthRate = dp.growthAssumption === 'High' ? 7 : dp.growthAssumption === 'Low' ? 4 : 5.5
                       const yearsHeld = Math.max(0, new Date().getFullYear() - dp.affordableYear)
                       const compoundGrowthPA = yearsHeld > 0 ? growthRate : 0
-                      const borrowableEquity = Math.max(0, (dp.estimatedValue * 0.8) - dp.loanAmount)
+                      const borrowableEquity = calcReleasableEquity(dp.estimatedValue, dp.loanAmount)
 
                       return (
                         <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setDetailProperty(null)}>

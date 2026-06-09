@@ -17,7 +17,7 @@ import {
   combineMetrics, 
   DEFAULT_PROPERTY_EXPENSES 
 } from '../utils/metricsCalculator';
-import { generateComparisonChartData, ComparisonChartData } from '../hooks/useChartDataGenerator';
+import { generateComparisonChartData, type ComparisonChartData } from '../hooks/usePortfolioProjection';
 import type { ComparisonMetrics } from '../utils/comparisonCalculator';
 import type { PropertyPurchase, GrowthCurve } from '../types/property';
 import { supabase } from '../integrations/supabase/client';

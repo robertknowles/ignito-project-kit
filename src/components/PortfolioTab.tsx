@@ -5,6 +5,7 @@ import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
+import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
 import {
   BarChart as RechartsBarChart, Bar, XAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -34,7 +35,7 @@ const formatCompact = (v: number): string => {
 
 const deriveMetrics = (p: ExistingProperty) => {
   const equity = p.currentValue - p.loan
-  const annualRent = p.rentPerWeek * 52
+  const annualRent = calcAnnualRent(p.rentPerWeek)
   const interest = p.loan * (p.interestRate / 100)
   const mgmt = annualRent * (p.propertyMgmtPercent / 100)
   const totalExpenses = interest + mgmt + p.councilWater + p.insurance + p.maintenance
@@ -43,7 +44,7 @@ const deriveMetrics = (p: ExistingProperty) => {
   const growthPercent = p.purchasePrice > 0 ? (capitalGrowth / p.purchasePrice) * 100 : 0
   const yearsHeld = new Date().getFullYear() - p.boughtYear
   const lvr = p.currentValue > 0 ? (p.loan / p.currentValue) * 100 : 0
-  const releasableEquity = Math.max(0, p.currentValue * 0.8 - p.loan)
+  const releasableEquity = calcReleasableEquity(p.currentValue, p.loan, 0.8)
   const totalCapitalIn = p.stampDuty + p.legals + p.buildingPest + p.baFee + p.cashDeposit
   const roc = totalCapitalIn > 0 ? (equity / totalCapitalIn) * 100 : 0
   return { equity, annualRent, interest, mgmt, totalExpenses, netCashflow, capitalGrowth, growthPercent, yearsHeld, lvr, releasableEquity, totalCapitalIn, roc }
@@ -278,7 +279,7 @@ const COLUMNS: Column[] = [
   {
     key: 'yield', header: 'Yield (%)',
     render: (p, onChange) => {
-      const computed = p.purchasePrice > 0 ? parseFloat(((p.rentPerWeek * 52) / p.purchasePrice * 100).toFixed(1)) : 0
+      const computed = p.purchasePrice > 0 ? parseFloat(calcGrossYield(p.rentPerWeek, p.purchasePrice).toFixed(1)) : 0
       const display = p.yieldOverride ?? computed
       return <NumCell value={display} onChange={v => onChange(p.id, { yieldOverride: v || null })} />
     },
