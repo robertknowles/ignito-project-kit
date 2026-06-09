@@ -301,16 +301,18 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         const RETRY_BASE_DELAYS_MS = [400, 1500, 3500]
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-        // Fetch planning defaults for this user (set via PlanningDefaultsModal)
+        // Fetch planning defaults and strategy profile for this user
         let planningDefaults: Record<string, unknown> | null = null
+        let strategyProfileText: string | null = null
         const userId = optionsRef.current.userId
         if (userId) {
           const { data } = await supabase
             .from('profiles')
-            .select('planning_defaults')
+            .select('planning_defaults, strategy_profile_text')
             .eq('id', userId)
             .single()
           planningDefaults = (data?.planning_defaults as Record<string, unknown>) ?? null
+          strategyProfileText = ((data as Record<string, unknown>)?.strategy_profile_text as string) || null
         }
 
         const callOnce = async (): Promise<NLParseResponse> => {
@@ -323,6 +325,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               userId,
               strategyPreset: optionsRef.current.strategyPreset || 'eg-low',
               planningDefaults: planningDefaults || undefined,
+              strategyProfileText: strategyProfileText || undefined,
             },
           })
 

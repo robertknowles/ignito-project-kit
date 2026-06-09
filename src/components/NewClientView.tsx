@@ -17,10 +17,12 @@ import {
   SlidersHorizontal as SlidersHorizontalIcon,
   X as XIcon,
   FileText as FileTextIcon,
+  Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { extractTextFromDocument, isSupportedFile, getSupportedExtensions } from '@/utils/documentExtractor'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
+import { StrategyProfileModal } from '@/components/StrategyProfileModal'
 import { ChartCard } from '@/components/ui/ChartCard'
 import {
   DropdownMenu,
@@ -96,6 +98,7 @@ export const NewClientView: React.FC = () => {
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [assumptionsOpen, setAssumptionsOpen] = useState(false)
+  const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -303,17 +306,30 @@ export const NewClientView: React.FC = () => {
             </h1>
 
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
-              <button
-                onClick={() => setAssumptionsOpen(prev => !prev)}
-                className={`absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
-                  assumptionsOpen
-                    ? 'text-[#414651] bg-[#ECECED] border-[#D5D7DA]'
-                    : 'text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]'
-                }`}
-              >
-                <SlidersHorizontalIcon size={13} />
-                Assumptions
-              </button>
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                <button
+                  onClick={() => setStrategyProfileOpen(true)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
+                    strategyProfileOpen
+                      ? 'text-[#414651] bg-[#ECECED] border-[#D5D7DA]'
+                      : 'text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]'
+                  }`}
+                >
+                  <SparklesIcon size={13} />
+                  Strategy Profile
+                </button>
+                <button
+                  onClick={() => setAssumptionsOpen(prev => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
+                    assumptionsOpen
+                      ? 'text-[#414651] bg-[#ECECED] border-[#D5D7DA]'
+                      : 'text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]'
+                  }`}
+                >
+                  <SlidersHorizontalIcon size={13} />
+                  Assumptions
+                </button>
+              </div>
               <textarea
                 ref={textareaRef}
                 value={prompt}
@@ -575,6 +591,7 @@ export const NewClientView: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <StrategyProfileModal isOpen={strategyProfileOpen} onClose={() => setStrategyProfileOpen(false)} />
     </>
   )
 }

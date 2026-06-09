@@ -56,6 +56,7 @@ export function buildSystemPrompt(
   strategyPreset?: string,
   planningDefaults?: Record<string, unknown> | null,
   conversationSummary?: string,
+  strategyProfileText?: string,
 ): string {
   const currentYear = new Date().getFullYear();
   // A plan only "exists" if it has actual properties. The frontend may send
@@ -113,6 +114,11 @@ ${currentPlan.properties.map((p, i) => {
       defaultsSection = `\n## BA Planning Defaults\nUse these unless the client's message overrides them:\n${parts.join('\n')}`;
     }
   }
+
+  // ── Strategy profile section (free-text BA philosophy) ───────────
+  const strategyProfileSection = strategyProfileText?.trim()
+    ? `\n\n## Agent Strategy Profile\nThe buyers' agent has described their investment philosophy and preferences. Factor these into your property selections, pricing, and plan structure — but the client's explicit instructions always take priority:\n\n${strategyProfileText.trim()}`
+    : '';
 
   // ── Conversation history section ─────────────────────────────────
   const historySection = conversationSummary
@@ -277,5 +283,5 @@ Semi-annual periods. Period 1 = first half of ${currentYear}. Never reference pe
 - High: Y1 12.5%, Y2-3 10%, Y4 7.5%, Y5+ 6%.
 - Medium: Y1 8%, Y2-3 6%, Y4 5%, Y5+ 4%.
 - Low: Y1 5%, Y2-3 4%, Y4 3.5%, Y5+ 3%.
-${planStateSection}${defaultsSection}${historySection}`;
+${planStateSection}${defaultsSection}${strategyProfileSection}${historySection}`;
 }

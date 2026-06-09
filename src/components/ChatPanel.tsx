@@ -7,12 +7,13 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon } from 'lucide-react'
+import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, SparklesIcon } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { StrategyPresetSelector } from './StrategyPresetSelector'
+import { StrategyProfileModal } from './StrategyProfileModal'
 import { extractTextFromDocument, isSupportedFile } from '@/utils/documentExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
@@ -28,7 +29,7 @@ import {
 import type { NLParseResponse, CurrentPlanState, ChatOptionCardData } from '@/types/nlParse'
 import { useLayout } from '@/contexts/LayoutContext'
 import { DISCLAIMER_D_TEXT } from '@/components/DisclaimerBlock'
-import { useChartDataGenerator } from '@/hooks/useChartDataGenerator'
+import { usePortfolioProjection } from '@/hooks/usePortfolioProjection'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
 import { runPlanPreCheck, autoFixPlan } from '@/engine/planPreCheck'
@@ -48,6 +49,7 @@ export const ChatPanel: React.FC = () => {
   const [minimized, setMinimized] = useState(true)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const location = useLocation()
@@ -155,7 +157,7 @@ export const ChatPanel: React.FC = () => {
 
   // Chart data for explanations
   const { timelineProperties } = useAffordabilityCalculator()
-  const chartData = useChartDataGenerator()
+  const chartData = usePortfolioProjection()
 
   // Client context — for resetting chat on client switch
   const { activeClient, updateClient } = useClient()
@@ -1093,6 +1095,13 @@ export const ChatPanel: React.FC = () => {
             <span className="text-sm font-semibold text-neutral-800">PropPath AI</span>
           </div>
           <div className="ml-auto flex items-center gap-0.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); setStrategyProfileOpen(true); }}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-[#7F56D9] hover:bg-neutral-100 transition-colors"
+              title="Strategy Profile"
+            >
+              <SparklesIcon size={13} />
+            </button>
             {/* Drag handle — 3x3 dots */}
             <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-300 cursor-grab active:cursor-grabbing">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
@@ -1241,6 +1250,7 @@ export const ChatPanel: React.FC = () => {
         )}
       </div>
       )}
+      <StrategyProfileModal isOpen={strategyProfileOpen} onClose={() => setStrategyProfileOpen(false)} />
     </>
   )
 }
