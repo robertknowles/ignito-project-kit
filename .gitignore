@@ -29,3 +29,12 @@ supabase/.temp/
 
 # Eval reports (generated, not committed)
 evals/report-*.json
+
+# Claude Code local state (per-machine)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Local session working docs
+HANDOFF-*.md
+CALC-ARCHITECTURE-VISUAL.html
+PRE-UNIFICATION-BASELINE.md
