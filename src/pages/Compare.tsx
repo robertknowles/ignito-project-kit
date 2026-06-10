@@ -270,10 +270,10 @@ export const Compare: React.FC = () => {
                 {/* Year scrubber */}
                 <div className="mb-6 flex items-center gap-5">
                   <span className="metric-label shrink-0">Compare at year</span>
-                  <div className="relative flex-1 pt-7">
+                  <div className="relative flex-1">
                     {goalPct !== null && (
                       <div
-                        className="pointer-events-none absolute top-0 flex -translate-x-1/2 flex-col items-center"
+                        className="pointer-events-none absolute -top-8 flex -translate-x-1/2 flex-col items-center"
                         style={{ left: `${goalPct}%` }}
                       >
                         <div className="meta flex items-center gap-1 whitespace-nowrap">
@@ -390,7 +390,7 @@ export const Compare: React.FC = () => {
                           tickMargin={8}
                           interval="preserveStartEnd"
                         />
-                        <Tooltip content={<CompareTooltip />} cursor={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }} />
+                        <Tooltip content={<CompareTooltip />} cursor={{ stroke: CHART_COLORS.referenceLine, strokeWidth: 1.5 }} />
                         <Legend
                           verticalAlign="bottom"
                           height={32}
@@ -406,7 +406,7 @@ export const Compare: React.FC = () => {
                           strokeWidth={2}
                           fill="url(#compareEqA)"
                           dot={makePurchaseDot('propertiesA', COLOR_A)}
-                          activeDot={false}
+                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_A, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
                         <Area
@@ -417,7 +417,7 @@ export const Compare: React.FC = () => {
                           strokeWidth={2}
                           fill="url(#compareEqB)"
                           dot={makePurchaseDot('propertiesB', COLOR_B)}
-                          activeDot={false}
+                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
                       </AreaChart>
@@ -448,7 +448,7 @@ export const Compare: React.FC = () => {
                           tickMargin={8}
                           interval="preserveStartEnd"
                         />
-                        <Tooltip content={<CompareTooltip />} cursor={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }} />
+                        <Tooltip content={<CompareTooltip />} cursor={{ stroke: CHART_COLORS.referenceLine, strokeWidth: 1.5 }} />
                         <Legend
                           verticalAlign="bottom"
                           height={32}
@@ -464,7 +464,7 @@ export const Compare: React.FC = () => {
                           strokeWidth={2}
                           fill="url(#compareCfA)"
                           dot={makePurchaseDot('propertiesA', COLOR_A)}
-                          activeDot={false}
+                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_A, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
                         <Area
@@ -475,7 +475,7 @@ export const Compare: React.FC = () => {
                           strokeWidth={2}
                           fill="url(#compareCfB)"
                           dot={makePurchaseDot('propertiesB', COLOR_B)}
-                          activeDot={false}
+                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
                       </AreaChart>
