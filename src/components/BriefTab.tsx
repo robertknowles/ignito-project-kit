@@ -8,6 +8,8 @@ import { BriefCashflowChart, BriefEquityChart, BriefLoanChart, BriefHoldingCostC
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
+import { ChangeReceiptStrip } from './ChangeReceiptStrip'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { calcGrossYield } from '../utils/sharedFinancialCalcs'
@@ -66,6 +68,7 @@ const EditableNumRow: React.FC<{
   decimals?: number
 }> = ({ label, value, field, instanceId, bold, border = true, decimals }) => {
   const { updateInstance } = usePropertyInstance()
+  const { notifyEdit } = useChangeReceipt()
   const [focused, setFocused] = useState(false)
   const [draft, setDraft] = useState('')
 
@@ -87,6 +90,7 @@ const EditableNumRow: React.FC<{
             setFocused(false)
             const n = parseFloat(draft)
             if (!isNaN(n) && n !== value) {
+              notifyEdit('brief')
               updateInstance(instanceId, { [field]: n } as Partial<PropertyInstanceDetails>)
             }
           }}
@@ -111,6 +115,7 @@ const EditableSelectRow: React.FC<{
   border?: boolean
 }> = ({ label, value, field, instanceId, options, border = true }) => {
   const { updateInstance } = usePropertyInstance()
+  const { notifyEdit } = useChangeReceipt()
 
   return (
     <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0`}>
@@ -120,7 +125,7 @@ const EditableSelectRow: React.FC<{
       <td className="py-1.5 px-2">
         <select
           value={value}
-          onChange={e => updateInstance(instanceId, { [field]: e.target.value } as Partial<PropertyInstanceDetails>)}
+          onChange={e => { notifyEdit('brief'); updateInstance(instanceId, { [field]: e.target.value } as Partial<PropertyInstanceDetails>) }}
           className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -249,6 +254,7 @@ export const BriefTab: React.FC = () => {
 
   const purchaseTab = (
     <div className="grid grid-cols-2 gap-4 items-start">
+      <ChangeReceiptStrip source="brief" className="col-span-2" />
       {/* Property Summary (includes funding source rows) */}
       <ChartCard title="Property summary" flush>
         <table className="w-full text-xs">

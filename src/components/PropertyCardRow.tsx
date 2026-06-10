@@ -14,6 +14,7 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
+import { useChangeReceipt } from '../contexts/ChangeReceiptContext';
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -730,6 +731,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   const { instances, setInstances, updateInstance } = usePropertyInstance();
   const { profile } = useInvestmentProfile();
   const { timelineProperties } = useAffordabilityCalculator();
+  const { notifyEdit } = useChangeReceipt();
 
   const cards = useMemo(() => {
     const items = propertyOrder.map((instanceId, orderIdx) => {
@@ -793,10 +795,12 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   };
 
   const handleFieldChange = (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => {
+    notifyEdit('purchases');
     updateInstance(instanceId, { [field]: value, alertDismissed: false });
   };
 
   const handleYearChange = (instanceId: string, year: number) => {
+    notifyEdit('purchases');
     updateInstance(instanceId, { isManuallyPlaced: true, manualPlacementPeriod: yearToPeriod(year), alertDismissed: false });
   };
 

@@ -3,6 +3,8 @@ import { Plus, X, Home, CalendarDays } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
+import { ChangeReceiptStrip } from './ChangeReceiptStrip'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
@@ -329,6 +331,7 @@ interface PortfolioTabProps {}
 export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
+  const { notifyEdit } = useChangeReceipt()
   const properties = existingProperties
 
   const syncAggregates = useCallback((props: ExistingProperty[]) => {
@@ -339,25 +342,28 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   }, [updateProfile])
 
   const handleAdd = useCallback(() => {
+    notifyEdit('existing-portfolio')
     const newProp = createDefaultExistingProperty()
     const next = [...existingProperties, newProp]
     setExistingProperties(next)
     syncAggregates(next)
-  }, [existingProperties, setExistingProperties, syncAggregates])
+  }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const handleRemove = useCallback((id: string) => {
+    notifyEdit('existing-portfolio')
     const next = existingProperties.filter(p => p.id !== id)
     setExistingProperties(next)
     syncAggregates(next)
-  }, [existingProperties, setExistingProperties, syncAggregates])
+  }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
+    notifyEdit('existing-portfolio')
     const next = existingProperties.map(p => p.id === id ? { ...p, ...updates } : p)
     setExistingProperties(next)
     if ('loan' in updates || 'currentValue' in updates || 'rentPerWeek' in updates) {
       syncAggregates(next)
     }
-  }, [existingProperties, setExistingProperties, syncAggregates])
+  }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const portfolioMetrics = useMemo(() => {
     const combinedValue = properties.reduce((s, p) => s + p.currentValue, 0)
@@ -527,6 +533,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     <div className="flex flex-col gap-6">
       {kpiCards}
       {propertiesTable}
+      <ChangeReceiptStrip source="existing-portfolio" />
       <div className="grid grid-cols-3 gap-4">
         <ChartCard title="Capital Composition" legend={[
           { color: UUI.brand200, label: 'Loan balance' },

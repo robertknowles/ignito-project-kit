@@ -27,6 +27,8 @@ import { ClientInputsTab } from './ClientInputsTab';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { ConfirmationBrief } from './ConfirmationBrief';
+import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
+import { ChangeReceiptStrip } from './ChangeReceiptStrip';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
@@ -240,6 +242,25 @@ export const Dashboard = () => {
     };
   }, [chartDataA, displayScenarioAData, displayYears]);
 
+  // Headline metrics the change receipt diffs across edits — equity at the
+  // displayed horizon, annual cashflow, borrowing headroom, and per-property
+  // placement outcomes.
+  const receiptMetrics = useMemo<ReceiptMetrics>(() => {
+    const growthData = chartDataA.portfolioGrowthData;
+    const lastGrowth = growthData[growthData.length - 1];
+    return {
+      horizonYear: lastGrowth ? parseInt(lastGrowth.year, 10) : BASE_YEAR,
+      totalEquity: kpis.totalEquity,
+      netCashflowAnnual: kpis.netCashflowAnnual,
+      borrowingHeadroom: kpis.borrowingHeadroom,
+      properties: liveTimelineProperties.map(tp => ({
+        instanceId: tp.instanceId,
+        year: Number.isFinite(tp.affordableYear) ? Math.floor(tp.affordableYear) : null,
+        challenging: tp.status === 'challenging',
+      })),
+    };
+  }, [chartDataA, kpis, liveTimelineProperties]);
+
   const addPropertyBtn = (
     <button
       onClick={() => setIsLibraryOpen(true)}
@@ -265,6 +286,7 @@ export const Dashboard = () => {
   }
 
   return (
+    <ChangeReceiptProvider metrics={receiptMetrics}>
     <div className="h-full w-full overflow-y-auto bg-white relative">
       {planGenerating && (
         <div className="sticky top-0 z-30 flex items-center justify-center gap-2 bg-blue-50/90 border-b border-blue-200 py-2 text-sm text-blue-700 backdrop-blur-sm">
@@ -405,6 +427,7 @@ export const Dashboard = () => {
             <ChartCard title="Purchases" flush>
               <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
             </ChartCard>
+            <ChangeReceiptStrip source="purchases" />
 
             {/* Total Equity chart */}
             <ChartCard
@@ -523,5 +546,6 @@ export const Dashboard = () => {
       </div>
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>
+    </ChangeReceiptProvider>
   );
 };
