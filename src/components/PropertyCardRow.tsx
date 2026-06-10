@@ -15,6 +15,33 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext';
+
+// Human labels for the change log's cause line ("Property 2 — Rent/wk ($) 480 → 520").
+// High-traffic instance fields; anything missing falls back to a humanized key.
+const CHANGE_LOG_FIELD_LABELS: Partial<Record<keyof PropertyInstanceDetails, string>> = {
+  purchasePrice: 'Price ($)',
+  valuationAtPurchase: 'Valuation ($)',
+  lvr: 'LVR (%)',
+  interestRate: 'Rate (%)',
+  loanTerm: 'Loan term',
+  loanProduct: 'Loan product',
+  rentPerWeek: 'Rent/wk ($)',
+  yieldOverride: 'Yield (%)',
+  growthAssumption: 'Growth',
+  entity: 'Entity',
+  state: 'State',
+  saleYear: 'Sell year',
+  lmiWaiver: 'LMI waiver',
+  holdingCostOverride: 'Holding $/yr',
+  purchaseCostsOverride: 'Purchase costs ($)',
+};
+
+const humanizeField = (field: string) =>
+  field
+    .replace(/Override$/, '')
+    .replace(/([A-Z])/g, ' $1')
+    .toLowerCase()
+    .replace(/^./, c => c.toUpperCase());
 import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
 import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
@@ -794,13 +821,27 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     updatePropertyQuantity(propertyId, Math.max(0, getPropertyQuantity(propertyId) - 1));
   };
 
+  const changeLogSubject = (instanceId: string) => `Property ${propertyOrder.indexOf(instanceId) + 1}`;
+
   const handleFieldChange = (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => {
-    notifyEdit('purchases');
+    notifyEdit('purchases', {
+      subject: changeLogSubject(instanceId),
+      fieldLabel: CHANGE_LOG_FIELD_LABELS[field] ?? humanizeField(field),
+      from: instances[instanceId]?.[field],
+      to: value,
+    });
     updateInstance(instanceId, { [field]: value, alertDismissed: false });
   };
 
   const handleYearChange = (instanceId: string, year: number) => {
-    notifyEdit('purchases');
+    const rawYear = timelineProperties.find(tp => tp.instanceId === instanceId)?.affordableYear;
+    const oldYear = Number.isFinite(rawYear) ? Math.floor(rawYear as number) : undefined;
+    notifyEdit('purchases', {
+      subject: changeLogSubject(instanceId),
+      fieldLabel: 'Purchase year',
+      from: oldYear,
+      to: year,
+    });
     updateInstance(instanceId, { isManuallyPlaced: true, manualPlacementPeriod: yearToPeriod(year), alertDismissed: false });
   };
 

@@ -28,7 +28,7 @@ import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { ConfirmationBrief } from './ConfirmationBrief';
 import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
-import { ChangeReceiptStrip } from './ChangeReceiptStrip';
+import { ChangeLogPanel } from './ChangeLogPanel';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
@@ -287,7 +287,8 @@ export const Dashboard = () => {
 
   return (
     <ChangeReceiptProvider metrics={receiptMetrics}>
-    <div className="h-full w-full overflow-y-auto bg-white relative">
+    <div className="h-full w-full flex bg-white">
+    <div className="h-full flex-1 min-w-0 overflow-y-auto relative">
       {planGenerating && (
         <div className="sticky top-0 z-30 flex items-center justify-center gap-2 bg-blue-50/90 border-b border-blue-200 py-2 text-sm text-blue-700 backdrop-blur-sm">
           <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -427,7 +428,6 @@ export const Dashboard = () => {
             <ChartCard title="Purchases" flush>
               <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
             </ChartCard>
-            <ChangeReceiptStrip source="purchases" />
 
             {/* Total Equity chart */}
             <ChartCard
@@ -545,6 +545,8 @@ export const Dashboard = () => {
         {activeTab === 'inputs' && <ClientInputsTab />}
       </div>
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+    </div>
+    <ChangeLogPanel />
     </div>
     </ChangeReceiptProvider>
   );

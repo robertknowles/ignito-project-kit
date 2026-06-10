@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Share2, Copy, RotateCcw } from 'lucide-react'
 import { ResetButton } from './ResetButton'
+import { ChangeLogBell } from './ChangeLogPanel'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
@@ -353,6 +354,7 @@ export const TopBar = () => {
     <div id="top-bar" className="flex items-center gap-1.5">
       {!isClient && (
         <>
+          <ChangeLogBell />
           <ResetButton iconOnly />
           <button
             onClick={handleShareDashboard}

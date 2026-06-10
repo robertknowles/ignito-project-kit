@@ -4,7 +4,6 @@ import { ChartCard } from './ui/ChartCard'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
-import { ChangeReceiptStrip } from './ChangeReceiptStrip'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
@@ -341,8 +340,12 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
   }, [updateProfile])
 
+  // Subject for the change log's cause line — address if the BA entered one
+  const changeLogSubject = (p: ExistingProperty) =>
+    p.address?.trim() || `${p.state} property (${p.boughtYear})`
+
   const handleAdd = useCallback(() => {
-    notifyEdit('existing-portfolio')
+    notifyEdit('existing-portfolio', 'Existing property added')
     const newProp = createDefaultExistingProperty()
     const next = [...existingProperties, newProp]
     setExistingProperties(next)
@@ -350,14 +353,22 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const handleRemove = useCallback((id: string) => {
-    notifyEdit('existing-portfolio')
+    const prop = existingProperties.find(p => p.id === id)
+    notifyEdit('existing-portfolio', prop ? `${changeLogSubject(prop)} removed` : 'Existing property removed')
     const next = existingProperties.filter(p => p.id !== id)
     setExistingProperties(next)
     syncAggregates(next)
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
-    notifyEdit('existing-portfolio')
+    const prop = existingProperties.find(p => p.id === id)
+    const key = Object.keys(updates)[0] as keyof ExistingProperty | undefined
+    notifyEdit('existing-portfolio', prop && key ? {
+      subject: changeLogSubject(prop),
+      fieldLabel: COLUMNS.find(c => c.key === key)?.header ?? key,
+      from: prop[key],
+      to: updates[key],
+    } : undefined)
     const next = existingProperties.map(p => p.id === id ? { ...p, ...updates } : p)
     setExistingProperties(next)
     if ('loan' in updates || 'currentValue' in updates || 'rentPerWeek' in updates) {
@@ -533,7 +544,6 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     <div className="flex flex-col gap-6">
       {kpiCards}
       {propertiesTable}
-      <ChangeReceiptStrip source="existing-portfolio" />
       <div className="grid grid-cols-3 gap-4">
         <ChartCard title="Capital Composition" legend={[
           { color: UUI.brand200, label: 'Loan balance' },
