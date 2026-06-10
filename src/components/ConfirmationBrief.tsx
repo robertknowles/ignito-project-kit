@@ -4,7 +4,7 @@ import { useLayout } from '@/contexts/LayoutContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext';
 import { AffordabilityAlert } from '@/components/ui/AffordabilityAlert';
-import { runPlanPreCheck, type PreCheckFailure } from '@/engine/planPreCheck';
+import { runPlanPreCheck, analyzePlanTimings, type PreCheckFailure, type PropertyTimingInsight, type BindingTest } from '@/engine/planPreCheck';
 import type { NLParseResponse, FieldSource, FieldSourceMap } from '@/types/nlParse';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
 import { BASE_YEAR, PERIODS_PER_YEAR } from '@/constants/financialParams';
@@ -58,6 +58,16 @@ const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
 const getSource = (map: FieldSourceMap | undefined, field: string): FieldSource =>
   map?.[field] ?? 'assumed';
+
+const periodToYear = (p: number) => BASE_YEAR + Math.floor((p - 1) / PERIODS_PER_YEAR);
+
+// Only offer a pull-forward when it changes the DISPLAYED year. The engine
+// works in half-year periods, so "earlier" can mean H2 → H1 of the same
+// year — invisible in the year-granular UI and confusing to offer.
+const isPullForward = (t: PropertyTimingInsight) =>
+  t.feasibleAtTested &&
+  t.earliestFeasiblePeriod !== null &&
+  periodToYear(t.earliestFeasiblePeriod) < periodToYear(t.testedPeriod);
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU');
 const fmtDollar = (v: number) => `$${fmtNum(v)}`;
@@ -321,9 +331,38 @@ interface PropertyBlockProps {
   failure?: PreCheckFailure;
   isDismissed?: boolean;
   onDismissAlert?: () => void;
+  insight?: PropertyTimingInsight;
 }
 
-const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, sources, onFieldChange, onRemove, failure, isDismissed, onDismissAlert }) => {
+// One-line timing hint under the purchase year. Shown ONLY when the property
+// could be bought earlier than planned — failures are covered by the
+// affordability alert popup, and properties at their earliest need no note.
+const TimingHint: React.FC<{ insight: PropertyTimingInsight; onMove: (period: number) => void }> = ({ insight, onMove }) => {
+  const earliest = insight.earliestFeasiblePeriod;
+  if (!isPullForward(insight) || earliest === null) return null;
+
+  return (
+    <div
+      className="flex items-center justify-between"
+      style={{ background: UUI.neutral50, borderRadius: 6, padding: '4px 8px', boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset` }}
+    >
+      <span className="flex items-center gap-1.5" style={{ fontFamily: UUI.font, fontSize: 10, color: UUI.neutral500 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: UUI.green500, display: 'inline-block', flexShrink: 0 }} />
+        Could buy in {periodToYear(earliest)}
+      </span>
+      <button
+        type="button"
+        onClick={() => onMove(earliest)}
+        style={{ fontFamily: UUI.font, fontSize: 10, fontWeight: 600, color: UUI.neutral900 }}
+        className="hover:underline cursor-pointer bg-transparent border-none p-0"
+      >
+        Move
+      </button>
+    </div>
+  );
+};
+
+const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, sources, onFieldChange, onRemove, failure, isDismissed, onDismissAlert, insight }) => {
   const purchaseYear = property.targetPeriod
     ? BASE_YEAR + Math.floor((property.targetPeriod - 1) / PERIODS_PER_YEAR)
     : BASE_YEAR + index;
@@ -411,6 +450,9 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
       </div>
 
+      {/* Timing insight — pull-forward opportunity or binding constraint */}
+      {insight && <TimingHint insight={insight} onMove={period => onFieldChange('targetPeriod', period)} />}
+
       {/* Price + Rent */}
       <div className="grid grid-cols-2 gap-2">
         <div>{fieldLabel('Price ($)', 'purchasePrice')}{borderedInput(fmtNum(property.purchasePrice), 'purchasePrice')}</div>
@@ -425,7 +467,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
         <div>
           <div style={{ fontFamily: UUI.font, fontSize: 10, color: UUI.neutral400, marginBottom: 4 }} className="flex items-center">Sell</div>
-          <BriefSaleYearToggle value={(property as any).saleYear} onChange={v => onFieldChange('saleYear', v)} />
+          <BriefSaleYearToggle value={property.saleYear} onChange={v => onFieldChange('saleYear', v)} />
         </div>
       </div>
     </div>
@@ -548,6 +590,22 @@ interface ConfirmationBriefProps {
 }
 
 /**
+ * Merge the brief's edited existing-portfolio rows into the response. Used by
+ * BOTH the live pre-check and handleConfirm so the affordability alerts always
+ * test exactly what approval will submit to the dashboard.
+ */
+function mergeExistingIntoResponse(response: NLParseResponse, existingProps: ExistingProp[]): NLParseResponse {
+  if (!response.clientProfile) return response;
+  return {
+    ...response,
+    clientProfile: {
+      ...response.clientProfile,
+      existingPortfolio: existingProps.length > 0 ? existingProps : undefined,
+    },
+  };
+}
+
+/**
  * Enrich raw AI properties with template defaults (rent, interest rate, etc.)
  * so the confirmation screen shows realistic values instead of zeros.
  * Mirrors what mapToPropertySelections does in nlDataMapper.ts.
@@ -598,20 +656,86 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const [existingProps, setExistingProps] = useState<ExistingProp[]>(
     () => cp?.existingPortfolio ? structuredClone(cp.existingPortfolio) : []
   );
+  const existingPropsRef = useRef(existingProps);
+  existingPropsRef.current = existingProps;
 
-  // Pre-check the exact response handleConfirm will submit: the edited
-  // existing portfolio merged in, falling back to the dashboard's existing
-  // properties when neither the AI nor the user supplied any — the same data
-  // the dashboard will test with after confirm.
-  const preCheckResult = useMemo(() => {
-    const responseForCheck: NLParseResponse = {
-      ...editedResponse,
-      clientProfile: editedResponse.clientProfile
-        ? { ...editedResponse.clientProfile, existingPortfolio: existingProps.length > 0 ? existingProps : undefined }
-        : editedResponse.clientProfile,
-    };
-    return runPlanPreCheck(responseForCheck, profile, contextExistingProps);
-  }, [editedResponse, existingProps, profile, contextExistingProps]);
+  // Single source of truth: the exact response that confirm will submit.
+  // Pre-check and insights run against THIS object, so what the alerts say
+  // is guaranteed to match what lands on the dashboard.
+  const responseForCheck = useMemo(
+    () => mergeExistingIntoResponse(editedResponse, existingProps),
+    [editedResponse, existingProps]
+  );
+
+  // Falls back to the dashboard's existing properties when neither the AI
+  // nor the user supplied any — the same data the dashboard tests with.
+  const preCheckResult = useMemo(
+    () => runPlanPreCheck(responseForCheck, profile, contextExistingProps),
+    [responseForCheck, profile, contextExistingProps]
+  );
+
+  // Per-property timing insights: earliest feasible year + binding constraint
+  const timingInsights = useMemo(
+    () => analyzePlanTimings(responseForCheck, profile, contextExistingProps),
+    [responseForCheck, profile, contextExistingProps]
+  );
+
+  // Pull every property forward to its earliest feasible year, re-analyzing
+  // after each move so earlier purchases (which consume funds sooner) can't
+  // silently break the ones behind them.
+  const pullForwardCount = timingInsights.filter(isPullForward).length;
+  const applyPullForwards = () => {
+    let resp = mergeExistingIntoResponse(editedResponseRef.current, existingPropsRef.current);
+    const movedIndexes: number[] = [];
+    for (let guard = 0; guard < 10; guard++) {
+      const insights = analyzePlanTimings(resp, profile, contextExistingProps);
+      const move = insights.find(isPullForward);
+      if (!move) break;
+      movedIndexes.push(move.propertyIndex);
+      resp = {
+        ...resp,
+        properties: resp.properties!.map((p, idx) =>
+          idx === move.propertyIndex ? { ...p, targetPeriod: move.earliestFeasiblePeriod! } : p
+        ),
+      };
+    }
+    if (movedIndexes.length === 0) return;
+    const movedProperties = resp.properties;
+    setEditedResponse(prev => ({ ...prev, properties: movedProperties }));
+    setEditedPropertySources(prev => {
+      const updated = [...prev];
+      for (const idx of movedIndexes) {
+        updated[idx] = { ...(updated[idx] ?? {}), targetPeriod: 'user' };
+      }
+      return updated;
+    });
+  };
+
+  // High-level constraint notes for the plan-explanation card: which tests
+  // are holding the plan back, ordered by how many purchases each one binds,
+  // with the lever that improves it.
+  const constraintNotes = useMemo(() => {
+    const counts: Record<BindingTest, number> = { deposit: 0, serviceability: 0, borrowingCapacity: 0 };
+    timingInsights.forEach(t => new Set(t.bindingTests).forEach(k => counts[k]++));
+    const plural = (n: number) => (n === 1 ? '1 purchase' : `${n} purchases`);
+    return ([
+      {
+        n: counts.deposit,
+        text: `Deposit cash holds back ${plural(counts.deposit)} — improve with higher savings, equity release from existing properties, or lower purchase prices.`,
+      },
+      {
+        n: counts.serviceability,
+        text: `Loan serviceability limits ${plural(counts.serviceability)} — trust structures, stronger rents, or higher income lift it.`,
+      },
+      {
+        n: counts.borrowingCapacity,
+        text: `The borrowing capacity ceiling limits ${plural(counts.borrowingCapacity)} — trust entities or an updated lending pre-approval raise it.`,
+      },
+    ] as const)
+      .filter(e => e.n > 0)
+      .sort((a, b) => b.n - a.n)
+      .map(e => e.text);
+  }, [timingInsights]);
   const failureByIndex = useMemo(() => {
     const map = new Map<number, PreCheckFailure>();
     preCheckResult.failures.forEach(f => map.set(f.propertyIndex - 1, f));
@@ -655,8 +779,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     const current = editedResponseRef.current;
     console.warn('[Brief] handleConfirm targetPeriods:', (current.properties ?? []).map((p, i) => `P${i+1}=${p.targetPeriod}`).join(', '));
     const finalResponse = {
-      ...current,
-      clientProfile: current.clientProfile ? { ...current.clientProfile, existingPortfolio: existingProps.length > 0 ? existingProps : undefined } : current.clientProfile,
+      ...mergeExistingIntoResponse(current, existingPropsRef.current),
       clientProfileSources: editedClientSources,
       investmentProfileSources: editedProfileSources,
       propertySources: editedPropertySources,
@@ -739,8 +862,17 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   <ClientRow label="Annual savings" source={getSource(editedProfileSources, 'annualSavings')} delay={230}>
                     <NumInput value={ip?.annualSavings ?? 0} prefix="$" onChange={v => updateProfileField('annualSavings', v)} />
                   </ClientRow>
-                  <ClientRow label="Usable equity" source={getSource(editedClientSources, 'usableEquityOverride')} delay={280}>
-                    <NumInput value={(cp as any)?.usableEquityOverride ?? Math.max(0, ((cp?.existingPropertyEquity ?? 0) * 0.8) - (cp?.existingPropertyDebt ?? 0))} prefix="$" onChange={v => updateClientField('usableEquityOverride', v)} />
+                  <ClientRow label="Usable equity" source={getSource(editedClientSources, 'existingPropertyEquity')} delay={280}>
+                    {existingProps.length > 0 ? (
+                      // Derived from the existing portfolio blocks below — the engine
+                      // uses per-property values when they exist, so show that figure
+                      // instead of an editable field that would be ignored.
+                      <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral900 }} title="Derived from the existing portfolio below (80% of value less loans)">
+                        {fmtDollar(existingProps.reduce((s, p) => s + Math.max(0, (p.currentValue ?? 0) * 0.8 - (p.loan ?? 0)), 0))}
+                      </span>
+                    ) : (
+                      <NumInput value={cp?.existingPropertyEquity ?? 0} prefix="$" onChange={v => updateClientField('existingPropertyEquity', v)} />
+                    )}
                   </ClientRow>
                 </div>
 
@@ -827,8 +959,8 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
             )}
           </div>
 
-          {/* ── AI strategy explanation ── */}
-          {editedResponse.message && (
+          {/* ── AI strategy explanation + plan constraint notes ── */}
+          {(editedResponse.message || constraintNotes.length > 0) && (
             <div
               style={{
                 background: UUI.neutral50,
@@ -839,9 +971,29 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 animation: 'briefBlockIn 0.35s ease-out both',
               }}
             >
-              <div style={{ fontSize: 11, color: UUI.neutral500, lineHeight: '17px' }}>
-                {editedResponse.message}
-              </div>
+              {editedResponse.message && (
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: UUI.neutral400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 5 }}>
+                    Proposed plan
+                  </div>
+                  <div style={{ fontSize: 11, color: UUI.neutral500, lineHeight: '17px' }}>
+                    {editedResponse.message}
+                  </div>
+                </>
+              )}
+              {constraintNotes.length > 0 && (
+                <div style={{ marginTop: editedResponse.message ? 10 : 0, paddingTop: editedResponse.message ? 10 : 0, borderTop: editedResponse.message ? `1px solid ${UUI.neutral200}` : 'none' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: UUI.neutral400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 5 }}>
+                    What's limiting this plan
+                  </div>
+                  {constraintNotes.map((note, i) => (
+                    <div key={i} className="flex items-start gap-2" style={{ fontSize: 11, color: UUI.neutral500, lineHeight: '17px' }}>
+                      <span style={{ color: UUI.neutral400 }}>·</span>
+                      <span>{note}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -868,6 +1020,39 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
             );
           })()}
 
+          {/* ── Pull-forward opportunity strip ── */}
+          {pullForwardCount > 0 && (
+            <div
+              style={{
+                background: UUI.white,
+                borderRadius: 10,
+                border: `1px solid ${UUI.neutral200}`,
+                padding: '8px 14px',
+                fontFamily: UUI.font,
+                animation: 'briefBlockIn 0.35s ease-out both',
+              }}
+              className="flex items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-2" style={{ fontSize: 11, color: UUI.neutral500, lineHeight: '17px' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: UUI.green500, display: 'inline-block', flexShrink: 0 }} />
+                <span>
+                  <span style={{ fontWeight: 600, color: UUI.neutral700 }}>
+                    {pullForwardCount === 1 ? '1 purchase' : `${pullForwardCount} purchases`} could happen earlier.
+                  </span>
+                  {' '}The plan has more funding capacity than its current timing uses.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={applyPullForwards}
+                style={{ fontFamily: UUI.font, fontSize: 11, fontWeight: 600, color: UUI.neutral700, backgroundColor: UUI.white, border: `1px solid ${UUI.neutral200}`, borderRadius: 8, padding: '4px 12px', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                className="transition-colors cursor-pointer hover:bg-neutral-50"
+              >
+                Pull forward
+              </button>
+            </div>
+          )}
+
           {/* ── Planned property blocks ── */}
           <div>
             <div className="mb-2">
@@ -889,6 +1074,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                     setDismissedAlerts(prev => new Set(prev).add(i));
                     updatePropertyField(i, 'alertDismissed', true);
                   }}
+                  insight={timingInsights[i]}
                 />
               ))}
               <button

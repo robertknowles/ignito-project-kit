@@ -102,7 +102,7 @@ const INITIAL_PROFILE_DEFAULTS: Partial<InvestmentProfileData> = {
   growthCurve: { growthYear1: '8', growthYears2to3: '6', growthYear4: '5', growthYear5plus: '4' },
 };
 
-export function runPlanPreCheck(response: NLParseResponse, baseProfile?: InvestmentProfileData, fallbackExistingProps?: ExistingProperty[]): PreCheckResult {
+export function runPlanPreCheck(response: NLParseResponse, baseProfile?: InvestmentProfileData, fallbackExistingProps?: ExistingProperty[], options?: { silent?: boolean }): PreCheckResult {
   if (!response.properties || response.properties.length === 0) {
     return { allFeasible: true, failures: [], feedbackMessage: '' };
   }
@@ -137,7 +137,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
     : undefined;
   const { propertyOrder, instances } = mapToPropertySelections(response, lvrOverride);
 
-  console.info('[PreCheck] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
+  if (!options?.silent) console.info('[PreCheck] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
 
   // Build engine deps from the mapped instances (no React context needed)
   const deps: EngineDeps = {
@@ -207,7 +207,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
       profile, existingProps, [], deps,
     );
 
-    console.info(`[PreCheck] Property ${index + 1} ($${Math.round(purchasePrice / 1000)}k) at period ${period}: deposit=${result.depositTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.depositTestSurplus / 1000)}k), svc=${result.serviceabilityTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.serviceabilityTestSurplus / 1000)}k), BC=${result.borrowingCapacityTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.borrowingCapacityRemaining / 1000)}k), entity=${instance.entity ?? 'individual'}, funds=$${Math.round(availableFunds.total / 1000)}k, cashReq=$${Math.round(totalCashRequired / 1000)}k`)
+    if (!options?.silent) console.info(`[PreCheck] Property ${index + 1} ($${Math.round(purchasePrice / 1000)}k) at period ${period}: deposit=${result.depositTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.depositTestSurplus / 1000)}k), svc=${result.serviceabilityTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.serviceabilityTestSurplus / 1000)}k), BC=${result.borrowingCapacityTestPass ? 'PASS' : 'FAIL'}(${Math.round(result.borrowingCapacityRemaining / 1000)}k), entity=${instance.entity ?? 'individual'}, funds=$${Math.round(availableFunds.total / 1000)}k, cashReq=$${Math.round(totalCashRequired / 1000)}k`)
 
     if (!result.canAfford) {
       failures.push({
@@ -263,6 +263,127 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
   const feedbackMessage = `[SYSTEM] The engine ran a pre-check on your proposed plan. ${failures.length} of ${propertyOrder.length} properties failed affordability tests:\n\n${failureLines}\n\nAdjust the plan and CALL create_plan AGAIN with the corrected properties. Do NOT respond with a text message — you MUST use the create_plan tool to resubmit. Options:\n1. Set entity to "trust" on properties that failed (reduces serviceability impact by 75%)\n2. Reduce property prices to fit within capacity\n3. Reduce the number of properties`;
 
   return { allFeasible: false, failures, feedbackMessage };
+}
+
+// ── Plan timing insights ─────────────────────────────────────────────
+
+export interface PropertyTimingInsight {
+  /** 0-based index into response.properties */
+  propertyIndex: number;
+  /** Period the property is currently tested at (targetPeriod or default) */
+  testedPeriod: number;
+  /** Whether all three tests pass at the tested period */
+  feasibleAtTested: boolean;
+  /** Earliest period where all tests pass (holding other properties fixed). Null = none found within the scan horizon. */
+  earliestFeasiblePeriod: number | null;
+  /**
+   * Human-readable reasons for the binding constraint. When the property
+   * fails at its tested period, these describe that failure. When it passes,
+   * these describe why the year before earliestFeasiblePeriod fails — i.e.
+   * what is stopping it from being earlier.
+   */
+  blockers: string[];
+  /** Structured version of blockers — which tests bind this property's timing */
+  bindingTests: BindingTest[];
+}
+
+export type BindingTest = 'deposit' | 'serviceability' | 'borrowingCapacity';
+
+function failedTestKinds(f: PreCheckFailure): BindingTest[] {
+  const out: BindingTest[] = [];
+  if (!f.depositTestPass) out.push('deposit');
+  if (!f.serviceabilityTestPass) out.push('serviceability');
+  if (!f.borrowingCapacityTestPass) out.push('borrowingCapacity');
+  return out;
+}
+
+function describeFailure(f: PreCheckFailure): string[] {
+  const out: string[] = [];
+  if (!f.depositTestPass) out.push(`deposit short $${Math.abs(Math.round(f.depositTestSurplus / 1000))}k`);
+  if (!f.serviceabilityTestPass) out.push(`serviceability over by $${Math.abs(Math.round(f.serviceabilityTestSurplus / 1000))}k/yr`);
+  if (!f.borrowingCapacityTestPass) out.push(`borrowing capacity over by $${Math.abs(Math.round(f.borrowingCapacityRemaining / 1000))}k`);
+  return out;
+}
+
+/**
+ * For each proposed property, find the earliest feasible purchase period and
+ * the binding constraint. Powers the brief's "could buy earlier" hints and
+ * bottleneck explanations. Runs the same pre-check the alerts use, so the
+ * insights can never disagree with the alerts or the dashboard.
+ */
+export function analyzePlanTimings(
+  response: NLParseResponse,
+  baseProfile?: InvestmentProfileData,
+  fallbackExistingProps?: ExistingProperty[],
+): PropertyTimingInsight[] {
+  if (!response.properties || response.properties.length === 0) return [];
+
+  // How far past the tested period to keep scanning for a feasible slot
+  const SCAN_AHEAD_PERIODS = 20; // 10 years
+
+  // Which properties already fail in the plan as-is. A candidate move is only
+  // "feasible" if it doesn't break any property that currently passes —
+  // otherwise "could buy earlier" would just shuffle the failure elsewhere.
+  const baseResult = runPlanPreCheck(response, baseProfile, fallbackExistingProps, { silent: true });
+  const originallyFailing = new Set(baseResult.failures.map(f => f.propertyIndex));
+
+  return response.properties.map((prop, i) => {
+    const testedPeriod = prop.targetPeriod ?? (i * 2 + 1);
+
+    // Re-run the pre-check with only this property's period changed. Returns
+    // this property's own failure plus any NEW failure the move would cause
+    // on a property that currently passes.
+    const checkAt = (period: number): { own?: PreCheckFailure; breaks?: PreCheckFailure } => {
+      const candidate: NLParseResponse = {
+        ...response,
+        properties: response.properties!.map((p, idx) => (idx === i ? { ...p, targetPeriod: period } : p)),
+      };
+      const result = runPlanPreCheck(candidate, baseProfile, fallbackExistingProps, { silent: true });
+      return {
+        own: result.failures.find(f => f.propertyIndex === i + 1),
+        breaks: result.failures.find(f => f.propertyIndex !== i + 1 && !originallyFailing.has(f.propertyIndex)),
+      };
+    };
+
+    // Scan year steps (odd periods, matching the brief's year stepper) from
+    // period 1 outwards to find the earliest period where this property
+    // passes all tests AND nothing else newly breaks.
+    let earliestFeasiblePeriod: number | null = null;
+    for (let p = 1; p <= testedPeriod + SCAN_AHEAD_PERIODS; p += 2) {
+      const { own, breaks } = checkAt(p);
+      if (!own && !breaks) {
+        earliestFeasiblePeriod = p;
+        break;
+      }
+    }
+
+    const atTested = checkAt(testedPeriod);
+    let blockers: string[] = [];
+    let bindingTests: BindingTest[] = [];
+    if (atTested.own) {
+      blockers = describeFailure(atTested.own);
+      bindingTests = failedTestKinds(atTested.own);
+    } else if (earliestFeasiblePeriod !== null && earliestFeasiblePeriod > 2) {
+      // Passing — explain what blocks the year before the earliest slot
+      const earlier = checkAt(earliestFeasiblePeriod - 2);
+      if (earlier.own) {
+        blockers = describeFailure(earlier.own);
+        bindingTests = failedTestKinds(earlier.own);
+      } else if (earlier.breaks) {
+        blockers = [`would break Property ${earlier.breaks.propertyIndex}`];
+        bindingTests = failedTestKinds(earlier.breaks);
+      }
+    }
+
+    return {
+      propertyIndex: i,
+      testedPeriod,
+      feasibleAtTested: !atTested.own,
+      earliestFeasiblePeriod,
+      blockers,
+      bindingTests,
+    };
+  });
 }
 
 /**

@@ -263,6 +263,11 @@ export function mapToPropertySelections(
       instance.manualPlacementPeriod = prop.targetPeriod;
     }
 
+    // Optional: planned sale year (set via the brief's Sell toggle)
+    if (prop.saleYear !== undefined) {
+      instance.saleYear = prop.saleYear;
+    }
+
     if (prop.alertDismissed) {
       instance.alertDismissed = true;
     }

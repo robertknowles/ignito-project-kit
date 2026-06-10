@@ -130,6 +130,7 @@ export interface NLParseResponse {
     targetPeriod?: number; // Preferred timing (period number, semi-annual)
     entity?: 'individual' | 'trust' | 'company' | 'smsf';
     alertDismissed?: boolean; // Buyer's agent dismissed the affordability alert
+    saleYear?: number | null; // Planned sale year (null/undefined = hold)
   }>;
 
   // For modification — what to change (single or multiple)
