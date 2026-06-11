@@ -30,6 +30,7 @@ const UUI = {
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
   success: '#00A63E',
+  error600: '#D92D20',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
@@ -52,6 +53,23 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
       <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill={UUI.brand600} />
       <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
         CF Positive ✓
+      </text>
+    </g>
+  );
+};
+
+/** Savings breach marker — badge pinned to top of chart, red variant of the CF Positive badge */
+const ExceedsSavingsMarker = ({ viewBox }: any) => {
+  if (!viewBox) return null;
+  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
+  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
+  const badgeY = 4;
+  return (
+    <g>
+      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.error600} strokeWidth={1.5} strokeDasharray="3 2" />
+      <rect x={cx - 52} y={badgeY} width={104} height={22} rx={11} fill={UUI.error600} />
+      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
+        Exceeds savings
       </text>
     </g>
   );
@@ -82,13 +100,31 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     const endYear = BASE_YEAR + profile.timelineYears - 1;
     const capped = rawData.filter(d => Number(d.year) <= endYear);
 
+    // Savings floor mirrors the client's stated annual savings below zero — the
+    // deepest sustained shortfall they can hold. Raw input, no deployment scaling.
+    const annualSavings = Math.max(0, Math.round(profile.annualSavings ?? 0));
+
     return capped.map(d => ({
       year: d.year,
       income: Math.round(d.rentalIncome),
       expenses: Math.round(d.expenses + d.loanRepayments),
       netCashflow: Math.round(d.cashflow),
+      savingsFloor: annualSavings > 0 ? -annualSavings : null,
     }));
-  }, [cashflowData, profile.timelineYears]);
+  }, [cashflowData, profile.timelineYears, profile.annualSavings]);
+
+  const hasSavingsFloor = data.length > 0 && data[0].savingsFloor != null;
+
+  // Worst breach: the year where the shortfall exceeds the client's savings by the most
+  const worstBreachPoint = useMemo(() => {
+    if (!hasSavingsFloor) return null;
+    let worst: (typeof data)[number] | null = null;
+    for (const d of data) {
+      if (d.savingsFloor == null || d.netCashflow >= d.savingsFloor) continue;
+      if (!worst || d.netCashflow - d.savingsFloor < worst.netCashflow - (worst.savingsFloor as number)) worst = d;
+    }
+    return worst;
+  }, [data, hasSavingsFloor]);
 
   // Find where net cashflow goes positive and STAYS positive (no dips back below zero)
   const cashflowPositivePoint = useMemo(() => {
@@ -112,7 +148,9 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
     const income = payload.find((p: any) => p.dataKey === 'income')?.value ?? 0;
     const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value ?? 0;
-    const net = data.find(d => d.year === label)?.netCashflow ?? (income - expenses);
+    const point = data.find(d => d.year === label);
+    const net = point?.netCashflow ?? (income - expenses);
+    const headroom = point?.savingsFloor != null ? net - point.savingsFloor : null;
 
     return (
       <div
@@ -150,6 +188,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}/yr
           </span>
         </div>
+        {headroom != null && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginTop: 4 }}>
+            <span style={{ color: UUI.neutral500 }}>Headroom</span>
+            <span style={{ fontWeight: 500, color: headroom >= 0 ? UUI.neutral700 : UUI.error600 }}>
+              {headroom >= 0 ? '+' : '-'}${Math.abs(headroom).toLocaleString()}/yr
+            </span>
+          </div>
+        )}
       </div>
     );
   };
@@ -201,6 +247,20 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
           <Line dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
+          {/* Client savings rate — dashed floor mirrored below zero; cashflow must stay above it */}
+          {hasSavingsFloor && (
+            <Line
+              dataKey="savingsFloor"
+              name="Client Savings Rate"
+              stroke={UUI.neutral500}
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+            />
+          )}
+
           {/* Net Cashflow — striped area fill + solid line (UUI pattern) */}
           <Area
             type="monotone"
@@ -212,6 +272,20 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             dot={false}
             isAnimationActive={false}
           />
+
+          {/* Savings breach marker — worst year where the shortfall exceeds client savings */}
+          {worstBreachPoint && (
+            <ReferenceDot
+              x={worstBreachPoint.year}
+              y={worstBreachPoint.netCashflow}
+              r={6}
+              fill={UUI.error600}
+              stroke="white"
+              strokeWidth={2.5}
+            >
+              <Label content={<ExceedsSavingsMarker />} />
+            </ReferenceDot>
+          )}
 
           {/* Cashflow positive milestone marker */}
           {cashflowPositivePoint && (

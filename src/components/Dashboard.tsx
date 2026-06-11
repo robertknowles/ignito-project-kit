@@ -225,6 +225,23 @@ export const Dashboard = () => {
         : 0,
       rentalIncomeAnnual: lastCf ? Math.round(lastCf.rentalIncome) : 0,
       holdingCostsAnnual: lastCf ? Math.round(lastCf.expenses + lastCf.loanRepayments) : 0,
+      ...(() => {
+        // Cashflow headroom: stated annual savings less the worst shortfall on the
+        // timeline. Raw input — deliberately not scaled by SAVINGS_DEPLOYMENT_RATE.
+        const annualSavings = Math.max(0, Math.round(displayScenarioAData?.profile?.annualSavings ?? 0));
+        const endYear = BASE_YEAR + displayYears - 1;
+        let tightestHeadroom: number | null = null;
+        let tightestHeadroomYear: string | null = null;
+        for (const d of cfData) {
+          if (Number(d.year) > endYear) continue;
+          const headroom = annualSavings + Math.round(d.rentalIncome - d.expenses - d.loanRepayments);
+          if (tightestHeadroom === null || headroom < tightestHeadroom) {
+            tightestHeadroom = headroom;
+            tightestHeadroomYear = d.year;
+          }
+        }
+        return { annualSavings, tightestHeadroom, tightestHeadroomYear };
+      })(),
       borrowingHeadroom: (() => {
         const profile = displayScenarioAData?.profile;
         if (!lastGrowth || !profile) return 0;
@@ -455,14 +472,22 @@ export const Dashboard = () => {
             {/* Net Cashflow chart */}
             <ChartCard
               title="Net Cashflow"
-              legend={[{ color: '#7F56D9', label: 'Net Cashflow' }]}
+              legend={[
+                { color: '#7F56D9', label: 'Net Cashflow' },
+                ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate' }] : []),
+              ]}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     {formatCompact(kpis.netCashflowAnnual)}
                   </span>
-                  <span className="text-sm text-neutral-500">/yr by {BASE_YEAR + displayYears - 1}</span>
+                  <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
+                  {kpis.annualSavings > 0 && kpis.tightestHeadroom !== null && (
+                    <span className={`text-sm whitespace-nowrap ${kpis.tightestHeadroom < 0 ? 'text-red-500' : 'text-neutral-500'}`}>
+                      &middot; tightest headroom {kpis.tightestHeadroom < 0 ? '-' : ''}${Math.abs(kpis.tightestHeadroom).toLocaleString()}/yr ({kpis.tightestHeadroomYear})
+                    </span>
+                  )}
                 </div>
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
