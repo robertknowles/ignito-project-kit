@@ -29,6 +29,8 @@ export interface ExistingProperty {
   entity?: 'individual' | 'trust' | 'company' | 'smsf'
   lvrOverride?: number | null
   yieldOverride?: number | null
+  holdingCostOverride?: number | null
+  purchaseCostsOverride?: number | null
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({

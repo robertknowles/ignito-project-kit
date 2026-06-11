@@ -261,17 +261,6 @@ export const Dashboard = () => {
     };
   }, [chartDataA, kpis, liveTimelineProperties]);
 
-  const addPropertyBtn = (
-    <button
-      onClick={() => setIsLibraryOpen(true)}
-      className="flex items-center gap-1 px-2 text-[12px] font-medium text-neutral-500 hover:text-neutral-700 rounded hover:bg-neutral-100 transition-colors cursor-pointer"
-    style={{ height: 20, lineHeight: '20px' }}
-    >
-      <Plus size={14} />
-      Add property
-    </button>
-  );
-
   const hasPlan = livePropertyOrder.length > 0 || liveTimelineProperties.length > 0;
   if (pendingPlanResponse) {
     return (
@@ -425,7 +414,15 @@ export const Dashboard = () => {
         {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
           <>
-            <ChartCard title="Purchases" flush>
+            <ChartCard title="Purchases" flush action={
+              <button
+                onClick={() => setIsLibraryOpen(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                <Plus size={14} />
+                Add property
+              </button>
+            }>
               <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
             </ChartCard>
 

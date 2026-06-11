@@ -9,6 +9,7 @@ import { getEventLabel, EVENT_TYPES } from '@/constants/eventTypes'
 import { EventTypeIcon } from '@/utils/eventIcons'
 import { EventConfigModal } from './EventConfigModal'
 import { PERIODS_PER_YEAR, BASE_YEAR } from '@/constants/financialParams'
+import { parseShorthandNumber } from '@/utils/parseShorthandNumber'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
 
@@ -67,8 +68,8 @@ const EditableNumRow: React.FC<{
           onChange={e => setDraft(e.target.value)}
           onBlur={() => {
             setFocused(false)
-            const n = parseFloat(draft)
-            if (!isNaN(n)) {
+            const n = parseShorthandNumber(draft)
+            if (n !== null) {
               const stored = isDecimalPercent ? n / 100 : n
               if (stored !== value) {
                 updateProfile({ [field]: stored } as Partial<InvestmentProfileData>)

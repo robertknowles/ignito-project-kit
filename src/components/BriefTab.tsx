@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback, useRef } from 'react'
 import { Target, DollarSign, TrendingUp, Home, CheckCircle2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import type { ExistingProperty } from '@/types/existingProperty'
@@ -12,6 +13,8 @@ import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { calcGrossYield } from '../utils/sharedFinancialCalcs'
+import { parseShorthandNumber } from '../utils/parseShorthandNumber'
+import { useRemoveTimelineProperty } from '../hooks/useRemoveTimelineProperty'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
@@ -87,8 +90,8 @@ const EditableNumRow: React.FC<{
           onChange={e => setDraft(e.target.value)}
           onBlur={() => {
             setFocused(false)
-            const n = parseFloat(draft)
-            if (!isNaN(n) && n !== value) {
+            const n = parseShorthandNumber(draft)
+            if (n !== null && n !== value) {
               notifyEdit('brief', { subject: 'Next purchase', fieldLabel: label, from: value, to: n })
               updateInstance(instanceId, { [field]: n } as Partial<PropertyInstanceDetails>)
             }
@@ -171,16 +174,29 @@ export const BriefTab: React.FC = () => {
   const [subTab, setSubTab] = useState<BriefSubTab>('purchase')
   const { timelineProperties } = useAffordabilityCalculator()
   const { instances } = usePropertyInstance()
-  const { profile } = useInvestmentProfile()
+  const { profile, updateProfile } = useInvestmentProfile()
+  const { notifyEdit } = useChangeReceipt()
+  const removeTimelineProperty = useRemoveTimelineProperty()
 
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { propertyProjections } = usePortfolioProjection()
 
+  // Purchase animation: clicking "Purchased property" plays a pull-away on the
+  // brief content first, then commits the data move once it completes. The
+  // commit is scheduled from the click itself (not an animation callback) so
+  // nothing but the button can ever trigger it.
+  const [purchasing, setPurchasing] = useState(false)
+  const [purchaseSeq, setPurchaseSeq] = useState(0)
+  const completePurchaseRef = useRef<() => void>(() => {})
+
   const nextProp = timelineProperties.find(p => p.status === 'feasible')
   const instanceData = nextProp ? instances[nextProp.instanceId] : null
 
-  const handleMarkPurchased = useCallback(() => {
-    if (!nextProp || !instanceData) return
+  const completePurchase = useCallback(() => {
+    if (!nextProp || !instanceData) {
+      setPurchasing(false)
+      return
+    }
     const acqCosts = nextProp.acquisitionCosts
     const newExisting: ExistingProperty = {
       id: `ep-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -205,10 +221,25 @@ export const BriefTab: React.FC = () => {
       maintenance: instanceData.maintenanceAllowanceAnnual || 0,
       growthAssumption: instanceData.growthAssumption || 'Medium',
       loanTerm: instanceData.loanTerm || 30,
+      ioTermYears: instanceData.ioTermYears ?? 5,
+      strata: instanceData.strata || 0,
+      entity: instanceData.entity ?? 'individual',
     }
-    setExistingProperties([...existingProperties, newExisting])
-    toast.success('Property marked as purchased and moved to Existing Portfolio')
-  }, [nextProp, instanceData, existingProperties, setExistingProperties])
+    const next = [...existingProperties, newExisting]
+    setExistingProperties(next)
+    // Keep profile aggregates in sync, same as PortfolioTab does on add/edit
+    updateProfile({
+      currentDebt: next.reduce((s, p) => s + p.loan, 0),
+      portfolioValue: next.reduce((s, p) => s + p.currentValue, 0),
+      existingAnnualRent: next.reduce((s, p) => s + (p.rentPerWeek || 0) * 52, 0),
+    })
+    removeTimelineProperty(nextProp.instanceId)
+    notifyEdit('brief', `${nextProp.title || 'Next purchase'} marked as purchased`)
+    toast.success('Property moved to Existing Portfolio')
+    setPurchasing(false)
+    setPurchaseSeq(s => s + 1)
+  }, [nextProp, instanceData, existingProperties, setExistingProperties, updateProfile, removeTimelineProperty, notifyEdit])
+  completePurchaseRef.current = completePurchase
 
   const projection = useMemo(() => {
     if (!nextProp) return null
@@ -444,18 +475,30 @@ export const BriefTab: React.FC = () => {
         />
       </div>
       <button
-        onClick={handleMarkPurchased}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors"
+        onClick={() => {
+          if (purchasing) return
+          setPurchasing(true)
+          window.setTimeout(() => completePurchaseRef.current(), 380)
+        }}
+        disabled={purchasing}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors disabled:opacity-50 disabled:pointer-events-none"
       >
         <CheckCircle2 size={14} />
         Purchased property
       </button>
       </div>
 
-      {/* Tab content */}
-      {subTab === 'purchase' && purchaseTab}
-      {subTab === 'hold' && holdTab}
-      {subTab === 'performance' && performanceTab}
+      {/* Tab content — pulls away on purchase, next brief slides in */}
+      <motion.div
+        key={purchaseSeq}
+        initial={purchaseSeq === 0 ? false : { opacity: 0, y: 16 }}
+        animate={purchasing ? { opacity: 0, y: -32, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      >
+        {subTab === 'purchase' && purchaseTab}
+        {subTab === 'hold' && holdTab}
+        {subTab === 'performance' && performanceTab}
+      </motion.div>
     </div>
   )
 }

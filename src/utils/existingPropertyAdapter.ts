@@ -46,6 +46,8 @@ export function convertExistingToInstance(
     landTaxOverride: null,
     vacancyRate: ep.vacancyRate,
     saleYear: ep.saleYear,
+    holdingCostOverride: ep.holdingCostOverride ?? null,
+    purchaseCostsOverride: ep.purchaseCostsOverride ?? null,
   };
 }
 

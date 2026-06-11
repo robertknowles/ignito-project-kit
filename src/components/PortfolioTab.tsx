@@ -7,6 +7,7 @@ import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
+import { parseShorthandNumber } from '../utils/parseShorthandNumber'
 import {
   BarChart as RechartsBarChart, Bar, XAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -39,14 +40,16 @@ const deriveMetrics = (p: ExistingProperty) => {
   const annualRent = calcAnnualRent(p.rentPerWeek)
   const interest = p.loan * (p.interestRate / 100)
   const mgmt = annualRent * (p.propertyMgmtPercent / 100)
-  const totalExpenses = interest + mgmt + p.councilWater + p.insurance + p.maintenance
+  const holdingCosts = p.holdingCostOverride ?? (mgmt + p.councilWater + p.insurance + (p.strata ?? 0) + p.maintenance)
+  const totalExpenses = interest + holdingCosts
   const netCashflow = annualRent - totalExpenses
   const capitalGrowth = p.currentValue - p.purchasePrice
   const growthPercent = p.purchasePrice > 0 ? (capitalGrowth / p.purchasePrice) * 100 : 0
   const yearsHeld = new Date().getFullYear() - p.boughtYear
   const lvr = p.currentValue > 0 ? (p.loan / p.currentValue) * 100 : 0
   const releasableEquity = calcReleasableEquity(p.currentValue, p.loan, 0.8)
-  const totalCapitalIn = p.stampDuty + p.legals + p.buildingPest + p.baFee + p.cashDeposit
+  const purchaseCosts = p.purchaseCostsOverride ?? (p.legals + p.buildingPest + p.baFee)
+  const totalCapitalIn = p.stampDuty + p.cashDeposit + purchaseCosts
   const roc = totalCapitalIn > 0 ? (equity / totalCapitalIn) * 100 : 0
   return { equity, annualRent, interest, mgmt, totalExpenses, netCashflow, capitalGrowth, growthPercent, yearsHeld, lvr, releasableEquity, totalCapitalIn, roc }
 }
@@ -70,14 +73,30 @@ const GROWTH_OPTIONS = [
 const NumCell: React.FC<{
   value: number
   onChange: (v: number) => void
-}> = ({ value, onChange }) => (
-  <input
-    type="number"
-    value={value || ''}
-    onChange={e => onChange(Number(e.target.value))}
-    className={numInput}
-  />
-)
+}> = ({ value, onChange }) => {
+  const [focused, setFocused] = useState(false)
+  const [draft, setDraft] = useState('')
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={focused ? draft : (value || '')}
+      onFocus={() => { setFocused(true); setDraft(value ? String(value) : '') }}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => {
+        setFocused(false)
+        if (draft.trim() === '') {
+          if (value) onChange(0)
+          return
+        }
+        const n = parseShorthandNumber(draft)
+        if (n !== null && n !== value) onChange(n)
+      }}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+      className={numInput}
+    />
+  )
+}
 
 const SelectCell: React.FC<{
   value: string
@@ -285,40 +304,31 @@ const COLUMNS: Column[] = [
       return <NumCell value={display} onChange={v => onChange(p.id, { yieldOverride: v || null })} />
     },
   },
+  // Annual holding cost + one-off purchase costs, rolled up to match the
+  // purchases table. Editing stores an override; components stay untouched.
   {
-    key: 'mgmt', header: 'Mgmt (%)',
-    render: (p, onChange) => <NumCell value={p.propertyMgmtPercent} onChange={v => onChange(p.id, { propertyMgmtPercent: v })} />,
+    key: 'holdingCost', header: 'Holding $/yr',
+    render: (p, onChange) => {
+      const mgmtDollar = (p.propertyMgmtPercent / 100) * calcAnnualRent(p.rentPerWeek)
+      const computed = Math.round(mgmtDollar + p.insurance + p.councilWater + (p.strata ?? 0) + p.maintenance)
+      const display = p.holdingCostOverride ?? computed
+      return <NumCell value={display} onChange={v => onChange(p.id, { holdingCostOverride: v || null })} />
+    },
   },
   {
-    key: 'council', header: 'Council ($)',
-    render: (p, onChange) => <NumCell value={p.councilWater} onChange={v => onChange(p.id, { councilWater: v })} />,
-  },
-  {
-    key: 'ins', header: 'Ins ($)',
-    render: (p, onChange) => <NumCell value={p.insurance} onChange={v => onChange(p.id, { insurance: v })} />,
-  },
-  {
-    key: 'maint', header: 'Maint ($)',
-    render: (p, onChange) => <NumCell value={p.maintenance} onChange={v => onChange(p.id, { maintenance: v })} />,
-  },
-  {
-    key: 'engage', header: 'Engage ($)',
-    render: (p, onChange) => <NumCell value={p.baFee} onChange={v => onChange(p.id, { baFee: v })} />,
-  },
-  {
-    key: 'inspect', header: 'Inspect ($)',
-    render: (p, onChange) => <NumCell value={p.buildingPest} onChange={v => onChange(p.id, { buildingPest: v })} />,
-  },
-  {
-    key: 'convey', header: 'Convey ($)',
-    render: (p, onChange) => <NumCell value={p.legals} onChange={v => onChange(p.id, { legals: v })} />,
+    key: 'purchaseCosts', header: 'Purchase Costs',
+    render: (p, onChange) => {
+      const computed = Math.round(p.baFee + p.buildingPest + p.legals)
+      const display = p.purchaseCostsOverride ?? computed
+      return <NumCell value={display} onChange={v => onChange(p.id, { purchaseCostsOverride: v || null })} />
+    },
   },
   {
     key: 'saleYear', header: 'Sell',
     render: (p, onChange) => <SaleYearTogglePortfolio value={p.saleYear} onChange={v => onChange(p.id, { saleYear: v })} />,
   },
   {
-    key: 'allowEquityRelease', header: 'Refi',
+    key: 'allowEquityRelease', header: 'Refinance',
     render: (p, onChange) => <CheckboxCell checked={p.allowEquityRelease !== false} onChange={v => onChange(p.id, { allowEquityRelease: v })} />,
   },
 ]
@@ -493,7 +503,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
       </button>
     }>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: 1600, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: 1400, tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b border-neutral-200">
               {COLUMNS.map((col, i) => (

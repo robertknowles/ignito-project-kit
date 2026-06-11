@@ -47,6 +47,8 @@ import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financia
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { TimelineProperty } from '../types/property';
 import { calcGrossYield, calcAnnualRent } from '../utils/sharedFinancialCalcs';
+import { parseShorthandNumber } from '../utils/parseShorthandNumber';
+import { useRemoveTimelineProperty, parseInstanceId } from '../hooks/useRemoveTimelineProperty';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 const GROWTH_OPTIONS = [
@@ -61,14 +63,6 @@ const PRODUCT_OPTIONS = [
 
 const DEFAULT_NEW_CELL_ID: CellId = 'metro-unit-cashflow';
 
-const parseInstanceId = (
-  instanceId: string
-): { propertyId: string; index: number } | null => {
-  const match = instanceId.match(/^(.+)_instance_(\d+)$/);
-  if (!match) return null;
-  return { propertyId: match[1], index: parseInt(match[2], 10) };
-};
-
 // ── Inline cell components ───────────────────────────────────────────────────
 
 const cellBase = 'w-full bg-transparent text-xs text-neutral-600 py-1 px-1 border-0 outline-none rounded hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 transition-colors';
@@ -78,16 +72,32 @@ const NumberInput: React.FC<{
   value: number | null | undefined;
   onChange: (v: number) => void;
   placeholder?: string;
-}> = ({ value, onChange, placeholder }) => (
-  <input
-    type="number"
-    value={value ?? ''}
-    onChange={e => onChange(Number(e.target.value))}
-    placeholder={placeholder}
-    className={numberInputClass}
-    onClick={e => e.stopPropagation()}
-  />
-);
+}> = ({ value, onChange, placeholder }) => {
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={focused ? draft : value ?? ''}
+      onFocus={() => { setFocused(true); setDraft(value != null ? String(value) : ''); }}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => {
+        setFocused(false);
+        if (draft.trim() === '') {
+          if (value != null) onChange(0);
+          return;
+        }
+        const n = parseShorthandNumber(draft);
+        if (n !== null && n !== value) onChange(n);
+      }}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      placeholder={placeholder}
+      className={numberInputClass}
+      onClick={e => e.stopPropagation()}
+    />
+  );
+};
 
 const SelectInput: React.FC<{
   value: string;
@@ -652,8 +662,8 @@ const BlockNumRow: React.FC<{
           onChange={e => setDraft(e.target.value)}
           onBlur={() => {
             setFocused(false);
-            const n = parseFloat(draft);
-            if (!isNaN(n) && n !== value) onChange(instanceId, field, n);
+            const n = parseShorthandNumber(draft);
+            if (n !== null && n !== value) onChange(instanceId, field, n);
           }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300"
@@ -748,14 +758,8 @@ interface PropertyCardRowProps {
 }
 
 export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity', onAddClick }) => {
-  const {
-    propertyOrder,
-    setPropertyOrder,
-    propertyTypes,
-    updatePropertyQuantity,
-    getPropertyQuantity,
-  } = usePropertySelection();
-  const { instances, setInstances, updateInstance } = usePropertyInstance();
+  const { propertyOrder, propertyTypes } = usePropertySelection();
+  const { instances, updateInstance } = usePropertyInstance();
   const { profile } = useInvestmentProfile();
   const { timelineProperties } = useAffordabilityCalculator();
   const { notifyEdit } = useChangeReceipt();
@@ -785,41 +789,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     });
   }, [propertyOrder, instances, timelineProperties, propertyTypes, profile.timelineYearsExplicit]);
 
-  const handleRemove = (instanceIdToRemove: string) => {
-    const parsed = parseInstanceId(instanceIdToRemove);
-    if (!parsed) return;
-    const { propertyId, index: removedIndex } = parsed;
-
-    const idsToRenumber = propertyOrder
-      .map(id => ({ id, parsed: parseInstanceId(id) }))
-      .filter(x => x.parsed?.propertyId === propertyId && x.parsed.index > removedIndex)
-      .sort((a, b) => a.parsed!.index - b.parsed!.index);
-
-    setPropertyOrder(
-      propertyOrder
-        .filter(id => id !== instanceIdToRemove)
-        .map(id => {
-          const p = parseInstanceId(id);
-          if (p && p.propertyId === propertyId && p.index > removedIndex) {
-            return `${propertyId}_instance_${p.index - 1}`;
-          }
-          return id;
-        })
-    );
-
-    const nextInstances: Record<string, PropertyInstanceDetails> = { ...instances };
-    delete nextInstances[instanceIdToRemove];
-    idsToRenumber.forEach(({ id, parsed: p }) => {
-      const newId = `${propertyId}_instance_${p!.index - 1}`;
-      const data = instances[id];
-      if (data) {
-        nextInstances[newId] = data;
-        delete nextInstances[id];
-      }
-    });
-    setInstances(nextInstances);
-    updatePropertyQuantity(propertyId, Math.max(0, getPropertyQuantity(propertyId) - 1));
-  };
+  const handleRemove = useRemoveTimelineProperty();
 
   const changeLogSubject = (instanceId: string) => `Property ${propertyOrder.indexOf(instanceId) + 1}`;
 
