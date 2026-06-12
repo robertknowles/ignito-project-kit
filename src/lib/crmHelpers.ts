@@ -1,5 +1,7 @@
 export type SizeTier = 'small' | 'mid' | 'whale';
 
+// Built-in statuses plus any custom stage_key from crm_pipeline_stages.
+// (string & {}) keeps autocomplete for the built-ins while allowing custom keys.
 export type ContactStatus =
   | 'not_contacted'
   | 'connection_sent'
@@ -8,7 +10,35 @@ export type ContactStatus =
   | 'replied'
   | 'demo_booked'
   | 'beta_tester'
-  | 'dead';
+  | 'dead'
+  | (string & {});
+
+export const RESERVED_STAGE_KEYS = [
+  'not_contacted',
+  'connection_sent',
+  'connected',
+  'video_sent',
+  'replied',
+  'demo_booked',
+  'beta_tester',
+  'dead',
+] as const;
+
+export interface PipelineStageRow {
+  id: string;
+  stage_key: string;
+  label: string;
+  position: number;
+  duration_days: number | null;
+}
+
+export function stageKeyFromLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
 
 export type RelevanceTier = 'high' | 'medium' | 'low';
 

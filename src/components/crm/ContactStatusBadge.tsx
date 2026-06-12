@@ -23,10 +23,16 @@ const statusLabels: Record<ContactStatus, string> = {
   dead: 'Dead',
 };
 
+// Custom pipeline stages aren't in the maps above; humanize the key instead.
+function fallbackLabel(status: string): string {
+  const words = status.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function ContactStatusBadge({ status }: { status: ContactStatus }) {
   return (
-    <span className={cn('inline-block px-1.5 py-0.5 rounded text-xs font-medium', statusStyles[status])}>
-      {statusLabels[status]}
+    <span className={cn('inline-block px-1.5 py-0.5 rounded text-xs font-medium', statusStyles[status] ?? 'bg-blue-500/15 text-blue-300')}>
+      {statusLabels[status] ?? fallbackLabel(status)}
     </span>
   );
 }

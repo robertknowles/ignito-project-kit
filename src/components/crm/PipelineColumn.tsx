@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ContactStatus } from '@/lib/crmHelpers';
 import { PipelineCard } from './PipelineCard';
@@ -24,9 +25,10 @@ interface Props {
   durationDays: number | null;
   onDurationChange: (days: number | null) => void;
   durationOverrides: Partial<Record<ContactStatus, number | null>>;
+  onDelete?: () => void;
 }
 
-export function PipelineColumn({ status, label, contacts, onAssignedChange, durationDays, onDurationChange, durationOverrides }: Props) {
+export function PipelineColumn({ status, label, contacts, onAssignedChange, durationDays, onDurationChange, durationOverrides, onDelete }: Props) {
   const { isOver, setNodeRef } = useDroppable({
     id: `stage-${status}`,
   });
@@ -37,13 +39,13 @@ export function PipelineColumn({ status, label, contacts, onAssignedChange, dura
     <div
       ref={setNodeRef}
       className={cn(
-        'flex-shrink-0 w-[220px] flex flex-col rounded-md',
+        'flex-shrink-0 w-[220px] flex flex-col rounded-md group/column',
         isOver && 'ring-1 ring-blue-500/40',
         isDead && 'opacity-50'
       )}
     >
-      <div className="px-3 py-2 mb-1 flex items-center justify-between">
-        <div>
+      <div className="px-3 py-2 mb-1 flex items-center justify-between gap-1">
+        <div className="min-w-0 flex-1">
           <span className="text-xs font-semibold text-foreground/90">
             {label}
           </span>
@@ -51,6 +53,17 @@ export function PipelineColumn({ status, label, contacts, onAssignedChange, dura
             · {contacts.length}
           </span>
         </div>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex-shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors opacity-0 group-hover/column:opacity-100"
+            aria-label={`Delete ${label} column`}
+            title="Delete column"
+          >
+            <X size={12} />
+          </button>
+        )}
         <select
           value={durationDays === null ? 'off' : String(durationDays)}
           onChange={(e) => {

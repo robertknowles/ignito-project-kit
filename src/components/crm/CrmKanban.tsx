@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { toast } from 'sonner';
 import { CompanyWithContacts, ContactStatus, PIPELINE_STAGES, DURATION_BY_STATUS } from '@/lib/crmHelpers';
 import { useCrmKanbanDragDrop } from '@/hooks/useCrmKanbanDragDrop';
+import { useCrmPipelineStages } from '@/hooks/useCrmPipelineStages';
 import { PipelineColumn } from './PipelineColumn';
+import { AddStageColumn } from './AddStageColumn';
 import { CompanyLogo } from './CompanyLogo';
 
 const STORAGE_KEY = 'crm_duration_overrides';
@@ -30,6 +33,7 @@ export interface PipelineContact {
 
 export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props) {
   const [durationOverrides, setDurationOverrides] = useState<Partial<Record<ContactStatus, number | null>>>(loadOverrides);
+  const { stages: customStages, addStage, deleteStage, updateStageDuration } = useCrmPipelineStages();
 
   const {
     draggedContact,
@@ -43,10 +47,17 @@ export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
+  // Custom columns slot in between the built-in stages and Dead.
+  const builtInStages = PIPELINE_STAGES.filter(s => s.status !== 'dead');
+  const deadStage = PIPELINE_STAGES.find(s => s.status === 'dead')!;
+
   const contactsByStatus = new Map<ContactStatus, PipelineContact[]>();
 
   for (const stage of PIPELINE_STAGES) {
     contactsByStatus.set(stage.status, []);
+  }
+  for (const stage of customStages) {
+    contactsByStatus.set(stage.stage_key, []);
   }
 
   const companyByName = new Map<string, CompanyWithContacts>();
@@ -76,7 +87,23 @@ export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props
   function getEffectiveDuration(status: ContactStatus): number | null {
     return durationOverrides[status] !== undefined
       ? durationOverrides[status]!
-      : DURATION_BY_STATUS[status];
+      : DURATION_BY_STATUS[status] ?? null;
+  }
+
+  // Custom-stage durations live in the DB; fold them into the overrides map
+  // so PipelineCard's overdue check sees them alongside the built-in ones.
+  const cardOverrides: Partial<Record<ContactStatus, number | null>> = {
+    ...Object.fromEntries(customStages.map(s => [s.stage_key, s.duration_days])),
+    ...durationOverrides,
+  };
+
+  function handleDeleteStage(stageId: string, stageKey: string, label: string) {
+    const occupants = contactsByStatus.get(stageKey)?.length ?? 0;
+    if (occupants > 0) {
+      toast.error(`Move the ${occupants} ${occupants === 1 ? 'person' : 'people'} out of "${label}" first`);
+      return;
+    }
+    deleteStage(stageId);
   }
 
   const dragCompany = draggedContact ? companyByName.get(draggedContact.company_name) : null;
@@ -90,7 +117,7 @@ export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props
       onDragCancel={handleDragCancel}
     >
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {PIPELINE_STAGES.map(stage => (
+        {builtInStages.map(stage => (
           <PipelineColumn
             key={stage.status}
             status={stage.status}
@@ -99,9 +126,33 @@ export function CrmKanban({ companies, onStatusChange, onAssignedChange }: Props
             onAssignedChange={onAssignedChange}
             durationDays={getEffectiveDuration(stage.status)}
             onDurationChange={(days) => handleDurationChange(stage.status, days)}
-            durationOverrides={durationOverrides}
+            durationOverrides={cardOverrides}
           />
         ))}
+        {customStages.map(stage => (
+          <PipelineColumn
+            key={stage.stage_key}
+            status={stage.stage_key}
+            label={stage.label}
+            contacts={contactsByStatus.get(stage.stage_key) ?? []}
+            onAssignedChange={onAssignedChange}
+            durationDays={stage.duration_days}
+            onDurationChange={(days) => updateStageDuration(stage.id, days)}
+            durationOverrides={cardOverrides}
+            onDelete={() => handleDeleteStage(stage.id, stage.stage_key, stage.label)}
+          />
+        ))}
+        <PipelineColumn
+          key={deadStage.status}
+          status={deadStage.status}
+          label={deadStage.label}
+          contacts={contactsByStatus.get(deadStage.status) ?? []}
+          onAssignedChange={onAssignedChange}
+          durationDays={getEffectiveDuration(deadStage.status)}
+          onDurationChange={(days) => handleDurationChange(deadStage.status, days)}
+          durationOverrides={cardOverrides}
+        />
+        <AddStageColumn onAdd={addStage} />
       </div>
       <DragOverlay>
         {draggedContact ? (

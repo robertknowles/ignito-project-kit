@@ -392,7 +392,7 @@ export type Database = {
           full_name: string
           title: string | null
           linkedin_url: string | null
-          status: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          status: string
           connection_sent_at: string | null
           video_sent_at: string | null
           replied_at: string | null
@@ -408,7 +408,7 @@ export type Database = {
           full_name: string
           title?: string | null
           linkedin_url?: string | null
-          status?: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          status?: string
           connection_sent_at?: string | null
           video_sent_at?: string | null
           replied_at?: string | null
@@ -424,7 +424,7 @@ export type Database = {
           full_name?: string
           title?: string | null
           linkedin_url?: string | null
-          status?: 'not_contacted' | 'connection_sent' | 'connected' | 'video_sent' | 'replied' | 'demo_booked' | 'beta_tester' | 'dead'
+          status?: string
           connection_sent_at?: string | null
           video_sent_at?: string | null
           replied_at?: string | null
@@ -443,6 +443,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_pipeline_stages: {
+        Row: {
+          id: string
+          stage_key: string
+          label: string
+          position: number
+          duration_days: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          stage_key: string
+          label: string
+          position?: number
+          duration_days?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          stage_key?: string
+          label?: string
+          position?: number
+          duration_days?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_outreach_steps: {
         Row: {
