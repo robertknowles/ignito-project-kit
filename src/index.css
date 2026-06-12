@@ -321,6 +321,27 @@ td:hover {
   animation: pulse-once 1s ease-in-out;
 }
 
+/* Dashboard ambient hue — slow, subtle drift */
+@keyframes aurora-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(5%, 4%, 0) scale(1.10); }
+}
+@keyframes aurora-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-4%, 5%, 0) scale(1); }
+}
+@keyframes aurora-drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4%, -4%, 0) scale(1.12); }
+}
+.aurora-blob { will-change: transform; }
+.aurora-a { animation: aurora-drift-a 24s ease-in-out infinite; }
+.aurora-b { animation: aurora-drift-b 30s ease-in-out infinite; }
+.aurora-c { animation: aurora-drift-c 34s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-a, .aurora-b, .aurora-c { animation: none; }
+}
+
 /* Landing page animations */
 @keyframes fade-in {
   from {
