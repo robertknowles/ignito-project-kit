@@ -269,7 +269,7 @@ export const NewClientView: React.FC = () => {
         ).getTime()
         return bT - aT
       })
-      .slice(0, 8)
+      .slice(0, 5)
   }, [clients, previewByClient])
 
   const handleRecentClick = useCallback(
@@ -289,7 +289,7 @@ export const NewClientView: React.FC = () => {
 
   return (
     <>
-      <div className="relative flex-1 overflow-auto">
+      <div className="relative flex-1 overflow-auto flex flex-col">
         {/* Aurora wash */}
         <div
           aria-hidden="true"
@@ -304,8 +304,8 @@ export const NewClientView: React.FC = () => {
         />
 
         <div
-          className="relative z-10 mx-auto"
-          style={{ padding: 'clamp(48px, 26vh, 280px) 48px 96px 48px', maxWidth: 1320 }}
+          className="relative z-10 mx-auto my-auto w-full"
+          style={{ padding: '48px 48px', maxWidth: 1320 }}
         >
           {/* Hero */}
           <section className="flex flex-col gap-8 mb-10">
@@ -430,7 +430,7 @@ export const NewClientView: React.FC = () => {
                   No recent clients yet — type a scenario above to start your first plan.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   {recentClients.map((client) => {
                     const isCurrent = activeClient?.id === client.id
                     const updated = formatRelativeShort(
