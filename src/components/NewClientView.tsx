@@ -18,6 +18,9 @@ import {
   X as XIcon,
   FileText as FileTextIcon,
   Sparkles as SparklesIcon,
+  TrendingUp as TrendingUpIcon,
+  DollarSign as DollarSignIcon,
+  Building2 as Building2Icon,
 } from 'lucide-react'
 import { extractTextFromDocument, isSupportedFile, getSupportedExtensions } from '@/utils/documentExtractor'
 import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
@@ -41,28 +44,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { useClient, type Client } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
-const AVATAR_BG = '#FFFFFF'
-const AVATAR_TEXT = '#414651'
-
-const getInitials = (name: string) =>
-  name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 
 const formatRelativeShort = (iso?: string) => {
   if (!iso) return ''
   const ts = new Date(iso).getTime()
   const diff = Date.now() - ts
   const day = 86_400_000
-  if (diff < day) return 'today'
-  if (diff < 2 * day) return 'yesterday'
+  if (diff < day) return 'Today'
+  if (diff < 2 * day) return 'Yesterday'
   const days = Math.floor(diff / day)
   if (days < 30) return `${days}d ago`
   const months = Math.floor(days / 30)
@@ -79,12 +73,18 @@ interface ScenarioPreview {
   updatedAt: string | null
 }
 
-const STRATEGY_LABELS: Record<string, string> = {
-  'eg-low': 'Equity Growth',
-  'eg-high': 'Equity Growth',
-  'cf-low': 'Cash Flow',
-  'cf-high': 'Cash Flow',
-  'commercial-transition': 'Commercial Transition',
+interface StrategyMeta {
+  label: string
+  Icon: React.ComponentType<{ size?: number | string; className?: string }>
+  textClass: string
+}
+
+const STRATEGY_META: Record<string, StrategyMeta> = {
+  'eg-low': { label: 'Equity Growth', Icon: TrendingUpIcon, textClass: 'text-neutral-600' },
+  'eg-high': { label: 'Equity Growth', Icon: TrendingUpIcon, textClass: 'text-neutral-600' },
+  'cf-low': { label: 'Cash Flow', Icon: DollarSignIcon, textClass: 'text-neutral-600' },
+  'cf-high': { label: 'Cash Flow', Icon: DollarSignIcon, textClass: 'text-neutral-600' },
+  'commercial-transition': { label: 'Commercial Transition', Icon: Building2Icon, textClass: 'text-neutral-600' },
 }
 
 export const NewClientView: React.FC = () => {
@@ -93,7 +93,15 @@ export const NewClientView: React.FC = () => {
   const [pendingDeleteClient, setPendingDeleteClient] = useState<Client | null>(null)
   const [deleting, setDeleting] = useState(false)
   const { branding } = useBranding()
+  const { user } = useAuth()
   const primaryColor = branding.primaryColor
+
+  // First name for the heading. Falls back to an empty string when no name is
+  // set so the heading still reads naturally.
+  const firstName = useMemo(() => {
+    const fullName = (user?.user_metadata?.name as string | undefined)?.trim()
+    return fullName ? fullName.split(/\s+/)[0] : ''
+  }, [user])
 
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -261,7 +269,7 @@ export const NewClientView: React.FC = () => {
         ).getTime()
         return bT - aT
       })
-      .slice(0, 16)
+      .slice(0, 8)
   }, [clients, previewByClient])
 
   const handleRecentClick = useCallback(
@@ -297,12 +305,12 @@ export const NewClientView: React.FC = () => {
 
         <div
           className="relative z-10 mx-auto"
-          style={{ padding: '40px 48px 96px 48px', maxWidth: 1320 }}
+          style={{ padding: 'clamp(48px, 26vh, 280px) 48px 96px 48px', maxWidth: 1320 }}
         >
           {/* Hero */}
-          <section className="flex flex-col gap-4 mb-10">
-            <h1 className="text-[26px] font-semibold text-gray-900 leading-tight tracking-tight">
-              Build a property plan
+          <section className="flex flex-col gap-8 mb-10">
+            <h1 className="text-[26px] font-semibold text-neutral-900 leading-tight tracking-tight text-center">
+              {firstName ? `Hi ${firstName}, let's build a property plan` : "Let's build a property plan"}
             </h1>
 
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
@@ -422,9 +430,8 @@ export const NewClientView: React.FC = () => {
                   No recent clients yet — type a scenario above to start your first plan.
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {recentClients.map((client) => {
-                    const initials = getInitials(client.name)
                     const isCurrent = activeClient?.id === client.id
                     const updated = formatRelativeShort(
                       previewByClient[client.id]?.updatedAt ||
@@ -437,6 +444,7 @@ export const NewClientView: React.FC = () => {
                       !!preview &&
                       ((preview.finalEquity !== null && preview.finalEquity > 0) || preview.propertyCount > 0)
 
+                    // Build the meta line shown on the right of the footer row.
                     const metaParts: string[] = []
                     if (preview?.propertyCount && preview.propertyCount > 0) {
                       metaParts.push(
@@ -447,26 +455,39 @@ export const NewClientView: React.FC = () => {
                       metaParts.push(`${preview.timelineYears} yrs`)
                     }
                     const metaLine = metaParts.join(' · ')
-                    const strategyLabel =
-                      preview?.strategyPreset && STRATEGY_LABELS[preview.strategyPreset]
-                        ? STRATEGY_LABELS[preview.strategyPreset]
+                    const strategyMeta =
+                      preview?.strategyPreset && STRATEGY_META[preview.strategyPreset]
+                        ? STRATEGY_META[preview.strategyPreset]
                         : null
 
                     return (
                       <div
                         key={client.id}
-                        className={`group relative flex flex-col items-stretch gap-1.5 p-1.5 rounded-xl border transition-all text-left ${
+                        onClick={() => handleRecentClick(client)}
+                        className={`group relative flex flex-col rounded-xl border bg-white p-3.5 transition-all text-left cursor-pointer hover:shadow-sm ${
                           isCurrent
-                            ? 'border-gray-900 bg-gray-50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                            ? 'border-neutral-900'
+                            : 'border-neutral-200 hover:border-neutral-300'
                         }`}
                       >
-                        <div className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Header: client name + relative time (time fades out on
+                            hover to make room for the actions menu in the same spot) */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-[13px] font-semibold text-neutral-900 truncate leading-tight">
+                            {client.name}
+                          </div>
+                          <div className="text-[11px] text-neutral-400 whitespace-nowrap transition-opacity group-hover:opacity-0">
+                            {updated}
+                          </div>
+                        </div>
+
+                        {/* Three-dot menu — occupies the time slot on hover */}
+                        <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-6 h-6 inline-flex items-center justify-center rounded-md bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 shadow-sm"
+                                className="w-6 h-6 inline-flex items-center justify-center rounded-md bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-900 hover:border-neutral-300 shadow-sm"
                                 aria-label={`Actions for ${client.name}`}
                               >
                                 <MoreHorizontalIcon size={14} />
@@ -486,56 +507,43 @@ export const NewClientView: React.FC = () => {
                           </DropdownMenu>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleRecentClick(client)}
-                          className="text-left w-full"
-                        >
-                        <div
-                          className="relative rounded-lg border border-[#E9EAEB] overflow-hidden bg-white"
-                          style={{ aspectRatio: '4 / 3' }}
-                        >
-                          {hasScenario ? (
-                            <div className="h-full w-full flex flex-col justify-between p-2.5">
-                              <div>
-                                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
-                                  Total equity
-                                </div>
-                                <div className="text-[18px] font-semibold text-gray-900 tabular-nums leading-tight mt-0.5">
-                                  {preview!.finalEquity !== null && preview!.finalEquity > 0
-                                    ? formatEquity(preview!.finalEquity)
-                                    : '—'}
-                                </div>
-                              </div>
-                              <div className="flex flex-col gap-0.5">
-                                {metaLine && (
-                                  <div className="text-[10.5px] text-gray-500 truncate">{metaLine}</div>
-                                )}
-                                {strategyLabel && (
-                                  <div className="text-[10.5px] font-medium text-gray-600 truncate">
-                                    {strategyLabel}
-                                  </div>
-                                )}
-                              </div>
+                        {/* Headline figure */}
+                        {hasScenario ? (
+                          <>
+                            <div className="text-[24px] font-semibold text-neutral-900 tabular-nums leading-none mt-2.5">
+                              {preview!.finalEquity !== null && preview!.finalEquity > 0
+                                ? formatEquity(preview!.finalEquity)
+                                : '—'}
                             </div>
-                          ) : (
-                            <div
-                              className="w-full h-full flex items-center justify-center text-[14px] font-semibold"
-                              style={{ backgroundColor: AVATAR_BG, color: AVATAR_TEXT }}
+                            <div className="text-[11px] text-neutral-400 mt-1">Total equity</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-[24px] font-semibold text-neutral-300 leading-none mt-2.5">
+                              Draft
+                            </div>
+                            <div className="text-[11px] text-neutral-400 mt-1">Not yet modelled</div>
+                          </>
+                        )}
+
+                        {/* Footer: strategy chip (left) + property/timeline meta (right) */}
+                        <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-1.5">
+                          {strategyMeta ? (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 text-[11px] font-medium whitespace-nowrap ${strategyMeta.textClass}`}
                             >
-                              {initials}
+                              <strategyMeta.Icon size={12} />
+                              {strategyMeta.label}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                          {metaLine && (
+                            <div className="text-[11px] text-neutral-500 whitespace-nowrap truncate">
+                              {metaLine}
                             </div>
                           )}
                         </div>
-                        <div className="px-1 pb-0.5">
-                          <div className="text-[12px] font-medium text-gray-900 truncate leading-tight">
-                            {client.name}
-                          </div>
-                          <div className="text-[10.5px] text-gray-500 mt-0.5 truncate">
-                            Edited {updated}
-                          </div>
-                        </div>
-                        </button>
                       </div>
                     )
                   })}
