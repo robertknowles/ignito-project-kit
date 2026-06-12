@@ -167,7 +167,7 @@ export const AppSidebar: React.FC = () => {
                     } ${disabled ? 'opacity-40' : ''}`}
                   >
                     <button
-                      onClick={() => !disabled && navigate(entry.path)}
+                      onClick={() => { if (!disabled) { setActiveClient(null); navigate('/dashboard'); } }}
                       disabled={disabled}
                       title={disabled ? 'Wait for the plan to finish generating' : undefined}
                       className="p-2 relative flex flex-1 max-h-9 cursor-pointer items-center text-left border-none bg-transparent select-none"

@@ -292,35 +292,35 @@ export const NewClientView: React.FC = () => {
       <div className="relative flex-1 overflow-auto flex flex-col">
         {/* Aurora wash */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          {/* Purple glow concentrated around the hero, drifting gently */}
+          {/* Purple glow concentrated around the hero — soft, irregular, drifting gently */}
           <div
-            className="aurora-blob aurora-a absolute rounded-full"
+            className="aurora-blob aurora-a absolute"
             style={{
-              width: 1120, height: 760, left: '50%', top: '44%', marginLeft: -560, marginTop: -380,
-              background: 'radial-gradient(circle, rgba(167, 139, 250, 0.22), transparent 60%)',
+              width: 1500, height: 620, left: '50%', top: '44%', marginLeft: -750, marginTop: -310,
+              background: 'radial-gradient(ellipse 60% 70% at 48% 46%, rgba(167, 139, 250, 0.22), transparent 70%)',
+              filter: 'blur(56px)',
+            }}
+          />
+          <div
+            className="aurora-blob aurora-b absolute"
+            style={{
+              width: 900, height: 520, left: '40%', top: '38%', marginLeft: -450, marginTop: -260,
+              background: 'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(192, 132, 252, 0.16), transparent 72%)',
+              filter: 'blur(50px)',
+            }}
+          />
+          <div
+            className="aurora-blob aurora-c absolute"
+            style={{
+              width: 820, height: 480, left: '62%', top: '54%', marginLeft: -410, marginTop: -240,
+              background: 'radial-gradient(ellipse 65% 62% at 45% 48%, rgba(196, 181, 253, 0.14), transparent 74%)',
               filter: 'blur(52px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-b absolute rounded-full"
-            style={{
-              width: 780, height: 560, left: '50%', top: '38%', marginLeft: -390, marginTop: -280,
-              background: 'radial-gradient(circle, rgba(192, 132, 252, 0.16), transparent 62%)',
-              filter: 'blur(46px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-c absolute rounded-full"
-            style={{
-              width: 680, height: 520, left: '50%', top: '52%', marginLeft: -340, marginTop: -260,
-              background: 'radial-gradient(circle, rgba(196, 181, 253, 0.13), transparent 64%)',
-              filter: 'blur(48px)',
             }}
           />
           {/* White vignette — fades the hue to clean white at every edge */}
           <div
             className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 70% 64% at 50% 44%, rgba(255,255,255,0) 30%, rgba(255,255,255,0.9) 86%)' }}
+            style={{ background: 'radial-gradient(ellipse 85% 62% at 50% 44%, rgba(255,255,255,0) 34%, rgba(255,255,255,0.92) 88%)' }}
           />
         </div>
 
