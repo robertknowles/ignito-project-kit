@@ -8,7 +8,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { X, Plus, Minus, Landmark, CalendarDays } from 'lucide-react';
-import { ChartCard } from './ui/ChartCard';
 import { AffordabilityAlert } from './ui/AffordabilityAlert';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
@@ -905,31 +904,59 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
             const loanOpen = !!loanExpanded[iid];
 
             return (
-              <div key={iid} style={{ width: 280, minWidth: 280, flexShrink: 0 }}>
-                <ChartCard
-                  title={`Property ${idx + 1}`}
-                  flush
-                  action={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <button
-                        onClick={() => toggleLoan(iid)}
-                        className={`p-1 transition-colors bg-transparent border-none cursor-pointer ${loanOpen ? 'text-neutral-700' : 'text-neutral-300 hover:text-neutral-500'}`}
-                        title={loanOpen ? 'Hide loan details' : `Loan: ${loanSummary}`}
-                      >
-                        <Landmark size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleRemove(iid)}
-                        className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
-                        title="Remove property"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  }
+              <div
+                key={iid}
+                style={{
+                  width: 280,
+                  minWidth: 280,
+                  flexShrink: 0,
+                  background: '#FFFFFF',
+                  borderRadius: 12,
+                  boxShadow: '#E5E5E5 0px 0px 0px 1px inset',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Card header — single, clean title row */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderBottom: '1px solid #F0F0F0',
+                  }}
                 >
-                  <table className="w-full text-xs">
-                    <tbody>
+                  <h3
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: '#171717',
+                      lineHeight: '20px',
+                      margin: 0,
+                      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                    }}
+                  >
+                    {`Property ${idx + 1}`}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button
+                      onClick={() => toggleLoan(iid)}
+                      className={`p-1 transition-colors bg-transparent border-none cursor-pointer ${loanOpen ? 'text-neutral-700' : 'text-neutral-300 hover:text-neutral-500'}`}
+                      title={loanOpen ? 'Hide loan details' : `Loan: ${loanSummary}`}
+                    >
+                      <Landmark size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(iid)}
+                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                      title="Remove property"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+                <table className="w-full text-xs">
+                  <tbody>
                       <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '—' : (card.purchaseYear ?? '—')} />
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
@@ -954,9 +981,8 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                           <BlockSelectRow label="Loan product" value={d.loanProduct} instanceId={iid} field="loanProduct" options={BLOCK_LOAN_PRODUCT_OPTIONS} onChange={handleFieldChange} />
                         </>
                       )}
-                    </tbody>
-                  </table>
-                </ChartCard>
+                  </tbody>
+                </table>
               </div>
             );
           })}
