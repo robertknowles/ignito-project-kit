@@ -12,8 +12,9 @@ import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
-import { StrategyPresetSelector } from './StrategyPresetSelector'
+import { CompanyStrategySelector } from './CompanyStrategySelector'
 import { StrategyProfileModal } from './StrategyProfileModal'
+import { useStrategyProfiles } from '@/hooks/useStrategyProfiles'
 import { extractTextFromDocument, isSupportedFile } from '@/utils/documentExtractor'
 import { useChatConversation } from '@/hooks/useChatConversation'
 import { useInvestmentProfile } from '@/contexts/InvestmentProfileContext'
@@ -54,6 +55,25 @@ export const ChatPanel: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const location = useLocation()
+
+  // Company strategies (named, free-text). The BA picks one; its text is fed to
+  // the AI, which infers the engine preset from it + the brief.
+  const { profiles: strategyProfiles, reload: reloadStrategies } = useStrategyProfiles()
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null)
+  // Strategy text chosen on the new-client page, carried via PENDING_STRATEGY_KEY.
+  const [pendingStrategyText, setPendingStrategyText] = useState<string | null>(null)
+  useEffect(() => {
+    setSelectedStrategyId((prev) => {
+      if (prev && strategyProfiles.some((p) => p.id === prev)) return prev
+      return strategyProfiles[0]?.id ?? null
+    })
+  }, [strategyProfiles])
+  // Selected strategy text feeds the AI: explicit home-page pick wins, else the
+  // pill selection, else the firm's first strategy.
+  const selectedStrategyText =
+    pendingStrategyText ||
+    strategyProfiles.find((p) => p.id === selectedStrategyId)?.text?.trim() ||
+    undefined
 
   // Ref for sendMessage so auto-fix can send explanation to AI
   const sendMessageRef = useRef<((text: string) => void) | null>(null)
@@ -652,6 +672,7 @@ export const ChatPanel: React.FC = () => {
     userId: user?.id,
     clientName: clientNamesRef.current[0] || activeClient?.name || undefined,
     strategyPreset: profile.strategyPreset || 'eg-low',
+    strategyProfileText: selectedStrategyText,
     // Only treat the user as having an existing plan when there's a SAVED
     // scenario for the current client. propertyOrder alone leaks across
     // client switches: launching client 2 from Home leaves client 1's
@@ -1063,6 +1084,12 @@ export const ChatPanel: React.FC = () => {
     pendingPromptHandledRef.current = true
     sessionStorage.removeItem('proppath:pending-prompt')
 
+    // Pick up the company strategy chosen on the new-client page so this launch
+    // (and subsequent messages) carry its text into the AI prompt.
+    const pendingStrategy = sessionStorage.getItem('proppath:pending-strategy-text')
+    sessionStorage.removeItem('proppath:pending-strategy-text')
+    setPendingStrategyText(pendingStrategy || null)
+
     clearMessages()
     // Force null currentPlan for this send — prevents stale plan state from
     // causing the AI to misroute a fresh client brief as update_profile.
@@ -1104,7 +1131,7 @@ export const ChatPanel: React.FC = () => {
             <button
               onClick={(e) => { e.stopPropagation(); setStrategyProfileOpen(true); }}
               className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-[#7F56D9] hover:bg-neutral-100 transition-colors"
-              title="Strategy Profile"
+              title="Company strategies"
             >
               <SparklesIcon size={13} />
             </button>
@@ -1150,7 +1177,12 @@ export const ChatPanel: React.FC = () => {
                   <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
                     e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
                   </p>
-                  <StrategyPresetSelector />
+                  <CompanyStrategySelector
+                    profiles={strategyProfiles}
+                    selectedId={selectedStrategyId}
+                    onSelect={(id) => { setSelectedStrategyId(id); setPendingStrategyText(null); }}
+                    onManage={() => setStrategyProfileOpen(true)}
+                  />
                 </div>
               )}
 
@@ -1256,7 +1288,11 @@ export const ChatPanel: React.FC = () => {
         )}
       </div>
       )}
-      <StrategyProfileModal isOpen={strategyProfileOpen} onClose={() => setStrategyProfileOpen(false)} />
+      <StrategyProfileModal
+        isOpen={strategyProfileOpen}
+        onClose={() => setStrategyProfileOpen(false)}
+        onSaved={reloadStrategies}
+      />
     </>
   )
 }

@@ -17,15 +17,15 @@ import {
   SlidersHorizontal as SlidersHorizontalIcon,
   X as XIcon,
   FileText as FileTextIcon,
-  Sparkles as SparklesIcon,
   TrendingUp as TrendingUpIcon,
   DollarSign as DollarSignIcon,
   Building2 as Building2Icon,
 } from 'lucide-react'
 import { extractTextFromDocument, isSupportedFile, getSupportedExtensions } from '@/utils/documentExtractor'
-import { StrategyPresetSelector } from '@/components/StrategyPresetSelector'
+import { CompanyStrategySelector } from '@/components/CompanyStrategySelector'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
 import { StrategyProfileModal } from '@/components/StrategyProfileModal'
+import { useStrategyProfiles } from '@/hooks/useStrategyProfiles'
 import { ChartCard } from '@/components/ui/ChartCard'
 import {
   DropdownMenu,
@@ -49,6 +49,9 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
+// Carries the chosen company strategy's text to ChatPanel, which injects it
+// into the AI prompt for the freshly-launched client.
+const PENDING_STRATEGY_KEY = 'proppath:pending-strategy-text'
 
 const formatRelativeShort = (iso?: string) => {
   if (!iso) return ''
@@ -108,6 +111,17 @@ export const NewClientView: React.FC = () => {
   const [assumptionsOpen, setAssumptionsOpen] = useState(false)
   const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  // Company strategies — the BA picks one (pills); its text rides along to the
+  // launched client so the AI can infer the engine preset from it.
+  const { profiles: strategyProfiles, reload: reloadStrategies } = useStrategyProfiles()
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null)
+  useEffect(() => {
+    setSelectedStrategyId((prev) => {
+      if (prev && strategyProfiles.some((p) => p.id === prev)) return prev
+      return strategyProfiles[0]?.id ?? null
+    })
+  }, [strategyProfiles])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resetAssumptionsRef = useRef<() => void>(() => {})
@@ -235,13 +249,17 @@ export const NewClientView: React.FC = () => {
         setActiveClient(created)
         setSelectedFile(null)
 
+        const stratText = strategyProfiles.find((p) => p.id === selectedStrategyId)?.text?.trim()
+        if (stratText) sessionStorage.setItem(PENDING_STRATEGY_KEY, stratText)
+        else sessionStorage.removeItem(PENDING_STRATEGY_KEY)
+
         sessionStorage.setItem(PENDING_PROMPT_KEY, finalPrompt)
       } catch {
         toast.error('Something went wrong starting the scenario')
         setSubmitting(false)
       }
     },
-    [createClient, setActiveClient, submitting, selectedFile]
+    [createClient, setActiveClient, submitting, selectedFile, strategyProfiles, selectedStrategyId]
   )
 
   const handleKeyDown = useCallback(
@@ -337,16 +355,13 @@ export const NewClientView: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <button
-                  onClick={() => setStrategyProfileOpen(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
-                    strategyProfileOpen
-                      ? 'text-[#414651] bg-[#ECECED] border-[#D5D7DA]'
-                      : 'text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]'
-                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]"
                 >
-                  <SparklesIcon size={13} />
-                  Strategy Profile
+                  <PaperclipIcon size={13} className="text-[#9CA3AF]" />
+                  Add client fact find
                 </button>
+                <input ref={fileInputRef} type="file" accept=".pdf,.txt,.csv,.docx,.xlsx" onChange={handleFileInputChange} className="hidden" />
                 <button
                   onClick={() => setAssumptionsOpen(prev => !prev)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border ${
@@ -385,16 +400,14 @@ export const NewClientView: React.FC = () => {
                 </div>
               )}
               <div className="flex items-end justify-between gap-3 px-3 pb-3 pt-1">
-                <StrategyPresetSelector variant="inline-chips" />
+                <CompanyStrategySelector
+                  variant="inline-chips"
+                  profiles={strategyProfiles}
+                  selectedId={selectedStrategyId}
+                  onSelect={setSelectedStrategyId}
+                  onManage={() => setStrategyProfileOpen(true)}
+                />
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-white border border-gray-200 hover:bg-gray-50"
-                    aria-label="Attach file"
-                  >
-                    <PaperclipIcon size={15} className="text-[#9CA3AF]" />
-                  </button>
-                  <input ref={fileInputRef} type="file" accept=".pdf,.txt,.csv,.docx,.xlsx" onChange={handleFileInputChange} className="hidden" />
                   <button
                     onClick={handleSendClick}
                     disabled={!isActive || submitting}
@@ -620,7 +633,11 @@ export const NewClientView: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <StrategyProfileModal isOpen={strategyProfileOpen} onClose={() => setStrategyProfileOpen(false)} />
+      <StrategyProfileModal
+        isOpen={strategyProfileOpen}
+        onClose={() => setStrategyProfileOpen(false)}
+        onSaved={reloadStrategies}
+      />
     </>
   )
 }

@@ -115,9 +115,18 @@ ${currentPlan.properties.map((p, i) => {
     }
   }
 
-  // ── Strategy profile section (free-text BA philosophy) ───────────
+  // ── Company strategy section (free-text firm philosophy) ─────────
+  // The BA picks one of the firm's named company strategies. Beyond biasing
+  // selections, the AI must INFER the best-fit engine preset from this text +
+  // the client brief — this replaces the manual preset picker. The preset shown
+  // above is only a fallback default.
   const strategyProfileSection = strategyProfileText?.trim()
-    ? `\n\n## Agent Strategy Profile\nThe buyers' agent has described their investment philosophy and preferences. Factor these into your property selections, pricing, and plan structure — but the client's explicit instructions always take priority:\n\n${strategyProfileText.trim()}`
+    ? `\n\n## Company Strategy
+The buyers' agent's firm follows this strategy. Factor it into your property selections, pricing, and plan structure — but the client's explicit instructions always take priority:
+
+${strategyProfileText.trim()}
+
+**Choosing the preset:** Based on this company strategy AND the client's brief, set \`strategyPreset\` to whichever of the 5 presets best fits (equity-growth vs cash-flow, low vs high price point, or commercial-transition). Infer it — do NOT just keep the default preset shown above. Then bias property cells toward the preset you chose. If the strategy and brief genuinely don't indicate a direction, keep the default.`
     : '';
 
   // ── Conversation history section ─────────────────────────────────

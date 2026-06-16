@@ -56,6 +56,10 @@ interface UseChatConversationOptions {
   clientName?: string
   /** Strategy preset — drives chatbot cell selection and property sequencing. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
+  /** Selected company strategy text, injected into the AI prompt. When set
+   *  (the strategy picked via the pills), it overrides the default; otherwise
+   *  we fall back to the firm's first saved strategy. */
+  strategyProfileText?: string
   /** True when a plan already exists — used to reject misclassified initial_plan rebuilds. */
   hasExistingPlan?: boolean
   /** When true, force currentPlan to null on the next sendMessage call.
@@ -301,18 +305,25 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         const RETRY_BASE_DELAYS_MS = [400, 1500, 3500]
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-        // Fetch planning defaults and strategy profile for this user
+        // Fetch planning defaults and the active company strategy for this user.
+        // The strategy text comes from the explicitly-selected strategy when one
+        // was passed in (the pills); otherwise default to the firm's first saved
+        // strategy.
         let planningDefaults: Record<string, unknown> | null = null
-        let strategyProfileText: string | null = null
+        let strategyProfileText: string | null = optionsRef.current.strategyProfileText?.trim() || null
         const userId = optionsRef.current.userId
         if (userId) {
           const { data } = await supabase
             .from('profiles')
-            .select('planning_defaults, strategy_profile_text')
+            .select('planning_defaults, strategy_profiles')
             .eq('id', userId)
             .single()
           planningDefaults = (data?.planning_defaults as Record<string, unknown>) ?? null
-          strategyProfileText = ((data as Record<string, unknown>)?.strategy_profile_text as string) || null
+          if (!strategyProfileText) {
+            const profiles = (data as Record<string, unknown>)?.strategy_profiles
+            const first = Array.isArray(profiles) ? (profiles[0] as { text?: string } | undefined) : undefined
+            strategyProfileText = (first?.text as string)?.trim() || null
+          }
         }
 
         const callOnce = async (): Promise<NLParseResponse> => {
