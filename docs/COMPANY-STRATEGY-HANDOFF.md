@@ -135,12 +135,21 @@ Teach the AI to pull numbers from the strategy text and populate fields the engi
 - **Loan structure** ("IO for 5 years") — `loanProduct` is single-value per property; IO→PI *switch at year X* is NOT representable yet. For now: set initial `loanProduct`; flag the switch as not-modelled (Layer 3). (Possible future: a loan-change event.)
 
 ### Layer 2 — Engine extensions
-- **Add `eg-to-cf` two-phase preset** — the high-value fix. Reuses existing `phase1`/`phase2` infra in [`propertyCells.ts`](../src/utils/propertyCells.ts):
-  - Add entry to `STRATEGY_PRESETS`: `phase1` = growth cells (e.g. regional-house-growth, metro-unit-growth), `phase2` = cashflow cells (regional-unit-cashflow, regional-house-cashflow). Decide `phase2LvrTarget` (likely keep 80%).
-  - Add `'eg-to-cf'` to the tool enum in [`tools.ts`](../supabase/functions/nl-parse/tools.ts) (currently `['eg-low','eg-high','cf-low','cf-high','commercial-transition']`).
-  - Add to `PRESET_LABELS` in [`prompt.ts`](../supabase/functions/nl-parse/prompt.ts) + the preset table + the `templates.ts` label map + [`StrategyPresetSelector.tsx`](../src/components/StrategyPresetSelector.tsx) PRESETS (if still referenced) + `nlParse.ts` types + `InvestmentProfileContext` union type + `system-prompt.ts` is DEPRECATED (skip).
-  - **Search for the full set of places the preset union is typed** — grep `'commercial-transition'` across `src/` and `supabase/` and mirror every one.
-  - Verify the engine handles a non-commercial two-phase preset (commercial-transition is the only existing two-phase; confirm phase logic isn't commercial-specific).
+
+> **VERIFIED 2026-06-17 — there is NO runtime two-phase engine. "Phase" is entirely prompt-emergent.** Decisive findings:
+> - The `create_plan`/`modify_plan` tool schema in [`tools.ts`](../supabase/functions/nl-parse/tools.ts) has **no `phase` field** on properties. Each property is flat: `type` (cell), `purchasePrice`, `state`, `growthAssumption`, `loanProduct`, `lvr`, `rentPerWeek`, `targetPeriod`.
+> - `getCellsForPreset` and `getPresetLvrTarget` in `propertyCells.ts` have **zero call sites**. `STRATEGY_PRESETS` is read **only inside `propertyCells.ts`** (by those uncalled helpers); `getPresetDefaultPacing` is also uncalled. The whole `phase1`/`phase2`/`phase2LvrTarget` block is **dead scaffolding**.
+> - `commercial-transition` produces a two-phase plan **purely via the prompt**: the preset table ([prompt.ts:225](../supabase/functions/nl-parse/prompt.ts)) tells the AI "Phase 1: …growth cells, Phase 2: commercial," and the LVR rule ([prompt.ts:232](../supabase/functions/nl-parse/prompt.ts)) says "Commercial (phase 2): 70%." The AI emits early properties (growth cells, 80%, low `targetPeriod`) and late properties (commercial cells, 70%, high `targetPeriod`). The engine just consumes the flat list.
+>
+> **Consequence:** the old worry ("is phase logic commercial-specific?") is moot — there's no engine phase logic to be gated. Building `eg-to-cf` is a **prompt + enum/type change, no engine work.** This is *more* de-risked than originally written.
+
+- **Add `eg-to-cf` two-phase preset** — the high-value fix. Concrete change set:
+  - **Prompt** ([`prompt.ts`](../supabase/functions/nl-parse/prompt.ts)): add a preset-table row `eg-to-cf | Phase 1: regional-house-growth, metro-unit-growth. Phase 2: regional-unit-cashflow, regional-house-cashflow`; add to the `PRESET_LABELS` map (~line 51); update the "5 presets" wording in the strategy/inference section to "6 presets" and describe the eg→cf intent. **Phase-2 LVR stays 80% (Rob's call) = the standard default, so NO new LVR rule needed.**
+  - **Timing default (decision #3)** is also prompt-only: instruct the AI that when the strategy says "transition to cashflow" without a stated pivot point, start placing phase-2 (cashflow) properties at **~halfway through the plan horizon** (in periods: `targetPeriod ≈ timelineYears`, since `PERIODS_PER_YEAR=2`).
+  - **Tool enum** ([`tools.ts`](../supabase/functions/nl-parse/tools.ts):103): add `'eg-to-cf'` to the `strategyPreset` enum (and the modify-plan copy if present).
+  - **Type unions / labels (mirror EVERY site):** grep `'commercial-transition'` across `src/` + `supabase/` and add `'eg-to-cf'` beside each — at minimum `StrategyPresetId` in [`propertyCells.ts`](../src/utils/propertyCells.ts):105-107, `src/types/nlParse.ts`, `InvestmentProfileContext`, the `templates.ts` label map. **`STRATEGY_PRESETS` is `Record<StrategyPresetId, …>`, so once the union gains `eg-to-cf` TS will REQUIRE a `STRATEGY_PRESETS` entry to compile** — add one (it's dead at runtime but keeps types honest: `phase1`/`phase2` cells as above, `lvrTarget: 80`, no `phase2LvrTarget`, `defaultPacing: 'aggressive'`).
+  - **Skip:** `system-prompt.ts`/`prompts/*` (DEPRECATED).
+  - **⚠️ Check `StrategyPresetSelector.tsx`** — still imported & rendered at [`AgentHome.tsx:377`](../src/pages/AgentHome.tsx). Confirm whether `AgentHome` is a live route; if so, mirror `eg-to-cf` into its `PRESETS` too. (The new flow uses `NewClientView`, so `AgentHome` may be legacy — verify before deciding.)
 - **Transition-point control (ACCEPTED — Rob, 2026-06-17):** let the strategy/brief specify *when* to pivot (year or property count) and pass a trigger. Today timing is AI-inferred. **Default: when no pivot point is stated, switch at the halfway point of the plan horizon.** Build as part of Layer 2.
 
 ### Layer 3 — Transparency (mandatory, do regardless)

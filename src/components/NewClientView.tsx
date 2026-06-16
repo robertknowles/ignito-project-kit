@@ -88,6 +88,7 @@ const STRATEGY_META: Record<string, StrategyMeta> = {
   'cf-low': { label: 'Cash Flow', Icon: DollarSignIcon, textClass: 'text-neutral-600' },
   'cf-high': { label: 'Cash Flow', Icon: DollarSignIcon, textClass: 'text-neutral-600' },
   'commercial-transition': { label: 'Commercial Transition', Icon: Building2Icon, textClass: 'text-neutral-600' },
+  'eg-to-cf': { label: 'Growth to Cash Flow', Icon: TrendingUpIcon, textClass: 'text-neutral-600' },
 }
 
 export const NewClientView: React.FC = () => {

@@ -104,7 +104,8 @@ export type StrategyPresetId =
   | 'eg-high'
   | 'cf-low'
   | 'cf-high'
-  | 'commercial-transition';
+  | 'commercial-transition'
+  | 'eg-to-cf';
 
 export type PacingMode = 'conservative' | 'moderate' | 'aggressive';
 
@@ -190,6 +191,18 @@ export const STRATEGY_PRESETS: Record<StrategyPresetId, StrategyPresetMeta> = {
     phase2: ['commercial-high-cost', 'commercial-low-cost'],
     lvrTarget: 80,
     phase2LvrTarget: 70,
+    defaultPacing: 'aggressive',
+  },
+  'eg-to-cf': {
+    id: 'eg-to-cf',
+    shortLabel: 'Growth to Cash Flow',
+    fullLabel: 'Growth to Cash Flow',
+    description: 'Two-phase. Phase 1: build equity in growth-mode assets. Phase 2: pivot to cash-flow assets for yield.',
+    primary: [],
+    secondary: [],
+    phase1: ['regional-house-growth', 'metro-unit-growth'],
+    phase2: ['regional-unit-cashflow', 'regional-house-cashflow'],
+    lvrTarget: 80,
     defaultPacing: 'aggressive',
   },
 };

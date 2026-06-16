@@ -28,7 +28,7 @@ export interface CurrentPlanState {
     equityGoal: number;
     cashflowGoal: number;
     /** v4 strategy preset selected by the BA. Drives chatbot cell selection. */
-    strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
+    strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf';
   };
   properties: Array<{
     instanceId: string;

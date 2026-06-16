@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { HashIcon, DollarSignIcon, HomeIcon, CompassIcon, ChevronLeftIcon } from 'lucide-react'
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
 
-type PresetId = 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
+type PresetId = 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf'
 
 const PRESET_SWITCH_OPTIONS: Record<PresetId, { label: string; prompt: string }> = {
   'eg-low': {
@@ -34,6 +34,10 @@ const PRESET_SWITCH_OPTIONS: Record<PresetId, { label: string; prompt: string }>
   'commercial-transition': {
     label: 'Commercial Transition',
     prompt: 'Switch to the Commercial Transition strategy: build equity in residential first, then transition to commercial yield around year 5-7.',
+  },
+  'eg-to-cf': {
+    label: 'Growth to Cash Flow',
+    prompt: 'Switch to the Growth to Cash Flow strategy: build equity in growth-mode assets first, then transition to cash-flow assets for yield around the halfway point of the plan.',
   },
 }
 

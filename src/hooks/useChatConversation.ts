@@ -55,7 +55,7 @@ interface UseChatConversationOptions {
   /** Client name for personalised loading text */
   clientName?: string
   /** Strategy preset — drives chatbot cell selection and property sequencing. */
-  strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
+  strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf'
   /** Selected company strategy text, injected into the AI prompt. When set
    *  (the strategy picked via the pills), it overrides the default; otherwise
    *  we fall back to the firm's first saved strategy. */

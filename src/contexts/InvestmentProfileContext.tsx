@@ -50,7 +50,7 @@ export interface InvestmentProfileData {
    * Strategic preset selected by the BA. Drives chatbot cell selection and
    * property sequencing per the 10-cell matrix.
    */
-  strategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition';
+  strategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf';
   /**
    * Internal pacing lever — tier-links across ~9 dials (multiplier, savings
    * deployment, equity release, vacancy, BC factor, rental contribution,

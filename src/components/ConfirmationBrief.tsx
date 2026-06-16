@@ -44,6 +44,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   'cf-low': 'Cash flow · low entry',
   'cf-high': 'Cash flow · high entry',
   'commercial-transition': 'Commercial transition',
+  'eg-to-cf': 'Growth to cash flow',
 };
 
 const STRATEGY_OPTIONS = [
@@ -52,6 +53,7 @@ const STRATEGY_OPTIONS = [
   { value: 'cf-low', label: 'Cash flow (low entry)' },
   { value: 'cf-high', label: 'Cash flow (high entry)' },
   { value: 'commercial-transition', label: 'Commercial transition' },
+  { value: 'eg-to-cf', label: 'Growth to cash flow' },
 ];
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];

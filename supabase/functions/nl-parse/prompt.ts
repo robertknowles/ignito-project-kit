@@ -49,6 +49,7 @@ const PRESET_LABELS: Record<string, string> = {
   'cf-low': 'Cash Flow, Low Price Point',
   'cf-high': 'Cash Flow, High Price Point',
   'commercial-transition': 'Commercial Transition',
+  'eg-to-cf': 'Growth to Cash Flow',
 };
 
 export function buildSystemPrompt(
@@ -126,7 +127,16 @@ The buyers' agent's firm follows this strategy. Factor it into your property sel
 
 ${strategyProfileText.trim()}
 
-**Choosing the preset:** Based on this company strategy AND the client's brief, set \`strategyPreset\` to whichever of the 5 presets best fits (equity-growth vs cash-flow, low vs high price point, or commercial-transition). Infer it — do NOT just keep the default preset shown above. Then bias property cells toward the preset you chose. If the strategy and brief genuinely don't indicate a direction, keep the default.`
+**Choosing the preset:** Based on this company strategy AND the client's brief, set \`strategyPreset\` to whichever of the 6 presets best fits: equity-growth vs cash-flow (low/high price point), \`commercial-transition\` (residential → commercial), or \`eg-to-cf\` (build equity in growth-mode assets early, then pivot to cash-flow assets later). Infer it — do NOT just keep the default preset shown above. If the strategy and brief genuinely don't indicate a direction, keep the default.
+
+**Extract every specific the company strategy states and apply it per property — do NOT fall back to generic defaults when the strategy is explicit. This is the whole point of the company strategy: it molds the plan beyond the client brief.**
+- **Yield** (e.g. "4.5–4.8% yield", "5% gross"): you MUST use the yield the strategy states — do NOT substitute your own yield assumption. Set each property's \`rentPerWeek\` = round(purchasePrice × statedYield ÷ 52), using the MIDPOINT of any range. Worked example: "$600k at 4.5–4.8%" → midpoint 4.65% → round(600000 × 0.0465 ÷ 52) = 536/wk. Apply the stated yield to every property unless the strategy gives different yields for different phases.
+- **Price band** (e.g. "$550–650k"): set \`purchasePrice\` within the band (midpoint unless borrowing capacity dictates lower).
+- **Growth expectation** (e.g. "10% then 7%", "strong growth"): map to the closest growth tier — High / Medium / Low — via \`growthAssumption\`. Tiers are coarse; pick the nearest. Do not invent a custom curve.
+- **Purchase cadence** (e.g. "one per year", "every 18 months"): space \`targetPeriod\` accordingly. Periods are semi-annual (2 per year), so "one per year" ≈ 2 periods apart.
+- **Mid-plan transition** (e.g. "move to cashflow halfway", "commercial after year 7"): use the matching two-phase preset (\`eg-to-cf\` or \`commercial-transition\`) and place Phase 2 properties at higher \`targetPeriod\`. If the strategy says to transition but does NOT say when, start Phase 2 at roughly the HALFWAY point of the plan horizon.
+- **Property kind / price point** (e.g. "established freestanding homes", "units"): steer cell selection toward the matching cells (never name the cell or location back to the BA).
+Then bias property cells toward the preset you chose.`
     : '';
 
   // ── Conversation history section ─────────────────────────────────
@@ -223,6 +233,7 @@ Match the BA's language. "bloke"/"guy"/"fella" or "he/him" → he/him. "lady"/"w
 | cf-low | regional-unit-cashflow, regional-house-cashflow | commercial-low-cost |
 | cf-high | metro-house-cashflow, commercial-high-cost | regional-house-cashflow |
 | commercial-transition | Phase 1: metro-house-growth, regional-house-growth. Phase 2: commercial |
+| eg-to-cf | Phase 1: regional-house-growth, metro-unit-growth. Phase 2: regional-unit-cashflow, regional-house-cashflow |
 
 Active preset: **${preset.toUpperCase()} — ${presetLabel}**. Bias toward this preset's primary cells unless the BA overrides.
 

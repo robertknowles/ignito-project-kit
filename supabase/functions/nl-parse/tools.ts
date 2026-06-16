@@ -100,7 +100,7 @@ export const CREATE_PLAN_TOOL = {
       },
       strategyPreset: {
         type: 'string' as const,
-        enum: ['eg-low', 'eg-high', 'cf-low', 'cf-high', 'commercial-transition'],
+        enum: ['eg-low', 'eg-high', 'cf-low', 'cf-high', 'commercial-transition', 'eg-to-cf'],
       },
       missingInputs: {
         type: 'array' as const,

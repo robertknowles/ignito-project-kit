@@ -57,6 +57,7 @@ const PRESET_NAMES: Record<string, string> = {
   'cf-low': 'cashflow, low price point',
   'cf-high': 'cashflow, high price point',
   'commercial-transition': 'commercial transition',
+  'eg-to-cf': 'growth to cash flow',
 };
 
 export function buildCreatePlanMessage(data: CreatePlanData): string {

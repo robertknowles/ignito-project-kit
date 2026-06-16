@@ -18,7 +18,7 @@ const VALID_STATES = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
 const VALID_GROWTH = ['High', 'Medium', 'Low'];
 const VALID_LOAN = ['IO', 'PI'];
-const VALID_PRESETS = ['eg-low', 'eg-high', 'cf-low', 'cf-high', 'commercial-transition'];
+const VALID_PRESETS = ['eg-low', 'eg-high', 'cf-low', 'cf-high', 'commercial-transition', 'eg-to-cf'];
 
 interface ValidationResult {
   valid: boolean;

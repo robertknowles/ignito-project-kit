@@ -118,6 +118,7 @@ const STRATEGY_OPTIONS = [
   { value: 'cf-low', label: 'Cashflow (low entry)' },
   { value: 'cf-high', label: 'Cashflow (high entry)' },
   { value: 'commercial-transition', label: 'Commercial transition' },
+  { value: 'eg-to-cf', label: 'Growth to cash flow' },
 ]
 
 const PACING_OPTIONS = [

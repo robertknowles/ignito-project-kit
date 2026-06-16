@@ -20,7 +20,7 @@ export interface PlanningDefaults {
   defaultInterestRate: number
   defaultTimeline: number
   defaultOwnership: 'individual' | 'joint'
-  defaultStrategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition'
+  defaultStrategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf'
 }
 
 const DEFAULT_PLANNING: PlanningDefaults = {
@@ -249,6 +249,7 @@ export const PlanningDefaultsModal: React.FC<PlanningDefaultsModalProps> = ({ is
                   <option value="cf-low">Cash Flow — Low Price</option>
                   <option value="cf-high">Cash Flow — High Price</option>
                   <option value="commercial-transition">Commercial Transition</option>
+                  <option value="eg-to-cf">Growth to Cash Flow</option>
                 </select>
               </div>
             </div>
