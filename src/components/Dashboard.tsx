@@ -33,7 +33,9 @@ import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
   RENTAL_RECOGNITION_RATE,
+  PERIODS_PER_YEAR,
 } from '../constants/financialParams';
+import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
@@ -94,7 +96,7 @@ const TimeRangeTabs: React.FC<{ value: number; onChange: (v: number) => void }> 
             : 'bg-neutral-50 text-neutral-500 hover:text-neutral-700'
         } ${i !== 0 ? 'border-l border-neutral-200' : ''}`}
       >
-        {years} years
+        {years}y
       </button>
     ))}
   </div>
@@ -139,7 +141,7 @@ export const Dashboard = () => {
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { planGenerating, pendingPlanResponse } = useLayout();
-  const { propertyOrder: livePropertyOrder } = usePropertySelection();
+  const { propertyOrder: livePropertyOrder, eventBlocks } = usePropertySelection();
   const { activeClient } = useClient();
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
@@ -256,8 +258,68 @@ export const Dashboard = () => {
         const debt = lastGrowth.totalDebt ?? 0;
         return capacity - debt;
       })(),
+      // Classify borrowing health across the displayed horizon using the SAME
+      // two lines the chart draws: Debt not Offset (real exposure) vs Borrowing
+      // Capacity. Over capacity = exposure climbs above the capacity line.
+      borrowingStatus: (() => {
+        const profile = displayScenarioAData?.profile;
+        const fallback = {
+          state: 'comfortable' as 'comfortable' | 'tight' | 'broken',
+          headroom: 0,
+          tightestYear: null as string | null,
+          peakUtilization: 0,
+          brokenYear: null as string | null,
+        };
+        if (!profile) return fallback;
+        const endYear = BASE_YEAR + displayYears - 1;
+        const wageGrowth = profile.wageGrowthRate ?? ANNUAL_WAGE_GROWTH_RATE;
+
+        let minHeadroom: number | null = null;
+        let tightestYear: string | null = null;
+        let peakUtilization = 0;
+        let brokenYear: string | null = null;
+
+        for (const g of growthData) {
+          const year = Number(g.year);
+          if (year > endYear) continue;
+          const yearsElapsed = year - BASE_YEAR;
+          const period = yearsElapsed * PERIODS_PER_YEAR + 1;
+          const grossRental = cfData.find(c => c.year === g.year)?.rentalIncome ?? 0;
+
+          const ceiling = calculateBorrowingCeiling(period, {
+            statedBC: profile.borrowingCapacity ?? 0,
+            baseSalary: profile.baseSalary ?? 60000,
+            salaryMultiplier: profile.salaryServiceabilityMultiplier ?? 6.0,
+            wageGrowth,
+            grossRentalIncome: grossRental,
+            eventBlocks,
+          });
+
+          // Real exposure the lender counts: entity-discounted debt less cash
+          // reserves — identical to the chart's "Offset Debt" series.
+          const lenderDebt = g.entityDiscountedDebt ?? g.totalDebt ?? 0;
+          const cashOffset = Math.min(g.cashOffset ?? 0, lenderDebt);
+          const offsetDebt = Math.round(Math.max(0, lenderDebt - cashOffset));
+
+          const headroom = ceiling - offsetDebt;
+          const utilization = ceiling > 0 ? offsetDebt / ceiling : 0;
+          if (minHeadroom === null || headroom < minHeadroom) {
+            minHeadroom = headroom;
+            tightestYear = g.year;
+          }
+          if (utilization > peakUtilization) peakUtilization = utilization;
+          if (offsetDebt > ceiling && brokenYear === null) brokenYear = g.year;
+        }
+
+        const state: 'comfortable' | 'tight' | 'broken' = brokenYear
+          ? 'broken'
+          : peakUtilization >= 0.9
+            ? 'tight'
+            : 'comfortable';
+        return { state, headroom: minHeadroom ?? 0, tightestYear, peakUtilization, brokenYear };
+      })(),
     };
-  }, [chartDataA, displayScenarioAData, displayYears]);
+  }, [chartDataA, displayScenarioAData, displayYears, eventBlocks]);
 
   // Headline metrics the change receipt diffs across edits — equity at the
   // displayed horizon, annual cashflow, borrowing headroom, and per-property
@@ -507,19 +569,50 @@ export const Dashboard = () => {
                 ]}
                 action={
                   <div className="relative group">
-                    <AlertTriangle size={14} className="text-neutral-400 cursor-help" />
+                    <AlertTriangle
+                      size={14}
+                      className={`cursor-help ${
+                        kpis.borrowingStatus.state === 'broken'
+                          ? 'text-red-500'
+                          : kpis.borrowingStatus.state === 'tight'
+                            ? 'text-amber-500'
+                            : 'text-neutral-400'
+                      }`}
+                    />
                     <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block w-56 px-3 py-2 rounded-lg bg-neutral-800 text-white text-xs leading-relaxed shadow-lg">
-                      If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.
+                      {kpis.borrowingStatus.state === 'broken'
+                        ? `Total liabilities overrun borrowing capacity in ${kpis.borrowingStatus.brokenYear}. The plan needs reworking before this point — pace acquisitions or adjust the entity structure.`
+                        : kpis.borrowingStatus.state === 'tight'
+                          ? `Capacity gets tight in ${kpis.borrowingStatus.tightestYear} (${Math.round(kpis.borrowingStatus.peakUtilization * 100)}% used). Little room for slippage around this point.`
+                          : 'If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.'}
                     </div>
                   </div>
                 }
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                      {formatCompact(kpis.borrowingHeadroom)}
-                    </span>
-                    <span className="text-sm text-neutral-500">headroom by {BASE_YEAR + displayYears - 1}</span>
+                    {kpis.borrowingStatus.state === 'broken' ? (
+                      <>
+                        <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          Over capacity
+                        </span>
+                        <span className="text-sm text-red-500">in {kpis.borrowingStatus.brokenYear}</span>
+                      </>
+                    ) : kpis.borrowingStatus.state === 'tight' ? (
+                      <>
+                        <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          Tightest in {kpis.borrowingStatus.tightestYear}
+                        </span>
+                        <span className="text-sm text-neutral-500">{Math.round(kpis.borrowingStatus.peakUtilization * 100)}% used</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          {formatCompact(kpis.borrowingStatus.headroom)}
+                        </span>
+                        <span className="text-sm text-neutral-500">headroom</span>
+                      </>
+                    )}
                   </div>
                   <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
                 </div>
