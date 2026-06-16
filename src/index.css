@@ -323,21 +323,24 @@ td:hover {
 
 /* Dashboard ambient hue — slow, subtle drift */
 @keyframes aurora-drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(5%, 4%, 0) scale(1.10); }
+  0%, 100% { transform: translate3d(-10%, -6%, 0) scale(1); opacity: 0.5; }
+  33% { transform: translate3d(14%, 8%, 0) scale(1.25); opacity: 1; }
+  66% { transform: translate3d(5%, -10%, 0) scale(1.1); opacity: 0.7; }
 }
 @keyframes aurora-drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
-  50% { transform: translate3d(-4%, 5%, 0) scale(1); }
+  0%, 100% { transform: translate3d(8%, 5%, 0) scale(1.05); opacity: 0.6; }
+  33% { transform: translate3d(-15%, 12%, 0) scale(1); opacity: 1; }
+  66% { transform: translate3d(-4%, -9%, 0) scale(1.2); opacity: 0.8; }
 }
 @keyframes aurora-drift-c {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(4%, -4%, 0) scale(1.12); }
+  0%, 100% { transform: translate3d(7%, 9%, 0) scale(1); opacity: 0.7; }
+  33% { transform: translate3d(15%, -10%, 0) scale(1.25); opacity: 1; }
+  66% { transform: translate3d(-9%, 7%, 0) scale(1.08); opacity: 0.5; }
 }
-.aurora-blob { will-change: transform; }
-.aurora-a { animation: aurora-drift-a 24s ease-in-out infinite; }
-.aurora-b { animation: aurora-drift-b 30s ease-in-out infinite; }
-.aurora-c { animation: aurora-drift-c 34s ease-in-out infinite; }
+.aurora-blob { will-change: transform, opacity; }
+.aurora-a { animation: aurora-drift-a 18s ease-in-out infinite; }
+.aurora-b { animation: aurora-drift-b 22s ease-in-out infinite; }
+.aurora-c { animation: aurora-drift-c 26s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .aurora-a, .aurora-b, .aurora-c { animation: none; }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 export interface LegendItem {
   color: string;
@@ -15,6 +16,10 @@ interface ChartCardProps {
   collapsible?: boolean;
   defaultCollapsed?: boolean;
   flush?: boolean;
+  /** When true, shows an expand icon that opens the chart in a large modal */
+  expandable?: boolean;
+  /** When true, renders the legend on its own row beneath the title (keeps the title row tidy in narrow cards) */
+  legendBelow?: boolean;
   children: React.ReactNode;
 }
 
@@ -36,9 +41,54 @@ const UUI = {
  * Title in the outer header, chart content in the inner card.
  */
 export const ChartCard: React.FC<ChartCardProps> = ({
-  title, action, legend, collapsible, defaultCollapsed, flush, children
+  title, action, legend, collapsible, defaultCollapsed, flush, expandable, legendBelow, children
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
+  const [expanded, setExpanded] = useState(false);
+
+  const legendNode = legend && legend.length > 0 ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      {legend.map((item, idx) => (
+        <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {item.variant === 'line' ? (
+            <svg width="16" height="8" style={{ flexShrink: 0 }}>
+              <line x1="0" y1="4" x2="16" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray="2 3" strokeLinecap="round" />
+            </svg>
+          ) : item.variant === 'ring' ? (
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: 'white',
+                border: `1.5px solid ${item.color}`,
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: item.color,
+                flexShrink: 0,
+              }}
+            />
+          )}
+          <span
+            style={{
+              fontSize: 12,
+              color: UUI.neutral500,
+              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            }}
+          >
+            {item.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  ) : null;
 
   return (
     /* Outer shell — #FAFAFA bg, 12px radius, inset ring, shadow-xs */
@@ -80,53 +130,27 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Legend — inline in header */}
-            {legend && legend.length > 0 && !collapsed && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {legend.map((item, idx) => (
-                  <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {item.variant === 'line' ? (
-                      <svg width="16" height="8" style={{ flexShrink: 0 }}>
-                        <line x1="0" y1="4" x2="16" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray="2 3" strokeLinecap="round" />
-                      </svg>
-                    ) : item.variant === 'ring' ? (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: 'white',
-                          border: `1.5px solid ${item.color}`,
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: item.color,
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: UUI.neutral500,
-                        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-                      }}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Legend — inline in header (unless moved below) */}
+            {!collapsed && !legendBelow && legendNode}
             {action && !collapsed && action}
+            {expandable && !collapsed && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+                title="Expand"
+                aria-label="Expand chart"
+                className="flex items-center justify-center w-7 h-7 -my-0.5 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              >
+                <Maximize2 size={14} />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Legend — own row beneath the title (narrow cards) */}
+        {!collapsed && legendBelow && legendNode && (
+          <div style={{ marginTop: 8 }}>{legendNode}</div>
+        )}
       </div>
 
       {/* Inner white card — 12px radius, 20px padding, inset ring */}
@@ -143,6 +167,30 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         >
           {children}
         </div>
+      )}
+
+      {/* Expanded modal — large centered view of the same chart */}
+      {expandable && (
+        <Dialog open={expanded} onOpenChange={setExpanded}>
+          <DialogContent className="max-w-5xl w-[92vw] p-6">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginRight: 32 }}>
+              <DialogTitle
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: UUI.neutral900,
+                  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                }}
+              >
+                {title}
+              </DialogTitle>
+              {legendNode}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              {children}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

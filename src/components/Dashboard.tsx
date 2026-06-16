@@ -443,89 +443,114 @@ export const Dashboard = () => {
               <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
             </ChartCard>
 
-            {/* Total Equity chart */}
-            <ChartCard
-              title="Total Equity"
-              legend={[
-                { color: '#7F56D9', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
-                { color: '#737373', label: 'Portfolio Value' },
-              ]}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span
-                    className="text-2xl font-semibold text-neutral-900"
-                    style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-                    title={kpis.cashFromSales > 0 ? `Property equity ${formatCompact(kpis.propertyEquity)} + cash from sales ${formatCompact(kpis.cashFromSales)}` : undefined}
-                  >
-                    {formatCompact(kpis.totalEquity)}
-                  </span>
-                  <span className="text-sm text-neutral-500">
-                    by {BASE_YEAR + displayYears - 1}
-                  </span>
-                </div>
-                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
-              </div>
-              <TimelineColumn scenarioData={displayScenarioAData} />
-            </ChartCard>
-
-            {/* Net Cashflow chart */}
-            <ChartCard
-              title="Net Cashflow"
-              legend={[
-                { color: '#7F56D9', label: 'Net Cashflow' },
-                ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate' }] : []),
-              ]}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {formatCompact(kpis.netCashflowAnnual)}
-                  </span>
-                  <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
-                  {kpis.annualSavings > 0 && kpis.tightestHeadroom !== null && (
-                    <span className={`text-sm whitespace-nowrap ${kpis.tightestHeadroom < 0 ? 'text-red-500' : 'text-neutral-500'}`}>
-                      &middot; tightest headroom {kpis.tightestHeadroom < 0 ? '-' : ''}${Math.abs(kpis.tightestHeadroom).toLocaleString()}/yr ({kpis.tightestHeadroomYear})
+            {/* ── 2×2 grid of financial charts ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Total Equity chart */}
+              <ChartCard
+                title="Total Equity"
+                expandable
+                legendBelow
+                legend={[
+                  { color: '#7F56D9', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
+                  { color: '#737373', label: 'Portfolio Value' },
+                ]}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="text-2xl font-semibold text-neutral-900"
+                      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                      title={kpis.cashFromSales > 0 ? `Property equity ${formatCompact(kpis.propertyEquity)} + cash from sales ${formatCompact(kpis.cashFromSales)}` : undefined}
+                    >
+                      {formatCompact(kpis.totalEquity)}
                     </span>
-                  )}
-                </div>
-                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
-              </div>
-              <CashflowChart scenarioData={displayScenarioAData} />
-            </ChartCard>
-
-            {/* Borrowing Capacity chart */}
-            <ChartCard
-              title="Borrowing Capacity"
-              legend={[
-                { color: '#7F56D9', label: 'Borrowing Capacity' },
-                { color: '#414651', label: 'Total Liabilities' },
-                { color: '#9E77ED', label: 'Offset Debt' },
-              ]}
-              action={
-                <div className="relative group">
-                  <AlertTriangle size={14} className="text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block w-56 px-3 py-2 rounded-lg bg-neutral-800 text-white text-xs leading-relaxed shadow-lg">
-                    If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.
+                    <span className="text-sm text-neutral-500">
+                      by {BASE_YEAR + displayYears - 1}
+                    </span>
                   </div>
+                  <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
                 </div>
-              }
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {formatCompact(kpis.borrowingHeadroom)}
-                  </span>
-                  <span className="text-sm text-neutral-500">headroom by {BASE_YEAR + displayYears - 1}</span>
-                </div>
-                <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
-              </div>
-              <BorrowingCapacityChart scenarioData={displayScenarioAData} />
-            </ChartCard>
+                <TimelineColumn scenarioData={displayScenarioAData} />
+              </ChartCard>
 
-            {/* Property Roadmap — Gantt chart */}
+              {/* Net Cashflow chart */}
+              <ChartCard
+                title="Net Cashflow"
+                expandable
+                legendBelow
+                legend={[
+                  { color: '#7F56D9', label: 'Net Cashflow' },
+                  ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate' }] : []),
+                ]}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                        {formatCompact(kpis.netCashflowAnnual)}
+                      </span>
+                      <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
+                    </div>
+                    {kpis.annualSavings > 0 && kpis.tightestHeadroom !== null && (
+                      <span className={`text-sm ${kpis.tightestHeadroom < 0 ? 'text-red-500' : 'text-neutral-500'}`}>
+                        Tightest headroom {kpis.tightestHeadroom < 0 ? '-' : ''}${Math.abs(kpis.tightestHeadroom).toLocaleString()}/yr ({kpis.tightestHeadroomYear})
+                      </span>
+                    )}
+                  </div>
+                  <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+                </div>
+                <CashflowChart scenarioData={displayScenarioAData} />
+              </ChartCard>
+
+              {/* Borrowing Capacity chart */}
+              <ChartCard
+                title="Borrowing Capacity"
+                expandable
+                legendBelow
+                legend={[
+                  { color: '#7F56D9', label: 'Borrowing Capacity' },
+                  { color: '#414651', label: 'Total Liabilities' },
+                  { color: '#9E77ED', label: 'Offset Debt' },
+                ]}
+                action={
+                  <div className="relative group">
+                    <AlertTriangle size={14} className="text-neutral-400 cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block w-56 px-3 py-2 rounded-lg bg-neutral-800 text-white text-xs leading-relaxed shadow-lg">
+                      If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.
+                    </div>
+                  </div>
+                }
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold text-neutral-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      {formatCompact(kpis.borrowingHeadroom)}
+                    </span>
+                    <span className="text-sm text-neutral-500">headroom by {BASE_YEAR + displayYears - 1}</span>
+                  </div>
+                  <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
+                </div>
+                <BorrowingCapacityChart scenarioData={displayScenarioAData} />
+              </ChartCard>
+
+              {/* Portfolio Cashflow — per-property IN vs OUT with year slider */}
+              <ChartCard
+                title="Portfolio Cashflow"
+                expandable
+                legendBelow
+                legend={[
+                  { color: '#7F56D9', label: 'Rental Income (IN)' },
+                  { color: 'rgba(127, 86, 217, 0.25)', label: 'Total Outgoings (OUT)' },
+                ]}
+              >
+                <PortfolioCashflow />
+              </ChartCard>
+            </div>
+
+            {/* Property Roadmap — Gantt chart (full width) */}
             <ChartCard
               title="Property Roadmap"
+              expandable
               legend={[...ROADMAP_LEGEND]}
               action={<PropertyRoadmapSummary />}
             >
@@ -533,17 +558,6 @@ export const Dashboard = () => {
                 <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
               </div>
               <PropertyRoadmapChart displayYears={displayYears} />
-            </ChartCard>
-
-            {/* Portfolio Cashflow — per-property IN vs OUT with year slider */}
-            <ChartCard
-              title="Portfolio Cashflow"
-              legend={[
-                { color: '#7F56D9', label: 'Rental Income (IN)' },
-                { color: 'rgba(127, 86, 217, 0.25)', label: 'Total Outgoings (OUT)' },
-              ]}
-            >
-              <PortfolioCashflow />
             </ChartCard>
 
             {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}

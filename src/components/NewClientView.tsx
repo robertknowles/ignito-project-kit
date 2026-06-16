@@ -325,7 +325,7 @@ export const NewClientView: React.FC = () => {
         </div>
 
         <div
-          className="relative z-10 mx-auto my-auto w-full"
+          className="relative z-10 mx-auto mt-[16vh] mb-auto w-full"
           style={{ padding: '48px 48px', maxWidth: 1320 }}
         >
           {/* Hero */}
