@@ -483,19 +483,12 @@ export const Dashboard = () => {
                   ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate' }] : []),
                 ]}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                        {formatCompact(kpis.netCashflowAnnual)}
-                      </span>
-                      <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
-                    </div>
-                    {kpis.annualSavings > 0 && kpis.tightestHeadroom !== null && (
-                      <span className={`text-sm ${kpis.tightestHeadroom < 0 ? 'text-red-500' : 'text-neutral-500'}`}>
-                        Tightest headroom {kpis.tightestHeadroom < 0 ? '-' : ''}${Math.abs(kpis.tightestHeadroom).toLocaleString()}/yr ({kpis.tightestHeadroomYear})
-                      </span>
-                    )}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      {formatCompact(kpis.netCashflowAnnual)}
+                    </span>
+                    <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
                   </div>
                   <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
                 </div>
