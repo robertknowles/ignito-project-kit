@@ -638,8 +638,23 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const ip = editedResponse.investmentProfile;
 
   const updateClientField = (field: string, value: number) => {
-    setEditedResponse(prev => ({ ...prev, clientProfile: prev.clientProfile ? { ...prev.clientProfile, [field]: value } : prev.clientProfile }));
+    setEditedResponse(prev => {
+      if (!prev.clientProfile) return prev;
+      const next = { ...prev, clientProfile: { ...prev.clientProfile, [field]: value } };
+      // The "Deposit / cash" row edits clientProfile.currentDeposit, but the
+      // engine's depositPool comes from investmentProfile.depositPool, which
+      // OVERRIDES currentDeposit in mapToInvestmentProfile. Keep the two in
+      // sync so editing the deposit actually re-runs affordability + the
+      // pull-forward insight (and so the edit isn't dropped on confirm).
+      if (field === 'currentDeposit' && next.investmentProfile) {
+        next.investmentProfile = { ...next.investmentProfile, depositPool: value };
+      }
+      return next;
+    });
     setEditedClientSources(prev => ({ ...prev, [field]: 'user' }));
+    if (field === 'currentDeposit') {
+      setEditedProfileSources(prev => ({ ...prev, depositPool: 'user' }));
+    }
   };
   const updateProfileField = (field: string, value: any) => {
     setEditedResponse(prev => ({ ...prev, investmentProfile: prev.investmentProfile ? { ...prev.investmentProfile, [field]: value } : prev.investmentProfile }));
