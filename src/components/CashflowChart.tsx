@@ -59,34 +59,21 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
 };
 
 /**
- * Savings breach dot — just the red dot on the line. The "Exceeds savings"
- * label only appears as a small badge when the cursor hovers the dot.
+ * Savings breach dot — plain red marker on the line. The "Exceeds savings"
+ * callout lives inside the chart's hover tooltip (see CustomTooltip) to avoid
+ * overlapping the data popup.
  */
 const ExceedsSavingsDot = ({ cx, cy }: any) => {
-  const [hover, setHover] = React.useState(false);
   if (cx == null || cy == null) return null;
   return (
-    <g>
-      {hover && (
-        <g style={{ pointerEvents: 'none' }}>
-          <rect x={cx - 52} y={cy - 32} width={104} height={22} rx={11} fill={UUI.error600} />
-          <text x={cx} y={cy - 17.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
-            Exceeds savings
-          </text>
-        </g>
-      )}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={6}
-        fill={UUI.error600}
-        stroke="white"
-        strokeWidth={2.5}
-        style={{ cursor: 'pointer' }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-      />
-    </g>
+    <circle
+      cx={cx}
+      cy={cy}
+      r={6}
+      fill={UUI.error600}
+      stroke="white"
+      strokeWidth={2.5}
+    />
   );
 };
 
@@ -208,6 +195,22 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             <span style={{ color: UUI.neutral500 }}>Headroom</span>
             <span style={{ fontWeight: 500, color: headroom >= 0 ? UUI.neutral700 : UUI.error600 }}>
               {headroom >= 0 ? '+' : '-'}${Math.abs(headroom).toLocaleString()}/yr
+            </span>
+          </div>
+        )}
+        {headroom != null && headroom < 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+            <span
+              style={{
+                background: UUI.error600,
+                color: UUI.white,
+                fontSize: 10,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 11,
+              }}
+            >
+              Exceeds savings
             </span>
           </div>
         )}
