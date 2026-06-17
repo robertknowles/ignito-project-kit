@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, Check } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -36,6 +36,7 @@ import {
   PERIODS_PER_YEAR,
 } from '../constants/financialParams';
 import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
+import { COLORS, TYPOGRAPHY } from '../constants/designTokens';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
@@ -81,6 +82,18 @@ const formatCompact = (value: number): string => {
   const sign = value < 0 ? '-' : '';
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
   if (abs >= 1_000) return `${sign}$${Math.round(abs).toLocaleString()}`;
+  return `${sign}$${Math.round(abs)}`;
+};
+
+/** Compact money for summary cards — trims trailing zeros ($5M, $6.59M, $165k). */
+const formatMoney = (value: number): string => {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const m = Math.round((abs / 1_000_000) * 100) / 100;
+    return `${sign}$${m}M`;
+  }
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`;
   return `${sign}$${Math.round(abs)}`;
 };
 
@@ -321,6 +334,50 @@ export const Dashboard = () => {
     };
   }, [chartDataA, displayScenarioAData, displayYears, eventBlocks]);
 
+  // "The Goal" / "What it takes" summary above the Purchases table.
+  const planHeader = useMemo(() => {
+    const growthData = chartDataA.portfolioGrowthData;
+    const cashflowGoal = liveProfile?.cashflowGoal ?? 0;
+    const equityGoal = liveProfile?.equityGoal ?? 0;
+
+    // Target year = first year the equity goal is projected to be met, else the
+    // plan horizon end.
+    const planEndYear = BASE_YEAR + (liveProfile?.timelineYears ?? displayYears) - 1;
+    let targetYear: number | null = null;
+    for (const g of growthData) {
+      if ((g.equity ?? 0) >= equityGoal && equityGoal > 0) {
+        targetYear = Number(g.year);
+        break;
+      }
+    }
+    const resolvedTargetYear = targetYear ?? planEndYear;
+
+    // Equity projected at the target year (falls back to the horizon figure).
+    const projectedEquity =
+      growthData.find(g => Number(g.year) === resolvedTargetYear)?.equity ?? kpis.totalEquity;
+
+    // Acquisitions on the timeline + total upfront cash.
+    const bought = liveTimelineProperties.filter(p => Number.isFinite(p.affordableYear));
+    const years = bought.map(p => Math.floor(p.affordableYear));
+    const firstYear = years.length ? Math.min(...years) : null;
+    const lastYear = years.length ? Math.max(...years) : null;
+    const depositsTotal = bought.reduce(
+      (sum, p) => sum + (p.totalCashRequired ?? p.depositRequired ?? 0),
+      0,
+    );
+
+    return {
+      cashflowGoal,
+      equityGoal,
+      targetYear: resolvedTargetYear,
+      projectedEquity,
+      count: bought.length,
+      firstYear,
+      lastYear,
+      depositsTotal,
+    };
+  }, [chartDataA, liveProfile, displayYears, liveTimelineProperties, kpis.totalEquity]);
+
   // Headline metrics the change receipt diffs across edits — equity at the
   // displayed horizon, annual cashflow, borrowing headroom, and per-property
   // placement outcomes.
@@ -493,6 +550,78 @@ export const Dashboard = () => {
         {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
           <>
+            {/* ── Plan summary KPIs ── */}
+            {(() => {
+              const ph = planHeader;
+              const endYear = BASE_YEAR + displayYears - 1;
+              const equityGoalMet = kpis.totalEquity >= (liveProfile?.equityGoal ?? 0);
+              const cashflowPositive = kpis.netCashflowAnnual > 0;
+
+              const cardClass = 'rounded-xl bg-neutral-50 ring-1 ring-neutral-200 px-4 py-3';
+              const labelStyle = { color: COLORS.neutral[500], fontSize: 12, fontFamily: TYPOGRAPHY.fontFamily } as const;
+              const valueStyle = { color: COLORS.neutral[900], fontSize: 20, fontWeight: 600, fontFamily: TYPOGRAPHY.fontFamily } as const;
+              const statusStyle = (color: string) =>
+                ({ color, fontSize: 12, fontFamily: TYPOGRAPHY.fontFamily } as const);
+
+              // Lead the Goal box with whichever metric the chosen strategy
+              // prioritises: cashflow-led presets (cf-*) show $/yr as the big
+              // number, everything else (equity growth) leads with equity.
+              const cashflowLed = (liveProfile?.strategyPreset ?? '').startsWith('cf');
+
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Goal */}
+                  <div className={cardClass}>
+                    <div style={labelStyle}>Goal by {ph.targetYear}</div>
+                    {cashflowLed ? (
+                      <>
+                        <div className="mt-1" style={valueStyle}>{formatMoney(ph.cashflowGoal)}/yr</div>
+                        <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
+                          {formatMoney(ph.equityGoal)} equity
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mt-1" style={valueStyle}>{formatMoney(ph.equityGoal)} equity</div>
+                        <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
+                          {formatMoney(ph.cashflowGoal)}/yr
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Equity */}
+                  <div className={cardClass}>
+                    <div style={labelStyle}>Equity at {endYear}</div>
+                    <div className="mt-1" style={valueStyle}>{formatMoney(kpis.totalEquity)}</div>
+                    <div className="mt-1 flex items-center gap-1" style={statusStyle(equityGoalMet ? COLORS.success : COLORS.neutral[500])}>
+                      {equityGoalMet && <Check size={12} />}
+                      {equityGoalMet ? 'goal met' : `${formatMoney(ph.equityGoal)} goal`}
+                    </div>
+                  </div>
+
+                  {/* Cashflow */}
+                  <div className={cardClass}>
+                    <div style={labelStyle}>Cashflow at {endYear}</div>
+                    <div className="mt-1" style={valueStyle}>{formatMoney(kpis.netCashflowAnnual)}/yr</div>
+                    <div className="mt-1 flex items-center gap-1" style={statusStyle(cashflowPositive ? COLORS.success : COLORS.error)}>
+                      {cashflowPositive && <Check size={12} />}
+                      {cashflowPositive ? 'positive' : 'negative'}
+                    </div>
+                  </div>
+
+                  {/* Properties */}
+                  <div className={cardClass}>
+                    <div style={labelStyle}>Properties by {endYear}</div>
+                    <div className="mt-1" style={valueStyle}>{ph.count}</div>
+                    <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
+                      {ph.lastYear ? `last buy ${ph.lastYear}` : 'no purchases'}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <ChartCard title="Purchases" flush action={
               <button
                 onClick={() => setIsLibraryOpen(true)}

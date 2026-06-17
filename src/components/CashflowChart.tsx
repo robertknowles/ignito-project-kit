@@ -58,19 +58,34 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
   );
 };
 
-/** Savings breach marker — badge pinned to top of chart, red variant of the CF Positive badge */
-const ExceedsSavingsMarker = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
-  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
-  const badgeY = 4;
+/**
+ * Savings breach dot — just the red dot on the line. The "Exceeds savings"
+ * label only appears as a small badge when the cursor hovers the dot.
+ */
+const ExceedsSavingsDot = ({ cx, cy }: any) => {
+  const [hover, setHover] = React.useState(false);
+  if (cx == null || cy == null) return null;
   return (
     <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.error600} strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 52} y={badgeY} width={104} height={22} rx={11} fill={UUI.error600} />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
-        Exceeds savings
-      </text>
+      {hover && (
+        <g style={{ pointerEvents: 'none' }}>
+          <rect x={cx - 52} y={cy - 32} width={104} height={22} rx={11} fill={UUI.error600} />
+          <text x={cx} y={cy - 17.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
+            Exceeds savings
+          </text>
+        </g>
+      )}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill={UUI.error600}
+        stroke="white"
+        strokeWidth={2.5}
+        style={{ cursor: 'pointer' }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      />
     </g>
   );
 };
@@ -273,18 +288,13 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             isAnimationActive={false}
           />
 
-          {/* Savings breach marker — worst year where the shortfall exceeds client savings */}
+          {/* Savings breach marker — red dot only; label shows on hover */}
           {worstBreachPoint && (
             <ReferenceDot
               x={worstBreachPoint.year}
               y={worstBreachPoint.netCashflow}
-              r={6}
-              fill={UUI.error600}
-              stroke="white"
-              strokeWidth={2.5}
-            >
-              <Label content={<ExceedsSavingsMarker />} />
-            </ReferenceDot>
+              shape={<ExceedsSavingsDot />}
+            />
           )}
 
           {/* Cashflow positive milestone marker */}
