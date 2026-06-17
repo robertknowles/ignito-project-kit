@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, Check } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -550,72 +550,104 @@ export const Dashboard = () => {
         {/* Portfolio Plan > Purchases: Table + charts */}
         {activeTab === 'plan' && planSubTab === 'purchases' && (
           <>
-            {/* ── Plan summary KPIs ── */}
+            {/* ── Plan summary: goal panel + outcome panel ── */}
             {(() => {
               const ph = planHeader;
-              const endYear = BASE_YEAR + displayYears - 1;
-              const equityGoalMet = kpis.totalEquity >= (liveProfile?.equityGoal ?? 0);
-              const cashflowPositive = kpis.netCashflowAnnual > 0;
 
-              const cardClass = 'rounded-xl bg-neutral-50 ring-1 ring-neutral-200 px-4 py-3';
-              const labelStyle = { color: COLORS.neutral[500], fontSize: 12, fontFamily: TYPOGRAPHY.fontFamily } as const;
-              const valueStyle = { color: COLORS.neutral[900], fontSize: 20, fontWeight: 600, fontFamily: TYPOGRAPHY.fontFamily } as const;
-              const statusStyle = (color: string) =>
-                ({ color, fontSize: 12, fontFamily: TYPOGRAPHY.fontFamily } as const);
+              // Client first name (uppercased) for the panel headings.
+              const firstName =
+                ((activeClient?.name ?? '').trim().split(/\s+/)[0] || 'Client').toUpperCase();
 
-              // Lead the Goal box with whichever metric the chosen strategy
-              // prioritises: cashflow-led presets (cf-*) show $/yr as the big
-              // number, everything else (equity growth) leads with equity.
-              const cashflowLed = (liveProfile?.strategyPreset ?? '').startsWith('cf');
+              // Years to reach the goal — target year is the first year the equity
+              // goal is met, else the plan horizon end.
+              const yearsToGoal = Math.max(1, ph.targetYear - BASE_YEAR);
+
+              // Projected outcomes at the target year (fall back to horizon KPIs).
+              const growthAtTarget = chartDataA.portfolioGrowthData.find(
+                g => Number(g.year) === ph.targetYear,
+              );
+              const cashflowAtTarget = chartDataA.cashflowData?.find(
+                c => Number(c.year) === ph.targetYear,
+              );
+              const equityAtTarget = growthAtTarget?.equity ?? kpis.totalEquity;
+              const portfolioAtTarget = growthAtTarget?.portfolioValue ?? kpis.portfolioValue;
+              const netCashflowAtTarget = cashflowAtTarget?.cashflow ?? kpis.netCashflowAnnual;
+
+              const equityGoalMet = ph.equityGoal > 0 && equityAtTarget >= ph.equityGoal;
+              const cashflowGoalMet = ph.cashflowGoal > 0 && netCashflowAtTarget >= ph.cashflowGoal;
+              const lastBuyYearRel = ph.lastYear ? ph.lastYear - BASE_YEAR : null;
+
+              const ff = TYPOGRAPHY.fontFamily;
+              // Panel heading — identical to the dashboard's section headings
+              // (ChartCard <h3> "Purchases": 14px / 600 / neutral-900 / Inter).
+              const heading = {
+                color: COLORS.neutral[900],
+                fontSize: 14,
+                fontWeight: 600,
+                lineHeight: '20px',
+                fontFamily: ff,
+              } as const;
+
+              // Supporting / body copy — matches the chart's muted "by {year}"
+              // label (14px / 400 / neutral-500 / Inter).
+              const bodyStyle = { fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff } as const;
+
+              const Row = ({ label, value, suffix, suffixColor }: {
+                label: string; value: string; suffix?: string; suffixColor?: string;
+              }) => (
+                <div className="flex items-center justify-between py-1.5" style={{ borderTop: `1px solid ${COLORS.neutral[200]}` }}>
+                  <span style={{ ...bodyStyle, color: COLORS.neutral[600] }}>{label}</span>
+                  <span style={bodyStyle}>
+                    <span style={{ color: COLORS.neutral[900], fontWeight: 600 }}>{value}</span>
+                    {suffix && (
+                      <span style={{ color: suffixColor ?? COLORS.neutral[500] }}>{` · ${suffix}`}</span>
+                    )}
+                  </span>
+                </div>
+              );
 
               return (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Goal */}
-                  <div className={cardClass}>
-                    <div style={labelStyle}>Goal by {ph.targetYear}</div>
-                    {cashflowLed ? (
-                      <>
-                        <div className="mt-1" style={valueStyle}>{formatMoney(ph.cashflowGoal)}/yr</div>
-                        <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
-                          {formatMoney(ph.equityGoal)} equity
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="mt-1" style={valueStyle}>{formatMoney(ph.equityGoal)} equity</div>
-                        <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
-                          {formatMoney(ph.cashflowGoal)}/yr
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Equity */}
-                  <div className={cardClass}>
-                    <div style={labelStyle}>Equity at {endYear}</div>
-                    <div className="mt-1" style={valueStyle}>{formatMoney(kpis.totalEquity)}</div>
-                    <div className="mt-1 flex items-center gap-1" style={statusStyle(equityGoalMet ? COLORS.success : COLORS.neutral[500])}>
-                      {equityGoalMet && <Check size={12} />}
-                      {equityGoalMet ? 'goal met' : `${formatMoney(ph.equityGoal)} goal`}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Goal panel */}
+                  <div className="rounded-2xl p-4 flex flex-col justify-center" style={{ background: COLORS.brand[100] }}>
+                    <div style={heading}>{firstName}'S GOAL</div>
+                    {/* "14 years" — same scale as the chart stat numbers ($2.03M): 24px / 600 */}
+                    <div className="mt-1" style={{ color: COLORS.brand[950], fontSize: 24, fontWeight: 600, lineHeight: '32px', fontFamily: ff }}>
+                      {yearsToGoal} {yearsToGoal === 1 ? 'year' : 'years'}
+                    </div>
+                    <div className="mt-1" style={{ ...bodyStyle, color: COLORS.brand[700] }}>
+                      to reach {formatMoney(ph.equityGoal)} equity and {formatMoney(ph.cashflowGoal)}/yr income
                     </div>
                   </div>
 
-                  {/* Cashflow */}
-                  <div className={cardClass}>
-                    <div style={labelStyle}>Cashflow at {endYear}</div>
-                    <div className="mt-1" style={valueStyle}>{formatMoney(kpis.netCashflowAnnual)}/yr</div>
-                    <div className="mt-1 flex items-center gap-1" style={statusStyle(cashflowPositive ? COLORS.success : COLORS.error)}>
-                      {cashflowPositive && <Check size={12} />}
-                      {cashflowPositive ? 'positive' : 'negative'}
+                  {/* Outcome panel */}
+                  <div className="lg:col-span-2 rounded-2xl border p-4" style={{ borderColor: COLORS.neutral[200], background: COLORS.neutral[0] }}>
+                    <div style={heading}>
+                      IN {yearsToGoal} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
                     </div>
-                  </div>
-
-                  {/* Properties */}
-                  <div className={cardClass}>
-                    <div style={labelStyle}>Properties by {endYear}</div>
-                    <div className="mt-1" style={valueStyle}>{ph.count}</div>
-                    <div className="mt-1" style={statusStyle(COLORS.neutral[500])}>
-                      {ph.lastYear ? `last buy ${ph.lastYear}` : 'no purchases'}
+                    <div className="mt-1">
+                      <Row
+                        label="Net cashflow"
+                        value={`${formatMoney(netCashflowAtTarget)}/yr`}
+                        suffix={cashflowGoalMet ? 'goal met' : netCashflowAtTarget < 0 ? 'negative' : `${formatMoney(ph.cashflowGoal)}/yr goal`}
+                        suffixColor={cashflowGoalMet ? COLORS.success : netCashflowAtTarget < 0 ? COLORS.error : COLORS.neutral[500]}
+                      />
+                      <Row
+                        label="Equity"
+                        value={formatMoney(equityAtTarget)}
+                        suffix={equityGoalMet ? 'goal met' : `${formatMoney(ph.equityGoal)} goal`}
+                        suffixColor={equityGoalMet ? COLORS.success : COLORS.neutral[500]}
+                      />
+                      <Row
+                        label="Portfolio value"
+                        value={formatMoney(portfolioAtTarget)}
+                        suffix={ph.count > 0 ? `across ${ph.count}` : undefined}
+                      />
+                      <Row
+                        label="Properties bought"
+                        value={String(ph.count)}
+                        suffix={lastBuyYearRel != null ? `by year ${lastBuyYearRel}` : undefined}
+                      />
                     </div>
                   </div>
                 </div>
