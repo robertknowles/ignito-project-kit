@@ -621,7 +621,7 @@ export const Dashboard = () => {
                   </div>
 
                   {/* Outcome panel */}
-                  <div className="lg:col-span-2 rounded-2xl border p-4" style={{ borderColor: COLORS.neutral[200], background: COLORS.neutral[0] }}>
+                  <div className="lg:col-span-2 rounded-2xl border px-4 pt-4 pb-1.5" style={{ borderColor: COLORS.neutral[200], background: COLORS.neutral[0] }}>
                     <div style={heading}>
                       IN {yearsToGoal} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
                     </div>
