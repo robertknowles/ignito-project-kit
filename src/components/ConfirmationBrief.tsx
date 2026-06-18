@@ -425,6 +425,12 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
       </div>
 
+      {/* Type (new build vs established — affects proposed 2027 CGT) */}
+      <div>
+        {fieldLabel('Type', 'isNewBuild')}
+        <Segmented options={[{ value: 'established', label: 'Established' }, { value: 'new', label: 'New build' }]} value={property.isNewBuild ? 'new' : 'established'} onChange={v => onFieldChange('isNewBuild', v === 'new')} />
+      </div>
+
       {/* State + Year side by side */}
       <div className="grid grid-cols-2 gap-2">
         <div>

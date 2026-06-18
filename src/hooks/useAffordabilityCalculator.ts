@@ -629,6 +629,7 @@ return { period: Infinity };
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
             const phInst = getInstance(purchase.instanceId);
+            if (phInst?.saleYear && phInst.saleYear > 0 && purchasePeriod >= yearToPeriod(phInst.saleYear)) return;
             const propertyData = getPropertyData(purchase.title, phInst?.growthAssumption);
             if (propertyData) {
               portfolioValueAfter += calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);
@@ -662,6 +663,7 @@ return { period: Infinity };
         [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
           const propertyInstance = getInstance(purchase.instanceId);
+          if (propertyInstance?.saleYear && propertyInstance.saleYear > 0 && purchasePeriod >= yearToPeriod(propertyInstance.saleYear)) return;
           const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
 
           if (propertyData && purchase.period <= purchasePeriod) {
@@ -735,6 +737,7 @@ return { period: Infinity };
         [...purchaseHistory, { period: purchasePeriod, cost: correctPurchasePrice, depositRequired: correctDepositRequired, loanAmount: loanAmount, title: property.title, instanceId: instanceId, loanType: currentInstanceLoanType }].forEach(purchase => {
           const periodsOwned = purchasePeriod - purchase.period;
           const propertyInstance = getInstance(purchase.instanceId);
+          if (propertyInstance?.saleYear && propertyInstance.saleYear > 0 && purchasePeriod >= yearToPeriod(propertyInstance.saleYear)) return;
           const propertyData = getPropertyData(purchase.title, propertyInstance?.growthAssumption);
 
           if (propertyData && purchase.period <= purchasePeriod) {
@@ -873,6 +876,7 @@ return { period: Infinity };
           if (purchase.period <= purchasePeriod) {
             const periodsOwned = purchasePeriod - purchase.period;
             const erInst = getInstance(purchase.instanceId);
+            if (erInst?.saleYear && erInst.saleYear > 0 && purchasePeriod >= yearToPeriod(erInst.saleYear)) return;
             const propertyData = getPropertyData(purchase.title, erInst?.growthAssumption);
             if (propertyData) {
               const currentValue = calculatePropertyGrowth(purchase.cost, periodsOwned, propertyData);

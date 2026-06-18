@@ -7,6 +7,7 @@ import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
 import {
   BarChart as RechartsBarChart, Bar, XAxis, CartesianGrid, Tooltip,
@@ -153,7 +154,8 @@ const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
 const SaleYearTogglePortfolio: React.FC<{
   value: number | null | undefined
   onChange: (v: number | null) => void
-}> = ({ value, onChange }) => {
+  estimate?: { cgt: number; netProceeds: number } | null
+}> = ({ value, onChange, estimate }) => {
   const isOn = !!value && value > 0
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -181,7 +183,9 @@ const SaleYearTogglePortfolio: React.FC<{
     const n = parseInt(draft, 10)
     if (!isNaN(n) && n > 2000) {
       onChange(n)
-      setOpen(false)
+      // Keep the popover open so the freshly-computed "Est. CGT · Net proceeds"
+      // estimate is visible immediately on setting the sale year (it only exists
+      // once a sale year is set). User dismisses by clicking away.
     }
   }
 
@@ -207,24 +211,31 @@ const SaleYearTogglePortfolio: React.FC<{
         </button>
       )}
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ minWidth: 140 }}>
-          <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
-          <input
-            type="number"
-            autoFocus
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false) }}
-            className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            placeholder="Year"
-          />
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
-          >
-            Set
-          </button>
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex flex-col gap-1.5" style={{ minWidth: 180 }}>
+          <div className="flex items-center gap-1.5">
+            <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
+            <input
+              type="number"
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false) }}
+              className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              placeholder="Year"
+            />
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
+            >
+              Set
+            </button>
+          </div>
+          {isOn && estimate && (
+            <div className="text-[10px] text-neutral-500 leading-snug border-t border-neutral-100 pt-1.5">
+              Est. CGT <span className="text-neutral-700 font-medium">{fmt(estimate.cgt)}</span> · Net proceeds <span className="text-neutral-700 font-medium">{fmt(estimate.netProceeds)}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -255,6 +266,10 @@ const COLUMNS: Column[] = [
   {
     key: 'entity', header: 'Entity',
     render: (p, onChange) => <SelectCell value={p.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(p.id, { entity: v as any })} />,
+  },
+  {
+    key: 'isNewBuild', header: 'Type',
+    render: (p, onChange) => <SelectCell value={p.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Estab.'},{value:'new',label:'New build'}]} onChange={v => onChange(p.id, { isNewBuild: v === 'new' })} />,
   },
   {
     key: 'state', header: 'State',
@@ -341,6 +356,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
   const { notifyEdit } = useChangeReceipt()
+  const { salesCgtBreakdown } = usePortfolioProjection()
   const properties = existingProperties
 
   const syncAggregates = useCallback((props: ExistingProperty[]) => {
@@ -393,6 +409,14 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     const releasableEquity = properties.reduce((s, p) => s + deriveMetrics(p).releasableEquity, 0)
     return { combinedValue, totalEquity, totalCashflow, releasableEquity }
   }, [properties])
+
+  // CGT + net proceeds per sale (2027 basis), sourced from the projection engine.
+  // Keyed by property id so the Sell control can show the estimate inline.
+  const cgtById = useMemo(() => {
+    const m: Record<string, { cgt: number; netProceeds: number }> = {}
+    salesCgtBreakdown.forEach(r => { m[r.id] = { cgt: r.cgt, netProceeds: r.netProceeds } })
+    return m
+  }, [salesCgtBreakdown])
 
   const capitalCompData = useMemo(() =>
     properties.map(p => ({
@@ -512,7 +536,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                   className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
                     i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
                   }`}
-                  title={col.key === 'saleYear' ? 'CGT rate varies by entity: Individual/Trust use marginal rate with CGT discount, Company uses flat rate (no discount), SMSF uses 15% with 33.3% discount. Configurable in Assumptions.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : undefined}
+                  title={col.key === 'saleYear' ? 'CGT rate varies by entity: Individual/Trust use marginal rate with CGT discount, Company uses flat rate (no discount), SMSF uses 15% with 33.3% discount. Configurable in Assumptions.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : col.key === 'isNewBuild' ? 'New build vs established. New builds can elect the 50% CGT discount; established properties use cost-base indexation plus a 30% minimum tax. Affects the CGT estimate at sale.' : undefined}
                 >
                   {col.header}
                 </th>
@@ -530,7 +554,9 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                       i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
                     }`}
                   >
-                    {col.render(p, handleUpdate)}
+                    {col.key === 'saleYear'
+                      ? <SaleYearTogglePortfolio value={p.saleYear} onChange={v => handleUpdate(p.id, { saleYear: v })} estimate={cgtById[p.id]} />
+                      : col.render(p, handleUpdate)}
                   </td>
                 ))}
                 <td className="py-1 px-1">

@@ -13,6 +13,7 @@ import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
+import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext';
 
 // Human labels for the change log's cause line ("Property 2 — Rent/wk ($) 480 → 520").
@@ -28,6 +29,7 @@ const CHANGE_LOG_FIELD_LABELS: Partial<Record<keyof PropertyInstanceDetails, str
   yieldOverride: 'Yield (%)',
   growthAssumption: 'Growth',
   entity: 'Entity',
+  isNewBuild: 'Type',
   state: 'State',
   saleYear: 'Sell year',
   lmiWaiver: 'LMI waiver',
@@ -184,7 +186,8 @@ const CheckboxInput: React.FC<{
 const SaleYearToggle: React.FC<{
   value: number | null | undefined;
   onChange: (v: number | null) => void;
-}> = ({ value, onChange }) => {
+  estimate?: { cgt: number; netProceeds: number } | null;
+}> = ({ value, onChange, estimate }) => {
   const isOn = !!value && value > 0;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -212,7 +215,9 @@ const SaleYearToggle: React.FC<{
     const n = parseInt(draft, 10);
     if (!isNaN(n) && n > 2000) {
       onChange(n);
-      setOpen(false);
+      // Keep the popover open so the freshly-computed "Est. CGT · Net proceeds"
+      // estimate is visible immediately on setting the sale year (it only exists
+      // once a sale year is set). User dismisses by clicking away.
     }
   };
 
@@ -238,24 +243,31 @@ const SaleYearToggle: React.FC<{
         </button>
       )}
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ minWidth: 140 }}>
-          <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
-          <input
-            type="number"
-            autoFocus
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false); }}
-            className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            placeholder="Year"
-          />
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
-          >
-            Set
-          </button>
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg p-2 flex flex-col gap-1.5" style={{ minWidth: 180 }}>
+          <div className="flex items-center gap-1.5">
+            <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
+            <input
+              type="number"
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') setOpen(false); }}
+              className="w-16 text-xs border border-neutral-200 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-violet-300 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              placeholder="Year"
+            />
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 rounded px-2 py-1 transition-colors cursor-pointer border-none"
+            >
+              Set
+            </button>
+          </div>
+          {isOn && estimate && (
+            <div className="text-[10px] text-neutral-500 leading-snug border-t border-neutral-100 pt-1.5">
+              Est. CGT <span className="text-neutral-700 font-medium">${fmtNum(estimate.cgt)}</span> · Net proceeds <span className="text-neutral-700 font-medium">${fmtNum(estimate.netProceeds)}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -304,6 +316,12 @@ const EQUITY_COLUMNS: Column[] = [
     key: 'entity', header: 'Entity',
     render: (c, onChange) => c.instanceData
       ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
+      : null,
+  },
+  {
+    key: 'isNewBuild', header: 'Type',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Estab.'},{value:'new',label:'New'}]} onChange={v => onChange(c.instanceId, 'isNewBuild', (v === 'new') as any)} />
       : null,
   },
   {
@@ -497,6 +515,12 @@ const PURCHASES_COLUMNS: Column[] = [
     key: 'entity', header: 'Entity',
     render: (c, onChange) => c.instanceData
       ? <SelectInput value={c.instanceData.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(c.instanceId, 'entity', v)} />
+      : null,
+  },
+  {
+    key: 'isNewBuild', header: 'Type',
+    render: (c, onChange) => c.instanceData
+      ? <SelectInput value={c.instanceData.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Estab.'},{value:'new',label:'New'}]} onChange={v => onChange(c.instanceId, 'isNewBuild', (v === 'new') as any)} />
       : null,
   },
   {
@@ -761,7 +785,16 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   const { instances, updateInstance } = usePropertyInstance();
   const { profile } = useInvestmentProfile();
   const { timelineProperties } = useAffordabilityCalculator();
+  const { salesCgtBreakdown } = usePortfolioProjection();
   const { notifyEdit } = useChangeReceipt();
+
+  // CGT + net proceeds per planned sale (2027 basis), keyed by instance id, so
+  // the Sell control can show the estimate inline in its popup.
+  const saleEstimates = useMemo(() => {
+    const m: Record<string, { cgt: number; netProceeds: number }> = {};
+    salesCgtBreakdown.forEach(r => { m[r.id] = { cgt: r.cgt, netProceeds: r.netProceeds }; });
+    return m;
+  }, [salesCgtBreakdown]);
 
   const cards = useMemo(() => {
     const items = propertyOrder.map((instanceId, orderIdx) => {
@@ -961,6 +994,12 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
+                      <tr className="border-b border-neutral-200 last:border-b-0">
+                        <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Type</td>
+                        <td className="py-1.5 px-2">
+                          <SelectInput value={d.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Established'},{value:'new',label:'New build'}]} onChange={v => handleFieldChange(iid, 'isNewBuild', (v === 'new') as any)} />
+                        </td>
+                      </tr>
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
                       <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
@@ -970,7 +1009,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <tr className="border-b border-neutral-200 last:border-b-0">
                         <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Sell</td>
                         <td className="py-1.5 px-2">
-                          <SaleYearToggle value={d.saleYear} onChange={v => handleFieldChange(iid, 'saleYear', v)} />
+                          <SaleYearToggle value={d.saleYear} onChange={v => handleFieldChange(iid, 'saleYear', v)} estimate={saleEstimates[iid]} />
                         </td>
                       </tr>
                       {loanOpen && (
@@ -1069,7 +1108,9 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                         i < columns.length - 1 ? 'border-r border-neutral-100' : ''
                       }`}
                     >
-                      {col.render(card as CardData, handleFieldChange)}
+                      {col.key === 'saleYear' && card.instanceData
+                        ? <SaleYearToggle value={card.instanceData.saleYear} onChange={v => handleFieldChange(card.instanceId, 'saleYear', v as any)} estimate={saleEstimates[card.instanceId]} />
+                        : col.render(card as CardData, handleFieldChange)}
                     </td>
                   ))}
                   <td className="py-1 px-1">

@@ -27,6 +27,9 @@ export interface ExistingProperty {
   saleYear?: number | null
   allowEquityRelease?: boolean
   entity?: 'individual' | 'trust' | 'company' | 'smsf'
+  /** New build vs established — new builds keep the CGT discount choice and the
+   *  negative-gearing exemption under the proposed 2027 reform. */
+  isNewBuild?: boolean
   lvrOverride?: number | null
   yieldOverride?: number | null
   holdingCostOverride?: number | null

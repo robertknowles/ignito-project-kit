@@ -101,6 +101,20 @@ export function calculateAnnualLoanPayment(
   return monthlyPayment * 12;
 }
 
+/**
+ * A planned purchase is "sold" (and therefore excluded from serviceability,
+ * debt and funds) once the current period reaches its instance saleYear.
+ * Mirrors the existing-property `ep.saleYear` checks throughout this engine.
+ */
+function isPurchaseSold(
+  purchase: PurchaseRecord,
+  currentPeriod: number,
+  deps: EngineDeps,
+): boolean {
+  const sy = deps.getInstance(purchase.instanceId)?.saleYear;
+  return !!sy && sy > 0 && currentPeriod >= yearToPeriod(sy);
+}
+
 // ── Available Funds ──────────────────────────────────────────────────
 
 export function calculateAvailableFunds(
@@ -138,6 +152,7 @@ export function calculateAvailableFunds(
 
   previousPurchases.forEach(purchase => {
     if (purchase.period <= currentPeriod) {
+      if (isPurchaseSold(purchase, currentPeriod, deps)) return;
       const periodsOwned = currentPeriod - purchase.period;
       const propertyInstance = deps.getInstance(purchase.instanceId);
       const propertyData = deps.getPropertyData(purchase.title, propertyInstance?.growthAssumption);
@@ -315,6 +330,7 @@ export function calculateEntityDiscountedDebt(
 
   previousPurchases.forEach(purchase => {
     if (purchase.period <= currentPeriod) {
+      if (isPurchaseSold(purchase, currentPeriod, deps)) return;
       const purchaseInst = deps.getInstance(purchase.instanceId);
       if (purchaseInst?.entity === 'smsf') return;
       const purchaseCeilingFactor = ENTITY_SERVICEABILITY_FACTORS[purchaseInst?.entity ?? 'individual'] ?? 1.0;
@@ -357,6 +373,7 @@ export function calculateTotalAnnualLoanPayments(
   const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
   previousPurchases.forEach(purchase => {
     if (purchase.period <= currentPeriod) {
+      if (isPurchaseSold(purchase, currentPeriod, deps)) return;
       const purchaseEffectiveRate = getPropertyEffectiveRate(currentPeriod, eventBlocks, purchase.instanceId, baseRate);
       const purchaseLoanType = purchase.loanType || 'IO';
       const purchaseInst = deps.getInstance(purchase.instanceId);
@@ -403,6 +420,7 @@ export function calculateTotalRentalIncome(
   // Previous purchases rental income
   previousPurchases.forEach(purchase => {
     if (purchase.period <= currentPeriod) {
+      if (isPurchaseSold(purchase, currentPeriod, deps)) return;
       const periodsOwned = currentPeriod - purchase.period;
       const purchaseInstance = deps.getInstance(purchase.instanceId);
       const propertyData = deps.getPropertyData(purchase.title, purchaseInstance?.growthAssumption);

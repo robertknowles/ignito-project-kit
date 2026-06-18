@@ -180,6 +180,7 @@ export function mapToExistingProperties(
       vacancyRate: 2,
       allowEquityRelease: p.allowEquityRelease !== false,
       saleYear: p.saleYear ?? null,
+      isNewBuild: p.isNewBuild ?? false,
     }
   });
 }
@@ -266,6 +267,10 @@ export function mapToPropertySelections(
     // Optional: planned sale year (set via the brief's Sell toggle)
     if (prop.saleYear !== undefined) {
       instance.saleYear = prop.saleYear;
+    }
+
+    if (prop.isNewBuild !== undefined) {
+      instance.isNewBuild = prop.isNewBuild;
     }
 
     if (prop.alertDismissed) {

@@ -28,8 +28,9 @@ import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
 import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
+import { calculateNegativeGearingBenefit, calculateNewBuildBcUplift } from '../utils/negativeGearingCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
-import { getEffectiveCgtRate } from '../utils/cgtCalculator';
+import { calculateCgtComparison } from '../utils/cgtCalculator';
 import { calculateLandTax } from '../utils/landTaxCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
 import {
@@ -85,6 +86,10 @@ export interface PortfolioGrowthDataPoint {
   availableFunds?: number;
   monthlyHoldingCost?: number;
   borrowingCapacity?: number;
+  /** Display-only borrowing-capacity uplift from planned NEW BUILD purchases
+   *  (retained negative-gearing add-back). Added on top of the stated/computed
+   *  ceiling by the BC chart and Dashboard headroom calc; NOT used by gating. */
+  newBuildBcUplift?: number;
   cashFromSales?: number;
   cashOffset?: number;
   entityDiscountedDebt?: number;
@@ -218,6 +223,20 @@ export interface RoadmapData {
   endYear: number;
 }
 
+/** One modelled property sale. CGT is on the 2027 basis (the rules the market
+ *  already applies): indexation + 30% minimum tax, with new builds electing the
+ *  50% discount where cheaper. */
+export interface SaleCgtRow {
+  /** Property/instance id, for matching to a row in the UI. */
+  id: string;
+  name: string;
+  saleYear: number;
+  kind: 'existing' | 'planned';
+  capitalGain: number;
+  cgt: number;
+  netProceeds: number;
+}
+
 /** The complete unified output */
 export interface PortfolioProjectionResult {
   // Chart data (replaces useChartDataGenerator)
@@ -242,6 +261,9 @@ export interface PortfolioProjectionResult {
 
   // Per-property projections (replaces calculatePerPropertyProjection)
   propertyProjections: Map<string, PerPropertyProjection>;
+
+  // CGT under current law vs the proposed 2027 reform, per modelled sale.
+  salesCgtBreakdown: SaleCgtRow[];
 }
 
 // Optional scenario data for multi-scenario mode
@@ -440,6 +462,7 @@ export const usePortfolioProjection = (
     let cumulativeEquityUsed = 0;
     let cumulativeSavingsSpent = 0;
     let salesProceedsCash = 0;
+    const salesCgtBreakdown: SaleCgtRow[] = [];
 
     // Per-property cashflow snapshots
     const cashflowSnapshots = new Map<number, YearCashflowSnapshot>();
@@ -460,6 +483,14 @@ export const usePortfolioProjection = (
       purchaseYear: number;
     }
     const propertyAccumulators = new Map<string, PropertyProjectionAccumulator>();
+
+    // A planned property is "sold" (dropped from value/debt/rent/cashflow/equity)
+    // once the year reaches its instance saleYear. Mirrors `ep.saleYear` handling
+    // for existing properties.
+    const isPlannedSold = (rp: ResolvedProperty, atYear: number): boolean => {
+      const sy = getInstance(rp.instanceId)?.saleYear;
+      return !!sy && sy > 0 && atYear >= sy;
+    };
 
     // ── MAIN YEAR LOOP ──
     for (let year = startYear; year <= Math.max(endYear, cashflowEndYear); year++) {
@@ -512,9 +543,68 @@ export const usePortfolioProjection = (
         const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsHeld);
         const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
         const capitalGain = Math.max(0, grownValue - (ep.purchasePrice || ep.currentValue));
-        const cgtLiability = capitalGain * getEffectiveCgtRate(ep.entity, profile, ep.saleYear >= consolidationYear);
+        // Current law drives the roadmap (default). calculateCgtComparison also
+        // returns the proposed-reform figure for the side-by-side in PortfolioTab.
+        const cgt = calculateCgtComparison({
+          entity: ep.entity,
+          profile,
+          capitalGain,
+          costBase: ep.purchasePrice || ep.currentValue,
+          valueAtHoldStart: ep.currentValue,
+          holdStartYear: BASE_YEAR,
+          saleYear: ep.saleYear,
+          isNewBuild: ep.isNewBuild,
+          isConsolidationPeriod: ep.saleYear >= consolidationYear,
+        });
+        const cgtLiability = cgt.reform.cgt; // 2027 basis — the market already applies it
         const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
         salesProceedsCash += netProceeds;
+        salesCgtBreakdown.push({
+          id: ep.id,
+          name: ep.address?.trim() || `${ep.state} ${ep.boughtYear}`,
+          saleYear: ep.saleYear, kind: 'existing',
+          capitalGain, cgt: cgtLiability, netProceeds,
+        });
+      });
+
+      // ── PLANNED PROPERTY SALE PROCEEDS (mirror of existing-property sales) ──
+      resolvedProperties.forEach(rp => {
+        const inst = getInstance(rp.instanceId);
+        const sy = inst?.saleYear;
+        if (!sy || sy <= 0 || year !== sy) return;
+        const purchaseYear = Math.floor(rp.prop.affordableYear);
+        if (sy <= purchaseYear) return; // can't sell before/at purchase
+        const yearsOwned = sy - purchaseYear;
+        const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
+        const purchasePeriod = (purchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
+        const baseValue = calculatePropertyGrowthWithEvents(
+          rp.growthBasis, periodsOwned, rp.growthCurve, eventBlocks, purchasePeriod,
+        );
+        const grownValue = baseValue + getRenovationValueIncrease(rp.instanceId, periodsElapsed, eventBlocks);
+        const costBase = rp.prop.cost;
+        const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
+        const capitalGain = Math.max(0, grownValue - costBase);
+        // Current law drives the roadmap; calculateCgtComparison also yields the reform figure.
+        const cgt = calculateCgtComparison({
+          entity: inst?.entity,
+          profile,
+          capitalGain,
+          costBase,
+          valueAtHoldStart: costBase, // new purchase — no embedded pre-hold gain
+          holdStartYear: purchaseYear,
+          saleYear: sy,
+          isNewBuild: inst?.isNewBuild,
+          isConsolidationPeriod: sy >= consolidationYear,
+        });
+        const cgtLiability = cgt.reform.cgt; // 2027 basis — the market already applies it
+        const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - rp.prop.loanAmount - cgtLiability);
+        salesProceedsCash += netProceeds;
+        salesCgtBreakdown.push({
+          id: rp.instanceId,
+          name: rp.prop.title,
+          saleYear: sy, kind: 'planned',
+          capitalGain, cgt: cgtLiability, netProceeds,
+        });
       });
 
       // ── NEW PROPERTIES: growth with events (from useRoadmapData — period-by-period) ──
@@ -537,6 +627,7 @@ export const usePortfolioProjection = (
       );
 
       propertiesByThisYear.forEach(rp => {
+        if (isPlannedSold(rp, year)) return;
         const purchaseYear = Math.floor(rp.prop.affordableYear);
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
@@ -570,6 +661,10 @@ export const usePortfolioProjection = (
       let totalRentalIncome = 0;
       let totalExpenses = 0;
       let totalLoanPayments = 0;
+      // After-tax modelling: negative-gearing benefit added to the displayed
+      // cashflow line, and (new builds only) the display-only BC uplift.
+      let totalNgBenefit = 0;
+      let newBuildBcUpliftAnnual = 0;
 
       // Expense breakdown accumulators for roadmap
       let accCouncilRatesWater = 0;
@@ -604,6 +699,20 @@ export const usePortfolioProjection = (
         totalExpenses += propTotalExpenses;
         totalLoanPayments += breakdown.loanInterest;
 
+        // After-tax: negative-gearing benefit. Existing holdings are
+        // grandfathered (buyYear in the past → never ring-fenced), so they keep
+        // the benefit whether new build or established.
+        const epDeductibleExpenses = opExpenses + breakdown.loanInterest + (breakdown.landTax ?? 0) * inflFactor;
+        const epNg = calculateNegativeGearingBenefit({
+          propertyCost: ep.purchasePrice || ep.currentValue || 0,
+          annualRentNet: adjustedIncome,
+          deductibleExpenses: epDeductibleExpenses,
+          isNewBuild: !!ep.isNewBuild,
+          buyYear: ep.boughtYear || 0,
+          marginalRate: profile.marginalTaxRate ?? 0.45,
+        });
+        totalNgBenefit += epNg.ngBenefit;
+
         accCouncilRatesWater += adjustedCouncil;
         accStrataFees += adjustedStrata;
         accInsurance += adjustedInsurance;
@@ -616,6 +725,7 @@ export const usePortfolioProjection = (
       const perPropertyCashflowEntries: PropertyCashflowEntry[] = [];
 
       propertiesByThisYear.forEach((rp, idx) => {
+        if (isPlannedSold(rp, year)) return;
         const purchaseYear = Math.floor(rp.prop.affordableYear);
         const yearsOwned = year - purchaseYear;
         const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
@@ -655,6 +765,26 @@ export const usePortfolioProjection = (
           const adjustedDeductions = breakdown.potentialDeductions;
 
           const propertyCashflow = adjustedIncome - propTotalExpenses - adjustedLoanInterest + adjustedDeductions;
+
+          // After-tax: negative-gearing benefit for this planned purchase.
+          // Established purchases (dated post-reform) are ring-fenced → $0; new
+          // builds keep the wage offset and also lift displayed borrowing capacity.
+          const npDeductibleExpenses = opExpenses + adjustedLoanInterest + (breakdown.landTax ?? 0) * inflationFactor;
+          const npNg = calculateNegativeGearingBenefit({
+            propertyCost: rp.prop.cost,
+            annualRentNet: adjustedIncome,
+            deductibleExpenses: npDeductibleExpenses,
+            isNewBuild: !!propertyInstance.isNewBuild,
+            buyYear: purchaseYear,
+            marginalRate: profile.marginalTaxRate ?? 0.45,
+          });
+          totalNgBenefit += npNg.ngBenefit;
+          if (propertyInstance.isNewBuild) {
+            newBuildBcUpliftAnnual += calculateNewBuildBcUplift(
+              npNg.ngBenefit,
+              profile.salaryServiceabilityMultiplier ?? 6.0,
+            );
+          }
 
           totalRentalIncome += adjustedIncome;
           totalExpenses += propTotalExpenses - adjustedDeductions;
@@ -801,7 +931,9 @@ export const usePortfolioProjection = (
         }
       });
 
-      const totalCashflow = totalRentalIncome - totalExpenses - totalLoanPayments;
+      // Displayed cashflow is AFTER-TAX: pre-tax net + negative-gearing benefit.
+      // Established baseline ≈ pre-tax (ring-fenced); new builds sit above it.
+      const totalCashflow = totalRentalIncome - totalExpenses - totalLoanPayments + totalNgBenefit;
 
       // ── Per-property cashflow snapshot ──
       if (perPropertyCashflowEntries.length > 0) {
@@ -820,6 +952,7 @@ export const usePortfolioProjection = (
       // ── BORROWING CAPACITY (from useChartDataGenerator — most sophisticated) ──
       let grossRentalIncomeForBC = 0;
       propertiesByThisYear.forEach(rp => {
+        if (isPlannedSold(rp, year)) return;
         const inst = getInstance(rp.instanceId);
         if (inst?.rentPerWeek) {
           const yearsHeld = Math.max(0, year - rp.prop.affordableYear);
@@ -845,6 +978,7 @@ export const usePortfolioProjection = (
 
       let entityDiscountedDebt = 0;
       propertiesByThisYear.forEach(rp => {
+        if (isPlannedSold(rp, year)) return;
         const inst = getInstance(rp.instanceId);
         const factor = ENTITY_SERVICEABILITY_FACTORS[inst?.entity ?? 'individual'] ?? 1.0;
         entityDiscountedDebt += rp.prop.loanAmount * factor;
@@ -859,7 +993,8 @@ export const usePortfolioProjection = (
       } else {
         entityDiscountedDebt += profile.currentDebt;
       }
-      const borrowingCapacity = Math.round(Math.max(0, borrowingCeiling - entityDiscountedDebt));
+      // Display ceiling includes the new-build NG uplift (gating does not).
+      const borrowingCapacity = Math.round(Math.max(0, borrowingCeiling + newBuildBcUpliftAnnual - entityDiscountedDebt));
 
       // ── AVAILABLE FUNDS (from useChartDataGenerator for chart, from useRoadmapData for roadmap) ──
       // Chart-style available funds (deposit + cumulative savings + usable equity)
@@ -905,6 +1040,7 @@ export const usePortfolioProjection = (
           totalDebt: Math.round(totalDebt),
           availableFunds: availableFundsChart,
           borrowingCapacity,
+          newBuildBcUplift: Math.round(newBuildBcUpliftAnnual),
           cashFromSales: Math.round(salesProceedsCash),
           cashOffset,
           entityDiscountedDebt: Math.round(entityDiscountedDebt),
@@ -974,6 +1110,7 @@ export const usePortfolioProjection = (
             netCashflowFromPriorProps += epCf.adjustedIncome * epRentEsc - epCf.loanInterest - epCf.totalOperatingExpenses * epInfl;
           });
           propertiesBeforeThisYear.forEach(rp => {
+            if (isPlannedSold(rp, year)) return;
             const pYear = Math.floor(rp.prop.affordableYear);
             const yearsOwned = year - pYear;
             const propRentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
@@ -1416,6 +1553,7 @@ export const usePortfolioProjection = (
       },
       portfolioCashflow,
       propertyProjections,
+      salesCgtBreakdown,
     };
   }, [
     timelineProperties,

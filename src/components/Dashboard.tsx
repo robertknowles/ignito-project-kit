@@ -306,7 +306,7 @@ export const Dashboard = () => {
             wageGrowth,
             grossRentalIncome: grossRental,
             eventBlocks,
-          });
+          }) + (g.newBuildBcUplift ?? 0);
 
           // Real exposure the lender counts: entity-discounted debt less cash
           // reserves — identical to the chart's "Offset Debt" series.

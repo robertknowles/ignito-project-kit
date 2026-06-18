@@ -102,6 +102,7 @@ export interface NLParseResponse {
       loanType?: 'IO' | 'PI';
       allowEquityRelease?: boolean;
       saleYear?: number | null;
+      isNewBuild?: boolean;
     }>;
   };
 
@@ -131,6 +132,7 @@ export interface NLParseResponse {
     entity?: 'individual' | 'trust' | 'company' | 'smsf';
     alertDismissed?: boolean; // Buyer's agent dismissed the affordability alert
     saleYear?: number | null; // Planned sale year (null/undefined = hold)
+    isNewBuild?: boolean; // New build vs established (default established)
   }>;
 
   // For modification — what to change (single or multiple)
@@ -216,6 +218,7 @@ export interface NLParseResponse {
       loanType?: 'IO' | 'PI';
       allowEquityRelease?: boolean;
       saleYear?: number | null;
+      isNewBuild?: boolean;
     }>;
   };
 

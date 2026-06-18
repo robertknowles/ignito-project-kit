@@ -29,7 +29,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const profile = scenarioData?.profile ?? contextProfile;
   const timelineProperties = scenarioData?.timelineProperties ?? contextTimelineProperties;
 
-  const { roadmapData: { years }, cashflowData } = usePortfolioProjection(scenarioData);
+  const { roadmapData: { years }, cashflowData, salesCgtBreakdown } = usePortfolioProjection(scenarioData);
 
   const cashflowByYear = useMemo(() => {
     const map = new Map<number, { rentalIncome: number; expenses: number; loanRepayments: number; cashflow: number }>();
@@ -47,6 +47,13 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const handlePropertyClick = (instanceId: string) => {
     onPropertyClick?.(instanceId);
   };
+
+  // CGT per year (2027 basis), summed across all sales settling that year.
+  const cgtByYear = useMemo(() => {
+    const map = new Map<number, number>();
+    salesCgtBreakdown.forEach(r => { map.set(r.saleYear, (map.get(r.saleYear) ?? 0) + r.cgt); });
+    return map;
+  }, [salesCgtBreakdown]);
 
   const yearCount = years.length;
   const hasSales = years.some(y => y.cashFromSales > 0);
@@ -222,10 +229,25 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* CASH FROM SALES ($) — only show if any existing property has been sold */}
+            {/* CAPITAL GAINS TAX ($) — tax paid on sales settling that year (2027 basis) */}
             {hasSales && (
               <tr className={rowClass}>
-                <td className={subLabelClass}>Cash from sales</td>
+                <td className={subLabelClass}>Capital gains tax</td>
+                {years.map((yearData, i) => {
+                  const cgt = cgtByYear.get(yearData.year) ?? 0;
+                  return (
+                    <td key={`sale-cgt-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
+                      <span className={valClass}>{cgt > 0 ? formatNumber(cgt) : '–'}</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
+
+            {/* CASH FROM SALES ($) — net proceeds after CGT, the year a sale settles */}
+            {hasSales && (
+              <tr className={rowClass}>
+                <td className={subLabelClass}>Net proceeds from sales</td>
                 {years.map((yearData, i) => (
                   <td key={`sale-cash-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
                     <span className={valClass}>{yearData.cashFromSales > 0 ? formatNumber(yearData.cashFromSales) : '–'}</span>

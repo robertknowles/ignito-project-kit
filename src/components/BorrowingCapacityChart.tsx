@@ -122,7 +122,9 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
 
         const totalDebt = d.totalDebt ?? 0;
 
-        // SINGLE SOURCE OF TRUTH: same function used by the affordability calculator
+        // SINGLE SOURCE OF TRUTH: same function used by the affordability calculator.
+        // Display-only new-build uplift (retained negative-gearing add-back) is
+        // layered on top — gating uses the un-uplifted ceiling.
         const borrowingCeiling = calculateBorrowingCeiling(period, {
           statedBC: profile.borrowingCapacity ?? 0,
           baseSalary: profile.baseSalary ?? 60000,
@@ -130,7 +132,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
           wageGrowth,
           grossRentalIncome,
           eventBlocks,
-        });
+        }) + (d.newBuildBcUplift ?? 0);
 
         // "Offset Debt" = what lenders count against your capacity.
         // Entity-discounted (trust=25%, SMSF=0%) minus cash reserves.

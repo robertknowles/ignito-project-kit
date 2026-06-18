@@ -126,6 +126,10 @@ export interface PropertyInstanceDetails {
 
   entity?: 'individual' | 'trust' | 'company' | 'smsf';
 
+  /** New build vs established — new builds keep the CGT discount choice and the
+   *  negative-gearing exemption under the proposed 2027 reform. Default established. */
+  isNewBuild?: boolean;
+
   // ── Display overrides (BA can override computed summaries) ──
 
   yieldOverride?: number | null;
