@@ -173,6 +173,13 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
     const entityDiscount = debt - netExposure;
     const headroom = ceiling - netExposure;
 
+    // Order rows to match each line's vertical position at this point (top line first).
+    const lines = [
+      { key: 'capacity', label: 'Capacity', value: ceiling, color: CAPACITY_STROKE, dashed: false },
+      { key: 'debt', label: 'Total Liabilities', value: debt, color: DEBT_STROKE, dashed: true },
+      { key: 'offset', label: 'Debt not Offset', value: netExposure, color: OFFSET_STROKE, dashed: false },
+    ].sort((a, b) => b.value - a.value);
+
     return (
       <div
         className="bg-white border rounded-xl"
@@ -184,27 +191,22 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
         }}
       >
         <p className="font-semibold text-[#181D27] mb-2">{label}</p>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: CAPACITY_STROKE }} />
-            <span className="text-gray-500">Capacity</span>
-          </span>
-          <span className="font-medium text-gray-700">${ceiling.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: DEBT_STROKE }} />
-            <span className="text-gray-500">Total Liabilities</span>
-          </span>
-          <span className="font-medium text-gray-700">${debt.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between gap-6 mb-1">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: OFFSET_STROKE }} />
-            <span className="text-gray-500">Debt not Offset</span>
-          </span>
-          <span className="font-medium text-gray-700">${netExposure.toLocaleString()}</span>
-        </div>
+        {lines.map(line => (
+          <div key={line.key} className="flex justify-between gap-6 mb-1">
+            <span className="flex items-center gap-1.5">
+              {line.dashed ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="inline-block w-[3px] h-[3px] rounded-full" style={{ background: line.color }} />
+                  <span className="inline-block w-[3px] h-[3px] rounded-full" style={{ background: line.color }} />
+                </span>
+              ) : (
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: line.color }} />
+              )}
+              <span className="text-gray-500">{line.label}</span>
+            </span>
+            <span className="font-medium text-gray-700">${line.value.toLocaleString()}</span>
+          </div>
+        ))}
         <div
           className="flex justify-between gap-6 pt-2 mt-1"
           style={{ borderTop: '1px solid #F3F4F6' }}

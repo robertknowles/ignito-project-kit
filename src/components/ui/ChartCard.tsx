@@ -51,9 +51,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       {legend.map((item, idx) => (
         <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {item.variant === 'line' ? (
-            <svg width="16" height="8" style={{ flexShrink: 0 }}>
-              <line x1="0" y1="4" x2="16" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray="2 3" strokeLinecap="round" />
-            </svg>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
+              <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
+            </span>
           ) : item.variant === 'ring' ? (
             <div
               style={{

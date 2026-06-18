@@ -553,6 +553,7 @@ export const Dashboard = () => {
             {/* ── Plan summary: goal panel + outcome panel ── */}
             {(() => {
               const ph = planHeader;
+              const ff = TYPOGRAPHY.fontFamily;
 
               // Client first name (uppercased) for the panel headings.
               const firstName =
@@ -573,80 +574,64 @@ export const Dashboard = () => {
               const portfolioAtTarget = growthAtTarget?.portfolioValue ?? kpis.portfolioValue;
               const netCashflowAtTarget = cashflowAtTarget?.cashflow ?? kpis.netCashflowAnnual;
 
-              const equityGoalMet = ph.equityGoal > 0 && equityAtTarget >= ph.equityGoal;
-              const cashflowGoalMet = ph.cashflowGoal > 0 && netCashflowAtTarget >= ph.cashflowGoal;
               const lastBuyYearRel = ph.lastYear ? ph.lastYear - BASE_YEAR : null;
 
-              const ff = TYPOGRAPHY.fontFamily;
-              // Panel heading — identical to the dashboard's section headings
-              // (ChartCard <h3> "Purchases": 14px / 600 / neutral-900 / Inter).
-              const heading = {
-                color: COLORS.neutral[900],
-                fontSize: 14,
-                fontWeight: 600,
-                lineHeight: '20px',
-                fontFamily: ff,
-              } as const;
+              // ── Typography aligned to the dashboard KPI cards ─────────────
+              // Panel heading = sectionHeading (16/600/neutral-900).
+              const heading: React.CSSProperties = { fontSize: 16, fontWeight: 600, lineHeight: '24px', color: COLORS.neutral[900], fontFamily: ff };
+              // Hero number ("13 years") = statNumber (30/600/-0.025em).
+              const statStyle: React.CSSProperties = { fontSize: 30, fontWeight: 600, lineHeight: '38px', letterSpacing: '-0.025em', fontFamily: ff };
+              // Row label / value body copy.
+              const labelStyle: React.CSSProperties = { fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff, color: COLORS.neutral[600] };
+              const valueStyle: React.CSSProperties = { fontSize: 16, fontWeight: 600, lineHeight: '24px', fontFamily: ff, color: COLORS.neutral[900] };
 
-              // Supporting / body copy — matches the chart's muted "by {year}"
-              // label (14px / 400 / neutral-500 / Inter).
-              const bodyStyle = { fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff } as const;
-
-              const Row = ({ label, value, suffix, suffixColor }: {
-                label: string; value: string; suffix?: string; suffixColor?: string;
-              }) => (
-                <div className="flex items-center justify-between py-1.5" style={{ borderTop: `1px solid ${COLORS.neutral[200]}` }}>
-                  <span style={{ ...bodyStyle, color: COLORS.neutral[600] }}>{label}</span>
-                  <span style={bodyStyle}>
-                    <span style={{ color: COLORS.neutral[900], fontWeight: 600 }}>{value}</span>
-                    {suffix && (
-                      <span style={{ color: suffixColor ?? COLORS.neutral[500] }}>{` · ${suffix}`}</span>
-                    )}
-                  </span>
+              const Row = ({ label, value }: { label: string; value: string }) => (
+                <div className="flex items-center justify-between py-2" style={{ borderTop: `1px solid ${COLORS.neutral[200]}` }}>
+                  <span style={labelStyle}>{label}</span>
+                  <span style={valueStyle}>{value}</span>
                 </div>
               );
 
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Goal panel */}
-                  <div className="rounded-2xl p-4 flex flex-col justify-center" style={{ background: COLORS.brand[100] }}>
+                  <div
+                    className="flex flex-col justify-center"
+                    style={{ background: COLORS.brand[100], borderRadius: 12, padding: 20, boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
+                  >
                     <div style={heading}>{firstName}'S GOAL</div>
-                    {/* "14 years" — same scale as the chart stat numbers ($2.03M): 24px / 600 */}
-                    <div className="mt-1" style={{ color: COLORS.brand[950], fontSize: 24, fontWeight: 600, lineHeight: '32px', fontFamily: ff }}>
+                    <div className="mt-1" style={{ ...statStyle, color: COLORS.brand[950] }}>
                       {yearsToGoal} {yearsToGoal === 1 ? 'year' : 'years'}
                     </div>
-                    <div className="mt-1" style={{ ...bodyStyle, color: COLORS.brand[700] }}>
+                    <div className="mt-1" style={{ fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff, color: COLORS.brand[700] }}>
                       to reach {formatMoney(ph.equityGoal)} equity and {formatMoney(ph.cashflowGoal)}/yr income
                     </div>
                   </div>
 
                   {/* Outcome panel */}
-                  <div className="lg:col-span-2 rounded-2xl border px-4 pt-4 pb-1.5" style={{ borderColor: COLORS.neutral[200], background: COLORS.neutral[0] }}>
+                  <div
+                    className="lg:col-span-2 flex flex-col"
+                    style={{ background: COLORS.neutral[0], border: `1px solid ${COLORS.neutral[200]}`, borderRadius: 12, padding: '20px 20px 8px 20px', boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
+                  >
                     <div style={heading}>
                       IN {yearsToGoal} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
                     </div>
-                    <div className="mt-1">
+                    <div className="mt-2">
                       <Row
                         label="Net cashflow"
                         value={`${formatMoney(netCashflowAtTarget)}/yr`}
-                        suffix={cashflowGoalMet ? 'goal met' : netCashflowAtTarget < 0 ? 'negative' : `${formatMoney(ph.cashflowGoal)}/yr goal`}
-                        suffixColor={cashflowGoalMet ? COLORS.success : netCashflowAtTarget < 0 ? COLORS.error : COLORS.neutral[500]}
                       />
                       <Row
                         label="Equity"
                         value={formatMoney(equityAtTarget)}
-                        suffix={equityGoalMet ? 'goal met' : `${formatMoney(ph.equityGoal)} goal`}
-                        suffixColor={equityGoalMet ? COLORS.success : COLORS.neutral[500]}
                       />
                       <Row
                         label="Portfolio value"
                         value={formatMoney(portfolioAtTarget)}
-                        suffix={ph.count > 0 ? `across ${ph.count}` : undefined}
                       />
                       <Row
                         label="Properties bought"
-                        value={String(ph.count)}
-                        suffix={lastBuyYearRel != null ? `by year ${lastBuyYearRel}` : undefined}
+                        value={lastBuyYearRel != null ? `${ph.count} by year ${lastBuyYearRel}` : String(ph.count)}
                       />
                     </div>
                   </div>
@@ -672,10 +657,9 @@ export const Dashboard = () => {
               <ChartCard
                 title="Total Equity"
                 expandable
-                legendBelow
                 legend={[
                   { color: '#7F56D9', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
-                  { color: '#737373', label: 'Portfolio Value' },
+                  { color: '#737373', label: 'Portfolio Value', variant: 'line' },
                 ]}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -700,10 +684,9 @@ export const Dashboard = () => {
               <ChartCard
                 title="Net Cashflow"
                 expandable
-                legendBelow
                 legend={[
                   { color: '#7F56D9', label: 'Net Cashflow' },
-                  ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate' }] : []),
+                  ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate', variant: 'line' as const }] : []),
                 ]}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -722,10 +705,9 @@ export const Dashboard = () => {
               <ChartCard
                 title="Borrowing Capacity"
                 expandable
-                legendBelow
                 legend={[
                   { color: '#7F56D9', label: 'Borrowing Capacity' },
-                  { color: '#414651', label: 'Total Liabilities' },
+                  { color: '#414651', label: 'Total Liabilities', variant: 'line' },
                   { color: '#9E77ED', label: 'Offset Debt' },
                 ]}
                 action={
@@ -784,7 +766,6 @@ export const Dashboard = () => {
               <ChartCard
                 title="Portfolio Cashflow"
                 expandable
-                legendBelow
                 legend={[
                   { color: '#7F56D9', label: 'Rental Income (IN)' },
                   { color: 'rgba(127, 86, 217, 0.25)', label: 'Total Outgoings (OUT)' },

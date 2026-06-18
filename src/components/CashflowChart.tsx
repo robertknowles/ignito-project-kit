@@ -177,18 +177,33 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
         </div>
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 24,
             paddingTop: 8,
             marginTop: 4,
             borderTop: `1px solid ${UUI.neutral100}`,
           }}
         >
-          <span style={{ fontWeight: 600, color: UUI.neutral900 }}>Net</span>
-          <span style={{ fontWeight: 600, color: net >= 0 ? UUI.success : UUI.neutral500 }}>
-            {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}/yr
-          </span>
+          {([
+            { key: 'net', label: 'Net Cashflow', value: net, dashed: false, bold: true, display: `${net >= 0 ? '+' : '-'}$${Math.abs(net).toLocaleString()}/yr`, valueColor: net >= 0 ? UUI.success : UUI.neutral500 },
+            ...(point?.savingsFloor != null ? [{ key: 'savings', label: 'Client Savings Rate', value: point.savingsFloor, dashed: true, bold: false, display: `$${Math.abs(point.savingsFloor).toLocaleString()}/yr`, valueColor: UUI.neutral700 }] : []),
+          ] as const)
+            .slice()
+            .sort((a, b) => b.value - a.value)
+            .map(line => (
+              <div key={line.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: line.bold ? 600 : 400, color: line.bold ? UUI.neutral900 : UUI.neutral500 }}>
+                  {line.dashed ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                      <span style={{ width: 3, height: 3, borderRadius: '50%', background: UUI.neutral500 }} />
+                      <span style={{ width: 3, height: 3, borderRadius: '50%', background: UUI.neutral500 }} />
+                    </span>
+                  ) : (
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand600, flexShrink: 0 }} />
+                  )}
+                  {line.label}
+                </span>
+                <span style={{ fontWeight: line.bold ? 600 : 500, color: line.valueColor }}>{line.display}</span>
+              </div>
+            ))}
         </div>
         {headroom != null && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginTop: 4 }}>

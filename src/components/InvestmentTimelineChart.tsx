@@ -127,6 +127,12 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
       return `$${Math.round(v).toLocaleString()}`
     }
 
+    // Order rows to match each line's vertical position at this point (top line first).
+    const lines = [
+      { key: 'equity', label: 'Total Equity', value: equity, color: UUI.brand600, dashed: false },
+      { key: 'portfolio', label: 'Portfolio Value', value: portfolio, color: UUI.neutral500, dashed: true },
+    ].sort((a, b) => b.value - a.value)
+
     return (
       <div
         style={{
@@ -145,20 +151,22 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             Purchase: {dataPoint.purchaseLabel}
           </p>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: UUI.brand600, flexShrink: 0 }} />
-            <span style={{ color: UUI.neutral500 }}>Total Equity</span>
+        {lines.map(line => (
+          <div key={line.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {line.dashed ? (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                  <div style={{ width: 3, height: 3, borderRadius: '50%', background: line.color }} />
+                  <div style={{ width: 3, height: 3, borderRadius: '50%', background: line.color }} />
+                </div>
+              ) : (
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: line.color, flexShrink: 0 }} />
+              )}
+              <span style={{ color: UUI.neutral500 }}>{line.label}</span>
+            </div>
+            <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(line.value)}</span>
           </div>
-          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(equity)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 2, background: UUI.neutral500, borderStyle: 'dashed', flexShrink: 0 }} />
-            <span style={{ color: UUI.neutral500 }}>Portfolio Value</span>
-          </div>
-          <span style={{ fontWeight: 500, color: UUI.neutral700 }}>{fmt(portfolio)}</span>
-        </div>
+        ))}
       </div>
     )
   }
