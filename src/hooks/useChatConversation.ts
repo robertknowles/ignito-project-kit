@@ -228,7 +228,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
    * Send a message to the nl-parse edge function and process the response
    */
   const sendMessage = useCallback(
-    async (userText: string) => {
+    async (userText: string, presetOverride?: string, forceFreshPlan?: boolean) => {
       if (!userText.trim() || isLoadingRef.current) {
         return
       }
@@ -271,7 +271,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // classify fresh prompts as modifications of the previous client.
         // If forceNewPlan is set (pending-prompt from home page), send null
         // to guarantee the AI creates a new plan instead of updating stale state.
-        const currentPlan = optionsRef.current.forceNewPlan
+        const currentPlan = (optionsRef.current.forceNewPlan || forceFreshPlan)
           ? null
           : (optionsRef.current.getCurrentPlan?.() ?? null)
 
@@ -334,7 +334,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               conversationSummary: conversationSummary || undefined,
               currentPlan,
               userId,
-              strategyPreset: optionsRef.current.strategyPreset || 'eg-low',
+              strategyPreset: presetOverride || optionsRef.current.strategyPreset || 'eg-low',
               planningDefaults: planningDefaults || undefined,
               strategyProfileText: strategyProfileText || undefined,
             },

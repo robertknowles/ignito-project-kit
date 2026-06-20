@@ -97,6 +97,47 @@ export const getSimplifiedDisplayLabel = (title: string, index?: number): string
 export const isCellId = (value: string): value is CellId =>
   (CELL_IDS as string[]).includes(value);
 
+/**
+ * Client-facing category label. The granular type (Metro/Regional, House/Unit)
+ * is internal — every user-visible surface (charts, tooltips, cards, the client
+ * report) shows only one of three categories, driven by the cell's mode:
+ *   Growth   → "Equity Growth Property"
+ *   Cashflow → "Cashflow Property"
+ *   Commercial (HighCost | LowCost) → "Commercial Property"
+ * Accepts a cell ID, a legacy type key, an instance ID ("<cellId>_instance_N"),
+ * or an existing display title. Falls back to the input for custom property
+ * types so BA-named custom blocks keep their name.
+ */
+export const getCategoryLabel = (input: string): string => {
+  if (!input) return input;
+  // Strip an instance-id suffix if present ("metro-house-growth_instance_0").
+  const base = input.replace(/_instance_\d+$/, '');
+  let mode: Mode | undefined;
+  if (isCellId(base)) {
+    mode = getCellMode(base as CellId);
+  } else {
+    const legacy = translateLegacyTypeKey(base);
+    if (legacy) mode = getCellMode(legacy.newCellId as CellId);
+  }
+  if (mode) {
+    if (mode === 'Growth') return 'Equity Growth Property';
+    if (mode === 'Cashflow') return 'Cashflow Property';
+    return 'Commercial Property';
+  }
+  // Fall back to keyword parsing of a display title. Commercial first — a
+  // commercial title may not carry a growth/cashflow keyword.
+  const lower = input.toLowerCase();
+  if (
+    lower.includes('commercial') ||
+    lower.includes('high cost') || lower.includes('highcost') ||
+    lower.includes('low cost') || lower.includes('lowcost')
+  ) return 'Commercial Property';
+  if (lower.includes('cashflow') || lower.includes('cash flow')) return 'Cashflow Property';
+  if (lower.includes('growth') || lower.includes('equity')) return 'Equity Growth Property';
+  // Type-only or custom titles: leave untouched.
+  return input;
+};
+
 // ── Strategy presets ───────────────────────────────────────────────
 
 export type StrategyPresetId =

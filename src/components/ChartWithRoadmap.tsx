@@ -20,7 +20,7 @@ import { usePortfolioProjection, type YearData, type FundingBreakdown, type Even
 import { calculateRefinanceTriggers, type RefinanceTrigger } from '../utils/refinanceTriggerCalculator';
 import { EVENT_CATEGORIES } from '../constants/eventTypes';
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors';
-import { getSimplifiedDisplayLabel } from '../utils/propertyCells';
+import { getCategoryLabel } from '../utils/propertyCells';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
@@ -84,11 +84,14 @@ const formatCompactCurrency = (value: number): string => {
   return `${sign}$${Math.round(absValue)}`;
 };
 
-// Determine if property is a house type (for color coding)
+// Residential categories get the house icon; commercial gets the building icon.
 const isHouseType = (propertyTitle: string): boolean => {
   const normalized = propertyTitle.toLowerCase();
-  return normalized.includes('house') || 
-         normalized.includes('villa') || 
+  if (normalized.includes('commercial')) return false;
+  if (normalized.includes('cashflow') || normalized.includes('equity') || normalized.includes('growth')) return true;
+  // Legacy/custom titles fall back to the old keyword check.
+  return normalized.includes('house') ||
+         normalized.includes('villa') ||
          normalized.includes('townhouse') ||
          normalized.includes('duplex');
 };
@@ -175,14 +178,14 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
           )}
           {yearTriggers.map(t => (
             <p key={t.instanceId} className="text-xs text-amber-600 mt-1">
-              {getSimplifiedDisplayLabel(t.propertyTitle)}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
+              {getCategoryLabel(t.propertyTitle)}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
             </p>
           ))}
           {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
             <div className="mt-2 pt-2 border-t border-gray-100">
               {data.purchaseDetails.map((purchase: any, idx: number) => (
                 <p key={idx} className="text-xs font-medium text-gray-700">
-                  {getSimplifiedDisplayLabel(purchase.propertyTitle)}
+                  {getCategoryLabel(purchase.propertyTitle)}
                 </p>
               ))}
             </div>
@@ -333,7 +336,7 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
             </div>
           </TooltipTrigger>
           <TooltipContent side="top" className="bg-white border border-gray-200 shadow-md rounded-md p-3 max-w-[240px]">
-            <p className="text-xs font-semibold text-gray-900 mb-1.5">{getSimplifiedDisplayLabel(property.title)}</p>
+            <p className="text-xs font-semibold text-gray-900 mb-1.5">{getCategoryLabel(property.title)}</p>
             <div className="space-y-0.5 text-[11px]">
               <div className="flex justify-between gap-4">
                 <span className="text-gray-500">Purchase Price</span>

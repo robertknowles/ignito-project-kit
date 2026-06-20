@@ -23,6 +23,9 @@ interface LayoutContextType {
   pendingPlanResponse: NLParseResponse | null;
   setPendingPlanResponse: (response: NLParseResponse | null) => void;
   confirmPlanHandler: MutableRefObject<((r: NLParseResponse) => void) | null>;
+  /** Regenerate the pending plan with a different strategy preset. Set by
+   *  ChatPanel, called from the confirmation screen's strategy dropdown. */
+  replanPlanHandler: MutableRefObject<((preset: string, response: NLParseResponse) => void) | null>;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -38,6 +41,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('plan');
   const [pendingPlanResponse, setPendingPlanResponse] = useState<NLParseResponse | null>(null);
   const confirmPlanHandler = useRef<((r: NLParseResponse) => void) | null>(null);
+  const replanPlanHandler = useRef<((preset: string, response: NLParseResponse) => void) | null>(null);
   const DEFAULT_CHAT_WIDTH = 360;
   const [chatPanelWidth, setChatPanelWidthState] = useState<number>(() => {
     const saved = localStorage.getItem('proppath-chat-width');
@@ -63,7 +67,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>
       {children}
     </LayoutContext.Provider>
   );

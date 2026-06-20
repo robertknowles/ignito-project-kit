@@ -6,7 +6,7 @@ import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, getGrowthCurveForTier } from '../../constants/financialParams';
 import { PROPERTY_COLORS } from '../../constants/chartColors';
-import { getSimplifiedDisplayLabel } from '../../utils/propertyCells';
+import { getCategoryLabel } from '../../utils/propertyCells';
 
 /**
  * Funding Sources — Expandable table rows
@@ -185,7 +185,7 @@ export const FundingSourcesChart: React.FC = () => {
               {/* Property name + status */}
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[#181D27]">{getSimplifiedDisplayLabel(row.title)}</span>
+                  <span className="text-sm font-medium text-[#181D27]">{getCategoryLabel(row.title)}</span>
                   {row.isBuyNext && (
                     <span
                       className="text-[11px] font-semibold px-2 py-0.5 rounded"
@@ -247,7 +247,7 @@ export const FundingSourcesChart: React.FC = () => {
                         className="text-[#717680]"
                         style={{ fontSize: 12, marginLeft: 14, marginTop: 3, marginBottom: 4 }}
                       >
-                        from {getSimplifiedDisplayLabel(src.from)} · refinanced {src.refinanceYear}
+                        from {getCategoryLabel(src.from)} · refinanced {src.refinanceYear}
                       </p>
                     )}
                   </div>

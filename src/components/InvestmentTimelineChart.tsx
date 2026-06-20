@@ -17,6 +17,7 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { BASE_YEAR } from '../constants/financialParams'
 import { getPropertyIconPath } from './icons/PropertyIconPaths'
+import { getCategoryLabel } from '../utils/propertyCells'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 
@@ -91,7 +92,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
       totalEquity: y.totalEquityRaw,
       doNothingBalance: y.doNothingBalance ?? 0,
       purchaseInYear: y.purchaseInYear,
-      purchaseLabel: y.purchaseDetails?.map(p => p.propertyTitle).join(', ') ?? '',
+      purchaseLabel: [...new Set(y.purchaseDetails?.map(p => getCategoryLabel(p.propertyType || p.propertyTitle)) ?? [])].join(', '),
       purchasePropertyTypes: y.purchaseDetails?.map(p => p.propertyType) ?? [],
       purchaseInstanceIds: y.purchaseDetails?.map(p => p.instanceId) ?? [],
     }))

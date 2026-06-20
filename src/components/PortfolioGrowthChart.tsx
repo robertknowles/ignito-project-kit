@@ -15,6 +15,7 @@ import {
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { getPropertyTypeIcon } from '../utils/propertyTypeIcon'
+import { getCategoryLabel } from '../utils/propertyCells'
 import { CHART_COLORS, CHART_STYLE } from '../constants/chartColors'
 import { BASE_YEAR } from '../constants/financialParams'
 
@@ -46,7 +47,7 @@ export const PortfolioGrowthChart = () => {
             <div className="mt-2 pt-2 border-t border-gray-100">
               <p className="text-xs font-medium mb-1">Properties Purchased:</p>
               {properties.map((p: string, i: number) => (
-                <p key={i} className="text-xs text-gray-500">• {p}</p>
+                <p key={i} className="text-xs text-gray-500">• {getCategoryLabel(p)}</p>
               ))}
             </div>
           )}

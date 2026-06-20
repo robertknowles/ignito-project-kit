@@ -1,5 +1,6 @@
 import React from 'react'
 import { TrendingUp, Wallet, ArrowUpRight, PiggyBank } from 'lucide-react'
+import { getCategoryLabel } from '../../utils/propertyCells'
 
 interface TimelineCardProps {
   propertyNumber: number
@@ -35,8 +36,9 @@ export function TimelineCard({
   totalDeposit,
   monthsToSave,
 }: TimelineCardProps) {
-  // Use specific title if provided, otherwise fallback to generic "Property X"
-  const displayTitle = title || `Property ${propertyNumber}`;
+  // Use the 3-way category label if a property title is provided, otherwise
+  // fall back to generic "Property X". Internal type names never surface.
+  const displayTitle = title ? getCategoryLabel(title) : `Property ${propertyNumber}`;
   
   // Check if we have commitment breakdown data
   const hasCommitmentData = savedAmount && totalDeposit;

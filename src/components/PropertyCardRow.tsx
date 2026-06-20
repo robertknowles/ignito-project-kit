@@ -43,7 +43,7 @@ const humanizeField = (field: string) =>
     .replace(/([A-Z])/g, ' $1')
     .toLowerCase()
     .replace(/^./, c => c.toUpperCase());
-import { getCellDisplayLabel, type CellId } from '../utils/propertyCells';
+import { getCategoryLabel, type CellId } from '../utils/propertyCells';
 import { yearToPeriod, BASE_YEAR, PERIODS_PER_YEAR } from '../constants/financialParams';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { TimelineProperty } from '../types/property';
@@ -807,7 +807,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
 
       const parsed = parseInstanceId(instanceId);
       const propertyTypeMeta = parsed ? propertyTypes.find(p => p.id === parsed.propertyId) : undefined;
-      const propertyType = propertyTypeMeta?.title ?? timelineProp?.title ?? getCellDisplayLabel(DEFAULT_NEW_CELL_ID);
+      const propertyType = getCategoryLabel(propertyTypeMeta?.title ?? timelineProp?.title ?? DEFAULT_NEW_CELL_ID);
 
       return { instanceId, instanceData, propertyType, purchaseYear, isUnplaceable, isBCBlocked, timelineProp, orderIdx };
     });

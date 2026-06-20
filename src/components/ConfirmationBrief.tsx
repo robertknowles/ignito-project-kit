@@ -632,7 +632,7 @@ function enrichProperties(response: NLParseResponse): NLParseResponse {
 }
 
 export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }) => {
-  const { confirmPlanHandler } = useLayout();
+  const { confirmPlanHandler, replanPlanHandler } = useLayout();
   const [editedResponse, setEditedResponse] = useState<NLParseResponse>(() => enrichProperties(response));
   const editedResponseRef = useRef(editedResponse);
   editedResponseRef.current = editedResponse;
@@ -667,8 +667,16 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     setEditedProfileSources(prev => ({ ...prev, [field]: 'user' }));
   };
   const updateStrategy = (value: string) => {
+    const current = editedResponseRef.current.strategyPreset;
+    // Relabel locally first so the field reflects the choice immediately.
     setEditedResponse(prev => ({ ...prev, strategyPreset: value as any }));
     setEditedProfileSources(prev => ({ ...prev, strategyPreset: 'user' }));
+    // Changing the preset must regenerate the property mix — a different
+    // strategy means different cells, prices, and (for commercial-transition)
+    // a phase-2 commercial property. Relabelling alone leaves a stale plan.
+    if (value !== current && replanPlanHandler.current) {
+      replanPlanHandler.current(value, editedResponseRef.current);
+    }
   };
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
   const { profile } = useInvestmentProfile();

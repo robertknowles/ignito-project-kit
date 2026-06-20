@@ -16,10 +16,7 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { calcAnnualRent } from '../utils/sharedFinancialCalcs';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';
 import {
-  CELL_IDS,
-  isCellId,
-  getCellDisplayLabel,
-  translateLegacyTypeKey,
+  getCategoryLabel,
   type CellId,
 } from '../utils/propertyCells';
 
@@ -138,13 +135,6 @@ interface PropertyDetailPanelProps {
 }
 
 /** Resolve any propertyType identifier (cell ID, legacy v3 key, display label) to a v4 CellId. */
-const resolveCellId = (propertyType: string): CellId => {
-  if (isCellId(propertyType)) return propertyType as CellId;
-  const translation = translateLegacyTypeKey(propertyType);
-  if (translation) return translation.newCellId;
-  // Fallback: assume metro-unit-cashflow when input is unrecognised.
-  return 'metro-unit-cashflow';
-};
 
 export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
   instanceData,
@@ -201,8 +191,6 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
     );
   }, [instanceData]);
 
-  const currentCellId = resolveCellId(propertyType);
-
   const tabs = [
     { id: 'property' as const, label: 'PROPERTY' },
     { id: 'loan' as const, label: 'LOAN' },
@@ -234,26 +222,15 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
         {/* PROPERTY */}
         {activeTab === 'property' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
-            {/* Property type bucket dropdown — fires AI re-plan on change */}
+            {/* Property type is internal — read-only category label only. */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[12px] font-medium text-gray-600">
                   Property Type
                 </span>
               </div>
-              <select
-                value={currentCellId}
-                onChange={(e) => onBucketChange(e.target.value as CellId)}
-                className="w-full text-[14px] font-semibold text-gray-900 bg-white border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-gray-400 cursor-pointer"
-              >
-                {CELL_IDS.map((cellId) => (
-                  <option key={cellId} value={cellId}>
-                    {getCellDisplayLabel(cellId)}
-                  </option>
-                ))}
-              </select>
-              <div className="text-[10px] text-gray-400 mt-1">
-                Changing type triggers an AI re-plan via chat.
+              <div className="w-full text-[14px] font-semibold text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                {getCategoryLabel(propertyType)}
               </div>
             </div>
 

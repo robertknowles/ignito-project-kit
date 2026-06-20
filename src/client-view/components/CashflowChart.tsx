@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { CHART_COLORS, CHART_STYLE } from '../../constants/chartColors';
+import { getCategoryLabel } from '../../utils/propertyCells';
 
 const COLORS = {
   positive: CHART_COLORS.barPositive,
@@ -55,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         </p>
         {data?.propertyTitle && (
           <p className="text-xs text-sky-600 mt-1 pt-1 border-t border-gray-100">
-            🏡 {data.propertyTitle}
+            🏡 {getCategoryLabel(data.propertyTitle)}
           </p>
         )}
       </div>

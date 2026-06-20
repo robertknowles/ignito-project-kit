@@ -15,7 +15,7 @@ import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useEquityUnlockTimeline } from './useEquityUnlockTimeline';
 import { PROPERTY_ICON_PATHS } from '../icons/PropertyIconPaths';
 import { PROPERTY_COLORS } from '../../constants/chartColors';
-import { getSimplifiedDisplayLabel } from '../../utils/propertyCells';
+import { getCategoryLabel } from '../../utils/propertyCells';
 import { CHART_STYLE } from '../../constants/chartColors';
 import { BASE_YEAR } from '../../constants/financialParams';
 
@@ -161,7 +161,7 @@ export const EquityUnlockChart: React.FC = () => {
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: prop.color }}
               />
-              <span className="text-gray-500">{getSimplifiedDisplayLabel(prop.title)}</span>
+              <span className="text-gray-500">{getCategoryLabel(prop.title)}</span>
               <span className="ml-auto font-medium text-gray-700">{fmt(value)}</span>
             </div>
           );
@@ -197,11 +197,11 @@ export const EquityUnlockChart: React.FC = () => {
             {eventsThisYear.map((evt, ei) => (
               <p key={ei} className="text-sm mb-1" style={{ wordBreak: 'break-word', lineHeight: 1.35 }}>
                 <span className="font-medium text-gray-700">{fmt(evt.amount)}</span>
-                <span className="text-gray-500"> from {getSimplifiedDisplayLabel(evt.sourceTitle)}</span>
+                <span className="text-gray-500"> from {getCategoryLabel(evt.sourceTitle)}</span>
                 {evt.destinationTitle && (
                   <>
                     <span className="text-gray-400"> → </span>
-                    <span className="font-medium text-blue-600">{getSimplifiedDisplayLabel(evt.destinationTitle)}</span>
+                    <span className="font-medium text-blue-600">{getCategoryLabel(evt.destinationTitle)}</span>
                   </>
                 )}
               </p>
@@ -342,7 +342,7 @@ export const useEquityUnlockLegend = () => {
   return useMemo(() => {
     const items = propertyTimelines.map(p => ({
       color: p.color,
-      label: getSimplifiedDisplayLabel(p.title),
+      label: getCategoryLabel(p.title),
     }));
     items.push({ color: '#2563EB', label: 'Refinance event', variant: 'ring' as const });
     return items;

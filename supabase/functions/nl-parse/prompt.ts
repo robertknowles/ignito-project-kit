@@ -129,15 +129,49 @@ ${strategyProfileText.trim()}
 
 **Choosing the preset:** Based on this company strategy AND the client's brief, set \`strategyPreset\` to whichever of the 6 presets best fits: equity-growth vs cash-flow (low/high price point), \`commercial-transition\` (residential → commercial), or \`eg-to-cf\` (build equity in growth-mode assets early, then pivot to cash-flow assets later). Infer it — do NOT just keep the default preset shown above. If the strategy and brief genuinely don't indicate a direction, keep the default.
 
+**\`commercial-transition\` vs \`eg-to-cf\` — do NOT confuse these.** They are different transitions. \`eg-to-cf\` is RESIDENTIAL the whole way (growth houses early → cash-flow residential later); it NEVER includes a commercial property. \`commercial-transition\` ends in actual COMMERCIAL assets (\`commercial-high-cost\`, \`commercial-low-cost\`). If the company strategy or brief says anything like "commercial", "go commercial", "commercial property", "transition to commercial", "commercial yield" → you MUST choose \`commercial-transition\`, never \`eg-to-cf\`. Picking \`eg-to-cf\` when commercial was asked for is a failure.
+
 **Extract every specific the company strategy states and apply it per property — do NOT fall back to generic defaults when the strategy is explicit. This is the whole point of the company strategy: it molds the plan beyond the client brief.**
-- **Yield** (e.g. "4.5–4.8% yield", "5% gross"): you MUST use the yield the strategy states — do NOT substitute your own yield assumption. Set each property's \`rentPerWeek\` = round(purchasePrice × statedYield ÷ 52), using the MIDPOINT of any range. Worked example: "$600k at 4.5–4.8%" → midpoint 4.65% → round(600000 × 0.0465 ÷ 52) = 536/wk. Apply the stated yield to every property unless the strategy gives different yields for different phases.
-- **Price band** (e.g. "$550–650k"): set \`purchasePrice\` within the band (midpoint unless borrowing capacity dictates lower).
+
+**Build VARIETY across the plan — never output near-identical clones.** When a strategy gives ranges (price band, yield band) or multiple phases, the properties in the plan MUST differ from each other in price, rent/yield, and (across a transition) cell type. A plan where every property is the same price and the same yield is wrong. Spread values across the stated ranges so the plan reads like a real, considered sequence of distinct purchases.
+- **Yield** (e.g. "4.5–4.8% yield", "5% gross"): you MUST use the yield the strategy states — do NOT substitute your own yield assumption. Set each property's \`rentPerWeek\` = round(purchasePrice × yield ÷ 52). When the strategy gives a yield RANGE, VARY the yield across properties — spread them through the band rather than applying one midpoint to all (e.g. for "4.5–4.8%" use roughly 4.5%, 4.6%, 4.7%, 4.8% across the sequence). Worked example: a $580k property at 4.7% → round(580000 × 0.047 ÷ 52) = 524/wk. If the strategy gives different yields for different phases, apply each phase's yield to that phase's properties.
+- **Price band** (e.g. "$550–650k"): DISTRIBUTE \`purchasePrice\` across the band — give each property a different price spanning the low, middle and high of the band (e.g. for "$550–650k": ~560k, ~590k, ~615k, ~640k), not the midpoint for everyone. Stay within borrowing capacity; only compress toward the lower end if capacity dictates.
 - **Growth expectation** (e.g. "10% then 7%", "strong growth"): map to the closest growth tier — High / Medium / Low — via \`growthAssumption\`. Tiers are coarse; pick the nearest. Do not invent a custom curve.
 - **Purchase cadence** (e.g. "one per year", "every 18 months"): space \`targetPeriod\` accordingly. Periods are semi-annual (2 per year), so "one per year" ≈ 2 periods apart.
-- **Mid-plan transition** (e.g. "move to cashflow halfway", "commercial after year 7"): use the matching two-phase preset (\`eg-to-cf\` or \`commercial-transition\`) and place Phase 2 properties at higher \`targetPeriod\`. If the strategy says to transition but does NOT say when, start Phase 2 at roughly the HALFWAY point of the plan horizon.
-- **Property kind / price point** (e.g. "established freestanding homes", "units"): steer cell selection toward the matching cells (never name the cell or location back to the BA).
+- **Mid-plan transition** (e.g. "move to cashflow halfway", "commercial after year 7"): use the matching two-phase preset (\`eg-to-cf\` or \`commercial-transition\`). This is a REAL shift, not just later timing — Phase 1 properties use the preset's growth cells; Phase 2 properties MUST switch to the preset's cash-flow (or commercial) cells and take on those cells' distinct characteristics (typically lower price point, higher yield → higher rent relative to price). Place Phase 2 at a higher \`targetPeriod\`; if the strategy says to transition but not when, start Phase 2 at roughly the HALFWAY point of the plan horizon. The finished plan should visibly read as growth assets early, cash-flow assets later — never all-growth with a different date.
+- **Property kind / price point** (e.g. "established freestanding homes", "units"): steer cell selection toward the matching cells (never name the cell or location back to the BA). Where a preset lists multiple primary/secondary cells, rotate between them across properties rather than reusing one cell every time.
 Then bias property cells toward the preset you chose.`
     : '';
+
+  // ── Preset execution section (always present, keyed off active preset) ──
+  // The two-phase presets only "work" if the plan actually shifts cell type at
+  // the transition. This enforcement must apply regardless of whether a company
+  // strategy was supplied — otherwise selecting commercial-transition via the
+  // dropdown/preset silently produces an all-residential plan.
+  let transitionExecutionSection = '';
+  if (preset === 'commercial-transition') {
+    transitionExecutionSection = `
+
+## Executing the Commercial Transition preset (MANDATORY)
+The active preset is **Commercial Transition**. This is a TWO-PHASE plan and the finished plan MUST visibly contain both phases — never an all-residential plan.
+- **Phase 1 (growth, earlier periods):** residential growth cells — \`metro-house-growth\`, \`regional-house-growth\` (scale to capacity; use regional for lower capacity).
+- **Phase 2 (commercial, later periods):** at least ONE genuine commercial property using \`commercial-low-cost\` or \`commercial-high-cost\`. Phase 2 is the whole point of this preset — a plan with zero commercial properties is WRONG and fails the BA's instruction.
+- **When to transition:** start Phase 2 at roughly the HALFWAY point of the timeline (or wherever the strategy/brief states). Place Phase 2 at a higher \`targetPeriod\` than Phase 1.
+- **Commercial cell economics:** commercial uses 70% LVR (not the residential 88% low-cap override). \`commercial-low-cost\` (~$750k) is the affordable entry; \`commercial-high-cost\` (~$2.2M) needs strong capacity.
+- **CAPACITY CONFLICT — do NOT silently drop the commercial phase.** The "≤ $1M → substitute cheaper residential cells" pricing rule applies ONLY to Phase 1 residential picks. It must NOT erase Phase 2. If borrowing capacity is too tight to fund a commercial purchase by the transition point:
+  1. Lean on equity built in Phase 1 plus trust structures to fund the commercial deposit, and push the commercial purchase to a later period so the equity has time to build; AND
+  2. Use \`commercial-low-cost\` rather than \`commercial-high-cost\`; AND
+  3. If even \`commercial-low-cost\` genuinely cannot be funded within the timeline, STILL include it at the latest feasible period and add \`borrowing_capacity\` to \`missingInputs\` — never quietly convert the plan to all-residential. Surfacing a tight commercial phase is correct; hiding it by dropping commercial is not.`;
+  } else if (preset === 'eg-to-cf') {
+    transitionExecutionSection = `
+
+## Executing the Growth-to-Cash-Flow preset (MANDATORY)
+The active preset is **Growth to Cash Flow**. This is a TWO-PHASE RESIDENTIAL plan (no commercial). The finished plan MUST visibly shift cell type at the transition — never all-growth with a later date.
+- **Phase 1 (earlier periods):** growth cells — \`regional-house-growth\`, \`metro-unit-growth\`.
+- **Phase 2 (later periods):** cash-flow cells — \`regional-unit-cashflow\`, \`regional-house-cashflow\` (lower price point, higher yield → higher rent relative to price).
+- Start Phase 2 at roughly the HALFWAY point unless the brief states otherwise. Place Phase 2 at a higher \`targetPeriod\`.
+- If the BA asked for COMMERCIAL, this is the wrong preset — use commercial-transition instead.`;
+  }
 
   // ── Conversation history section ─────────────────────────────────
   const historySection = conversationSummary
@@ -247,11 +281,12 @@ Active preset: **${preset.toUpperCase()} — ${presetLabel}**. Bias toward this 
 - ≤ $1M: Use $350-500k range. SUBSTITUTE cheaper cell types (regional instead of metro).
 - $1M–$1.8M: Use cell defaults, mild scaling ±15%.
 - > $1.8M: Bias toward high-price cells, scale up 15-25%.
+- **Commercial-transition exception:** the "substitute cheaper" rule applies to the residential Phase 1 only. It must NEVER delete the Phase 2 commercial property. If capacity is tight, fund the commercial purchase from Phase 1 equity + trust structures and push it later — do not drop it.
 
 ### Plan Generation Defaults (for create_plan)
 - Loan product: IO. LVR: per capacity rules above.
 - Timeline: 20 years if not specified (set timelineYearsExplicit: false).
-- Count: derive from goal. eg-low: 4-7, eg-high: 2-4, cf-low: 4-7, cf-high: 3-4.
+- Count: derive from goal. eg-low: 4-7, eg-high: 2-4, cf-low: 4-7, cf-high: 3-4, commercial-transition: 3-5 (2-3 residential Phase 1 + 1-2 commercial Phase 2), eg-to-cf: 4-6 (growth Phase 1 + cash-flow Phase 2).
 - Default goal: Equity Growth → ~2x deposit pool. Cash Flow → ~$50k/yr income.
 - Capacity sanity check: total acquisition ≤ ~2x borrowing capacity.
 - **If BC not stated: derive from income.** Set \`clientProfile.borrowingCapacity\` to combined income × 8. E.g. $120k income → $960k BC. Still flag "borrowing_capacity" in missingInputs so the BA knows it was estimated, but ALWAYS set a value — never leave it blank.
@@ -303,5 +338,5 @@ Semi-annual periods. Period 1 = first half of ${currentYear}. Never reference pe
 - High: Y1 12.5%, Y2-3 10%, Y4 7.5%, Y5+ 6%.
 - Medium: Y1 8%, Y2-3 6%, Y4 5%, Y5+ 4%.
 - Low: Y1 5%, Y2-3 4%, Y4 3.5%, Y5+ 3%.
-${planStateSection}${defaultsSection}${strategyProfileSection}${historySection}`;
+${transitionExecutionSection}${planStateSection}${defaultsSection}${strategyProfileSection}${historySection}`;
 }

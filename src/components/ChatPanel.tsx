@@ -43,11 +43,21 @@ import { CHAT_SEND_EVENT, type ChatSendDetail } from '@/utils/chatBus'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
+// Human-readable preset names used when rebuilding a brief for a preset change.
+const PRESET_LABELS: Record<string, string> = {
+  'eg-low': 'equity growth (low entry)',
+  'eg-high': 'equity growth (high entry)',
+  'cf-low': 'cash flow (low entry)',
+  'cf-high': 'cash flow (high entry)',
+  'commercial-transition': 'commercial transition',
+  'eg-to-cf': 'growth to cash flow',
+}
+
 export const ChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer, setPendingPlanResponse, confirmPlanHandler, pendingPlanResponse } = useLayout()
+  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler, pendingPlanResponse } = useLayout()
   const [minimized, setMinimized] = useState(true)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -76,7 +86,7 @@ export const ChatPanel: React.FC = () => {
     undefined
 
   // Ref for sendMessage so auto-fix can send explanation to AI
-  const sendMessageRef = useRef<((text: string) => void) | null>(null)
+  const sendMessageRef = useRef<((text: string, presetOverride?: string, forceFreshPlan?: boolean) => void) | null>(null)
 
   // ── Drag & resize state ──
   const DEFAULT_SIZE = { width: 380, height: 420 }
@@ -397,6 +407,46 @@ export const ChatPanel: React.FC = () => {
     confirmPlanHandler.current = confirmPlan
     return () => { confirmPlanHandler.current = null }
   }, [confirmPlan, confirmPlanHandler])
+
+  // Regenerate the (not-yet-approved) pending plan with a different strategy
+  // preset. Driven by the confirmation screen's strategy dropdown. Without
+  // this, changing the dropdown only relabelled the plan — the properties
+  // stayed as the originally-inferred preset. We rebuild a fresh brief from the
+  // pending response's profile and re-run create_plan with the new preset
+  // forced (forceFreshPlan → currentPlan: null, so the AI always rebuilds and
+  // the strategy-switch guard is never hit).
+  const replanWithPreset = useCallback(
+    (preset: string, response: NLParseResponse) => {
+      const ip = response.investmentProfile
+      const cp = response.clientProfile
+      if (!ip) return
+      const names = (cp?.members ?? [])
+        .map((m) => m.name)
+        .filter((n) => n && !/^client \d+$/i.test(n))
+      const parts: string[] = []
+      if (names.length > 0) parts.push(names.join(' & '))
+      if (ip.baseSalary) parts.push(`income ${Math.round(ip.baseSalary).toLocaleString()}`)
+      if (ip.depositPool) parts.push(`deposit ${Math.round(ip.depositPool).toLocaleString()}`)
+      if (ip.annualSavings) parts.push(`saving ${Math.round(ip.annualSavings / 12).toLocaleString()} per month`)
+      if (cp?.borrowingCapacity) parts.push(`borrowing capacity ${Math.round(cp.borrowingCapacity).toLocaleString()}`)
+      if (ip.timelineYears) parts.push(`${ip.timelineYears} year horizon`)
+      if (ip.equityGoal) parts.push(`equity goal ${Math.round(ip.equityGoal).toLocaleString()}`)
+      if (ip.cashflowGoal) parts.push(`cashflow goal ${Math.round(ip.cashflowGoal).toLocaleString()}`)
+      const presetLabel = PRESET_LABELS[preset] ?? preset
+      const brief = `Rebuild the plan as a ${presetLabel} plan. ${parts.join(', ')}.`
+      // Clear the current pending plan so the confirmation screen shows the
+      // loading state, then regenerate. sendMessageRef is current by the time
+      // a user interaction fires this.
+      setPendingPlanResponse(null)
+      sendMessageRef.current?.(brief, preset, true)
+    },
+    [setPendingPlanResponse]
+  )
+
+  React.useEffect(() => {
+    replanPlanHandler.current = replanWithPreset
+    return () => { replanPlanHandler.current = null }
+  }, [replanWithPreset, replanPlanHandler])
 
   // Handle modifications — supports single modification or compound modifications array
   const handleModification = useCallback(

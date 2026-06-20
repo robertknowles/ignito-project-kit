@@ -4,6 +4,7 @@ import { useClient } from './ClientContext';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
 import { calcGrossYield } from '../utils/sharedFinancialCalcs';
+import { getCategoryLabel } from '../utils/propertyCells';
 
 /**
  * Persistence model
@@ -237,7 +238,9 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
 
       return {
         id: template.cellId,
-        title: template.propertyType,
+        // Client-facing title is the 3-way category, never the internal
+        // metro/regional house/unit type. Drives chart tooltips + card headings.
+        title: getCategoryLabel(template.cellId),
         priceRange: `$${template.purchasePrice.toLocaleString()}`,
         yield: `${yieldPercent.toFixed(1)}%`,
         cashFlow: `$${Math.round((template.purchasePrice * yieldPercent / 100) / 12)}`,

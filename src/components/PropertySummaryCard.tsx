@@ -10,30 +10,14 @@ import React from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import { PropertyTypeIcon } from '../utils/propertyTypeIcon';
-import { CELL_IDS, isCellId, getCellDisplayLabel, getSimplifiedDisplayLabel, translateLegacyTypeKey, type CellId } from '../utils/propertyCells';
+import { getCategoryLabel, type CellId } from '../utils/propertyCells';
 
 /**
- * Resolve any propertyType identifier (cell ID, legacy v3 key, display label)
- * to the v4 cell display label like "Metro House Growth".
+ * Resolve any propertyType identifier (cell ID, legacy key, display label) to
+ * the client-facing category label ("Equity Growth Property" etc.). The
+ * granular metro/regional house/unit type is internal and never surfaced.
  */
-const resolveCellLabel = (propertyType: string, index?: number): string => {
-  let fullLabel: string;
-  if (isCellId(propertyType)) {
-    fullLabel = getCellDisplayLabel(propertyType as CellId);
-  } else {
-    const translation = translateLegacyTypeKey(propertyType);
-    fullLabel = translation ? getCellDisplayLabel(translation.newCellId) : propertyType;
-  }
-  return getSimplifiedDisplayLabel(fullLabel, index);
-};
-
-/** Resolve a propertyType identifier to its CellId (best-effort). */
-const resolveCellId = (propertyType: string): CellId | null => {
-  if (isCellId(propertyType)) return propertyType as CellId;
-  const translation = translateLegacyTypeKey(propertyType);
-  if (translation) return translation.newCellId;
-  return null;
-};
+const resolveCellLabel = (propertyType: string): string => getCategoryLabel(propertyType);
 
 const AUS_STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
@@ -75,8 +59,7 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
   onTypeChange,
   onStateChange,
 }) => {
-  const cellLabel = resolveCellLabel(propertyType, cardIndex);
-  const currentCellId = resolveCellId(propertyType);
+  const cellLabel = resolveCellLabel(propertyType);
 
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -120,37 +103,10 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
               <PropertyTypeIcon propertyTitle={propertyType} size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              {/* Inline-edit Type — click label to swap cell type */}
-              {onTypeChange && currentCellId ? (
-                <label
-                  className="relative block cursor-pointer group/type"
-                  onClick={stop}
-                  title="Change property type"
-                >
-                  <span className="text-[12px] font-semibold text-gray-900 truncate leading-tight block group-hover/type:underline decoration-dotted underline-offset-2">
-                    {cellLabel}
-                  </span>
-                  <select
-                    value={currentCellId}
-                    onChange={(e) => {
-                      onTypeChange(e.target.value as CellId);
-                    }}
-                    onClick={stop}
-                    className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                    aria-label="Property type"
-                  >
-                    {CELL_IDS.map((cellId) => (
-                      <option key={cellId} value={cellId}>
-                        {getCellDisplayLabel(cellId)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
-                  {cellLabel}
-                </div>
-              )}
+              {/* Property type is internal — show the read-only category only. */}
+              <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
+                {cellLabel}
+              </div>
 
               {/* Inline-edit State — click chip to swap */}
               {onStateChange ? (
