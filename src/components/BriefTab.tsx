@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react'
 import { Target, DollarSign, TrendingUp, Home, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import type { ExistingProperty } from '@/types/existingProperty'
@@ -52,7 +53,7 @@ const KVRow: React.FC<{
     <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
       {label}
     </td>
-    <td className={`py-2 px-3 text-xs ${bold ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}>
+    <td className={`py-2 px-3 text-xs text-black font-semibold`}>
       {value}
     </td>
   </tr>
@@ -78,7 +79,7 @@ const EditableNumRow: React.FC<{
 
   return (
     <tr className={`${border ? 'border-b border-neutral-200' : ''} last:border-b-0`}>
-      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
+      <td className={`py-2 px-3 text-xs font-semibold border-r border-neutral-100 whitespace-nowrap ${bold ? 'text-neutral-900' : 'text-neutral-500'}`}>
         {label}
       </td>
       <td className="py-1.5 px-2">
@@ -97,9 +98,7 @@ const EditableNumRow: React.FC<{
             }
           }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-          className={`w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs ${
-            bold ? 'font-medium text-neutral-900' : 'text-neutral-600'
-          } hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300`}
+          className={`w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-black font-semibold hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300`}
         />
       </td>
     </tr>
@@ -128,7 +127,7 @@ const EditableSelectRow: React.FC<{
         <select
           value={value}
           onChange={e => { notifyEdit('brief', { subject: 'Next purchase', fieldLabel: label, from: value, to: e.target.value }); updateInstance(instanceId, { [field]: e.target.value } as Partial<PropertyInstanceDetails>) }}
-          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
+          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-black font-semibold hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -165,6 +164,105 @@ const ENTITY_OPTIONS = [
   { value: 'company', label: 'Company' },
   { value: 'smsf', label: 'SMSF' },
 ]
+
+const fmt$ = (v: number) => `$${fmtNum(v)}`
+
+// ── Compact KPI box ─────────────────────────────────────────────────────────
+
+const BriefStat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="bg-white border border-[#E9EAEB] rounded-xl px-4 py-3">
+    <span className="metric-label">{label}</span>
+    <div className="mt-1">
+      <span className="stat-number">{value}</span>
+    </div>
+  </div>
+)
+
+// ── Cash breakdown donut ────────────────────────────────────────────────────
+
+const CashDonut: React.FC<{
+  segments: { label: string; value: number; color: string }[]
+  total: number
+}> = ({ segments, total }) => (
+  <div className="flex items-center gap-6">
+    <div className="relative shrink-0" style={{ width: 168, height: 168 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={segments}
+            dataKey="value"
+            innerRadius={58}
+            outerRadius={82}
+            paddingAngle={2}
+            stroke="none"
+            startAngle={90}
+            endAngle={-270}
+          >
+            {segments.map((s, i) => <Cell key={i} fill={s.color} />)}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-[15px] font-semibold text-neutral-900 leading-tight">{fmt$(total)}</span>
+        <span className="text-[11px] text-neutral-500">cash needed</span>
+      </div>
+    </div>
+    <div className="flex-1 flex flex-col gap-2.5">
+      {segments.map(s => (
+        <div key={s.label} className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-[13px] text-neutral-600">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+            {s.label}
+          </span>
+          <span className="text-[13px] font-medium text-neutral-900">{fmt$(s.value)}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)
+
+// ── Loan-to-value gauge ─────────────────────────────────────────────────────
+
+const LvrGauge: React.FC<{
+  lvr: number
+  fillPct: number
+  loanAmount: number
+  deposit: number
+  purchasePrice: number
+}> = ({ lvr, fillPct, loanAmount, deposit, purchasePrice }) => {
+  const rows = [
+    { label: 'Loan amount', value: loanAmount, dot: '#7F56D9' },
+    { label: 'Deposit', value: deposit, dot: '#E9D7FE' },
+    { label: 'Purchase price', value: purchasePrice, bold: true },
+  ]
+  return (
+    <div className="flex flex-col gap-4 h-full justify-between">
+      <div className="flex items-baseline gap-2">
+        <span className="text-[28px] font-semibold text-neutral-900 leading-none tracking-tight">{Math.round(lvr)}%</span>
+        <span className="text-[13px] text-neutral-500">geared</span>
+      </div>
+      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: '#E9D7FE' }}>
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${fillPct}%`, background: '#7F56D9' }}
+        />
+      </div>
+      <div className="flex flex-col">
+        {rows.map(r => (
+          <div key={r.label} className="flex items-center justify-between py-2.5 border-b border-neutral-100 last:border-b-0">
+            <span className="flex items-center gap-2 text-[13px] text-neutral-600">
+              {r.dot && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: r.dot }} />}
+              {r.label}
+            </span>
+            <span className={`text-[13px] ${r.bold ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-700'}`}>
+              {fmt$(r.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -280,10 +378,51 @@ export const BriefTab: React.FC = () => {
 
   const iid = nextProp.instanceId
 
+  // Derived values for the purchase visuals (KPI row, donut, LVR gauge)
+  const deposit = instanceData.depositOverride ?? nextProp.depositRequired
+  const stampDuty = acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0
+  const totalCash = instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired
+  const otherCosts = Math.max(0, totalCash - deposit - stampDuty)
+  const loanAmount = instanceData.loanAmountOverride ?? nextProp.loanAmount
+  const purchasePrice = instanceData.purchasePrice
+  const lvrFill = purchasePrice > 0 ? Math.min(100, Math.max(0, (loanAmount / purchasePrice) * 100)) : 0
+  const cashSegments = [
+    { label: 'Deposit', value: deposit, color: '#7F56D9' },
+    { label: 'Stamp duty', value: stampDuty, color: '#9E77ED' },
+    { label: 'Other costs', value: otherCosts, color: '#E9D7FE' },
+  ]
+
   // ── Tab 1: The Purchase ─────────────────────────────────────────────────
 
   const purchaseTab = (
-    <div className="grid grid-cols-2 gap-4 items-start">
+    <div className="flex flex-col gap-4">
+      {/* KPI row */}
+      <div className="grid grid-cols-5 gap-4">
+        <BriefStat label="Purchase price" value={fmt$(purchasePrice)} />
+        <BriefStat label="Total cash required" value={fmt$(totalCash)} />
+        <BriefStat label="LVR" value={`${Math.round(instanceData.lvr)}%`} />
+        <BriefStat label="Rent" value={`$${fmtNum(instanceData.rentPerWeek)}/wk`} />
+        <BriefStat label="Gross yield" value={`${grossYield}%`} />
+      </div>
+
+      {/* Visual breakdown — cash donut + LVR gauge (equal height, content fills) */}
+      <div className="grid grid-cols-2 gap-4 items-stretch">
+        <ChartCard title="Where your cash goes">
+          <CashDonut segments={cashSegments} total={totalCash} />
+        </ChartCard>
+        <ChartCard title="Loan to value">
+          <LvrGauge
+            lvr={instanceData.lvr}
+            fillPct={lvrFill}
+            loanAmount={loanAmount}
+            deposit={deposit}
+            purchasePrice={purchasePrice}
+          />
+        </ChartCard>
+      </div>
+
+      {/* Editable detail — property summary + purchase costs */}
+      <div className="grid grid-cols-2 gap-4 items-start">
       {/* Property Summary (includes funding source rows) */}
       <ChartCard title="Property summary" flush>
         <table className="w-full text-xs">
@@ -306,7 +445,7 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Cash ($)" value={instanceData.fundingCashOverride ?? (nextProp.fundingBreakdown?.cash ?? 0)} field="fundingCashOverride" instanceId={iid} />
             <EditableNumRow label="Savings ($)" value={instanceData.fundingSavingsOverride ?? (nextProp.fundingBreakdown?.savings ?? 0)} field="fundingSavingsOverride" instanceId={iid} />
             <EditableNumRow label="Equity release ($)" value={instanceData.fundingEquityOverride ?? (nextProp.fundingBreakdown?.equity ?? 0)} field="fundingEquityOverride" instanceId={iid} />
-            <EditableNumRow label="Total funded ($)" value={instanceData.fundingTotalOverride ?? (nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} field="fundingTotalOverride" instanceId={iid} />
+            <EditableNumRow label="Total funded ($)" value={instanceData.fundingTotalOverride ?? (nextProp.fundingBreakdown?.total ?? nextProp.totalCashRequired)} field="fundingTotalOverride" instanceId={iid} bold />
           </tbody>
         </table>
       </ChartCard>
@@ -327,11 +466,11 @@ export const BriefTab: React.FC = () => {
             <EditableNumRow label="Mortgage fees ($)" value={instanceData.mortgageFees} field="mortgageFees" instanceId={iid} />
             <EditableNumRow label="Conveyancing ($)" value={instanceData.conveyancing} field="conveyancing" instanceId={iid} />
             <EditableNumRow label="Post-sett. maint ($)" value={instanceData.maintenanceAllowancePostSettlement} field="maintenanceAllowancePostSettlement" instanceId={iid} />
-            <EditableNumRow label="Total cash required ($)" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" instanceId={iid} />
+            <EditableNumRow label="Total cash required ($)" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" instanceId={iid} bold />
           </tbody>
         </table>
       </ChartCard>
-
+      </div>
     </div>
   )
 
