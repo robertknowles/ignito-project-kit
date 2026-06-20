@@ -103,9 +103,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         flexDirection: 'column',
       }}
     >
-      {/* Header band — sits in the outer shell */}
+      {/* Header band — sits in the outer shell. When collapsed there's no inner
+          card below to provide bottom spacing, so balance the padding here. */}
       <div
-        style={{ padding: '12px 20px 0 20px' }}
+        style={{ padding: collapsed ? '12px 20px' : '12px 20px 0 20px' }}
         className={collapsible ? 'cursor-pointer select-none' : ''}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >

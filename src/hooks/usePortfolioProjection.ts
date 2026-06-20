@@ -368,6 +368,11 @@ export const usePortfolioProjection = (
     const startYear = BASE_YEAR;
     const endYear = startYear + (profile.timelineYears || 20) - 1;
     const cashflowEndYear = startYear + Math.max(profile.timelineYears, 20) - 1;
+    // Per-property projections feed the Brief performance view, which offers a
+    // 10/20/30-year horizon toggle. Extend the loop far enough that each owned
+    // property can accumulate up to 30 yearRows, independent of the (shorter)
+    // plan timeline that bounds portfolio-level outputs below.
+    const perPropertyEndYear = startYear + Math.max(profile.timelineYears || 20, 30) - 1;
     const consolidationYear = endYear - (profile.ioToPiTransitionYears ?? 5) + 1;
 
     // Plottable properties (feasible AND challenging — not Infinity)
@@ -493,7 +498,7 @@ export const usePortfolioProjection = (
     };
 
     // ── MAIN YEAR LOOP ──
-    for (let year = startYear; year <= Math.max(endYear, cashflowEndYear); year++) {
+    for (let year = startYear; year <= Math.max(endYear, cashflowEndYear, perPropertyEndYear); year++) {
       const yearIndex = year - startYear;
       const yearsElapsed = yearIndex;
       const periodsElapsed = yearIndex * PERIODS_PER_YEAR;
@@ -538,7 +543,7 @@ export const usePortfolioProjection = (
 
       // ── SALE PROCEEDS (same logic, both hooks agree) ──
       existingProperties.forEach(ep => {
-        if (!ep.saleYear || ep.saleYear <= 0 || year !== ep.saleYear) return;
+        if (year > cashflowEndYear || !ep.saleYear || ep.saleYear <= 0 || year !== ep.saleYear) return;
         const yearsHeld = ep.saleYear - BASE_YEAR;
         const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsHeld);
         const sellingCostsFraction = (profile.sellingCostsPercent ?? 3) / 100;
@@ -571,7 +576,7 @@ export const usePortfolioProjection = (
       resolvedProperties.forEach(rp => {
         const inst = getInstance(rp.instanceId);
         const sy = inst?.saleYear;
-        if (!sy || sy <= 0 || year !== sy) return;
+        if (year > cashflowEndYear || !sy || sy <= 0 || year !== sy) return;
         const purchaseYear = Math.floor(rp.prop.affordableYear);
         if (sy <= purchaseYear) return; // can't sell before/at purchase
         const yearsOwned = sy - purchaseYear;
@@ -936,7 +941,7 @@ export const usePortfolioProjection = (
       const totalCashflow = totalRentalIncome - totalExpenses - totalLoanPayments + totalNgBenefit;
 
       // ── Per-property cashflow snapshot ──
-      if (perPropertyCashflowEntries.length > 0) {
+      if (year <= cashflowEndYear && perPropertyCashflowEntries.length > 0) {
         const totalIn = perPropertyCashflowEntries.reduce((s, p) => s + p.grossIncome, 0);
         const totalOut = perPropertyCashflowEntries.reduce((s, p) => s + p.totalOutgoings, 0);
         cashflowSnapshots.set(year, {

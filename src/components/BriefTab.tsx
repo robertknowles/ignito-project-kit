@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from 'react'
+import React, { useMemo, useState, useCallback, useRef, Fragment } from 'react'
 import { Target, DollarSign, TrendingUp, Home, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import type { ExistingProperty } from '@/types/existingProperty'
 import { ChartCard } from './ui/ChartCard'
-import { BriefCashflowChart, BriefEquityChart, BriefLoanChart, BriefHoldingCostChart } from './BriefPerformanceCharts'
+import { BriefTotalPerformanceChart, BriefCashflowChart, BriefGrowthChart, type PerfHorizon } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
@@ -264,12 +264,74 @@ const LvrGauge: React.FC<{
   )
 }
 
+// ── Horizon toggle (10y / 20y / 30y) ────────────────────────────────────────
+
+const HorizonToggle: React.FC<{
+  value: PerfHorizon
+  onChange: (h: PerfHorizon) => void
+}> = ({ value, onChange }) => (
+  <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#F5F5F5] border border-[#E9EAEB]">
+    {([10, 20, 30] as PerfHorizon[]).map(h => (
+      <button
+        key={h}
+        onClick={() => onChange(h)}
+        className={`px-2.5 py-1 rounded-md text-[12px] font-semibold transition-colors ${
+          value === h
+            ? 'bg-white text-neutral-900 shadow-sm'
+            : 'text-neutral-500 hover:text-neutral-700'
+        }`}
+      >
+        {h}y
+      </button>
+    ))}
+  </div>
+)
+
+// ── Performance metric panel (right of the total-performance chart) ──────────
+
+const PerfMetricSection: React.FC<{
+  title: string
+  rows: { label: string; value: string }[]
+}> = ({ title, rows }) => (
+  <div>
+    <div className="px-3 py-2 bg-[#F9FAFB] border-y border-neutral-200 text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">
+      {title}
+    </div>
+    {rows.map(r => (
+      <div key={r.label} className="flex items-center justify-between px-3 py-2 border-b border-neutral-100 last:border-b-0">
+        <span className="text-[13px] text-neutral-500">{r.label}</span>
+        <span className="text-[13px] font-semibold text-neutral-900">{r.value}</span>
+      </div>
+    ))}
+  </div>
+)
+
+// ── Summary stat group (beneath cashflow / growth charts) ────────────────────
+
+const SummaryGroup: React.FC<{
+  title: string
+  rows: { label: string; value: string }[]
+}> = ({ title, rows }) => (
+  <div className="flex-1 min-w-0">
+    <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{title}</div>
+    <div className="flex flex-col gap-1">
+      {rows.map(r => (
+        <div key={r.label} className="flex items-center justify-between gap-2">
+          <span className="text-[12px] text-neutral-500 whitespace-nowrap">{r.label}</span>
+          <span className="text-[12px] font-semibold text-neutral-900 whitespace-nowrap">{r.value}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 type BriefSubTab = 'purchase' | 'hold' | 'performance'
 
 export const BriefTab: React.FC = () => {
   const [subTab, setSubTab] = useState<BriefSubTab>('purchase')
+  const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(10)
   const { timelineProperties } = useAffordabilityCalculator()
   const { instances } = usePropertyInstance()
   const { profile, updateProfile } = useInvestmentProfile()
@@ -358,8 +420,13 @@ export const BriefTab: React.FC = () => {
     if (!projection) return []
     const rows = projection.yearRows
     const pick = (yr: number) => rows.find(r => r.year === yr)
-    return [pick(1), pick(5), pick(10), pick(20)].filter(Boolean) as typeof rows
-  }, [projection])
+    // Clamp to the furthest year that actually has projection data so the table
+    // always ends on a real data point (a 30y view on a 20y plan caps at 20).
+    const maxYear = rows.reduce((m, r) => Math.max(m, r.year), 0)
+    const H = Math.min(perfHorizon, maxYear)
+    const years = Array.from(new Set([1, Math.round(H / 4), Math.round(H / 2), Math.round((3 * H) / 4), H]))
+    return years.map(pick).filter(Boolean) as typeof rows
+  }, [projection, perfHorizon])
 
   if (!nextProp || !instanceData || !projection || !cashflow) {
     return (
@@ -524,29 +591,117 @@ export const BriefTab: React.FC = () => {
 
   // ── Tab 3: The Performance ──────────────────────────────────────────────
 
+  // Milestone rows for the metric panel + summary boxes (scaled to horizon,
+  // clamped to the furthest year that actually has projection data).
+  const perfYearRows = projection.yearRows
+  const pickYr = (yr: number) => perfYearRows.find(r => r.year === yr)
+  const perfMaxYear = perfYearRows.reduce((m, r) => Math.max(m, r.year), 0)
+  const effectiveHorizon = Math.min(perfHorizon, perfMaxYear)
+  const milestones = Array.from(new Set([1, Math.round(effectiveHorizon / 2), effectiveHorizon]))
+  const milestoneRows = (fmt: (r: (typeof perfYearRows)[number]) => string) =>
+    milestones
+      .map(yr => ({ yr, r: pickYr(yr) }))
+      .filter(x => !!x.r)
+      .map(x => ({ label: `Year ${x.yr}`, value: fmt(x.r!) }))
+
+  const totalPerfRows = milestoneRows(r => fmt$(r.totalPerformance))
+  const cocRows = milestoneRows(r => `${r.cocReturnCumulative.toFixed(1)}%`)
+  const roicRows = milestoneRows(r => `${r.roic.toFixed(1)}%`)
+  const grossYieldRows = milestoneRows(r => `${r.grossYieldPct.toFixed(1)}%`)
+  const netCfRows = milestoneRows(r => fmt$(r.netCashflow))
+  const capGrowthRows = milestoneRows(r => fmt$(r.capitalGrowthCumulative))
+  const equityRows = milestoneRows(r => fmt$(r.equity))
+
+  // ── Detailed annual breakdown (transposed: metrics × years) ───────────────
+  // Mirrors the per-property performance worksheet — one column per year. This
+  // table always projects the full 30-year horizon, independent of the 10/20/30
+  // toggle that drives the charts above. An "At purchase" column carries the
+  // balance-sheet rows.
+  const detailHorizon = Math.min(30, perfMaxYear)
+  const detailYears = perfYearRows.filter(r => r.year >= 1 && r.year <= detailHorizon)
+  const loanAtPurchase = nextProp.loanAmount || (detailYears[0]?.loanBalance ?? 0)
+  const purchaseValue = nextProp.cost || (detailYears[0]?.propertyValue ?? 0)
+  const money = (v: number) => (v < 0 ? `-$${fmtNum(Math.abs(v))}` : `$${fmtNum(v)}`)
+  const pct1 = (v: number) => `${v.toFixed(1)}%`
+  const principalCum = (r: (typeof perfYearRows)[number]) => Math.max(0, Math.round(loanAtPurchase - r.loanBalance))
+
+  type DetailRow = {
+    label: string
+    indent?: boolean
+    italic?: boolean
+    strong?: boolean
+    spacerBefore?: boolean
+    atPurchase?: string
+    cell: (r: (typeof perfYearRows)[number], i: number) => string
+  }
+  const detailMetrics: DetailRow[] = [
+    { label: 'Property value', atPurchase: money(purchaseValue), cell: r => money(r.propertyValue) },
+    { label: 'Loan amount', atPurchase: money(loanAtPurchase), cell: r => money(r.loanBalance) },
+    { label: 'Equity', atPurchase: money(purchaseValue - loanAtPurchase), cell: r => money(r.equity) },
+    { label: 'Principal payments', spacerBefore: true, cell: (r, i) => money((i === 0 ? loanAtPurchase : detailYears[i - 1].loanBalance) - r.loanBalance) },
+    { label: 'Principal payments (cumulative)', cell: r => money(principalCum(r)) },
+    { label: 'Estimated interest rate', spacerBefore: true, italic: true, cell: r => pct1(loanAtPurchase > 0 ? (r.interestExpense / loanAtPurchase) * 100 : 0) },
+    { label: 'Gross income', cell: r => money(r.grossIncome) },
+    { label: 'Gross yield %', cell: r => pct1(r.grossYieldPct) },
+    { label: 'Cash deductions', spacerBefore: true, strong: true, cell: r => money(r.interestExpense + r.operatingExpenses) },
+    { label: 'Interest expense', indent: true, cell: r => money(r.interestExpense) },
+    { label: 'Operating expenses', indent: true, cell: r => money(r.operatingExpenses) },
+    { label: 'Net annual cashflow', spacerBefore: true, cell: r => money(r.netCashflow) },
+    { label: 'Net annual cashflow (cumulative)', cell: r => money(r.netCashflowCumulative) },
+    { label: 'Net yield %', cell: r => pct1(r.propertyValue > 0 ? (r.netCashflow / r.propertyValue) * 100 : 0) },
+    { label: 'Income/(cost) per month', cell: r => money(r.monthlyCost) },
+    { label: 'Income/(cost) per week', cell: r => money(Math.round(r.netCashflow / 52)) },
+    { label: 'Capital growth (annual)', spacerBefore: true, cell: r => money(r.capitalGrowthAnnual) },
+    { label: 'Capital growth (cumulative)', cell: r => money(r.capitalGrowthCumulative) },
+    { label: 'Total performance', cell: r => money(r.totalPerformance) },
+    { label: 'Total performance inc. principal', cell: r => money(r.totalPerformance + principalCum(r)) },
+    { label: 'Cash on cash return (cumulative)', spacerBefore: true, cell: r => pct1(r.cocReturnCumulative) },
+    { label: 'Return on invested capital', strong: true, cell: r => pct1(r.roic) },
+  ]
+
   const performanceTab = (
     <div className="flex flex-col gap-4">
-      {/* Charts — 2x2 grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <ChartCard title="Cashflow projection" legend={[{ color: '#7F56D9', label: 'Net Cashflow' }]}>
-          <BriefCashflowChart yearRows={projection?.yearRows ?? []} />
+      {/* Hero — total performance projections + metric panel */}
+      <ChartCard
+        title="Total performance projections"
+        action={<HorizonToggle value={perfHorizon} onChange={setPerfHorizon} />}
+        legend={[
+          { color: '#6941C6', label: 'Total performance inc. principal' },
+          { color: '#17B26A', label: 'Capital growth' },
+          { color: '#7F56D9', label: 'Net cashflow' },
+          { color: '#B692F6', label: 'Principal payments' },
+        ]}
+        legendBelow
+      >
+        <div className="grid grid-cols-[1fr_240px] gap-5 items-stretch">
+          <BriefTotalPerformanceChart yearRows={perfYearRows} horizon={perfHorizon} />
+          <div className="flex flex-col rounded-xl border border-neutral-200 overflow-hidden self-stretch">
+            <PerfMetricSection title="Total performance (growth + net cashflow)" rows={totalPerfRows} />
+            <PerfMetricSection title="Cash on cash return (COC)" rows={cocRows} />
+            <PerfMetricSection title="Return on invested capital" rows={roicRows} />
+            <div className="mt-auto flex items-center justify-between px-3 py-2.5 bg-[#F9FAFB] border-t border-neutral-200">
+              <span className="text-[12px] text-neutral-500">Initial capital returned in</span>
+              <span className="text-[13px] font-semibold text-neutral-900">{projection.capitalReturnedInYears} yrs</span>
+            </div>
+          </div>
+        </div>
+      </ChartCard>
+
+      {/* Cashflow + Growth projections */}
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <ChartCard title="Cashflow projection" legend={[{ color: '#7F56D9', label: 'Net cashflow' }]}>
+          <BriefCashflowChart yearRows={perfYearRows} horizon={perfHorizon} />
+          <div className="flex gap-8 mt-4 pt-4 border-t border-neutral-100">
+            <SummaryGroup title="Gross yield" rows={grossYieldRows} />
+            <SummaryGroup title="Net cashflow" rows={netCfRows} />
+          </div>
         </ChartCard>
-        <ChartCard title="Equity growth" legend={[{ color: '#7F56D9', label: 'Equity' }]}>
-          <BriefEquityChart yearRows={projection?.yearRows ?? []} />
-        </ChartCard>
-        <ChartCard title="Loan balance" legend={[
-          { color: '#7F56D9', label: 'Value' },
-          { color: '#E9D7FE', label: 'Loan' },
-          { color: '#737373', label: 'LVR', variant: 'line' },
-        ]}>
-          <BriefLoanChart yearRows={projection?.yearRows ?? []} />
-        </ChartCard>
-        <ChartCard title="What it costs to hold" legend={[
-          { color: '#6941C6', label: 'Mortgage' },
-          { color: '#9E77ED', label: 'Expenses' },
-          { color: '#E5E5E5', label: 'Rent' },
-        ]}>
-          <BriefHoldingCostChart yearRows={projection?.yearRows ?? []} />
+        <ChartCard title="Growth projection" legend={[{ color: '#17B26A', label: 'Equity' }]}>
+          <BriefGrowthChart yearRows={perfYearRows} horizon={perfHorizon} />
+          <div className="flex gap-8 mt-4 pt-4 border-t border-neutral-100">
+            <SummaryGroup title="Capital growth" rows={capGrowthRows} />
+            <SummaryGroup title="Equity" rows={equityRows} />
+          </div>
         </ChartCard>
       </div>
 
@@ -583,6 +738,67 @@ export const BriefTab: React.FC = () => {
             })}
           </tbody>
         </table>
+      </ChartCard>
+
+      {/* Detailed annual breakdown — transposed metrics × years */}
+      <ChartCard title="Detailed annual breakdown" flush collapsible defaultCollapsed>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-neutral-200">
+                <th className="sticky left-0 z-10 bg-white text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-300 min-w-[210px]">
+                  Metric
+                </th>
+                <th className="text-right text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100 min-w-[92px]">
+                  At purchase
+                </th>
+                {detailYears.map((r) => (
+                  <th
+                    key={r.year}
+                    className="text-right text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap border-r border-neutral-100 last:border-r-0 min-w-[92px]"
+                  >
+                    Year {r.year}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {detailMetrics.map((m) => (
+                <Fragment key={m.label}>
+                  {m.spacerBefore && (
+                    <tr aria-hidden className="h-3">
+                      <td className="sticky left-0 z-10 bg-white border-r border-neutral-300" />
+                      <td className="border-r border-neutral-100" />
+                      {detailYears.map((r) => (
+                        <td key={r.year} className="border-r border-neutral-100 last:border-r-0" />
+                      ))}
+                    </tr>
+                  )}
+                  <tr
+                    className={`border-b border-neutral-100 ${m.strong ? 'bg-[#FAFAFA]' : ''}`}
+                  >
+                    <td
+                      className={`sticky left-0 z-10 py-2 px-3 whitespace-nowrap border-r border-neutral-300 ${m.strong ? 'bg-[#FAFAFA] font-semibold text-neutral-900' : 'bg-white'} ${m.indent ? 'pl-6 text-neutral-500 font-normal' : m.italic ? 'italic text-neutral-500 font-normal' : !m.strong ? 'font-medium text-neutral-700' : ''}`}
+                    >
+                      {m.label}
+                    </td>
+                    <td className="text-right py-2 px-3 whitespace-nowrap border-r border-neutral-100 tabular-nums text-neutral-400">
+                      {m.atPurchase ?? ''}
+                    </td>
+                    {detailYears.map((r, i) => (
+                      <td
+                        key={r.year}
+                        className={`text-right py-2 px-3 whitespace-nowrap border-r border-neutral-100 last:border-r-0 tabular-nums ${m.strong ? 'text-neutral-900 font-semibold' : 'text-neutral-600'}`}
+                      >
+                        {m.cell(r, i)}
+                      </td>
+                    ))}
+                  </tr>
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </ChartCard>
     </div>
   )
