@@ -331,7 +331,7 @@ type BriefSubTab = 'purchase' | 'hold' | 'performance'
 
 export const BriefTab: React.FC = () => {
   const [subTab, setSubTab] = useState<BriefSubTab>('purchase')
-  const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(10)
+  const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(20)
   const { timelineProperties } = useAffordabilityCalculator()
   const { instances } = usePropertyInstance()
   const { profile, updateProfile } = useInvestmentProfile()
