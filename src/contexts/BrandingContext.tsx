@@ -26,11 +26,19 @@ const defaultBranding: BrandingSettings = {
   isClientInteractiveEnabled: true,
 };
 
-const BRANDING_CACHE_KEY = 'proppath:branding-cache';
+// Branding is cached per company so one account's logo/name can never bleed
+// into another account viewed in the same browser. The "last company" pointer
+// lets us restore instantly on refresh (avoiding a flash) without keying off a
+// shared global cache.
+const BRANDING_CACHE_PREFIX = 'proppath:branding-cache:';
+const LAST_COMPANY_KEY = 'proppath:branding-company';
 
-const readCachedBranding = (): BrandingSettings | null => {
+const cacheKeyFor = (companyId: string) => `${BRANDING_CACHE_PREFIX}${companyId}`;
+
+const readCachedBranding = (companyId: string | null): BrandingSettings | null => {
+  if (!companyId) return null;
   try {
-    const raw = localStorage.getItem(BRANDING_CACHE_KEY);
+    const raw = localStorage.getItem(cacheKeyFor(companyId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (typeof parsed?.primaryColor !== 'string') return null;
@@ -46,11 +54,36 @@ const readCachedBranding = (): BrandingSettings | null => {
   }
 };
 
-const writeCachedBranding = (branding: BrandingSettings) => {
+const writeCachedBranding = (companyId: string | null, branding: BrandingSettings) => {
+  if (!companyId) return;
   try {
-    localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(branding));
+    localStorage.setItem(cacheKeyFor(companyId), JSON.stringify(branding));
+    localStorage.setItem(LAST_COMPANY_KEY, companyId);
   } catch {
     // ignore quota errors
+  }
+};
+
+// Drop every cached branding entry — used on sign-out so the next account
+// starts from a clean slate instead of inheriting the previous user's branding.
+const clearCachedBranding = () => {
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key === LAST_COMPANY_KEY || key.startsWith(BRANDING_CACHE_PREFIX))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+};
+
+// On a cold load auth hasn't resolved yet, so restore the last-known company's
+// branding to avoid a flash. If a different user logs in, fetchBranding
+// overwrites it once their companyId resolves.
+const readLastKnownBranding = (): BrandingSettings | null => {
+  try {
+    return readCachedBranding(localStorage.getItem(LAST_COMPANY_KEY));
+  } catch {
+    return null;
   }
 };
 
@@ -72,7 +105,7 @@ const injectCSSVariables = (primaryColor: string) => {
 
 export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [branding, setBranding] = useState<BrandingSettings>(
-    () => readCachedBranding() ?? defaultBranding
+    () => readLastKnownBranding() ?? defaultBranding
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +141,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
 
       setBranding(brandingData);
-      writeCachedBranding(brandingData);
+      writeCachedBranding(companyId, brandingData);
 
       // Inject CSS variables
       injectCSSVariables(brandingData.primaryColor);
@@ -149,7 +182,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Update local state
       const newBranding = { ...branding, ...updates };
       setBranding(newBranding);
-      writeCachedBranding(newBranding);
+      writeCachedBranding(companyId, newBranding);
 
       // Update CSS variables if colors changed
       if (updates.primaryColor) {
@@ -177,7 +210,12 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (user && companyId) {
       fetchBranding();
     } else {
-      // No user or no company - stop loading and use defaults
+      // Signed out (or a user without a company): wipe any cached branding so
+      // the previous account's logo/name can't leak onto this screen, and reset
+      // to neutral defaults.
+      clearCachedBranding();
+      setBranding(defaultBranding);
+      injectCSSVariables(defaultBranding.primaryColor);
       setLoading(false);
     }
   }, [user, companyId, authLoading, fetchBranding]);
