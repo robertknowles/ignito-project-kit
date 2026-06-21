@@ -59,7 +59,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const hasSales = years.some(y => y.cashFromSales > 0);
 
   // Shared cell classes — matched to PropertyCardRow sizing
-  const thClass = 'text-center text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap';
+  const thClass = 'text-center text-xs font-bold text-neutral-900 py-2 px-3 whitespace-nowrap';
   const tdClass = 'py-2 px-3 text-center align-middle';
   const labelClass = 'py-2 px-3 text-xs font-semibold text-neutral-500 whitespace-nowrap border-r border-neutral-100';
   const subLabelClass = 'py-2 pl-6 pr-3 text-xs font-semibold text-neutral-500 whitespace-nowrap border-r border-neutral-100';
@@ -67,13 +67,24 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const emptyClass = 'text-xs text-neutral-300';
   const rowClass = 'border-b border-neutral-200';
 
+  // Empty row used to break the table into cleaner sections (mirrors the
+  // Detailed annual breakdown). No bottom border so it reads as whitespace.
+  const spacerRow = (key: string) => (
+    <tr key={key} aria-hidden>
+      <td className="py-2 px-3 border-r border-neutral-100">&nbsp;</td>
+      {years.map((yearData, i) => (
+        <td key={`${key}-${yearData.year}`} className={i < yearCount - 1 ? 'border-r border-neutral-100' : ''} />
+      ))}
+    </tr>
+  );
+
   return (
     <div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: yearCount > 8 ? yearCount * 100 : 700 }}>
           <thead>
             <tr className="border-b border-neutral-200">
-              <th className={`text-left ${thClass} border-r border-neutral-100`} />
+              <th className={`text-left ${thClass} border-r border-neutral-100`}>Year</th>
               {years.map((yearData, i) => (
                 <th
                   key={yearData.year}
@@ -161,6 +172,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
+            {spacerRow('spacer-funds')}
+
             {/* FUNDS ($) */}
             <tr className={rowClass}>
               <td className={labelClass}>Funds ($)</td>
@@ -206,6 +219,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
                 </td>
               ))}
             </tr>
+
+            {spacerRow('spacer-debt')}
 
             {/* DEBT ($) */}
             <tr className={rowClass}>
@@ -268,6 +283,8 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               </tr>
             )}
 
+            {spacerRow('spacer-income')}
+
             {/* INCOME ($) */}
             <tr className={rowClass}>
               <td className={labelClass}>Income ($)</td>
@@ -307,16 +324,16 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               })}
             </tr>
 
-            {/* NET ($) */}
-            <tr className={`${rowClass} last:border-b-0`}>
-              <td className={labelClass}>Net ($)</td>
+            {/* NET ($) — bold summary row */}
+            <tr className={`${rowClass} last:border-b-0 bg-[#FAFAFA]`}>
+              <td className={`${labelClass} font-bold text-neutral-900`}>Net ($)</td>
               {years.map((yearData, i) => {
                 const cf = cashflowByYear.get(yearData.year);
                 const cashflow = cf?.cashflow ?? 0;
                 const hasValue = cf && (cf.rentalIncome > 0 || cf.loanRepayments > 0);
                 return (
                   <td key={`net-${yearData.year}`} className={`${tdClass} ${i < yearCount - 1 ? 'border-r border-neutral-100' : ''}`}>
-                    <span className={valClass}>{hasValue ? formatNumber(cashflow) : '–'}</span>
+                    <span className="text-xs font-semibold text-neutral-900">{hasValue ? formatNumber(cashflow) : '–'}</span>
                   </td>
                 );
               })}

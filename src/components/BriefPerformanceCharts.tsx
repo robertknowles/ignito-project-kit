@@ -98,7 +98,7 @@ interface BriefChartProps {
  * Plots cumulative principal paid, cumulative net cashflow, cumulative capital
  * growth, and total performance including principal, over the selected horizon.
  */
-export const BriefTotalPerformanceChart: React.FC<BriefChartProps> = ({ yearRows, horizon }) => {
+export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys?: string[] }> = ({ yearRows, horizon, hiddenKeys = [] }) => {
   const rows = yearRows.filter(r => r.year >= 1 && r.year <= horizon);
   if (!rows.length) return null;
 
@@ -128,10 +128,10 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps> = ({ yearRows
           <YAxis {...sharedYAxis} />
           <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
           <ReferenceLine y={0} stroke={UUI.neutral200} />
-          <Line type="monotone" dataKey="totalIncPrincipal" name="Total performance inc. principal" stroke={UUI.brand700} strokeWidth={2.5} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="capitalGrowth" name="Capital growth (cumulative)" stroke={UUI.growth500} strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="netCashflow" name="Net cashflow (cumulative)" stroke={UUI.brand600} strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="principalPaid" name="Principal payments (cumulative)" stroke={UUI.brand300} strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="totalIncPrincipal" name="Total performance inc. principal" stroke={UUI.brand700} strokeWidth={2.5} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('totalIncPrincipal')} />
+          <Line type="monotone" dataKey="capitalGrowth" name="Capital growth (cumulative)" stroke={UUI.growth500} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('capitalGrowth')} />
+          <Line type="monotone" dataKey="netCashflow" name="Net cashflow (cumulative)" stroke={UUI.brand600} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('netCashflow')} />
+          <Line type="monotone" dataKey="principalPaid" name="Principal payments (cumulative)" stroke={UUI.brand300} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('principalPaid')} />
         </LineChart>
       </ResponsiveContainer>
     </div>
