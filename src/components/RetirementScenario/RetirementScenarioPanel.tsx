@@ -2,24 +2,53 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
-import { useRetirementProjection } from './useRetirementProjection';
-import { CHART_COLORS } from '../../constants/chartColors';
+import { useRetirementProjection, type RetirementPropertyProjection } from './useRetirementProjection';
+import { getCategoryLabel } from '../../utils/propertyCells';
 
 /**
  * Retirement Scenario Panel
  *
- * Interactive sell/hold calculator for retirement planning.
- * Wrapped externally by ChartCard in Dashboard.tsx — no custom header needed.
+ * Interactive sell/hold calculator for retirement planning. Rendered inside a
+ * ChartCard in Dashboard.tsx (Portfolio Plan → Retirement subtab) — the card
+ * supplies the title, so no internal header is needed.
  *
- * Layout: Strategy header + chip → 4 KPI cards → wealth bar + legend → 2-col (slider | sell list)
+ * Styling matches the rest of the dashboard: brand purple (#7F56D9) for the
+ * retained/equity side, neutral grey for the liquidated/cash side, UUI neutral
+ * scale for chrome, and the same KPI/slider typography used across chart cards.
+ *
+ * Layout (mirrors the design reference): 4 KPIs → equity/cash split bar →
+ * time-to-retirement slider → property grid (click to sell / hold).
  */
 
-const fmt = (v: number) => {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '-' : '';
-  if (abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(1)}M`;
-  if (abs >= 1000) return `${sign}$${Math.round(abs / 1000)}k`;
+// ── Dashboard design tokens ─────────────────────────────────────────────────
+const BRAND = '#7F56D9';      // brand-600 — held accent + sell button
+const EQUITY = '#9E77ED';     // purple — equity split-bar segment + legend
+const CASH = '#A4A7AE';       // neutral — liquidated cash / sold
+const SLIDER = '#9CA3AF';     // neutral grey — time-to-retirement slider (matches the other dashboard sliders)
+const INTER = 'Inter, system-ui, sans-serif';
+
+/** Compact money, trailing zeros trimmed — matches Dashboard formatMoney ($1.58M, $777k). */
+const fmt = (value: number): string => {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const m = Math.round((abs / 1_000_000) * 100) / 100;
+    return `${sign}$${m}M`;
+  }
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`;
   return `${sign}$${Math.round(abs)}`;
+};
+
+/** Strategy tag (Growth / Yield / Commercial) inferred from the property's category. */
+const strategyTag = (prop: RetirementPropertyProjection): string | null => {
+  for (const candidate of [prop.instanceId, prop.propertyType ?? '', prop.title]) {
+    if (!candidate) continue;
+    const category = getCategoryLabel(candidate);
+    if (category === 'Equity Growth Property') return 'Growth';
+    if (category === 'Cashflow Property') return 'Yield';
+    if (category === 'Commercial Property') return 'Commercial';
+  }
+  return null;
 };
 
 export const RetirementScenarioPanel: React.FC = () => {
@@ -41,7 +70,7 @@ export const RetirementScenarioPanel: React.FC = () => {
     });
   }, []);
 
-  // Auto-clear sold status for properties not yet purchased at current retirement year
+  // Auto-clear sold status for properties not yet purchased at the current retirement year
   useEffect(() => {
     if (summary.properties.length === 0) return;
     const unpurchased = summary.properties
@@ -58,8 +87,8 @@ export const RetirementScenarioPanel: React.FC = () => {
 
   if (summary.properties.length === 0) {
     return (
-      <p className="text-sm text-gray-400 py-8 text-center">
-        Add properties to see retirement scenario
+      <p className="py-8 text-center text-sm text-[#A4A7AE]">
+        Add properties to see the retirement scenario
       </p>
     );
   }
@@ -67,196 +96,216 @@ export const RetirementScenarioPanel: React.FC = () => {
   const totalWealth = summary.totalEquity + summary.cashInHand;
   const equityPct = totalWealth > 0 ? (summary.totalEquity / totalWealth) * 100 : 0;
   const cashPct = totalWealth > 0 ? (summary.cashInHand / totalWealth) * 100 : 0;
+
+  const purchasedCount = summary.properties.filter(p => p.purchasedByRetirement).length;
   const soldCount = summary.soldIds.size;
-  const totalCount = summary.properties.length;
+  const heldCount = Math.max(0, purchasedCount - soldCount);
+
+  const zoneLabel =
+    summary.zone === 'hold' ? 'Hold all'
+    : summary.zone === 'exit' ? 'Full sell-down'
+    : 'Partial sell-down';
+
+  const fillPct = ((years - 5) / (25 - 5)) * 100;
 
   return (
-    <div className="relative space-y-6">
-      {/* ── Strategy Chip — pinned top-right ─────────────────────── */}
-      <div className="absolute right-0 text-right" style={{ top: '-4.5rem' }}>
-        <span className="text-[11px] font-medium text-[#535862] border border-[#E9EAEB] rounded-full px-3 py-1 whitespace-nowrap">
-          {summary.chipLabel}
-        </span>
-        <p className="text-[11px] text-[#717680] mt-1.5">
-          {soldCount} of {totalCount} properties sold at retirement
-        </p>
-      </div>
-
-      {/* ── KPI Cards — match dashboard SummaryBar styling ──────── */}
-      <div className="grid grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862]">Cash in Hand</span>
-          <div className="mt-1">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.cashInHand)}</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862]">Portfolio Value</span>
-          <div className="mt-1">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.portfolioValue)}</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862]">Total Equity</span>
-          <div className="mt-1">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.totalEquity)}</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862]">Debt Remaining</span>
-          <div className="mt-1">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{fmt(summary.debtRemaining)}</span>
-          </div>
-          {summary.debtRemaining === 0 && (
-            <span className="text-[11px] text-[#717680] block mt-0.5">Debt free</span>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862]">Annual Cashflow</span>
+    <div className="space-y-7">
+      {/* ── KPI row ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-6">
+        <div>
+          <span className="text-[13px] font-medium text-[#535862]">Annual cashflow</span>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">
+            <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
               {summary.annualCashflow >= 0 ? '+' : ''}{fmt(summary.annualCashflow)}
             </span>
-            <span className="text-sm text-[#717680]">/yr</span>
+            <span className="text-sm text-[#A4A7AE]">/yr</span>
           </div>
+          <span className="mt-0.5 block text-xs text-[#A4A7AE]">net rental income</span>
+        </div>
+
+        <div>
+          <span className="text-[13px] font-medium text-[#535862]">Cash in hand</span>
+          <div className="mt-1">
+            <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
+              {fmt(summary.cashInHand)}
+            </span>
+          </div>
+          <span className="mt-0.5 block text-xs text-[#A4A7AE]">from {soldCount} sold</span>
+        </div>
+
+        <div>
+          <span className="text-[13px] font-medium text-[#535862]">Equity retained</span>
+          <div className="mt-1">
+            <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
+              {fmt(summary.totalEquity)}
+            </span>
+          </div>
+          <span className="mt-0.5 block text-xs text-[#A4A7AE]">in {heldCount} held</span>
+        </div>
+
+        <div>
+          <span className="text-[13px] font-medium text-[#535862]">Debt remaining</span>
+          <div className="mt-1">
+            <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
+              {fmt(summary.debtRemaining)}
+            </span>
+          </div>
+          <span className="mt-0.5 block text-xs text-[#A4A7AE]">on held properties</span>
         </div>
       </div>
 
-      {/* ── Wealth Split Bar ───────────────────────────────────────── */}
+      {/* ── Equity / Cash split bar ─────────────────────────────────────── */}
       <div>
-        <div className="flex w-full overflow-hidden rounded-full" style={{ height: 12 }}>
+        <div className="flex w-full overflow-hidden rounded-full" style={{ height: 16 }}>
           {totalWealth > 0 ? (
             <>
               {equityPct > 0 && (
-                <div
-                  className="transition-all duration-300"
-                  style={{
-                    width: `${equityPct}%`,
-                    backgroundColor: CHART_COLORS.barPositive,
-                  }}
-                />
+                <div className="transition-all duration-300" style={{ width: `${equityPct}%`, backgroundColor: EQUITY }} />
               )}
               {cashPct > 0 && (
-                <div
-                  className="transition-all duration-300"
-                  style={{
-                    width: `${cashPct}%`,
-                    backgroundColor: CHART_COLORS.barNegative,
-                  }}
-                />
+                <div className="transition-all duration-300" style={{ width: `${cashPct}%`, backgroundColor: CASH }} />
               )}
             </>
           ) : (
-            <div className="w-full bg-gray-100" />
+            <div className="w-full" style={{ backgroundColor: '#F5F5F5' }} />
           )}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-5 mt-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barPositive }} />
-            <span className="text-[11px] text-[#717680]">Equity in property {fmt(summary.totalEquity)} — grows, not liquid</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS.barNegative }} />
-            <span className="text-[11px] text-[#717680]">Cash in hand {fmt(summary.cashInHand)} — liquid after debt clearance</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bottom 2-col: Slider | Sell List ──────────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Time to Retirement */}
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <div className="flex items-baseline justify-between mb-4">
-            <span className="text-sm font-medium text-[#535862]">
-              Time to Retirement
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-[24px] font-semibold text-[#181D27] tracking-tight leading-tight">{years}</span>
-              <span className="text-sm text-[#717680]">yrs</span>
-            </div>
-          </div>
-          <input
-            type="range"
-            min={5}
-            max={25}
-            step={1}
-            value={years}
-            onChange={e => setYears(Number(e.target.value))}
-            className="h-1.5 w-full appearance-none cursor-pointer bg-gray-200 rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
-            style={{ background: `linear-gradient(to right, #9CA3AF 0%, #9CA3AF ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB ${((years - 5) / (25 - 5)) * 100}%, #E5E7EB 100%)` }}
-          />
-          <div className="flex justify-between mt-1.5">
-            <span className="text-[11px] text-[#A4A7AE]">5 yrs</span>
-            <span className="text-[11px] text-[#A4A7AE]">25 yrs</span>
-          </div>
-        </div>
-
-        {/* Sell at Retirement */}
-        <div className="bg-white rounded-xl border border-[#E9EAEB] p-5">
-          <span className="text-sm font-medium text-[#535862] block mb-3">
-            Sell at Retirement
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[13px] text-[#717680]">
+            <span className="font-semibold text-[#181D27]">{zoneLabel}</span>
+            {' · '}{years} yrs{' · '}{soldCount} of {purchasedCount} sold
           </span>
-          <div className="flex flex-col gap-2">
-            {summary.properties.map(prop => {
-              const isSold = soldIds.has(prop.instanceId);
-              const canSell = prop.purchasedByRetirement;
-              return (
-                <button
-                  key={prop.instanceId}
-                  onClick={() => canSell && toggleSold(prop.instanceId)}
-                  disabled={!canSell}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all duration-150 ${
-                    !canSell
-                      ? 'border-[#E9EAEB] bg-[#F5F5F5]/40 opacity-50 cursor-not-allowed'
-                      : isSold
-                        ? 'border-[#D5D7DA] bg-[#F5F5F5]'
-                        : 'border-[#E9EAEB] bg-white hover:bg-[#FAFAFA]'
-                  }`}
-                >
-                  <div className="text-left">
-                    <div className="text-[13px] font-medium text-[#181D27] leading-tight">
-                      {isSold && <span className="text-[#717680] mr-1">Selling —</span>}
-                      {prop.title}
-                    </div>
-                    <div className="text-[11px] text-[#717680] mt-0.5">
-                      {!canSell
-                        ? `Not yet purchased (buys ${prop.purchaseYear})`
-                        : `${prop.propertyType || 'Property'} · ${fmt(prop.futureEquity)} equity`
-                      }
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] font-medium tracking-wide px-2.5 py-1 rounded ${
-                      !canSell
-                        ? 'border border-[#E9EAEB] text-[#A4A7AE]'
-                        : isSold
-                          ? 'bg-gray-600 text-white'
-                          : 'border border-[#E9EAEB] text-[#717680]'
-                    }`}
-                  >
-                    {isSold ? 'SOLD' : 'SELL'}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: EQUITY }} />
+              <span className="text-xs text-[#717680]">Equity</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: CASH }} />
+              <span className="text-xs text-[#717680]">Cash</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── Cashflow Warning ──────────────────────────────────────── */}
-      {summary.annualCashflow < 0 && soldCount < totalCount && (
-        <div className="px-1">
-          <p className="text-[11px] font-medium text-[#535862]">
-            Negative cashflow of {fmt(summary.annualCashflow)}/yr — top-up from other income required to hold this portfolio through retirement.
-          </p>
+      {/* ── Time to retirement slider ───────────────────────────────────── */}
+      <div className="flex items-center gap-4">
+        <span className="whitespace-nowrap text-[13px] font-medium text-[#535862]">Time to retirement</span>
+        <input
+          type="range"
+          min={5}
+          max={25}
+          step={1}
+          value={years}
+          onChange={e => setYears(Number(e.target.value))}
+          className="ret-slider"
+          style={{
+            flex: 1,
+            height: 4,
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            background: `linear-gradient(to right, ${SLIDER} 0%, ${SLIDER} ${fillPct}%, #E5E5E5 ${fillPct}%, #E5E5E5 100%)`,
+            borderRadius: 2,
+            outline: 'none',
+            cursor: 'pointer',
+          }}
+        />
+        <span className="flex items-baseline gap-1 whitespace-nowrap">
+          <span className="text-base font-semibold text-[#181D27]">{years}</span>
+          <span className="text-[13px] text-[#A4A7AE]">yrs</span>
+        </span>
+      </div>
+
+      {/* ── Property grid — click to sell / hold ────────────────────────── */}
+      <div>
+        <p className="mb-3 text-[13px] text-[#717680]">Click a property to sell it for cash, or keep it for income</p>
+        <div className="grid grid-cols-4 gap-4">
+          {summary.properties.map((prop, idx) => {
+            const isSold = soldIds.has(prop.instanceId);
+            const canSell = prop.purchasedByRetirement;
+            const tag = strategyTag(prop);
+
+            const base = 'flex min-h-[116px] flex-col rounded-xl border p-4 text-left transition-all duration-150';
+            const stateClass = !canSell
+              ? 'border-[#E9EAEB] bg-[#F9FAFB] opacity-60 cursor-not-allowed'
+              : isSold
+                ? 'border-[#E9EAEB] bg-[#FAFAFA] cursor-pointer hover:border-[#D5D7DA]'
+                : 'cursor-pointer hover:border-[#98A2B3]';
+            const heldStyle = canSell && !isSold
+              ? { borderColor: '#D5D7DA', backgroundColor: 'rgba(127, 86, 217, 0.04)' }
+              : undefined;
+
+            return (
+              <button
+                key={prop.instanceId}
+                onClick={() => canSell && toggleSold(prop.instanceId)}
+                disabled={!canSell}
+                className={`${base} ${stateClass}`}
+                style={heldStyle}
+              >
+                <div className="flex items-start justify-between">
+                  <span className="text-[15px] font-semibold text-[#181D27]">Prop {idx + 1}</span>
+                  {tag && <span className="text-xs font-medium text-[#717680]">{tag}</span>}
+                </div>
+
+                {!canSell ? (
+                  <>
+                    <span className="mt-3 text-[13px] font-medium text-[#A4A7AE]">Not yet purchased</span>
+                    <span className="mt-0.5 text-xs text-[#A4A7AE]">Buys {prop.purchaseYear}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="mt-3 text-xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
+                      {fmt(prop.futureValue)}
+                    </span>
+                    <span className="mt-1 text-[13px] text-[#717680]">
+                      {fmt(Math.max(0, prop.futureEquity))} {isSold ? 'cash' : 'equity'}
+                    </span>
+                    <span
+                      title={isSold ? 'Click to keep this property for income' : 'Click to sell this property for cash'}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium"
+                      style={isSold
+                        ? { backgroundColor: '#F5F5F5', border: '1px solid #E9EAEB', color: '#535862' }
+                        : { backgroundColor: '#FFFFFF', border: `1px solid rgba(127, 86, 217, 0.50)`, color: BRAND }}
+                    >
+                      {isSold ? 'Sold for cash ✓' : 'Sell for cash'}
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
+      </div>
+
+      {/* ── Negative-cashflow note ──────────────────────────────────────── */}
+      {summary.annualCashflow < 0 && soldCount < purchasedCount && (
+        <p className="text-[13px] text-[#535862]">
+          Negative cashflow of {fmt(summary.annualCashflow)}/yr — top-up from other income required to hold this portfolio through retirement.
+        </p>
       )}
+
+      {/* Slider thumb — matches the dashboard's Portfolio Cashflow slider */}
+      <style>{`
+        .ret-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 16px; height: 16px;
+          border-radius: 50%;
+          background: #FFFFFF;
+          border: 2.5px solid ${SLIDER};
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .ret-slider::-moz-range-thumb {
+          width: 16px; height: 16px;
+          border-radius: 50%;
+          background: #FFFFFF;
+          border: 2.5px solid ${SLIDER};
+          cursor: pointer;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+      `}</style>
     </div>
   );
 };

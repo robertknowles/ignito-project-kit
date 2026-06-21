@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -25,6 +25,7 @@ import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
 import { ClientInputsTab } from './ClientInputsTab';
+import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { ConfirmationBrief } from './ConfirmationBrief';
@@ -41,7 +42,7 @@ import { COLORS, TYPOGRAPHY } from '../constants/designTokens';
 
 /* ── Tab components ──────────────────────────────────────────────── */
 
-type PlanSubTab = 'purchases' | 'projections';
+type PlanSubTab = 'purchases' | 'projections' | 'retirement';
 type PurchasesView = 'table' | 'blocks';
 interface TabItemProps {
   icon: React.ReactNode;
@@ -518,6 +519,12 @@ export const Dashboard = () => {
               active={planSubTab === 'projections'}
               onClick={() => setPlanSubTab('projections')}
             />
+            <SubTabItem
+              icon={<PiggyBankIcon size={14} />}
+              label="Retirement"
+              active={planSubTab === 'retirement'}
+              onClick={() => setPlanSubTab('retirement')}
+            />
             {planSubTab === 'purchases' && (
               <div className="ml-auto flex items-center rounded-lg border border-neutral-200 overflow-hidden">
                 <button
@@ -800,6 +807,12 @@ export const Dashboard = () => {
         {activeTab === 'plan' && planSubTab === 'projections' && (
           <ChartCard title="Financial Summary" flush>
             <FinancialSummaryTable />
+          </ChartCard>
+        )}
+
+        {activeTab === 'plan' && planSubTab === 'retirement' && (
+          <ChartCard title="Retirement Scenario">
+            <RetirementScenarioPanel />
           </ChartCard>
         )}
 
