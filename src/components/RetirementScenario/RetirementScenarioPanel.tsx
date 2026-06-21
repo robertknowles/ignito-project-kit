@@ -4,6 +4,7 @@ import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useRetirementProjection, type RetirementPropertyProjection } from './useRetirementProjection';
 import { getCategoryLabel } from '../../utils/propertyCells';
+import { BASE_YEAR } from '../../constants/financialParams';
 
 /**
  * Retirement Scenario Panel
@@ -26,6 +27,12 @@ const EQUITY = '#9E77ED';     // purple — equity split-bar segment + legend
 const CASH = '#A4A7AE';       // neutral — liquidated cash / sold
 const SLIDER = '#9CA3AF';     // neutral grey — time-to-retirement slider (matches the other dashboard sliders)
 const INTER = 'Inter, system-ui, sans-serif';
+
+// Time-to-retirement slider range. Starts at 0 (i.e. "now", BASE_YEAR) so the
+// timeline's left edge is the present — that way a property purchased this year
+// sits at the start of the track and every purchase-event dot is visible.
+const SLIDER_MIN = 0;
+const SLIDER_MAX = 25;
 
 /** Compact money, trailing zeros trimmed — matches Dashboard formatMoney ($1.58M, $777k). */
 const fmt = (value: number): string => {
@@ -106,7 +113,16 @@ export const RetirementScenarioPanel: React.FC = () => {
     : summary.zone === 'exit' ? 'Full sell-down'
     : 'Partial sell-down';
 
-  const fillPct = ((years - 5) / (25 - 5)) * 100;
+  const fillPct = ((years - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
+
+  // Dots on the time-to-retirement track marking each property purchase year
+  // (deduped, clamped to the slider's visible range).
+  const purchaseMarkers = Array.from(new Set(summary.properties.map(p => p.purchaseYear)))
+    .map(year => ({
+      year,
+      pct: ((year - BASE_YEAR - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100,
+    }))
+    .filter(m => m.pct >= 0 && m.pct <= 100);
 
   return (
     <div className="space-y-7">
@@ -159,11 +175,11 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div className="flex w-full overflow-hidden rounded-full" style={{ height: 16 }}>
           {totalWealth > 0 ? (
             <>
-              {equityPct > 0 && (
-                <div className="transition-all duration-300" style={{ width: `${equityPct}%`, backgroundColor: EQUITY }} />
-              )}
               {cashPct > 0 && (
-                <div className="transition-all duration-300" style={{ width: `${cashPct}%`, backgroundColor: CASH }} />
+                <div className="transition-all duration-300" style={{ width: `${cashPct}%`, backgroundColor: EQUITY }} />
+              )}
+              {equityPct > 0 && (
+                <div className="transition-all duration-300" style={{ width: `${equityPct}%`, backgroundColor: CASH }} />
               )}
             </>
           ) : (
@@ -174,16 +190,16 @@ export const RetirementScenarioPanel: React.FC = () => {
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[13px] text-[#717680]">
             <span className="font-semibold text-[#181D27]">{zoneLabel}</span>
-            {' · '}{years} yrs{' · '}{soldCount} of {purchasedCount} sold
+            {' · '}by {BASE_YEAR + years}{' · '}{soldCount} of {purchasedCount} sold
           </span>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: EQUITY }} />
-              <span className="text-xs text-[#717680]">Equity</span>
+              <span className="text-xs text-[#717680]">Cash</span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: CASH }} />
-              <span className="text-xs text-[#717680]">Cash</span>
+              <span className="text-xs text-[#717680]">Equity</span>
             </span>
           </div>
         </div>
@@ -192,28 +208,65 @@ export const RetirementScenarioPanel: React.FC = () => {
       {/* ── Time to retirement slider ───────────────────────────────────── */}
       <div className="flex items-center gap-4">
         <span className="whitespace-nowrap text-[13px] font-medium text-[#535862]">Time to retirement</span>
-        <input
-          type="range"
-          min={5}
-          max={25}
-          step={1}
-          value={years}
-          onChange={e => setYears(Number(e.target.value))}
-          className="ret-slider"
-          style={{
-            flex: 1,
-            height: 4,
-            appearance: 'none',
-            WebkitAppearance: 'none',
-            background: `linear-gradient(to right, ${SLIDER} 0%, ${SLIDER} ${fillPct}%, #E5E5E5 ${fillPct}%, #E5E5E5 100%)`,
-            borderRadius: 2,
-            outline: 'none',
-            cursor: 'pointer',
-          }}
-        />
-        <span className="flex items-baseline gap-1 whitespace-nowrap">
-          <span className="text-base font-semibold text-[#181D27]">{years}</span>
-          <span className="text-[13px] text-[#A4A7AE]">yrs</span>
+        <div className="relative flex items-center" style={{ flex: 1, height: 16 }}>
+          {/* Track line, inset by the thumb radius (8px) on each end so the
+              thumb sits flush with the line ends instead of stopping short. */}
+          <div
+            className="pointer-events-none absolute"
+            style={{
+              left: 8,
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              height: 4,
+              borderRadius: 2,
+              background: `linear-gradient(to right, ${SLIDER} 0%, ${SLIDER} ${fillPct}%, #E5E5E5 ${fillPct}%, #E5E5E5 100%)`,
+            }}
+          >
+            {/* Purchase-event dots, positioned within the inset line so they
+                line up with the thumb at any value. */}
+            {purchaseMarkers.map(m => (
+              <span
+                key={m.year}
+                title={`Property purchased ${m.year}`}
+                className="absolute"
+                style={{
+                  left: `${m.pct}%`,
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: BRAND,
+                  border: '2px solid #FFFFFF',
+                  boxShadow: '0 0 0 1px rgba(127, 86, 217, 0.45)',
+                }}
+              />
+            ))}
+          </div>
+          <input
+            type="range"
+            min={SLIDER_MIN}
+            max={SLIDER_MAX}
+            step={1}
+            value={years}
+            onChange={e => setYears(Number(e.target.value))}
+            className="ret-slider"
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: 4,
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              background: 'transparent',
+              borderRadius: 2,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          />
+        </div>
+        <span className="whitespace-nowrap text-base font-semibold text-[#181D27]">
+          {BASE_YEAR + years}
         </span>
       </div>
 
@@ -226,9 +279,11 @@ export const RetirementScenarioPanel: React.FC = () => {
             const canSell = prop.purchasedByRetirement;
             const tag = strategyTag(prop);
 
+            // Unpurchased properties stay visible but faded so the client can
+            // see they're coming — they "pop" to a full card once bought.
             const base = 'flex min-h-[116px] flex-col rounded-xl border p-4 text-left transition-all duration-150';
             const stateClass = !canSell
-              ? 'border-[#E9EAEB] bg-[#F9FAFB] opacity-60 cursor-not-allowed'
+              ? 'border-[#E9EAEB] bg-[#F9FAFB] opacity-50 cursor-not-allowed'
               : isSold
                 ? 'border-[#E9EAEB] bg-[#FAFAFA] cursor-pointer hover:border-[#D5D7DA]'
                 : 'cursor-pointer hover:border-[#98A2B3]';
