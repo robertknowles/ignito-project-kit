@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import { track, EVENTS } from '@/lib/analytics'
 import { filterComplianceLanguage } from '@/utils/complianceFilter'
 import type {
   ChatMessage,
@@ -453,6 +454,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
             // Fire callback to wire data into contexts
             optionsRef.current.onPlanGenerated?.(response)
+            track(EVENTS.planGenerated, {
+              property_count: Array.isArray(response.properties) ? response.properties.length : undefined,
+            })
             break
           }
 

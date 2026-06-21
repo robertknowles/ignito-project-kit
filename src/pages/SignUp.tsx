@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { track, EVENTS } from '@/lib/analytics'
 
 export function SignUp() {
   const navigate = useNavigate()
@@ -41,6 +42,7 @@ export function SignUp() {
       setLoading(false)
     } else {
       localStorage.setItem('ignito_is_new_user', 'true')
+      track(EVENTS.signedUp)
       setSuccess(true)
       setLoading(false)
     }

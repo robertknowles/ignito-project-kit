@@ -45,10 +45,13 @@ import { PortalPropertyPlan } from './portal/PortalPropertyPlan'
 import { PortalPortfolio } from './portal/PortalPortfolio'
 import { PortalProfile } from './portal/PortalProfile'
 import Terms from './pages/Terms'
+import { PostHogProvider, PostHogIdentify } from './lib/posthog'
 
 export function AppRouter() {
   return (
+    <PostHogProvider>
     <AuthProvider>
+      <PostHogIdentify />
       <CompanyProvider>
         <BrandingProvider>
           <ClientProvider>
@@ -263,5 +266,6 @@ export function AppRouter() {
         </BrandingProvider>
       </CompanyProvider>
     </AuthProvider>
+    </PostHogProvider>
   )
 }

@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import { useClient } from '@/contexts/ClientContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CHART_COLORS, CHART_STYLE } from '@/constants/chartColors';
+import { track, EVENTS } from '@/lib/analytics';
 import { ArrowLeftRight, TrendingUp, Banknote, Flag } from 'lucide-react';
 
 interface ChartDataPoint {
@@ -126,6 +127,15 @@ export const Compare: React.FC = () => {
 
   const scenarioA = useMemo(() => allScenarios.find(s => String(s.scenarioId) === selectedA), [allScenarios, selectedA]);
   const scenarioB = useMemo(() => allScenarios.find(s => String(s.scenarioId) === selectedB), [allScenarios, selectedB]);
+
+  // Fire once whenever a fresh pair of scenarios is fully selected for comparison.
+  useEffect(() => {
+    if (scenarioA && scenarioB) {
+      track(EVENTS.scenariosCompared, {
+        same_client: scenarioA.clientId === scenarioB.clientId,
+      });
+    }
+  }, [scenarioA?.scenarioId, scenarioB?.scenarioId]);
 
   const equityData = useMemo(() => {
     if (!scenarioA || !scenarioB) return [];

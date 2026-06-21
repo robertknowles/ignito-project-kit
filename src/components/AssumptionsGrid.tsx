@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { trackDebounced, EVENTS } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
 import {
   DEFAULT_INTEREST_RATE,
@@ -112,7 +113,10 @@ const DialTile: React.FC<DialTileProps> = ({
             max={max}
             step={step}
             value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
+            onChange={(e) => {
+              onChange(parseFloat(e.target.value))
+              trackDebounced(EVENTS.assumptionChanged, { assumption: label }, `assumption:${label}`)
+            }}
             onClick={(e) => e.stopPropagation()}
           />
           <div className="flex justify-between text-[10px] text-gray-400 mt-1.5">

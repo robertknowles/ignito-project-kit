@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useChartHoverTracking } from '@/hooks/useInteractionTracking';
 
 export interface LegendItem {
   color: string;
@@ -45,6 +46,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
   const [expanded, setExpanded] = useState(false);
+  const hoverTracking = useChartHoverTracking(title);
 
   const legendNode = legend && legend.length > 0 ? (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -94,6 +96,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   return (
     /* Outer shell — #FAFAFA bg, 12px radius, inset ring, shadow-xs */
     <div
+      onMouseEnter={hoverTracking.onMouseEnter}
+      onMouseLeave={hoverTracking.onMouseLeave}
       style={{
         background: UUI.neutral50,
         borderRadius: 12,

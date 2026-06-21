@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { track, EVENTS } from '@/lib/analytics'
 
 export function Login() {
   const navigate = useNavigate()
@@ -25,6 +26,7 @@ export function Login() {
       setLoading(false)
     } else {
       localStorage.removeItem('pending_subscription_plan')
+      track(EVENTS.loggedIn)
       navigate('/dashboard')
     }
   }

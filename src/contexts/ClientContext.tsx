@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { track, EVENTS } from '@/lib/analytics';
 import { useAuth } from './AuthContext';
 import type { ClientStage, PortalStatus, RoadmapStatus } from '@/integrations/supabase/types';
 
@@ -151,7 +152,8 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newClient = data as Client;
       setClients(prev => [newClient, ...prev]);
       setActiveClient(newClient);
-      
+      track(EVENTS.clientCreated, { has_company: !!companyId });
+
       return newClient;
     } catch (error) {
       return null;

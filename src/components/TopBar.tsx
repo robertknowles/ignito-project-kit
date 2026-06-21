@@ -3,6 +3,7 @@ import { Share2, Copy, RotateCcw } from 'lucide-react'
 import { ResetButton } from './ResetButton'
 import { ChangeLogBell } from './ChangeLogPanel'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
+import { track, EVENTS } from '@/lib/analytics'
 import { useClient } from '@/contexts/ClientContext'
 import { useMultiScenario } from '@/contexts/MultiScenarioContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -114,6 +115,8 @@ export const TopBar = () => {
           .eq('id', activeClient.id)
       }
 
+      track(EVENTS.planShared, { share_type: 'client_report' })
+
       // Open the client report in a new tab with the share_id
       const reportUrl = `${window.location.origin}/client-view?share_id=${shareId}`
       window.open(reportUrl, '_blank')
@@ -208,6 +211,8 @@ export const TopBar = () => {
         .from('clients')
         .update({ portal_status: 'invited', last_active_at: new Date().toISOString() })
         .eq('id', activeClient.id)
+
+      track(EVENTS.planShared, { share_type: 'dashboard' })
 
       // Check if client already has a user account
       if (scenario?.client_user_id) {

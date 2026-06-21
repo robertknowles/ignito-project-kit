@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
+import { track, EVENTS } from '@/lib/analytics'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
@@ -60,5 +61,6 @@ export const useRemoveTimelineProperty = () => {
     })
     setInstances(nextInstances)
     updatePropertyQuantity(propertyId, Math.max(0, getPropertyQuantity(propertyId) - 1))
+    track(EVENTS.propertyRemovedFromTimeline, { property_id: propertyId })
   }, [propertyOrder, setPropertyOrder, instances, setInstances, updatePropertyQuantity, getPropertyQuantity])
 }

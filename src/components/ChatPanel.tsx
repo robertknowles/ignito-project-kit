@@ -10,6 +10,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, SparklesIcon } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { track, EVENTS } from '@/lib/analytics'
 import { ChatMessage } from './ChatMessage'
 import { ChatLoadingSteps } from './ChatLoadingSteps'
 import { CompanyStrategySelector } from './CompanyStrategySelector'
@@ -960,6 +961,7 @@ export const ChatPanel: React.FC = () => {
       setSelectedFile(null)
     }
 
+    track(EVENTS.chatMessageSent, { has_attachment: hasFile, length: hasText.length })
     sendMessage(messageText)
     setInputValue('')
     if (inputRef.current) {

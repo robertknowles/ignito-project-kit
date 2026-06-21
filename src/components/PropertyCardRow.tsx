@@ -11,6 +11,7 @@ import { X, Plus, Minus, Landmark, CalendarDays } from 'lucide-react';
 import { AffordabilityAlert } from './ui/AffordabilityAlert';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
+import { track, EVENTS } from '@/lib/analytics';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -833,6 +834,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
       to: value,
     });
     updateInstance(instanceId, { [field]: value, alertDismissed: false });
+    track(EVENTS.tableCellEdited, { table: 'purchases', field: String(field) });
   };
 
   const handleYearChange = (instanceId: string, year: number) => {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { track, EVENTS } from '@/lib/analytics'
 import {
   SearchIcon,
   PlusIcon,
@@ -641,6 +642,7 @@ export const ClientScenarios = () => {
       onProgress: (stage) => {
 },
       onComplete: () => {
+        track(EVENTS.reportExportedPdf);
         toast.success('PDF report generated successfully!');
         setPdfGenerating(false);
         setShowPDFRenderer(false);

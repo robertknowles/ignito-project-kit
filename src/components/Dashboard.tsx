@@ -6,6 +6,7 @@ import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useMultiScenario } from '@/contexts/MultiScenarioContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
+import { useTabDwellTracking } from '@/hooks/useInteractionTracking';
 import { usePropertySelection } from '@/contexts/PropertySelectionContext';
 import { useClient } from '@/contexts/ClientContext';
 import { PropertyCardRow } from './PropertyCardRow';
@@ -220,6 +221,9 @@ export const Dashboard = () => {
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
   const [purchasesView, setPurchasesView] = useState<PurchasesView>('table');
+  // Analytics: time spent on the main dashboard tab and the Plan sub-tab.
+  useTabDwellTracking('main_tab', activeTab);
+  useTabDwellTracking('plan_subtab', planSubTab);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const resetAssumptionsRef = useRef<() => void>(() => {});

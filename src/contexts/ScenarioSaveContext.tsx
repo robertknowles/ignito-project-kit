@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useClient } from './ClientContext';
+import { track, EVENTS } from '@/lib/analytics';
 import { usePropertySelection } from './PropertySelectionContext';
 import { useInvestmentProfile, INITIAL_INVESTMENT_PROFILE } from './InvestmentProfileContext';
 import { usePropertyInstance } from './PropertyInstanceContext';
@@ -447,6 +448,10 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       if (!silent) {
+        track(EVENTS.scenarioSaved, {
+          comparison_mode: !!scenarioData.comparisonMode,
+          scenario_count: scenarioData.scenarios?.length,
+        });
         // Different toast message for comparison mode
         if (scenarioData.comparisonMode && scenarioData.scenarios) {
           toast({

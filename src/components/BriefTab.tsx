@@ -8,6 +8,7 @@ import type { ExistingProperty } from '@/types/existingProperty'
 import { ChartCard } from './ui/ChartCard'
 import { BriefTotalPerformanceChart, BriefCashflowChart, BriefGrowthChart, type PerfHorizon } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
+import { useTabDwellTracking } from '../hooks/useInteractionTracking'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
@@ -331,6 +332,7 @@ type BriefSubTab = 'purchase' | 'performance'
 
 export const BriefTab: React.FC = () => {
   const [subTab, setSubTab] = useState<BriefSubTab>('performance')
+  useTabDwellTracking('brief_subtab', subTab)
   const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(20)
   // Series toggled off on the Total performance chart (click legend to hide/show)
   const [hiddenPerfSeries, setHiddenPerfSeries] = useState<string[]>([])

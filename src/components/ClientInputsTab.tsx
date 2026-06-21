@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
 import type { InvestmentProfileData } from '@/hooks/useInvestmentProfile'
+import { track, EVENTS } from '@/lib/analytics'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
 import type { EventCategory, EventType } from '@/contexts/PropertySelectionContext'
 import { getEventLabel, EVENT_TYPES } from '@/constants/eventTypes'
@@ -73,6 +74,7 @@ const EditableNumRow: React.FC<{
               const stored = isDecimalPercent ? n / 100 : n
               if (stored !== value) {
                 updateProfile({ [field]: stored } as Partial<InvestmentProfileData>)
+                track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
               }
             }
           }}
@@ -100,7 +102,10 @@ const EditableSelectRow: React.FC<{
       <td className="py-1.5 px-2">
         <select
           value={value}
-          onChange={e => updateProfile({ [field]: e.target.value } as Partial<InvestmentProfileData>)}
+          onChange={e => {
+            updateProfile({ [field]: e.target.value } as Partial<InvestmentProfileData>)
+            track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
+          }}
           className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

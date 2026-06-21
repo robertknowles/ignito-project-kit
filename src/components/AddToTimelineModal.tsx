@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Home, CalendarClock, ChevronRight, MapPin, Plus, Minus, Pause, Copy } from 'lucide-react';
 import { usePropertySelection, type EventCategory } from '../contexts/PropertySelectionContext';
+import { track, EVENTS } from '@/lib/analytics';
 import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import { calcGrossYield } from '../utils/sharedFinancialCalcs';
 import { 
@@ -231,6 +232,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
   // Handle adding a property - keep modal open to allow adding multiple
   const handleAddProperty = (propertyId: string) => {
     incrementProperty(propertyId);
+    track(EVENTS.propertyAddedToTimeline, { property_id: propertyId, source: 'template' });
     // Modal stays open so user can add more properties
   };
   
@@ -250,6 +252,7 @@ export const AddToTimelineModal: React.FC<AddToTimelineModalProps> = ({ isOpen, 
     addCustomBlock(block);
     // Also add to timeline immediately (this is the "add to timeline" modal after all)
     incrementProperty(block.id);
+    track(EVENTS.propertyAddedToTimeline, { property_id: block.id, source: 'custom' });
     setShowCustomBlockModal(false);
     setDuplicatingFromTemplate(null);
     onClose();
