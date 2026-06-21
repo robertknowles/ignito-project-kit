@@ -820,8 +820,15 @@ export const usePortfolioProjection = (
           if (yearsOwned >= 1) {
             let acc = propertyAccumulators.get(rp.instanceId);
             if (!acc) {
+              // totalCashRequired is the affordability calculator's canonical
+              // all-in figure (deposit + stamp duty + LMI + other costs). Use it
+              // directly so RoIC / cash-on-cash / payback match the Purchase tab.
+              // Do NOT add depositRequired on top: acquisitionCosts.total already
+              // includes the deposit, so summing them double-counts it.
               const totalCashInvested =
-                rp.prop.depositRequired + (rp.prop.acquisitionCosts?.total || 0);
+                rp.prop.totalCashRequired ??
+                rp.prop.acquisitionCosts?.total ??
+                rp.prop.depositRequired;
               acc = {
                 yearRows: [],
                 equityOverTime: [],
