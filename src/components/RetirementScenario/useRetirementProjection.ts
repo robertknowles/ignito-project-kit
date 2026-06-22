@@ -2,8 +2,10 @@ import { useMemo } from 'react';
 import type { TimelineProperty } from '../../types/property';
 import type { InvestmentProfileData } from '../../contexts/InvestmentProfileContext';
 import type { PropertyInstanceDetails } from '../../types/propertyInstance';
+import type { ExistingProperty } from '../../types/existingProperty';
 import { projectPropertyTimeline } from '../../utils/metricsCalculator';
 import { calculateDetailedCashflow } from '../../utils/detailedCashflowCalculator';
+import { convertExistingToInstance } from '../../utils/existingPropertyAdapter';
 import { DEFAULT_INTEREST_RATE, BASE_YEAR, PERIODS_PER_YEAR, ANNUAL_INFLATION_RATE } from '../../constants/financialParams';
 
 export interface RetirementPropertyProjection {
@@ -11,8 +13,18 @@ export interface RetirementPropertyProjection {
   title: string;
   propertyType: string | null;
   purchasePrice: number;
-  /** Year the property is purchased (from affordableYear) */
+  /** Acquisition costs (stamp duty, LMI, legal, etc.) — cost-base add-on */
+  acquisitionCosts: number;
+  /** CGT cost base = purchasePrice + acquisitionCosts */
+  costBase: number;
+  /** Ownership entity (drives CGT treatment — smsf uses its own discount) */
+  entity?: 'individual' | 'trust' | 'company' | 'smsf';
+  /** New build (may choose either CGT method) */
+  isNewBuild?: boolean;
+  /** Year the property is purchased (from affordableYear, or boughtYear for existing) */
   purchaseYear: number;
+  /** Already-owned existing-portfolio property (vs a future modelled purchase) */
+  isExisting?: boolean;
   /** Whether the property has been purchased by the retirement year */
   purchasedByRetirement: boolean;
   /** Projected property value at retirement year */
@@ -64,11 +76,12 @@ export function useRetirementProjection(
   retirementYears: number,
   soldIds: Set<string>,
   getInstance?: (instanceId: string) => PropertyInstanceDetails | undefined,
+  existingProperties: ExistingProperty[] = [],
 ): RetirementSummary {
   return useMemo(() => {
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
 
-    if (feasible.length === 0) {
+    if (feasible.length === 0 && existingProperties.length === 0) {
       return {
         properties: [],
         soldIds,
@@ -85,9 +98,17 @@ export function useRetirementProjection(
 
     const retirementYear = BASE_YEAR + retirementYears;
 
-    const properties: RetirementPropertyProjection[] = feasible.map(prop => {
+    const futureProjections: RetirementPropertyProjection[] = feasible.map(prop => {
       const propPurchaseYear = Math.ceil(prop.affordableYear);
       const purchasedByRetirement = propPurchaseYear <= retirementYear;
+
+      // CGT cost-base inputs: purchase price + acquisition costs, plus the
+      // ownership entity / build type from the editable instance (when available).
+      const acquisitionCosts = prop.acquisitionCosts?.total ?? 0;
+      const costBase = prop.cost + acquisitionCosts;
+      const instanceForCgt = getInstance?.(prop.instanceId);
+      const entity = instanceForCgt?.entity;
+      const isNewBuild = instanceForCgt?.isNewBuild;
 
       const projected = projectPropertyTimeline(
         prop,
@@ -106,6 +127,10 @@ export function useRetirementProjection(
           title: prop.title,
           propertyType: prop.propertyType ?? null,
           purchasePrice: prop.cost,
+          acquisitionCosts,
+          costBase,
+          entity,
+          isNewBuild,
           purchaseYear: propPurchaseYear,
           purchasedByRetirement,
           futureValue: prop.cost,
@@ -162,6 +187,10 @@ export function useRetirementProjection(
         title: prop.title,
         propertyType: prop.propertyType ?? null,
         purchasePrice: prop.cost,
+        acquisitionCosts,
+        costBase,
+        entity,
+        isNewBuild,
         purchaseYear: propPurchaseYear,
         purchasedByRetirement,
         futureValue: lastSnapshot.propertyValue,
@@ -172,6 +201,84 @@ export function useRetirementProjection(
         annualCosts: lastSnapshot.annualTotalCosts,
       };
     });
+
+    // ── Existing portfolio (already-owned properties) ──────────────────────
+    // These aren't in the timeline (which only models *future* purchases), so
+    // we project them forward from today's value to the retirement year. The
+    // real acquisition year (boughtYear) is kept for CGT cost base, holding
+    // period and grandfathering — most are pre-2027 → keep the 50% discount.
+    const existingProjections: RetirementPropertyProjection[] = existingProperties.map(ep => {
+      const boughtYear = ep.boughtYear && ep.boughtYear > 0 ? ep.boughtYear : BASE_YEAR;
+      const currentValue = ep.currentValue || ep.purchasePrice || 0;
+      const acquisitionCosts =
+        (ep.stampDuty ?? 0) + (ep.legals ?? 0) + (ep.buildingPest ?? 0) + (ep.baFee ?? 0);
+      const costBase = (ep.purchasePrice || currentValue) + acquisitionCosts;
+
+      // Project value/debt from NOW (today's value) to the retirement year.
+      const projected = projectPropertyTimeline(
+        {
+          instanceId: ep.id,
+          title: ep.address || `${ep.state} ${boughtYear || 'Existing'}`,
+          cost: currentValue,
+          growthBasis: currentValue,
+          loanAmount: ep.loan ?? 0,
+          affordableYear: BASE_YEAR,
+          grossRentalIncome: ((ep.rentPerWeek ?? 0) * 52) / PERIODS_PER_YEAR,
+          loanType: ep.loanType,
+        } as any,
+        retirementYear,
+        profile.growthCurve,
+        ep.interestRate ? ep.interestRate / 100 : DEFAULT_INTEREST_RATE,
+        profile.rentEscalationRate ?? 0.05,
+      );
+      const last = projected.snapshots[projected.snapshots.length - 1];
+      const futureValue = last ? last.propertyValue : currentValue;
+      const futureDebt = last ? last.loanBalance : (ep.loan ?? 0);
+
+      // Cashflow grown from today's rent/expenses (existing-property values are
+      // current, so escalate over years-from-now, not from acquisition).
+      const yearsFromNow = Math.max(0, retirementYear - BASE_YEAR);
+      const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsFromNow);
+      const rentEscalationFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsFromNow);
+
+      const instance = convertExistingToInstance(ep, DEFAULT_INTEREST_RATE);
+      const detailed = calculateDetailedCashflow(instance, ep.loan ?? 0);
+      const adjustedIncome = detailed.adjustedIncome * rentEscalationFactor;
+      const adjustedLoanInterest = futureDebt > 0 ? futureDebt * DEFAULT_INTEREST_RATE : 0;
+      const adjustedOperatingExpenses =
+        detailed.propertyManagementFee * rentEscalationFactor +
+        detailed.buildingInsurance * inflationFactor +
+        detailed.councilRatesWater * inflationFactor +
+        detailed.strata * inflationFactor +
+        detailed.maintenance * inflationFactor;
+      const adjustedNonDeductible = detailed.totalNonDeductibleExpenses * inflationFactor;
+      const adjustedDeductions = detailed.potentialDeductions;
+      const annualCashflow =
+        adjustedIncome - adjustedOperatingExpenses - adjustedNonDeductible - adjustedLoanInterest + adjustedDeductions;
+
+      return {
+        instanceId: ep.id,
+        title: ep.address || `${ep.state} ${boughtYear || 'Existing'}`,
+        propertyType: null,
+        purchasePrice: ep.purchasePrice || currentValue,
+        acquisitionCosts,
+        costBase,
+        entity: ep.entity,
+        isNewBuild: ep.isNewBuild,
+        purchaseYear: boughtYear,
+        isExisting: true,
+        purchasedByRetirement: true,
+        futureValue,
+        futureDebt,
+        futureEquity: futureValue - futureDebt,
+        annualCashflow: Math.round(annualCashflow),
+        annualRent: Math.round(adjustedIncome),
+        annualCosts: Math.round(adjustedOperatingExpenses + adjustedNonDeductible + adjustedLoanInterest),
+      };
+    });
+
+    // Existing (already-owned) first, then future modelled purchases.
+    const properties: RetirementPropertyProjection[] = [...existingProjections, ...futureProjections];
 
     // Split into sold and held
     const sold = properties.filter(p => soldIds.has(p.instanceId));
@@ -224,5 +331,5 @@ export function useRetirementProjection(
       zoneName,
       chipLabel,
     };
-  }, [timelineProperties, profile, retirementYears, soldIds, getInstance]);
+  }, [timelineProperties, profile, retirementYears, soldIds, getInstance, existingProperties]);
 }

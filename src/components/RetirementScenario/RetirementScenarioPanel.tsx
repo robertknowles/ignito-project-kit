@@ -1,8 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAffordabilityCalculator } from '../../hooks/useAffordabilityCalculator';
 import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
+import { useExistingPropertiesSafe } from '../../contexts/ScenarioSaveContext';
 import { useRetirementProjection, type RetirementPropertyProjection } from './useRetirementProjection';
+import { buildSaleBreakdown, type CgtMethodSelection } from './saleBreakdown';
+import { SaleBreakdownSection } from './SaleBreakdownSection';
+import { InfoPopover } from './InfoPopover';
+import { PAGE_EXPLAINERS } from './retirementExplainers';
 import { getCategoryLabel } from '../../utils/propertyCells';
 import { BASE_YEAR } from '../../constants/financialParams';
 
@@ -26,6 +31,8 @@ const BRAND = '#7F56D9';      // brand-600 — held accent + sell button
 const EQUITY = '#9E77ED';     // purple — equity split-bar segment + legend
 const CASH = '#A4A7AE';       // neutral — liquidated cash / sold
 const SLIDER = '#9CA3AF';     // neutral grey — time-to-retirement slider (matches the other dashboard sliders)
+const GREEN = '#067647';      // self-funding cashflow
+const AMBER = '#B54708';      // top-up needed
 const INTER = 'Inter, system-ui, sans-serif';
 
 // Time-to-retirement slider range. Starts at 0 (i.e. "now", BASE_YEAR) so the
@@ -46,6 +53,9 @@ const fmt = (value: number): string => {
   return `${sign}$${Math.round(abs)}`;
 };
 
+/** Full money with thousands separators ($472,347) — for property-card sub-lines. */
+const fmtFull = (value: number): string => `$${Math.round(value).toLocaleString('en-AU')}`;
+
 /** Strategy tag (Growth / Yield / Commercial) inferred from the property's category. */
 const strategyTag = (prop: RetirementPropertyProjection): string | null => {
   for (const candidate of [prop.instanceId, prop.propertyType ?? '', prop.title]) {
@@ -62,17 +72,31 @@ export const RetirementScenarioPanel: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
   const { getInstance } = usePropertyInstance();
+  const existingProperties = useExistingPropertiesSafe();
 
   const [years, setYears] = useState(profile.timelineYears || 20);
   const [soldIds, setSoldIds] = useState<Set<string>>(new Set());
 
-  const summary = useRetirementProjection(timelineProperties, profile, years, soldIds, getInstance);
+  const retirementYear = BASE_YEAR + years;
+
+  // Local what-if controls for the sale breakdown (not persisted to the profile).
+  // 'auto' grandfathers each property by its purchase date; the BA can override.
+  const [cgtMethod, setCgtMethod] = useState<CgtMethodSelection>('auto');
+  const [taxRatePct, setTaxRatePct] = useState(() => Math.round((profile.marginalTaxRate ?? 0.45) * 100));
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  const summary = useRetirementProjection(timelineProperties, profile, years, soldIds, getInstance, existingProperties);
 
   const toggleSold = useCallback((instanceId: string) => {
     setSoldIds(prev => {
       const next = new Set(prev);
-      if (next.has(instanceId)) next.delete(instanceId);
-      else next.add(instanceId);
+      if (next.has(instanceId)) {
+        next.delete(instanceId);
+      } else {
+        next.add(instanceId);
+        // Focus the newly sold property in the breakdown tabs.
+        setActiveTab(instanceId);
+      }
       return next;
     });
   }, []);
@@ -92,6 +116,19 @@ export const RetirementScenarioPanel: React.FC = () => {
     }
   }, [summary.properties, soldIds]);
 
+  // Per-property sale breakdowns for every sold, already-purchased property.
+  // The local CGT method + tax rate drive the net figures shown everywhere.
+  const soldBreakdowns = useMemo(
+    () =>
+      summary.properties
+        .filter(p => soldIds.has(p.instanceId) && p.purchasedByRetirement)
+        .map(prop => ({
+          prop,
+          data: buildSaleBreakdown(prop, profile, retirementYear, { method: cgtMethod, taxRatePct }),
+        })),
+    [summary.properties, soldIds, profile, retirementYear, cgtMethod, taxRatePct],
+  );
+
   if (summary.properties.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-[#A4A7AE]">
@@ -100,13 +137,23 @@ export const RetirementScenarioPanel: React.FC = () => {
     );
   }
 
-  const totalWealth = summary.totalEquity + summary.cashInHand;
-  const equityPct = totalWealth > 0 ? (summary.totalEquity / totalWealth) * 100 : 0;
-  const cashPct = totalWealth > 0 ? (summary.cashInHand / totalWealth) * 100 : 0;
+  // Net-of-tax-and-costs aggregates from the per-property breakdowns. These
+  // drive the honest headline (cash in hand is what actually lands, not gross).
+  const netCashInHand = soldBreakdowns.reduce((s, b) => s + b.data.netCashReleased, 0);
+  const taxAndCosts = soldBreakdowns.reduce((s, b) => s + b.data.sellingCosts + b.data.activeCgt, 0);
+  const netCashById = new Map(soldBreakdowns.map(b => [b.prop.instanceId, b.data.netCashReleased]));
 
   const purchasedCount = summary.properties.filter(p => p.purchasedByRetirement).length;
   const soldCount = summary.soldIds.size;
   const heldCount = Math.max(0, purchasedCount - soldCount);
+
+  // Progress-bar fill = sold value / total value across purchased properties.
+  const purchasedProps = summary.properties.filter(p => p.purchasedByRetirement);
+  const totalValue = purchasedProps.reduce((s, p) => s + p.futureValue, 0);
+  const soldValue = purchasedProps
+    .filter(p => soldIds.has(p.instanceId))
+    .reduce((s, p) => s + p.futureValue, 0);
+  const soldValuePct = totalValue > 0 ? (soldValue / totalValue) * 100 : 0;
 
   const zoneLabel =
     summary.zone === 'hold' ? 'Hold all'
@@ -128,29 +175,68 @@ export const RetirementScenarioPanel: React.FC = () => {
     <div className="space-y-7">
       {/* ── KPI row ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-6">
+        {/* Annual cashflow — green when self-funding, red when a top-up is needed. */}
         <div>
-          <span className="text-[13px] font-medium text-[#535862]">Annual cashflow</span>
+          <span className="flex items-center text-[13px] font-medium text-[#535862]">
+            Annual cashflow
+            <InfoPopover
+              title={PAGE_EXPLAINERS.annualCashflow.title}
+              body={PAGE_EXPLAINERS.annualCashflow.body}
+            />
+          </span>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
+            <span
+              className="text-2xl font-semibold tracking-tight"
+              style={{ fontFamily: INTER, color: summary.annualCashflow >= 0 ? GREEN : '#181D27' }}
+            >
               {summary.annualCashflow >= 0 ? '+' : ''}{fmt(summary.annualCashflow)}
             </span>
             <span className="text-sm text-[#A4A7AE]">/yr</span>
           </div>
-          <span className="mt-0.5 block text-xs text-[#A4A7AE]">net rental income</span>
+          {summary.annualCashflow >= 0 ? (
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs">
+              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: GREEN }} />
+              <span style={{ color: GREEN }}>Self-funding</span>
+            </span>
+          ) : (
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs">
+              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: AMBER }} />
+              <span style={{ color: AMBER }}>Top-up needed · {fmt(Math.abs(summary.annualCashflow))}/yr</span>
+            </span>
+          )}
         </div>
 
+        {/* Cash in hand — net of selling costs and CGT (what the client walks away with). */}
         <div>
-          <span className="text-[13px] font-medium text-[#535862]">Cash in hand</span>
+          <span className="flex items-center text-[13px] font-medium text-[#535862]">
+            Cash in hand
+            <InfoPopover
+              title={PAGE_EXPLAINERS.cashInHand.title}
+              body={PAGE_EXPLAINERS.cashInHand.body}
+            />
+          </span>
           <div className="mt-1">
             <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
-              {fmt(summary.cashInHand)}
+              {fmt(netCashInHand)}
             </span>
           </div>
-          <span className="mt-0.5 block text-xs text-[#A4A7AE]">from {soldCount} sold</span>
+          {soldCount > 0 ? (
+            <span className="mt-0.5 block text-xs text-[#717680]">
+              after {fmt(taxAndCosts)} tax &amp; costs
+            </span>
+          ) : (
+            <span className="mt-0.5 block text-xs text-[#A4A7AE]">from 0 sold</span>
+          )}
         </div>
 
         <div>
-          <span className="text-[13px] font-medium text-[#535862]">Equity retained</span>
+          <span className="flex items-center text-[13px] font-medium text-[#535862]">
+            Equity retained
+            <InfoPopover
+              title={PAGE_EXPLAINERS.equityRetained.title}
+              body={PAGE_EXPLAINERS.equityRetained.body}
+            />
+          </span>
           <div className="mt-1">
             <span className="text-2xl font-semibold text-neutral-900 tracking-tight" style={{ fontFamily: INTER }}>
               {fmt(summary.totalEquity)}
@@ -170,16 +256,17 @@ export const RetirementScenarioPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Equity / Cash split bar ─────────────────────────────────────── */}
+      {/* ── Sell-down progress bar ──────────────────────────────────────── */}
+      {/* Fill = sold value / total value across purchased properties (spec §4). */}
       <div>
         <div className="flex w-full overflow-hidden rounded-full" style={{ height: 16 }}>
-          {totalWealth > 0 ? (
+          {totalValue > 0 ? (
             <>
-              {cashPct > 0 && (
-                <div className="transition-all duration-300" style={{ width: `${cashPct}%`, backgroundColor: EQUITY }} />
+              {soldValuePct > 0 && (
+                <div className="transition-all duration-300" style={{ width: `${soldValuePct}%`, backgroundColor: EQUITY }} />
               )}
-              {equityPct > 0 && (
-                <div className="transition-all duration-300" style={{ width: `${equityPct}%`, backgroundColor: CASH }} />
+              {soldValuePct < 100 && (
+                <div className="transition-all duration-300" style={{ width: `${100 - soldValuePct}%`, backgroundColor: CASH }} />
               )}
             </>
           ) : (
@@ -207,7 +294,13 @@ export const RetirementScenarioPanel: React.FC = () => {
 
       {/* ── Time to retirement slider ───────────────────────────────────── */}
       <div className="flex items-center gap-4">
-        <span className="whitespace-nowrap text-[13px] font-medium text-[#535862]">Time to retirement</span>
+        <span className="flex items-center whitespace-nowrap text-[13px] font-medium text-[#535862]">
+          Time to retirement
+          <InfoPopover
+            title={PAGE_EXPLAINERS.sellYear.title}
+            body={PAGE_EXPLAINERS.sellYear.body}
+          />
+        </span>
         <div className="relative flex items-center" style={{ flex: 1, height: 16 }}>
           {/* Track line, inset by the thumb radius (8px) on each end so the
               thumb sits flush with the line ends instead of stopping short. */}
@@ -301,7 +394,11 @@ export const RetirementScenarioPanel: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <span className="text-[15px] font-semibold text-[#181D27]">Prop {idx + 1}</span>
-                  {tag && <span className="text-xs font-medium text-[#717680]">{tag}</span>}
+                  {prop.isExisting ? (
+                    <span className="rounded-full bg-[#F5F5F5] px-2 py-0.5 text-[11px] font-medium text-[#717680]">Owned</span>
+                  ) : (
+                    tag && <span className="text-xs font-medium text-[#717680]">{tag}</span>
+                  )}
                 </div>
 
                 {!canSell ? (
@@ -315,7 +412,9 @@ export const RetirementScenarioPanel: React.FC = () => {
                       {fmt(prop.futureValue)}
                     </span>
                     <span className="mt-1 text-[13px] text-[#717680]">
-                      {fmt(Math.max(0, prop.futureEquity))} {isSold ? 'cash' : 'equity'}
+                      {isSold
+                        ? `${fmt(netCashById.get(prop.instanceId) ?? 0)} net cash`
+                        : `${fmt(Math.max(0, prop.futureEquity))} equity`}
                     </span>
                     <span
                       title={isSold ? 'Click to keep this property for income' : 'Click to sell this property for cash'}
@@ -333,6 +432,19 @@ export const RetirementScenarioPanel: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* ── Sale breakdown panel — appears once a property is sold ──────── */}
+      {soldBreakdowns.length > 0 && (
+        <SaleBreakdownSection
+          breakdowns={soldBreakdowns}
+          method={cgtMethod}
+          onMethod={setCgtMethod}
+          taxRatePct={taxRatePct}
+          onTaxRate={setTaxRatePct}
+          activeTab={activeTab}
+          onTab={setActiveTab}
+        />
+      )}
 
       {/* ── Negative-cashflow note ──────────────────────────────────────── */}
       {summary.annualCashflow < 0 && soldCount < purchasedCount && (
