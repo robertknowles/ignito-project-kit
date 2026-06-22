@@ -18,10 +18,6 @@ import type { RetirementPropertyProjection } from './useRetirementProjection'
  */
 
 export type CgtMethod = 'discount' | 'indexation'
-/** What the BA picks. 'auto' = per-property grandfathered default; the other two
- *  force that method on every personal property so they can model a scenario
- *  that may not become law. */
-export type CgtMethodSelection = 'auto' | 'discount' | 'indexation'
 export type SaleLedger = 'personal' | 'smsf'
 
 /** 1 July 2027 — sales on/after this default to the indexation method. */
@@ -60,15 +56,13 @@ export interface SaleBreakdown {
   capitalProceeds: number
   /** max(0, capitalProceeds − costBase). */
   grossGain: number
-  /** The global what-if selection ('auto' respects per-property grandfathering). */
-  method: CgtMethodSelection
   /** The method actually applied to this property (grandfathering / SMSF aware). */
   appliedMethod: CgtMethod
-  /** True when 'auto' is in effect and this property's method came from its
-   *  acquisition date rather than a manual override. */
+  /** True when the method came from this property's acquisition date (the
+   *  grandfathered default) rather than a manual override. */
   isAutoMethod: boolean
-  /** True when this is an established asset acquired before the 2027 reform and
-   *  would default to the 50% discount under 'auto'. */
+  /** True when this is an asset acquired before the 2027 reform and therefore
+   *  defaults to the 50% discount. */
   isGrandfathered: boolean
   /** Tax rate applied (decimal) — the local what-if rate. */
   rate: number
@@ -107,7 +101,7 @@ export function buildSaleBreakdown(
   prop: RetirementPropertyProjection,
   profile: InvestmentProfileData,
   retirementYear: number,
-  opts: { method: CgtMethodSelection; taxRatePct: number },
+  opts: { methodOverride?: CgtMethod; taxRatePct: number },
 ): SaleBreakdown {
   const rate = opts.taxRatePct / 100
   const cpi = profile.inflationRate ?? 0.03
@@ -152,16 +146,15 @@ export function buildSaleBreakdown(
 
   // Per-property method (grandfathering as a default, never locked):
   //   • SMSF  → always its own one-third treatment (the toggle can't change it).
-  //   • 'auto' → each personal property uses its grandfathered method, decided by
+  //   • default → each property uses its grandfathered method, decided by
   //              acquisition year (bought before 1 Jul 2027 → 50% discount).
-  //   • manual override ('discount' / 'indexation') → forces that method on every
-  //              personal property, so a BA can model a not-yet-law scenario.
+  //   • override → the BA flips this one property to the other method to model a
+  //              scenario that may not become law.
   const isGrandfathered =
     ledger === 'personal' && prop.purchaseYear < CGT_REFORM_START_YEAR
-  const isAutoMethod = opts.method === 'auto'
-  const appliedMethod: CgtMethod = isAutoMethod
-    ? grandfatheredMethod(prop.purchaseYear)
-    : opts.method
+  const isAutoMethod = !opts.methodOverride
+  const appliedMethod: CgtMethod =
+    opts.methodOverride ?? grandfatheredMethod(prop.purchaseYear)
 
   // Active regime drives the headline + waterfall. SMSF always uses its own.
   const active = smsf ?? (appliedMethod === 'indexation' ? indexation : discount)
@@ -176,7 +169,6 @@ export function buildSaleBreakdown(
     ledger,
     capitalProceeds,
     grossGain,
-    method: opts.method,
     appliedMethod,
     isAutoMethod,
     isGrandfathered,

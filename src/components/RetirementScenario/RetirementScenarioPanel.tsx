@@ -4,7 +4,7 @@ import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useExistingPropertiesSafe } from '../../contexts/ScenarioSaveContext';
 import { useRetirementProjection, type RetirementPropertyProjection } from './useRetirementProjection';
-import { buildSaleBreakdown, type CgtMethodSelection } from './saleBreakdown';
+import { buildSaleBreakdown, type CgtMethod } from './saleBreakdown';
 import { SaleBreakdownSection } from './SaleBreakdownSection';
 import { InfoPopover } from './InfoPopover';
 import { PAGE_EXPLAINERS } from './retirementExplainers';
@@ -80,8 +80,14 @@ export const RetirementScenarioPanel: React.FC = () => {
   const retirementYear = BASE_YEAR + years;
 
   // Local what-if controls for the sale breakdown (not persisted to the profile).
-  // 'auto' grandfathers each property by its purchase date; the BA can override.
-  const [cgtMethod, setCgtMethod] = useState<CgtMethodSelection>('auto');
+  // Each property's CGT method defaults to its grandfathered method (by buy year);
+  // this map holds any per-property override the BA sets.
+  const [methodOverrides, setMethodOverrides] = useState<Record<string, CgtMethod>>({});
+  const setMethodOverride = useCallback(
+    (instanceId: string, m: CgtMethod) =>
+      setMethodOverrides(prev => ({ ...prev, [instanceId]: m })),
+    [],
+  );
   const [taxRatePct, setTaxRatePct] = useState(() => Math.round((profile.marginalTaxRate ?? 0.45) * 100));
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
@@ -124,9 +130,12 @@ export const RetirementScenarioPanel: React.FC = () => {
         .filter(p => soldIds.has(p.instanceId) && p.purchasedByRetirement)
         .map(prop => ({
           prop,
-          data: buildSaleBreakdown(prop, profile, retirementYear, { method: cgtMethod, taxRatePct }),
+          data: buildSaleBreakdown(prop, profile, retirementYear, {
+            methodOverride: methodOverrides[prop.instanceId],
+            taxRatePct,
+          }),
         })),
-    [summary.properties, soldIds, profile, retirementYear, cgtMethod, taxRatePct],
+    [summary.properties, soldIds, profile, retirementYear, methodOverrides, taxRatePct],
   );
 
   if (summary.properties.length === 0) {
@@ -437,8 +446,7 @@ export const RetirementScenarioPanel: React.FC = () => {
       {soldBreakdowns.length > 0 && (
         <SaleBreakdownSection
           breakdowns={soldBreakdowns}
-          method={cgtMethod}
-          onMethod={setCgtMethod}
+          onMethod={setMethodOverride}
           taxRatePct={taxRatePct}
           onTaxRate={setTaxRatePct}
           activeTab={activeTab}

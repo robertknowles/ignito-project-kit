@@ -1,7 +1,7 @@
 import React from 'react'
 import { Building2, Sparkles, Clock } from 'lucide-react'
 import type { RetirementPropertyProjection } from './useRetirementProjection'
-import type { CgtMethodSelection, SaleBreakdown } from './saleBreakdown'
+import type { CgtMethod, SaleBreakdown } from './saleBreakdown'
 import { InfoPopover } from './InfoPopover'
 import {
   CGT_METHOD_EXPLAINER,
@@ -40,8 +40,8 @@ export interface SaleBreakdownEntry {
 
 interface SaleBreakdownSectionProps {
   breakdowns: SaleBreakdownEntry[]
-  method: CgtMethodSelection
-  onMethod: (m: CgtMethodSelection) => void
+  /** Override the CGT method for one property (defaults follow its buy year). */
+  onMethod: (instanceId: string, m: CgtMethod) => void
   taxRatePct: number
   onTaxRate: (pct: number) => void
   activeTab: string | null
@@ -50,7 +50,6 @@ interface SaleBreakdownSectionProps {
 
 export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
   breakdowns,
-  method,
   onMethod,
   taxRatePct,
   onTaxRate,
@@ -89,23 +88,24 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
             />
           </span>
 
-          {/* Auto applies each property's grandfathered method by acquisition
-              date; the BA can override to model a not-yet-law scenario. */}
+          {/* The selected property's method is set automatically by its buy year
+              (grandfathering); the BA can still flip it to model a not-yet-law
+              scenario. SMSF can't elect, so its toggle is read-only. */}
           <div className="inline-flex items-center gap-0.5 rounded-lg border border-[#E9EAEB] bg-[#F5F5F5] p-0.5">
             {([
-              ['auto', 'Auto'],
               ['discount', '50% discount'],
               ['indexation', 'Indexation'],
-            ] as [CgtMethodSelection, string][]).map(([m, label]) => (
+            ] as [CgtMethod, string][]).map(([m, label]) => (
               <button
                 key={m}
                 type="button"
-                onClick={() => onMethod(m)}
+                disabled={isSmsf}
+                onClick={() => onMethod(selected.prop.instanceId, m)}
                 className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                  method === m
+                  appliedMethod === m && !isSmsf
                     ? 'bg-white text-neutral-900 shadow-sm'
                     : 'text-neutral-500 hover:text-neutral-700'
-                }`}
+                } ${isSmsf ? 'cursor-not-allowed opacity-50 hover:text-neutral-500' : ''}`}
               >
                 {label}
               </button>
