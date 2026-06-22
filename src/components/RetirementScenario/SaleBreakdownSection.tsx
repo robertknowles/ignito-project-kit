@@ -1,5 +1,4 @@
 import React from 'react'
-import { Building2, Sparkles, Clock } from 'lucide-react'
 import type { RetirementPropertyProjection } from './useRetirementProjection'
 import type { CgtMethod, SaleBreakdown } from './saleBreakdown'
 import { InfoPopover } from './InfoPopover'
@@ -66,10 +65,9 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
   const isSmsf = d.ledger === 'smsf'
 
   // The selected property's applied method (grandfathering / SMSF aware) drives
-  // which treatment is described. 'auto' grandfathers each property by its
-  // acquisition date; the BA can override to model a not-yet-law scenario.
+  // the waterfall + the active toggle state. Each property defaults to its
+  // grandfathered method; the BA can override to model a not-yet-law scenario.
   const appliedMethod = d.appliedMethod
-  const treatment = describeTreatment(selected.prop.purchaseYear, d)
 
   return (
     <div className="rounded-xl border border-[#E9EAEB] bg-[#FCFCFD]">
@@ -154,17 +152,8 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
         })}
       </div>
 
-      {/* ── Per-property CGT treatment (grandfathering) ─────────────────── */}
-      <div className="mx-5 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-t-xl border-x border-t border-[#E9EAEB] bg-white px-5 pt-3 text-[12px]">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F5F5F5] px-2 py-0.5 font-medium text-[#414651]">
-          {treatment.icon}
-          {treatment.tag}
-        </span>
-        <span className="text-[#717680]">{treatment.detail}</span>
-      </div>
-
       {/* ── Waterfall ───────────────────────────────────────────────────── */}
-      <div className="mx-5 mb-4 rounded-b-xl border-x border-b border-[#E9EAEB] bg-white px-5 py-1">
+      <div className="mx-5 mb-4 mt-2 rounded-xl border border-[#E9EAEB] bg-white px-5 py-1">
         <Row label="Sale price" value={fmtFull(d.salePrice)} />
         <Row
           label="Selling costs"
@@ -224,51 +213,6 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
       </div>
     </div>
   )
-}
-
-// ── Grandfathering treatment copy ───────────────────────────────────────────
-
-/**
- * Factual, neutral description of why a property uses its CGT method. Describes
- * the policy mechanics only — never advises (compliance §2). Under 'auto' the
- * 2027 reform grandfathers assets acquired before 1 Jul 2027 onto the 50%
- * discount and later acquisitions onto indexation; a manual override forces a
- * method so the BA can model a scenario that may not become law.
- */
-function describeTreatment(
-  purchaseYear: number,
-  d: SaleBreakdown,
-): { tag: string; detail: string; icon: React.ReactNode } {
-  const iconCls = 'h-3 w-3 text-[#A4A7AE]'
-  if (d.ledger === 'smsf') {
-    return {
-      tag: 'SMSF',
-      detail: 'Super is out of scope of the 2027 change — one-third discount at 15% kept.',
-      icon: <Building2 className={iconCls} />,
-    }
-  }
-  if (!d.isAutoMethod) {
-    return {
-      tag: `Bought ${Math.round(purchaseYear)}`,
-      detail:
-        d.appliedMethod === 'discount'
-          ? 'Modelled on the 50% discount — overrides this property\u2019s default.'
-          : 'Modelled on indexation (proposed) — overrides this property\u2019s default.',
-      icon: <Sparkles className={iconCls} />,
-    }
-  }
-  if (d.isGrandfathered) {
-    return {
-      tag: `Bought ${Math.round(purchaseYear)}`,
-      detail: 'Acquired before 1 Jul 2027 — defaults to the 50% discount (grandfathered).',
-      icon: <Clock className={iconCls} />,
-    }
-  }
-  return {
-    tag: `Bought ${Math.round(purchaseYear)}`,
-    detail: 'Acquired on/after 1 Jul 2027 — defaults to indexation under the proposed rules.',
-    icon: <Clock className={iconCls} />,
-  }
 }
 
 // ── Row primitives ──────────────────────────────────────────────────────────

@@ -58,12 +58,6 @@ export interface SaleBreakdown {
   grossGain: number
   /** The method actually applied to this property (grandfathering / SMSF aware). */
   appliedMethod: CgtMethod
-  /** True when the method came from this property's acquisition date (the
-   *  grandfathered default) rather than a manual override. */
-  isAutoMethod: boolean
-  /** True when this is an asset acquired before the 2027 reform and therefore
-   *  defaults to the 50% discount. */
-  isGrandfathered: boolean
   /** Tax rate applied (decimal) — the local what-if rate. */
   rate: number
   /** CGT under the active method (or the SMSF treatment). */
@@ -150,9 +144,6 @@ export function buildSaleBreakdown(
   //              acquisition year (bought before 1 Jul 2027 → 50% discount).
   //   • override → the BA flips this one property to the other method to model a
   //              scenario that may not become law.
-  const isGrandfathered =
-    ledger === 'personal' && prop.purchaseYear < CGT_REFORM_START_YEAR
-  const isAutoMethod = !opts.methodOverride
   const appliedMethod: CgtMethod =
     opts.methodOverride ?? grandfatheredMethod(prop.purchaseYear)
 
@@ -170,8 +161,6 @@ export function buildSaleBreakdown(
     capitalProceeds,
     grossGain,
     appliedMethod,
-    isAutoMethod,
-    isGrandfathered,
     rate,
     activeCgt: active.cgt,
     activeTaxableGain: active.taxableGain,
