@@ -25,6 +25,7 @@ import {
   PERIODS_PER_YEAR,
   EQUITY_EXTRACTION_LVR_CAP,
   annualRateToPeriodRate,
+  GROWTH_RATE_TIERS,
 } from '../constants/financialParams';
 import { getGrowthRateAdjustment } from '../utils/eventProcessing';
 
@@ -145,12 +146,22 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
     getPropertyData: (title: string, growthAssumption?: string) => {
       const defaults = getPropertyInstanceDefaults(title);
       const assumption = growthAssumption ?? defaults.growthAssumption ?? 'Medium';
-      const curves: Record<string, any> = {
-        High: { growthYear1: '12.5', growthYears2to3: '10', growthYear4: '7.5', growthYear5plus: '6', yield: '3.5' },
-        Medium: { growthYear1: '8', growthYears2to3: '6', growthYear4: '5', growthYear5plus: '4', yield: '4.5' },
-        Low: { growthYear1: '5', growthYears2to3: '4', growthYear4: '3.5', growthYear5plus: '3', yield: '5.5' },
+      // Growth curve MUST come from the SAME single source of truth the dashboard
+      // uses (GROWTH_RATE_TIERS, consumed by DataAssumptions.getPropertyData). This
+      // was previously hardcoded here with stale Medium rates (8/6/5/4) that sat
+      // ABOVE the calibrated dashboard curve (6/5.5/5/5). The pre-check therefore
+      // released more equity than the dashboard, so the brief approved plans the
+      // dashboard then rendered red / "doesn't fit". Derive from the constant so
+      // the two engines can never drift apart again.
+      const rates = GROWTH_RATE_TIERS[assumption] ?? GROWTH_RATE_TIERS.Medium;
+      const yieldByTier: Record<string, string> = { High: '3.5', Medium: '4.5', Low: '5.5' };
+      return {
+        growthYear1: rates.year1.toString(),
+        growthYears2to3: rates.years2to3.toString(),
+        growthYear4: rates.year4.toString(),
+        growthYear5plus: rates.year5plus.toString(),
+        yield: yieldByTier[assumption] ?? yieldByTier.Medium,
       };
-      return curves[assumption] ?? curves['Medium'];
     },
     calculatePropertyGrowth: (cost: number, periodsOwned: number, propertyData: any) => {
       let currentValue = cost;

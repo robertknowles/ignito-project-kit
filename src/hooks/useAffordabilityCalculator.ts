@@ -1007,7 +1007,13 @@ return { period: Infinity };
           depositRequired: correctDepositRequired,
           totalCashRequired: totalCashRequired, // Include full acquisition costs for equity-first allocation
           loanAmount: loanAmount,
-          title: property.title,
+          // Key purchase history by the resolvable cell id, NOT property.title.
+          // Since 13961b4 property.title is the client-facing category label
+          // ("Equity Growth Property") which getPropertyData() cannot resolve to a
+          // template — so the engine's equity-release loop skipped every prior
+          // property and released $0, starving the deposit test. The brief
+          // (planPreCheck) keys by cell id, which is why it disagreed. Mirror it.
+          title: instanceId.replace(/_instance_\d+$/, ''),
           instanceId: instanceId,
           loanType: instanceLoanType,
           cumulativeEquityReleased: 0 // Initialize equity tracking
@@ -1248,7 +1254,8 @@ createInstance(instanceId, propertyType, period);
           depositRequired: tp.depositRequired,
           totalCashRequired: tp.totalCashRequired,
           loanAmount: tp.loanAmount,
-          title: tp.title,
+          // Resolvable cell id, not the category-label title (see note above).
+          title: tp.instanceId.replace(/_instance_\d+$/, ''),
           instanceId: tp.instanceId,
           loanType: tp.loanType,
           cumulativeEquityReleased: 0, // Will be recalculated by calculateAvailableFunds

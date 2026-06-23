@@ -747,7 +747,14 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   // with the lever that improves it.
   const constraintNotes = useMemo(() => {
     const counts: Record<BindingTest, number> = { deposit: 0, serviceability: 0, borrowingCapacity: 0 };
-    timingInsights.forEach(t => new Set(t.bindingTests).forEach(k => counts[k]++));
+    // Only count a constraint as "limiting" when the property actually FAILS at
+    // its placed period — i.e. it doesn't fit where the plan puts it. A purchase
+    // that is feasible where it sits but simply couldn't be brought earlier is
+    // normal sequencing, not a problem; counting those made the note claim
+    // "deposit holds back N purchases" on plans where every purchase is fine.
+    timingInsights
+      .filter(t => !t.feasibleAtTested)
+      .forEach(t => new Set(t.bindingTests).forEach(k => counts[k]++));
     const plural = (n: number) => (n === 1 ? '1 purchase' : `${n} purchases`);
     return ([
       {
