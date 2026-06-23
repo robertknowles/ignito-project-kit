@@ -318,23 +318,6 @@ const calculatePropertyGrowthWithEvents = (
   return currentValue;
 };
 
-/** P&I annual principal payment (from perPropertyProjections) */
-const calculateAnnualPrincipalPayment = (
-  loanAmt: number,
-  interestRate: number,
-  termYears: number,
-): number => {
-  const monthlyRate = interestRate / 12;
-  const numPayments = termYears * 12;
-  const monthlyPayment =
-    loanAmt *
-    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-    (Math.pow(1 + monthlyRate, numPayments) - 1);
-  const annualPayment = monthlyPayment * 12;
-  const annualInterest = loanAmt * interestRate;
-  return annualPayment - annualInterest;
-};
-
 // ─────────────────────────────────────────────────────────────
 // Main hook
 // ─────────────────────────────────────────────────────────────
@@ -845,13 +828,18 @@ export const usePortfolioProjection = (
               propertyAccumulators.set(rp.instanceId, acc);
             }
 
-            // P&I amortisation (from perPropertyProjections — only place that does this for new props)
-            if (rp.loanType === 'PI' && rp.interestRate > 0) {
-              const annualPrincipal = calculateAnnualPrincipalPayment(
-                acc.loanBalance, rp.interestRate, rp.loanTerm,
-              );
-              acc.loanBalance = Math.max(0, acc.loanBalance - annualPrincipal);
-            }
+            // Loan amortisation — handles the IO→PI transition (IO term then P&I
+            // paydown). Recompute from the original loan each year via the canonical
+            // helper so the IO term is respected; the previous P&I-only path left IO
+            // loans flat forever and never started principal paydown after the IO term.
+            acc.loanBalance = calculateRemainingLoanBalance(
+              rp.prop.loanAmount,
+              yearsOwned,
+              rp.interestRate,
+              rp.loanType,
+              rp.loanTerm,
+              rp.ioTermYears,
+            );
 
             const equity = currentValue - acc.loanBalance;
             acc.equityOverTime.push({
