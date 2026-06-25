@@ -4,7 +4,9 @@
  * Values sourced from Untitled UI's official theme.css (installed via npx untitledui init)
  * and verified via live Chrome DevTools inspection (May 2026).
  *
- * Brand: Purple-only palette (no blue). Primary = brand-600 (#7F56D9).
+ * Brand: PropPath violet (§1.1). Primary = brand-600 (#7C3AED / violet-600),
+ * fill = brand-500 (#8B5CF6 / violet-500). Aligned with chartColors.ts so the
+ * accent has one definition across the app.
  * Chrome: Tailwind neutral gray scale (via UUI semantic mappings).
  * Font: Inter with cv01, cv03, cv04 features.
  *
@@ -28,19 +30,19 @@
 // =============================================================================
 
 export const COLORS = {
-  // ── Brand (purple-only, from UUI theme.css lines 124-134) ─────────
+  // ── Brand (PropPath violet — Tailwind violet scale) ───────────────
   brand: {
-    950: '#2C1C5F',   // rgb(44 28 95) — deepest
-    900: '#42307D',   // rgb(66 48 125)
-    800: '#53389E',   // rgb(83 56 158) — gradient stops
-    700: '#6941C6',   // rgb(105 65 198) — hover state, links
-    600: '#7F56D9',   // rgb(127 86 217) — ★ PRIMARY — buttons, solid bg
-    500: '#9E77ED',   // rgb(158 119 237) — lighter accent, chart line 2
-    400: '#B692F6',   // rgb(182 146 246) — chart line 3, badges
-    300: '#D6BBFB',   // rgb(214 187 251) — on-brand quaternary text
-    200: '#E9D7FE',   // rgb(233 215 254) — tag backgrounds, on-brand secondary
-    100: '#F4EBFF',   // rgb(244 235 255) — brand secondary bg
-    50:  '#F9F5FF',   // rgb(249 245 255) — brand primary bg, surface tint
+    950: '#2E1065',   // violet-950 — deepest
+    900: '#4C1D95',   // violet-900
+    800: '#5B21B6',   // violet-800 — gradient stops
+    700: '#6D28D9',   // violet-700 — hover state, links
+    600: '#7C3AED',   // violet-600 — ★ PRIMARY (ink) — buttons, solid bg, markers
+    500: '#8B5CF6',   // violet-500 — fill — chart lines/areas, lighter accent
+    400: '#A78BFA',   // violet-400 — chart line 3, badges
+    300: '#C4B5FD',   // violet-300 — on-brand quaternary text
+    200: '#DDD6FE',   // violet-200 — tag backgrounds, on-brand secondary
+    100: '#EDE9FE',   // violet-100 — brand secondary bg
+    50:  '#F5F3FF',   // violet-50 — brand primary bg, surface tint, .editable pill
   },
 
   // ── Neutral (Tailwind default scale, used by UUI semantics) ───────
@@ -61,26 +63,26 @@ export const COLORS = {
 
   // ── Semantic (from UUI theme.css fg/text mappings) ────────────────
   // UUI maps success/error/warning to their respective -600 slots
-  success: '#00A63E',  // verified via live inspection (green-600 as rendered)
-  error:   '#F04438',  // UUI error, also in index.css --destructive
+  success: '#17B26A',  // PropPath positive (§1.3) — financial sign
+  error:   '#F04438',  // PropPath negative (§1.3), also index.css --destructive
   warning: '#F79009',  // UUI warning-600
-  info:    '#7F56D9',  // use brand-600 instead of blue
+  info:    '#7C3AED',  // brand-600 violet (no blue)
 
-  // ── Chart-specific (purple shades for data viz) ───────────────────
+  // ── Chart-specific (violet weight ramp for data viz, §1.1/§3.x) ───
   chart: {
-    line1:     '#7F56D9',                  // primary series
-    line2:     '#9E77ED',                  // secondary series
-    line3:     '#B692F6',                  // tertiary series
-    line4:     '#D6BBFB',                  // quaternary
-    area1:     'rgba(127, 86, 217, 0.12)', // primary area fill
-    area1End:  'rgba(127, 86, 217, 0.01)', // primary area gradient end
-    area2:     'rgba(127, 86, 217, 0.06)', // secondary area fill
-    area2End:  'rgba(127, 86, 217, 0.01)',
-    grid:      '#EEEEEE',                  // lighter than current
-    axisText:  '#737373',                  // neutral-500
-    reference: '#D4D4D4',                  // neutral-300
-    negative:  'rgba(163, 163, 163, 0.50)', // neutral-400 at 50%
-    negFill:   'rgba(163, 163, 163, 0.06)',
+    line1:     '#7C3AED',                  // primary series (violet-600 ink)
+    line2:     '#8B5CF6',                  // secondary series (violet-500 fill)
+    line3:     '#A78BFA',                  // tertiary series (violet-400)
+    line4:     '#C4B5FD',                  // quaternary (violet-300)
+    area1:     'rgba(139, 92, 246, 0.12)', // primary area fill (violet-500)
+    area1End:  'rgba(139, 92, 246, 0.01)', // primary area gradient end
+    area2:     'rgba(139, 92, 246, 0.06)', // secondary area fill
+    area2End:  'rgba(139, 92, 246, 0.01)',
+    grid:      '#F0F1F4',                  // value gridlines (§3.9)
+    axisText:  '#A1A1AA',                  // chart axis / ticks (§3.5)
+    reference: '#C4C4CC',                  // dashed reference line (§3.4)
+    negative:  'rgba(152, 162, 179, 0.50)', // #98A2B3 muted series
+    negFill:   'rgba(152, 162, 179, 0.06)',
   },
 } as const;
 

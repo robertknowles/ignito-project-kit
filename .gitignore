@@ -39,3 +39,6 @@ HANDOFF-*.md
 CALC-ARCHITECTURE-VISUAL.html
 PRE-UNIFICATION-BASELINE.md
 POSTHOG_DASHBOARD_HANDOVER.md
+
+# PropPath design refresh handoff bundle (reference only, not source)
+design_handoff_proppath_dashboard/

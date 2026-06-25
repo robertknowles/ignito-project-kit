@@ -35,8 +35,21 @@ td:hover {
     --ring: 222 18% 12%;           /* neutral-900 */
     --radius: 0.5rem;
 
-    /* Company branding colors - dynamically injected by BrandingContext */
-    --brand-primary: #2563EB;
+    /* PropPath design-system accent — violet (§1.1).
+       --brand-primary is the white-label tenant accent: this is only the
+       default fallback; BrandingContext overrides it per company at runtime. */
+    --brand-primary: #7C3AED;        /* violet-600 (ink) */
+    --brand-secondary: #8B5CF6;      /* violet-500 (fill) */
+
+    /* Violet accent family (§1.1) — fixed system tokens, not white-labelled */
+    --accent-violet-ink: #7C3AED;    /* text / interactive / markers */
+    --accent-violet-fill: #8B5CF6;   /* chart lines / area fills */
+    --accent-violet-100: #EDE9FE;
+    --accent-violet-50: #F5F3FF;     /* surface tint / .editable hover pill */
+
+    /* Semantic — financial SIGN only (§1.3) */
+    --semantic-positive: #17B26A;
+    --semantic-negative: #F04438;
   }
 
   .dark {
