@@ -4,6 +4,7 @@ import {
   Area,
   Line,
   XAxis,
+  YAxis,
   CartesianGrid,
   Tooltip,
   ReferenceLine,
@@ -31,6 +32,9 @@ const UUI = {
   white: '#FFFFFF',
   success: '#17B26A',
   error600: '#F04438',
+  gridline: '#F0F1F4',  // §3.9 value gridlines
+  zeroLine: '#D5D5DB',  // §3.3 signed-fill zero line
+  axis: '#A1A1AA',      // §3.5 axis ticks
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
@@ -55,25 +59,6 @@ const CashflowPositiveMarker = ({ viewBox }: any) => {
         CF Positive ✓
       </text>
     </g>
-  );
-};
-
-/**
- * Savings breach dot — plain red marker on the line. The "Exceeds savings"
- * callout lives inside the chart's hover tooltip (see CustomTooltip) to avoid
- * overlapping the data popup.
- */
-const ExceedsSavingsDot = ({ cx, cy }: any) => {
-  if (cx == null || cy == null) return null;
-  return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={6}
-      fill={UUI.error600}
-      stroke="white"
-      strokeWidth={2.5}
-    />
   );
 };
 
@@ -117,16 +102,31 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
 
   const hasSavingsFloor = data.length > 0 && data[0].savingsFloor != null;
 
-  // Worst breach: the year where the shortfall exceeds the client's savings by the most
-  const worstBreachPoint = useMemo(() => {
-    if (!hasSavingsFloor) return null;
-    let worst: (typeof data)[number] | null = null;
-    for (const d of data) {
-      if (d.savingsFloor == null || d.netCashflow >= d.savingsFloor) continue;
-      if (!worst || d.netCashflow - d.savingsFloor < worst.netCashflow - (worst.savingsFloor as number)) worst = d;
-    }
-    return worst;
-  }, [data, hasSavingsFloor]);
+  // Full-height labelled Y axis (§3.9): round-number ticks on the true scale,
+  // with $0 always present so the signed-fill zero line reads as a value.
+  const { yDomain, yTicks } = useMemo(() => {
+    const vals = data.map(d => d.netCashflow);
+    const floors = data.map(d => d.savingsFloor).filter((v): v is number => v != null);
+    const lo = Math.min(0, ...vals, ...floors);
+    const hi = Math.max(0, ...vals);
+    const rawStep = Math.max(1, (hi - lo) / 4);
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const norm = rawStep / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+    const niceLo = Math.floor(lo / step) * step;
+    const niceHi = Math.ceil(hi / step) * step;
+    const ticks: number[] = [];
+    for (let v = niceLo; v <= niceHi + step / 2; v += step) ticks.push(Math.round(v));
+    return { yDomain: [niceLo, niceHi] as [number, number], yTicks: ticks };
+  }, [data]);
+
+  const fmtTick = (v: number) => {
+    const a = Math.abs(v);
+    const s = v < 0 ? '-' : '';
+    if (a >= 1_000_000) return `${s}$${(a / 1_000_000).toFixed(a % 1_000_000 ? 1 : 0)}M`;
+    if (a >= 1_000) return `${s}$${Math.round(a / 1_000)}k`;
+    return `${s}$${a}`;
+  };
 
   // Find where net cashflow goes positive and STAYS positive (no dips back below zero)
   const cashflowPositivePoint = useMemo(() => {
@@ -238,43 +238,51 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart
           data={data}
-          margin={{ top: 10, right: 16, left: 16, bottom: 0 }}
+          margin={{ top: 10, right: 16, left: 4, bottom: 0 }}
         >
           <defs>
-            {/* UUI striped vertical-line fill pattern */}
-            <pattern id="cashflowVerticalLines" width="8" height="100%" patternUnits="userSpaceOnUse">
-              <line x1="4" y1="0" x2="4" y2="100%" stroke={UUI.brand600} strokeWidth="1" strokeOpacity="0.35" />
-            </pattern>
+            {/* Signed violet fill (§3.3) — ~12% opacity, above and below $0 */}
+            <linearGradient id="cashflowSignedFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={UUI.brand600} stopOpacity={0.14} />
+              <stop offset="100%" stopColor={UUI.brand600} stopOpacity={0.14} />
+            </linearGradient>
           </defs>
 
-          {/* Faint horizontal grid — UUI uses ~#F5F5F5 (nearly invisible) */}
+          {/* Faint horizontal value gridlines (§3.9) */}
           <CartesianGrid
             strokeDasharray="0"
-            stroke={UUI.neutral100}
-            strokeOpacity={0.8}
+            stroke={UUI.gridline}
             vertical={false}
           />
 
-          {/* X-axis — UUI text-tertiary = neutral-600, text-xs = 12px */}
+          {/* X-axis — meta grey ticks */}
           <XAxis
             dataKey="year"
             tick={{
-              fontSize: 12,
-              fontWeight: 600,
-              fill: UUI.neutral500,
+              fontSize: 11,
+              fill: UUI.axis,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}
             tickLine={false}
             tickMargin={10}
-            padding={{ left: 20, right: 10 }}
+            padding={{ left: 12, right: 10 }}
           />
 
-          {/* No Y-axis — matches UUI Sales chart exactly */}
+          {/* Full-height labelled Y axis (§3.9) — round $ ticks, $0 on the zero line */}
+          <YAxis
+            domain={yDomain}
+            ticks={yTicks}
+            tickFormatter={fmtTick}
+            tick={{ fontSize: 11, fill: UUI.axis, fontFamily: UUI.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            width={46}
+          />
 
-          {/* Secondary axis keeps hidden series out of the primary Y domain */}
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={0} stroke={UUI.neutral200} strokeWidth={1} />
+          {/* Signed-fill zero line (§3.3) — quiet grey baseline */}
+          <ReferenceLine y={0} stroke={UUI.zeroLine} strokeWidth={1} />
 
           {/* Hidden series so income/expenses data is available in the tooltip payload */}
           <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
@@ -294,26 +302,18 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             />
           )}
 
-          {/* Net Cashflow — striped area fill + solid line (UUI pattern) */}
+          {/* Net Cashflow — solid violet line + signed fill straddling $0 (§3.3) */}
           <Area
             type="monotone"
             dataKey="netCashflow"
             name="Net Cashflow"
             stroke={UUI.brand600}
-            strokeWidth={2}
-            fill="url(#cashflowVerticalLines)"
+            strokeWidth={2.5}
+            fill="url(#cashflowSignedFill)"
+            baseValue={0}
             dot={false}
             isAnimationActive={false}
           />
-
-          {/* Savings breach marker — red dot only; label shows on hover */}
-          {worstBreachPoint && (
-            <ReferenceDot
-              x={worstBreachPoint.year}
-              y={worstBreachPoint.netCashflow}
-              shape={<ExceedsSavingsDot />}
-            />
-          )}
 
           {/* Cashflow positive milestone marker */}
           {cashflowPositivePoint && (
