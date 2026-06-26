@@ -12,16 +12,16 @@ import { BASE_YEAR, PERIODS_PER_YEAR } from '@/constants/financialParams';
 // ── UUI Design Tokens (matching ChartCard / Dashboard) ───────────────────────
 const UUI = {
   font: 'Inter, system-ui, -apple-system, sans-serif',
-  neutral900: '#171717',
+  neutral900: '#181D27',
   neutral700: '#404040',
-  neutral500: '#737373',
+  neutral500: '#717680',
   neutral400: '#A3A3A3',
-  neutral200: '#E5E5E5',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
-  purple600: '#7F56D9',
-  purple700: '#6941C6',
+  purple600: '#7C3AED',
+  purple700: '#6D28D9',
   green500: '#22C55E',
   amber500: '#F59E0B',
 } as const;

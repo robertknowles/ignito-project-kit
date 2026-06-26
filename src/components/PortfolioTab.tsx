@@ -15,13 +15,13 @@ import {
 } from 'recharts'
 
 const UUI = {
-  brand700: '#6941C6',
-  brand600: '#7F56D9',
-  brand500: '#9E77ED',
-  brand300: '#D6BBFB',
-  brand200: '#E9D7FE',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  brand700: '#6D28D9',
+  brand600: '#7C3AED',
+  brand500: '#8B5CF6',
+  brand300: '#DDD6FE',
+  brand200: '#EDE9FE',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
 } as const
 

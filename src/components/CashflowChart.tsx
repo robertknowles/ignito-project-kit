@@ -20,17 +20,17 @@ import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext
 
 // ── UUI Design Tokens (from live DOM inspection of Dashboard 03) ────────────
 const UUI = {
-  brand600: '#7F56D9',
-  neutral900: '#171717',
+  brand600: '#7C3AED',
+  neutral900: '#181D27',
   neutral700: '#404040',
   neutral600: '#525252',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
-  success: '#00A63E',
-  error600: '#D92D20',
+  success: '#17B26A',
+  error600: '#F04438',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 

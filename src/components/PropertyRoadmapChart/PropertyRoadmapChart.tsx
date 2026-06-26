@@ -17,14 +17,14 @@ import { getPropertyIconPath } from '../icons/PropertyIconPaths';
 import { BASE_YEAR } from '../../constants/financialParams';
 
 const UUI = {
-  brand600: '#7F56D9',
-  neutral900: '#171717',
+  brand600: '#7C3AED',
+  neutral900: '#181D27',
   neutral700: '#404040',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   white: '#FFFFFF',
-  success: '#00A63E',
+  success: '#17B26A',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
@@ -193,7 +193,7 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                         cy={rowY + ROW_HEIGHT / 2}
                         r={bgSize / 2}
                         fill={UUI.white}
-                        stroke="#E5E5E5"
+                        stroke="#E9EAEB"
                         strokeWidth={1}
                         pointerEvents="none"
                       />

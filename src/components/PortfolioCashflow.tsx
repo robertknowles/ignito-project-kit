@@ -12,13 +12,13 @@ import { getPropertyIconPath } from './icons/PropertyIconPaths';
 
 // ── UUI Design Tokens (matched to PropertyRoadmapChart) ──────────────────
 const UUI = {
-  brand600: '#7F56D9',
+  brand600: '#7C3AED',
   brand200: 'rgba(127, 86, 217, 0.25)',
-  neutral900: '#171717',
+  neutral900: '#181D27',
   neutral700: '#404040',
-  neutral500: '#737373',
+  neutral500: '#717680',
   neutral300: '#D4D4D4',
-  neutral200: '#E5E5E5',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   white: '#FFFFFF',
   fontFamily:

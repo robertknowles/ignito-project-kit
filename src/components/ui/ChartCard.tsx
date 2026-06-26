@@ -26,10 +26,10 @@ interface ChartCardProps {
 
 // ── UUI Design Tokens (from live DOM inspection of Dashboard 03) ────────────
 const UUI = {
-  neutral900: '#171717',
+  neutral900: '#181D27',
   neutral700: '#404040',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
 } as const;

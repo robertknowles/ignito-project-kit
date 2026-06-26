@@ -15,15 +15,15 @@ import type { YearRow } from '../hooks/usePortfolioProjection';
 import { BASE_YEAR } from '../constants/financialParams';
 
 const UUI = {
-  brand700: '#6941C6',
-  brand600: '#7F56D9',
-  brand500: '#9E77ED',
-  brand300: '#B692F6',
-  brand200: '#E9D7FE',
+  brand700: '#6D28D9',
+  brand600: '#7C3AED',
+  brand500: '#8B5CF6',
+  brand300: '#A78BFA',
+  brand200: '#EDE9FE',
   growth500: '#17B26A',
-  neutral900: '#171717',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  neutral900: '#181D27',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   white: '#FFFFFF',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',

@@ -32,22 +32,22 @@ interface BorrowingCapacityChartProps {
 }
 
 const UUI = {
-  brand600: '#7F56D9',
-  brand200: '#E9D7FE',
-  brand300: '#D6BBFB',
-  neutral900: '#171717',
+  brand600: '#7C3AED',
+  brand200: '#EDE9FE',
+  brand300: '#DDD6FE',
+  neutral900: '#181D27',
   neutral700: '#404040',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   white: '#FFFFFF',
-  success: '#00A63E',
+  success: '#17B26A',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
 const CAPACITY_STROKE = UUI.brand600;
 const DEBT_STROKE = '#414651';
-const OFFSET_STROKE = '#9E77ED';
+const OFFSET_STROKE = '#8B5CF6';
 
 const PurchaseDot = (props: any) => {
   const { cx, cy, payload } = props;
@@ -65,7 +65,7 @@ const PurchaseDot = (props: any) => {
         const iconCy = cy - idx * (bgSize + stackGap);
         return (
           <g key={`${payload.year}-${idx}`}>
-            <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="#FFFFFF" stroke="#E5E5E5" strokeWidth={1} />
+            <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="#FFFFFF" stroke="#E9EAEB" strokeWidth={1} />
             <svg
               x={cx - iconSize / 2}
               y={iconCy - iconSize / 2}
@@ -75,7 +75,7 @@ const PurchaseDot = (props: any) => {
               fill="none"
               style={{ pointerEvents: 'none' }}
             >
-              <path d={iconPath} stroke="#171717" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </g>
         );

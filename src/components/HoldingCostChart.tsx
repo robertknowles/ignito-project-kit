@@ -16,11 +16,11 @@ import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
 const UUI = {
-  brand700: '#6941C6',
-  brand500: '#9E77ED',
-  neutral900: '#171717',
-  neutral500: '#737373',
-  neutral200: '#E5E5E5',
+  brand700: '#6D28D9',
+  brand500: '#8B5CF6',
+  neutral900: '#181D27',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
