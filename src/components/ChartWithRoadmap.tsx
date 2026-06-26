@@ -8,7 +8,7 @@ import {
   Tooltip,
   ReferenceArea,
 } from 'recharts';
-import { AlertTriangle, Info, Check } from 'lucide-react';
+import { AlertTriangle, Info, Check, House, Building2 } from 'lucide-react';
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -26,7 +26,6 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePropertyDragDropContext, DraggedProperty } from '../contexts/PropertyDragDropContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
 import { validatePropertyPlacement, isPlacementValid, ValidationResult } from '../utils/guardrailValidator';
-import { getPropertyTypeIcon } from '../utils/propertyTypeIcon';
 import { MiniPurchaseCard } from './MiniPurchaseCard';
 import { SingleTestModal, TestType } from './SingleTestModal';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
@@ -198,6 +197,14 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
   return CustomTooltip;
 };
 
+// Violet outline pin glyph (§3.1 pin family) — replaces the photographic PNG
+// marker. House for residential, building for commercial; red when challenging.
+const PinGlyph: React.FC<{ isHouse: boolean; challenging?: boolean }> = ({ isHouse, challenging }) => {
+  const color = challenging ? '#ef4444' : CHART_COLORS.violetInk;
+  const Icon = isHouse ? House : Building2;
+  return <Icon size={17} strokeWidth={1.75} color={color} />;
+};
+
 // Custom dot component for property markers
 interface CustomDotProps {
   cx?: number;
@@ -223,7 +230,7 @@ const CustomDot = (props: CustomDotProps) => {
   const propertyTitle = firstPurchase.propertyTitle;
   const instanceId = firstPurchase.instanceId;
   const isHouse = isHouseType(propertyTitle);
-  const borderColor = CHART_COLORS.annotationText; // Grey border
+  const borderColor = CHART_COLORS.violetInk; // Violet ring (§3.1 pin family)
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -240,8 +247,8 @@ const CustomDot = (props: CustomDotProps) => {
         onClick={handleClick}
         title={onPropertyClick ? `Click for details: ${propertyTitle}` : undefined}
       >
-        <div style={{ transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)' }}>
-          {getPropertyTypeIcon(propertyTitle, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
+        <div className="flex items-center justify-center">
+          <PinGlyph isHouse={isHouse} />
         </div>
       </div>
     </foreignObject>
@@ -283,9 +290,9 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
 
   const isHouse = isHouseType(property.title);
   const isChallenging = property.status === 'challenging';
-  const borderColor = (hasViolations || isChallenging) ? '#ef4444' : CHART_COLORS.annotationText;
+  const borderColor = (hasViolations || isChallenging) ? '#ef4444' : CHART_COLORS.violetInk;
   const borderWidth = (hasViolations || isChallenging) ? 2 : 1;
-  const iconColor = isChallenging ? 'text-red-500' : isHouse ? 'text-green-600' : 'text-blue-600';
+  const iconColor = isChallenging ? 'text-red-500' : 'text-violet-600';
 
 
   const style: React.CSSProperties = {
@@ -327,11 +334,8 @@ const DraggablePropertyIcon: React.FC<DraggablePropertyIconProps> = ({
               style={{ border: `${borderWidth}px solid ${borderColor}` }}
               onClick={handleClick}
             >
-              <div style={{
-                transform: isHouse ? 'scale(1.4)' : 'scale(1.4) translateY(-3px)',
-                ...(isChallenging ? { filter: 'grayscale(1) brightness(0.5) sepia(1) hue-rotate(-30deg) saturate(5)' } : {}),
-              }}>
-                {getPropertyTypeIcon(property.title, 34, isHouse ? 'text-green-600' : 'text-blue-600')}
+              <div className="flex items-center justify-center">
+                <PinGlyph isHouse={isHouse} challenging={isChallenging} />
               </div>
             </div>
           </TooltipTrigger>
@@ -1143,28 +1147,28 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line - primary blue */}
+              {/* Portfolio Value Line — secondary violet (lighter weight, §1.1) */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
                 name="Portfolio Value"
-                stroke="#2563EB"
+                stroke={CHART_COLORS.secondary}
                 strokeWidth={2.5}
                 dot={false}
                 activeDot={{
                   r: 5,
-                  stroke: '#2563EB',
+                  stroke: CHART_COLORS.secondary,
                   strokeWidth: 2,
                   fill: 'white',
                 }}
               />
 
-              {/* Total Equity Line - purple, distinct from portfolio */}
+              {/* Total Equity Line — violet hero (§1.1) */}
               <Line
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
-                stroke="#8B5CF6"
+                stroke={CHART_COLORS.primary}
                 strokeWidth={2}
                 dot={false}
               />
