@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2 } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -28,6 +28,7 @@ import { ClientInputsTab } from './ClientInputsTab';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
+import { ReportExportRenderer } from './export/ReportExportRenderer';
 import { ConfirmationBrief } from './ConfirmationBrief';
 import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
 import { ChangeLogPanel } from './ChangeLogPanel';
@@ -228,6 +229,10 @@ export const Dashboard = () => {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const resetAssumptionsRef = useRef<() => void>(() => {});
+
+  // PDF export — a single unified Portfolio Brief, always available regardless
+  // of the active tab.
+  const [isExporting, setIsExporting] = useState(false);
 
   const kpis = useMemo(() => {
     const growthData = chartDataA.portfolioGrowthData;
@@ -456,6 +461,16 @@ export const Dashboard = () => {
             onClick={() => setActiveTab('inputs')}
           />
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => { if (!isExporting) setIsExporting(true); }}
+              disabled={isExporting}
+              title="Export portfolio brief (PDF)"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? <Loader2 size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
+              Export
+              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
+            </button>
             <button
               onClick={() => setAssumptionsOpen(prev => !prev)}
               title="Assumptions"
@@ -827,6 +842,7 @@ export const Dashboard = () => {
       </div>
       <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>
+    <ReportExportRenderer active={isExporting} onDone={() => setIsExporting(false)} />
     <ChangeLogPanel />
     </div>
     </ChangeReceiptProvider>

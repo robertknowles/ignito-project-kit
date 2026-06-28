@@ -447,3 +447,88 @@ td:hover {
     mask-position: 0 0;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Portfolio Brief — browser-native print
+   The brief is rendered into #brief-print-root and produced via window.print().
+   On screen the root is inert (see ReportExportRenderer); these rules only apply
+   when printing.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media screen {
+  /* On screen the brief is parked far off-screen so it never affects the app UI,
+     but stays mounted/laid-out so fonts and the logo load before printing. */
+  #brief-print-root {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 210mm;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* Running footer is print-only; never show it on screen */
+  .brief-foot { display: none; }
+}
+
+@media print {
+  /* Print only the brief: fully remove the app (display:none reclaims its space,
+     unlike visibility:hidden which would push the brief down a blank page), and
+     let the brief flow in normal document flow. Normal flow is essential —
+     absolutely/fixed-positioned containers do NOT fragment across printed pages,
+     so an out-of-flow root would render page 1 only and clip the rest. The print
+     root is portaled to <body> (ReportExportRenderer) so it sits beside #root. */
+  #root { display: none !important; }
+  #brief-print-root {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+    background: #fff !important;
+  }
+
+  /* Full-bleed white: the @page margin is the "page canvas" that some print
+     engines (notably WebKit/Safari) paint with the app's --background grey,
+     producing a grey frame around the content. We zero the @page margin so
+     there is no canvas to colour, then recreate the visual margin as padding
+     INSIDE each white .brief-part. White is painted right to the paper edge,
+     so no grey can ever show — engine-agnostic. */
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+
+  /* Force fills / background colours to render */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Each major part starts on a fresh page; the first does not. Padding here
+     (not @page margin) creates the white interior margin so the page edge
+     stays white. Bottom padding leaves room for the fixed running footer. */
+  .brief-part {
+    break-before: page;
+    box-sizing: border-box;
+    padding: 16mm 22mm 26mm;
+    background: #fff;
+  }
+  .brief-part:first-of-type { break-before: avoid; }
+
+  /* Never split these blocks across a page boundary */
+  .brief-avoid { break-inside: avoid; }
+  table, thead, tr { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  p { orphans: 3; widows: 3; }
+
+  /* Running disclaimer footer repeats on every printed page. Its white
+     background covers the bottom paper edge; the .brief-part bottom padding
+     (26mm) reserves space so it never overlaps body content. */
+  .brief-foot {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+  }
+}
