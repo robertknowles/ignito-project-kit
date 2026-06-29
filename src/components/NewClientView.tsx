@@ -74,6 +74,7 @@ interface ScenarioPreview {
   timelineYears: number | null
   strategyPreset: string | null
   updatedAt: string | null
+  createdAt: string | null
 }
 
 interface StrategyMeta {
@@ -140,7 +141,7 @@ export const NewClientView: React.FC = () => {
       const ids = clients.map((c) => c.id)
       const { data, error } = await supabase
         .from('scenarios')
-        .select('client_id, data, updated_at')
+        .select('client_id, data, updated_at, created_at')
         .in('client_id', ids)
         .order('updated_at', { ascending: false })
 
@@ -170,6 +171,7 @@ export const NewClientView: React.FC = () => {
           timelineYears,
           strategyPreset,
           updatedAt: (row as any).updated_at ?? null,
+          createdAt: (row as any).created_at ?? null,
         }
       }
       if (!cancelled) setPreviewByClient(map)
@@ -468,10 +470,10 @@ export const NewClientView: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   {recentClients.map((client) => {
                     const isCurrent = activeClient?.id === client.id
+                    // Show when the simulation was created, not when it was last
+                    // edited/viewed.
                     const updated = formatRelativeShort(
-                      previewByClient[client.id]?.updatedAt ||
-                        client.updated_at ||
-                        client.last_active_at ||
+                      previewByClient[client.id]?.createdAt ||
                         client.created_at
                     )
                     const preview = previewByClient[client.id]
