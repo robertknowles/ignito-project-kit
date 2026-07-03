@@ -10,7 +10,7 @@ interface StrategyProfileModalProps {
   onSaved?: () => void
 }
 
-const PLACEHOLDER = `e.g. "I focus on regional QLD and NSW markets under $500k. I prefer IO loans for the first 5 years. I typically target 7%+ gross yields. I like to buy one property per year maximum."`
+const PLACEHOLDER = `e.g. "One purchase every two years. High-capacity clients start blue-chip near their borrowing maximum and wear negative cashflow early; average earners start around $500k with a cashflow focus. Transition into a commercial purchase once equity supports it. IO loans for the first 5 years."`
 
 const MAX_LENGTH = 2000
 
@@ -79,6 +79,9 @@ export const StrategyProfileModal: React.FC<StrategyProfileModalProps> = ({ isOp
             Save the strategies your firm uses, in plain English. Pick one per client in the chat
             input — the AI factors it into property selection, pricing and plan structure, and
             chooses the best-fit modelling approach from it and the client's brief.
+            The more you spell out, the closer the plan lands: how purchase prices scale with a
+            client's capacity, how often they buy, appetite for negative cashflow, when commercial
+            enters the plan, and whether a home purchase can sit inside it.
           </p>
 
           {loading ? (

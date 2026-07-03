@@ -13,11 +13,11 @@ import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { usePropertySelection } from '../../contexts/PropertySelectionContext';
 import { usePropertyRoadmapData, type PropertyRoadmapBar, type RoadmapEvent } from './usePropertyRoadmapData';
-import { getPropertyIconPath } from '../icons/PropertyIconPaths';
 import { BASE_YEAR } from '../../constants/financialParams';
 
 const UUI = {
-  brand600: '#7C3AED',
+  brand600: '#7C3AED',   // single violet accent (ink) — glyphs, markers
+  lifeline: '#D5D5DB',   // grey scaffolding lifelines (§3.8)
   neutral900: '#181D27',
   neutral700: '#404040',
   neutral500: '#717680',
@@ -28,11 +28,12 @@ const UUI = {
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
+// One violet accent for every event glyph (§3.8 — differentiate by glyph, not hue)
 const EVENT_COLORS: Record<RoadmapEvent['type'], string> = {
   purchase: UUI.brand600,
-  equity_unlock: UUI.success,
-  equity_pull: '#06B6D4',
-  refinance: '#F59E0B',
+  equity_unlock: UUI.brand600,
+  equity_pull: UUI.brand600,
+  refinance: UUI.brand600,
 };
 
 const EVENT_LABELS: Record<RoadmapEvent['type'], string> = {
@@ -48,7 +49,7 @@ const fmt = (v: number) => {
   return `$${v}`;
 };
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 52;
 
 interface PropertyRoadmapChartProps {
   displayYears?: number;
@@ -100,7 +101,9 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
     );
   }
 
-  const chartHeight = 220;
+  // Height scales with property count so rows never overflow a fixed box and
+  // above/below event labels get vertical breathing room.
+  const chartHeight = Math.max(180, properties.length * ROW_HEIGHT + 48);
 
   // Gantt bars rendered inside the Recharts coordinate system
   const GanttBars = (props: any) => {
@@ -139,8 +142,6 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
           const barY = rowY + ROW_HEIGHT / 2 - 1.5;
           const barH = 3;
 
-          const iconPath = getPropertyIconPath(prop.title);
-
           return (
             <g key={prop.instanceId}>
               {/* Bar segments */}
@@ -159,64 +160,60 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                     width={Math.max(0, w)}
                     height={barH}
                     rx={1.5}
-                    fill={prop.color}
-                    fillOpacity={isPostUnlock ? 0.8 : 0.3}
+                    fill={UUI.lifeline}
+                    fillOpacity={isPostUnlock ? 1 : 0.5}
                     pointerEvents="none"
                   />
                 );
               })}
 
-              {/* Event markers — each with its own hover */}
-              {prop.events.map((evt, evtIdx) => {
-                const cx = scale(evt.year);
-                if (cx == null || isNaN(cx)) return null;
+              {/* Event markers — violet glyph-badges on the lifeline (§3.8).
+                  Differentiated by glyph, not colour. Refinance marker dropped. */}
+              {(() => {
+                // Same-year events (e.g. equity unlock + pull the moment it
+                // crosses the threshold) would draw badges on top of each other,
+                // hiding one and its tooltip — spread them side by side instead.
+                const xOffsets = new Map<RoadmapEvent, number>();
+                const byYear = new Map<number, RoadmapEvent[]>();
+                prop.events
+                  .filter(e => e.type !== 'refinance')
+                  .forEach(e => {
+                    const g = byYear.get(e.year);
+                    if (g) g.push(e); else byYear.set(e.year, [e]);
+                  });
+                byYear.forEach(group => {
+                  group.forEach((e, i) => xOffsets.set(e, (i - (group.length - 1) / 2) * 20));
+                });
+                // All labels sit ABOVE their badge (prototype: every amount/year
+                // at top:0 over the pin). Labels closer than ~44px horizontally
+                // stagger one step higher so adjacent events stay legible.
+                const lifts = new Map<RoadmapEvent, number>();
+                let prevX = -Infinity;
+                let prevLift = 0;
+                [...prop.events]
+                  .filter(e => e.type !== 'refinance')
+                  .sort((a, b) => a.year - b.year || (xOffsets.get(a) ?? 0) - (xOffsets.get(b) ?? 0))
+                  .forEach(e => {
+                    const base = scale(e.year);
+                    if (base == null || isNaN(base)) return;
+                    const x = base + (xOffsets.get(e) ?? 0);
+                    const lift = x - prevX < 44 && prevLift === 0 ? 12 : 0;
+                    lifts.set(e, lift);
+                    prevX = x;
+                    prevLift = lift;
+                  });
+                return prop.events.map((evt, evtIdx) => {
+                const cxBase = scale(evt.year);
+                if (cxBase == null || isNaN(cxBase)) return null;
+                if (evt.type === 'refinance') return null; // marker dropped (calc kept)
+                const cx = cxBase + (xOffsets.get(evt) ?? 0);
 
-                if (evt.type === 'purchase') {
-                  const iconSize = 14;
-                  const bgSize = 26;
-                  return (
-                    <g
-                      key={`evt-${evtIdx}`}
-                      onMouseEnter={(e) => handleEventEnter(prop, evt, e)}
-                      onMouseLeave={handleEventLeave}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {/* Larger hit area for small icon */}
-                      <circle
-                        cx={cx}
-                        cy={rowY + ROW_HEIGHT / 2}
-                        r={bgSize / 2 + 4}
-                        fill="transparent"
-                      />
-                      <circle
-                        cx={cx}
-                        cy={rowY + ROW_HEIGHT / 2}
-                        r={bgSize / 2}
-                        fill={UUI.white}
-                        stroke="#E9EAEB"
-                        strokeWidth={1}
-                        pointerEvents="none"
-                      />
-                      <svg
-                        x={cx - iconSize / 2}
-                        y={rowY + ROW_HEIGHT / 2 - iconSize / 2}
-                        width={iconSize}
-                        height={iconSize}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ pointerEvents: 'none' }}
-                      >
-                        <path
-                          d={iconPath}
-                          stroke={UUI.neutral700}
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </g>
-                  );
-                }
+                const cy = rowY + ROW_HEIGHT / 2;
+                const label = evt.type === 'purchase'
+                  ? String(evt.year)
+                  : (evt.amount != null ? fmt(evt.amount) : null);
+                const labelColor = evt.type === 'purchase' ? UUI.brand600 : UUI.neutral900;
+                const labelY = cy - 14 - (lifts.get(evt) ?? 0);
 
                 return (
                   <g
@@ -225,25 +222,49 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                     onMouseLeave={handleEventLeave}
                     style={{ cursor: 'pointer' }}
                   >
-                    {/* Larger hit area for small circle */}
-                    <circle
-                      cx={cx}
-                      cy={rowY + ROW_HEIGHT / 2}
-                      r={12}
-                      fill="transparent"
-                    />
-                    <circle
-                      cx={cx}
-                      cy={rowY + ROW_HEIGHT / 2}
-                      r={6}
-                      fill={EVENT_COLORS[evt.type]}
-                      stroke={UUI.white}
-                      strokeWidth={2}
-                      pointerEvents="none"
-                    />
+                    {/* hit area */}
+                    <circle cx={cx} cy={cy} r={13} fill="transparent" />
+                    {/* amount / year label — always above the badge */}
+                    {label && (
+                      <text
+                        x={cx} y={labelY} textAnchor="middle"
+                        fontFamily={UUI.fontFamily} fontSize={10} fontWeight={600}
+                        fill={labelColor} pointerEvents="none"
+                      >
+                        {label}
+                      </text>
+                    )}
+                    {/* badge — inverted: accent disc, white ring, white glyph */}
+                    <circle cx={cx} cy={cy} r={9} fill={UUI.brand600} stroke={UUI.white} strokeWidth={1.5} pointerEvents="none" />
+                    {/* glyph */}
+                    {evt.type === 'purchase' && (
+                      <g transform={`translate(${cx}, ${cy})`} pointerEvents="none">
+                        <path
+                          d="M 0 -4.3 L 4.1 -0.9 L 4.1 4.1 L -4.1 4.1 L -4.1 -0.9 Z"
+                          fill={UUI.white}
+                        />
+                        <rect x={-1.1} y={1.5} width={2.2} height={2.8} rx={0.5} fill={UUI.brand600} />
+                      </g>
+                    )}
+                    {evt.type === 'equity_unlock' && (
+                      <g transform={`translate(${cx}, ${cy})`} pointerEvents="none">
+                        <rect x={-3.2} y={-0.3} width={6.4} height={5.2} rx={1.2} fill="none" stroke={UUI.white} strokeWidth={1.2} />
+                        <path d="M 2 -0.3 L 2 -2.5 A 2 2 0 0 0 -2 -2.5 L -2 -1.3" fill="none" stroke={UUI.white} strokeWidth={1.2} strokeLinecap="round" />
+                        <circle cx={0} cy={2.1} r={0.8} fill={UUI.white} />
+                      </g>
+                    )}
+                    {evt.type === 'equity_pull' && (
+                      <text
+                        x={cx} y={cy + 0.3} textAnchor="middle" dominantBaseline="central"
+                        fontFamily={UUI.fontFamily} fontSize={11} fontWeight={700}
+                        fill={UUI.white} pointerEvents="none"
+                      >
+                        $
+                      </text>
+                    )}
                   </g>
                 );
-              })}
+              }); })()}
             </g>
           );
         })}
@@ -395,10 +416,9 @@ export const PropertyRoadmapSummary: React.FC = () => {
   );
 };
 
-/** Legend items for ChartCard */
+/** Legend items for ChartCard — one violet accent, glyph-differentiated on-chart */
 export const ROADMAP_LEGEND = [
-  { color: '#404040', label: 'Purchase', variant: 'ring' as const },
-  { color: EVENT_COLORS.equity_unlock, label: 'Equity Unlock' },
-  { color: EVENT_COLORS.equity_pull, label: 'Equity Pull' },
-  { color: EVENT_COLORS.refinance, label: 'Refinance' },
+  { color: '#7C3AED', label: 'Purchase' },
+  { color: '#7C3AED', label: 'Equity unlock' },
+  { color: '#7C3AED', label: 'Equity pull' },
 ] as const;

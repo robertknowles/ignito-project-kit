@@ -4,6 +4,7 @@ import {
   Area,
   LineChart,
   Line,
+  LabelList,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,6 +22,7 @@ const UUI = {
   brand300: '#A78BFA',
   brand200: '#EDE9FE',
   growth500: '#17B26A',
+  reference: '#A1A1AA',   // grey (Principal line, §3.11)
   neutral900: '#181D27',
   neutral500: '#717680',
   neutral200: '#E9EAEB',
@@ -55,11 +57,12 @@ const MiniTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// §3.11 axis type — 11px/400 #A1A1AA (the prototype's chart-axis grey)
 const sharedXAxis = {
   axisLine: false as const,
   tickLine: false as const,
   tickMargin: 8,
-  tick: { fontSize: 11, fontWeight: 600, fill: UUI.neutral500 },
+  tick: { fontSize: 11, fontWeight: 400, fill: '#A1A1AA' },
   padding: { left: 10, right: 10 },
 };
 
@@ -82,7 +85,7 @@ const sharedYAxis = {
   axisLine: false as const,
   tickLine: false as const,
   width: 48,
-  tick: { fontSize: 11, fontWeight: 600, fill: UUI.neutral500 },
+  tick: { fontSize: 11, fontWeight: 400, fill: '#A1A1AA' },
   tickFormatter: (v: number) => formatCompact(v),
 };
 
@@ -119,20 +122,159 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys
     };
   });
 
+  // Round-number Y frame + sparse 5-year X ticks incl. the last year
+  // (same §3.9a/§3.5 system as the plan charts; prototype shows
+  // 2026/2031/2036/2041/2045 and $300K-step Y ticks).
+  const allVals = data.flatMap(d => [d.principalPaid, d.netCashflow, d.capitalGrowth]);
+  const maxV = Math.max(0, ...allVals);
+  const minV = Math.min(0, ...allVals);
+  const niceCeil = (v: number) => {
+    if (v <= 0) return 1_000_000;
+    const pow = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const s of [1, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= s * pow) return s * pow;
+    return 10 * pow;
+  };
+  // Half-step ticks below zero (prototype: −$150K under $300K steps) so the
+  // negative region only takes the room it needs.
+  const step = niceCeil(maxV) / 4;
+  const below = minV < 0 ? Math.ceil(Math.abs(minV) / (step / 2)) : 0;
+  const yTicks = [
+    ...Array.from({ length: below }, (_, i) => -(below - i) * (step / 2)),
+    ...Array.from({ length: 5 }, (_, i) => i * step),
+  ];
+  const xTicks = data
+    .map(d => d.year)
+    .filter((y, i, arr) => i % 5 === 0 || i === arr.length - 1);
+
+  // Mid (Yr 10-ish) + end value labels overlaid on each line (§3.11).
+  const lastIdx = data.length - 1;
+  const midIdx = Math.max(0, Math.round(lastIdx / 2));
+  const makeLabel = (color: string) => (props: any) => {
+    const { x, y, value, index } = props;
+    if (index !== midIdx && index !== lastIdx) return null;
+    const isEnd = index === lastIdx;
+    return (
+      <text
+        x={isEnd ? x + 6 : x}
+        y={isEnd ? y + 3 : y - 8}
+        fill={color}
+        fontSize={11}
+        fontWeight={600}
+        textAnchor={isEnd ? 'start' : 'middle'}
+        fontFamily={UUI.fontFamily}
+      >
+        {formatCompact(value)}
+      </text>
+    );
+  };
+
   return (
     <div className="h-full min-h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-          <XAxis dataKey="year" {...sharedXAxis} interval={evenTickInterval(data.length)} />
-          <YAxis {...sharedYAxis} />
+        <LineChart data={data} margin={{ top: 12, right: 48, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke="#F0F1F4" />
+          <XAxis dataKey="year" {...sharedXAxis} ticks={xTicks} interval={0} />
+          <YAxis {...sharedYAxis} domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks} />
           <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
-          <ReferenceLine y={0} stroke={UUI.neutral200} />
-          <Line type="monotone" dataKey="totalIncPrincipal" name="Total performance inc. principal" stroke={UUI.brand700} strokeWidth={2.5} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('totalIncPrincipal')} />
-          <Line type="monotone" dataKey="capitalGrowth" name="Capital growth (cumulative)" stroke={UUI.growth500} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('capitalGrowth')} />
-          <Line type="monotone" dataKey="netCashflow" name="Net cashflow (cumulative)" stroke={UUI.brand600} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('netCashflow')} />
-          <Line type="monotone" dataKey="principalPaid" name="Principal payments (cumulative)" stroke={UUI.brand300} strokeWidth={2} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('principalPaid')} />
+          <ReferenceLine y={0} stroke="#D5D5DB" />
+          {/* Capital growth — violet ink */}
+          <Line type="monotone" dataKey="capitalGrowth" name="Capital growth" stroke="#7C3AED" strokeWidth={2.75} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('capitalGrowth')}>
+            {!hiddenKeys.includes('capitalGrowth') && <LabelList dataKey="capitalGrowth" content={makeLabel('#7C3AED')} />}
+          </Line>
+          {/* Net cashflow — violet fill */}
+          <Line type="monotone" dataKey="netCashflow" name="Net cashflow" stroke="#8B5CF6" strokeWidth={2.75} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('netCashflow')}>
+            {!hiddenKeys.includes('netCashflow') && <LabelList dataKey="netCashflow" content={makeLabel('#8B5CF6')} />}
+          </Line>
+          {/* Principal paid down — muted grey */}
+          <Line type="monotone" dataKey="principalPaid" name="Principal paid down" stroke="#98A2B3" strokeWidth={2.5} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('principalPaid')}>
+            {!hiddenKeys.includes('principalPaid') && <LabelList dataKey="principalPaid" content={makeLabel('#98A2B3')} />}
+          </Line>
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+// ── Shared single-series area chart for the two standalone projections ──────
+// Same chart language as the hero: 11px/400 #A1A1AA axes, #F0F1F4 grid,
+// #D5D5DB zero line, round Y ticks (half-step below zero), 5-year X ticks +
+// last, and mid/end value labels on the line.
+const BriefAreaChart: React.FC<{
+  data: { year: string; value: number }[];
+  name: string;
+  color: string;
+  gradientId: string;
+}> = ({ data, name, color, gradientId }) => {
+  if (!data.length) return null;
+
+  const vals = data.map(d => d.value);
+  const maxV = Math.max(0, ...vals);
+  const minV = Math.min(0, ...vals);
+  const niceCeil = (v: number) => {
+    if (v <= 0) return 1_000;
+    const pow = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const s of [1, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= s * pow) return s * pow;
+    return 10 * pow;
+  };
+  const step = niceCeil(maxV) / 4;
+  const below = minV < 0 ? Math.ceil(Math.abs(minV) / (step / 2)) : 0;
+  const yTicks = [
+    ...Array.from({ length: below }, (_, i) => -(below - i) * (step / 2)),
+    ...Array.from({ length: 5 }, (_, i) => i * step),
+  ];
+  const xTicks = data
+    .map(d => d.year)
+    .filter((y, i, arr) => i % 5 === 0 || i === arr.length - 1);
+
+  const lastIdx = data.length - 1;
+  const midIdx = Math.max(0, Math.round(lastIdx / 2));
+  const label = (props: any) => {
+    const { x, y, value, index } = props;
+    if (index !== midIdx && index !== lastIdx) return null;
+    const isEnd = index === lastIdx;
+    return (
+      <text
+        x={isEnd ? x + 6 : x}
+        y={isEnd ? y + 3 : y - 8}
+        fill={color}
+        fontSize={11}
+        fontWeight={600}
+        textAnchor={isEnd ? 'start' : 'middle'}
+        fontFamily={UUI.fontFamily}
+      >
+        {formatCompact(value)}
+      </text>
+    );
+  };
+
+  return (
+    <div className="h-52">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 12, right: 48, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.12} />
+              <stop offset="95%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#F0F1F4" />
+          <XAxis dataKey="year" {...sharedXAxis} ticks={xTicks} interval={0} />
+          <YAxis {...sharedYAxis} domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks} />
+          <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
+          {minV < 0 && <ReferenceLine y={0} stroke="#D5D5DB" />}
+          <Area
+            type="monotone"
+            dataKey="value"
+            name={name}
+            stroke={color}
+            strokeWidth={2.75}
+            fill={`url(#${gradientId})`}
+            dot={false}
+            isAnimationActive={false}
+          >
+            <LabelList dataKey="value" content={label} />
+          </Area>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
@@ -142,79 +284,18 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys
 export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizon }) => {
   const data = yearRows.filter(r => r.year >= 1 && r.year <= horizon).map(r => ({
     year: calYear(r.year),
-    netCashflow: Math.round(r.netCashflow),
+    value: Math.round(r.netCashflow),
   }));
-
-  if (!data.length) return null;
-
-  return (
-    <div className="h-44">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="briefCfGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={UUI.brand600} stopOpacity={0.12} />
-              <stop offset="95%" stopColor={UUI.brand600} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-          <XAxis dataKey="year" {...sharedXAxis} interval={evenTickInterval(data.length)} />
-          <YAxis {...sharedYAxis} />
-          <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
-          <ReferenceLine y={0} stroke={UUI.neutral200} />
-          <Area
-            type="monotone"
-            dataKey="netCashflow"
-            name="Net cashflow"
-            stroke={UUI.brand600}
-            strokeWidth={2}
-            fill="url(#briefCfGradient)"
-            dot={false}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return <BriefAreaChart data={data} name="Net cashflow" color="#8B5CF6" gradientId="briefCfGradient" />;
 };
 
 /** Growth Projections — equity from purchase over the selected horizon. */
 export const BriefGrowthChart: React.FC<BriefChartProps> = ({ yearRows, horizon }) => {
   const data = yearRows
-    .filter(r => r.year >= 0 && r.year <= horizon)
+    .filter(r => r.year >= 1 && r.year <= horizon)
     .map(r => ({
-      year: r.year === 0 ? 'At purchase' : calYear(r.year),
-      equity: Math.round(r.equity),
+      year: calYear(r.year),
+      value: Math.round(r.equity),
     }));
-
-  if (!data.length) return null;
-
-  return (
-    <div className="h-44">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="briefGrowthGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={UUI.growth500} stopOpacity={0.15} />
-              <stop offset="95%" stopColor={UUI.growth500} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-          <XAxis dataKey="year" {...sharedXAxis} interval={evenTickInterval(data.length)} />
-          <YAxis {...sharedYAxis} />
-          <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.growth500, strokeWidth: 1.5 }} />
-          <Area
-            type="monotone"
-            dataKey="equity"
-            name="Equity"
-            stroke={UUI.growth500}
-            strokeWidth={2}
-            fill="url(#briefGrowthGradient)"
-            dot={false}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return <BriefAreaChart data={data} name="Equity" color="#7C3AED" gradientId="briefGrowthGradient" />;
 };

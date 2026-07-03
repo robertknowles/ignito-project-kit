@@ -1,5 +1,5 @@
 import React from 'react'
-import { Info } from 'lucide-react'
+import { ArrowRight, Info } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 /**
@@ -30,6 +30,13 @@ interface InfoPopoverProps {
   align?: 'start' | 'center' | 'end'
   /** Override the trigger icon size (px). */
   iconSize?: number
+  /**
+   * Violet-tinted trigger chip. Reserved for the table-level "calculated
+   * view" icons, where the (i) must be findable before the user hovers.
+   */
+  accent?: boolean
+  /** Jump link rendered at the bottom, e.g. "Go to Purchases". */
+  action?: { label: string; onClick: () => void }
   className?: string
 }
 
@@ -40,6 +47,8 @@ export const InfoPopover: React.FC<InfoPopoverProps> = ({
   caveat,
   align = 'start',
   iconSize = 14,
+  accent,
+  action,
   className,
 }) => (
   <Popover>
@@ -47,10 +56,15 @@ export const InfoPopover: React.FC<InfoPopoverProps> = ({
       <button
         type="button"
         aria-label={title}
-        className="ml-1 inline-flex items-center justify-center rounded-full p-0.5 transition-colors hover:bg-gray-100"
+        className={`ml-1 inline-flex items-center justify-center rounded-full p-0.5 transition-colors ${
+          accent ? 'bg-[#F5F3FF] hover:bg-[#EDE9FE]' : 'hover:bg-gray-100'
+        }`}
         onClick={e => e.stopPropagation()}
       >
-        <Info style={{ width: iconSize, height: iconSize }} className="text-gray-400 hover:text-gray-600" />
+        <Info
+          style={{ width: iconSize, height: iconSize }}
+          className={accent ? 'text-[#7C3AED]' : 'text-gray-400 hover:text-gray-600'}
+        />
       </button>
     </PopoverTrigger>
     <PopoverContent
@@ -85,6 +99,17 @@ export const InfoPopover: React.FC<InfoPopoverProps> = ({
 
       {caveat && (
         <p className="mt-2.5 text-[11.5px] font-medium text-[#B42318]">{caveat}</p>
+      )}
+
+      {action && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); action.onClick() }}
+          className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#7C3AED] hover:text-[#6D28D9] transition-colors bg-transparent border-none p-0 cursor-pointer"
+        >
+          {action.label}
+          <ArrowRight style={{ width: 12, height: 12 }} />
+        </button>
       )}
     </PopoverContent>
   </Popover>

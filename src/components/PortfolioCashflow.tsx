@@ -8,24 +8,24 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { usePortfolioProjection, type YearCashflowSnapshot, type PropertyCashflowEntry } from '../hooks/usePortfolioProjection';
-import { getPropertyIconPath } from './icons/PropertyIconPaths';
 
 // ── UUI Design Tokens (matched to PropertyRoadmapChart) ──────────────────
 const UUI = {
   brand600: '#7C3AED',
   brand200: 'rgba(127, 86, 217, 0.25)',
   neutral900: '#181D27',
-  neutral700: '#404040',
+  neutral700: '#414651',
   neutral500: '#717680',
-  neutral300: '#D4D4D4',
+  neutral300: '#D5D7DA',
   neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
+  muted: '#C4C4CC',        // pre-purchase rows + scrubber track/fill (axis, not data)
   white: '#FFFFFF',
   fontFamily:
     'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 54;
 const BAR_H = 3;
 
 const fmt = (v: number) => {
@@ -65,7 +65,29 @@ export const PortfolioCashflow: React.FC = () => {
     1,
   );
 
-  const chartHeight = Math.max(snapshot.properties.length * ROW_HEIGHT + 8, 48);
+  // Full, stable property list (union across all years) so every row is always
+  // present — rows stay muted until their purchase year, then fill in (§3.7).
+  const allProperties = useMemo(() => {
+    if (!data) return [] as { instanceId: string; title: string; purchaseYear: number }[];
+    const byId = new Map<string, { instanceId: string; title: string; purchaseYear: number }>();
+    for (const snap of data.snapshots.values()) {
+      for (const p of snap.properties) {
+        if (!byId.has(p.instanceId)) {
+          byId.set(p.instanceId, { instanceId: p.instanceId, title: p.title, purchaseYear: p.purchaseYear });
+        }
+      }
+    }
+    return [...byId.values()].sort((a, b) => a.purchaseYear - b.purchaseYear || a.title.localeCompare(b.title));
+  }, [data]);
+
+  // Live entries for the selected year, keyed by property (present ⇒ owned).
+  const activeById = useMemo(() => {
+    const m = new Map<string, PropertyCashflowEntry>();
+    snapshot.properties.forEach(p => m.set(p.instanceId, p));
+    return m;
+  }, [snapshot]);
+
+  const chartHeight = Math.max(allProperties.length * ROW_HEIGHT + 8, 48);
 
   // Customized renderer — draws icons, bars, labels inside the Recharts coordinate system
   const CashflowBars = useCallback((props: any) => {
@@ -76,119 +98,62 @@ export const PortfolioCashflow: React.FC = () => {
     const plotWidth = offset.width ?? 600;
     const plotTop = offset.top ?? 0;
 
-    // Layout zones within the plot area
-    const iconCx = plotLeft + 13;
-    const iconSize = 14;
-    const bgSize = 26;
-
-    const labelX = plotLeft + bgSize + 6;       // IN / OUT text start
-    const barStartX = plotLeft + bgSize + 68;  // bars start after "IN $31k" labels
-    const netLabelWidth = 72;                   // right-aligned net value
-    const barMaxWidth = plotLeft + plotWidth - barStartX - netLabelWidth - 8;
+    // Layout zones: name/net header row, then paired In / Out bars (no LHS icon)
+    const labelX = plotLeft + 2;                 // "In" / "Out" text start
+    const barStartX = plotLeft + 26;             // bars start after the In/Out label
+    const valueW = 46;                           // right-aligned bar value
+    const valueRightX = plotLeft + plotWidth;
+    const barTrackW = Math.max(40, plotWidth - 26 - valueW - 6);
 
     return (
       <g>
-        {snapshot.properties.map((prop, idx) => {
+        {allProperties.map((prop, idx) => {
+          const entry = activeById.get(prop.instanceId);
+          const active = !!entry;                       // owned by the selected year
           const rowY = plotTop + idx * ROW_HEIGHT;
-          const centerY = rowY + ROW_HEIGHT / 2;
-          const inBarY = centerY - BAR_H - 4;
-          const outBarY = centerY + 4;
+          const headerY = rowY + 11;
+          const inY = rowY + 31;
+          const outY = rowY + 45;
 
-          const inW = Math.max((prop.grossIncome / maxBar) * barMaxWidth, 2);
-          const outW = Math.max((prop.totalOutgoings / maxBar) * barMaxWidth, 2);
+          const nameFill = active ? UUI.neutral900 : UUI.muted;
+          const labelFill = active ? UUI.neutral500 : UUI.muted;
 
-          const iconPath = getPropertyIconPath(prop.title);
+          const inW = active ? Math.max((entry!.grossIncome / maxBar) * barTrackW, 2) : 0;
+          const outW = active ? Math.max((entry!.totalOutgoings / maxBar) * barTrackW, 2) : 0;
 
           return (
             <g key={prop.instanceId}>
-              {/* Icon — white circle + stroke path (same as PropertyRoadmapChart) */}
-              <circle
-                cx={iconCx}
-                cy={centerY}
-                r={bgSize / 2}
-                fill={UUI.white}
-                stroke={UUI.neutral200}
-                strokeWidth={1}
-              />
-              <svg
-                x={iconCx - iconSize / 2}
-                y={centerY - iconSize / 2}
-                width={iconSize}
-                height={iconSize}
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ pointerEvents: 'none' }}
-              >
-                <path
-                  d={iconPath}
-                  stroke={UUI.neutral700}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-
-              {/* IN label with amount + bar */}
+              {/* Header — property name + net/yr (muted with — before purchase) */}
               <text
-                x={labelX}
-                y={inBarY + BAR_H / 2}
-                fontSize={10}
-                fontWeight={600}
-                fill={UUI.neutral500}
-                dominantBaseline="central"
-                fontFamily={UUI.fontFamily}
+                x={labelX} y={headerY} fontSize={12} fontWeight={600}
+                fill={nameFill} dominantBaseline="central" fontFamily={UUI.fontFamily}
               >
-                {`IN ${fmt(prop.grossIncome)}`}
+                {prop.title}
               </text>
-              <rect
-                x={barStartX}
-                y={inBarY}
-                width={inW}
-                height={BAR_H}
-                rx={1.5}
-                fill={UUI.brand600}
-              />
-
-              {/* OUT label with amount + bar */}
               <text
-                x={labelX}
-                y={outBarY + BAR_H / 2}
-                fontSize={10}
-                fontWeight={600}
-                fill={UUI.neutral500}
-                dominantBaseline="central"
-                fontFamily={UUI.fontFamily}
+                x={valueRightX} y={headerY} fontSize={12} fontWeight={600}
+                fill={active ? UUI.neutral700 : UUI.muted} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}
               >
-                {`OUT ${fmt(prop.totalOutgoings)}`}
+                {active ? `${fmtNet(entry!.netCashflow)}/yr` : '—'}
               </text>
-              <rect
-                x={barStartX}
-                y={outBarY}
-                width={outW}
-                height={BAR_H}
-                rx={1.5}
-                fill={UUI.brand200}
-              />
 
-              {/* Net cashflow — right-aligned */}
-              <text
-                x={plotLeft + plotWidth}
-                y={centerY}
-                fontSize={12}
-                fontWeight={600}
-                fill={UUI.neutral700}
-                textAnchor="end"
-                dominantBaseline="central"
-                fontFamily={UUI.fontFamily}
-              >
-                {fmtNet(prop.netCashflow)}/yr
-              </text>
+              {/* In — violet fill on a track */}
+              <text x={labelX} y={inY} fontSize={10} fill={labelFill} dominantBaseline="central" fontFamily={UUI.fontFamily}>In</text>
+              <rect x={barStartX} y={inY - BAR_H / 2} width={barTrackW} height={BAR_H} rx={1.5} fill="#F2F2F3" />
+              {active && <rect x={barStartX} y={inY - BAR_H / 2} width={inW} height={BAR_H} rx={1.5} fill="#8B5CF6" />}
+              <text x={valueRightX} y={inY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.grossIncome) : '—'}</text>
+
+              {/* Out — light-violet fill on a track */}
+              <text x={labelX} y={outY} fontSize={10} fill={labelFill} dominantBaseline="central" fontFamily={UUI.fontFamily}>Out</text>
+              <rect x={barStartX} y={outY - BAR_H / 2} width={barTrackW} height={BAR_H} rx={1.5} fill="#F2F2F3" />
+              {active && <rect x={barStartX} y={outY - BAR_H / 2} width={outW} height={BAR_H} rx={1.5} fill="#D9D2F2" />}
+              <text x={valueRightX} y={outY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.totalOutgoings) : '—'}</text>
             </g>
           );
         })}
       </g>
     );
-  }, [snapshot.properties, maxBar]);
+  }, [allProperties, activeById, maxBar]);
 
   if (!data || selectedYear === null) {
     return (
@@ -289,26 +254,45 @@ const YearSlider: React.FC<YearSliderProps> = ({ min, max, value, purchaseYears,
 
   return (
     <div>
-      <div style={{ position: 'relative', paddingTop: 8, paddingBottom: 2 }}>
+      <div style={{ position: 'relative', paddingTop: 22, paddingBottom: 2 }}>
         {purchaseYears.map(py => {
           const pct = ((py - min) / range) * 100;
           return (
-            <div
-              key={py}
-              style={{
-                position: 'absolute',
-                left: `${pct}%`,
-                top: 3,
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: py <= value ? UUI.brand600 : UUI.neutral300,
-                border: `2px solid ${UUI.white}`,
-                transform: 'translateX(-50%)',
-                zIndex: 2,
-                boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
-              }}
-            />
+            <React.Fragment key={py}>
+              {/* purchase year label above the pin (§3.7) */}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: `${pct}%`,
+                  top: 0,
+                  transform: 'translateX(-50%)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: '#414651',
+                  fontFamily: UUI.fontFamily,
+                  whiteSpace: 'nowrap',
+                  zIndex: 2,
+                }}
+              >
+                {py}
+              </span>
+              {/* purchase pin (violet = reached, grey = future) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${pct}%`,
+                  top: 14,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: py <= value ? UUI.brand600 : UUI.muted,
+                  border: `2px solid ${UUI.white}`,
+                  transform: 'translateX(-50%)',
+                  zIndex: 2,
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+                }}
+              />
+            </React.Fragment>
           );
         })}
 
@@ -324,7 +308,7 @@ const YearSlider: React.FC<YearSliderProps> = ({ min, max, value, purchaseYears,
             height: 4,
             appearance: 'none',
             WebkitAppearance: 'none',
-            background: `linear-gradient(to right, ${UUI.brand600} 0%, ${UUI.brand600} ${fillPct}%, ${UUI.neutral200} ${fillPct}%, ${UUI.neutral200} 100%)`,
+            background: `linear-gradient(to right, ${UUI.muted} 0%, ${UUI.muted} ${fillPct}%, ${UUI.neutral200} ${fillPct}%, ${UUI.neutral200} 100%)`,
             borderRadius: 2,
             outline: 'none',
             cursor: 'pointer',

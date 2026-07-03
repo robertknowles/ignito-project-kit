@@ -28,6 +28,15 @@ const UUI = {
 const fmt = (v: number) =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
 
+// KPI values compact like the prototype: $1.77M / $550k / +$6.4k/yr / $196k
+const fmtKpi = (v: number): string => {
+  const abs = Math.abs(v)
+  const sign = v < 0 ? '-' : ''
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000) return `${sign}$${abs < 10_000 ? (abs / 1_000).toFixed(1) : Math.round(abs / 1_000)}k`
+  return `${sign}$${Math.round(abs)}`
+}
+
 const formatCompact = (v: number): string => {
   const abs = Math.abs(v)
   const sign = v < 0 ? '-' : ''
@@ -57,7 +66,7 @@ const deriveMetrics = (p: ExistingProperty) => {
 
 // ── Inline cell components (matching PropertyCardRow style) ─────────────────
 
-const cellInput = 'w-full bg-transparent text-xs text-neutral-600 py-1 px-1 border-0 outline-none rounded hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 transition-colors'
+const cellInput = 'w-full bg-transparent text-xs text-[#535862] py-1 px-1 border-0 outline-none rounded hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors'
 const numInput = `${cellInput} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT']
@@ -74,14 +83,19 @@ const GROWTH_OPTIONS = [
 const NumCell: React.FC<{
   value: number
   onChange: (v: number) => void
-}> = ({ value, onChange }) => {
+  /** Comma-group the displayed number when not editing (money columns) */
+  grouped?: boolean
+  /** Right-align (all numerics except Year, per the prototype) */
+  right?: boolean
+}> = ({ value, onChange, grouped, right }) => {
   const [focused, setFocused] = useState(false)
   const [draft, setDraft] = useState('')
+  const display = value ? (grouped ? value.toLocaleString('en-AU') : value) : ''
   return (
     <input
       type="text"
       inputMode="decimal"
-      value={focused ? draft : (value || '')}
+      value={focused ? draft : display}
       onFocus={() => { setFocused(true); setDraft(value ? String(value) : '') }}
       onChange={e => setDraft(e.target.value)}
       onBlur={() => {
@@ -94,7 +108,7 @@ const NumCell: React.FC<{
         if (n !== null && n !== value) onChange(n)
       }}
       onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-      className={numInput}
+      className={`${numInput} ${right ? 'text-center' : ''}`}
     />
   )
 }
@@ -248,102 +262,106 @@ interface Column {
   key: string
   header: string
   render: (p: ExistingProperty, onChange: (id: string, updates: Partial<ExistingProperty>) => void) => React.ReactNode
+  /** Right-align header + cell content (numeric columns, per the prototype) */
+  align?: 'right'
+  /** Fixed column width (tableLayout: fixed) */
+  width?: number
 }
 
 const COLUMNS: Column[] = [
   {
-    key: 'address', header: 'Address',
+    key: 'address', width: 140, header: 'Address',
     render: (p, onChange) => <TextCell value={p.address} onChange={v => onChange(p.id, { address: v })} placeholder="Enter address" />,
   },
   {
-    key: 'year', header: 'Year',
+    key: 'year', width: 72, header: 'Year',
     render: (p, onChange) => <NumCell value={p.boughtYear} onChange={v => onChange(p.id, { boughtYear: v })} />,
   },
   {
-    key: 'growth', header: 'Growth',
+    key: 'growth', width: 84, header: 'Growth',
     render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
   },
   {
-    key: 'entity', header: 'Entity',
+    key: 'entity', width: 84, header: 'Entity',
     render: (p, onChange) => <SelectCell value={p.entity ?? 'individual'} options={[{value:'individual',label:'Indiv.'},{value:'trust',label:'Trust'},{value:'company',label:'Co.'},{value:'smsf',label:'SMSF'}]} onChange={v => onChange(p.id, { entity: v as any })} />,
   },
   {
-    key: 'isNewBuild', header: 'Type',
+    key: 'isNewBuild', width: 92, header: 'Type',
     render: (p, onChange) => <SelectCell value={p.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Estab.'},{value:'new',label:'New build'}]} onChange={v => onChange(p.id, { isNewBuild: v === 'new' })} />,
   },
   {
-    key: 'state', header: 'State',
+    key: 'state', width: 80, header: 'State',
     render: (p, onChange) => <SelectCell value={p.state} options={STATE_OPTIONS} onChange={v => onChange(p.id, { state: v })} />,
   },
   {
-    key: 'purchase', header: 'Purchase ($)',
-    render: (p, onChange) => <NumCell value={p.purchasePrice} onChange={v => onChange(p.id, { purchasePrice: v })} />,
+    key: 'purchase', width: 94, header: 'Purchase ($)', align: 'right',
+    render: (p, onChange) => <NumCell right grouped value={p.purchasePrice} onChange={v => onChange(p.id, { purchasePrice: v })} />,
   },
   {
-    key: 'current', header: 'Current ($)',
-    render: (p, onChange) => <NumCell value={p.currentValue} onChange={v => onChange(p.id, { currentValue: v })} />,
+    key: 'current', width: 94, header: 'Current ($)', align: 'right',
+    render: (p, onChange) => <NumCell right grouped value={p.currentValue} onChange={v => onChange(p.id, { currentValue: v })} />,
   },
   {
-    key: 'loan', header: 'Loan ($)',
-    render: (p, onChange) => <NumCell value={p.loan} onChange={v => onChange(p.id, { loan: v })} />,
+    key: 'loan', width: 94, header: 'Loan ($)', align: 'right',
+    render: (p, onChange) => <NumCell right grouped value={p.loan} onChange={v => onChange(p.id, { loan: v })} />,
   },
   {
-    key: 'lvr', header: 'LVR (%)',
+    key: 'lvr', width: 64, header: 'LVR (%)', align: 'right',
     render: (p, onChange) => {
       const computed = p.currentValue > 0 ? parseFloat((p.loan / p.currentValue * 100).toFixed(0)) : 0
       const display = p.lvrOverride ?? computed
-      return <NumCell value={display} onChange={v => onChange(p.id, { lvrOverride: v || null })} />
+      return <NumCell right value={display} onChange={v => onChange(p.id, { lvrOverride: v || null })} />
     },
   },
   {
-    key: 'rate', header: 'Rate (%)',
-    render: (p, onChange) => <NumCell value={p.interestRate} onChange={v => onChange(p.id, { interestRate: v })} />,
+    key: 'rate', width: 70, header: 'Rate (%)', align: 'right',
+    render: (p, onChange) => <NumCell right value={p.interestRate} onChange={v => onChange(p.id, { interestRate: v })} />,
   },
   {
-    key: 'product', header: 'Product',
+    key: 'product', width: 66, header: 'Product',
     render: (p, onChange) => <SelectCell value={p.loanType} options={PRODUCT_OPTIONS} onChange={v => onChange(p.id, { loanType: v as 'IO' | 'PI' })} />,
   },
   {
-    key: 'ioTerm', header: 'IO Term',
-    render: (p, onChange) => <NumCell value={p.ioTermYears ?? 5} onChange={v => onChange(p.id, { ioTermYears: v })} />,
+    key: 'ioTerm', width: 64, header: 'IO Term', align: 'right',
+    render: (p, onChange) => <NumCell right value={p.ioTermYears ?? 5} onChange={v => onChange(p.id, { ioTermYears: v })} />,
   },
   {
-    key: 'rent', header: 'Rent/wk ($)',
-    render: (p, onChange) => <NumCell value={p.rentPerWeek} onChange={v => onChange(p.id, { rentPerWeek: v })} />,
+    key: 'rent', width: 78, header: 'Rent/wk ($)', align: 'right',
+    render: (p, onChange) => <NumCell right value={p.rentPerWeek} onChange={v => onChange(p.id, { rentPerWeek: v })} />,
   },
   {
-    key: 'yield', header: 'Yield (%)',
+    key: 'yield', width: 66, header: 'Yield (%)', align: 'right',
     render: (p, onChange) => {
       const computed = p.purchasePrice > 0 ? parseFloat(calcGrossYield(p.rentPerWeek, p.purchasePrice).toFixed(1)) : 0
       const display = p.yieldOverride ?? computed
-      return <NumCell value={display} onChange={v => onChange(p.id, { yieldOverride: v || null })} />
+      return <NumCell right value={display} onChange={v => onChange(p.id, { yieldOverride: v || null })} />
     },
   },
   // Annual holding cost + one-off purchase costs, rolled up to match the
   // purchases table. Editing stores an override; components stay untouched.
   {
-    key: 'holdingCost', header: 'Holding $/yr',
+    key: 'holdingCost', width: 86, header: 'Holding $/yr', align: 'right',
     render: (p, onChange) => {
       const mgmtDollar = (p.propertyMgmtPercent / 100) * calcAnnualRent(p.rentPerWeek)
       const computed = Math.round(mgmtDollar + p.insurance + p.councilWater + (p.strata ?? 0) + p.maintenance)
       const display = p.holdingCostOverride ?? computed
-      return <NumCell value={display} onChange={v => onChange(p.id, { holdingCostOverride: v || null })} />
+      return <NumCell right grouped value={display} onChange={v => onChange(p.id, { holdingCostOverride: v || null })} />
     },
   },
   {
-    key: 'purchaseCosts', header: 'Purchase Costs',
+    key: 'purchaseCosts', width: 92, header: 'Purchase Costs', align: 'right',
     render: (p, onChange) => {
       const computed = Math.round(p.baFee + p.buildingPest + p.legals)
       const display = p.purchaseCostsOverride ?? computed
-      return <NumCell value={display} onChange={v => onChange(p.id, { purchaseCostsOverride: v || null })} />
+      return <NumCell right grouped value={display} onChange={v => onChange(p.id, { purchaseCostsOverride: v || null })} />
     },
   },
   {
-    key: 'saleYear', header: 'Sell',
+    key: 'saleYear', width: 90, header: 'Sell',
     render: (p, onChange) => <SaleYearTogglePortfolio value={p.saleYear} onChange={v => onChange(p.id, { saleYear: v })} />,
   },
   {
-    key: 'allowEquityRelease', header: 'Refinance',
+    key: 'allowEquityRelease', width: 72, header: 'Refinance',
     render: (p, onChange) => <CheckboxCell checked={p.allowEquityRelease !== false} onChange={v => onChange(p.id, { allowEquityRelease: v })} />,
   },
 ]
@@ -447,9 +465,9 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   }, [properties])
 
   const waterfallData = useMemo(() => [
-    { name: 'New debt @ 80%', value: borrowableEquityData.totalNewDebt, fill: UUI.brand600 },
-    { name: 'Current debt', value: -borrowableEquityData.currentDebt, fill: UUI.brand300 },
-    { name: 'Borrowable equity', value: borrowableEquityData.borrowable, fill: UUI.brand500 },
+    { name: 'New debt @ 80%', value: borrowableEquityData.totalNewDebt, fill: '#8B5CF6' },
+    { name: 'Current debt', value: -borrowableEquityData.currentDebt, fill: '#D9D2F2' },
+    { name: 'Borrowable equity', value: borrowableEquityData.borrowable, fill: '#8B5CF6' },
   ], [borrowableEquityData])
 
   if (properties.length === 0) {
@@ -477,40 +495,33 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     )
   }
 
+  // Single segmented KPI bar (§3.10 / prototype) — one card, divided into 4.
   const kpiCards = (
-    <div className="grid grid-cols-4 gap-3">
-      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#717680]">Combined Value</span>
-        </div>
-        <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.combinedValue)}</span>
+    <div className="grid grid-cols-4 bg-white rounded-xl border border-[#E9EAEB] divide-x divide-[#E9EAEB]">
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Combined value</span>
+        <div className="mt-2">
+          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.combinedValue)}</span>
         </div>
       </div>
-      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#717680]">Total Equity</span>
-        </div>
-        <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.totalEquity)}</span>
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Total equity</span>
+        <div className="mt-2">
+          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.totalEquity)}</span>
         </div>
       </div>
-      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#717680]">Annual Cashflow</span>
-        </div>
-        <div className="mt-0.5">
-          <span className={`text-lg font-medium tracking-tight ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#181D27]' : 'text-gray-500'}`}>
-            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{formatCompact(portfolioMetrics.totalCashflow)}
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Net cashflow</span>
+        <div className="mt-2">
+          <span className={`text-[24px] font-semibold tracking-[-0.02em] leading-none ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#17B26A]' : 'text-[#F04438]'}`}>
+            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtKpi(portfolioMetrics.totalCashflow)}/yr
           </span>
         </div>
       </div>
-      <div className="bg-white rounded-lg border border-[#E9EAEB] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#717680]">Releasable Equity</span>
-        </div>
-        <div className="mt-0.5">
-          <span className="text-lg font-medium text-[#181D27] tracking-tight">{formatCompact(portfolioMetrics.releasableEquity)}</span>
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Releasable equity</span>
+        <div className="mt-2">
+          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.releasableEquity)}</span>
         </div>
       </div>
     </div>
@@ -526,16 +537,16 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
         Add property
       </button>
     }>
+      <div className="px-5 pb-5">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: 1400, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: 1620, tableLayout: 'fixed' }}>
           <thead>
-            <tr className="border-b border-neutral-200">
+            <tr className="border-b border-[#E9EAEB]">
               {COLUMNS.map((col, i) => (
                 <th
                   key={col.key}
-                  className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
-                    i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
-                  }`}
+                  className={`text-[11px] font-medium text-[#717680] py-2.5 px-3 whitespace-nowrap ${col.align === 'right' ? 'text-center' : 'text-left'} ${i > 0 ? 'border-l border-[#F2F4F7]' : ''}`}
+                  style={col.width ? { width: col.width } : undefined}
                   title={col.key === 'saleYear' ? 'CGT rate varies by entity: Individual/Trust use marginal rate with CGT discount, Company uses flat rate (no discount), SMSF uses 15% with 33.3% discount. Configurable in Assumptions.' : col.key === 'allowEquityRelease' ? 'When checked, this property\'s equity can be released to fund new purchases. Uncheck to exclude.' : col.key === 'isNewBuild' ? 'New build vs established. New builds can elect the 50% CGT discount; established properties use cost-base indexation plus a 30% minimum tax. Affects the CGT estimate at sale.' : undefined}
                 >
                   {col.header}
@@ -546,13 +557,11 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
           </thead>
           <tbody>
             {properties.map(p => (
-              <tr key={p.id} className="border-b border-neutral-200 last:border-b-0">
+              <tr key={p.id} className="border-b border-[#F2F2F2] last:border-b-0 hover:bg-[#FAFAFA] transition-colors">
                 {COLUMNS.map((col, i) => (
                   <td
                     key={col.key}
-                    className={`py-1 px-3 ${
-                      i < COLUMNS.length - 1 ? 'border-r border-neutral-100' : ''
-                    }`}
+                    className={`px-3 py-2 align-middle ${i > 0 ? 'border-l border-[#F2F4F7]' : ''}`}
                   >
                     {col.key === 'saleYear'
                       ? <SaleYearTogglePortfolio value={p.saleYear} onChange={v => handleUpdate(p.id, { saleYear: v })} estimate={cgtById[p.id]} />
@@ -562,7 +571,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                 <td className="py-1 px-1">
                   <button
                     onClick={() => handleRemove(p.id)}
-                    className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                    className="p-1 text-[#C4B5FD] hover:text-[#7C3AED] transition-colors bg-transparent border-none cursor-pointer"
                     title="Remove property"
                   >
                     <X size={12} />
@@ -573,6 +582,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
           </tbody>
         </table>
       </div>
+      </div>
     </ChartCard>
   )
 
@@ -581,49 +591,46 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
       {kpiCards}
       {propertiesTable}
       <div className="grid grid-cols-3 gap-4">
-        <ChartCard title="Capital Composition" legend={[
-          { color: UUI.brand200, label: 'Loan balance' },
-          { color: UUI.brand600, label: 'Equity' },
+        <ChartCard title="Capital Composition" legendBelow legend={[
+          { color: '#D9D2F2', label: 'Loan balance', variant: 'square' },
+          { color: '#8B5CF6', label: 'Equity', variant: 'square' },
         ]}>
-          <ResponsiveContainer width="100%" height={180}>
-            <RechartsBarChart data={capitalCompData} barGap={4} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+          <ResponsiveContainer width="100%" height={200}>
+            <RechartsBarChart data={capitalCompData} barGap={10} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 400, fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickMargin={10} />
               <Tooltip formatter={(v: number) => fmt(v)} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <Bar dataKey="loanBalance" name="Loan balance" fill={UUI.brand200} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
-              <Bar dataKey="equity" name="Equity" fill={UUI.brand600} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
+              <ReferenceLine y={0} stroke="#E4E7EC" />
+              <Bar dataKey="loanBalance" name="Loan balance" fill="#D9D2F2" radius={[2, 2, 0, 0]} barSize={28} isAnimationActive={false} />
+              <Bar dataKey="equity" name="Equity" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={28} isAnimationActive={false} />
             </RechartsBarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Income vs Expenses" legend={[
-          { color: UUI.brand600, label: 'Rental income' },
-          { color: UUI.brand300, label: 'Expenses + repayments' },
+        <ChartCard title="Income vs Expenses" legendBelow legend={[
+          { color: '#8B5CF6', label: 'Rental income', variant: 'square' },
+          { color: '#D9D2F2', label: 'Expenses + repayments', variant: 'square' },
         ]}>
-          <ResponsiveContainer width="100%" height={180}>
-            <RechartsBarChart data={incomeExpenseData} barGap={4} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+          <ResponsiveContainer width="100%" height={200}>
+            <RechartsBarChart data={incomeExpenseData} barGap={10} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 400, fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickMargin={10} />
               <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <ReferenceLine y={0} stroke={UUI.neutral200} />
-              <Bar dataKey="rentalIncome" name="Rental income" fill={UUI.brand600} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={false} />
-              <Bar dataKey="expenses" name="Expenses + repayments" fill={UUI.brand300} radius={[0, 0, 4, 4]} barSize={24} isAnimationActive={false} />
+              <ReferenceLine y={0} stroke="#D5D5DB" />
+              <Bar dataKey="rentalIncome" name="Rental income" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={28} isAnimationActive={false} />
+              <Bar dataKey="expenses" name="Expenses + repayments" fill="#D9D2F2" radius={[0, 0, 2, 2]} barSize={28} isAnimationActive={false} />
             </RechartsBarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Borrowable Equity" legend={[
-          { color: UUI.brand600, label: 'New debt @ 80%' },
-          { color: UUI.brand300, label: 'Current debt' },
-          { color: UUI.brand500, label: 'Borrowable' },
+        <ChartCard title="Borrowable Equity" legendBelow legend={[
+          { color: '#8B5CF6', label: 'New debt @ 80%', variant: 'square' },
+          { color: '#D9D2F2', label: 'Current debt', variant: 'square' },
         ]}>
-          <ResponsiveContainer width="100%" height={180}>
-            <RechartsBarChart data={waterfallData} barSize={48} margin={{ top: 8, right: 16, left: 16, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={UUI.neutral100} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: UUI.neutral500 }} axisLine={false} tickLine={false} tickMargin={10} />
+          <ResponsiveContainer width="100%" height={200}>
+            <RechartsBarChart data={waterfallData} barSize={48} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 400, fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickMargin={10} />
               <Tooltip formatter={(v: number) => fmt(Math.abs(v as number))} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-              <ReferenceLine y={0} stroke={UUI.neutral200} />
-              <Bar dataKey="value" radius={[4, 4, 4, 4]} isAnimationActive={false}>
+              <ReferenceLine y={0} stroke="#D5D5DB" />
+              <Bar dataKey="value" radius={[2, 2, 2, 2]} isAnimationActive={false}>
                 {waterfallData.map((entry, i) => (
                   <Cell key={i} fill={entry.fill} />
                 ))}

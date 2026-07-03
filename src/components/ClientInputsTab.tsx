@@ -19,14 +19,17 @@ const periodToYear = (period: number): number =>
 
 // ── Read-only row ───────────────────────────────────────────────────────────
 
+// PropPath Client Inputs record rows — label #535862 / value #181D27 right-
+// aligned, #F2F2F2 dividers, no vertical rule. The one derived row (Usable
+// equity) gets weight 600 + a #FAFAFA band.
 const KVRow: React.FC<{
   label: string
   value: string | number
   bold?: boolean
 }> = ({ label, value, bold }) => (
-  <tr className="border-b border-neutral-200 last:border-b-0">
-    <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-    <td className={`py-2 px-3 text-xs ${bold ? 'font-medium text-neutral-900' : 'text-neutral-600'}`}>{value}</td>
+  <tr className={`border-b border-[#F2F2F2] last:border-b-0 ${bold ? 'bg-[#FAFAFA]' : ''}`}>
+    <td className={`py-[10px] pl-[18px] pr-3 text-[13px] ${bold ? 'font-semibold' : 'font-normal'} text-[#535862] whitespace-nowrap`}>{label}</td>
+    <td className={`py-[10px] pr-[18px] pl-3 text-[13px] text-right ${bold ? 'font-semibold' : 'font-normal'} text-[#181D27]`}>{value}</td>
   </tr>
 )
 
@@ -55,9 +58,9 @@ const EditableNumRow: React.FC<{
   const display = `${prefix ?? ''}${displayVal}${suffix ?? ''}`
 
   return (
-    <tr className="border-b border-neutral-200 last:border-b-0">
-      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-      <td className="py-1.5 px-2">
+    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+      <td className="py-[10px] pl-[18px] pr-3 text-[13px] font-normal text-[#535862] whitespace-nowrap">{label}</td>
+      <td className="py-[5px] pr-[14px] pl-2">
         <input
           type="text"
           inputMode="decimal"
@@ -79,7 +82,7 @@ const EditableNumRow: React.FC<{
             }
           }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300"
+          className="w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors"
         />
       </td>
     </tr>
@@ -97,16 +100,16 @@ const EditableSelectRow: React.FC<{
   const { updateProfile } = useInvestmentProfile()
 
   return (
-    <tr className="border-b border-neutral-200 last:border-b-0">
-      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-      <td className="py-1.5 px-2">
+    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+      <td className="py-[10px] pl-[18px] pr-3 text-[13px] font-normal text-[#535862] whitespace-nowrap">{label}</td>
+      <td className="py-[5px] pr-[14px] pl-2">
         <select
           value={value}
           onChange={e => {
             updateProfile({ [field]: e.target.value } as Partial<InvestmentProfileData>)
             track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
           }}
-          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 cursor-pointer"
+          className="w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors cursor-pointer"
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -215,7 +218,7 @@ export const ClientInputsTab: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setCategoryPickerOpen(!categoryPickerOpen)}
-              className="flex items-center gap-1 px-2 text-[12px] font-medium text-neutral-500 hover:text-neutral-700 rounded hover:bg-neutral-100 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 text-[13px] font-medium text-[#7C3AED] hover:bg-[#F5F3FF] rounded transition-colors cursor-pointer"
               style={{ height: 20, lineHeight: '20px' }}
             >
               <Plus size={14} />
@@ -251,19 +254,21 @@ export const ClientInputsTab: React.FC = () => {
               .map(event => (
               <tr
                 key={event.id}
-                className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 cursor-pointer transition-colors"
+                className="border-b border-[#F2F2F2] last:border-b-0 hover:bg-[#FAFAFA] cursor-pointer transition-colors"
                 onClick={() => setEventModalOpen(true)}
               >
-                <td className="py-2 px-3 border-r border-neutral-100" style={{ width: 32 }}>
-                  <EventTypeIcon eventType={event.eventType} size={14} className="text-neutral-400" />
+                <td className="py-2 pl-[18px] pr-0" style={{ width: 44 }}>
+                  <span className="flex items-center justify-center w-[26px] h-[26px] rounded-[7px] bg-[#EDE9FE] text-[#7C3AED]">
+                    <EventTypeIcon eventType={event.eventType} size={13} />
+                  </span>
                 </td>
-                <td className="py-2 px-3 text-xs font-semibold text-neutral-700 border-r border-neutral-100">
+                <td className="py-3 px-3.5 text-[13px] font-medium text-[#181D27]">
                   {event.label || getEventLabel(event.eventType, event.payload)}
                 </td>
-                <td className="py-2 px-3 text-xs text-neutral-500 border-r border-neutral-100 whitespace-nowrap">
+                <td className="py-3 px-3 text-xs text-[#717680] whitespace-nowrap text-right">
                   {periodToYear(event.period)}
                 </td>
-                <td className="py-2 px-1" style={{ width: 28 }}>
+                <td className="py-2 pl-1 pr-2" style={{ width: 28 }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeEvent(event.id) }}
                     className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
@@ -282,23 +287,25 @@ export const ClientInputsTab: React.FC = () => {
                 return (
                   <tr
                     key={slot.eventType}
-                    className="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 cursor-pointer transition-colors"
+                    className="border-b border-[#F2F2F2] last:border-b-0 hover:bg-[#FAFAFA] cursor-pointer transition-colors"
                     onClick={() => {
                       setEventCategory(slot.category)
                       setEventInitialType(slot.eventType)
                       setEventModalOpen(true)
                     }}
                   >
-                    <td className="py-2 px-3 border-r border-neutral-100" style={{ width: 32 }}>
-                      <EventTypeIcon eventType={slot.eventType} size={14} className="text-neutral-300" />
+                    <td className="py-2 pl-[18px] pr-0" style={{ width: 44 }}>
+                      <span className="flex items-center justify-center w-[26px] h-[26px] rounded-[7px] bg-[#F2F2F3] text-[#717680]">
+                        <EventTypeIcon eventType={slot.eventType} size={13} />
+                      </span>
                     </td>
-                    <td className="py-2 px-3 text-xs font-medium text-neutral-400 border-r border-neutral-100">
+                    <td className="py-3 px-3.5 text-[13px] font-medium text-[#A1A1AA]">
                       {typeDef.label}
                     </td>
-                    <td className="py-2 px-3 text-xs text-neutral-300 border-r border-neutral-100 whitespace-nowrap">
+                    <td className="py-3 px-3 text-xs text-[#A1A1AA] whitespace-nowrap text-right">
                       Click to configure
                     </td>
-                    <td className="py-2 px-1" style={{ width: 28 }} />
+                    <td className="py-2 pl-1 pr-2" style={{ width: 28 }} />
                   </tr>
                 )
               })}

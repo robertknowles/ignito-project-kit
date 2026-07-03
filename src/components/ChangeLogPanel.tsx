@@ -14,6 +14,7 @@ const SOURCE_LABELS: Record<string, string> = {
   purchases: 'Purchases',
   'existing-portfolio': 'Existing portfolio',
   brief: 'Next purchase brief',
+  ai: 'AI insight',
 };
 
 const formatTime = (ts: number) =>
@@ -48,6 +49,10 @@ export const ChangeLogBell: React.FC = () => {
       } ${panelOpen ? 'ring-1 ring-neutral-300' : ''}`}
     >
       <Bell size={15} />
+      {/* Shimmer sweep while unread — same attention pattern as the Retirement
+          sell button. Inner clipped layer so the badge (outside the button
+          bounds) isn't cut off. */}
+      {hasUnread && <span className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none bell-shimmer" />}
       {hasUnread && (
         <span
           key={unreadCount}
@@ -57,7 +62,23 @@ export const ChangeLogBell: React.FC = () => {
           {unreadCount > 9 ? '9+' : unreadCount}
         </span>
       )}
-      <style>{'@keyframes bellPop { from { transform: scale(0.4); } to { transform: scale(1); } }'}</style>
+      <style>{`
+        @keyframes bellPop { from { transform: scale(0.4); } to { transform: scale(1); } }
+        .bell-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0;
+          width: 45%;
+          left: -50%;
+          background: linear-gradient(105deg, transparent, rgba(245, 158, 11, 0.22), transparent);
+          animation: bellShimmer 7s ease-in-out infinite;
+        }
+        @keyframes bellShimmer {
+          0% { left: -50%; }
+          14% { left: 110%; }
+          100% { left: 110%; }
+        }
+      `}</style>
     </button>
   );
 };
@@ -109,7 +130,7 @@ export const ChangeLogPanel: React.FC = () => {
               This session · {history.length} {history.length === 1 ? 'edit' : 'edits'}
             </div>
             {totals.length > 0 && (
-              <div style={{ fontSize: 12, color: '#737373', lineHeight: '17px' }}>
+              <div style={{ fontSize: 12, color: '#717680', lineHeight: '17px' }}>
                 {totals.map((t, i) => (
                   <span key={t.label}>
                     {i > 0 && <span style={{ color: '#A3A3A3' }}> · </span>}
@@ -125,7 +146,7 @@ export const ChangeLogPanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {history.length === 0 ? (
           <div style={{ fontSize: 12, color: '#A3A3A3', padding: '28px 16px', textAlign: 'center', lineHeight: '18px' }}>
-            Edits that change the plan will appear here.
+            Edits that change the plan — and AI decisions about it — will appear here.
           </div>
         ) : (
           history.map(entry => (
@@ -142,7 +163,7 @@ export const ChangeLogPanel: React.FC = () => {
                 </div>
               )}
               {entry.items.map((item, i) => (
-                <div key={i} className="flex items-start gap-2" style={{ fontSize: 12, color: '#737373', lineHeight: '18px' }}>
+                <div key={i} className="flex items-start gap-2" style={{ fontSize: 12, color: '#717680', lineHeight: '18px' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: item.positive === false ? '#F87171' : '#22C55E', flexShrink: 0, marginTop: 6 }} />
                   <span>
                     {item.text}

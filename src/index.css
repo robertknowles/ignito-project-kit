@@ -5,11 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global cell-level hover highlight for all tables */
-td:hover {
-  background-color: #f0f0f0;
-  transition: background-color 0.1s ease;
-}
+/* No global td:hover — hover means "editable" in this app. Editable values
+   carry their own violet hover pill; read-only tables stay stone cold. */
 
 @layer base {
   :root {

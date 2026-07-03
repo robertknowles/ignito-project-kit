@@ -1160,50 +1160,53 @@ export const ChatPanel: React.FC = () => {
       {/* Messenger-style chat widget — hidden during confirmation brief */}
       {chatPos && !pendingPlanResponse && (
       <div
-        className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60 overflow-hidden"
+        className={`fixed z-50 flex flex-col overflow-hidden transition-colors ${
+          minimized
+            ? 'rounded-full bg-[#7C3AED] shadow-lg cursor-pointer hover:bg-[#6D28D9]'
+            : 'bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60'
+        }`}
         style={{
-          left: chatPos.x,
-          top: minimized ? chatPos.y + chatSize.height - 48 : chatPos.y,
-          width: chatSize.width,
-          height: minimized ? 48 : chatSize.height,
-          transition: dragState.current?.active || resizeState.current?.active ? 'none' : 'top 0.2s ease, height 0.2s ease',
+          right: 28,
+          bottom: 28,
+          width: minimized ? 56 : 360,
+          height: minimized ? 56 : Math.min(chatSize.height, 560),
         }}
+        onClick={minimized ? () => setMinimized(false) : undefined}
+        title={minimized ? 'PropPath AI' : undefined}
       >
-        {/* Header — drag to move, click to toggle */}
+        {minimized ? (
+          /* Collapsed — §2.6 circular FAB with white sparkle */
+          <div className="flex items-center justify-center w-full h-full text-white">
+            <SparklesIcon size={24} />
+          </div>
+        ) : (
+        /* Expanded — popover header (online dot + title + close) */
         <div
-          onMouseDown={onHeaderMouseDown}
-          className="flex-shrink-0 flex items-center h-[48px] px-3 cursor-grab active:cursor-grabbing hover:bg-neutral-50 transition-colors select-none"
-          style={!minimized ? { borderBottom: '1px solid #e5e5e5' } : {}}
+          className="flex-shrink-0 flex items-center h-[48px] px-3 select-none"
+          style={{ borderBottom: '1px solid #E9EAEB' }}
         >
           <div className="flex items-center gap-2 pl-1">
-            <div className="w-2 h-2 rounded-full bg-[#7F56D9]" />
-            <span className="text-sm font-semibold text-neutral-800">PropPath AI</span>
+            <div className="w-2 h-2 rounded-full bg-[#17B26A]" />
+            <span className="text-sm font-semibold text-[#181D27]">PropPath AI</span>
           </div>
           <div className="ml-auto flex items-center gap-0.5">
             <button
               onClick={(e) => { e.stopPropagation(); setStrategyProfileOpen(true); }}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-[#7F56D9] hover:bg-neutral-100 transition-colors"
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#7C3AED] hover:bg-neutral-100 transition-colors"
               title="Company strategies"
             >
               <SparklesIcon size={13} />
             </button>
-            {/* Drag handle — 3x3 dots */}
-            <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-300 cursor-grab active:cursor-grabbing">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <circle cx="3" cy="3" r="1.25" /><circle cx="7" cy="3" r="1.25" /><circle cx="11" cy="3" r="1.25" />
-                <circle cx="3" cy="7" r="1.25" /><circle cx="7" cy="7" r="1.25" /><circle cx="11" cy="7" r="1.25" />
-                <circle cx="3" cy="11" r="1.25" /><circle cx="7" cy="11" r="1.25" /><circle cx="11" cy="11" r="1.25" />
-              </svg>
-            </div>
             <button
               onClick={(e) => { e.stopPropagation(); setMinimized(true); }}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
-              title="Minimize"
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-neutral-100 transition-colors"
+              title="Close"
             >
               <XIcon size={14} />
             </button>
           </div>
         </div>
+        )}
 
         {/* Body — hidden when minimized */}
         {!minimized && (

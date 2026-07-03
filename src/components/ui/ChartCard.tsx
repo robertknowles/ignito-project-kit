@@ -6,12 +6,14 @@ import { useChartHoverTracking } from '@/hooks/useInteractionTracking';
 export interface LegendItem {
   color: string;
   label: string;
-  /** 'ring' renders an open circle outline; 'line' renders a dotted line */
-  variant?: 'dot' | 'ring' | 'line';
+  /** 'ring' = open circle outline; 'line' = dotted line; 'swatch' = filled band chip; 'square' = 8×8 bar-chart chip */
+  variant?: 'dot' | 'ring' | 'line' | 'swatch' | 'square';
 }
 
 interface ChartCardProps {
   title: string;
+  /** Rendered immediately after the title — the calculated-view (i) popover. */
+  titleInfo?: React.ReactNode;
   action?: React.ReactNode;
   legend?: LegendItem[];
   collapsible?: boolean;
@@ -24,32 +26,32 @@ interface ChartCardProps {
   children: React.ReactNode;
 }
 
-// ── UUI Design Tokens (from live DOM inspection of Dashboard 03) ────────────
+// ── PropPath card tokens (prototype-exact — PropPath Design System §1) ───────
 const UUI = {
-  neutral900: '#181D27',
-  neutral700: '#404040',
-  neutral500: '#717680',
-  neutral200: '#E9EAEB',
+  neutral900: '#181D27',  // primary text / values
+  neutral700: '#414651',  // card titles
+  neutral500: '#717680',  // meta / legend
+  neutral200: '#E9EAEB',  // card border
   neutral50: '#FAFAFA',
   white: '#FFFFFF',
 } as const;
 
 /**
- * ChartCard — UUI Dashboard 03 card style
+ * ChartCard — PropPath single flat white card
  *
- * Two-layer card: outer shell (#FAFAFA, shadow-xs, ring-1) wraps
- * an inner white section (12px radius, 20px padding, ring-1).
- * Title in the outer header, chart content in the inner card.
+ * One white card (14px radius, 1px #E9EAEB border). Title (13px/600 #414651)
+ * plus optional legend/action/expand in the header, chart content below.
+ * `flush` removes content padding for edge-to-edge tables.
  */
 export const ChartCard: React.FC<ChartCardProps> = ({
-  title, action, legend, collapsible, defaultCollapsed, flush, expandable, legendBelow, children
+  title, titleInfo, action, legend, collapsible, defaultCollapsed, flush, expandable, legendBelow, children
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
   const [expanded, setExpanded] = useState(false);
   const hoverTracking = useChartHoverTracking(title);
 
   const legendNode = legend && legend.length > 0 ? (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
       {legend.map((item, idx) => (
         <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {item.variant === 'line' ? (
@@ -57,6 +59,26 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
               <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
             </span>
+          ) : item.variant === 'swatch' ? (
+            <div
+              style={{
+                width: 12,
+                height: 9,
+                borderRadius: 2,
+                backgroundColor: item.color,
+                flexShrink: 0,
+              }}
+            />
+          ) : item.variant === 'square' ? (
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 2,
+                backgroundColor: item.color,
+                flexShrink: 0,
+              }}
+            />
           ) : item.variant === 'ring' ? (
             <div
               style={{
@@ -81,7 +103,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           )}
           <span
             style={{
-              fontSize: 12,
+              fontSize: 11,
               color: UUI.neutral500,
               fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
             }}
@@ -94,23 +116,22 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   ) : null;
 
   return (
-    /* Outer shell — #FAFAFA bg, 12px radius, inset ring, shadow-xs */
+    /* Single flat white card — 14px radius, 1px #E9EAEB border (prototype §1) */
     <div
       onMouseEnter={hoverTracking.onMouseEnter}
       onMouseLeave={hoverTracking.onMouseLeave}
       style={{
-        background: UUI.neutral50,
-        borderRadius: 12,
-        boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px`,
+        background: UUI.white,
+        borderRadius: 14,
+        border: `1px solid ${UUI.neutral200}`,
         overflow: 'visible',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* Header band — sits in the outer shell. When collapsed there's no inner
-          card below to provide bottom spacing, so balance the padding here. */}
+      {/* Header — title + legend/action/expand, on the white card */}
       <div
-        style={{ padding: collapsed ? '12px 20px' : '12px 20px 0 20px' }}
+        style={{ padding: collapsed ? '18px 20px' : '20px 20px 0 20px' }}
         className={collapsible ? 'cursor-pointer select-none' : ''}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
@@ -123,9 +144,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             )}
             <h3
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 600,
-                color: UUI.neutral900,
+                color: UUI.neutral700,
                 lineHeight: '20px',
                 margin: 0,
                 fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -133,9 +154,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             >
               {title}
             </h3>
+            {titleInfo}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {/* Legend — inline in header (unless moved below) */}
             {!collapsed && !legendBelow && legendNode}
             {action && !collapsed && action}
@@ -159,16 +181,17 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         )}
       </div>
 
-      {/* Inner white card — 12px radius, 20px padding, inset ring */}
+      {/* Content — chart/table body. `flush` = edge-to-edge (tables).
+          Flex column so a chart child with flex:1 fills the card height when
+          the card is stretched by a taller grid sibling. */}
       {!collapsed && (
         <div
           style={{
-            background: UUI.white,
-            borderRadius: 12,
-            margin: '12px 0 0 0',
-            boxShadow: `${UUI.neutral200} 0px 0px 0px 1px inset`,
-            padding: flush ? 0 : 20,
+            padding: flush ? '10px 0 0 0' : '8px 20px 18px 20px',
             flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
           }}
         >
           {children}

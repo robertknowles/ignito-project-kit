@@ -36,15 +36,32 @@ export function calculateOneOffCosts(
   stampDuty: number,
   depositBalance: number
 ): OneOffCosts {
+  // "Purchase Costs" override (purchases table) replaces the six fee/inspection
+  // components as a lump sum — deposit, stamp duty, holding deposit, independent
+  // valuation and post-settlement maintenance sit outside it, matching the
+  // table's rolled-up column. Scale the parts proportionally so itemised views
+  // and totalCashRequired reflect the edited figure.
+  const computedFees =
+    property.engagementFee +
+    property.buildingPestInspection +
+    property.plumbingElectricalInspections +
+    property.buildingInsuranceUpfront +
+    property.mortgageFees +
+    property.conveyancing;
+  const feeScale =
+    property.purchaseCostsOverride != null && computedFees > 0
+      ? property.purchaseCostsOverride / computedFees
+      : 1;
+
   // Engagement
-  const engagementFee = property.engagementFee;
+  const engagementFee = property.engagementFee * feeScale;
   const engagementTotal = engagementFee;
 
   // Exchange
   const conditionalHoldingDeposit = property.conditionalHoldingDeposit;
-  const buildingInsuranceUpfront = property.buildingInsuranceUpfront;
-  const buildingPestInspection = property.buildingPestInspection;
-  const plumbingElectricalInspections = property.plumbingElectricalInspections;
+  const buildingInsuranceUpfront = property.buildingInsuranceUpfront * feeScale;
+  const buildingPestInspection = property.buildingPestInspection * feeScale;
+  const plumbingElectricalInspections = property.plumbingElectricalInspections * feeScale;
   const independentValuation = property.independentValuation;
   const exchangeTotal =
     conditionalHoldingDeposit +
@@ -54,8 +71,8 @@ export function calculateOneOffCosts(
     independentValuation;
 
   // Settlement
-  const mortgageFees = property.mortgageFees;
-  const conveyancing = property.conveyancing;
+  const mortgageFees = property.mortgageFees * feeScale;
+  const conveyancing = property.conveyancing * feeScale;
   const settlementTotal = depositBalance + stampDuty + mortgageFees + conveyancing;
 
   // Post-settlement

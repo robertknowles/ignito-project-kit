@@ -63,6 +63,22 @@ const config: Config = {
           primary: "var(--brand-primary, #7C3AED)",
           secondary: "var(--brand-secondary, #8B5CF6)",
         },
+        // PropPath UUI grey ramp (§1.2). Overrides Tailwind's default neutral
+        // scale so every `neutral-*` class snaps to the exact brand hexes — the
+        // fix for default greys (#171717/#737373/#525252…) leaking through.
+        neutral: {
+          50: '#FAFAFA',
+          100: '#F5F5F5',
+          200: '#E9EAEB',
+          300: '#D5D7DA',
+          400: '#A1A1AA',
+          500: '#717680',
+          600: '#535862',
+          700: '#414651',
+          800: '#252B37',
+          900: '#181D27',
+          950: '#0C111D',
+        },
         offwhite: '#fafafa',
         charcoal: '#1a1a1a',
         linear: {

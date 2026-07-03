@@ -9,7 +9,6 @@ import {
   Tooltip,
   ReferenceLine,
   ReferenceDot,
-  Label,
   ResponsiveContainer,
 } from 'recharts'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
@@ -22,9 +21,11 @@ import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext
 // ── UUI Design Tokens (from live DOM inspection of Dashboard 03) ────────────
 const UUI = {
   brand600: '#7C3AED',
+  ink: '#7C3AED',   // pin outlines / goal glyph
+  fill: '#8B5CF6',  // anchor dots / stems
   neutral900: '#181D27',
   neutral700: '#404040',
-  neutral600: '#525252',
+  neutral600: '#535862',
   neutral500: '#717680',
   neutral200: '#E9EAEB',
   neutral100: '#F5F5F5',
@@ -45,19 +46,19 @@ interface CashflowChartProps {
   };
 }
 
-/** Cashflow positive marker — badge pinned to top of chart */
-const CashflowPositiveMarker = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
-  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
-  const badgeY = 4;
+/** Milestone marker — target pin on a stem (PropPath §3.3, replaces the pill) */
+const cashGoalPin = (cx: number, cy: number, label: string) => {
+  const pinY = cy - 30;
   return (
-    <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.brand600} strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill={UUI.brand600} />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
-        CF Positive ✓
-      </text>
+    <g style={{ pointerEvents: 'none' }}>
+      <line x1={cx} y1={cy} x2={cx} y2={pinY} stroke={UUI.fill} strokeWidth={1.5} />
+      <circle cx={cx} cy={cy} r={3} fill={UUI.fill} />
+      <g transform={`translate(${cx}, ${pinY})`}>
+        <circle cx={0} cy={0} r={8.5} fill={UUI.white} stroke={UUI.ink} strokeWidth={1.4} />
+        <circle cx={0} cy={0.2} r={3.1} fill="none" stroke={UUI.ink} strokeWidth={1.1} />
+        <circle cx={0} cy={0.2} r={1} fill={UUI.ink} />
+        <text x={0} y={-12} textAnchor="middle" fontFamily={UUI.fontFamily} fontSize={9} fontWeight={600} fill={UUI.ink}>{label}</text>
+      </g>
     </g>
   );
 };
@@ -128,21 +129,41 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     return `${s}$${a}`;
   };
 
-  // Find where net cashflow goes positive and STAYS positive (no dips back below zero)
-  const cashflowPositivePoint = useMemo(() => {
-    const hasNegative = data.some(d => d.netCashflow < 0);
-    if (!hasNegative) return null;
-
-    let lastNegativeIndex = -1;
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].netCashflow < 0) {
-        lastNegativeIndex = i;
-        break;
-      }
-    }
-    if (lastNegativeIndex < 0 || lastNegativeIndex >= data.length - 1) return null;
-    return data[lastNegativeIndex + 1];
+  // Sparse X ticks (§3.5) — every 5 years + the last year
+  const xTicks = useMemo(() => {
+    const yrs = data.map(d => Number(d.year));
+    const first = yrs[0], last = yrs[yrs.length - 1];
+    const xt = data.map(d => d.year).filter((_, i) => (yrs[i] - first) % 5 === 0);
+    if (last != null && Number(xt[xt.length - 1]) !== last) xt.push(data[data.length - 1].year);
+    return xt;
   }, [data]);
+
+  // Milestone pin. Primary: the year net cashflow first reaches the client's
+  // cash goal and stays there ("Cash goal"). When the goal isn't reached in
+  // the window, fall back to durable break-even ("Cashflow positive") so the
+  // pin never claims a goal the curve doesn't show.
+  const milestonePoint = useMemo(() => {
+    const durablyReaches = (threshold: number) => {
+      if (!data.some(d => d.netCashflow < threshold)) return null;
+      let lastBelow = -1;
+      for (let i = data.length - 1; i >= 0; i--) {
+        if (data[i].netCashflow < threshold) {
+          lastBelow = i;
+          break;
+        }
+      }
+      if (lastBelow < 0 || lastBelow >= data.length - 1) return null;
+      return data[lastBelow + 1];
+    };
+
+    const cashGoal = profile?.cashflowGoal ?? 0;
+    if (cashGoal > 0) {
+      const goalPoint = durablyReaches(cashGoal);
+      if (goalPoint) return { point: goalPoint, label: 'Cash goal' };
+    }
+    const breakEven = durablyReaches(0);
+    return breakEven ? { point: breakEven, label: 'Cashflow positive' } : null;
+  }, [data, profile?.cashflowGoal]);
 
   // ── UUI-style tooltip ─────────────────────────────────────────────────────
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -234,11 +255,13 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
   };
 
   return (
-    <div>
-      <ResponsiveContainer width="100%" height={220}>
+    // Fills the card (ChartCard content is a flex column); minHeight guards
+    // against collapse when the card isn't stretched by a taller sibling.
+    <div style={{ flex: 1, minHeight: 240 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
-          margin={{ top: 10, right: 16, left: 4, bottom: 0 }}
+          margin={{ top: 20, right: 8, left: 0, bottom: 0 }}
         >
           <defs>
             {/* Signed violet fill (§3.3) — ~12% opacity, above and below $0 */}
@@ -255,11 +278,13 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             vertical={false}
           />
 
-          {/* X-axis — meta grey ticks */}
+          {/* X-axis — sparse grey year ticks (§3.5) */}
           <XAxis
             dataKey="year"
+            ticks={xTicks}
+            interval={0}
             tick={{
-              fontSize: 11,
+              fontSize: 9,
               fill: UUI.axis,
               fontFamily: UUI.fontFamily,
             }}
@@ -274,19 +299,23 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             domain={yDomain}
             ticks={yTicks}
             tickFormatter={fmtTick}
-            tick={{ fontSize: 11, fill: UUI.axis, fontFamily: UUI.fontFamily }}
+            tick={{ fontSize: 9, fill: UUI.axis, fontFamily: UUI.fontFamily }}
             axisLine={false}
             tickLine={false}
-            width={46}
+            width={42}
           />
+          {/* Hidden axis for tooltip-only series — keeps income/expenses OUT of
+              the visible Y scale (they grow far beyond net cashflow and were
+              silently stretching the domain, squashing the plot). */}
+          <YAxis yAxisId="tooltipOnly" hide />
 
           <Tooltip content={<CustomTooltip />} />
           {/* Signed-fill zero line (§3.3) — quiet grey baseline */}
           <ReferenceLine y={0} stroke={UUI.zeroLine} strokeWidth={1} />
 
           {/* Hidden series so income/expenses data is available in the tooltip payload */}
-          <Line dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
-          <Line dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line yAxisId="tooltipOnly" dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line yAxisId="tooltipOnly" dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
           {/* Client savings rate — dashed floor mirrored below zero; cashflow must stay above it */}
           {hasSavingsFloor && (
@@ -315,18 +344,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             isAnimationActive={false}
           />
 
-          {/* Cashflow positive milestone marker */}
-          {cashflowPositivePoint && (
+          {/* Cashflow milestone — target pin on a stem (§3.3) */}
+          {milestonePoint && (
             <ReferenceDot
-              x={cashflowPositivePoint.year}
-              y={cashflowPositivePoint.netCashflow}
-              r={6}
-              fill={UUI.brand600}
-              stroke="white"
-              strokeWidth={2.5}
-            >
-              <Label content={<CashflowPositiveMarker />} />
-            </ReferenceDot>
+              x={milestonePoint.point.year}
+              y={milestonePoint.point.netCashflow}
+              r={0}
+              shape={(props: any) => cashGoalPin(props.cx, props.cy, milestonePoint.label)}
+            />
           )}
         </ComposedChart>
       </ResponsiveContainer>

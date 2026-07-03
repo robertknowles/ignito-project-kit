@@ -62,11 +62,26 @@ export function calculateDetailedCashflow(
   // Expenses
   const computedLoanInterest = loanAmount * (property.interestRate / 100);
   const loanInterest = property.loanInterestOverride ?? computedLoanInterest;
-  const propertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
-  const buildingInsurance = property.buildingInsuranceAnnual;
-  const councilRatesWater = property.councilRatesWater;
-  const strata = property.strata;
-  const maintenance = property.maintenanceAllowanceAnnual;
+  // "Holding $/yr" override (purchases table) replaces the five holding
+  // components as a lump sum. Scale each component to it proportionally so
+  // consumers that re-sum the parts (brief rows, projections) match the
+  // edited total instead of silently ignoring it.
+  const computedPropertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
+  const computedHoldingSubtotal =
+    computedPropertyManagementFee +
+    property.buildingInsuranceAnnual +
+    property.councilRatesWater +
+    property.strata +
+    property.maintenanceAllowanceAnnual;
+  const holdingScale =
+    property.holdingCostOverride != null && computedHoldingSubtotal > 0
+      ? property.holdingCostOverride / computedHoldingSubtotal
+      : 1;
+  const propertyManagementFee = computedPropertyManagementFee * holdingScale;
+  const buildingInsurance = property.buildingInsuranceAnnual * holdingScale;
+  const councilRatesWater = property.councilRatesWater * holdingScale;
+  const strata = property.strata * holdingScale;
+  const maintenance = property.maintenanceAllowanceAnnual * holdingScale;
 
   const computedTotalOperatingExpenses =
     loanInterest +

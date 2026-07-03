@@ -26,6 +26,7 @@ import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
 import { ClientInputsTab } from './ClientInputsTab';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
+import { InfoPopover } from './RetirementScenario/InfoPopover';
 import { useLayout } from '@/contexts/LayoutContext';
 import { TopBar } from './TopBar';
 import { ConfirmationBrief } from './ConfirmationBrief';
@@ -51,13 +52,15 @@ interface TabItemProps {
   onClick: () => void;
 }
 
+// Top tabs — §2.4 underline style: 13px/600, active violet text + 2px violet
+// underline overlapping the header hairline, inactive meta-grey.
 const PrimaryTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${
+    className={`flex items-center gap-2 px-3.5 h-full self-stretch -mb-px border-b-2 text-[13px] font-semibold transition-colors ${
       active
-        ? 'bg-neutral-50 text-neutral-800'
-        : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
+        ? 'text-[#7C3AED] border-[#7C3AED]'
+        : 'text-[#717680] border-transparent hover:text-[#414651]'
     }`}
   >
     {icon}
@@ -65,13 +68,15 @@ const PrimaryTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }
   </button>
 );
 
+// Sub-tabs — §2.4 segmented control: active = white pill (radius 7 + shadow,
+// #181D27), inactive meta-grey, 13px/600. The grey track wraps these.
 const SubTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-semibold transition-colors ${
+    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[7px] text-[13px] font-semibold transition-colors ${
       active
-        ? 'bg-neutral-50 text-neutral-800'
-        : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50'
+        ? 'bg-white text-[#181D27] shadow-sm'
+        : 'text-[#717680] hover:text-[#414651]'
     }`}
   >
     {icon}
@@ -345,16 +350,27 @@ export const Dashboard = () => {
     const cashflowGoal = liveProfile?.cashflowGoal ?? 0;
     const equityGoal = liveProfile?.equityGoal ?? 0;
 
-    // Target year = first year the equity goal is projected to be met, else the
-    // plan horizon end.
+    // Target year = first year BOTH goals are projected to be met — the goal
+    // isn't achieved while cashflow is still short of target, even if equity
+    // got there first. A goal set to $0 means "no target" for that dimension.
+    // Falls back to the plan horizon end when never met (goalMet = false).
     const planEndYear = BASE_YEAR + (liveProfile?.timelineYears ?? displayYears) - 1;
+    const cashflowByYear = new Map(
+      (chartDataA.cashflowData ?? []).map(c => [Number(c.year), c.cashflow ?? 0]),
+    );
     let targetYear: number | null = null;
-    for (const g of growthData) {
-      if ((g.equity ?? 0) >= equityGoal && equityGoal > 0) {
-        targetYear = Number(g.year);
-        break;
+    if (equityGoal > 0 || cashflowGoal > 0) {
+      for (const g of growthData) {
+        const year = Number(g.year);
+        const equityMet = equityGoal <= 0 || (g.equity ?? 0) >= equityGoal;
+        const cashflowMet = cashflowGoal <= 0 || (cashflowByYear.get(year) ?? 0) >= cashflowGoal;
+        if (equityMet && cashflowMet) {
+          targetYear = year;
+          break;
+        }
       }
     }
+    const goalMet = targetYear !== null;
     const resolvedTargetYear = targetYear ?? planEndYear;
 
     // Equity projected at the target year (falls back to the horizon figure).
@@ -375,6 +391,7 @@ export const Dashboard = () => {
       cashflowGoal,
       equityGoal,
       targetYear: resolvedTargetYear,
+      goalMet,
       projectedEquity,
       count: bought.length,
       firstYear,
@@ -417,8 +434,8 @@ export const Dashboard = () => {
 
   return (
     <ChangeReceiptProvider metrics={receiptMetrics}>
-    <div className="h-full w-full flex bg-white">
-    <div className="h-full flex-1 min-w-0 overflow-y-auto relative">
+    <div className="h-full w-full flex bg-[#FAFAFA]">
+    <div className="h-full flex-1 min-w-0 overflow-y-auto relative bg-[#FAFAFA]">
       {planGenerating && (
         <div className="sticky top-0 z-30 flex items-center justify-center gap-2 bg-blue-50/90 border-b border-blue-200 py-2 text-sm text-blue-700 backdrop-blur-sm">
           <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -428,9 +445,9 @@ export const Dashboard = () => {
           Updating plan...
         </div>
       )}
-      <div className="flex flex-col gap-6 mx-auto" style={{ padding: '40px 24px 80px 24px', width: '100%', minWidth: 500 }}>
-        {/* ── Primary tab bar ── */}
-        <div className="flex items-center gap-1 border-b border-neutral-200 pb-2">
+      {/* ── Sticky top navbar (white bar over the grey content) ── */}
+      <div className="sticky top-0 z-20 bg-white px-7">
+        <div className="flex items-center gap-1 border-b border-[#E9EAEB] h-[62px]">
           <PrimaryTabItem
             icon={<TrendingUpIcon size={16} />}
             label="Portfolio Plan"
@@ -470,7 +487,10 @@ export const Dashboard = () => {
             <TopBar />
           </div>
         </div>
+      </div>
 
+      {/* ── Scroll content column (grey #FAFAFA page, white cards) ── */}
+      <div className="flex flex-col gap-6 mx-auto" style={{ padding: '24px 28px 80px 28px', width: '100%', minWidth: 500 }}>
         {/* ── Assumptions modal overlay ── */}
         {assumptionsOpen && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAssumptionsOpen(false)}>
@@ -506,25 +526,27 @@ export const Dashboard = () => {
 
         {/* ── Plan sub-tabs (Equity | Cashflow | Projections) ── */}
         {activeTab === 'plan' && (
-          <div className="flex items-center gap-1 -mt-3">
-            <SubTabItem
-              icon={<ListIcon size={14} />}
-              label="Purchases"
-              active={planSubTab === 'purchases'}
-              onClick={() => setPlanSubTab('purchases')}
-            />
-            <SubTabItem
-              icon={<TableIcon size={14} />}
-              label="Projections"
-              active={planSubTab === 'projections'}
-              onClick={() => setPlanSubTab('projections')}
-            />
-            <SubTabItem
-              icon={<PiggyBankIcon size={14} />}
-              label="Retirement"
-              active={planSubTab === 'retirement'}
-              onClick={() => setPlanSubTab('retirement')}
-            />
+          <div className="flex items-center -mt-3">
+            <div className="flex items-center gap-1.5 bg-[#F2F2F3] p-[3px] rounded-[9px]">
+              <SubTabItem
+                icon={<ListIcon size={15} />}
+                label="Purchases"
+                active={planSubTab === 'purchases'}
+                onClick={() => setPlanSubTab('purchases')}
+              />
+              <SubTabItem
+                icon={<TableIcon size={15} />}
+                label="Projections"
+                active={planSubTab === 'projections'}
+                onClick={() => setPlanSubTab('projections')}
+              />
+              <SubTabItem
+                icon={<PiggyBankIcon size={15} />}
+                label="Retirement"
+                active={planSubTab === 'retirement'}
+                onClick={() => setPlanSubTab('retirement')}
+              />
+            </div>
             {planSubTab === 'purchases' && (
               <div className="ml-auto flex items-center rounded-lg border border-neutral-200 overflow-hidden">
                 <button
@@ -570,9 +592,11 @@ export const Dashboard = () => {
               const firstName =
                 ((activeClient?.name ?? '').trim().split(/\s+/)[0] || 'Client').toUpperCase();
 
-              // Years to reach the goal — target year is the first year the equity
-              // goal is met, else the plan horizon end.
+              // Years to reach the goal — target year is the first year BOTH
+              // goals are met. When neither year exists in the projection the
+              // header shows "N+ years" rather than claiming the goal is hit.
               const yearsToGoal = Math.max(1, ph.targetYear - BASE_YEAR);
+              const yearsToGoalLabel = `${yearsToGoal}${ph.goalMet ? '' : '+'}`;
 
               // Projected outcomes at the target year (fall back to horizon KPIs).
               const growthAtTarget = chartDataA.portfolioGrowthData.find(
@@ -587,64 +611,96 @@ export const Dashboard = () => {
 
               const lastBuyYearRel = ph.lastYear ? ph.lastYear - BASE_YEAR : null;
 
-              // ── Typography aligned to the dashboard KPI cards ─────────────
-              // Panel heading = sectionHeading (16/600/neutral-900).
-              const heading: React.CSSProperties = { fontSize: 16, fontWeight: 600, lineHeight: '24px', color: COLORS.neutral[900], fontFamily: ff };
-              // Hero number ("13 years") = statNumber (30/600/-0.025em).
-              const statStyle: React.CSSProperties = { fontSize: 30, fontWeight: 600, lineHeight: '38px', letterSpacing: '-0.025em', fontFamily: ff };
-              // Row label / value body copy.
-              const labelStyle: React.CSSProperties = { fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff, color: COLORS.neutral[600] };
-              const valueStyle: React.CSSProperties = { fontSize: 16, fontWeight: 600, lineHeight: '24px', fontFamily: ff, color: COLORS.neutral[900] };
+              // ── PropPath §2.1 unified hero pair + §1.4 stat ramp ──────────
+              // Shared uppercase kicker (11/600/0.06em/#717680).
+              const kicker: React.CSSProperties = {
+                fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+                textTransform: 'uppercase', color: '#717680', fontFamily: ff,
+              };
 
-              const Row = ({ label, value }: { label: string; value: string }) => (
-                <div className="flex items-center justify-between py-2" style={{ borderTop: `1px solid ${COLORS.neutral[200]}` }}>
-                  <span style={labelStyle}>{label}</span>
-                  <span style={valueStyle}>{value}</span>
-                </div>
-              );
+              // Outcome rows. Net cashflow carries semantic sign colour (§1.3);
+              // the rest stay neutral. "Properties bought" splits its "by year N"
+              // qualifier into a muted 13px suffix.
+              const rows: {
+                label: string; value: string; suffix?: string; color?: string;
+              }[] = [
+                {
+                  label: 'Net cashflow',
+                  value: `${formatMoney(netCashflowAtTarget)}/yr`,
+                  color: netCashflowAtTarget >= 0 ? '#17B26A' : '#F04438',
+                },
+                { label: 'Equity', value: formatMoney(equityAtTarget) },
+                { label: 'Portfolio value', value: formatMoney(portfolioAtTarget) },
+                {
+                  label: 'Properties bought',
+                  value: String(ph.count),
+                  suffix: lastBuyYearRel != null ? `by year ${lastBuyYearRel}` : undefined,
+                },
+              ];
 
               return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Goal panel */}
+                // One bordered card, split goal (violet tint) / outcome (white).
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '0.85fr 1.4fr',
+                    background: '#FFFFFF',
+                    border: '1px solid #E9EAEB',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    fontFamily: ff,
+                  }}
+                >
+                  {/* Goal half — violet-50 tint */}
                   <div
-                    className="flex flex-col justify-center"
-                    style={{ background: COLORS.brand[100], borderRadius: 12, padding: 20, boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
+                    style={{
+                      background: '#F5F3FF',
+                      padding: '30px 32px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      borderRight: '1px solid #E9EAEB',
+                    }}
                   >
-                    <div style={heading}>{firstName}'S GOAL</div>
-                    <div className="mt-1" style={{ ...statStyle, color: COLORS.brand[950] }}>
-                      {yearsToGoal} {yearsToGoal === 1 ? 'year' : 'years'}
+                    <div style={kicker}>{firstName}'S GOAL</div>
+                    <div
+                      style={{
+                        fontSize: 46, fontWeight: 600, letterSpacing: '-0.025em',
+                        lineHeight: 1.05, color: '#181D27', marginTop: 14,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {yearsToGoalLabel} {yearsToGoal === 1 ? 'year' : 'years'}
                     </div>
-                    <div className="mt-1" style={{ fontSize: 14, fontWeight: 400, lineHeight: '20px', fontFamily: ff, color: COLORS.brand[700] }}>
-                      to reach {formatMoney(ph.equityGoal)} equity and {formatMoney(ph.cashflowGoal)}/yr income
+                    <div style={{ fontSize: 13, color: '#535862', marginTop: 10, maxWidth: 240, lineHeight: 1.45 }}>
+                      to reach <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.equityGoal)} equity</span>
+                      {' '}and <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.cashflowGoal)}/yr income</span>
                     </div>
                   </div>
 
-                  {/* Outcome panel */}
-                  <div
-                    className="lg:col-span-2 flex flex-col"
-                    style={{ background: COLORS.neutral[0], border: `1px solid ${COLORS.neutral[200]}`, borderRadius: 12, padding: '20px 20px 8px 20px', boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
-                  >
-                    <div style={heading}>
-                      IN {yearsToGoal} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
+                  {/* Outcome half */}
+                  <div style={{ padding: '24px 32px' }}>
+                    <div style={{ ...kicker, marginBottom: 6 }}>
+                      IN {yearsToGoalLabel} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
                     </div>
-                    <div className="mt-2">
-                      <Row
-                        label="Net cashflow"
-                        value={`${formatMoney(netCashflowAtTarget)}/yr`}
-                      />
-                      <Row
-                        label="Equity"
-                        value={formatMoney(equityAtTarget)}
-                      />
-                      <Row
-                        label="Portfolio value"
-                        value={formatMoney(portfolioAtTarget)}
-                      />
-                      <Row
-                        label="Properties bought"
-                        value={lastBuyYearRel != null ? `${ph.count} by year ${lastBuyYearRel}` : String(ph.count)}
-                      />
-                    </div>
+                    {rows.map((r, i) => (
+                      <div
+                        key={r.label}
+                        className="flex items-center justify-between"
+                        style={{
+                          padding: '13px 0',
+                          borderBottom: i < rows.length - 1 ? '1px solid #F2F2F2' : 'none',
+                        }}
+                      >
+                        <span style={{ fontSize: 13, color: '#535862' }}>{r.label}</span>
+                        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', color: r.color ?? '#181D27' }}>
+                          {r.value}
+                          {r.suffix && (
+                            <span style={{ fontSize: 13, fontWeight: 400, color: '#717680' }}> {r.suffix}</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
@@ -669,20 +725,19 @@ export const Dashboard = () => {
                 title="Total Equity"
                 expandable
                 legend={[
-                  { color: '#7F56D9', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
-                  { color: '#737373', label: 'Portfolio Value', variant: 'line' },
+                  { color: '#8B5CF6', label: kpis.cashFromSales > 0 ? 'Total Equity (incl. cash from sales)' : 'Total Equity' },
+                  { color: '#C4C4CC', label: 'Portfolio Value', variant: 'line' },
                 ]}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-baseline gap-2">
                     <span
-                      className="text-2xl font-semibold text-neutral-900"
-                      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                      style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', color: '#181D27', fontFamily: 'Inter, system-ui, sans-serif' }}
                       title={kpis.cashFromSales > 0 ? `Property equity ${formatCompact(kpis.propertyEquity)} + cash from sales ${formatCompact(kpis.cashFromSales)}` : undefined}
                     >
                       {formatCompact(kpis.totalEquity)}
                     </span>
-                    <span className="text-sm text-neutral-500">
+                    <span style={{ fontSize: 12, color: '#717680' }}>
                       by {BASE_YEAR + displayYears - 1}
                     </span>
                   </div>
@@ -696,16 +751,19 @@ export const Dashboard = () => {
                 title="Net Cashflow"
                 expandable
                 legend={[
-                  { color: '#7F56D9', label: 'Net Cashflow' },
-                  ...(kpis.annualSavings > 0 ? [{ color: '#737373', label: 'Client Savings Rate', variant: 'line' as const }] : []),
+                  { color: '#8B5CF6', label: 'Net Cashflow' },
+                  ...(kpis.annualSavings > 0 ? [{ color: '#C4C4CC', label: 'Client Savings Rate', variant: 'line' as const }] : []),
                 ]}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold text-neutral-900 whitespace-nowrap" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    <span
+                      className="whitespace-nowrap"
+                      style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', fontFamily: 'Inter, system-ui, sans-serif', color: kpis.netCashflowAnnual > 0 ? '#17B26A' : kpis.netCashflowAnnual < 0 ? '#F04438' : '#181D27' }}
+                    >
                       {formatCompact(kpis.netCashflowAnnual)}
                     </span>
-                    <span className="text-sm text-neutral-500 whitespace-nowrap">/yr by {BASE_YEAR + displayYears - 1}</span>
+                    <span className="whitespace-nowrap" style={{ fontSize: 12, color: '#717680' }}>/yr by {BASE_YEAR + displayYears - 1}</span>
                   </div>
                   <TimeRangeTabs value={displayYears} onChange={setDisplayYears} />
                 </div>
@@ -717,9 +775,9 @@ export const Dashboard = () => {
                 title="Borrowing Capacity"
                 expandable
                 legend={[
-                  { color: '#7F56D9', label: 'Borrowing Capacity' },
-                  { color: '#414651', label: 'Total Liabilities', variant: 'line' },
-                  { color: '#9E77ED', label: 'Offset Debt' },
+                  { color: '#8B5CF6', label: 'Capacity' },
+                  { color: '#D9D2F2', label: 'Headroom', variant: 'swatch' },
+                  { color: '#A1A1AA', label: 'Debt not Offset', variant: 'line' },
                 ]}
                 action={
                   <div className="relative group">
@@ -778,8 +836,8 @@ export const Dashboard = () => {
                 title="Portfolio Cashflow"
                 expandable
                 legend={[
-                  { color: '#7F56D9', label: 'Rental Income (IN)' },
-                  { color: 'rgba(127, 86, 217, 0.25)', label: 'Total Outgoings (OUT)' },
+                  { color: '#8B5CF6', label: 'In' },
+                  { color: '#D9D2F2', label: 'Out' },
                 ]}
               >
                 <PortfolioCashflow />
@@ -805,7 +863,18 @@ export const Dashboard = () => {
 
         {/* Portfolio Plan > Projections: Financial Summary */}
         {activeTab === 'plan' && planSubTab === 'projections' && (
-          <ChartCard title="Financial Summary" flush>
+          <ChartCard
+            title="Financial Summary"
+            flush
+            titleInfo={
+              <InfoPopover
+                accent
+                title="Calculated view"
+                body={['Every figure here is calculated from your plan. Nothing in this table is edited directly.']}
+                action={{ label: 'Go to Purchases', onClick: () => setPlanSubTab('purchases') }}
+              />
+            }
+          >
             <FinancialSummaryTable />
           </ChartCard>
         )}
@@ -817,7 +886,9 @@ export const Dashboard = () => {
         )}
 
         {/* Next Purchase Brief */}
-        {activeTab === 'brief' && <BriefTab />}
+        {activeTab === 'brief' && (
+          <BriefTab onNavigateToPurchases={() => { setActiveTab('plan'); setPlanSubTab('purchases'); }} />
+        )}
 
         {/* Existing Portfolio */}
         {activeTab === 'portfolio' && <PortfolioTab />}

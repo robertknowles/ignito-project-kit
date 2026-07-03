@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import {
   ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -503,7 +504,7 @@ const GoalAchievedOverlay: React.FC<{ x: number; chartHeight: number }> = ({ x, 
         marginTop: 4,
       }}
     >
-      Goal ✓
+      Equity goal ✓
     </div>
     {/* Dashed vertical line spanning chart height */}
     <div
@@ -1094,6 +1095,15 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 data={chartData}
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
+              <defs>
+                {/* Subtle violet fill under the equity hero line — same ramp as
+                    the other charts (§3.9 timelineGradient) */}
+                <linearGradient id="equityFillGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.1} />
+                  <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
               {/* Phase labels — no background fill */}
               {phases.map((phase, i) => (
                 <ReferenceArea
@@ -1163,13 +1173,14 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 }}
               />
 
-              {/* Total Equity Line — violet hero (§1.1) */}
-              <Line
+              {/* Total Equity Line — violet hero + subtle fill (§1.1) */}
+              <Area
                 type="monotone"
                 dataKey="totalEquity"
                 name="Total Equity"
                 stroke={CHART_COLORS.primary}
                 strokeWidth={2}
+                fill="url(#equityFillGradient)"
                 dot={false}
               />
 

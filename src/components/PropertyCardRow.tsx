@@ -51,6 +51,8 @@ import type { TimelineProperty } from '../types/property';
 import { calcGrossYield, calcAnnualRent } from '../utils/sharedFinancialCalcs';
 import { parseShorthandNumber } from '../utils/parseShorthandNumber';
 import { useRemoveTimelineProperty, parseInstanceId } from '../hooks/useRemoveTimelineProperty';
+import { calculateStampDuty } from '../utils/stampDutyCalculator';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 const GROWTH_OPTIONS = [
@@ -67,8 +69,11 @@ const DEFAULT_NEW_CELL_ID: CellId = 'metro-unit-cashflow';
 
 // ── Inline cell components ───────────────────────────────────────────────────
 
-const cellBase = 'w-full bg-transparent text-xs text-neutral-600 py-1 px-1 border-0 outline-none rounded hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300 transition-colors';
-const numberInputClass = `${cellBase} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`;
+// Shared inline-cell input styling (§2.2 record table — 13px cells). Text colour
+// is set per input type: numerics recede to #535862 and right-align, string
+// selects use body #414651. Focus ring picks up the violet accent.
+const cellBase = 'w-full bg-transparent text-xs py-1 px-1 border-0 outline-none rounded hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors';
+const numberInputClass = `${cellBase} text-center text-[#535862] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`;
 
 const NumberInput: React.FC<{
   value: number | null | undefined;
@@ -105,7 +110,8 @@ const SelectInput: React.FC<{
   value: string;
   options: { value: string; label: string; dropdownLabel?: string }[] | string[];
   onChange: (v: string) => void;
-}> = ({ value, options, onChange }) => {
+  className?: string;
+}> = ({ value, options, onChange, className }) => {
   const hasDropdownLabels = options.some(opt => typeof opt !== 'string' && opt.dropdownLabel);
 
   if (!hasDropdownLabels) {
@@ -113,7 +119,7 @@ const SelectInput: React.FC<{
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className={`${cellBase} cursor-pointer`}
+        className={`${cellBase} cursor-pointer text-[#414651] ${className ?? ''}`}
         onClick={e => e.stopPropagation()}
       >
         {options.map(opt => {
@@ -145,7 +151,7 @@ const SelectInput: React.FC<{
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`${cellBase} cursor-pointer text-left`}
+        className={`${cellBase} cursor-pointer text-left text-[#414651]`}
       >
         {selectedOpt?.label ?? value}
       </button>
@@ -296,11 +302,129 @@ interface Column {
   key: string;
   header: string;
   group?: string;
+  numeric?: boolean;
+  headerTip?: string;
   render: RenderFn;
 }
 
+// Fixed-layout width hints for the purchases table (px). Without these the
+// fixed layout splits width equally, so narrow data (Term, LVR) gets the same
+// column as Price and the gaps read unevenly.
+// Two width tiers only, so the grid reads evenly: 72 for short numerics,
+// 88 for text/selects/money, 104 where the header itself is long.
+const PURCHASES_COL_WIDTHS: Record<string, number> = {
+  year: 72, growth: 88, entity: 88, isNewBuild: 88, state: 88,
+  price: 88, valuation: 88, lvr: 72, rate: 72, term: 72, product: 88,
+  ioTerm: 72, rent: 88, yield: 72, purchaseCosts: 104, holdingCost: 104,
+  saleYear: 72,
+};
+
+// ── Aggregate-cost breakdown tooltips ────────────────────────────────────────
+// The Holding $/yr and Purchase Costs columns are deliberate roll-ups; hovering
+// the cell (or the column header) itemises what's inside. Values reflect the
+// proportional split applied when the aggregate has been edited.
+
+const fmtTip = (v: number) => `$${Math.round(v).toLocaleString('en-AU')}`;
+
+interface TipRow { label: string; value: number; strong?: boolean }
+
+const BreakdownTip: React.FC<{
+  rows: TipRow[];
+  footerRows?: TipRow[];
+  children: React.ReactNode;
+}> = ({ rows, footerRows, children }) => (
+  <TooltipProvider delayDuration={150}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="block">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="px-3 py-2">
+        <div style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: 11, minWidth: 190 }}>
+          {rows.map(r => (
+            <div key={r.label} className="flex items-center justify-between gap-6 py-0.5">
+              <span style={{ opacity: 0.75 }}>{r.label}</span>
+              <span style={{ fontWeight: r.strong ? 600 : 500 }}>{fmtTip(r.value)}</span>
+            </div>
+          ))}
+          {footerRows && footerRows.length > 0 && (
+            <div className="mt-1 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.25)' }}>
+              {footerRows.map(r => (
+                <div key={r.label} className="flex items-center justify-between gap-6 py-0.5">
+                  <span style={{ opacity: 0.75 }}>{r.label}</span>
+                  <span style={{ fontWeight: r.strong ? 600 : 500 }}>{fmtTip(r.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+const HeaderTip: React.FC<{ tip: string; children: React.ReactNode }> = ({ tip, children }) => (
+  <TooltipProvider delayDuration={150}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-help">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] px-3 py-2">
+        <span style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: 11 }}>{tip}</span>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+// Five holding components, scaled to the override when one is set.
+const holdingBreakdown = (d: PropertyInstanceDetails): { rows: TipRow[]; total: number } => {
+  const mgmt = (d.propertyManagementPercent / 100) * calcAnnualRent(d.rentPerWeek);
+  const parts: TipRow[] = [
+    { label: `Management (${d.propertyManagementPercent}%)`, value: mgmt },
+    { label: 'Building insurance', value: d.buildingInsuranceAnnual },
+    { label: 'Council rates & water', value: d.councilRatesWater },
+    { label: 'Strata', value: d.strata },
+    { label: 'Maintenance', value: d.maintenanceAllowanceAnnual },
+  ];
+  const computed = parts.reduce((s, p) => s + p.value, 0);
+  const scale = d.holdingCostOverride != null && computed > 0 ? d.holdingCostOverride / computed : 1;
+  return {
+    rows: parts.map(p => ({ ...p, value: p.value * scale })),
+    total: computed * scale,
+  };
+};
+
+// Six fee/inspection components, scaled to the override when one is set;
+// footer adds deposit + stamp duty + the settlement-account total.
+const purchaseCostsBreakdown = (d: PropertyInstanceDetails): { rows: TipRow[]; footerRows: TipRow[] } => {
+  const parts: TipRow[] = [
+    { label: 'Engagement fee', value: d.engagementFee },
+    { label: 'Building & pest', value: d.buildingPestInspection ?? 0 },
+    { label: 'Plumbing & electrical', value: d.plumbingElectricalInspections ?? 0 },
+    { label: 'Upfront insurance', value: d.buildingInsuranceUpfront },
+    { label: 'Mortgage fees', value: d.mortgageFees },
+    { label: 'Conveyancing', value: d.conveyancing },
+  ];
+  const computed = parts.reduce((s, p) => s + p.value, 0);
+  const scale = d.purchaseCostsOverride != null && computed > 0 ? d.purchaseCostsOverride / computed : 1;
+  const fees = computed * scale;
+
+  const deposit = d.purchasePrice * (100 - d.lvr) / 100;
+  const stamp = d.stampDutyOverride ?? calculateStampDuty(d.state, d.purchasePrice);
+  const extras =
+    (d.conditionalHoldingDeposit ?? 0) +
+    (d.independentValuation ?? 0) +
+    (d.maintenanceAllowancePostSettlement ?? 0);
+
+  const footerRows: TipRow[] = [
+    { label: 'Deposit', value: deposit },
+    { label: 'Stamp duty', value: stamp },
+    { label: 'Total cash required', value: fees + deposit + stamp + extras, strong: true },
+  ];
+  return { rows: parts.map(p => ({ ...p, value: p.value * scale })), footerRows };
+};
+
 const readonlyCell = (text: string | number | undefined) => (
-  <span className="text-xs text-neutral-600">{text ?? '—'}</span>
+  <span className="text-xs text-[#535862]">{text ?? '—'}</span>
 );
 
 const yearCellPlaceholder: RenderFn = (card) => readonlyCell(card.purchaseYear);
@@ -591,18 +715,40 @@ const PURCHASES_COLUMNS: Column[] = [
       return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
     },
   },
-  // ── Annual Holding Cost (merged total) ──
+  // ── Purchase Costs (rolled up, matching blocks view) ──
   {
-    key: 'holdingCost', header: 'Holding $/yr',
+    key: 'purchaseCosts', header: 'Purchase Costs',
+    headerTip: 'One-off fees rolled into one figure: engagement, building & pest, plumbing & electrical, upfront insurance, mortgage fees, conveyancing. Hover a cell for the split plus deposit, stamp duty and total cash required.',
     render: (c, onChange) => {
       if (!c.instanceData) return null;
       const d = c.instanceData;
-      const mgmtDollar = (d.propertyManagementPercent / 100) * calcAnnualRent(d.rentPerWeek);
       const computed = Math.round(
-        mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual
+        d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
+        d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
       );
-      const display = d.holdingCostOverride ?? computed;
-      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'holdingCostOverride', v || null)} />;
+      const display = d.purchaseCostsOverride ?? computed;
+      const { rows, footerRows } = purchaseCostsBreakdown(d);
+      return (
+        <BreakdownTip rows={rows} footerRows={footerRows}>
+          <NumberInput value={display} onChange={v => onChange(c.instanceId, 'purchaseCostsOverride', v || null)} />
+        </BreakdownTip>
+      );
+    },
+  },
+  // ── Annual Holding Cost (merged total) ──
+  {
+    key: 'holdingCost', header: 'Holding $/yr',
+    headerTip: 'Per-year running costs rolled into one figure: management, building insurance, council rates & water, strata, maintenance. Hover a cell for the split; editing scales the parts proportionally.',
+    render: (c, onChange) => {
+      if (!c.instanceData) return null;
+      const d = c.instanceData;
+      const { rows, total } = holdingBreakdown(d);
+      const display = d.holdingCostOverride ?? Math.round(total);
+      return (
+        <BreakdownTip rows={rows} footerRows={[{ label: 'Total per year', value: total, strong: true }]}>
+          <NumberInput value={display} onChange={v => onChange(c.instanceId, 'holdingCostOverride', v || null)} />
+        </BreakdownTip>
+      );
     },
   },
   // ── Sale ──
@@ -612,21 +758,17 @@ const PURCHASES_COLUMNS: Column[] = [
       ? <SaleYearToggle value={c.instanceData.saleYear} onChange={v => onChange(c.instanceId, 'saleYear', v as any)} />
       : null,
   },
-  // ── Purchase Costs (rolled up, matching blocks view) ──
-  {
-    key: 'purchaseCosts', header: 'Purchase Costs',
-    render: (c, onChange) => {
-      if (!c.instanceData) return null;
-      const d = c.instanceData;
-      const computed = Math.round(
-        d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
-        d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
-      );
-      const display = d.purchaseCostsOverride ?? computed;
-      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'purchaseCostsOverride', v || null)} />;
-    },
-  },
 ];
+
+// Numeric columns centre (header + cell) so the grid reads evenly between the
+// column dividers. NumberInput cells align themselves; this drives the
+// matching header alignment.
+const NUMERIC_KEYS = new Set([
+  'price', 'valuation', 'lvr', 'rate', 'term', 'ioTerm', 'rent', 'yield',
+  'holdingCost', 'purchaseCosts', 'mgmt', 'insAnn', 'rates', 'strata',
+  'maintAnn', 'landTax', 'engage', 'deposit', 'insUp', 'bp', 'plumb',
+  'indVal', 'mortFees', 'convey', 'maintPost', 'stamp',
+]);
 
 // ── Build group header row for cashflow ──────────────────────────────────────
 
@@ -655,10 +797,16 @@ function buildGroupHeaders(columns: Column[]): { label: string; span: number }[]
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU');
 
+// §2.5 record-row family (same classes as BriefTab's Deal details): label
+// #717680/500, value right-aligned #535862/500, #F2F2F2 dividers, no vertical
+// rule; editable values get the quiet violet hover pill (§2.7).
+const blockLabelCls = 'py-2 px-3 text-[13px] font-medium text-[#717680] whitespace-nowrap';
+const blockInputCls = 'w-full bg-transparent text-right outline-none rounded-md px-1.5 py-0.5 text-[13px] text-[#535862] font-medium hover:bg-[#F5F3FF] focus:bg-white focus:ring-1 focus:ring-[#7C3AED] transition-colors';
+
 const BlockKVRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-  <tr className="border-b border-neutral-200 last:border-b-0">
-    <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-    <td className="py-2 px-3 text-xs text-neutral-600">{value}</td>
+  <tr className="border-b border-[#F2F2F2] last:border-b-0">
+    <td className={blockLabelCls}>{label}</td>
+    <td className="py-2 px-3 text-[13px] text-right font-medium text-[#535862]">{value}</td>
   </tr>
 );
 
@@ -675,9 +823,9 @@ const BlockNumRow: React.FC<{
   const display = decimals !== undefined ? value.toFixed(decimals) : fmtNum(value);
 
   return (
-    <tr className="border-b border-neutral-200 last:border-b-0">
-      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-      <td className="py-1.5 px-2">
+    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+      <td className={blockLabelCls}>{label}</td>
+      <td className="py-1 px-2">
         <input
           type="text"
           inputMode="decimal"
@@ -690,7 +838,7 @@ const BlockNumRow: React.FC<{
             if (n !== null && n !== value) onChange(instanceId, field, n);
           }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="w-full bg-transparent outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 focus:bg-white focus:ring-1 focus:ring-neutral-300"
+          className={blockInputCls}
         />
       </td>
     </tr>
@@ -717,14 +865,14 @@ const BlockSelectRow: React.FC<{
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
   return (
-    <tr className="border-b border-neutral-200 last:border-b-0">
-      <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">{label}</td>
-      <td className="py-1.5 px-2">
+    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+      <td className={blockLabelCls}>{label}</td>
+      <td className="py-1 px-2">
         <div ref={ref} className="relative">
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="w-full bg-transparent text-left outline-none rounded px-1 py-0.5 text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer"
+            className="w-full bg-transparent text-right outline-none rounded-md px-1.5 py-0.5 text-[13px] text-[#535862] font-medium hover:bg-[#F5F3FF] cursor-pointer transition-colors"
           >
             {selectedOpt?.label ?? value}
           </button>
@@ -736,7 +884,7 @@ const BlockSelectRow: React.FC<{
                   type="button"
                   onClick={() => { onChange(instanceId, field, opt.value); setOpen(false); }}
                   className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors ${
-                    opt.value === value ? 'bg-neutral-100 text-neutral-900 font-medium' : 'text-neutral-600 hover:bg-neutral-50'
+                    opt.value === value ? 'bg-[#F5F3FF] text-[#7C3AED] font-medium' : 'text-neutral-600 hover:bg-neutral-50'
                   }`}
                 >
                   {opt.dropdownLabel ?? opt.label}
@@ -863,21 +1011,23 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     const tp = card.timelineProp;
 
     const stepper = (
-      <div className="flex items-center gap-0">
+      // Compact centred stepper — flush −/+ so the year cell stays as tight as
+      // the other numeric cells (§2.2). Buttons keep a py hit-area but no width.
+      <div className="flex items-center justify-center gap-0">
         <button
           type="button"
           onClick={e => { e.stopPropagation(); handleYearChange(card.instanceId, year - 1); }}
-          className="p-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+          className="py-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
         >
           <Minus size={10} />
         </button>
-        <span className={`text-xs font-medium tabular-nums px-0.5 ${card.isBCBlocked && !isDismissed ? 'text-red-500' : 'text-neutral-600'}`}>
+        <span className={`text-xs font-medium tabular-nums px-0.5 ${card.isBCBlocked && !isDismissed ? 'text-red-500' : 'text-[#181D27]'}`}>
           {year}
         </span>
         <button
           type="button"
           onClick={e => { e.stopPropagation(); handleYearChange(card.instanceId, year + 1); }}
-          className="p-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+          className="py-0.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
         >
           <Plus size={10} />
         </button>
@@ -947,7 +1097,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                   flexShrink: 0,
                   background: '#FFFFFF',
                   borderRadius: 12,
-                  boxShadow: '#E5E5E5 0px 0px 0px 1px inset',
+                  boxShadow: '#E9EAEB 0px 0px 0px 1px inset',
                   overflow: 'hidden',
                 }}
               >
@@ -958,20 +1108,23 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '10px 12px',
-                    borderBottom: '1px solid #F0F0F0',
+                    borderBottom: '1px solid #F2F2F2',
                   }}
                 >
                   <h3
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
-                      color: '#171717',
+                      color: '#181D27',
                       lineHeight: '20px',
                       margin: 0,
                       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                     }}
                   >
                     {`Property ${idx + 1}`}
+                    <span style={{ fontSize: 12, fontWeight: 400, color: '#A3A3A3' }}>
+                      {` · ${card.propertyType.replace(/ Property$/, '')}`}
+                    </span>
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <button
@@ -996,21 +1149,21 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
-                      <tr className="border-b border-neutral-200 last:border-b-0">
-                        <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Type</td>
-                        <td className="py-1.5 px-2">
-                          <SelectInput value={d.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Established'},{value:'new',label:'New build'}]} onChange={v => handleFieldChange(iid, 'isNewBuild', (v === 'new') as any)} />
+                      <tr className="border-b border-[#F2F2F2] last:border-b-0">
+                        <td className={blockLabelCls}>Type</td>
+                        <td className="py-1 px-2">
+                          <SelectInput value={d.isNewBuild ? 'new' : 'established'} options={[{value:'established',label:'Established'},{value:'new',label:'New build'}]} onChange={v => handleFieldChange(iid, 'isNewBuild', (v === 'new') as any)} className="text-right text-[#535862] font-medium hover:bg-[#F5F3FF]" />
                         </td>
                       </tr>
                       <BlockNumRow label="Price ($)" value={d.purchasePrice} instanceId={iid} field="purchasePrice" onChange={handleFieldChange} />
                       <BlockNumRow label="Valuation ($)" value={d.valuationAtPurchase} instanceId={iid} field="valuationAtPurchase" onChange={handleFieldChange} />
                       <BlockNumRow label="Rent/wk ($)" value={d.rentPerWeek} instanceId={iid} field="rentPerWeek" onChange={handleFieldChange} />
                       <BlockNumRow label="Yield (%)" value={d.yieldOverride ?? (d.purchasePrice > 0 ? parseFloat(calcGrossYield(d.rentPerWeek, d.purchasePrice).toFixed(1)) : 0)} instanceId={iid} field="yieldOverride" onChange={handleFieldChange} />
-                      <BlockNumRow label="Holding $/yr" value={d.holdingCostOverride ?? holdingTotal} instanceId={iid} field="holdingCostOverride" onChange={handleFieldChange} />
                       <BlockNumRow label="Purchase costs" value={d.purchaseCostsOverride ?? purchaseCosts} instanceId={iid} field="purchaseCostsOverride" onChange={handleFieldChange} />
-                      <tr className="border-b border-neutral-200 last:border-b-0">
-                        <td className="py-2 px-3 text-xs font-semibold text-neutral-500 border-r border-neutral-100 whitespace-nowrap">Sell</td>
-                        <td className="py-1.5 px-2">
+                      <BlockNumRow label="Holding $/yr" value={d.holdingCostOverride ?? holdingTotal} instanceId={iid} field="holdingCostOverride" onChange={handleFieldChange} />
+                      <tr className="border-b border-[#F2F2F2] last:border-b-0">
+                        <td className={blockLabelCls}>Sell</td>
+                        <td className="py-1 px-2">
                           <SaleYearToggle value={d.saleYear} onChange={v => handleFieldChange(iid, 'saleYear', v)} estimate={saleEstimates[iid]} />
                         </td>
                       </tr>
@@ -1033,7 +1186,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
             style={{
               background: '#FAFAFA',
               borderRadius: 12,
-              boxShadow: '#E5E5E5 0px 0px 0px 1px inset',
+              boxShadow: '#E9EAEB 0px 0px 0px 1px inset',
               width: 280,
               minWidth: 280,
               flexShrink: 0,
@@ -1053,7 +1206,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                 width: 36,
                 height: 36,
                 borderRadius: '50%',
-                border: '2px dashed #D4D4D4',
+                border: '2px dashed #D5D7DA',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1065,7 +1218,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
               style={{
                 fontSize: 13,
                 fontWeight: 500,
-                color: '#737373',
+                color: '#717680',
                 fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
               }}
             >
@@ -1078,21 +1231,28 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   }
 
   // ── Table mode (equity / cashflow / purchases) ──
+  // Editable-grid language (Option A, refined): faint internal column dividers
+  // inset from the card edges (px-5 keeps every border clear of the sides),
+  // centred numeric values so cells read evenly. No outer box, no header band.
+  // Read-only tables stay borderless and hover-free by contrast.
   return (
-    <div>
+    <div className="px-5 pb-5">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1400 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1460 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
           <thead>
-            {/* Column headers */}
-            <tr className="border-b border-neutral-200">
+            {/* Column headers — §2.2 record table: 11px / 500 / #717680, numerics right-aligned */}
+            <tr className="border-b border-[#E9EAEB]">
               {columns.map((col, i) => (
                 <th
                   key={col.key}
-                  className={`text-left text-xs font-semibold text-neutral-500 py-2 px-3 whitespace-nowrap ${
-                    i < columns.length - 1 ? 'border-r border-neutral-100' : ''
-                  }`}
+                  className={`text-[11px] font-medium text-[#717680] py-2.5 ${col.key === 'year' ? 'px-1.5' : 'px-4'} whitespace-nowrap ${
+                    NUMERIC_KEYS.has(col.key) || col.key === 'year' ? 'text-center' : 'text-left'
+                  } ${i > 0 ? 'border-l border-[#F2F4F7]' : ''}`}
+                  style={mode === 'purchases' ? { width: PURCHASES_COL_WIDTHS[col.key] } : undefined}
                 >
-                  {col.header}
+                  {col.headerTip
+                    ? <HeaderTip tip={col.headerTip}>{col.header}</HeaderTip>
+                    : col.header}
                 </th>
               ))}
               <th className="w-8" />
@@ -1102,13 +1262,11 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
             {cards.map(card => {
               if (!card.instanceData) return null;
               return (
-                <tr key={card.instanceId} className="border-b border-neutral-200 last:border-b-0">
+                <tr key={card.instanceId} className="border-b border-[#F2F2F2] last:border-b-0 hover:bg-[#FAFAFA] transition-colors">
                   {columns.map((col, i) => (
                     <td
                       key={col.key}
-                      className={`py-1 px-3 ${
-                        i < columns.length - 1 ? 'border-r border-neutral-100' : ''
-                      }`}
+                      className={`${col.key === 'year' ? 'px-1.5' : 'px-4'} py-2 align-middle ${i > 0 ? 'border-l border-[#F2F4F7]' : ''}`}
                     >
                       {col.key === 'saleYear' && card.instanceData
                         ? <SaleYearToggle value={card.instanceData.saleYear} onChange={v => handleFieldChange(card.instanceId, 'saleYear', v as any)} estimate={saleEstimates[card.instanceId]} />
@@ -1118,7 +1276,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                   <td className="py-1 px-1">
                     <button
                       onClick={() => handleRemove(card.instanceId)}
-                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                      className="p-1 text-[#C4B5FD] hover:text-[#7C3AED] transition-colors bg-transparent border-none cursor-pointer"
                       title="Remove property"
                     >
                       <X size={12} />

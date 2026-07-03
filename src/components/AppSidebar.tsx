@@ -37,7 +37,7 @@ import { useClient } from '@/contexts/ClientContext';
 import { ClientSelector } from './ClientSelector';
 import { BetaFeedbackWidget } from './BetaFeedbackWidget';
 
-export const SIDEBAR_WIDTH = 256;
+export const SIDEBAR_WIDTH = 240; // prototype aside width (§ shell)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -136,7 +136,7 @@ export const AppSidebar: React.FC = () => {
               (e.target as HTMLImageElement).src = '/images/proppath-icon.png';
             }}
           />
-          <span className="text-[14px] font-bold text-neutral-900 tracking-tight">
+          <span className="text-[16px] font-semibold text-[#181D27] tracking-[-0.01em]">
             {branding.companyName || 'PropPath'}
           </span>
         </button>
@@ -163,7 +163,7 @@ export const AppSidebar: React.FC = () => {
                 {isDashboardItem ? (
                   <div
                     className={`group/item flex items-center w-full rounded-md transition duration-100 ease-linear ${
-                      active ? 'bg-neutral-50 hover:bg-neutral-100' : 'bg-transparent hover:bg-neutral-50'
+                      active ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]' : 'bg-transparent hover:bg-[#F5F5F5]'
                     } ${disabled ? 'opacity-40' : ''}`}
                   >
                     <button
@@ -173,14 +173,14 @@ export const AppSidebar: React.FC = () => {
                       className="p-2 relative flex flex-1 max-h-9 cursor-pointer items-center text-left border-none bg-transparent select-none"
                     >
                       <entry.icon
-                        size={20}
+                        size={18}
                         className={`mr-2 shrink-0 transition duration-100 ${
-                          active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
+                          active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
                         }`}
                       />
                       <span
-                        className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
-                          active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
+                        className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
+                          active ? 'text-[#7C3AED]' : 'text-[#414651] group-hover/item:text-[#181D27]'
                         }`}
                       >
                         {entry.label}
@@ -189,7 +189,9 @@ export const AppSidebar: React.FC = () => {
                     <button
                       onClick={() => { setActiveClient(null); navigate('/dashboard'); }}
                       disabled={disabled}
-                      className="pr-2 py-2 flex items-center justify-center border-none bg-transparent cursor-pointer text-neutral-400 hover:text-neutral-600 transition-colors"
+                      className={`pr-2 py-2 flex items-center justify-center border-none bg-transparent cursor-pointer transition-colors ${
+                        active ? 'text-[#7C3AED]' : 'text-[#717680] hover:text-[#414651]'
+                      }`}
                       title="New client"
                     >
                       <PlusIcon size={16} />
@@ -202,25 +204,25 @@ export const AppSidebar: React.FC = () => {
                     title={disabled ? 'Wait for the plan to finish generating' : undefined}
                     className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
                       active
-                        ? 'bg-neutral-50 hover:bg-neutral-100'
-                        : 'bg-transparent hover:bg-neutral-50'
+                        ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]'
+                        : 'bg-transparent hover:bg-[#F5F5F5]'
                     } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     <entry.icon
-                      size={20}
+                      size={18}
                       className={`mr-2 shrink-0 transition duration-100 ${
-                        active ? 'text-neutral-500' : 'text-neutral-400 group-hover/item:text-neutral-500'
+                        active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
                       }`}
                     />
                     <span
-                      className={`flex-1 text-sm font-semibold truncate transition duration-100 ${
-                        active ? 'text-neutral-800' : 'text-neutral-700 group-hover/item:text-neutral-800'
+                      className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
+                        active ? 'text-[#7C3AED]' : 'text-[#414651] group-hover/item:text-[#181D27]'
                       }`}
                     >
                       {entry.label}
                     </span>
                     {entry.badge && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">
+                      <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.04em] rounded bg-[#F5F3FF] text-[#7C3AED]">
                         {entry.badge}
                       </span>
                     )}
@@ -251,10 +253,10 @@ export const AppSidebar: React.FC = () => {
           >
             {/* Name + email */}
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-neutral-800 leading-5 truncate">
+              <div className="text-[13px] font-medium text-[#181D27] leading-5 truncate">
                 {user?.user_metadata?.name || branding.companyName || 'User'}
               </div>
-              <div className="text-sm text-neutral-600 leading-5 truncate">
+              <div className="text-[11px] text-[#717680] leading-4 truncate">
                 {user?.email || ''}
               </div>
             </div>

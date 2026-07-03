@@ -182,6 +182,25 @@ export const RetirementScenarioPanel: React.FC = () => {
 
   return (
     <div className="space-y-7">
+      {/* ── How it works ────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        {[
+          'Set the retirement year',
+          'Sell or keep each property',
+          'Review cash in hand and tax below',
+        ].map((step, i) => (
+          <span key={step} className="flex items-center gap-2 text-[13px] text-[#535862]">
+            <span
+              className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+              style={{ backgroundColor: 'rgba(127, 86, 217, 0.08)', color: BRAND }}
+            >
+              {i + 1}
+            </span>
+            {step}
+          </span>
+        ))}
+      </div>
+
       {/* ── KPI row ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-6">
         {/* Annual cashflow — green when self-funding, red when a top-up is needed. */}
@@ -427,7 +446,7 @@ export const RetirementScenarioPanel: React.FC = () => {
                     </span>
                     <span
                       title={isSold ? 'Click to keep this property for income' : 'Click to sell this property for cash'}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium"
+                      className={`mt-3 inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium${isSold ? '' : ' sell-shimmer'}`}
                       style={isSold
                         ? { backgroundColor: '#F5F5F5', border: '1px solid #E9EAEB', color: '#535862' }
                         : { backgroundColor: '#FFFFFF', border: `1px solid rgba(127, 86, 217, 0.50)`, color: BRAND }}
@@ -479,6 +498,24 @@ export const RetirementScenarioPanel: React.FC = () => {
           border: 2.5px solid ${SLIDER};
           cursor: pointer;
           box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .sell-shimmer {
+          position: relative;
+          overflow: hidden;
+        }
+        .sell-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0;
+          width: 45%;
+          left: -50%;
+          background: linear-gradient(105deg, transparent, rgba(127, 86, 217, 0.16), transparent);
+          animation: sellShimmer 7s ease-in-out infinite;
+        }
+        @keyframes sellShimmer {
+          0% { left: -50%; }
+          14% { left: 110%; }
+          100% { left: 110%; }
         }
       `}</style>
     </div>

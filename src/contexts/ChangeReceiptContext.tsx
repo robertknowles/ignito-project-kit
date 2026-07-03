@@ -12,8 +12,13 @@
  * captured before the FIRST keystroke, and the cause line shows the original
  * value → the final value. Typing back to the original removes the entry.
  *
- * Only explicit notifyEdit calls produce entries — scenario loads, client
- * switches, and chat-driven changes never do.
+ * Only explicit notifyEdit calls produce entries — scenario loads and client
+ * switches never do.
+ *
+ * AI decisions (timing hints, dropped properties) from the plan-review brief
+ * are logged via queueAiInsight: the brief renders OUTSIDE the provider (and
+ * approving a plan remounts it), so insights sit in a module-level queue that
+ * the provider drains on mount and on the 'pp-ai-insight' window event.
  */
 import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -102,6 +107,25 @@ const summarize = (detail?: EditDetail | string): string | undefined => {
   if (typeof detail === 'string') return detail;
   return describeFieldEdit(detail.subject, detail.fieldLabel, detail.from, detail.to);
 };
+
+// ── AI-insight queue ─────────────────────────────────────────────────────────
+// The confirmation brief lives outside the provider, so its insights queue
+// here until a mounted provider drains them into the log.
+
+interface QueuedInsight {
+  summary?: string;
+  items: ReceiptItem[];
+}
+
+let aiInsightQueue: QueuedInsight[] = [];
+const AI_INSIGHT_EVENT = 'pp-ai-insight';
+
+/** Log an AI decision (e.g. "Property 2 could buy in 2027") to the change bell. */
+export function queueAiInsight(summary: string | undefined, items: ReceiptItem[]) {
+  if (items.length === 0) return;
+  aiInsightQueue.push({ summary, items });
+  window.dispatchEvent(new Event(AI_INSIGHT_EVENT));
+}
 
 /** Same source + subject + field ⇒ candidates for burst merging */
 const mergeKeyOf = (source: string, detail?: EditDetail | string): string | null =>
@@ -254,6 +278,32 @@ export const ChangeReceiptProvider: React.FC<{ metrics: ReceiptMetrics; children
     setHistory(next);
     if (!panelOpenRef.current) setUnreadCount(c => c + 1);
   }, [metrics]);
+
+  // Drain queued AI insights — on mount (the brief unmounts the provider, so
+  // approve-time insights land here) and whenever a new one is queued live.
+  useEffect(() => {
+    const drain = () => {
+      if (aiInsightQueue.length === 0) return;
+      const drained = aiInsightQueue;
+      aiInsightQueue = [];
+      const now = Date.now();
+      const entries: ChangeLogEntry[] = drained.map((q, i) => ({
+        id: now + i,
+        source: 'ai',
+        summary: q.summary,
+        items: q.items,
+        timestamp: now,
+        baseline: metricsRef.current,
+      }));
+      const next = [...entries.reverse(), ...historyRef.current].slice(0, MAX_ENTRIES);
+      historyRef.current = next;
+      setHistory(next);
+      if (!panelOpenRef.current) setUnreadCount(c => c + entries.length);
+    };
+    drain();
+    window.addEventListener(AI_INSIGHT_EVENT, drain);
+    return () => window.removeEventListener(AI_INSIGHT_EVENT, drain);
+  }, []);
 
   const togglePanel = useCallback(() => {
     setPanelOpen(open => {

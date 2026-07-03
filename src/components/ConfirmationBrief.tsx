@@ -7,7 +7,10 @@ import { AffordabilityAlert } from '@/components/ui/AffordabilityAlert';
 import { runPlanPreCheck, analyzePlanTimings, type PreCheckFailure, type PropertyTimingInsight, type BindingTest } from '@/engine/planPreCheck';
 import type { NLParseResponse, FieldSource, FieldSourceMap } from '@/types/nlParse';
 import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
+import { getCategoryLabel } from '@/utils/propertyCells';
 import { BASE_YEAR, PERIODS_PER_YEAR } from '@/constants/financialParams';
+import { InfoPopover } from './RetirementScenario/InfoPopover';
+import { queueAiInsight, type ReceiptItem } from '@/contexts/ChangeReceiptContext';
 
 // ── UUI Design Tokens (matching ChartCard / Dashboard) ───────────────────────
 const UUI = {
@@ -47,15 +50,6 @@ const STRATEGY_LABELS: Record<string, string> = {
   'eg-to-cf': 'Growth to cash flow',
 };
 
-const STRATEGY_OPTIONS = [
-  { value: 'eg-low', label: 'Equity growth (low entry)' },
-  { value: 'eg-high', label: 'Equity growth (high entry)' },
-  { value: 'cf-low', label: 'Cash flow (low entry)' },
-  { value: 'cf-high', label: 'Cash flow (high entry)' },
-  { value: 'commercial-transition', label: 'Commercial transition' },
-  { value: 'eg-to-cf', label: 'Growth to cash flow' },
-];
-
 const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
 const getSource = (map: FieldSourceMap | undefined, field: string): FieldSource =>
@@ -85,6 +79,19 @@ const Dot: React.FC<{ source: FieldSource }> = ({ source }) => {
     />
   );
 };
+
+const SourceLegend: React.FC = () => (
+  <div className="flex items-center gap-3" style={{ fontFamily: UUI.font, fontSize: 11, color: UUI.neutral400 }}>
+    <div className="flex items-center gap-1.5">
+      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: UUI.green500 }} />
+      From brief
+    </div>
+    <div className="flex items-center gap-1.5">
+      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: UUI.amber500 }} />
+      AI estimate
+    </div>
+  </div>
+);
 
 // ── Editable number input ────────────────────────────────────────────────────
 
@@ -304,7 +311,9 @@ const ClientRow: React.FC<{
   source: FieldSource;
   children: React.ReactNode;
   delay?: number;
-}> = ({ label, source, children, delay = 0 }) => (
+  /** (i) popover for read-only rows whose value is set elsewhere. */
+  info?: React.ReactNode;
+}> = ({ label, source, children, delay = 0, info }) => (
   <div
     className="flex items-center justify-between py-1.5"
     style={{
@@ -316,6 +325,7 @@ const ClientRow: React.FC<{
     <span style={{ fontFamily: UUI.font, fontSize: 12, color: UUI.neutral500 }} className="flex items-center">
       {label}
       <Dot source={source} />
+      {info}
     </span>
     <div className="text-right">{children}</div>
   </div>
@@ -404,7 +414,10 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
     >
       {/* Header: title + actions */}
       <div className="flex items-center justify-between">
-        <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 600, color: UUI.neutral700 }}>Property {index + 1}</span>
+        <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 600, color: UUI.neutral700 }}>
+          Property {index + 1}
+          <span style={{ fontWeight: 400, color: UUI.neutral400 }}> · {getCategoryLabel(property.type).replace(/ Property$/, '')}</span>
+        </span>
         <div className="flex items-center gap-0.5">
           <button className="p-0.5 transition-colors cursor-pointer" style={{ color: UUI.neutral200 }} onMouseEnter={e => e.currentTarget.style.color = UUI.neutral500} onMouseLeave={e => e.currentTarget.style.color = UUI.neutral200}><Copy size={12} /></button>
           {total > 1 && (
@@ -632,7 +645,7 @@ function enrichProperties(response: NLParseResponse): NLParseResponse {
 }
 
 export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }) => {
-  const { confirmPlanHandler, replanPlanHandler } = useLayout();
+  const { confirmPlanHandler } = useLayout();
   const [editedResponse, setEditedResponse] = useState<NLParseResponse>(() => enrichProperties(response));
   const editedResponseRef = useRef(editedResponse);
   editedResponseRef.current = editedResponse;
@@ -665,18 +678,6 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const updateProfileField = (field: string, value: any) => {
     setEditedResponse(prev => ({ ...prev, investmentProfile: prev.investmentProfile ? { ...prev.investmentProfile, [field]: value } : prev.investmentProfile }));
     setEditedProfileSources(prev => ({ ...prev, [field]: 'user' }));
-  };
-  const updateStrategy = (value: string) => {
-    const current = editedResponseRef.current.strategyPreset;
-    // Relabel locally first so the field reflects the choice immediately.
-    setEditedResponse(prev => ({ ...prev, strategyPreset: value as any }));
-    setEditedProfileSources(prev => ({ ...prev, strategyPreset: 'user' }));
-    // Changing the preset must regenerate the property mix — a different
-    // strategy means different cells, prices, and (for commercial-transition)
-    // a phase-2 commercial property. Relabelling alone leaves a stale plan.
-    if (value !== current && replanPlanHandler.current) {
-      replanPlanHandler.current(value, editedResponseRef.current);
-    }
   };
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
   const { profile } = useInvestmentProfile();
@@ -822,6 +823,25 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
       investmentProfileSources: editedProfileSources,
       propertySources: editedPropertySources,
     };
+
+    // AI decisions land in the change bell so they stay findable after the
+    // brief closes: timing hints the user didn't act on, and properties the
+    // auto-fix dropped. (The brief renders outside the provider — queued.)
+    const insightItems: ReceiptItem[] = [];
+    timingInsights.filter(isPullForward).forEach(t => {
+      insightItems.push({
+        text: `Property ${t.propertyIndex + 1} could be bought in ${periodToYear(t.earliestFeasiblePeriod!)} — earlier than planned. Move it in Purchases.`,
+        positive: true,
+      });
+    });
+    (current._autoFixChanges ?? []).filter(c => c.changeType === 'dropped').forEach(c => {
+      insightItems.push({
+        text: `${c.propertyLabel} removed — could not fit within borrowing capacity.`,
+        positive: false,
+      });
+    });
+    queueAiInsight('Plan approved — AI notes', insightItems);
+
     confirmPlanHandler.current?.(finalResponse);
   };
 
@@ -869,16 +889,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                     <div style={{ fontFamily: UUI.font, fontSize: 11, color: UUI.neutral400, lineHeight: '16px' }}>Client plan · {propertyCount} properties · {timelineYears} yrs</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3" style={{ fontFamily: UUI.font, fontSize: 11, color: UUI.neutral400 }}>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: UUI.green500 }} />
-                    From brief
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: UUI.amber500 }} />
-                    AI estimate
-                  </div>
-                </div>
+                <SourceLegend />
               </div>
             </div>
 
@@ -900,7 +911,21 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   <ClientRow label="Annual savings" source={getSource(editedProfileSources, 'annualSavings')} delay={230}>
                     <NumInput value={ip?.annualSavings ?? 0} prefix="$" onChange={v => updateProfileField('annualSavings', v)} />
                   </ClientRow>
-                  <ClientRow label="Usable equity" source={getSource(editedClientSources, 'existingPropertyEquity')} delay={280}>
+                  <ClientRow
+                    label="Usable equity"
+                    source={getSource(editedClientSources, 'existingPropertyEquity')}
+                    delay={280}
+                    info={existingProps.length > 0 ? (
+                      <InfoPopover
+                        iconSize={13}
+                        title="Usable equity"
+                        body={[
+                          'Calculated from the existing portfolio below — 80% of each property’s value minus its loan.',
+                          'Edit the property values in the Existing Portfolio section to change it.',
+                        ]}
+                      />
+                    ) : undefined}
+                  >
                     {existingProps.length > 0 ? (
                       // Derived from the existing portfolio blocks below — the engine
                       // uses per-property values when they exist, so show that figure
@@ -917,7 +942,21 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 {/* Goals */}
                 <div>
                   <div style={{ fontFamily: UUI.font, fontSize: 10, fontWeight: 600, color: UUI.neutral400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 6 }}>Goals</div>
-                  <ClientRow label="Timeline" source={getSource(editedProfileSources, 'timelineYears')} delay={100}>
+                  <ClientRow
+                    label="Timeline"
+                    source={getSource(editedProfileSources, 'timelineYears')}
+                    delay={100}
+                    info={
+                      <InfoPopover
+                        iconSize={13}
+                        title="Timeline"
+                        body={[
+                          'Set from the client brief.',
+                          'Ask in chat to change the timeline — the whole plan replans around it.',
+                        ]}
+                      />
+                    }
+                  >
                     <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral900 }}>{timelineYears} yrs</span>
                   </ClientRow>
                   <ClientRow label="Equity goal" source={getSource(editedProfileSources, 'equityGoal')} delay={150}>
@@ -926,12 +965,27 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   <ClientRow label="Cashflow goal" source={getSource(editedProfileSources, 'cashflowGoal')} delay={200}>
                     <NumInput value={ip?.cashflowGoal ?? 0} prefix="$" onChange={v => updateProfileField('cashflowGoal', v)} />
                   </ClientRow>
-                  <ClientRow label="Strategy" source={getSource(editedProfileSources, 'strategyPreset')} delay={250}>
-                    <Dropdown
-                      value={editedResponse.strategyPreset ?? 'eg-low'}
-                      options={STRATEGY_OPTIONS}
-                      onChange={updateStrategy}
-                    />
+                  {/* Strategy is read-only here — the AI picks it from the brief
+                      and company strategy; changing it belongs in chat, where a
+                      full replan happens. */}
+                  <ClientRow
+                    label="Strategy"
+                    source={getSource(editedProfileSources, 'strategyPreset')}
+                    delay={250}
+                    info={
+                      <InfoPopover
+                        iconSize={13}
+                        title="Strategy"
+                        body={[
+                          'Chosen by the AI from the brief and your company strategy.',
+                          'Ask in chat to change strategy — the whole plan replans.',
+                        ]}
+                      />
+                    }
+                  >
+                    <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral700 }}>
+                      {strategyLabel}
+                    </span>
                   </ClientRow>
                 </div>
               </div>
@@ -1093,8 +1147,9 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
 
           {/* ── Planned property blocks ── */}
           <div>
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <span style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.neutral700 }}>Proposed Purchases</span>
+              <SourceLegend />
             </div>
             <div className="flex gap-3">
               {(editedResponse.properties ?? []).map((prop, i) => (

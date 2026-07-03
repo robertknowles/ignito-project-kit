@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceDot,
-  Label,
   ResponsiveContainer,
 } from 'recharts';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -20,7 +19,6 @@ import {
   PERIODS_PER_YEAR,
 } from '../constants/financialParams';
 import { calculateBorrowingCeiling } from '../utils/borrowingCapacityCeiling';
-import { getPropertyIconPath } from './icons/PropertyIconPaths';
 import type { TimelineProperty } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 
@@ -33,6 +31,11 @@ interface BorrowingCapacityChartProps {
 
 const UUI = {
   brand600: '#7C3AED',
+  ink: '#7C3AED',        // pin outlines / goal glyph
+  fill: '#8B5CF6',       // capacity hero line + headroom band + anchor dots
+  reference: '#A1A1AA',  // Debt-not-Offset line (band's lower edge)
+  axis: '#A1A1AA',       // axis tick labels
+  gridline: '#F0F1F4',   // faint gridlines
   brand200: '#EDE9FE',
   brand300: '#DDD6FE',
   neutral900: '#181D27',
@@ -45,38 +48,37 @@ const UUI = {
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
-const CAPACITY_STROKE = UUI.brand600;
+const CAPACITY_STROKE = UUI.fill;
 const DEBT_STROKE = '#414651';
-const OFFSET_STROKE = '#8B5CF6';
+const OFFSET_STROKE = UUI.reference;
 
+// Purchase markers — violet house-pins on stems, anchored on the Capacity line (§3.1)
 const PurchaseDot = (props: any) => {
   const { cx, cy, payload } = props;
   if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null;
   if (!payload?.properties?.length) return null;
 
-  const iconSize = 14;
-  const bgSize = 26;
-  const stackGap = 2;
+  const baseLift = 26;   // gap from the line to the lowest pin head
+  const stemGap = 22;    // vertical gap between stacked pin heads
+  const n = payload.properties.length;
+  const topPinY = cy - baseLift - (n - 1) * stemGap;
 
   return (
-    <g>
-      {payload.properties.map((title: string, idx: number) => {
-        const iconPath = getPropertyIconPath(title);
-        const iconCy = cy - idx * (bgSize + stackGap);
+    <g style={{ pointerEvents: 'none' }}>
+      <circle cx={cx} cy={cy} r={3} fill={UUI.fill} />
+      <line x1={cx} y1={cy} x2={cx} y2={topPinY} stroke={UUI.fill} strokeWidth={1.5} />
+      {payload.properties.map((_title: string, idx: number) => {
+        const pinY = cy - baseLift - idx * stemGap;
         return (
           <g key={`${payload.year}-${idx}`}>
-            <circle cx={cx} cy={iconCy} r={bgSize / 2} fill="#FFFFFF" stroke="#E9EAEB" strokeWidth={1} />
-            <svg
-              x={cx - iconSize / 2}
-              y={iconCy - iconSize / 2}
-              width={iconSize}
-              height={iconSize}
-              viewBox="0 0 24 24"
-              fill="none"
-              style={{ pointerEvents: 'none' }}
-            >
-              <path d={iconPath} stroke="#181D27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            {/* Inverted house pin — accent disc, white ring, solid white house + door */}
+            <circle cx={cx} cy={pinY} r={8.5} fill={UUI.ink} stroke={UUI.white} strokeWidth={1.5} />
+            <path
+              transform={`translate(${cx}, ${pinY})`}
+              d="M 0 -4.3 L 4.1 -0.9 L 4.1 4.1 L -4.1 4.1 L -4.1 -0.9 Z"
+              fill={UUI.white}
+            />
+            <rect x={cx - 1.1} y={pinY + 1.5} width={2.2} height={2.8} rx={0.5} fill={UUI.ink} />
           </g>
         );
       })}
@@ -84,18 +86,19 @@ const PurchaseDot = (props: any) => {
   );
 };
 
-const DebtFreeMarker = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  const cx = viewBox.x + (viewBox.width ?? 0) / 2;
-  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
-  const badgeY = 4;
+// Debt-free milestone — target pin on a stem (replaces the pill)
+const debtFreePin = (cx: number, cy: number) => {
+  const pinY = cy - 30;
   return (
-    <g>
-      <line x1={cx} y1={badgeY + 22} x2={cx} y2={cy - 6} stroke={UUI.brand600} strokeWidth={1.5} strokeDasharray="3 2" />
-      <rect x={cx - 42} y={badgeY} width={84} height={22} rx={11} fill={UUI.brand600} />
-      <text x={cx} y={badgeY + 14.5} textAnchor="middle" fill="white" fontSize={10} fontWeight={600} fontFamily={UUI.fontFamily}>
-        Debt Free ✓
-      </text>
+    <g style={{ pointerEvents: 'none' }}>
+      <line x1={cx} y1={cy} x2={cx} y2={pinY} stroke={UUI.fill} strokeWidth={1.5} />
+      <circle cx={cx} cy={cy} r={3} fill={UUI.fill} />
+      <g transform={`translate(${cx}, ${pinY})`}>
+        <circle cx={0} cy={0} r={8.5} fill={UUI.white} stroke={UUI.ink} strokeWidth={1.4} />
+        <circle cx={0} cy={0.2} r={3.1} fill="none" stroke={UUI.ink} strokeWidth={1.1} />
+        <circle cx={0} cy={0.2} r={1} fill={UUI.ink} />
+        <text x={0} y={-12} textAnchor="middle" fontFamily={UUI.fontFamily} fontSize={9} fontWeight={600} fill={UUI.ink}>Debt free</text>
+      </g>
     </g>
   );
 };
@@ -146,6 +149,9 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
           borrowingCeiling,
           totalDebt,
           offsetDebt,
+          // Derived plotting value: the violet band = available borrowing power,
+          // stacked on top of offsetDebt so its top edge lands on the ceiling.
+          headroomBand: Math.max(0, borrowingCeiling - offsetDebt),
           properties: d.properties,
         };
       });
@@ -165,6 +171,30 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
     if (lastDebtIndex < 0 || lastDebtIndex >= data.length - 1) return null;
     return data[lastDebtIndex + 1];
   }, [data]);
+
+  // ── Round-number Y frame (§3.9a) + sparse X ticks (§3.5) ──────────────────
+  const { yCeil, yTicks, xTicks } = useMemo(() => {
+    const max = Math.max(0, ...data.map(d => d.borrowingCeiling ?? 0));
+    const niceCeil = (v: number) => {
+      if (v <= 0) return 1_000_000;
+      const pow = Math.pow(10, Math.floor(Math.log10(v)));
+      for (const s of [1, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= s * pow) return s * pow;
+      return 10 * pow;
+    };
+    const ceil = niceCeil(max);
+    const ticks = [0, 1, 2, 3, 4].map(i => (ceil * i) / 4);
+    const yrs = data.map(d => Number(d.year));
+    const first = yrs[0], last = yrs[yrs.length - 1];
+    const xt = data.map(d => d.year).filter((_, i) => (yrs[i] - first) % 5 === 0);
+    if (last != null && Number(xt[xt.length - 1]) !== last) xt.push(data[data.length - 1].year);
+    return { yCeil: ceil, yTicks: ticks, xTicks: xt };
+  }, [data]);
+
+  const fmtTick = (v: number) => {
+    if (v === 0) return '$0';
+    if (v >= 1e6) { const m = v / 1e6; return `$${Number.isInteger(m) ? m : m.toFixed(1)}M`; }
+    return `$${Math.round(v / 1e3)}k`;
+  };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
@@ -229,95 +259,93 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
   };
 
   return (
-    <div>
-      <ResponsiveContainer width="100%" height={220}>
+    // Fills the card (ChartCard content is a flex column); minHeight guards
+    // against collapse when the card isn't stretched by a taller sibling.
+    <div style={{ flex: 1, minHeight: 240 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
-          margin={{ top: 20, right: 16, left: 16, bottom: 0 }}
+          margin={{ top: 20, right: 8, left: 0, bottom: 0 }}
         >
-          <defs>
-            <linearGradient id="bcCapacityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={UUI.brand200} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={UUI.brand200} stopOpacity={0.02} />
-            </linearGradient>
-            <pattern id="bcOffsetStripes" width="8" height="100%" patternUnits="userSpaceOnUse">
-              <line x1="4" y1="0" x2="4" y2="100%" stroke={OFFSET_STROKE} strokeWidth="1" strokeOpacity="0.3" />
-            </pattern>
-          </defs>
-
           <CartesianGrid
             strokeDasharray="0"
-            stroke={UUI.neutral100}
-            strokeOpacity={0.8}
+            stroke={UUI.gridline}
+            strokeOpacity={1}
             vertical={false}
           />
 
           <XAxis
             dataKey="year"
+            ticks={xTicks}
+            interval={0}
             tick={{
-              fontSize: 12,
-              fontWeight: 600,
-              fill: UUI.neutral500,
+              fontSize: 9,
+              fill: UUI.axis,
               fontFamily: UUI.fontFamily,
             }}
             axisLine={false}
             tickLine={false}
             tickMargin={10}
-            padding={{ left: 20, right: 10 }}
+            padding={{ left: 12, right: 10 }}
           />
-          <YAxis hide />
+          {/* Full-height labelled $ Y axis — round ceiling, 50px gutter (§3.9a) */}
+          <YAxis
+            domain={[0, yCeil]}
+            ticks={yTicks}
+            tickFormatter={fmtTick}
+            tick={{ fontSize: 9, fill: UUI.axis, fontFamily: UUI.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            width={42}
+          />
+          {/* Hidden axis for tooltip-only series — keeps them OUT of the visible
+              Y scale (Total Liabilities can exceed the ceiling and was silently
+              stretching the domain, squashing the band into the bottom). */}
+          <YAxis yAxisId="tooltipOnly" hide />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Capacity envelope — solid line + soft gradient */}
+          {/* Hidden series so Capacity + Total Liabilities stay in the tooltip payload */}
+          <Line yAxisId="tooltipOnly" dataKey="borrowingCeiling" name="Borrowing Capacity" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line yAxisId="tooltipOnly" dataKey="totalDebt" name="Total Liabilities" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+
+          {/* Debt not Offset — grey line = lower edge of the headroom band */}
           <Area
             type="monotone"
-            dataKey="borrowingCeiling"
-            name="Borrowing Capacity"
+            dataKey="offsetDebt"
+            name="Debt not Offset"
+            stackId="bcBand"
+            stroke={OFFSET_STROKE}
+            strokeWidth={1.75}
+            fill="transparent"
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+          />
+
+          {/* Headroom band — violet tint from Debt-not-Offset up to Capacity;
+              its top edge (stacked to the ceiling) draws the violet Capacity line */}
+          <Area
+            type="monotone"
+            dataKey="headroomBand"
+            name="Headroom"
+            stackId="bcBand"
             stroke={CAPACITY_STROKE}
-            strokeWidth={2}
-            fill="url(#bcCapacityGradient)"
+            strokeWidth={2.5}
+            fill={CAPACITY_STROKE}
+            fillOpacity={0.16}
             dot={<PurchaseDot />}
             activeDot={false}
             isAnimationActive={false}
           />
 
-          {/* Total Liabilities — dashed line, no area fill */}
-          <Line
-            type="monotone"
-            dataKey="totalDebt"
-            name="Total Liabilities"
-            stroke={DEBT_STROKE}
-            strokeWidth={1.5}
-            strokeDasharray="6 4"
-            dot={false}
-            activeDot={false}
-            isAnimationActive={false}
-          />
-
-          {/* Offset Debt — vertical stripe pattern (real exposure) */}
-          <Area
-            type="monotone"
-            dataKey="offsetDebt"
-            name="Offset Debt"
-            stroke={OFFSET_STROKE}
-            strokeWidth={1.5}
-            fill="url(#bcOffsetStripes)"
-            dot={false}
-            isAnimationActive={false}
-          />
-
-          {/* Debt Free milestone */}
+          {/* Debt-free milestone — target pin on a stem */}
           {debtFreePoint && (
             <ReferenceDot
               x={debtFreePoint.year}
               y={debtFreePoint.offsetDebt}
-              r={6}
-              fill={UUI.brand600}
-              stroke="white"
-              strokeWidth={2.5}
-            >
-              <Label content={<DebtFreeMarker />} />
-            </ReferenceDot>
+              r={0}
+              shape={(props: any) => debtFreePin(props.cx, props.cy)}
+            />
           )}
         </ComposedChart>
       </ResponsiveContainer>

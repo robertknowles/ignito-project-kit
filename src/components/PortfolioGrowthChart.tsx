@@ -147,7 +147,7 @@ export const PortfolioGrowthChart = () => {
         fontWeight={500}
         textAnchor="middle"
       >
-        Goal Reached: {equityGoalYear}
+        Equity goal reached: {equityGoalYear}
       </text>
     )
   }
