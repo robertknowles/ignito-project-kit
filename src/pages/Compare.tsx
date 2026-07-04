@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useClient } from '@/contexts/ClientContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CHART_COLORS, CHART_STYLE } from '@/constants/chartColors';
-import type { PropertyInstanceDetails } from '@/integrations/supabase/types';
+import type { PropertyInstanceDetails } from '@/types/propertyInstance';
+import { calcGrossYield, calcAnnualRent } from '@/utils/sharedFinancialCalcs';
 import { track, EVENTS } from '@/lib/analytics';
 import { useCompareRemodel } from '@/hooks/useCompareRemodel';
 import { useScenarioRunner } from '@/hooks/useScenarioRunner';
@@ -152,13 +153,15 @@ const makePurchaseDot = (propsKey: 'propertiesA' | 'propertiesB', color: string,
 };
 
 // ── Condensed purchases table (row click → full detail) ─────────────────────
+// Front-facing numbers only (Rob, 4 Jul) — the descriptive fields (state,
+// LVR, rent, entity, costs breakdown) live in the row-detail dialog.
 const TABLE_COLS: { key: string; header: string; numeric?: boolean; width?: number }[] = [
-  { key: 'year', header: 'Year', width: 58 },
+  { key: 'year', header: 'Year', width: 54 },
   { key: 'title', header: 'Property' },
-  { key: 'state', header: 'State', width: 62 },
   { key: 'price', header: 'Price', numeric: true },
-  { key: 'lvr', header: 'LVR', numeric: true, width: 58 },
-  { key: 'rent', header: 'Rent /wk', numeric: true },
+  { key: 'yield', header: 'Yield', numeric: true, width: 58 },
+  { key: 'growth', header: 'Growth', width: 72 },
+  { key: 'holding', header: 'Holding $/yr', numeric: true, width: 92 },
 ];
 
 // The scenario's projected equity and cashflow at its plan horizon, pinned
@@ -221,13 +224,31 @@ const PurchasesTable: React.FC<{
         </tr>
       )}
       {rows.map((row, i) => {
+        const inst = row.instance;
+        // Holding $/yr — identical expression to the dashboard purchases
+        // table's HoldingCostCell (override ?? mgmt% × annual rent + annual
+        // expense fields). fmtMoney renders NaN from missing legacy fields
+        // as "—".
+        const holding = inst
+          ? inst.holdingCostOverride ??
+            Math.round(
+              (inst.propertyManagementPercent / 100) * calcAnnualRent(inst.rentPerWeek) +
+                inst.buildingInsuranceAnnual +
+                inst.councilRatesWater +
+                inst.strata +
+                inst.maintenanceAllowanceAnnual,
+            )
+          : null;
         const cells: Record<string, string> = {
           year: row.year,
           title: row.title,
-          state: row.instance?.state ?? '—',
-          price: fmtMoney(row.instance?.purchasePrice),
-          lvr: fmtLvr(row.instance?.lvr),
-          rent: row.instance?.rentPerWeek != null ? `$${Math.round(row.instance.rentPerWeek).toLocaleString('en-AU')}` : '—',
+          price: fmtMoney(inst?.purchasePrice),
+          yield:
+            inst?.rentPerWeek != null && inst?.purchasePrice
+              ? `${calcGrossYield(inst.rentPerWeek, inst.purchasePrice).toFixed(1)}%`
+              : '—',
+          growth: inst?.growthAssumption ?? '—',
+          holding: fmtMoney(holding),
         };
         return (
           <tr
@@ -773,7 +794,7 @@ export const Compare: React.FC = () => {
 
                 {/* Equity chart */}
                 <ChartCard
-                  title="Portfolio Equity"
+                  title="Total Equity"
                   expandable
                   legend={[
                     { color: COLOR_A, label: labelA, variant: 'dot' },
@@ -817,7 +838,7 @@ export const Compare: React.FC = () => {
 
                 {/* Cashflow chart */}
                 <ChartCard
-                  title="Annual Cashflow"
+                  title="Net Cashflow"
                   expandable
                   legend={[
                     { color: COLOR_A, label: labelA, variant: 'dot' },
