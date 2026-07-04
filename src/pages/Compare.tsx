@@ -28,13 +28,43 @@ import { Sparkles, ArrowUp, FileText, Wand2, AlertTriangle, Loader2 } from 'luci
  * Compare — two scenarios side by side, dashboard-styled.
  *
  * Layout (above the fold): Scenario A/B pickers → grey rule → output:
- * KPIs at the plan horizon, two purchases tables (row click → full detail),
- * equity chart. Cashflow chart below.
+ * two purchases tables with horizon stats (row click → full detail),
+ * Total Equity chart. Net Cashflow chart below.
  *
- * Currently compares saved-scenario snapshots. "Remodel with AI" (mutate a
- * copy of a plan via NL and re-run the engine) is dev-gated until the
- * headless engine runner ships — see COMPARE-EVOLUTION-PLAN.md.
+ * Scenario B is a saved scenario or an AI "Remodel" draft: nl-parse mutates
+ * a COPY of the base plan and the headless engine re-runs it. The client's
+ * saved scenario is never written. See COMPARE-EVOLUTION-PLAN.md.
  */
+
+// Big central loading bar while scenarios fetch. The fill is simulated
+// (a fetch has no true progress) — it eases toward 92% and the whole bar
+// unmounts the moment data lands.
+const ScenarioLoadingBar: React.FC = () => {
+  const [progress, setProgress] = useState(6);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setProgress(p => Math.min(92, p + (92 - p) * 0.055 + 0.35));
+    }, 110);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="flex justify-center py-20">
+      <div className="w-full" style={{ maxWidth: 440 }}>
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[13px] font-medium text-[#414651]">Loading scenarios…</span>
+          <span className="meta tabular-nums">{Math.round(progress)}%</span>
+        </div>
+        <div className="h-2.5 w-full rounded-full bg-[#F0F1F4] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-[#7C3AED] transition-[width] duration-150 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface ChartDataPoint {
   year: string;
@@ -741,13 +771,8 @@ export const Compare: React.FC = () => {
               </ChartCard>
             </div>
 
-            {/* Floating loader — bottom-right, so the BA knows to wait a beat */}
-            {loading && (
-              <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-[#E9EAEB] bg-white px-4 py-3 shadow-lg">
-                <Loader2 size={16} className="animate-spin text-[#7C3AED]" />
-                <span className="text-[13px] font-medium text-[#414651]">Loading scenarios…</span>
-              </div>
-            )}
+            {/* Central loading bar while scenarios fetch */}
+            {loading && <ScenarioLoadingBar />}
 
             {!loading && allScenarios.length === 0 && (
               <p className="body-secondary">
