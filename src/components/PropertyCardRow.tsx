@@ -328,48 +328,12 @@ const PURCHASES_COL_WIDTHS: Record<string, number> = {
   saleYear: 72,
 };
 
-// ── Aggregate-cost breakdown tooltips ────────────────────────────────────────
+// ── Aggregate-cost breakdown cells ───────────────────────────────────────────
 // The Holding $/yr and Purchase Costs columns are deliberate roll-ups; hovering
-// the cell (or the column header) itemises what's inside. Values reflect the
-// proportional split applied when the aggregate has been edited.
+// the cell reveals an editable popover itemising what's inside (see
+// PurchaseCostsCell / HoldingCostCell below).
 
 const fmtTip = (v: number) => `$${Math.round(v).toLocaleString('en-AU')}`;
-
-interface TipRow { label: string; value: number; strong?: boolean }
-
-const BreakdownTip: React.FC<{
-  rows: TipRow[];
-  footerRows?: TipRow[];
-  children: React.ReactNode;
-}> = ({ rows, footerRows, children }) => (
-  <TooltipProvider delayDuration={150}>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="block">{children}</span>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="px-3 py-2">
-        <div style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: 11, minWidth: 190 }}>
-          {rows.map(r => (
-            <div key={r.label} className="flex items-center justify-between gap-6 py-0.5">
-              <span style={{ opacity: 0.75 }}>{r.label}</span>
-              <span style={{ fontWeight: r.strong ? 600 : 500 }}>{fmtTip(r.value)}</span>
-            </div>
-          ))}
-          {footerRows && footerRows.length > 0 && (
-            <div className="mt-1 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.25)' }}>
-              {footerRows.map(r => (
-                <div key={r.label} className="flex items-center justify-between gap-6 py-0.5">
-                  <span style={{ opacity: 0.75 }}>{r.label}</span>
-                  <span style={{ fontWeight: r.strong ? 600 : 500 }}>{fmtTip(r.value)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-);
 
 const HeaderTip: React.FC<{ tip: string; children: React.ReactNode }> = ({ tip, children }) => (
   <TooltipProvider delayDuration={150}>
@@ -383,24 +347,6 @@ const HeaderTip: React.FC<{ tip: string; children: React.ReactNode }> = ({ tip, 
     </Tooltip>
   </TooltipProvider>
 );
-
-// Five holding components, scaled to the override when one is set.
-const holdingBreakdown = (d: PropertyInstanceDetails): { rows: TipRow[]; total: number } => {
-  const mgmt = (d.propertyManagementPercent / 100) * calcAnnualRent(d.rentPerWeek);
-  const parts: TipRow[] = [
-    { label: `Management (${d.propertyManagementPercent}%)`, value: mgmt },
-    { label: 'Building insurance', value: d.buildingInsuranceAnnual },
-    { label: 'Council rates & water', value: d.councilRatesWater },
-    { label: 'Strata', value: d.strata },
-    { label: 'Maintenance', value: d.maintenanceAllowanceAnnual },
-  ];
-  const computed = parts.reduce((s, p) => s + p.value, 0);
-  const scale = d.holdingCostOverride != null && computed > 0 ? d.holdingCostOverride / computed : 1;
-  return {
-    rows: parts.map(p => ({ ...p, value: p.value * scale })),
-    total: computed * scale,
-  };
-};
 
 // The six editable fee/inspection components + stamp duty shown in the
 // Purchase Costs cell's hover popover. Each maps directly to a PropertyInstance
@@ -417,6 +363,16 @@ const PURCHASE_FEE_ROWS: { label: string; field: keyof PropertyInstanceDetails }
 // The six fee fields whose direct edit supersedes the legacy lump
 // `purchaseCostsOverride` (used by handleFieldChange to clear it).
 const PURCHASE_FEE_FIELDS = new Set<string>(PURCHASE_FEE_ROWS.map(r => r.field as string));
+
+// The five holding-cost component fields whose direct edit supersedes the
+// legacy lump `holdingCostOverride` (used by handleFieldChange to clear it).
+const HOLDING_COMPONENT_FIELDS = new Set<string>([
+  'propertyManagementPercent',
+  'buildingInsuranceAnnual',
+  'councilRatesWater',
+  'strata',
+  'maintenanceAllowanceAnnual',
+]);
 
 // Effective purchase-cost figures for a property. `fees` respects the legacy
 // lump `purchaseCostsOverride` (scales the six parts) so existing scenarios
@@ -493,37 +449,27 @@ const PopStaticRow: React.FC<{ label: string; value: number; strong?: boolean }>
   </div>
 );
 
-// Purchase Costs cell — read-only headline total (fees + stamp) that reveals an
-// interactive popover on hover. The popover exposes the six fee components plus
-// stamp duty as editable inputs, then a read-only Deposit + Total cash required
-// footer. Rendered through a portal with fixed positioning so it escapes the
-// table's horizontal scroll container and floats over the table boundaries.
-const PurchaseCostsCell: React.FC<{
-  card: CardData;
-  onChange: (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => void;
-}> = ({ card, onChange }) => {
-  const d = card.instanceData;
+// Shared hover-popover behaviour for the editable cost cells (Purchase Costs,
+// Holding $/yr). Returns refs + handlers for a portal-rendered popover with
+// fixed positioning that flips above the trigger when there's no room below, so
+// it floats over the table's horizontal-scroll container.
+const useHoverPopover = (popW: number, popHEst: number) => {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ left: number; top: number } | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number>();
-
-  const POP_W = 240;
-  const POP_H_EST = 300;
   const GAP = 6;
 
   const computePos = () => {
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    let left = r.left + r.width / 2 - POP_W / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - POP_W - 8));
+    let left = r.left + r.width / 2 - popW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
     const spaceBelow = window.innerHeight - r.bottom;
-    // Flip above when there isn't room below (matches the reference, where the
-    // popover floats up and over the rows).
-    const top = spaceBelow < POP_H_EST + GAP && r.top > POP_H_EST + GAP
-      ? r.top - POP_H_EST - GAP
+    const top = spaceBelow < popHEst + GAP && r.top > popHEst + GAP
+      ? r.top - popHEst - GAP
       : r.bottom + GAP;
     setCoords({ left, top });
   };
@@ -546,39 +492,110 @@ const PurchaseCostsCell: React.FC<{
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
+  return { open, coords, triggerRef, popRef, openNow, scheduleClose, popW };
+};
+
+// Portal-rendered popover panel positioned by useHoverPopover.
+const HoverPopoverPanel: React.FC<{
+  pop: ReturnType<typeof useHoverPopover>;
+  children: React.ReactNode;
+}> = ({ pop, children }) => {
+  if (!pop.open || !pop.coords) return null;
+  return createPortal(
+    <div
+      ref={pop.popRef}
+      onMouseEnter={pop.openNow}
+      onMouseLeave={pop.scheduleClose}
+      style={{ position: 'fixed', top: pop.coords.top, left: pop.coords.left, width: pop.popW, zIndex: 1000, fontFamily: 'Inter, system-ui, sans-serif' }}
+      className="bg-white border border-[#E9EAEB] rounded-xl shadow-xl px-3 py-2.5"
+    >
+      {children}
+    </div>,
+    document.body
+  );
+};
+
+// Purchase Costs cell — read-only headline total (fees + stamp) that reveals an
+// interactive popover on hover. The popover exposes the six fee components plus
+// stamp duty as editable inputs, then a read-only Deposit + Total cash required
+// footer.
+const PurchaseCostsCell: React.FC<{
+  card: CardData;
+  onChange: (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => void;
+}> = ({ card, onChange }) => {
+  const d = card.instanceData;
+  const pop = useHoverPopover(240, 300);
+
   if (!d) return null;
 
   const { stamp, deposit, purchaseCostsTotal, totalCashRequired } = purchaseCostFigures(d);
 
   return (
-    <div ref={triggerRef} className="w-full" onMouseEnter={openNow} onMouseLeave={scheduleClose}>
+    <div ref={pop.triggerRef} className="w-full" onMouseEnter={pop.openNow} onMouseLeave={pop.scheduleClose}>
       <div className="w-full text-center text-xs text-[#535862] rounded px-1 py-1 hover:bg-[#F4F4F5] cursor-default transition-colors">
         {fmtTip(purchaseCostsTotal)}
       </div>
-      {open && coords && createPortal(
-        <div
-          ref={popRef}
-          onMouseEnter={openNow}
-          onMouseLeave={scheduleClose}
-          style={{ position: 'fixed', top: coords.top, left: coords.left, width: POP_W, zIndex: 1000, fontFamily: 'Inter, system-ui, sans-serif' }}
-          className="bg-white border border-[#E9EAEB] rounded-xl shadow-xl px-3 py-2.5"
-        >
-          {PURCHASE_FEE_ROWS.map(r => (
-            <PopEditRow
-              key={r.field}
-              label={r.label}
-              value={(d[r.field] as number) ?? 0}
-              onChange={v => onChange(card.instanceId, r.field, v)}
-            />
-          ))}
-          <PopEditRow label="Stamp duty" value={stamp} onChange={v => onChange(card.instanceId, 'stampDutyOverride', v || null)} />
-          <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid #E9EAEB' }}>
-            <PopStaticRow label="Deposit" value={deposit} />
-            <PopStaticRow label="Total cash required" value={totalCashRequired} strong />
-          </div>
-        </div>,
-        document.body
-      )}
+      <HoverPopoverPanel pop={pop}>
+        {PURCHASE_FEE_ROWS.map(r => (
+          <PopEditRow
+            key={r.field}
+            label={r.label}
+            value={(d[r.field] as number) ?? 0}
+            onChange={v => onChange(card.instanceId, r.field, v)}
+          />
+        ))}
+        <PopEditRow label="Stamp duty" value={stamp} onChange={v => onChange(card.instanceId, 'stampDutyOverride', v || null)} />
+        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid #E9EAEB' }}>
+          <PopStaticRow label="Deposit" value={deposit} />
+          <PopStaticRow label="Total cash required" value={totalCashRequired} strong />
+        </div>
+      </HoverPopoverPanel>
+    </div>
+  );
+};
+
+// Holding $/yr cell — read-only headline total that reveals an editable popover
+// mirroring Purchase Costs. Management is edited as a dollar figure and
+// back-solved into propertyManagementPercent; the other four map straight to
+// their annual-expense fields. Editing any component clears the legacy
+// holdingCostOverride lump (see handleFieldChange) so raw values drive both the
+// display and the engine, keeping every projection and later purchase brief in
+// sync.
+const HoldingCostCell: React.FC<{
+  card: CardData;
+  onChange: (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => void;
+}> = ({ card, onChange }) => {
+  const d = card.instanceData;
+  const pop = useHoverPopover(240, 280);
+
+  if (!d) return null;
+
+  const annualRent = calcAnnualRent(d.rentPerWeek);
+  const mgmtDollar = (d.propertyManagementPercent / 100) * annualRent;
+  const rawTotal =
+    mgmtDollar + d.buildingInsuranceAnnual + d.councilRatesWater + d.strata + d.maintenanceAllowanceAnnual;
+  const headline = d.holdingCostOverride ?? Math.round(rawTotal);
+
+  const setMgmtDollar = (v: number) => {
+    const pct = annualRent > 0 ? Math.round((v / annualRent) * 10000) / 100 : 0;
+    onChange(card.instanceId, 'propertyManagementPercent', pct);
+  };
+
+  return (
+    <div ref={pop.triggerRef} className="w-full" onMouseEnter={pop.openNow} onMouseLeave={pop.scheduleClose}>
+      <div className="w-full text-center text-xs text-[#535862] rounded px-1 py-1 hover:bg-[#F4F4F5] cursor-default transition-colors">
+        {fmtTip(headline)}
+      </div>
+      <HoverPopoverPanel pop={pop}>
+        <PopEditRow label={`Management (${d.propertyManagementPercent}%)`} value={mgmtDollar} onChange={setMgmtDollar} />
+        <PopEditRow label="Building insurance" value={d.buildingInsuranceAnnual} onChange={v => onChange(card.instanceId, 'buildingInsuranceAnnual', v)} />
+        <PopEditRow label="Council rates & water" value={d.councilRatesWater} onChange={v => onChange(card.instanceId, 'councilRatesWater', v)} />
+        <PopEditRow label="Strata" value={d.strata} onChange={v => onChange(card.instanceId, 'strata', v)} />
+        <PopEditRow label="Maintenance" value={d.maintenanceAllowanceAnnual} onChange={v => onChange(card.instanceId, 'maintenanceAllowanceAnnual', v)} />
+        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid #E9EAEB' }}>
+          <PopStaticRow label="Total per year" value={headline} strong />
+        </div>
+      </HoverPopoverPanel>
     </div>
   );
 };
@@ -895,18 +912,8 @@ const PURCHASES_COLUMNS: Column[] = [
   // ── Annual Holding Cost (merged total) ──
   {
     key: 'holdingCost', header: 'Holding $/yr',
-    headerTip: 'Per-year running costs rolled into one figure: management, building insurance, council rates & water, strata, maintenance. Hover a cell for the split; editing scales the parts proportionally.',
-    render: (c, onChange) => {
-      if (!c.instanceData) return null;
-      const d = c.instanceData;
-      const { rows, total } = holdingBreakdown(d);
-      const display = d.holdingCostOverride ?? Math.round(total);
-      return (
-        <BreakdownTip rows={rows} footerRows={[{ label: 'Total per year', value: total, strong: true }]}>
-          <NumberInput value={display} onChange={v => onChange(c.instanceId, 'holdingCostOverride', v || null)} />
-        </BreakdownTip>
-      );
-    },
+    headerTip: 'Per-year running costs rolled into one figure: management, building insurance, council rates & water, strata, maintenance. Hover a cell to edit each component; edits flow into every projection and the later purchase briefs.',
+    render: (c, onChange) => <HoldingCostCell card={c as CardData} onChange={onChange} />,
   },
   // ── Sale ──
   {
@@ -1138,13 +1145,15 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
       from: instances[instanceId]?.[field],
       to: value,
     });
-    // Editing an individual fee component supersedes the legacy lump
-    // `purchaseCostsOverride` (which scales the six parts). Clear it so the raw
-    // component values drive both the display and the engine (feeScale = 1).
-    const clearsLumpOverride = PURCHASE_FEE_FIELDS.has(field as string);
+    // Editing an individual component supersedes the matching legacy lump
+    // override (which scales the parts). Clear it so the raw component values
+    // drive both the display and the engine (scale = 1).
+    const clearsPurchaseLump = PURCHASE_FEE_FIELDS.has(field as string);
+    const clearsHoldingLump = HOLDING_COMPONENT_FIELDS.has(field as string);
     updateInstance(instanceId, {
       [field]: value,
-      ...(clearsLumpOverride ? { purchaseCostsOverride: null } : {}),
+      ...(clearsPurchaseLump ? { purchaseCostsOverride: null } : {}),
+      ...(clearsHoldingLump ? { holdingCostOverride: null } : {}),
       alertDismissed: false,
     });
     track(EVENTS.tableCellEdited, { table: 'purchases', field: String(field) });
