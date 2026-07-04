@@ -465,19 +465,19 @@
    when printing.
    ───────────────────────────────────────────────────────────────────────────── */
 @media screen {
-  /* On screen the brief is parked far off-screen so it never affects the app UI,
-     but stays mounted/laid-out so fonts and the logo load before printing. */
+  /* On screen the brief is parked far off-screen so it never affects the app
+     UI, but stays fully laid-out AND opaque: html2canvas captures this element
+     for the direct-download PDF (reportPdf.ts), and would render transparent
+     pixels if the element itself were opacity: 0. Absolute (not fixed)
+     positioning keeps the capture geometry stable. */
   #brief-print-root {
-    position: fixed;
+    position: absolute;
     left: -10000px;
     top: 0;
     width: 210mm;
-    opacity: 0;
     pointer-events: none;
     z-index: -1;
   }
-  /* Running footer is print-only; never show it on screen */
-  .brief-foot { display: none; }
 }
 
 @media print {
@@ -499,13 +499,34 @@
     background: #fff !important;
   }
 
-  /* Full-bleed white: the @page margin is the "page canvas" that some print
-     engines (notably WebKit/Safari) paint with the app's --background grey,
-     producing a grey frame around the content. We zero the @page margin so
-     there is no canvas to colour, then recreate the visual margin as padding
-     INSIDE each white .brief-part. White is painted right to the paper edge,
-     so no grey can ever show — engine-agnostic. */
-  @page { size: A4; margin: 0; }
+  /* Flowing pagination: content packs each page full and the print engine
+     breaks wherever a `.brief-avoid` block won't fit — no forced page-per-
+     section, so there is no trailing dead space. Top/bottom page margins come
+     from @page (applied on EVERY page of flowed content); side margins are
+     padding on `.brief-flow` (inline style), which applies to every fragment.
+     Side @page margins stay 0 so the white card background paints to the
+     paper edge on engines that colour the page canvas (WebKit); html/body are
+     forced white for the top/bottom margin strips. */
+  @page {
+    size: A4;
+    margin: 13mm 0 16mm;
+    /* Running disclaimer lives in the bottom page margin (Chrome 131+ margin
+       boxes) so it repeats on every page and can never collide with content.
+       The other five boxes are explicitly emptied — author margin boxes
+       override the browser's own date/title/URL headers and footers, so the
+       export stays clean even when "Headers and footers" is ticked. */
+    @top-left { content: ""; }
+    @top-center { content: ""; }
+    @top-right { content: ""; }
+    @bottom-left { content: ""; }
+    @bottom-right { content: ""; }
+    @bottom-center {
+      content: "This document is a financial model, not financial, credit or tax advice. Figures are estimates based on the inputs entered, not a forecast or guarantee of future performance. \00B7 Portfolio Brief (Descriptive)";
+      font-family: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 7.5px;
+      color: #A4A7AE;
+    }
+  }
   html, body { background: #fff !important; }
 
   /* Force fills / background colours to render */
@@ -514,16 +535,8 @@
     print-color-adjust: exact;
   }
 
-  /* Each major part starts on a fresh page; the first does not. Padding here
-     (not @page margin) creates the white interior margin so the page edge
-     stays white. Bottom padding leaves room for the fixed running footer. */
-  .brief-part {
-    break-before: page;
-    box-sizing: border-box;
-    padding: 16mm 22mm 26mm;
-    background: #fff;
-  }
-  .brief-part:first-of-type { break-before: avoid; }
+  /* Only major section starts force a fresh page (e.g. "The next purchase") */
+  .brief-break { break-before: page; }
 
   /* Never split these blocks across a page boundary */
   .brief-avoid { break-inside: avoid; }
@@ -531,14 +544,4 @@
   h2, h3 { break-after: avoid; }
   p { orphans: 3; widows: 3; }
 
-  /* Running disclaimer footer repeats on every printed page. Its white
-     background covers the bottom paper edge; the .brief-part bottom padding
-     (26mm) reserves space so it never overlaps body content. */
-  .brief-foot {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-  }
 }
