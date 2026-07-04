@@ -741,7 +741,13 @@ export const Compare: React.FC = () => {
               </ChartCard>
             </div>
 
-            {loading && <p className="body-secondary">Loading scenarios...</p>}
+            {/* Floating loader — bottom-right, so the BA knows to wait a beat */}
+            {loading && (
+              <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-[#E9EAEB] bg-white px-4 py-3 shadow-lg">
+                <Loader2 size={16} className="animate-spin text-[#7C3AED]" />
+                <span className="text-[13px] font-medium text-[#414651]">Loading scenarios…</span>
+              </div>
+            )}
 
             {!loading && allScenarios.length === 0 && (
               <p className="body-secondary">
