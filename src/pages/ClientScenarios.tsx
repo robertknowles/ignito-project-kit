@@ -1005,37 +1005,37 @@ toast.error('Failed to create client invite');
 
   return (
     <TooltipProvider>
-      <div className="main-app flex h-screen w-full bg-white">
+      <div className="main-app flex h-screen w-full bg-[#FAFAFA]">
         <AppSidebar />
         <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
           <div className="flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8">
+            <div className="flex-1 overflow-auto" style={{ padding: '24px 28px 80px 28px' }}>
               {/* Client CRM Header */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="page-title">
                   Clients
                 </h2>
-                <div className="flex items-center gap-3 relative z-10">
+                <div className="flex items-center gap-2 relative z-10">
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Search clients..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-4 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent w-64"
+                      className="h-8 pl-8 pr-3 border border-neutral-200 rounded-lg text-[13px] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 focus:border-[#7C3AED] w-60"
                     />
                     <SearchIcon
-                      size={16}
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#717680]"
+                      size={15}
+                      className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-neutral-400"
                     />
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold shadow-sm transition-colors hover:text-neutral-800 hover:bg-neutral-50"
                       >
-                        <FileSpreadsheet size={16} className="text-[#717680]" />
+                        <FileSpreadsheet size={15} className="text-neutral-500" />
                         <span>Export</span>
                       </button>
                     </TooltipTrigger>
@@ -1047,9 +1047,9 @@ toast.error('Failed to create client invite');
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => setEditFormOpen(true)}
-                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold shadow-sm transition-colors hover:text-neutral-800 hover:bg-neutral-50"
                       >
-                        <Edit2Icon size={16} className="text-[#717680]" />
+                        <Edit2Icon size={15} className="text-neutral-500" />
                         <span>Edit Form</span>
                       </button>
                     </TooltipTrigger>
@@ -1066,9 +1066,9 @@ toast.error('Failed to create client invite');
                   >
                     <button
                       onClick={() => setCreateFormOpen(true)}
-                      className="flex items-center gap-2 bg-[#535862] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#414651] transition-all duration-150"
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#7C3AED] text-white text-[13px] font-semibold shadow-sm transition-colors hover:bg-[#6D28D9]"
                     >
-                      <PlusIcon size={16} />
+                      <PlusIcon size={15} />
                       <span>New Client</span>
                     </button>
                   </TourStep>
@@ -1081,6 +1081,7 @@ toast.error('Failed to create client invite');
                   tabs={filterTabs}
                   activeKey={activeFilter}
                   onChange={(key) => setActiveFilter(key as typeof activeFilter)}
+                  accentColor="#7C3AED"
                 />
                 {(awaitingCount > 0 || readyCount > 0) && (
                   <div className="flex items-center gap-2">
@@ -1101,7 +1102,7 @@ toast.error('Failed to create client invite');
               </div>
               <div className="mb-8">
                 {/* Client Portfolio Table */}
-                <div className="bg-white border border-[#E9EAEB] rounded-xl overflow-hidden">
+                <div className="bg-white border border-[#E9EAEB] rounded-[14px] overflow-hidden">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
@@ -1181,7 +1182,7 @@ toast.error('Failed to create client invite');
                                 const cs = clientStatuses[client.id]
                                 if (cs?.shareId) {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-1 rounded-full">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
                                       <CheckCircle2 size={11} className="text-[#17B26A]" />
                                       Sent to client
                                     </span>
@@ -1244,14 +1245,14 @@ toast.error('Failed to create client invite');
 
                             {/* Last Active */}
                             <td className="table-cell">
-                              <span className="text-sm text-[#414651]">
+                              <span className="body-dark">
                                 {formatRelativeTime(client)}
                               </span>
                             </td>
 
                             {/* Last Action */}
                             <td className="table-cell">
-                              <span className="text-sm text-[#414651]">
+                              <span className="body-dark">
                                 {client.updated_at
                                   ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
                                   : '—'}
