@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react'
-import { Target, TrendingUp, Home, CheckCircle2 } from 'lucide-react'
+import { Target, TrendingUp, Home, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
@@ -379,7 +379,11 @@ type BriefSubTab = 'purchase' | 'performance'
 export const BriefTab: React.FC<{
   /** Switches the dashboard to Portfolio Plan → Purchases (the editable source). */
   onNavigateToPurchases?: () => void
-}> = ({ onNavigateToPurchases }) => {
+  /** When set, the brief targets this specific property instead of the next feasible one. */
+  selectedInstanceId?: string
+  /** When provided, renders a back button (used by the standalone per-property page). */
+  onBack?: () => void
+}> = ({ onNavigateToPurchases, selectedInstanceId, onBack }) => {
   const [subTab, setSubTab] = useState<BriefSubTab>('performance')
   useTabDwellTracking('brief_subtab', subTab)
   const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(20)
@@ -405,7 +409,11 @@ export const BriefTab: React.FC<{
   const [purchaseSeq, setPurchaseSeq] = useState(0)
   const completePurchaseRef = useRef<() => void>(() => {})
 
-  const nextProp = timelineProperties.find(p => p.status === 'feasible')
+  // When a specific property was clicked (per-property page), target it; otherwise
+  // fall back to the next feasible purchase (the dashboard "Next Purchase Brief").
+  const nextProp = (selectedInstanceId
+    ? timelineProperties.find(p => p.instanceId === selectedInstanceId)
+    : undefined) ?? timelineProperties.find(p => p.status === 'feasible')
   const instanceData = nextProp ? instances[nextProp.instanceId] : null
 
   const completePurchase = useCallback(() => {
@@ -488,6 +496,10 @@ export const BriefTab: React.FC<{
     : '0.0'
 
   const iid = nextProp.instanceId
+
+  // 1-based position in the purchase sequence (timelineProperties is ordered by
+  // purchase order), used for the "Property N" heading on the per-property page.
+  const propNumber = timelineProperties.findIndex(p => p.instanceId === iid) + 1
 
   // Derived values for the purchase visuals (KPI row, donut, LVR gauge)
   const deposit = instanceData.depositOverride ?? nextProp.depositRequired
@@ -845,7 +857,30 @@ export const BriefTab: React.FC<{
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Sub-tab navigation + purchased button */}
+      {/* Row 1: back link + property heading (per-property page only) */}
+      {onBack && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="group inline-flex items-center gap-1.5 text-sm font-medium text-[#535862] hover:text-[#181D27] transition-colors"
+          >
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
+            Back to dashboard
+          </button>
+          {propNumber > 0 && (
+            <>
+              <div className="h-4 w-px bg-[#E9EAEB]" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold uppercase tracking-wide text-[#7C3AED]">
+                  Property {propNumber}
+                </span>
+                <span className="text-sm font-semibold text-[#181D27]">{nextProp.title}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {/* Row 2: sub-tab navigation + purchased button */}
       <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5 bg-[#F2F2F3] p-[3px] rounded-[9px]">
         <SubTabItem

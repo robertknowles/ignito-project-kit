@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Building2 } from 'lucide-react'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { ChatPanel } from '../components/ChatPanel'
@@ -11,6 +12,11 @@ export const Portfolio = () => {
   const { clients, activeClient } = useClient()
   const { propertyOrder } = usePropertySelection()
   const { loadClientScenario } = useScenarioSave()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // The chart pin passes the clicked property via router state so this page
+  // shows that specific property's brief instead of the next feasible one.
+  const selectedInstanceId = (location.state as { propertyInstanceId?: string } | null)?.propertyInstanceId
 
   const recoveryAttemptedRef = useRef(false)
   const recoveryClientIdRef = useRef<number | null>(null)
@@ -50,7 +56,10 @@ export const Portfolio = () => {
                 </p>
               </div>
             ) : (
-              <BriefTab />
+              <BriefTab
+                selectedInstanceId={selectedInstanceId}
+                onBack={() => navigate('/dashboard')}
+              />
             )}
           </div>
         </div>
