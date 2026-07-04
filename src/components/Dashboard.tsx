@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, UserIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2 } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2 } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -470,12 +470,6 @@ export const Dashboard = () => {
             label="Existing Portfolio"
             active={activeTab === 'portfolio'}
             onClick={() => setActiveTab('portfolio')}
-          />
-          <PrimaryTabItem
-            icon={<UserIcon size={16} />}
-            label="Client Inputs"
-            active={activeTab === 'inputs'}
-            onClick={() => setActiveTab('inputs')}
           />
           <div className="ml-auto flex items-center gap-2">
             <button

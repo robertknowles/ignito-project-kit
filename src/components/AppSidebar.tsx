@@ -21,6 +21,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboardIcon,
+  ClipboardListIcon,
   UsersIcon,
   ArrowLeftRightIcon,
   WrenchIcon,
@@ -34,30 +35,61 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBranding } from '@/contexts/BrandingContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useClient } from '@/contexts/ClientContext';
+import { useLayout } from '@/contexts/LayoutContext';
 import { ClientSelector } from './ClientSelector';
 import { BetaFeedbackWidget } from './BetaFeedbackWidget';
 
 export const SIDEBAR_WIDTH = 240; // prototype aside width (§ shell)
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface NavItem {
-  label: string;
-  path: string;
+// ── Section label ("CLIENT" / "MANAGE") ───────────────────────────────────────
+const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => (
+  <div
+    className={`px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#717680] ${className ?? ''}`}
+  >
+    {children}
+  </div>
+);
+
+// ── Nav item button — shares the exact styling of the original nav list ────────
+const NavItemButton: React.FC<{
   icon: React.FC<{ size?: number; className?: string }>;
-  matchPaths?: string[];
-  tab?: string;
+  label: string;
+  active: boolean;
+  disabled?: boolean;
   badge?: string;
-}
-
-interface NavDivider {
-  divider: true;
-}
-
-type NavEntry = NavItem | NavDivider;
-
-function isDivider(entry: NavEntry): entry is NavDivider {
-  return 'divider' in entry && entry.divider === true;
-}
+  onClick: () => void;
+}> = ({ icon: Icon, label, active, disabled, badge, onClick }) => (
+  <button
+    onClick={() => !disabled && onClick()}
+    disabled={disabled}
+    title={disabled ? 'Wait for the plan to finish generating' : undefined}
+    className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
+      active ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]' : 'bg-transparent hover:bg-[#F5F5F5]'
+    } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+  >
+    <Icon
+      size={18}
+      className={`mr-2 shrink-0 transition duration-100 ${
+        active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
+      }`}
+    />
+    <span
+      className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
+        active ? 'text-[#7C3AED]' : 'text-[#414651] group-hover/item:text-[#181D27]'
+      }`}
+    >
+      {label}
+    </span>
+    {badge && (
+      <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.04em] rounded bg-[#F5F3FF] text-[#7C3AED]">
+        {badge}
+      </span>
+    )}
+  </button>
+);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export const AppSidebar: React.FC = () => {
@@ -66,7 +98,8 @@ export const AppSidebar: React.FC = () => {
   const { signOut, role, user } = useAuth();
   const { branding } = useBranding();
   const { isChatRequestInFlight } = useScenarioSave();
-  const { activeClient, setActiveClient } = useClient();
+  const { setActiveClient } = useClient();
+  const { dashboardTab, setDashboardTab } = useLayout();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -92,29 +125,20 @@ export const AppSidebar: React.FC = () => {
     }
   };
 
-  const isActive = (item: NavItem) => {
-    if (location.pathname === item.path) return true;
-    if (item.matchPaths?.includes(location.pathname)) return true;
-    return false;
-  };
+  // Dashboard and Client inputs are the same route (/dashboard) differentiated
+  // by the LayoutContext tab, so the active state keys off both.
+  const onDashboard = location.pathname === '/dashboard';
+  const dashboardActive = onDashboard && dashboardTab !== 'inputs';
+  const inputsActive = onDashboard && dashboardTab === 'inputs';
+  const pathActive = (path: string) => location.pathname === path;
 
-  const isDashboard = location.pathname === '/dashboard';
+  // While a chat/plan request is in flight, lock navigation away from the
+  // active view (preserves the previous nav behaviour).
+  const lock = (active: boolean) => isChatRequestInFlight && !active;
 
-  const navItems: NavEntry[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboardIcon },
-    ...(isClient ? [] : [{ label: 'Compare', path: '/compare', icon: ArrowLeftRightIcon } as NavItem]),
-    { label: 'Toolkit', path: '/toolkit', icon: WrenchIcon, badge: 'BETA' },
-    ...(isClient ? [] : [{ label: 'Clients', path: '/clients', icon: UsersIcon } as NavItem]),
-    { label: 'Settings', path: '/settings', icon: SettingsIcon },
-  ];
-
-  // Filter + clean dividers
-  const cleanedItems = navItems.filter((entry, i, arr) => {
-    if (!isDivider(entry)) return true;
-    if (i === 0 || i === arr.length - 1) return false;
-    if (isDivider(arr[i - 1])) return false;
-    return true;
-  });
+  const goDashboard = () => { setDashboardTab('plan'); navigate('/dashboard'); };
+  const goInputs = () => { setDashboardTab('inputs'); navigate('/dashboard'); };
+  const startNewScenario = () => { setActiveClient(null); setDashboardTab('plan'); navigate('/dashboard'); };
 
   return (
     <aside
@@ -142,107 +166,92 @@ export const AppSidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* ── Nav list ── */}
-      <ul className="flex flex-col px-4 flex-1 list-none m-0">
-        {cleanedItems.map((entry, i) => {
-          if (isDivider(entry)) {
-            return (
-              <li key={`divider-${i}`} className="w-full px-0.5 py-2">
-                <hr className="h-px w-full border-none bg-neutral-200 m-0" />
-              </li>
-            );
-          }
+      {/* ── Nav ── */}
+      <nav className="flex flex-col flex-1 px-4 overflow-y-auto">
+        {/* CLIENT — the active client and the views scoped to them */}
+        <SectionLabel>Client</SectionLabel>
 
-          const active = isActive(entry);
-          const disabled = isChatRequestInFlight && !active;
-          const isDashboardItem = entry.path === '/dashboard';
+        {!isClient && (
+          <button
+            onClick={startNewScenario}
+            className="flex items-center justify-center gap-2 w-full h-9 mt-0.5 mb-1.5 rounded-lg border border-dashed border-[#D5D7DA] bg-transparent hover:bg-[#F5F3FF] hover:border-[#C3B5FD] text-[13px] font-semibold text-[#7C3AED] transition-colors cursor-pointer"
+          >
+            <PlusIcon size={16} />
+            New scenario
+          </button>
+        )}
 
-          return (
-            <React.Fragment key={entry.path}>
-              <li className="py-px">
-                {isDashboardItem ? (
-                  <div
-                    className={`group/item flex items-center w-full rounded-md transition duration-100 ease-linear ${
-                      active ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]' : 'bg-transparent hover:bg-[#F5F5F5]'
-                    } ${disabled ? 'opacity-40' : ''}`}
-                  >
-                    <button
-                      onClick={() => { if (!disabled) { setActiveClient(null); navigate('/dashboard'); } }}
-                      disabled={disabled}
-                      title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                      className="p-2 relative flex flex-1 max-h-9 cursor-pointer items-center text-left border-none bg-transparent select-none"
-                    >
-                      <entry.icon
-                        size={18}
-                        className={`mr-2 shrink-0 transition duration-100 ${
-                          active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
-                        }`}
-                      />
-                      <span
-                        className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
-                          active ? 'text-[#7C3AED]' : 'text-[#414651] group-hover/item:text-[#181D27]'
-                        }`}
-                      >
-                        {entry.label}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => { setActiveClient(null); navigate('/dashboard'); }}
-                      disabled={disabled}
-                      className={`pr-2 py-2 flex items-center justify-center border-none bg-transparent cursor-pointer transition-colors ${
-                        active ? 'text-[#7C3AED]' : 'text-[#717680] hover:text-[#414651]'
-                      }`}
-                      title="New client"
-                    >
-                      <PlusIcon size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => !disabled && navigate(entry.path)}
-                    disabled={disabled}
-                    title={disabled ? 'Wait for the plan to finish generating' : undefined}
-                    className={`group/item p-2 relative flex max-h-9 w-full cursor-pointer items-center rounded-md transition duration-100 ease-linear select-none border-none text-left ${
-                      active
-                        ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]'
-                        : 'bg-transparent hover:bg-[#F5F5F5]'
-                    } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    <entry.icon
-                      size={18}
-                      className={`mr-2 shrink-0 transition duration-100 ${
-                        active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
-                      }`}
-                    />
-                    <span
-                      className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
-                        active ? 'text-[#7C3AED]' : 'text-[#414651] group-hover/item:text-[#181D27]'
-                      }`}
-                    >
-                      {entry.label}
-                    </span>
-                    {entry.badge && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.04em] rounded bg-[#F5F3FF] text-[#7C3AED]">
-                        {entry.badge}
-                      </span>
-                    )}
-                  </button>
-                )}
-              </li>
+        <div className="py-px mb-0.5">
+          <ClientSelector />
+        </div>
 
-              {/* Client selector under Dashboard */}
-              {isDashboardItem && (
-                <li className="py-px pl-6">
-                  <ClientSelector />
-                </li>
-              )}
-            </React.Fragment>
-          );
-        })}
-        <li className="py-px">
+        <div className="py-px">
+          <NavItemButton
+            icon={LayoutDashboardIcon}
+            label="Dashboard"
+            active={dashboardActive}
+            disabled={lock(dashboardActive)}
+            onClick={goDashboard}
+          />
+        </div>
+        <div className="py-px">
+          <NavItemButton
+            icon={ClipboardListIcon}
+            label="Client inputs"
+            active={inputsActive}
+            disabled={lock(inputsActive)}
+            onClick={goInputs}
+          />
+        </div>
+        {!isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={ArrowLeftRightIcon}
+              label="Compare"
+              active={pathActive('/compare')}
+              disabled={lock(pathActive('/compare'))}
+              onClick={() => navigate('/compare')}
+            />
+          </div>
+        )}
+
+        {/* MANAGE — account-wide tools */}
+        <SectionLabel className="mt-4">Manage</SectionLabel>
+
+        <div className="py-px">
+          <NavItemButton
+            icon={WrenchIcon}
+            label="Toolkit"
+            badge="BETA"
+            active={pathActive('/toolkit')}
+            disabled={lock(pathActive('/toolkit'))}
+            onClick={() => navigate('/toolkit')}
+          />
+        </div>
+        {!isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={UsersIcon}
+              label="Clients"
+              active={pathActive('/clients')}
+              disabled={lock(pathActive('/clients'))}
+              onClick={() => navigate('/clients')}
+            />
+          </div>
+        )}
+        <div className="py-px">
+          <NavItemButton
+            icon={SettingsIcon}
+            label="Settings"
+            active={pathActive('/settings')}
+            disabled={lock(pathActive('/settings'))}
+            onClick={() => navigate('/settings')}
+          />
+        </div>
+        <div className="py-px">
           <BetaFeedbackWidget />
-        </li>
-      </ul>
+        </div>
+      </nav>
 
       {/* ── Footer: User profile ── matches UUI: mt-auto px-2 py-4 lg:px-4 */}
       <div className="mt-auto border-t border-neutral-200 px-4 py-3">
