@@ -1,7 +1,5 @@
 import React, { useState } from 'react'
 import { Share2, Copy, RotateCcw } from 'lucide-react'
-import { ResetButton } from './ResetButton'
-import { ChangeLogBell } from './ChangeLogPanel'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { track, EVENTS } from '@/lib/analytics'
 import { useClient } from '@/contexts/ClientContext'
@@ -232,7 +230,7 @@ export const TopBar = () => {
         setShareModalOpen(true)
       } else {
         // Check if client has email - if not, prompt for it
-        let clientEmail = activeClient.email
+        const clientEmail = activeClient.email
         if (!clientEmail) {
           setIsLoading(false)
           setEmailPromptOpen(true)
@@ -358,24 +356,21 @@ export const TopBar = () => {
   return (
     <div id="top-bar" className="flex items-center gap-1.5">
       {!isClient && (
-        <>
-          <ChangeLogBell />
-          <ResetButton iconOnly />
-          <button
-            onClick={handleShareDashboard}
-            disabled={isLoading || !scenarioId || hasUnsavedChanges}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-            title={
-              !scenarioId
-                ? 'Save the scenario before sharing'
-                : hasUnsavedChanges
-                  ? 'Save your changes before sharing'
-                  : 'Share dashboard with client'
-            }
-          >
-            <Share2 size={15} />
-          </button>
-        </>
+        <button
+          onClick={handleShareDashboard}
+          disabled={isLoading || !scenarioId || hasUnsavedChanges}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={
+            !scenarioId
+              ? 'Save the scenario before sharing'
+              : hasUnsavedChanges
+                ? 'Save your changes before sharing'
+                : 'Share dashboard login with client'
+          }
+        >
+          <Share2 size={15} />
+          Client Login
+        </button>
       )}
 
       {/* Share Dashboard Credentials Modal */}

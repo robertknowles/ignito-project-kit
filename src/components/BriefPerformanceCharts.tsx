@@ -204,7 +204,10 @@ const BriefAreaChart: React.FC<{
   name: string;
   color: string;
   gradientId: string;
-}> = ({ data, name, color, gradientId }) => {
+  /** 'fade' = plan growth-chart gradient (10%→0); 'signed' = plan Net
+      Cashflow flat ~14% wash above and below $0 (§3.3). */
+  fillStyle?: 'fade' | 'signed';
+}> = ({ data, name, color, gradientId, fillStyle = 'fade' }) => {
   if (!data.length) return null;
 
   const vals = data.map(d => d.value);
@@ -253,8 +256,17 @@ const BriefAreaChart: React.FC<{
         <AreaChart data={data} margin={{ top: 12, right: 48, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.12} />
-              <stop offset="95%" stopColor={color} stopOpacity={0} />
+              {fillStyle === 'signed' ? (
+                <>
+                  <stop offset="0%" stopColor={color} stopOpacity={0.14} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0.14} />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor={color} stopOpacity={0.1} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </>
+              )}
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} stroke="#F0F1F4" />
@@ -286,7 +298,7 @@ export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizo
     year: calYear(r.year),
     value: Math.round(r.netCashflow),
   }));
-  return <BriefAreaChart data={data} name="Net cashflow" color="#8B5CF6" gradientId="briefCfGradient" />;
+  return <BriefAreaChart data={data} name="Net cashflow" color="#8B5CF6" gradientId="briefCfGradient" fillStyle="signed" />;
 };
 
 /** Growth Projections — equity from purchase over the selected horizon. */

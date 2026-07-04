@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, LayoutGridIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2 } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -32,7 +32,7 @@ import { TopBar } from './TopBar';
 import { ReportExportRenderer } from './export/ReportExportRenderer';
 import { ConfirmationBrief } from './ConfirmationBrief';
 import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
-import { ChangeLogPanel } from './ChangeLogPanel';
+import { ChangeLogPanel, ChangeLogBell } from './ChangeLogPanel';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
@@ -45,7 +45,6 @@ import { COLORS, TYPOGRAPHY } from '../constants/designTokens';
 /* ── Tab components ──────────────────────────────────────────────── */
 
 type PlanSubTab = 'purchases' | 'projections' | 'retirement';
-type PurchasesView = 'table' | 'blocks';
 interface TabItemProps {
   icon: React.ReactNode;
   label: string;
@@ -227,7 +226,6 @@ export const Dashboard = () => {
   // Tab state — must be before the early return to satisfy React hooks rules
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
-  const [purchasesView, setPurchasesView] = useState<PurchasesView>('table');
   // Analytics: time spent on the main dashboard tab and the Plan sub-tab.
   useTabDwellTracking('main_tab', activeTab);
   useTabDwellTracking('plan_subtab', planSubTab);
@@ -473,25 +471,38 @@ export const Dashboard = () => {
           />
           <div className="ml-auto flex items-center gap-2">
             <button
+              onClick={() => setActiveTab('inputs')}
+              title="Client inputs"
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
+                activeTab === 'inputs'
+                  ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
+                  : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
+              }`}
+            >
+              <ClipboardListIcon size={15} />
+              Client Inputs
+            </button>
+            <button
               onClick={() => { if (!isExporting) setIsExporting(true); }}
               disabled={isExporting}
               title="Export portfolio brief (PDF)"
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isExporting ? <Loader2 size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-              Export
+              Export PDF
               <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
             </button>
             <button
               onClick={() => setAssumptionsOpen(prev => !prev)}
               title="Assumptions"
-              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors shadow-sm ${
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
                 assumptionsOpen
                   ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
-                  : 'text-neutral-500 bg-white border-neutral-200 hover:text-neutral-700 hover:bg-neutral-50'
+                  : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
               }`}
             >
               <SlidersHorizontalIcon size={15} />
+              Assumptions
             </button>
             <TopBar />
           </div>
@@ -556,32 +567,18 @@ export const Dashboard = () => {
                 onClick={() => setPlanSubTab('retirement')}
               />
             </div>
-            {planSubTab === 'purchases' && (
-              <div className="ml-auto flex items-center rounded-lg border border-neutral-200 overflow-hidden">
-                <button
-                  onClick={() => setPurchasesView('table')}
-                  title="Table view"
-                  className={`flex items-center justify-center w-8 h-7 transition-colors ${
-                    purchasesView === 'table'
-                      ? 'bg-white text-neutral-800 shadow-sm'
-                      : 'bg-neutral-50 text-neutral-400 hover:text-neutral-600'
-                  }`}
-                >
-                  <TableIcon size={14} />
-                </button>
-                <button
-                  onClick={() => setPurchasesView('blocks')}
-                  title="Card view"
-                  className={`flex items-center justify-center w-8 h-7 border-l border-neutral-200 transition-colors ${
-                    purchasesView === 'blocks'
-                      ? 'bg-white text-neutral-800 shadow-sm'
-                      : 'bg-neutral-50 text-neutral-400 hover:text-neutral-600'
-                  }`}
-                >
-                  <LayoutGridIcon size={14} />
-                </button>
-              </div>
-            )}
+            <div className="ml-auto">
+              <ChangeLogBell />
+            </div>
+          </div>
+        )}
+
+        {/* Bell holds the same top-right spot on the non-plan tabs */}
+        {activeTab !== 'plan' && (
+          <div className="flex items-center -mt-3">
+            <div className="ml-auto">
+              <ChangeLogBell />
+            </div>
           </div>
         )}
 
@@ -724,7 +721,7 @@ export const Dashboard = () => {
                 Add property
               </button>
             }>
-              <PropertyCardRow mode={purchasesView === 'blocks' ? 'blocks' : 'purchases'} onAddClick={() => setIsLibraryOpen(true)} />
+              <PropertyCardRow mode="purchases" onAddClick={() => setIsLibraryOpen(true)} />
             </ChartCard>
 
             {/* ── 2×2 grid of financial charts ── */}

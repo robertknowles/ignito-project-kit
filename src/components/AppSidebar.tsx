@@ -21,7 +21,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboardIcon,
-  ClipboardListIcon,
   UsersIcon,
   ArrowLeftRightIcon,
   WrenchIcon,
@@ -29,6 +28,7 @@ import {
   LogOutIcon,
   ChevronDownIcon,
   PlusIcon,
+  SearchIcon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +36,8 @@ import { useBranding } from '@/contexts/BrandingContext';
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext';
 import { useClient } from '@/contexts/ClientContext';
 import { useLayout } from '@/contexts/LayoutContext';
-import { ClientSelector } from './ClientSelector';
+import { SidebarRecents } from './SidebarRecents';
+import { ClientSearchModal } from './ClientSearchModal';
 import { BetaFeedbackWidget } from './BetaFeedbackWidget';
 
 export const SIDEBAR_WIDTH = 240; // prototype aside width (§ shell)
@@ -98,9 +99,10 @@ export const AppSidebar: React.FC = () => {
   const { signOut, role, user } = useAuth();
   const { branding } = useBranding();
   const { isChatRequestInFlight } = useScenarioSave();
-  const { setActiveClient } = useClient();
-  const { dashboardTab, setDashboardTab } = useLayout();
+  const { activeClient, setActiveClient } = useClient();
+  const { setDashboardTab } = useLayout();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const isClient = role === 'client';
@@ -115,6 +117,19 @@ export const AppSidebar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ⌘K / Ctrl+K opens the client search from anywhere the sidebar renders.
+  useEffect(() => {
+    if (isClient) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isClient]);
+
   const handleLogout = async () => {
     setProfileOpen(false);
     try {
@@ -125,11 +140,7 @@ export const AppSidebar: React.FC = () => {
     }
   };
 
-  // Dashboard and Client inputs are the same route (/dashboard) differentiated
-  // by the LayoutContext tab, so the active state keys off both.
   const onDashboard = location.pathname === '/dashboard';
-  const dashboardActive = onDashboard && dashboardTab !== 'inputs';
-  const inputsActive = onDashboard && dashboardTab === 'inputs';
   const pathActive = (path: string) => location.pathname === path;
 
   // While a chat/plan request is in flight, lock navigation away from the
@@ -137,7 +148,6 @@ export const AppSidebar: React.FC = () => {
   const lock = (active: boolean) => isChatRequestInFlight && !active;
 
   const goDashboard = () => { setDashboardTab('plan'); navigate('/dashboard'); };
-  const goInputs = () => { setDashboardTab('inputs'); navigate('/dashboard'); };
   const startNewScenario = () => { setActiveClient(null); setDashboardTab('plan'); navigate('/dashboard'); };
 
   return (
@@ -167,57 +177,63 @@ export const AppSidebar: React.FC = () => {
       </div>
 
       {/* ── Nav ── */}
-      <nav className="flex flex-col flex-1 px-4 overflow-y-auto">
-        {/* CLIENT — the active client and the views scoped to them */}
-        <SectionLabel>Client</SectionLabel>
-
+      <nav className="flex flex-col flex-1 min-h-0 px-4">
         {!isClient && (
-          <button
-            onClick={startNewScenario}
-            className="flex items-center justify-center gap-2 w-full h-9 mt-0.5 mb-1.5 rounded-lg border border-dashed border-[#D5D7DA] bg-transparent hover:bg-[#F5F3FF] hover:border-[#C3B5FD] text-[13px] font-semibold text-[#7C3AED] transition-colors cursor-pointer"
-          >
-            <PlusIcon size={16} />
-            New scenario
-          </button>
+          <div className="py-px">
+            <NavItemButton
+              icon={PlusIcon}
+              label="New Scenario"
+              active={onDashboard && !activeClient}
+              disabled={lock(onDashboard && !activeClient)}
+              onClick={startNewScenario}
+            />
+          </div>
+        )}
+        {!isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={SearchIcon}
+              label="Search Clients"
+              active={false}
+              onClick={() => setSearchOpen(true)}
+            />
+          </div>
         )}
 
-        <div className="py-px mb-0.5">
-          <ClientSelector />
-        </div>
-
-        <div className="py-px">
-          <NavItemButton
-            icon={LayoutDashboardIcon}
-            label="Dashboard"
-            active={dashboardActive}
-            disabled={lock(dashboardActive)}
-            onClick={goDashboard}
-          />
-        </div>
-        <div className="py-px">
-          <NavItemButton
-            icon={ClipboardListIcon}
-            label="Client inputs"
-            active={inputsActive}
-            disabled={lock(inputsActive)}
-            onClick={goInputs}
-          />
-        </div>
+        {/* Client role has no client list — give them a way back to their plan */}
+        {isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={LayoutDashboardIcon}
+              label="Dashboard"
+              active={onDashboard}
+              disabled={lock(onDashboard)}
+              onClick={goDashboard}
+            />
+          </div>
+        )}
         {!isClient && (
           <div className="py-px">
             <NavItemButton
               icon={ArrowLeftRightIcon}
-              label="Compare"
+              label="Compare Scenarios"
               active={pathActive('/compare')}
               disabled={lock(pathActive('/compare'))}
               onClick={() => navigate('/compare')}
             />
           </div>
         )}
-
-        {/* MANAGE — account-wide tools */}
-        <SectionLabel className="mt-4">Manage</SectionLabel>
-
+        {!isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={UsersIcon}
+              label="Client Management"
+              active={pathActive('/clients')}
+              disabled={lock(pathActive('/clients'))}
+              onClick={() => navigate('/clients')}
+            />
+          </div>
+        )}
         <div className="py-px">
           <NavItemButton
             icon={WrenchIcon}
@@ -228,27 +244,18 @@ export const AppSidebar: React.FC = () => {
             onClick={() => navigate('/toolkit')}
           />
         </div>
+        {/* ── Recents — every client scenario, most recent first ── */}
         {!isClient && (
-          <div className="py-px">
-            <NavItemButton
-              icon={UsersIcon}
-              label="Clients"
-              active={pathActive('/clients')}
-              disabled={lock(pathActive('/clients'))}
-              onClick={() => navigate('/clients')}
-            />
-          </div>
+          <>
+            <SectionLabel className="mt-5">Recents</SectionLabel>
+            <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 pb-2">
+              <SidebarRecents />
+            </div>
+          </>
         )}
-        <div className="py-px">
-          <NavItemButton
-            icon={SettingsIcon}
-            label="Settings"
-            active={pathActive('/settings')}
-            disabled={lock(pathActive('/settings'))}
-            onClick={() => navigate('/settings')}
-          />
-        </div>
-        <div className="py-px">
+
+        {/* Feedback pinned at the bottom of the nav, above the profile footer */}
+        <div className={`py-px pb-2 ${isClient ? 'mt-auto' : 'mt-1'}`}>
           <BetaFeedbackWidget />
         </div>
       </nav>
@@ -300,6 +307,10 @@ export const AppSidebar: React.FC = () => {
           )}
         </div>
       </div>
+
+      {!isClient && (
+        <ClientSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      )}
     </aside>
   );
 };
