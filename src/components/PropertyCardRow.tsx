@@ -7,6 +7,7 @@
  */
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Minus, Landmark, CalendarDays } from 'lucide-react';
 import { AffordabilityAlert } from './ui/AffordabilityAlert';
 import { usePropertySelection } from '../contexts/PropertySelectionContext';
@@ -36,6 +37,14 @@ const CHANGE_LOG_FIELD_LABELS: Partial<Record<keyof PropertyInstanceDetails, str
   lmiWaiver: 'LMI waiver',
   holdingCostOverride: 'Holding $/yr',
   purchaseCostsOverride: 'Purchase costs ($)',
+  depositOverride: 'Deposit ($)',
+  stampDutyOverride: 'Stamp duty ($)',
+  engagementFee: 'Engagement fee ($)',
+  buildingPestInspection: 'Building & pest ($)',
+  plumbingElectricalInspections: 'Plumbing & electrical ($)',
+  buildingInsuranceUpfront: 'Upfront insurance ($)',
+  mortgageFees: 'Mortgage fees ($)',
+  conveyancing: 'Conveyancing ($)',
 };
 
 const humanizeField = (field: string) =>
@@ -315,7 +324,7 @@ interface Column {
 const PURCHASES_COL_WIDTHS: Record<string, number> = {
   year: 72, growth: 88, entity: 88, isNewBuild: 88, state: 88,
   price: 88, valuation: 88, lvr: 72, rate: 72, term: 72, product: 88,
-  ioTerm: 72, rent: 88, yield: 72, purchaseCosts: 104, holdingCost: 104,
+  ioTerm: 72, rent: 88, yield: 72, deposit: 88, purchaseCosts: 104, holdingCost: 104,
   saleYear: 72,
 };
 
@@ -393,34 +402,185 @@ const holdingBreakdown = (d: PropertyInstanceDetails): { rows: TipRow[]; total: 
   };
 };
 
-// Six fee/inspection components, scaled to the override when one is set;
-// footer adds deposit + stamp duty + the settlement-account total.
-const purchaseCostsBreakdown = (d: PropertyInstanceDetails): { rows: TipRow[]; footerRows: TipRow[] } => {
-  const parts: TipRow[] = [
-    { label: 'Engagement fee', value: d.engagementFee },
-    { label: 'Building & pest', value: d.buildingPestInspection ?? 0 },
-    { label: 'Plumbing & electrical', value: d.plumbingElectricalInspections ?? 0 },
-    { label: 'Upfront insurance', value: d.buildingInsuranceUpfront },
-    { label: 'Mortgage fees', value: d.mortgageFees },
-    { label: 'Conveyancing', value: d.conveyancing },
-  ];
-  const computed = parts.reduce((s, p) => s + p.value, 0);
-  const scale = d.purchaseCostsOverride != null && computed > 0 ? d.purchaseCostsOverride / computed : 1;
-  const fees = computed * scale;
+// The six editable fee/inspection components + stamp duty shown in the
+// Purchase Costs cell's hover popover. Each maps directly to a PropertyInstance
+// field so edits flow straight into the engine (calculateOneOffCosts).
+const PURCHASE_FEE_ROWS: { label: string; field: keyof PropertyInstanceDetails }[] = [
+  { label: 'Engagement fee', field: 'engagementFee' },
+  { label: 'Building & pest', field: 'buildingPestInspection' },
+  { label: 'Plumbing & electrical', field: 'plumbingElectricalInspections' },
+  { label: 'Upfront insurance', field: 'buildingInsuranceUpfront' },
+  { label: 'Mortgage fees', field: 'mortgageFees' },
+  { label: 'Conveyancing', field: 'conveyancing' },
+];
 
-  const deposit = d.purchasePrice * (100 - d.lvr) / 100;
+// The six fee fields whose direct edit supersedes the legacy lump
+// `purchaseCostsOverride` (used by handleFieldChange to clear it).
+const PURCHASE_FEE_FIELDS = new Set<string>(PURCHASE_FEE_ROWS.map(r => r.field as string));
+
+// Effective purchase-cost figures for a property. `fees` respects the legacy
+// lump `purchaseCostsOverride` (scales the six parts) so existing scenarios
+// don't jump; editing any part in the popover clears that override (see
+// handleFieldChange) so raw values then drive both display and engine. Stamp
+// duty IS included in the headline total — matching the engine's
+// settlementTotal, which always adds stamp into totalCashRequired.
+const purchaseCostFigures = (d: PropertyInstanceDetails) => {
+  const rawFees =
+    d.engagementFee +
+    (d.buildingPestInspection ?? 0) +
+    (d.plumbingElectricalInspections ?? 0) +
+    d.buildingInsuranceUpfront +
+    d.mortgageFees +
+    d.conveyancing;
+  const fees = d.purchaseCostsOverride ?? rawFees;
   const stamp = d.stampDutyOverride ?? calculateStampDuty(d.state, d.purchasePrice);
+  const deposit = d.depositOverride ?? (d.purchasePrice * (100 - d.lvr) / 100);
   const extras =
     (d.conditionalHoldingDeposit ?? 0) +
     (d.independentValuation ?? 0) +
     (d.maintenanceAllowancePostSettlement ?? 0);
+  return {
+    fees,
+    stamp,
+    deposit,
+    // Headline "Purchase Costs" = fees + stamp duty.
+    purchaseCostsTotal: fees + stamp,
+    // Full cash to complete = fees + deposit + stamp + settlement extras.
+    totalCashRequired: fees + deposit + stamp + extras,
+  };
+};
 
-  const footerRows: TipRow[] = [
-    { label: 'Deposit', value: deposit },
-    { label: 'Stamp duty', value: stamp },
-    { label: 'Total cash required', value: fees + deposit + stamp + extras, strong: true },
-  ];
-  return { rows: parts.map(p => ({ ...p, value: p.value * scale })), footerRows };
+// Popover row — editable component. Shows a formatted "$x,xxx" value at rest
+// (matching the record-table style) and switches to a raw editable number on
+// focus. Styling mirrors the Holding $/yr BreakdownTip: 11px, muted labels and
+// a 500-weight value, so both cost breakdowns read identically.
+const popRowLabelCls = 'text-[11px] text-[#717680] whitespace-nowrap';
+const popEditInputCls =
+  'w-full bg-transparent text-right outline-none rounded px-1 py-0.5 text-[11px] font-medium text-[#181D27] hover:bg-[#F5F3FF] focus:bg-white focus:ring-1 focus:ring-[#7C3AED] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+
+const PopEditRow: React.FC<{ label: string; value: number; onChange: (v: number) => void }> = ({ label, value, onChange }) => {
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
+  return (
+    <div className="flex items-center justify-between gap-6 py-0.5">
+      <span className={popRowLabelCls}>{label}</span>
+      <div style={{ width: 96 }}>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={focused ? draft : fmtTip(value)}
+          onFocus={() => { setFocused(true); setDraft(value ? String(Math.round(value)) : ''); }}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => {
+            setFocused(false);
+            if (draft.trim() === '') { if (value !== 0) onChange(0); return; }
+            const n = parseShorthandNumber(draft);
+            if (n !== null && n !== value) onChange(n);
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className={popEditInputCls}
+          onClick={e => e.stopPropagation()}
+        />
+      </div>
+    </div>
+  );
+};
+
+const PopStaticRow: React.FC<{ label: string; value: number; strong?: boolean }> = ({ label, value, strong }) => (
+  <div className="flex items-center justify-between gap-6 py-0.5">
+    <span className={popRowLabelCls}>{label}</span>
+    <span className="text-[11px] text-[#181D27] px-1" style={{ fontWeight: strong ? 600 : 500 }}>{fmtTip(value)}</span>
+  </div>
+);
+
+// Purchase Costs cell — read-only headline total (fees + stamp) that reveals an
+// interactive popover on hover. The popover exposes the six fee components plus
+// stamp duty as editable inputs, then a read-only Deposit + Total cash required
+// footer. Rendered through a portal with fixed positioning so it escapes the
+// table's horizontal scroll container and floats over the table boundaries.
+const PurchaseCostsCell: React.FC<{
+  card: CardData;
+  onChange: (instanceId: string, field: keyof PropertyInstanceDetails, value: any) => void;
+}> = ({ card, onChange }) => {
+  const d = card.instanceData;
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ left: number; top: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<number>();
+
+  const POP_W = 240;
+  const POP_H_EST = 300;
+  const GAP = 6;
+
+  const computePos = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    let left = r.left + r.width / 2 - POP_W / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - POP_W - 8));
+    const spaceBelow = window.innerHeight - r.bottom;
+    // Flip above when there isn't room below (matches the reference, where the
+    // popover floats up and over the rows).
+    const top = spaceBelow < POP_H_EST + GAP && r.top > POP_H_EST + GAP
+      ? r.top - POP_H_EST - GAP
+      : r.bottom + GAP;
+    setCoords({ left, top });
+  };
+
+  const openNow = () => { window.clearTimeout(closeTimer.current); computePos(); setOpen(true); };
+  const scheduleClose = () => {
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 120);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!triggerRef.current?.contains(t) && !popRef.current?.contains(t)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  if (!d) return null;
+
+  const { stamp, deposit, purchaseCostsTotal, totalCashRequired } = purchaseCostFigures(d);
+
+  return (
+    <div ref={triggerRef} className="w-full" onMouseEnter={openNow} onMouseLeave={scheduleClose}>
+      <div className="w-full text-center text-xs text-[#535862] rounded px-1 py-1 hover:bg-[#F4F4F5] cursor-default transition-colors">
+        {fmtTip(purchaseCostsTotal)}
+      </div>
+      {open && coords && createPortal(
+        <div
+          ref={popRef}
+          onMouseEnter={openNow}
+          onMouseLeave={scheduleClose}
+          style={{ position: 'fixed', top: coords.top, left: coords.left, width: POP_W, zIndex: 1000, fontFamily: 'Inter, system-ui, sans-serif' }}
+          className="bg-white border border-[#E9EAEB] rounded-xl shadow-xl px-3 py-2.5"
+        >
+          {PURCHASE_FEE_ROWS.map(r => (
+            <PopEditRow
+              key={r.field}
+              label={r.label}
+              value={(d[r.field] as number) ?? 0}
+              onChange={v => onChange(card.instanceId, r.field, v)}
+            />
+          ))}
+          <PopEditRow label="Stamp duty" value={stamp} onChange={v => onChange(card.instanceId, 'stampDutyOverride', v || null)} />
+          <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid #E9EAEB' }}>
+            <PopStaticRow label="Deposit" value={deposit} />
+            <PopStaticRow label="Total cash required" value={totalCashRequired} strong />
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
 };
 
 const readonlyCell = (text: string | number | undefined) => (
@@ -715,25 +875,22 @@ const PURCHASES_COLUMNS: Column[] = [
       return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'yieldOverride', v || null)} />;
     },
   },
-  // ── Purchase Costs (rolled up, matching blocks view) ──
+  // ── Deposit (own column; editable, defaults to price × (100−LVR)) ──
   {
-    key: 'purchaseCosts', header: 'Purchase Costs',
-    headerTip: 'One-off fees rolled into one figure: engagement, building & pest, plumbing & electrical, upfront insurance, mortgage fees, conveyancing. Hover a cell for the split plus deposit, stamp duty and total cash required.',
+    key: 'deposit', header: 'Deposit ($)',
     render: (c, onChange) => {
       if (!c.instanceData) return null;
       const d = c.instanceData;
-      const computed = Math.round(
-        d.engagementFee + (d.buildingPestInspection ?? 0) + (d.plumbingElectricalInspections ?? 0) +
-        d.buildingInsuranceUpfront + d.mortgageFees + d.conveyancing
-      );
-      const display = d.purchaseCostsOverride ?? computed;
-      const { rows, footerRows } = purchaseCostsBreakdown(d);
-      return (
-        <BreakdownTip rows={rows} footerRows={footerRows}>
-          <NumberInput value={display} onChange={v => onChange(c.instanceId, 'purchaseCostsOverride', v || null)} />
-        </BreakdownTip>
-      );
+      const computed = Math.round(d.purchasePrice * (100 - d.lvr) / 100);
+      const display = d.depositOverride ?? computed;
+      return <NumberInput value={display} onChange={v => onChange(c.instanceId, 'depositOverride', v || null)} placeholder="Auto" />;
     },
+  },
+  // ── Purchase Costs (fees + stamp duty; hover to edit the components) ──
+  {
+    key: 'purchaseCosts', header: 'Purchase Costs',
+    headerTip: 'One-off acquisition costs: engagement, building & pest, plumbing & electrical, upfront insurance, mortgage fees, conveyancing and stamp duty. Hover a cell to edit each component; the footer shows deposit and total cash required.',
+    render: (c, onChange) => <PurchaseCostsCell card={c as CardData} onChange={onChange} />,
   },
   // ── Annual Holding Cost (merged total) ──
   {
@@ -981,7 +1138,15 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
       from: instances[instanceId]?.[field],
       to: value,
     });
-    updateInstance(instanceId, { [field]: value, alertDismissed: false });
+    // Editing an individual fee component supersedes the legacy lump
+    // `purchaseCostsOverride` (which scales the six parts). Clear it so the raw
+    // component values drive both the display and the engine (feeScale = 1).
+    const clearsLumpOverride = PURCHASE_FEE_FIELDS.has(field as string);
+    updateInstance(instanceId, {
+      [field]: value,
+      ...(clearsLumpOverride ? { purchaseCostsOverride: null } : {}),
+      alertDismissed: false,
+    });
     track(EVENTS.tableCellEdited, { table: 'purchases', field: String(field) });
   };
 
@@ -1238,7 +1403,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
   return (
     <div className="px-5 pb-5">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1460 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1548 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
           <thead>
             {/* Column headers — §2.2 record table: 11px / 500 / #717680, numerics right-aligned */}
             <tr className="border-b border-[#E9EAEB]">
