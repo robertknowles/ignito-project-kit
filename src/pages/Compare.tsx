@@ -374,10 +374,10 @@ const RowDetailDialog: React.FC<{
   );
 };
 
-// "Remodel with AI" ships with the headless engine runner (see
-// COMPARE-EVOLUTION-PLAN.md). Dev-only until then so users never meet a
-// dead input.
-const REMODEL_ENABLED = import.meta.env.DEV;
+// "Remodel with AI" — enabled in production 4 Jul 2026 (see
+// COMPARE-EVOLUTION-PLAN.md). Flip to `import.meta.env.DEV` to pull it
+// from prod builds again; the bundle strips the whole UI when false.
+const REMODEL_ENABLED = true;
 
 type SlotBMode = 'saved' | 'remodel';
 
