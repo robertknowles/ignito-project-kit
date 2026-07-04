@@ -38,6 +38,10 @@ import {
 } from '../constants/financialParams';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 
+// Hot-path debug logging (per-scanned-period BC trace). Off by default —
+// flip to true locally when debugging borrowing-capacity disagreements.
+const DEBUG_BC_LOGGING = false;
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface PurchaseRecord {
@@ -520,8 +524,12 @@ export function checkAffordability(
   const cumulativeBCPass = newPropertyIsSmsf || offsetDebt <= effectiveBorrowingCapacity;
   const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
 
-  // DEBUG: log BC inputs from both callers
-  console.warn(`[Engine BC] ${property.instanceId} period=${currentPeriod} entity=${newPropInst?.entity ?? 'individual'} factor=${newPropertyEntityFactor} loan=${Math.round(property.loanAmount/1000)}k discountedLoan=${Math.round(newLoanEntityDiscounted/1000)}k existingDebt=${Math.round(existingDebt/1000)}k totalDebt=${Math.round(totalDebtAfterPurchase/1000)}k cash=${Math.round(cashReserves/1000)}k offsetDebt=${Math.round(offsetDebt/1000)}k ceiling=${Math.round(effectiveBorrowingCapacity/1000)}k perLoan=${perLoanBCPass} cumBC=${cumulativeBCPass} PASS=${borrowingCapacityTestPass} prevPurchases=${previousPurchases.length}`);
+  // DEBUG: log BC inputs from both callers.
+  // Hot path — checkAffordability runs once per scanned period, so this is
+  // gated behind a module flag (flip to true locally when debugging BC).
+  if (DEBUG_BC_LOGGING) {
+    console.warn(`[Engine BC] ${property.instanceId} period=${currentPeriod} entity=${newPropInst?.entity ?? 'individual'} factor=${newPropertyEntityFactor} loan=${Math.round(property.loanAmount/1000)}k discountedLoan=${Math.round(newLoanEntityDiscounted/1000)}k existingDebt=${Math.round(existingDebt/1000)}k totalDebt=${Math.round(totalDebtAfterPurchase/1000)}k cash=${Math.round(cashReserves/1000)}k offsetDebt=${Math.round(offsetDebt/1000)}k ceiling=${Math.round(effectiveBorrowingCapacity/1000)}k perLoan=${perLoanBCPass} cumBC=${cumulativeBCPass} PASS=${borrowingCapacityTestPass} prevPurchases=${previousPurchases.length}`);
+  }
 
   const borrowingCapacityRemaining = newPropertyIsSmsf
     ? effectiveBorrowingCapacity - offsetDebt
