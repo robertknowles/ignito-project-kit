@@ -66,7 +66,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge as StatusBadgePill } from '@/components/StatusBadge'
 import { FormTemplateEditor, getGlobalTemplate, getClientTemplate } from '@/components/FormTemplateEditor'
@@ -360,22 +359,6 @@ export const ClientScenarios = () => {
   const roadmapVariantMap: Record<string, 'blue' | 'green' | 'gray' | 'amber'> = {
     not_started: 'gray', draft: 'blue', in_review: 'amber', finalised: 'green',
   };
-
-  // Filter tabs with counts
-  const filterTabs = useMemo(() => {
-    const counts = {
-      all: clients.length,
-      review_cycle: clients.filter(c => c.stage === 'review').length,
-      onboarding: clients.filter(c => c.stage === 'onboarding').length,
-      ready: clients.filter(c => c.roadmap_status === 'finalised').length,
-    };
-    return [
-      { key: 'all' as const, label: 'All', count: counts.all },
-      { key: 'review_cycle' as const, label: 'Review cycle', count: counts.review_cycle },
-      { key: 'onboarding' as const, label: 'Onboarding', count: counts.onboarding },
-      { key: 'ready' as const, label: 'Ready', count: counts.ready },
-    ];
-  }, [clients]);
 
   // Filtered + searched clients
   const filteredClients = useMemo(() => {
@@ -1059,15 +1042,9 @@ toast.error('Failed to create client invite');
                 </div>
               </div>
 
-              {/* Filter Tabs */}
-              <div className="flex items-center justify-between mb-4">
-                <UnderlineTabBar
-                  tabs={filterTabs}
-                  activeKey={activeFilter}
-                  onChange={(key) => setActiveFilter(key as typeof activeFilter)}
-                  accentColor="#7C3AED"
-                />
-                {(awaitingCount > 0 || readyCount > 0) && (
+              {/* Status pills */}
+              {(awaitingCount > 0 || readyCount > 0) && (
+                <div className="flex items-center justify-end mb-4">
                   <div className="flex items-center gap-2">
                     {awaitingCount > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
@@ -1082,8 +1059,8 @@ toast.error('Failed to create client invite');
                       </span>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               <div className="mb-8">
                 {/* Client Portfolio Table */}
                 <div className="bg-white border border-[#E9EAEB] rounded-[14px] overflow-hidden">
