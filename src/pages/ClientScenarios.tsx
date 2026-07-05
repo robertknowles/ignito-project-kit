@@ -1007,7 +1007,7 @@ toast.error('Failed to create client invite');
     <TooltipProvider>
       <div className="main-app flex h-screen w-full bg-[#FAFAFA]">
         <AppSidebar />
-        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
+        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
           <div className="flex-1 overflow-auto">
             <div className="flex-1 overflow-auto" style={{ padding: '24px 28px 80px 28px' }}>
               {/* Client CRM Header */}

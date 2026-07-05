@@ -522,7 +522,7 @@ export const CompanyManagementContent = () => {
 export const CompanyManagement = () => (
   <div className="main-app flex h-screen w-full bg-[#f9fafb]">
     <AppSidebar />
-    <div className="flex-1 overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+    <div className="flex-1 overflow-hidden" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
       <div className="h-full overflow-auto">
         <div className="flex-1 overflow-auto p-8">
           <CompanyManagementContent />

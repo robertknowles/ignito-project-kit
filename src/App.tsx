@@ -26,7 +26,7 @@ function AppContent() {
     return (
       <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}>
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center max-w-md">
               <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
@@ -53,7 +53,7 @@ function AppContent() {
     return (
       <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}>
           <div className="flex-1 flex items-center justify-center px-6 py-5">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
@@ -69,7 +69,7 @@ function AppContent() {
     return (
       <div className="main-app flex h-screen w-full bg-white">
         <AppSidebar />
-        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+        <div id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}>
           <div className="flex-1 overflow-hidden">
             <Dashboard key="client-scenario" />
           </div>
@@ -88,7 +88,7 @@ function AppContent() {
             <div
               id="main-content"
               className="flex-1 flex flex-col overflow-hidden"
-              style={{ marginLeft: SIDEBAR_WIDTH }}
+              style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
             >
               <div className="flex-1 flex items-center justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-neutral-300" />
@@ -100,7 +100,7 @@ function AppContent() {
               <div
                 id="main-content"
                 className="flex-1 flex flex-col overflow-hidden"
-                style={{ marginLeft: SIDEBAR_WIDTH }}
+                style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
               >
                 <div className="flex-1 overflow-hidden">
                   <Dashboard key={activeClient.id} />
@@ -112,7 +112,7 @@ function AppContent() {
           <div
             id="main-content"
             className="flex-1 flex flex-col overflow-hidden"
-            style={{ marginLeft: SIDEBAR_WIDTH }}
+            style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
           >
             <NewClientView />
           </div>

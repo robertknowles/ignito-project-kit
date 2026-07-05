@@ -39,7 +39,7 @@ export const Portfolio = () => {
 
       <div
         className="flex-1 flex flex-col overflow-hidden"
-        style={{ marginLeft: SIDEBAR_WIDTH }}
+        style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}
       >
 
         <div className="flex-1 overflow-auto">

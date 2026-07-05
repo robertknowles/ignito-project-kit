@@ -12,6 +12,8 @@ interface LayoutContextType {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
   toggleDrawer: () => void;
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
   planGenerating: boolean;
   setPlanGenerating: (generating: boolean) => void;
   highlightPeriod: HighlightPeriod | null;
@@ -36,6 +38,16 @@ interface LayoutProviderProps {
 
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => localStorage.getItem('proppath-sidebar-collapsed') === '1',
+  );
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('proppath-sidebar-collapsed', next ? '1' : '0');
+      return next;
+    });
+  }, []);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('plan');
@@ -67,7 +79,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, sidebarCollapsed, toggleSidebar, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>
       {children}
     </LayoutContext.Provider>
   );
