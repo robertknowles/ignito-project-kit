@@ -75,6 +75,8 @@ interface SliderFieldProps {
   formatAsCurrency?: boolean;
   suffix?: string;
   primaryColor: string;
+  isNA: boolean;
+  onToggleNA: () => void;
 }
 
 const SliderField: React.FC<SliderFieldProps> = ({
@@ -90,23 +92,25 @@ const SliderField: React.FC<SliderFieldProps> = ({
   formatAsCurrency = true,
   suffix,
   primaryColor,
+  isNA,
+  onToggleNA,
 }) => {
   const [isActive, setIsActive] = useState(false);
 
-  const displayValue = formatAsCurrency 
-    ? formatCurrency(value) 
+  const displayValue = formatAsCurrency
+    ? formatCurrency(value)
     : suffix ? `${value} ${suffix}` : value.toString();
 
   return (
-    <div 
+    <div
       className={`bg-white rounded-xl border px-5 py-4 transition-all duration-150 ${
-        isActive 
-          ? 'border-gray-400 shadow-md' 
+        isActive
+          ? 'border-gray-400 shadow-md'
           : 'border-gray-200 hover:border-gray-300'
       }`}
     >
       {/* Header: Label and Value */}
-      <div className="flex justify-between items-start mb-1">
+      <div className="flex justify-between items-start mb-1 gap-3">
         <div>
           <span className="text-sm font-semibold text-gray-700">
             {label}
@@ -115,20 +119,34 @@ const SliderField: React.FC<SliderFieldProps> = ({
             <p className="text-xs text-gray-400 mt-0.5">{description}</p>
           )}
         </div>
-        <span 
-          className="text-lg font-bold"
-          style={{ color: primaryColor }}
-        >
-          {displayValue}
-        </span>
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <span
+            className="text-lg font-bold"
+            style={{ color: isNA ? '#9CA3AF' : primaryColor }}
+          >
+            {isNA ? 'N/A' : displayValue}
+          </span>
+          <button
+            type="button"
+            onClick={onToggleNA}
+            className={`text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+              isNA
+                ? 'bg-gray-100 text-gray-600 border-gray-300'
+                : 'bg-white text-gray-400 border-gray-200 hover:text-gray-600 hover:border-gray-300'
+            }`}
+          >
+            {isNA ? 'Marked N/A' : "I don't have this"}
+          </button>
+        </div>
       </div>
-      
+
       {/* Slider Track */}
-      <div className="mt-3">
+      <div className={`mt-3 transition-opacity ${isNA ? 'opacity-40' : ''}`}>
         <input
           type="range"
-          className={sliderClassName}
-          style={getSliderStyle(value, min, max, primaryColor)}
+          disabled={isNA}
+          className={`${sliderClassName} ${isNA ? 'pointer-events-none' : ''}`}
+          style={isNA ? { background: '#e2e8f0' } : getSliderStyle(value, min, max, primaryColor)}
           min={min}
           max={max}
           step={step}
@@ -141,7 +159,7 @@ const SliderField: React.FC<SliderFieldProps> = ({
           onTouchEnd={() => setIsActive(false)}
         />
       </div>
-      
+
       {/* Min/Max Labels */}
       <div className="flex justify-between items-center mt-2">
         <span className="text-xs text-gray-400">{minLabel}</span>
@@ -159,6 +177,12 @@ export const ClientOnboarding = () => {
   const [error, setError] = useState<string | null>(null);
   const [branding, setBranding] = useState<BrandingData>(defaultBranding);
   const [formData, setFormData] = useState<InvestmentProfileFormData>(defaultFormData);
+  // Fields the client marked "I don't have this". Purely informational — these
+  // are recorded as 'N/A' in clientSubmittedInputs for the agent to review and
+  // never feed the calculation engine (investmentProfile keeps its numeric value).
+  const [naFields, setNaFields] = useState<Partial<Record<keyof InvestmentProfileFormData, boolean>>>({});
+  const toggleNA = (key: keyof InvestmentProfileFormData) =>
+    setNaFields(prev => ({ ...prev, [key]: !prev[key] }));
   const [scenarioId, setScenarioId] = useState<number | null>(null);
   const [clientName, setClientName] = useState<string>('');
 
@@ -290,6 +314,23 @@ setError('Failed to load onboarding form');
             year4: 5,
             year5plus: 5,
           },
+        },
+        // Verbatim snapshot of what the client submitted. Kept separate from
+        // investmentProfile (which gets merged with advanced settings and can
+        // later be edited from the dashboard) so the agent always has a
+        // faithful record of the client's raw answers. Purely informational —
+        // nothing in the calculation engine reads this key. Fields the client
+        // marked "I don't have this" are stored as 'N/A' here only; the numeric
+        // slider value still flows into investmentProfile so the dashboard is
+        // never affected.
+        clientSubmittedInputs: {
+          ...formData,
+          ...Object.fromEntries(
+            (Object.keys(naFields) as (keyof InvestmentProfileFormData)[])
+              .filter((k) => naFields[k])
+              .map((k) => [k, 'N/A'])
+          ),
+          submittedAt: new Date().toISOString(),
         },
         // Mark onboarding as completed
         onboardingCompleted: true,
@@ -459,6 +500,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$10k"
                   maxLabel="$500k"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.depositPool}
+                  onToggleNA={() => toggleNA('depositPool')}
                 />
 
                 <SliderField
@@ -472,6 +515,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$100k"
                   maxLabel="$2M"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.borrowingCapacity}
+                  onToggleNA={() => toggleNA('borrowingCapacity')}
                 />
 
                 <SliderField
@@ -485,6 +530,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$0"
                   maxLabel="$100k"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.annualSavings}
+                  onToggleNA={() => toggleNA('annualSavings')}
                 />
               </div>
             </div>
@@ -509,6 +556,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$0"
                   maxLabel="$5M"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.portfolioValue}
+                  onToggleNA={() => toggleNA('portfolioValue')}
                 />
 
                 <SliderField
@@ -522,6 +571,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$0"
                   maxLabel="$4M"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.currentDebt}
+                  onToggleNA={() => toggleNA('currentDebt')}
                 />
               </div>
             </div>
@@ -548,6 +599,8 @@ setError('Failed to submit your details. Please try again.');
                   formatAsCurrency={false}
                   suffix="years"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.timelineYears}
+                  onToggleNA={() => toggleNA('timelineYears')}
                 />
 
                 <SliderField
@@ -561,6 +614,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$0"
                   maxLabel="$5M"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.equityGoal}
+                  onToggleNA={() => toggleNA('equityGoal')}
                 />
 
                 <SliderField
@@ -574,6 +629,8 @@ setError('Failed to submit your details. Please try again.');
                   minLabel="$0"
                   maxLabel="$200k"
                   primaryColor={branding.primaryColor}
+                  isNA={!!naFields.cashflowGoal}
+                  onToggleNA={() => toggleNA('cashflowGoal')}
                 />
               </div>
             </div>

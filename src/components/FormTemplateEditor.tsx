@@ -23,6 +23,10 @@ export interface FormQuestion {
   step?: number
   section: string
   options?: string[]
+  // When true, the client can mark this question "N/A" if they don't have the
+  // info. Recorded as a preference on the template; the public onboarding form
+  // allows N/A on every field regardless, since it isn't wired to this template.
+  allowNA?: boolean
 }
 
 export const TYPE_LABELS: Record<FormQuestion['type'], string> = {
@@ -190,6 +194,18 @@ const QuestionRow = ({ q, idx, total, expanded, onToggle, onUpdate, onDelete, on
             />
           </div>
         )}
+        <label className="col-span-2 flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={q.allowNA ?? false}
+            onChange={e => onUpdate({ allowNA: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-[#D5D7DA] text-[#535862] focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 cursor-pointer"
+          />
+          <span>
+            <span className="text-sm font-medium text-[#414651] block">Allow client to mark N/A</span>
+            <span className="text-xs text-[#717680]">Lets a client skip this question if they don't have the info.</span>
+          </span>
+        </label>
       </div>
     )}
   </div>

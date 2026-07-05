@@ -71,6 +71,7 @@ import { StatCard } from '@/components/StatCard'
 import { StatusBadge as StatusBadgePill } from '@/components/StatusBadge'
 import { FormTemplateEditor, getGlobalTemplate, getClientTemplate } from '@/components/FormTemplateEditor'
 import { ClientFormModal } from '@/components/ClientFormModal'
+import { ClientInputsModal } from '@/components/ClientInputsModal'
 
 // Track client status for CRM display
 interface ClientStatus {
@@ -116,6 +117,9 @@ export const ClientScenarios = () => {
   // Per-client Form modal
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [clientFormClient, setClientFormClient] = useState<Client | null>(null);
+  // Read-only "Client Inputs" viewer (opened from the client row popup).
+  const [inputsModalOpen, setInputsModalOpen] = useState(false);
+  const [inputsModalClient, setInputsModalClient] = useState<Client | null>(null);
   const [clientFormType, setClientFormType] = useState<'input_form' | 'profile_update'>('input_form');
 
   // Seat usage calculations
@@ -311,26 +315,6 @@ export const ClientScenarios = () => {
   const readyCount = useMemo(() => {
     return clients.filter(c => c.roadmap_status === 'finalised').length
   }, [clients])
-
-  // Format relative time for "Last Active" column
-  const formatRelativeTime = (client: Client) => {
-    // Use last_active_at, or fall back to updated_at / created_at
-    const dateStr = client.last_active_at || client.updated_at || client.created_at;
-    if (!dateStr) return '—';
-
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (minutes < 1) return 'Just now';
-    if (hours < 1) return `${minutes} minutes ago`;
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-  };
 
   // Format review date with countdown
   const formatReviewDate = (dateStr: string | null | undefined) => {
@@ -1109,8 +1093,7 @@ toast.error('Failed to create client invite');
                         <th className="table-header">Client</th>
                         <th className="table-header">Dashboard</th>
                         <th className="table-header">Client Details</th>
-                        <th className="table-header">Last Active</th>
-                        <th className="table-header">Last Action</th>
+                        <th className="table-header">Created</th>
                         <th className="table-header w-12"></th>
                       </tr>
                     </thead>
@@ -1151,41 +1134,59 @@ toast.error('Failed to create client invite');
 
                         return (
                           <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
-                            {/* Client name + strategy type */}
+                            {/* Client name + strategy type — popup lets the
+                                agent jump to the dashboard or view the raw
+                                inputs the client submitted. */}
                             <td className="table-cell">
-                              <button
-                                className="flex items-center w-full text-left group"
-                                onClick={() => { setActiveClient(client); navigate('/dashboard'); }}
-                              >
-                                <span
-                                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 group-hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
-                                  style={{ backgroundColor: avatarBg, color: avatarText }}
-                                >
-                                  {initials}
-                                </span>
-                                <div className="min-w-0">
-                                  <div className="body-dark font-medium truncate group-hover:underline">
-                                    {client.name}
-                                  </div>
-                                  {strategyLabel ? (
-                                    <div className="meta truncate">{strategyLabel}</div>
-                                  ) : client.email ? (
-                                    <div className="meta truncate">{client.email}</div>
-                                  ) : null}
-                                </div>
-                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="flex items-center w-full text-left group">
+                                    <span
+                                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 group-hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
+                                      style={{ backgroundColor: avatarBg, color: avatarText }}
+                                    >
+                                      {initials}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <div className="body-dark font-medium truncate group-hover:underline">
+                                        {client.name}
+                                      </div>
+                                      {strategyLabel ? (
+                                        <div className="meta truncate">{strategyLabel}</div>
+                                      ) : client.email ? (
+                                        <div className="meta truncate">{client.email}</div>
+                                      ) : null}
+                                    </div>
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-48">
+                                  <DropdownMenuItem onClick={() => { setActiveClient(client); navigate('/dashboard'); }}>
+                                    View dashboard
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setInputsModalClient(client); setInputsModalOpen(true); }}>
+                                    View client inputs
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
 
                             {/* Dashboard */}
                             <td className="table-cell">
                               {(() => {
                                 const cs = clientStatuses[client.id]
-                                if (cs?.shareId) {
+                                if (cs?.isQuestionnaireCompleted) {
+                                  // Client has submitted their onboarding form back to the
+                                  // agent (regardless of whether it was sent via a share
+                                  // link). This is what the BA cares about most, so it
+                                  // takes priority over "Sent to client" / "In progress".
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                                    <button
+                                      onClick={() => handleOpenProfile(client)}
+                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#067647] bg-[#ECFDF3] border border-[#ABEFC6] hover:bg-[#D1FADF] px-2.5 py-1 rounded-full transition-colors duration-150"
+                                    >
                                       <CheckCircle2 size={11} className="text-[#17B26A]" />
-                                      Sent to client
-                                    </span>
+                                      Form received
+                                    </button>
                                   )
                                 } else if (cs?.hasScenario) {
                                   return (
@@ -1196,6 +1197,13 @@ toast.error('Failed to create client invite');
                                       <span className="w-1.5 h-1.5 rounded-full bg-[#535862]" />
                                       In progress
                                     </button>
+                                  )
+                                } else if (cs?.shareId) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                                      <CheckCircle2 size={11} className="text-[#17B26A]" />
+                                      Sent to client
+                                    </span>
                                   )
                                 } else {
                                   return (
@@ -1243,18 +1251,11 @@ toast.error('Failed to create client invite');
                               })()}
                             </td>
 
-                            {/* Last Active */}
+                            {/* Created */}
                             <td className="table-cell">
                               <span className="body-dark">
-                                {formatRelativeTime(client)}
-                              </span>
-                            </td>
-
-                            {/* Last Action */}
-                            <td className="table-cell">
-                              <span className="body-dark">
-                                {client.updated_at
-                                  ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                                {client.created_at
+                                  ? new Date(client.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
                                   : '—'}
                               </span>
                             </td>
@@ -1593,6 +1594,18 @@ toast.error('Failed to create client invite');
           }}
           client={clientFormClient}
           formType={clientFormType}
+        />
+      )}
+
+      {/* Read-only Client Inputs viewer */}
+      {inputsModalClient && (
+        <ClientInputsModal
+          open={inputsModalOpen}
+          onOpenChange={(open) => {
+            setInputsModalOpen(open);
+            if (!open) setInputsModalClient(null);
+          }}
+          client={inputsModalClient}
         />
       )}
 
