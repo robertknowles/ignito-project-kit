@@ -20,6 +20,9 @@ import {
   TrendingUp as TrendingUpIcon,
   DollarSign as DollarSignIcon,
   Building2 as Building2Icon,
+  Search as SearchIcon,
+  Upload as UploadIcon,
+  ClipboardList as ClipboardListIcon,
 } from 'lucide-react'
 import { extractTextFromDocument, isSupportedFile, getSupportedExtensions } from '@/utils/documentExtractor'
 import { CompanyStrategySelector } from '@/components/CompanyStrategySelector'
@@ -52,6 +55,41 @@ const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
 // Carries the chosen company strategy's text to ChatPanel, which injects it
 // into the AI prompt for the freshly-launched client.
 const PENDING_STRATEGY_KEY = 'proppath:pending-strategy-text'
+
+// The eight fields a client fills out on their onboarding / details form, in
+// display order. Mirrors ClientInputsModal so the pasted text reads the same
+// way the agent sees it in the client-inputs viewer.
+type FactFindFormat = 'currency' | 'years'
+const FACT_FIND_FIELDS: { key: string; label: string; format: FactFindFormat }[] = [
+  { key: 'depositPool', label: 'Available Deposit', format: 'currency' },
+  { key: 'borrowingCapacity', label: 'Borrowing Capacity', format: 'currency' },
+  { key: 'annualSavings', label: 'Annual Savings', format: 'currency' },
+  { key: 'portfolioValue', label: 'Current Property Value', format: 'currency' },
+  { key: 'currentDebt', label: 'Current Investment Debt', format: 'currency' },
+  { key: 'timelineYears', label: 'Investment Horizon', format: 'years' },
+  { key: 'equityGoal', label: 'Equity Goal', format: 'currency' },
+  { key: 'cashflowGoal', label: 'Annual Cashflow Goal', format: 'currency' },
+]
+
+const formatFactFindValue = (value: unknown, format: FactFindFormat): string => {
+  if (value === null || value === undefined || value === '') return ''
+  if (value === 'N/A') return 'N/A'
+  if (format === 'currency') return `$${Number(value).toLocaleString('en-AU')}`
+  if (format === 'years') return `${value} year${Number(value) === 1 ? '' : 's'}`
+  return String(value)
+}
+
+// Turn a client's submitted answers into a readable block the agent can drop
+// into the chat and edit before running the plan.
+const buildFactFindText = (name: string, inputs: Record<string, unknown>): string => {
+  const lines: string[] = []
+  for (const f of FACT_FIND_FIELDS) {
+    const v = formatFactFindValue(inputs[f.key], f.format)
+    if (v) lines.push(`${f.label}: ${v}`)
+  }
+  const who = name?.trim() ? `${name.trim()}'s submitted details` : 'Client submitted details'
+  return `${who}:\n${lines.join('\n')}`
+}
 
 const formatRelativeShort = (iso?: string) => {
   if (!iso) return ''
@@ -113,6 +151,13 @@ export const NewClientView: React.FC = () => {
   const [assumptionsOpen, setAssumptionsOpen] = useState(false)
   const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  // "Add client details" pill → popup with two paths: upload a document, or
+  // pull in a client's submitted form.
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
+  const [loadingInputs, setLoadingInputs] = useState(false)
+  const [submittedInputsByClient, setSubmittedInputsByClient] = useState<Record<number, Record<string, unknown>>>({})
 
   // Company strategies — the BA picks one (pills); its text rides along to the
   // launched client so the AI can infer the engine preset from it.
@@ -209,6 +254,95 @@ export const NewClientView: React.FC = () => {
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`
   }, [])
+
+  // When the details modal opens, load the verbatim form snapshots for every
+  // client so we can list the ones who have actually submitted.
+  useEffect(() => {
+    if (!detailsModalOpen) return
+    const ids = clients.map((c) => c.id)
+    if (ids.length === 0) {
+      setSubmittedInputsByClient({})
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      setLoadingInputs(true)
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('client_id, data, updated_at')
+        .in('client_id', ids)
+        .order('updated_at', { ascending: false })
+      if (cancelled) return
+      const map: Record<number, Record<string, unknown>> = {}
+      if (!error && data) {
+        for (const row of data) {
+          const cid = (row as any).client_id as number
+          if (map[cid]) continue
+          const sd = (row as any).data || {}
+          // Only surface clients who actually submitted their form. Newer
+          // submissions store a verbatim snapshot; older ones (submitted before
+          // the snapshot existed) fall back to investmentProfile, matching the
+          // "Form received" status and the ClientInputsModal viewer.
+          const snap = sd.clientSubmittedInputs || (sd.onboardingCompleted ? sd.investmentProfile : null)
+          if (snap && typeof snap === 'object') map[cid] = snap
+        }
+      }
+      if (!cancelled) {
+        setSubmittedInputsByClient(map)
+        setLoadingInputs(false)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [detailsModalOpen, clients])
+
+  // Drop text into the chat box (appending if there's already content) and
+  // re-fit the textarea height. Never runs the simulation.
+  const pasteIntoPrompt = useCallback((text: string) => {
+    setPrompt((prev) => (prev.trim() ? `${prev.trim()}\n\n${text}` : text))
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (el) {
+        el.style.height = 'auto'
+        el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+        el.focus()
+      }
+    })
+  }, [])
+
+  const handlePickClientForm = useCallback(
+    (client: Client) => {
+      const inputs = submittedInputsByClient[client.id]
+      if (!inputs) return
+      pasteIntoPrompt(buildFactFindText(client.name, inputs))
+      setDetailsModalOpen(false)
+      setClientSearch('')
+      toast.success(`Added ${client.name || 'client'}'s details to the chat`)
+    },
+    [submittedInputsByClient, pasteIntoPrompt]
+  )
+
+  const handleUploadOption = useCallback(() => {
+    setDetailsModalOpen(false)
+    // Let the dialog close before opening the native file picker.
+    setTimeout(() => fileInputRef.current?.click(), 0)
+  }, [])
+
+  // Empty state → send the agent to Client Management, where they can email a
+  // client their details form.
+  const handleRequestForm = useCallback(() => {
+    setDetailsModalOpen(false)
+    navigate('/clients')
+  }, [navigate])
+
+  const submittedClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase()
+    return clients
+      .filter((c) => submittedInputsByClient[c.id])
+      .filter((c) => !q || (c.name || '').toLowerCase().includes(q))
+  }, [clients, submittedInputsByClient, clientSearch])
 
   const launchScenario = useCallback(
     async (text: string) => {
@@ -358,11 +492,11 @@ export const NewClientView: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setDetailsModalOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors border text-[#535862] bg-[#F5F5F6] hover:bg-[#ECECED] border-[#E9EAEB]"
                 >
                   <PaperclipIcon size={13} className="text-[#9CA3AF]" />
-                  Add client fact find
+                  Add client details
                 </button>
                 <input ref={fileInputRef} type="file" accept=".pdf,.txt,.csv,.docx,.xlsx" onChange={handleFileInputChange} className="hidden" />
                 <button
@@ -590,6 +724,106 @@ export const NewClientView: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {/* Add client details — upload a document, or pull in a submitted form */}
+      <Dialog
+        open={detailsModalOpen}
+        onOpenChange={(open) => {
+          setDetailsModalOpen(open)
+          if (!open) setClientSearch('')
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add client details</DialogTitle>
+            <DialogDescription>
+              Upload a fact find document, or pull in a client's submitted form.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Upload path */}
+          <button
+            onClick={handleUploadOption}
+            className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-[#E9EAEB] bg-white hover:bg-[#F9FAFB] hover:border-[#D5D7DA] transition-colors text-left"
+          >
+            <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#F5F5F6] flex items-center justify-center">
+              <UploadIcon size={16} className="text-[#535862]" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[#181D27]">Upload a file</span>
+              <span className="block text-[11px] text-[#717680]">PDF, DOCX, XLSX, CSV or TXT · up to 10 MB</span>
+            </span>
+          </button>
+
+          {/* Divider — dashboard "kicker" style (11 / 600 / 0.06em / #717680) */}
+          <div className="flex items-center gap-3 py-0.5">
+            <div className="h-px flex-1 bg-[#E9EAEB]" />
+            <span className="text-[11px] font-semibold uppercase text-[#717680] tracking-[0.06em]">or pick a submitted form</span>
+            <div className="h-px flex-1 bg-[#E9EAEB]" />
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <input
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              placeholder="Search clients..."
+              className="w-full pl-9 pr-3 py-2.5 text-sm text-[#181D27] placeholder-[#9CA3AF] bg-white border border-[#D5D7DA] rounded-lg outline-none focus:border-[#B8BCC4] transition-colors"
+            />
+          </div>
+
+          {/* Client list */}
+          <div className="max-h-[280px] overflow-y-auto -mx-1 px-1">
+            {loadingInputs ? (
+              <div className="py-8 text-center">
+                <Loader2Icon size={18} className="animate-spin mx-auto text-[#717680]" />
+              </div>
+            ) : submittedClients.length === 0 ? (
+              clientSearch.trim() ? (
+                <p className="py-8 text-center text-sm text-[#717680]">
+                  No matching clients have submitted their form.
+                </p>
+              ) : (
+                <div className="py-7 px-4 flex flex-col items-center text-center">
+                  <span className="w-10 h-10 rounded-full bg-[#F5F5F6] flex items-center justify-center mb-3">
+                    <ClipboardListIcon size={18} className="text-[#A4A7AE]" />
+                  </span>
+                  <p className="text-sm font-semibold text-[#181D27]">No forms yet</p>
+                  <p className="text-[11px] text-[#717680] mt-0.5 mb-3.5 max-w-[240px]">
+                    Send a client their details form and their answers will show up here.
+                  </p>
+                  <button
+                    onClick={handleRequestForm}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    <SendIcon size={14} className="text-[#717680]" />
+                    Request one from a client
+                  </button>
+                </div>
+              )
+            ) : (
+              <div className="flex flex-col gap-1">
+                {submittedClients.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handlePickClientForm(c)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F9FAFB] transition-colors text-left"
+                  >
+                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#ECFDF3] flex items-center justify-center">
+                      <ClipboardListIcon size={15} className="text-[#17B26A]" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-[#181D27] truncate">{c.name || 'Untitled Client'}</span>
+                      <span className="block text-[11px] text-[#717680]">Submitted form</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete client confirmation */}
       <Dialog
