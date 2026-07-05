@@ -573,8 +573,10 @@ export const Dashboard = () => {
           </div>
         )}
 
-        {/* Bell holds the same top-right spot on the non-plan tabs */}
-        {activeTab !== 'plan' && (
+        {/* Bell holds the same top-right spot on the non-plan tabs.
+            The brief tab renders its own bell inline next to the
+            "Purchased property" button, so it's excluded here. */}
+        {activeTab !== 'plan' && activeTab !== 'brief' && (
           <div className="flex items-center -mt-3">
             <div className="ml-auto">
               <ChangeLogBell />

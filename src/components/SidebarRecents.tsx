@@ -133,10 +133,23 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
   const [repairDiagnosis, setRepairDiagnosis] = useState<{ needsRepair: boolean; reason: string; instanceCount: number; orderCount: number; selectionCount: number } | null>(null);
   const [repairing, setRepairing] = useState(false);
 
-  const { buckets } = useBucketedRecents(query, 4);
-  // Sidebar shows a flat, date-label-free list — just the 4 most recent
-  // clients. (The search palette keeps the bucketed grouping.)
-  const recentClients = buckets.flatMap((b) => b.clients);
+  // Pull the full recency-sorted list (no slice) so we can hoist the active
+  // client to the top before trimming to 4 — selecting a client doesn't bump
+  // its scenario updated_at, so recency alone wouldn't float it up.
+  const { buckets } = useBucketedRecents(query);
+  // Sidebar shows a flat, date-label-free list. (The search palette keeps the
+  // bucketed grouping.) Active client is hoisted to the front, then trim to 4.
+  const recentClients = useMemo(() => {
+    const flat = buckets.flatMap((b) => b.clients);
+    if (activeClient) {
+      const idx = flat.findIndex((c) => c.id === activeClient.id);
+      if (idx > 0) {
+        const [active] = flat.splice(idx, 1);
+        flat.unshift(active);
+      }
+    }
+    return flat.slice(0, 4);
+  }, [buckets, activeClient]);
 
   // Close any open row menu on outside click.
   useEffect(() => {
