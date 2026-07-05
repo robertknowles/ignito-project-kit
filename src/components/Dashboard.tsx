@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -131,9 +131,114 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
   </div>
 );
 
-const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
+/**
+ * PlanLoadingBar — determinate-looking progress bar shown at the top of the
+ * skeleton while a plan is being generated. The fill is simulated (the request
+ * has no true progress): it eases toward 92% and the whole bar unmounts the
+ * moment the plan lands. Mirrors the Compare page's ScenarioLoadingBar.
+ */
+const PlanLoadingBar = () => {
+  const [progress, setProgress] = useState(6);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setProgress(p => Math.min(92, p + (92 - p) * 0.055 + 0.35));
+    }, 110);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="w-full mx-auto" style={{ maxWidth: 440 }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[13px] font-medium text-[#414651]">Building plan…</span>
+        <span className="text-[13px] font-medium text-[#717680] tabular-nums">{Math.round(progress)}%</span>
+      </div>
+      <div className="h-2.5 w-full rounded-full bg-[#F0F1F4] overflow-hidden">
+        <div
+          className="h-full rounded-full bg-[#7C3AED] transition-[width] duration-150 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * PlanLoadingSteps — a single progress line beneath the loading bar showing what
+ * the engine is doing right now. Each step replaces the previous one (no stacking):
+ * the old line fades out and the next fades up in its place. Steps advance on their
+ * own timers (the request has no true progress signal — same approximation the chat
+ * panel's ChatLoadingSteps uses).
+ *
+ * Timings are deliberately IRREGULAR so it doesn't feel like a mechanical loop —
+ * each step "works" for a different duration. Just before a line is replaced its
+ * spinner flips to a green tick for a beat, so the user sees each step complete
+ * before the next appears. The final step holds (spinner only) until the plan
+ * lands and the whole skeleton unmounts.
+ */
+// Per-step "work" durations before the tick shows (irregular on purpose).
+const PLAN_LOADING_STEP_HOLDS = [900, 1650, 1150, 1900];
+const PLAN_LOADING_TICK_PAUSE = 450; // how long the green tick lingers before the next line
+const PlanLoadingSteps = ({ clientName }: { clientName?: string }) => {
+  const [step, setStep] = useState(0);
+  const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let elapsed = 0;
+    PLAN_LOADING_STEP_HOLDS.forEach((hold, i) => {
+      const tickAt = elapsed + hold;
+      // show the tick on the current line
+      timers.push(setTimeout(() => setChecked(true), tickAt));
+      // then advance to the next line and reset the tick
+      const advanceAt = tickAt + PLAN_LOADING_TICK_PAUSE;
+      timers.push(
+        setTimeout(() => {
+          setStep(i + 1);
+          setChecked(false);
+        }, advanceAt),
+      );
+      elapsed = advanceAt;
+    });
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const name = (clientName ?? '').trim();
+  const steps = [
+    name ? `Reading ${name}'s profile` : 'Reading client profile',
+    'Selecting properties',
+    'Running affordability checks',
+    'Modelling against market assumptions',
+    'Building your roadmap',
+  ];
+  const current = Math.min(step, steps.length - 1);
+
+  return (
+    <div className="w-full mx-auto mt-5 flex justify-center" style={{ maxWidth: 440, height: 20 }}>
+      {/* key={current} remounts the line each step → old fades out, new fades in */}
+      <div
+        key={current}
+        className="flex items-center gap-2.5 text-[13px] animate-in fade-in slide-in-from-bottom-1 duration-300"
+      >
+        {checked ? (
+          <Check size={15} className="text-emerald-500 shrink-0 animate-in zoom-in duration-200" />
+        ) : (
+          <Loader2 size={15} className="animate-spin text-[#7C3AED] shrink-0" />
+        )}
+        <span className="text-[#414651] font-medium">{steps[current]}</span>
+      </div>
+    </div>
+  );
+};
+
+const DashboardSkeleton = ({ animate = false, showProgress = false, clientName }: { animate?: boolean; showProgress?: boolean; clientName?: string }) => (
   <div className="h-full w-full overflow-y-auto bg-white">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 24px 80px 24px', width: '100%', minWidth: 500 }}>
+      {/* Loading header — bar + progress checks, only while actively generating */}
+      {showProgress && (
+        <div className="flex flex-col items-center pt-6 pb-3">
+          <PlanLoadingBar />
+          <PlanLoadingSteps clientName={clientName} />
+        </div>
+      )}
       {/* KPI row skeleton */}
       <div className="grid grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
@@ -432,7 +537,7 @@ export const Dashboard = () => {
     );
   }
   if (!hasPlan) {
-    return <DashboardSkeleton animate={planGenerating} />;
+    return <DashboardSkeleton animate={planGenerating} showProgress={planGenerating} clientName={activeClient?.name} />;
   }
 
   return (
