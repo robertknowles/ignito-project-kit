@@ -385,7 +385,7 @@ export const NewClientView: React.FC = () => {
                 placeholder={'e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."'}
                 rows={2}
                 disabled={submitting}
-                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed px-4 pt-4 pb-1 max-h-[220px]"
+                className="w-full bg-transparent text-[14px] text-[#181D27] placeholder-[#9CA3AF] resize-none outline-none leading-relaxed pl-4 pt-4 pb-1 pr-4 sm:pr-[280px] max-h-[220px]"
               />
               {selectedFile && (
                 <div className="flex items-center gap-2 px-4 pb-1">
@@ -567,16 +567,16 @@ export const NewClientView: React.FC = () => {
                         <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-1.5">
                           {strategyMeta ? (
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 text-[11px] font-medium whitespace-nowrap ${strategyMeta.textClass}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 text-[11px] font-medium max-w-[65%] flex-shrink-0 ${strategyMeta.textClass}`}
                             >
-                              <strategyMeta.Icon size={12} />
-                              {strategyMeta.label}
+                              <strategyMeta.Icon size={12} className="flex-shrink-0" />
+                              <span className="truncate">{strategyMeta.label}</span>
                             </span>
                           ) : (
                             <span />
                           )}
                           {metaLine && (
-                            <div className="text-[11px] text-neutral-500 whitespace-nowrap truncate">
+                            <div className="text-[11px] text-neutral-500 whitespace-nowrap truncate min-w-0">
                               {metaLine}
                             </div>
                           )}
