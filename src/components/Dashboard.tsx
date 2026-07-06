@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -342,6 +342,28 @@ export const Dashboard = () => {
   // of the active tab.
   const [isExporting, setIsExporting] = useState(false);
 
+  // Kebab (⋯) actions menu in the navbar: holds Assumptions, Export PDF and
+  // Send to Client. Closes on outside click or Escape.
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!actionsMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setActionsMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActionsMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [actionsMenuOpen]);
+
   const kpis = useMemo(() => {
     const growthData = chartDataA.portfolioGrowthData;
     const cfData = chartDataA.cashflowData;
@@ -587,29 +609,42 @@ export const Dashboard = () => {
               <ClipboardListIcon size={15} />
               Client Inputs
             </button>
-            <button
-              onClick={() => { if (!isExporting) setIsExporting(true); }}
-              disabled={isExporting}
-              title="Export portfolio brief (PDF)"
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isExporting ? <Loader2 size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-              Export PDF
-              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
-            </button>
-            <button
-              onClick={() => setAssumptionsOpen(prev => !prev)}
-              title="Assumptions"
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
-                assumptionsOpen
-                  ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
-                  : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
-              }`}
-            >
-              <SlidersHorizontalIcon size={15} />
-              Assumptions
-            </button>
-            <TopBar />
+            <ChangeLogBell />
+            {/* Kebab menu: Assumptions · Export PDF · Send to Client */}
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                onClick={() => setActionsMenuOpen(prev => !prev)}
+                title="More actions"
+                className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors shadow-sm ${
+                  actionsMenuOpen
+                    ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
+                    : 'text-neutral-500 bg-white border-neutral-200 hover:text-neutral-700 hover:bg-neutral-50'
+                }`}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {actionsMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
+                  <button
+                    onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                  >
+                    <SlidersHorizontalIcon size={15} className="text-[#717680]" />
+                    Assumptions
+                  </button>
+                  <button
+                    onClick={() => { if (!isExporting) setIsExporting(true); setActionsMenuOpen(false); }}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExporting ? <Loader2 size={15} className="animate-spin text-[#717680]" /> : <DownloadIcon size={15} className="text-[#717680]" />}
+                    Export PDF
+                    <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
+                  </button>
+                  <TopBar variant="menuItem" onAction={() => setActionsMenuOpen(false)} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -671,20 +706,6 @@ export const Dashboard = () => {
                 active={planSubTab === 'retirement'}
                 onClick={() => setPlanSubTab('retirement')}
               />
-            </div>
-            <div className="ml-auto">
-              <ChangeLogBell />
-            </div>
-          </div>
-        )}
-
-        {/* Bell holds the same top-right spot on the non-plan tabs.
-            The brief tab renders its own bell inline next to the
-            "Purchased property" button, so it's excluded here. */}
-        {activeTab !== 'plan' && activeTab !== 'brief' && (
-          <div className="flex items-center -mt-3">
-            <div className="ml-auto">
-              <ChangeLogBell />
             </div>
           </div>
         )}

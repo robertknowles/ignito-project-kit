@@ -18,7 +18,6 @@ import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { calcGrossYield } from '../utils/sharedFinancialCalcs'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
 import { useRemoveTimelineProperty } from '../hooks/useRemoveTimelineProperty'
-import { ChangeLogBell } from './ChangeLogPanel'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
@@ -910,7 +909,6 @@ export const BriefTab: React.FC<{
           <CheckCircle2 size={14} />
           Purchased property
         </button>
-        <ChangeLogBell />
       </div>
       </div>
 
