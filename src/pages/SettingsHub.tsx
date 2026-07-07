@@ -1,19 +1,23 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   FileTextIcon,
   PaletteIcon,
   BarChart3Icon,
   Loader2Icon,
+  SlidersHorizontalIcon,
+  RotateCcw,
 } from 'lucide-react'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { useAIUsage } from '@/hooks/useAIUsage'
 import { AgentFormsContent } from '@/pages/AgentForms'
 import { CompanyManagementContent } from '@/pages/CompanyManagement'
+import { AssumptionsGrid } from '@/components/AssumptionsGrid'
 
-type SettingsTab = 'forms' | 'white-label' | 'usage'
+type SettingsTab = 'forms' | 'assumptions' | 'white-label' | 'usage'
 
 const settingsTabs: { id: SettingsTab; label: string; icon: React.ElementType; description: string }[] = [
   { id: 'forms', label: 'Forms', icon: FileTextIcon, description: 'Create and manage client form templates' },
+  { id: 'assumptions', label: 'Assumptions', icon: SlidersHorizontalIcon, description: 'Modelling assumptions used by the engine' },
   { id: 'white-label', label: 'White Label', icon: PaletteIcon, description: 'Company branding and team management' },
   { id: 'usage', label: 'AI Usage', icon: BarChart3Icon, description: 'View your AI usage this month' },
 ]
@@ -33,6 +37,9 @@ function formatMonth(month: string): string {
 export const SettingsHub = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('forms')
   const { usage, isLoading: usageLoading } = useAIUsage()
+  // Reset fn published by AssumptionsGrid so the tab header can own the button
+  // (same pattern the old AgentHome header used).
+  const resetAssumptionsRef = useRef<(() => void) | null>(null)
 
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
@@ -70,6 +77,30 @@ export const SettingsHub = () => {
           <div className="p-8">
             {activeTab === 'forms' && (
               <AgentFormsContent />
+            )}
+
+            {activeTab === 'assumptions' && (
+              <>
+                <div className="mb-6 flex items-start justify-between">
+                  <div>
+                    <h2 className="page-title">Assumptions</h2>
+                    <p className="body-secondary mt-0.5">
+                      Modelling assumptions the engine uses for the active plan
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => resetAssumptionsRef.current?.()}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors"
+                  >
+                    <RotateCcw size={13} />
+                    Reset to defaults
+                  </button>
+                </div>
+                <AssumptionsGrid
+                  showHeader={false}
+                  onResetExposed={(fn) => { resetAssumptionsRef.current = fn }}
+                />
+              </>
             )}
 
             {activeTab === 'white-label' && (
