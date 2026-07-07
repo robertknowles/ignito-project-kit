@@ -43,6 +43,11 @@ const MARGIN_TOP = 13;
 const MARGIN_BOTTOM = 16;
 const CONTENT_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM;
 
+// Raster scale for page capture. The flow is ~794 CSS px wide, so scale 3
+// prints at ~290 DPI (scale 2 was ~190 DPI — visibly soft text on paper).
+// Transient canvas cost at 3 is ~29MB per page; fine.
+const RASTER_SCALE = 3;
+
 const fetchWithTimeout = async (url: string, ms: number): Promise<Response> => {
   const ctl = new AbortController();
   const timer = window.setTimeout(() => ctl.abort(), ms);
@@ -239,13 +244,21 @@ export async function generateBriefPdf(root: HTMLElement, opts: GenerateOptions)
         `page ${i + 1} serialize`
       );
       const canvas = await withTimeout(
-        svgUrlToCanvas(svgUrl, flowWidthPx, pageHpx, 2),
+        svgUrlToCanvas(svgUrl, flowWidthPx, pageHpx, RASTER_SCALE),
         20000,
         `page ${i + 1} rasterize`
       );
 
       if (i > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, MARGIN_TOP, PAGE_W, CONTENT_H);
+      // PNG, not JPEG: the pages are flat-colour text/tables on white, where
+      // JPEG's chroma subsampling fuzzes glyph edges. The 'SLOW' flag matters:
+      // jsPDF stores PNG pixels UNCOMPRESSED by default (~21MB/page at this
+      // scale); flate compression brings mostly-white pages back to sane size.
+      pdf.addImage(
+        canvas.toDataURL('image/png'), 'PNG',
+        0, MARGIN_TOP, PAGE_W, CONTENT_H,
+        undefined, 'SLOW'
+      );
 
       // Footer: disclaimer centred in the bottom margin, page number at right.
       pdf.setFontSize(6.5);
