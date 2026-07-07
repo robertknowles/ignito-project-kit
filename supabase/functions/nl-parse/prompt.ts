@@ -58,6 +58,7 @@ export function buildSystemPrompt(
   planningDefaults?: Record<string, unknown> | null,
   conversationSummary?: string,
   strategyProfileText?: string,
+  requestContext?: 'chat' | 'remodel',
 ): string {
   const currentYear = new Date().getFullYear();
   // A plan only "exists" if it has actual properties. The frontend may send
@@ -173,6 +174,23 @@ The active preset is **Growth to Cash Flow**. This is a TWO-PHASE RESIDENTIAL pl
 - If the BA asked for COMMERCIAL, this is the wrong preset — use commercial-transition instead.`;
   }
 
+  // ── Remodel context section (Compare "Remodel with AI") ──────────
+  // Compare's remodel box is a one-shot what-if instruction, not a chat.
+  // The dashboard rule "vague requests → ask what to change" makes the tool
+  // feel broken there (nothing changes, the question renders as a footnote).
+  // In remodel mode the AI must act on directional instructions and state
+  // its assumptions instead of asking first.
+  const remodelSection = requestContext === 'remodel'
+    ? `
+
+## Remodel Mode (IMPORTANT — overrides the vague-request rule)
+This instruction comes from the Compare page's "Remodel with AI" box. The BA is describing a WHAT-IF variation of the plan shown above, to chart against the original. This is a one-shot instruction box, not a chat — a clarifying question reads as a failure here.
+- **Default to modify_plan.** Any directional instruction ("focus on 800k properties with low yields", "make it more growth-focused", "cheaper properties, earlier") = apply it across the applicable properties NOW with sensible interpretations, using compound \`modifications\`. Do not ask which properties it applies to — apply it to ALL properties unless the BA scoped it.
+- **Yield instructions:** yield = annual rent ÷ price. Set each property's \`rentPerWeek\` = round(purchasePrice × yield ÷ 52). "Low yields" ≈ 3.5–4% (growth-focused assets), "high yields" ≈ 5–6%. Pair low yield with \`growthAssumption: "High"\` and high yield with lower growth tiers when the instruction implies a focus shift.
+- **State every interpretation you made in \`assumptions\`** (e.g. "Low yield modelled at ~3.8% gross → $585/wk on $800k") so the BA can correct you with a follow-up.
+- Only use "respond" for pure questions about the plan or messages with no actionable instruction at all.`
+    : '';
+
   // ── Conversation history section ─────────────────────────────────
   const historySection = conversationSummary
     ? `\n\n## Conversation History (action log)\n\n${conversationSummary}\n\nUse this log to understand what has already been discussed. Do not repeat prior actions.`
@@ -202,7 +220,7 @@ ${hasPlan ? `
 - If someone mentions a DIFFERENT client name with full financial details, use "respond" to ask: "That looks like a new client — clear the current plan first using the Reset button, then send the brief again."
 - If the message corrects existing client info (same names), use update_profile.
 - "What if" questions are for "respond" — they're exploratory, not instructions to change the model. But ALWAYS give a directional answer using the plan data. Never deflect with "that's a hypothetical" — the BA asked a question, answer it.
-- Vague requests ("make it cheaper", "more conservative") are for "respond" — ask what specifically to change.` : ''}
+${requestContext === 'remodel' ? `- Directional/vague change requests are NOT for "respond" here — see Remodel Mode below.` : `- Vague requests ("make it cheaper", "more conservative") are for "respond" — ask what specifically to change.`}` : ''}
 
 ## Voice
 - Short sentences. No jargon unless the BA used it first.
@@ -339,5 +357,5 @@ Semi-annual periods. Period 1 = first half of ${currentYear}. Never reference pe
 - High: Y1 12.5%, Y2-3 10%, Y4 7.5%, Y5+ 6%.
 - Medium: Y1 8%, Y2-3 6%, Y4 5%, Y5+ 4%.
 - Low: Y1 5%, Y2-3 4%, Y4 3.5%, Y5+ 3%.
-${transitionExecutionSection}${planStateSection}${defaultsSection}${strategyProfileSection}${historySection}`;
+${transitionExecutionSection}${planStateSection}${defaultsSection}${strategyProfileSection}${remodelSection}${historySection}`;
 }

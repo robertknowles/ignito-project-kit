@@ -135,6 +135,10 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
             currentPlan,
             userId: user?.id,
             strategyPreset: targetRun.profile.strategyPreset ?? 'eg-low',
+            // Remodel mode: the prompt tells the AI to act on directional
+            // instructions with stated assumptions instead of asking
+            // clarifying questions (this box is one-shot, not a chat).
+            requestContext: 'remodel',
           },
         });
 

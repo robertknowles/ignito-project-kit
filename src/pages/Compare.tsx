@@ -763,7 +763,7 @@ export const Compare: React.FC = () => {
                         </p>
                       )}
                       {!remodel.error && remodel.aiMessage && (
-                        <p className="meta">{remodel.aiMessage}</p>
+                        <p className="meta whitespace-pre-line">{remodel.aiMessage}</p>
                       )}
                     </>
                   )}

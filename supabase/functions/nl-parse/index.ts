@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const { message, conversationHistory, conversationSummary, currentPlan, userId, strategyPreset, planningDefaults, strategyProfileText } = await req.json();
+    const { message, conversationHistory, conversationSummary, currentPlan, userId, strategyPreset, planningDefaults, strategyProfileText, requestContext } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -103,6 +103,7 @@ Deno.serve(async (req: Request) => {
       planningDefaults,
       conversationSummary,
       strategyProfileText,
+      requestContext === 'remodel' ? 'remodel' : 'chat',
     );
 
     console.info(`nl-parse: calling Anthropic (${messages.length} messages, prompt ${systemPrompt.length} chars, ${ALL_TOOLS.length} tools)`);
