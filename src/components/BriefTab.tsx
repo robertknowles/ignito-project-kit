@@ -896,18 +896,20 @@ export const BriefTab: React.FC<{
           onClick={() => setSubTab('purchase')}
         />
       </div>
-      <button
-        onClick={() => {
-          if (purchasing) return
-          setPurchasing(true)
-          window.setTimeout(() => completePurchaseRef.current(), 380)
-        }}
-        disabled={purchasing}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors disabled:opacity-50 disabled:pointer-events-none"
-      >
-        <CheckCircle2 size={14} />
-        Purchased property
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            if (purchasing) return
+            setPurchasing(true)
+            window.setTimeout(() => completePurchaseRef.current(), 380)
+          }}
+          disabled={purchasing}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+        >
+          <CheckCircle2 size={14} />
+          Purchased property
+        </button>
+      </div>
       </div>
 
       {/* Tab content — pulls away on purchase, next brief slides in */}

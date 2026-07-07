@@ -48,7 +48,7 @@ const bucketOf = (t: number, startOfToday: number): string => {
  * (max per client) so a client whose plan was edited this morning sits at
  * the top even if the client record itself wasn't touched.
  */
-export function useBucketedRecents(query: string) {
+export function useBucketedRecents(query: string, limit?: number) {
   const { clients } = useClient();
 
   const [scenarioRecency, setScenarioRecency] = useState<Record<number, string>>({});
@@ -86,7 +86,7 @@ export function useBucketedRecents(query: string) {
     const q = query.trim().toLowerCase();
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const sorted = [...clients]
+    const filtered = [...clients]
       .filter(
         (c) =>
           !q ||
@@ -94,6 +94,7 @@ export function useBucketedRecents(query: string) {
           c.email?.toLowerCase().includes(q),
       )
       .sort((a, b) => recencyOf(b) - recencyOf(a));
+    const sorted = limit != null ? filtered.slice(0, limit) : filtered;
     const groups: { label: string; clients: Client[] }[] = [];
     for (const client of sorted) {
       const label = bucketOf(recencyOf(client), startOfToday);
@@ -105,7 +106,7 @@ export function useBucketedRecents(query: string) {
       }
     }
     return groups;
-  }, [clients, query, recencyOf]);
+  }, [clients, query, recencyOf, limit]);
 
   return { buckets, hasClients: clients.length > 0 };
 }
@@ -132,7 +133,23 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
   const [repairDiagnosis, setRepairDiagnosis] = useState<{ needsRepair: boolean; reason: string; instanceCount: number; orderCount: number; selectionCount: number } | null>(null);
   const [repairing, setRepairing] = useState(false);
 
+  // Pull the full recency-sorted list (no slice) so we can hoist the active
+  // client to the top before trimming to 4 — selecting a client doesn't bump
+  // its scenario updated_at, so recency alone wouldn't float it up.
   const { buckets } = useBucketedRecents(query);
+  // Sidebar shows a flat, date-label-free list. (The search palette keeps the
+  // bucketed grouping.) Active client is hoisted to the front, then trim to 4.
+  const recentClients = useMemo(() => {
+    const flat = buckets.flatMap((b) => b.clients);
+    if (activeClient) {
+      const idx = flat.findIndex((c) => c.id === activeClient.id);
+      if (idx > 0) {
+        const [active] = flat.splice(idx, 1);
+        flat.unshift(active);
+      }
+    }
+    return flat.slice(0, 4);
+  }, [buckets, activeClient]);
 
   // Close any open row menu on outside click.
   useEffect(() => {
@@ -208,7 +225,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
       </div>
     );
   }
-  if (buckets.length === 0) {
+  if (recentClients.length === 0) {
     return (
       <div className="px-2 py-1.5 text-[12px] text-[#A4A7AE]">
         No clients match
@@ -218,16 +235,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
 
   return (
     <div ref={listRef} className="flex flex-col">
-      {buckets.map((bucket, bucketIndex) => (
-        <React.Fragment key={bucket.label}>
-          <div
-            className={`px-2 pb-1 text-[11px] font-medium text-[#A4A7AE] ${
-              bucketIndex === 0 ? 'pt-0.5' : 'pt-3'
-            }`}
-          >
-            {bucket.label}
-          </div>
-          {bucket.clients.map((client) => {
+      {recentClients.map((client) => {
         const isActive = activeClient?.id === client.id && location.pathname === '/dashboard';
         const isEditing = editingId === client.id;
         const isMenuOpen = menuId === client.id;
@@ -345,9 +353,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
             )}
           </div>
         );
-          })}
-        </React.Fragment>
-      ))}
+      })}
 
       <Dialog
         open={!!pendingDeleteClient}

@@ -10,6 +10,8 @@
 
 @layer base {
   :root {
+    /* Live width of the app shell sidebar (updated by AppSidebar on collapse) */
+    --app-sidebar-width: 240px;
     /* Untitled UI neutral gray scale */
     --background: 0 0% 98%;        /* #FAFAFA — neutral-50 */
     --foreground: 222 18% 12%;     /* #181D27 — neutral-900 */

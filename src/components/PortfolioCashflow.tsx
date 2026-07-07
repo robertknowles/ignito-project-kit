@@ -128,7 +128,7 @@ export const PortfolioCashflow: React.FC = () => {
                 x={labelX} y={headerY} fontSize={12} fontWeight={600}
                 fill={nameFill} dominantBaseline="central" fontFamily={UUI.fontFamily}
               >
-                {prop.title}
+                {`P${idx + 1} ${prop.title}`}
               </text>
               <text
                 x={valueRightX} y={headerY} fontSize={12} fontWeight={600}

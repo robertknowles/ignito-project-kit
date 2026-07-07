@@ -20,7 +20,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export const TopBar = () => {
+interface TopBarProps {
+  /** How to render the share trigger. 'button' = standalone navbar button;
+   *  'menuItem' = a full-width row for the kebab actions menu. The share
+   *  Dialogs render the same way regardless (they portal to <body>). */
+  variant?: 'button' | 'menuItem'
+  /** Called after the share action is triggered — lets the parent menu close. */
+  onAction?: () => void
+}
+
+export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) => {
   const { scenarioId, hasUnsavedChanges, isChatRequestInFlight } = useScenarioSave()
   const { activeClient } = useClient()
   const { addScenario, scenarios } = useMultiScenario()
@@ -353,24 +362,41 @@ export const TopBar = () => {
     }
   }
 
+  const shareDisabled = isLoading || !scenarioId || hasUnsavedChanges
+  const shareTitle = !scenarioId
+    ? 'Save the scenario before sharing'
+    : hasUnsavedChanges
+      ? 'Save your changes before sharing'
+      : 'Share dashboard login with client'
+  const handleShareClick = () => {
+    handleShareDashboard()
+    onAction?.()
+  }
+
   return (
-    <div id="top-bar" className="flex items-center gap-1.5">
+    <div id="top-bar" className={variant === 'menuItem' ? 'contents' : 'flex items-center gap-1.5'}>
       {!isClient && (
-        <button
-          onClick={handleShareDashboard}
-          disabled={isLoading || !scenarioId || hasUnsavedChanges}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          title={
-            !scenarioId
-              ? 'Save the scenario before sharing'
-              : hasUnsavedChanges
-                ? 'Save your changes before sharing'
-                : 'Share dashboard login with client'
-          }
-        >
-          <Share2 size={15} />
-          Client Login
-        </button>
+        variant === 'menuItem' ? (
+          <button
+            onClick={handleShareClick}
+            disabled={shareDisabled}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            title={shareTitle}
+          >
+            <Share2 size={15} className="text-[#717680]" />
+            Send to Client
+          </button>
+        ) : (
+          <button
+            onClick={handleShareClick}
+            disabled={shareDisabled}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={shareTitle}
+          >
+            <Share2 size={15} />
+            Client Login
+          </button>
+        )
       )}
 
       {/* Share Dashboard Credentials Modal */}

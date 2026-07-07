@@ -295,7 +295,7 @@ export const AgentHome: React.FC = () => {
   return (
     <div className="main-app flex h-screen w-full bg-white">
       <AppSidebar />
-      <div className="relative flex-1 overflow-auto" style={{ marginLeft: SIDEBAR_WIDTH }}>
+      <div className="relative flex-1 overflow-auto" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         {/* ── Atmospheric aurora wash at the top of the page ─────
             Two overlapping radial gradients — one warm, one cool —
             anchored above the viewport so they peek down from the top

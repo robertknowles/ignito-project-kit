@@ -471,7 +471,7 @@ export const DataAssumptions = () => {
         activeClientId={activeClientId}
         onSelectClient={setActiveClientId}
       />
-      <div className="flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out" style={{ marginLeft: drawerOpen ? SIDEBAR_WIDTH + 224 : SIDEBAR_WIDTH }}>
+      <div className="flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out" style={{ marginLeft: drawerOpen ? `calc(var(--app-sidebar-width, ${SIDEBAR_WIDTH}px) + 224px)` : `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}>
         <div className="flex-1 overflow-auto">
           <div className="p-8">
 

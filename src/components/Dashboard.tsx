@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -132,9 +132,114 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
   </div>
 );
 
-const DashboardSkeleton = ({ animate = false }: { animate?: boolean }) => (
+/**
+ * PlanLoadingBar — determinate-looking progress bar shown at the top of the
+ * skeleton while a plan is being generated. The fill is simulated (the request
+ * has no true progress): it eases toward 92% and the whole bar unmounts the
+ * moment the plan lands. Mirrors the Compare page's ScenarioLoadingBar.
+ */
+const PlanLoadingBar = () => {
+  const [progress, setProgress] = useState(6);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setProgress(p => Math.min(92, p + (92 - p) * 0.055 + 0.35));
+    }, 110);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="w-full mx-auto" style={{ maxWidth: 440 }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[13px] font-medium text-[#414651]">Building plan…</span>
+        <span className="text-[13px] font-medium text-[#717680] tabular-nums">{Math.round(progress)}%</span>
+      </div>
+      <div className="h-2.5 w-full rounded-full bg-[#F0F1F4] overflow-hidden">
+        <div
+          className="h-full rounded-full bg-[#7C3AED] transition-[width] duration-150 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * PlanLoadingSteps — a single progress line beneath the loading bar showing what
+ * the engine is doing right now. Each step replaces the previous one (no stacking):
+ * the old line fades out and the next fades up in its place. Steps advance on their
+ * own timers (the request has no true progress signal — same approximation the chat
+ * panel's ChatLoadingSteps uses).
+ *
+ * Timings are deliberately IRREGULAR so it doesn't feel like a mechanical loop —
+ * each step "works" for a different duration. Just before a line is replaced its
+ * spinner flips to a green tick for a beat, so the user sees each step complete
+ * before the next appears. The final step holds (spinner only) until the plan
+ * lands and the whole skeleton unmounts.
+ */
+// Per-step "work" durations before the tick shows (irregular on purpose).
+const PLAN_LOADING_STEP_HOLDS = [900, 1650, 1150, 1900];
+const PLAN_LOADING_TICK_PAUSE = 450; // how long the green tick lingers before the next line
+const PlanLoadingSteps = ({ clientName }: { clientName?: string }) => {
+  const [step, setStep] = useState(0);
+  const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let elapsed = 0;
+    PLAN_LOADING_STEP_HOLDS.forEach((hold, i) => {
+      const tickAt = elapsed + hold;
+      // show the tick on the current line
+      timers.push(setTimeout(() => setChecked(true), tickAt));
+      // then advance to the next line and reset the tick
+      const advanceAt = tickAt + PLAN_LOADING_TICK_PAUSE;
+      timers.push(
+        setTimeout(() => {
+          setStep(i + 1);
+          setChecked(false);
+        }, advanceAt),
+      );
+      elapsed = advanceAt;
+    });
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const name = (clientName ?? '').trim();
+  const steps = [
+    name ? `Reading ${name}'s profile` : 'Reading client profile',
+    'Selecting properties',
+    'Running affordability checks',
+    'Modelling against market assumptions',
+    'Building your roadmap',
+  ];
+  const current = Math.min(step, steps.length - 1);
+
+  return (
+    <div className="w-full mx-auto mt-5 flex justify-center" style={{ maxWidth: 440, height: 20 }}>
+      {/* key={current} remounts the line each step → old fades out, new fades in */}
+      <div
+        key={current}
+        className="flex items-center gap-2.5 text-[13px] animate-in fade-in slide-in-from-bottom-1 duration-300"
+      >
+        {checked ? (
+          <Check size={15} className="text-emerald-500 shrink-0 animate-in zoom-in duration-200" />
+        ) : (
+          <Loader2 size={15} className="animate-spin text-[#7C3AED] shrink-0" />
+        )}
+        <span className="text-[#414651] font-medium">{steps[current]}</span>
+      </div>
+    </div>
+  );
+};
+
+const DashboardSkeleton = ({ animate = false, showProgress = false, clientName }: { animate?: boolean; showProgress?: boolean; clientName?: string }) => (
   <div className="h-full w-full overflow-y-auto bg-white">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 24px 80px 24px', width: '100%', minWidth: 500 }}>
+      {/* Loading header — bar + progress checks, only while actively generating */}
+      {showProgress && (
+        <div className="flex flex-col items-center pt-6 pb-3">
+          <PlanLoadingBar />
+          <PlanLoadingSteps clientName={clientName} />
+        </div>
+      )}
       {/* KPI row skeleton */}
       <div className="grid grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
@@ -246,6 +351,28 @@ export const Dashboard = () => {
   // PDF export — a single unified Portfolio Brief, always available regardless
   // of the active tab.
   const [isExporting, setIsExporting] = useState(false);
+
+  // Kebab (⋯) actions menu in the navbar: holds Assumptions, Export PDF and
+  // Send to Client. Closes on outside click or Escape.
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!actionsMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setActionsMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActionsMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [actionsMenuOpen]);
 
   const kpis = useMemo(() => {
     const growthData = chartDataA.portfolioGrowthData;
@@ -442,7 +569,7 @@ export const Dashboard = () => {
     );
   }
   if (!hasPlan) {
-    return <DashboardSkeleton animate={planGenerating} />;
+    return <DashboardSkeleton animate={planGenerating} showProgress={planGenerating} clientName={activeClient?.name} />;
   }
 
   return (
@@ -492,29 +619,42 @@ export const Dashboard = () => {
               <ClipboardListIcon size={15} />
               Client Inputs
             </button>
-            <button
-              onClick={() => { if (!isExporting) setIsExporting(true); }}
-              disabled={isExporting}
-              title="Export portfolio brief (PDF)"
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold transition-colors shadow-sm hover:text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isExporting ? <Loader2 size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-              Export PDF
-              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
-            </button>
-            <button
-              onClick={() => setAssumptionsOpen(prev => !prev)}
-              title="Assumptions"
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
-                assumptionsOpen
-                  ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
-                  : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
-              }`}
-            >
-              <SlidersHorizontalIcon size={15} />
-              Assumptions
-            </button>
-            <TopBar />
+            <ChangeLogBell />
+            {/* Kebab menu: Assumptions · Export PDF · Send to Client */}
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                onClick={() => setActionsMenuOpen(prev => !prev)}
+                title="More actions"
+                className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors shadow-sm ${
+                  actionsMenuOpen
+                    ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
+                    : 'text-neutral-500 bg-white border-neutral-200 hover:text-neutral-700 hover:bg-neutral-50'
+                }`}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {actionsMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
+                  <button
+                    onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                  >
+                    <SlidersHorizontalIcon size={15} className="text-[#717680]" />
+                    Assumptions
+                  </button>
+                  <button
+                    onClick={() => { if (!isExporting) setIsExporting(true); setActionsMenuOpen(false); }}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExporting ? <Loader2 size={15} className="animate-spin text-[#717680]" /> : <DownloadIcon size={15} className="text-[#717680]" />}
+                    Export PDF
+                    <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
+                  </button>
+                  <TopBar variant="menuItem" onAction={() => setActionsMenuOpen(false)} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -576,18 +716,6 @@ export const Dashboard = () => {
                 active={planSubTab === 'retirement'}
                 onClick={() => setPlanSubTab('retirement')}
               />
-            </div>
-            <div className="ml-auto">
-              <ChangeLogBell />
-            </div>
-          </div>
-        )}
-
-        {/* Bell holds the same top-right spot on the non-plan tabs */}
-        {activeTab !== 'plan' && (
-          <div className="flex items-center -mt-3">
-            <div className="ml-auto">
-              <ChangeLogBell />
             </div>
           </div>
         )}

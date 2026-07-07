@@ -603,41 +603,43 @@ export const Compare: React.FC = () => {
   }, [scenarioA?.scenarioId, scenarioB?.scenarioId]);
 
   const equityData = useMemo(() => {
-    if (!scenarioA || !sideB) return [];
+    if (!scenarioA) return [];
     const yearMap = new Map<string, { year: string; equityA?: number; equityB?: number; propertiesA?: string[]; propertiesB?: string[] }>();
 
     for (const pt of scenarioA.portfolioGrowthData) {
       yearMap.set(pt.year, { year: pt.year, equityA: pt.equity ?? pt.portfolioValue, propertiesA: pt.properties });
     }
-    for (const pt of sideB.growth) {
-      const existing = yearMap.get(pt.year) || { year: pt.year };
-      yearMap.set(pt.year, { ...existing, equityB: pt.equity ?? pt.portfolioValue, propertiesB: pt.properties });
+    if (sideB) {
+      for (const pt of sideB.growth) {
+        const existing = yearMap.get(pt.year) || { year: pt.year };
+        yearMap.set(pt.year, { ...existing, equityB: pt.equity ?? pt.portfolioValue, propertiesB: pt.properties });
+      }
     }
 
     return Array.from(yearMap.values()).sort((a, b) => a.year.localeCompare(b.year));
   }, [scenarioA, sideB]);
 
   const cashflowChartData = useMemo(() => {
-    if (!scenarioA || !sideB) return [];
+    if (!scenarioA) return [];
     // Purchases live on portfolioGrowthData — map them by year so they can
     // also be plotted on the cashflow line.
     const propsA = new Map(scenarioA.portfolioGrowthData.map(p => [p.year, p.properties]));
-    const propsB = new Map(sideB.growth.map(p => [p.year, p.properties]));
 
     const yearMap = new Map<string, { year: string; cashflowA?: number; cashflowB?: number; propertiesA?: string[]; propertiesB?: string[] }>();
 
     for (const pt of scenarioA.cashflowData) {
       yearMap.set(pt.year, { year: pt.year, cashflowA: pt.cashflow, propertiesA: propsA.get(pt.year) });
     }
-    for (const pt of sideB.cashflow) {
-      const existing = yearMap.get(pt.year) || { year: pt.year };
-      yearMap.set(pt.year, { ...existing, cashflowB: pt.cashflow, propertiesB: propsB.get(pt.year) });
+    if (sideB) {
+      const propsB = new Map(sideB.growth.map(p => [p.year, p.properties]));
+      for (const pt of sideB.cashflow) {
+        const existing = yearMap.get(pt.year) || { year: pt.year };
+        yearMap.set(pt.year, { ...existing, cashflowB: pt.cashflow, propertiesB: propsB.get(pt.year) });
+      }
     }
 
     return Array.from(yearMap.values()).sort((a, b) => a.year.localeCompare(b.year));
   }, [scenarioA, sideB]);
-
-  const bothSelected = scenarioA && sideB;
 
   const labelA = scenarioA ? scenarioA.scenarioName : 'Scenario A';
   const labelB = sideB?.label ?? 'Scenario B';
@@ -667,7 +669,7 @@ export const Compare: React.FC = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#FAFAFA]">
       <AppSidebar />
-      <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
+      <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         <div className="flex-1 overflow-auto">
           <div className="flex flex-col gap-6 mx-auto" style={{ padding: '24px 28px 80px 28px', width: '100%', minWidth: 500 }}>
             <h2 className="page-title">Compare</h2>
@@ -780,18 +782,16 @@ export const Compare: React.FC = () => {
               </p>
             )}
 
-            {!loading && allScenarios.length > 0 && !bothSelected && (
+            {!loading && allScenarios.length > 0 && !scenarioA && (
               <p className="body-secondary">
                 {isRemodelMode
-                  ? scenarioA
-                    ? 'Describe a change above to model it against the saved plan.'
-                    : 'Select Scenario A, then describe a change to model against it.'
-                  : 'Select two scenarios above to compare them.'}
+                  ? 'Select Scenario A, then describe a change to model against it.'
+                  : 'Select a scenario in Scenario A to preview it, then add Scenario B to compare.'}
               </p>
             )}
 
             {/* ── Output — grey rule separates inputs from results ────── */}
-            {bothSelected && (
+            {scenarioA && (
               <div className="flex flex-col gap-6 border-t border-[#E9EAEB] pt-6">
                 {/* Model check — the engine's honest response to the remodel */}
                 {isRemodelMode && draft && modelCheckNotes.length > 0 && (
@@ -805,17 +805,28 @@ export const Compare: React.FC = () => {
                 )}
 
                 {/* Purchases tables, side by side, horizon stats pinned on top
-                    (row click → detail) */}
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-start">
+                    (row click → detail). Scenario A previews on its own until
+                    Scenario B is chosen. */}
+                <div className={`grid grid-cols-1 gap-6 items-start ${sideB ? 'md:grid-cols-2' : ''}`}>
                   <ChartCard title="Scenario A" flush>
                     <StatStrip growth={scenarioA.portfolioGrowthData} cashflow={scenarioA.cashflowData} />
                     <PurchasesTable rows={rowsA} onRowClick={(row, index) => setDetailRow({ row, index })} />
                   </ChartCard>
-                  <ChartCard title="Scenario B" flush>
-                    <StatStrip growth={sideB.growth} cashflow={sideB.cashflow} />
-                    <PurchasesTable rows={rowsB} onRowClick={(row, index) => setDetailRow({ row, index })} />
-                  </ChartCard>
+                  {sideB && (
+                    <ChartCard title="Scenario B" flush>
+                      <StatStrip growth={sideB.growth} cashflow={sideB.cashflow} />
+                      <PurchasesTable rows={rowsB} onRowClick={(row, index) => setDetailRow({ row, index })} />
+                    </ChartCard>
+                  )}
                 </div>
+
+                {!sideB && (
+                  <p className="meta">
+                    {isRemodelMode
+                      ? 'Describe a change above to model Scenario B against this plan.'
+                      : 'Select Scenario B to compare against this plan.'}
+                  </p>
+                )}
 
                 <RowDetailDialog
                   row={detailRow?.row ?? null}
@@ -829,7 +840,7 @@ export const Compare: React.FC = () => {
                   expandable
                   legend={[
                     { color: COLOR_A, label: labelA, variant: 'dot' },
-                    { color: COLOR_B, label: labelB, variant: sideB.isDraft ? 'line' : 'dot' },
+                    ...(sideB ? [{ color: COLOR_B, label: labelB, variant: sideB.isDraft ? 'line' as const : 'dot' as const }] : []),
                   ]}
                 >
                   <div className="h-64">
@@ -850,18 +861,20 @@ export const Compare: React.FC = () => {
                           activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_A, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
-                        <Area
-                          type="monotone"
-                          dataKey="equityB"
-                          name={labelB}
-                          stroke={COLOR_B}
-                          strokeWidth={2}
-                          strokeDasharray={sideB.isDraft ? CHART_STYLE.dashedPattern : undefined}
-                          fill="none"
-                          dot={makePurchaseDot('propertiesB', COLOR_B, sideB.isDraft)}
-                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
-                          isAnimationActive={false}
-                        />
+                        {sideB && (
+                          <Area
+                            type="monotone"
+                            dataKey="equityB"
+                            name={labelB}
+                            stroke={COLOR_B}
+                            strokeWidth={2}
+                            strokeDasharray={sideB.isDraft ? CHART_STYLE.dashedPattern : undefined}
+                            fill="none"
+                            dot={makePurchaseDot('propertiesB', COLOR_B, sideB.isDraft)}
+                            activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
+                            isAnimationActive={false}
+                          />
+                        )}
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -873,7 +886,7 @@ export const Compare: React.FC = () => {
                   expandable
                   legend={[
                     { color: COLOR_A, label: labelA, variant: 'dot' },
-                    { color: COLOR_B, label: labelB, variant: sideB.isDraft ? 'line' : 'dot' },
+                    ...(sideB ? [{ color: COLOR_B, label: labelB, variant: sideB.isDraft ? 'line' as const : 'dot' as const }] : []),
                   ]}
                 >
                   <div className="h-64">
@@ -894,18 +907,20 @@ export const Compare: React.FC = () => {
                           activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_A, strokeWidth: 2 }}
                           isAnimationActive={false}
                         />
-                        <Area
-                          type="monotone"
-                          dataKey="cashflowB"
-                          name={labelB}
-                          stroke={COLOR_B}
-                          strokeWidth={2}
-                          strokeDasharray={sideB.isDraft ? CHART_STYLE.dashedPattern : undefined}
-                          fill="none"
-                          dot={makePurchaseDot('propertiesB', COLOR_B, sideB.isDraft)}
-                          activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
-                          isAnimationActive={false}
-                        />
+                        {sideB && (
+                          <Area
+                            type="monotone"
+                            dataKey="cashflowB"
+                            name={labelB}
+                            stroke={COLOR_B}
+                            strokeWidth={2}
+                            strokeDasharray={sideB.isDraft ? CHART_STYLE.dashedPattern : undefined}
+                            fill="none"
+                            dot={makePurchaseDot('propertiesB', COLOR_B, sideB.isDraft)}
+                            activeDot={{ r: 5, fill: '#FFFFFF', stroke: COLOR_B, strokeWidth: 2 }}
+                            isAnimationActive={false}
+                          />
+                        )}
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>

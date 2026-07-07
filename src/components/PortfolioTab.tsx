@@ -45,6 +45,15 @@ const formatCompact = (v: number): string => {
   return `${sign}$${Math.round(abs)}`
 }
 
+// Full, un-abbreviated currency for the portfolio KPI bar: $1,200,000 (not $1.2M)
+const fmtFull = (v: number): string => {
+  const sign = v < 0 ? '-' : ''
+  return `${sign}$${Math.round(Math.abs(v)).toLocaleString('en-AU')}`
+}
+
+// LVR cap used for releasable-equity headroom (mirrors calcReleasableEquity).
+const RELEASABLE_LVR = 80
+
 const deriveMetrics = (p: ExistingProperty) => {
   const equity = p.currentValue - p.loan
   const annualRent = calcAnnualRent(p.rentPerWeek)
@@ -422,10 +431,12 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
 
   const portfolioMetrics = useMemo(() => {
     const combinedValue = properties.reduce((s, p) => s + p.currentValue, 0)
+    const totalLoan = properties.reduce((s, p) => s + p.loan, 0)
     const totalEquity = properties.reduce((s, p) => s + (p.currentValue - p.loan), 0)
     const totalCashflow = properties.reduce((s, p) => s + deriveMetrics(p).netCashflow, 0)
     const releasableEquity = properties.reduce((s, p) => s + deriveMetrics(p).releasableEquity, 0)
-    return { combinedValue, totalEquity, totalCashflow, releasableEquity }
+    const portfolioLvr = combinedValue > 0 ? (totalLoan / combinedValue) * 100 : 0
+    return { combinedValue, totalLoan, totalEquity, totalCashflow, releasableEquity, portfolioLvr }
   }, [properties])
 
   // CGT + net proceeds per sale (2027 basis), sourced from the projection engine.
@@ -495,33 +506,46 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     )
   }
 
-  // Single segmented KPI bar (§3.10 / prototype) — one card, divided into 4.
+  // Single segmented KPI bar (§3.10 / prototype) — one card, divided into 6.
+  // Full (un-abbreviated) figures per request: $1,200,000 rather than $1.2M.
   const kpiCards = (
-    <div className="grid grid-cols-4 bg-white rounded-xl border border-[#E9EAEB] divide-x divide-[#E9EAEB]">
+    <div className="grid grid-cols-6 bg-white rounded-xl border border-[#E9EAEB] divide-x divide-[#E9EAEB]">
       <div className="px-[18px] py-4">
-        <span className="text-xs text-[#717680]">Combined value</span>
+        <span className="text-xs text-[#717680]">Portfolio value</span>
         <div className="mt-2">
-          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.combinedValue)}</span>
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">{fmtFull(portfolioMetrics.combinedValue)}</span>
         </div>
       </div>
       <div className="px-[18px] py-4">
-        <span className="text-xs text-[#717680]">Total equity</span>
+        <span className="text-xs text-[#717680]">Loan balance</span>
         <div className="mt-2">
-          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.totalEquity)}</span>
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">{fmtFull(portfolioMetrics.totalLoan)}</span>
         </div>
       </div>
       <div className="px-[18px] py-4">
-        <span className="text-xs text-[#717680]">Net cashflow</span>
+        <span className="text-xs text-[#717680]">Portfolio LVR</span>
         <div className="mt-2">
-          <span className={`text-[24px] font-semibold tracking-[-0.02em] leading-none ${portfolioMetrics.totalCashflow >= 0 ? 'text-[#17B26A]' : 'text-[#F04438]'}`}>
-            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtKpi(portfolioMetrics.totalCashflow)}/yr
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">{portfolioMetrics.portfolioLvr.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Cashflow</span>
+        <div className="mt-2">
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">
+            {portfolioMetrics.totalCashflow >= 0 ? '+' : ''}{fmtFull(portfolioMetrics.totalCashflow)}/yr
           </span>
         </div>
       </div>
       <div className="px-[18px] py-4">
-        <span className="text-xs text-[#717680]">Releasable equity</span>
+        <span className="text-xs text-[#717680]">Equity</span>
         <div className="mt-2">
-          <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{fmtKpi(portfolioMetrics.releasableEquity)}</span>
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">{fmtFull(portfolioMetrics.totalEquity)}</span>
+        </div>
+      </div>
+      <div className="px-[18px] py-4">
+        <span className="text-xs text-[#717680]">Releasable equity @ {RELEASABLE_LVR}% LVR</span>
+        <div className="mt-2">
+          <span className="text-[18px] font-semibold whitespace-nowrap text-[#181D27] tracking-[-0.02em] leading-none">{fmtFull(portfolioMetrics.releasableEquity)}</span>
         </div>
       </div>
     </div>

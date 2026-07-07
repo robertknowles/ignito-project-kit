@@ -66,11 +66,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { UnderlineTabBar } from '@/components/UnderlineTabBar'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge as StatusBadgePill } from '@/components/StatusBadge'
 import { FormTemplateEditor, getGlobalTemplate, getClientTemplate } from '@/components/FormTemplateEditor'
 import { ClientFormModal } from '@/components/ClientFormModal'
+import { ClientInputsModal } from '@/components/ClientInputsModal'
 
 // Track client status for CRM display
 interface ClientStatus {
@@ -116,6 +116,9 @@ export const ClientScenarios = () => {
   // Per-client Form modal
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [clientFormClient, setClientFormClient] = useState<Client | null>(null);
+  // Read-only "Client Inputs" viewer (opened from the client row popup).
+  const [inputsModalOpen, setInputsModalOpen] = useState(false);
+  const [inputsModalClient, setInputsModalClient] = useState<Client | null>(null);
   const [clientFormType, setClientFormType] = useState<'input_form' | 'profile_update'>('input_form');
 
   // Seat usage calculations
@@ -312,26 +315,6 @@ export const ClientScenarios = () => {
     return clients.filter(c => c.roadmap_status === 'finalised').length
   }, [clients])
 
-  // Format relative time for "Last Active" column
-  const formatRelativeTime = (client: Client) => {
-    // Use last_active_at, or fall back to updated_at / created_at
-    const dateStr = client.last_active_at || client.updated_at || client.created_at;
-    if (!dateStr) return '—';
-
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (minutes < 1) return 'Just now';
-    if (hours < 1) return `${minutes} minutes ago`;
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
-  };
-
   // Format review date with countdown
   const formatReviewDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return { text: 'Not set', badge: null, color: 'text-[#717680]' };
@@ -376,22 +359,6 @@ export const ClientScenarios = () => {
   const roadmapVariantMap: Record<string, 'blue' | 'green' | 'gray' | 'amber'> = {
     not_started: 'gray', draft: 'blue', in_review: 'amber', finalised: 'green',
   };
-
-  // Filter tabs with counts
-  const filterTabs = useMemo(() => {
-    const counts = {
-      all: clients.length,
-      review_cycle: clients.filter(c => c.stage === 'review').length,
-      onboarding: clients.filter(c => c.stage === 'onboarding').length,
-      ready: clients.filter(c => c.roadmap_status === 'finalised').length,
-    };
-    return [
-      { key: 'all' as const, label: 'All', count: counts.all },
-      { key: 'review_cycle' as const, label: 'Review cycle', count: counts.review_cycle },
-      { key: 'onboarding' as const, label: 'Onboarding', count: counts.onboarding },
-      { key: 'ready' as const, label: 'Ready', count: counts.ready },
-    ];
-  }, [clients]);
 
   // Filtered + searched clients
   const filteredClients = useMemo(() => {
@@ -1005,37 +972,37 @@ toast.error('Failed to create client invite');
 
   return (
     <TooltipProvider>
-      <div className="main-app flex h-screen w-full bg-white">
+      <div className="main-app flex h-screen w-full bg-[#FAFAFA]">
         <AppSidebar />
-        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: SIDEBAR_WIDTH }}>
+        <div className="flex-1 overflow-hidden flex flex-col" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
           <div className="flex-1 overflow-auto">
-            <div className="flex-1 overflow-auto p-8">
+            <div className="flex-1 overflow-auto" style={{ padding: '24px 28px 80px 28px' }}>
               {/* Client CRM Header */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="page-title">
                   Clients
                 </h2>
-                <div className="flex items-center gap-3 relative z-10">
+                <div className="flex items-center gap-2 relative z-10">
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Search clients..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-4 py-2.5 border border-[#D5D7DA] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#535862] focus:ring-offset-1 focus:border-transparent w-64"
+                      className="h-8 pl-8 pr-3 border border-neutral-200 rounded-lg text-[13px] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 focus:border-[#7C3AED] w-60"
                     />
                     <SearchIcon
-                      size={16}
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#717680]"
+                      size={15}
+                      className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-neutral-400"
                     />
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold shadow-sm transition-colors hover:text-neutral-800 hover:bg-neutral-50"
                       >
-                        <FileSpreadsheet size={16} className="text-[#717680]" />
+                        <FileSpreadsheet size={15} className="text-neutral-500" />
                         <span>Export</span>
                       </button>
                     </TooltipTrigger>
@@ -1047,9 +1014,9 @@ toast.error('Failed to create client invite');
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => setEditFormOpen(true)}
-                        className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#D5D7DA] rounded-lg text-sm font-medium text-[#414651] hover:bg-[#F9FAFB] transition-all duration-150"
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 bg-white text-neutral-600 text-[13px] font-semibold shadow-sm transition-colors hover:text-neutral-800 hover:bg-neutral-50"
                       >
-                        <Edit2Icon size={16} className="text-[#717680]" />
+                        <Edit2Icon size={15} className="text-neutral-500" />
                         <span>Edit Form</span>
                       </button>
                     </TooltipTrigger>
@@ -1066,23 +1033,18 @@ toast.error('Failed to create client invite');
                   >
                     <button
                       onClick={() => setCreateFormOpen(true)}
-                      className="flex items-center gap-2 bg-[#535862] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#414651] transition-all duration-150"
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#7C3AED] text-white text-[13px] font-semibold shadow-sm transition-colors hover:bg-[#6D28D9]"
                     >
-                      <PlusIcon size={16} />
+                      <PlusIcon size={15} />
                       <span>New Client</span>
                     </button>
                   </TourStep>
                 </div>
               </div>
 
-              {/* Filter Tabs */}
-              <div className="flex items-center justify-between mb-4">
-                <UnderlineTabBar
-                  tabs={filterTabs}
-                  activeKey={activeFilter}
-                  onChange={(key) => setActiveFilter(key as typeof activeFilter)}
-                />
-                {(awaitingCount > 0 || readyCount > 0) && (
+              {/* Status pills */}
+              {(awaitingCount > 0 || readyCount > 0) && (
+                <div className="flex items-center justify-end mb-4">
                   <div className="flex items-center gap-2">
                     {awaitingCount > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
@@ -1097,19 +1059,18 @@ toast.error('Failed to create client invite');
                       </span>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               <div className="mb-8">
                 {/* Client Portfolio Table */}
-                <div className="bg-white border border-[#E9EAEB] rounded-xl overflow-hidden">
+                <div className="bg-white border border-[#E9EAEB] rounded-[14px] overflow-hidden">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
                         <th className="table-header">Client</th>
                         <th className="table-header">Dashboard</th>
                         <th className="table-header">Client Details</th>
-                        <th className="table-header">Last Active</th>
-                        <th className="table-header">Last Action</th>
+                        <th className="table-header">Created</th>
                         <th className="table-header w-12"></th>
                       </tr>
                     </thead>
@@ -1150,41 +1111,59 @@ toast.error('Failed to create client invite');
 
                         return (
                           <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
-                            {/* Client name + strategy type */}
+                            {/* Client name + strategy type — popup lets the
+                                agent jump to the dashboard or view the raw
+                                inputs the client submitted. */}
                             <td className="table-cell">
-                              <button
-                                className="flex items-center w-full text-left group"
-                                onClick={() => { setActiveClient(client); navigate('/dashboard'); }}
-                              >
-                                <span
-                                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 group-hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
-                                  style={{ backgroundColor: avatarBg, color: avatarText }}
-                                >
-                                  {initials}
-                                </span>
-                                <div className="min-w-0">
-                                  <div className="body-dark font-medium truncate group-hover:underline">
-                                    {client.name}
-                                  </div>
-                                  {strategyLabel ? (
-                                    <div className="meta truncate">{strategyLabel}</div>
-                                  ) : client.email ? (
-                                    <div className="meta truncate">{client.email}</div>
-                                  ) : null}
-                                </div>
-                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="flex items-center w-full text-left group">
+                                    <span
+                                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold mr-3 group-hover:opacity-80 transition-opacity flex-shrink-0 border border-[#E9EAEB]"
+                                      style={{ backgroundColor: avatarBg, color: avatarText }}
+                                    >
+                                      {initials}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <div className="body-dark font-medium truncate group-hover:underline">
+                                        {client.name}
+                                      </div>
+                                      {strategyLabel ? (
+                                        <div className="meta truncate">{strategyLabel}</div>
+                                      ) : client.email ? (
+                                        <div className="meta truncate">{client.email}</div>
+                                      ) : null}
+                                    </div>
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-48">
+                                  <DropdownMenuItem onClick={() => { setActiveClient(client); navigate('/dashboard'); }}>
+                                    View dashboard
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setInputsModalClient(client); setInputsModalOpen(true); }}>
+                                    View client inputs
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
 
                             {/* Dashboard */}
                             <td className="table-cell">
                               {(() => {
                                 const cs = clientStatuses[client.id]
-                                if (cs?.shareId) {
+                                if (cs?.isQuestionnaireCompleted) {
+                                  // Client has submitted their onboarding form back to the
+                                  // agent (regardless of whether it was sent via a share
+                                  // link). This is what the BA cares about most, so it
+                                  // takes priority over "Sent to client" / "In progress".
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#17B26A] bg-[#ECFDF3] border border-[#ABEFC6] px-2.5 py-1 rounded-full">
+                                    <button
+                                      onClick={() => handleOpenProfile(client)}
+                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#067647] bg-[#ECFDF3] border border-[#ABEFC6] hover:bg-[#D1FADF] px-2.5 py-1 rounded-full transition-colors duration-150"
+                                    >
                                       <CheckCircle2 size={11} className="text-[#17B26A]" />
-                                      Sent to client
-                                    </span>
+                                      Form received
+                                    </button>
                                   )
                                 } else if (cs?.hasScenario) {
                                   return (
@@ -1195,6 +1174,13 @@ toast.error('Failed to create client invite');
                                       <span className="w-1.5 h-1.5 rounded-full bg-[#535862]" />
                                       In progress
                                     </button>
+                                  )
+                                } else if (cs?.shareId) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#414651] bg-[#F5F5F6] border border-[#E9EAEB] px-2.5 py-1 rounded-full">
+                                      <CheckCircle2 size={11} className="text-[#17B26A]" />
+                                      Sent to client
+                                    </span>
                                   )
                                 } else {
                                   return (
@@ -1242,18 +1228,11 @@ toast.error('Failed to create client invite');
                               })()}
                             </td>
 
-                            {/* Last Active */}
+                            {/* Created */}
                             <td className="table-cell">
-                              <span className="text-sm text-[#414651]">
-                                {formatRelativeTime(client)}
-                              </span>
-                            </td>
-
-                            {/* Last Action */}
-                            <td className="table-cell">
-                              <span className="text-sm text-[#414651]">
-                                {client.updated_at
-                                  ? new Date(client.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                              <span className="body-dark">
+                                {client.created_at
+                                  ? new Date(client.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
                                   : '—'}
                               </span>
                             </td>
@@ -1592,6 +1571,18 @@ toast.error('Failed to create client invite');
           }}
           client={clientFormClient}
           formType={clientFormType}
+        />
+      )}
+
+      {/* Read-only Client Inputs viewer */}
+      {inputsModalClient && (
+        <ClientInputsModal
+          open={inputsModalOpen}
+          onOpenChange={(open) => {
+            setInputsModalOpen(open);
+            if (!open) setInputsModalClient(null);
+          }}
+          client={inputsModalClient}
         />
       )}
 

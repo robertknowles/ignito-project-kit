@@ -44,7 +44,7 @@ export const SettingsHub = () => {
   return (
     <div className="main-app flex h-screen w-full bg-[#f9fafb]">
       <AppSidebar />
-      <div className="flex-1 flex h-full overflow-hidden" style={{ marginLeft: SIDEBAR_WIDTH }}>
+      <div className="flex-1 flex h-full overflow-hidden" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         {/* Settings sidebar */}
         <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
           <div className="flex items-center justify-between border-b border-gray-200 h-[45px] px-4">
