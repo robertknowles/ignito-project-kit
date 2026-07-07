@@ -10,7 +10,8 @@ import { useTabDwellTracking } from '@/hooks/useInteractionTracking';
 import { usePropertySelection } from '@/contexts/PropertySelectionContext';
 import { useClient } from '@/contexts/ClientContext';
 import { PropertyCardRow } from './PropertyCardRow';
-import { AddToTimelineModal } from './AddToTimelineModal';
+import { CustomBlockModal, type CustomPropertyBlock } from './CustomBlockModal';
+import { track, EVENTS } from '@/lib/analytics';
 import { ComparisonInsights } from './ComparisonInsights';
 import { FinancialSummaryTable } from './FinancialSummaryTable';
 import { ChartCard } from '@/components/ui/ChartCard';
@@ -161,7 +162,7 @@ export const Dashboard = () => {
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
   const { planGenerating, pendingPlanResponse } = useLayout();
-  const { propertyOrder: livePropertyOrder, eventBlocks } = usePropertySelection();
+  const { propertyOrder: livePropertyOrder, eventBlocks, addCustomBlock, incrementProperty } = usePropertySelection();
   const { activeClient } = useClient();
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
@@ -229,7 +230,16 @@ export const Dashboard = () => {
   // Analytics: time spent on the main dashboard tab and the Plan sub-tab.
   useTabDwellTracking('main_tab', activeTab);
   useTabDwellTracking('plan_subtab', planSubTab);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  // "Add property" opens the blank custom-property form directly — the old
+  // template-picker modal (AddToTimelineModal) is deliberately bypassed; the
+  // templates still exist in data for the AI/presets, just no picker UI.
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const handleSaveCustomProperty = (block: CustomPropertyBlock) => {
+    addCustomBlock(block);
+    incrementProperty(block.id);
+    track(EVENTS.propertyAddedToTimeline, { property_id: block.id, source: 'custom' });
+    setIsAddPropertyOpen(false);
+  };
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const resetAssumptionsRef = useRef<() => void>(() => {});
 
@@ -714,14 +724,14 @@ export const Dashboard = () => {
 
             <ChartCard title="Purchases" flush action={
               <button
-                onClick={() => setIsLibraryOpen(true)}
+                onClick={() => setIsAddPropertyOpen(true)}
                 className="flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors"
               >
                 <Plus size={14} />
                 Add property
               </button>
             }>
-              <PropertyCardRow mode="purchases" onAddClick={() => setIsLibraryOpen(true)} />
+              <PropertyCardRow mode="purchases" onAddClick={() => setIsAddPropertyOpen(true)} />
             </ChartCard>
 
             {/* ── 2×2 grid of financial charts ── */}
@@ -902,7 +912,11 @@ export const Dashboard = () => {
         {/* Client Inputs */}
         {activeTab === 'inputs' && <ClientInputsTab />}
       </div>
-      <AddToTimelineModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+      <CustomBlockModal
+        isOpen={isAddPropertyOpen}
+        onClose={() => setIsAddPropertyOpen(false)}
+        onSave={handleSaveCustomProperty}
+      />
     </div>
     <ReportExportRenderer active={isExporting} onDone={() => setIsExporting(false)} />
     <ChangeLogPanel />
