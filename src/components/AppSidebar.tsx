@@ -58,7 +58,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> 
   className,
 }) => (
   <div
-    className={`px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#717680] ${className ?? ''}`}
+    className={`px-2 pb-1 text-[14px] font-semibold text-[#181D27] ${className ?? ''}`}
   >
     {children}
   </div>

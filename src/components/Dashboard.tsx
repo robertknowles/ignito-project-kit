@@ -1024,9 +1024,7 @@ export const Dashboard = () => {
         )}
 
         {activeTab === 'plan' && planSubTab === 'retirement' && (
-          <ChartCard title="Retirement Scenario">
-            <RetirementScenarioPanel />
-          </ChartCard>
+          <RetirementScenarioPanel />
         )}
 
         {/* Next Purchase Brief */}
