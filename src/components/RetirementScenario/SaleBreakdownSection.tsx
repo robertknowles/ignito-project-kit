@@ -4,7 +4,6 @@ import type { RetirementPropertyProjection } from './useRetirementProjection'
 import type { CgtMethod, SaleBreakdown } from './saleBreakdown'
 import { InfoPopover } from './InfoPopover'
 import {
-  CGT_METHOD_EXPLAINER,
   COMPLIANCE_FOOTER,
   DETAIL_EXPLAINERS,
 } from './retirementExplainers'
@@ -54,10 +53,7 @@ interface SaleBreakdownSectionProps {
   /** The year each property is sold in — shown under its column header. */
   saleYearById?: Map<string, number>
   /** Cycle one property's CGT method (discount ↔ indexation). SMSF ignores this. */
-  onCycleMethod: (instanceId: string) => void
-  /** Scenario-wide default CGT method. */
-  defaultMethod: CgtMethod
-  onDefaultMethod: (m: CgtMethod) => void
+  onCycleMethod: (instanceId: string, current: CgtMethod) => void
   taxRatePct: number
   onTaxRate: (pct: number) => void
   /** Sum of selling costs + CGT across all sold properties (header total). */
@@ -70,7 +66,7 @@ interface SaleBreakdownSectionProps {
 const treatmentBadge = (d: SaleBreakdown): { label: string; color: string; bg: string } => {
   if (d.ledger === 'smsf') return { label: 'Super rate', color: BRAND, bg: 'rgba(127, 86, 217, 0.10)' }
   if (d.appliedMethod === 'discount') return { label: '50% discount', color: GREEN, bg: 'rgba(6, 118, 71, 0.10)' }
-  return { label: 'No discount', color: AMBER, bg: 'rgba(181, 71, 8, 0.10)' }
+  return { label: 'Indexation', color: AMBER, bg: 'rgba(181, 71, 8, 0.10)' }
 }
 
 export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
@@ -78,8 +74,6 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
   numberById,
   saleYearById,
   onCycleMethod,
-  defaultMethod,
-  onDefaultMethod,
   taxRatePct,
   onTaxRate,
   totalTaxAndCosts,
@@ -107,61 +101,29 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
 
       {open && (
         <>
-          {/* ── Controls: default CGT method + marginal tax rate ─────────── */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#F2F2F4] px-6 py-4">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center text-[13px] text-[#535862]">
-                Default CGT method
-                <InfoPopover
-                  title={CGT_METHOD_EXPLAINER.title}
-                  body={CGT_METHOD_EXPLAINER.body}
-                  caveat={CGT_METHOD_EXPLAINER.caveat}
-                />
-              </span>
-              <div className="inline-flex items-center gap-0.5 rounded-lg border border-[#E9EAEB] bg-[#F5F5F5] p-0.5">
-                {([
-                  ['discount', '50% discount'],
-                  ['indexation', 'Indexation'],
-                ] as [CgtMethod, string][]).map(([m, label]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => onDefaultMethod(m)}
-                    className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                      defaultMethod === m
-                        ? 'bg-white text-neutral-900 shadow-sm'
-                        : 'text-neutral-500 hover:text-neutral-700'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="flex items-center text-[13px] text-[#535862]">
-                Marginal tax rate
-                <InfoPopover title={DETAIL_EXPLAINERS.marginalRate.title} body={DETAIL_EXPLAINERS.marginalRate.body} />
-              </span>
-              <select
-                value={taxRatePct}
-                onChange={e => onTaxRate(Number(e.target.value))}
-                className="rounded-lg border border-[#D5D7DA] bg-white px-2 py-1 text-[12.5px] text-[#181D27] outline-none focus:border-[#98A2B3]"
-              >
-                {TAX_RATE_OPTIONS.map(pct => (
-                  <option key={pct} value={pct}>{pct}%</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
           {/* ── Per-property table ──────────────────────────────────────── */}
-          <div className="overflow-x-auto px-6 pb-2">
+          <div className="overflow-x-auto border-t border-[#F2F2F4] px-6 pb-2 pt-4">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]" />
+                  <th className="sticky left-0 bg-white py-2 pr-4 text-left align-bottom">
+                    {/* Marginal tax rate lives here so it hugs the CGT treatment row (no dead space). */}
+                    <span className="flex items-center gap-2">
+                      <span className="flex items-center text-[13px] font-normal text-[#535862]">
+                        Marginal tax rate
+                        <InfoPopover title={DETAIL_EXPLAINERS.marginalRate.title} body={DETAIL_EXPLAINERS.marginalRate.body} />
+                      </span>
+                      <select
+                        value={taxRatePct}
+                        onChange={e => onTaxRate(Number(e.target.value))}
+                        className="rounded-lg border border-[#D5D7DA] bg-white px-2 py-1 text-[12.5px] text-[#181D27] outline-none focus:border-[#98A2B3]"
+                      >
+                        {TAX_RATE_OPTIONS.map(pct => (
+                          <option key={pct} value={pct}>{pct}%</option>
+                        ))}
+                      </select>
+                    </span>
+                  </th>
                   {breakdowns.map(b => {
                     const saleYear = saleYearById?.get(b.prop.instanceId)
                     return (
@@ -191,7 +153,7 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
                           <button
                             type="button"
                             disabled={isSmsf}
-                            onClick={() => onCycleMethod(b.prop.instanceId)}
+                            onClick={() => onCycleMethod(b.prop.instanceId, b.data.appliedMethod)}
                             title={isSmsf ? 'SMSF keeps its own treatment' : 'Click to change the CGT method'}
                             className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-opacity ${
                               isSmsf ? 'cursor-default' : 'cursor-pointer hover:opacity-80'

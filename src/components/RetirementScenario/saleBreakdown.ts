@@ -73,11 +73,6 @@ export interface SaleBreakdown {
   smsf?: RegimeResult
 }
 
-/** Default CGT method for a given sell year (spec §7). SMSF overrides this. */
-export function defaultCgtMethod(retirementYear: number): CgtMethod {
-  return retirementYear >= CGT_REFORM_START_YEAR ? 'indexation' : 'discount'
-}
-
 /**
  * Grandfathering: assets *acquired* before 1 Jul 2027 keep the current 50%
  * discount for their whole life; assets acquired on/after fall under the

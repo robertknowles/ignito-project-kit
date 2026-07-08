@@ -61,17 +61,6 @@ export const DETAIL_EXPLAINERS = {
   },
 } satisfies Record<string, Explainer>
 
-/** CGT method policy explainer — paragraphs plus a warning-colour caveat line. */
-export const CGT_METHOD_EXPLAINER = {
-  title: 'How CGT is calculated',
-  body: [
-    '50% discount (today). Hold over 12 months and you\u2019re taxed on half the gain, at your marginal rate.',
-    'Indexation (proposed, 1 Jul 2027). The discount is replaced. Your cost is lifted by inflation, so only the real gain is taxed, with a 30% minimum rate.',
-    'Only gains after 1 Jul 2027 use the new method. New builds can choose either. SMSF keeps its own one-third discount.',
-  ],
-  caveat: 'Proposed, not yet law.',
-}
-
 /** Always shown beneath the breakdown panel (spec §2). */
 export const COMPLIANCE_FOOTER =
   'Estimate only, not tax advice. Confirm with the client\u2019s accountant. Indexation reflects proposed 2027 rules, not yet law.'

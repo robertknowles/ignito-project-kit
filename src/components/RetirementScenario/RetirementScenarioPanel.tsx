@@ -5,7 +5,7 @@ import { useInvestmentProfile } from '../../hooks/useInvestmentProfile';
 import { usePropertyInstance } from '../../contexts/PropertyInstanceContext';
 import { useExistingPropertiesSafe } from '../../contexts/ScenarioSaveContext';
 import { useRetirementProjection, type RetirementPropertyProjection } from './useRetirementProjection';
-import { buildSaleBreakdown, defaultCgtMethod, type CgtMethod } from './saleBreakdown';
+import { buildSaleBreakdown, type CgtMethod } from './saleBreakdown';
 import { SaleBreakdownSection } from './SaleBreakdownSection';
 import { InfoPopover } from './InfoPopover';
 import { PAGE_EXPLAINERS } from './retirementExplainers';
@@ -75,20 +75,17 @@ export const RetirementScenarioPanel: React.FC = () => {
   const retirementYear = BASE_YEAR + years;
 
   // Local what-if controls for the sale breakdown (not persisted to the profile).
-  // `defaultMethod` is the scenario-wide CGT method; per-property overrides flip
-  // a single property to model a not-yet-law scenario. SMSF always ignores both.
-  const [defaultMethod, setDefaultMethod] = useState<CgtMethod>(() =>
-    defaultCgtMethod(BASE_YEAR + (profile.timelineYears || 20)),
-  );
+  // Each property defaults to its grandfathered CGT method (by acquisition year);
+  // a per-property override flips a single one to model a not-yet-law scenario.
+  // SMSF always keeps its own treatment and ignores the override.
   const [methodOverrides, setMethodOverrides] = useState<Record<string, CgtMethod>>({});
   const cycleMethod = useCallback(
-    (instanceId: string) =>
-      setMethodOverrides(prev => {
-        const current = prev[instanceId] ?? defaultMethod;
-        const next: CgtMethod = current === 'discount' ? 'indexation' : 'discount';
-        return { ...prev, [instanceId]: next };
-      }),
-    [defaultMethod],
+    (instanceId: string, current: CgtMethod) =>
+      setMethodOverrides(prev => ({
+        ...prev,
+        [instanceId]: current === 'discount' ? 'indexation' : 'discount',
+      })),
+    [],
   );
   const [taxRatePct, setTaxRatePct] = useState(() => Math.round((profile.marginalTaxRate ?? 0.45) * 100));
   const [taxDetailsOpen, setTaxDetailsOpen] = useState(true);
@@ -146,11 +143,11 @@ export const RetirementScenarioPanel: React.FC = () => {
           saleYear: saleYears[prop.instanceId],
           // The property's own sale year drives its price, holding period and CGT.
           data: buildSaleBreakdown(prop, profile, saleYears[prop.instanceId], {
-            methodOverride: methodOverrides[prop.instanceId] ?? defaultMethod,
+            methodOverride: methodOverrides[prop.instanceId],
             taxRatePct,
           }),
         })),
-    [summary.properties, saleYears, profile, methodOverrides, defaultMethod, taxRatePct],
+    [summary.properties, saleYears, profile, methodOverrides, taxRatePct],
   );
 
   if (summary.properties.length === 0) {
@@ -308,7 +305,6 @@ export const RetirementScenarioPanel: React.FC = () => {
               <>
                 {heldProps.map(prop => {
                   const tag = strategyTag(prop);
-                  const cf = prop.annualCashflow;
                   return (
                     <div
                       key={prop.instanceId}
@@ -331,9 +327,6 @@ export const RetirementScenarioPanel: React.FC = () => {
                           </span>
                           <span className="text-[12px] text-[#717680]">equity</span>
                         </div>
-                        <span className="mt-0.5 block text-[11.5px]" style={{ color: cf >= 0 ? GREEN : RED }}>
-                          {cf >= 0 ? `Earns ${fmt(cf)}/yr` : `Costs ${fmt(Math.abs(cf))}/yr to hold`}
-                        </span>
                       </div>
                       <button
                         type="button"
@@ -411,28 +404,31 @@ export const RetirementScenarioPanel: React.FC = () => {
                           tag && <span className="text-[11px] font-medium text-[#717680]">{tag}</span>
                         )}
                       </div>
-                      <div className="mt-1 flex items-baseline gap-1.5">
-                        <span className="text-[17px] font-semibold tracking-[-0.02em]" style={{ color: GREEN }}>
-                          {fmt(gross)}
-                        </span>
-                        <span className="text-[12px] text-[#717680]">before tax</span>
-                      </div>
-                      {/* Per-property sale year — locks this property's price to the chosen year. */}
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="text-[11.5px] text-[#717680]">Sold in</span>
-                        <div className="relative inline-flex items-center">
-                          <select
-                            value={saleYear}
-                            onChange={e => setSaleYear(prop.instanceId, Number(e.target.value))}
-                            disabled={yearOptions.length <= 1}
-                            className="appearance-none rounded-md border border-[#D5D7DA] bg-white py-0.5 pl-2 pr-6 text-[11.5px] font-semibold text-[#181D27] outline-none transition-colors hover:border-[#B8BCC4] focus:border-[#7F56D9] disabled:cursor-default disabled:opacity-70"
-                            style={{ cursor: yearOptions.length <= 1 ? 'default' : 'pointer' }}
-                          >
-                            {yearOptions.map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={12} className="pointer-events-none absolute right-1.5 text-[#717680]" />
+                      {/* Value + sale year on one row so sold cards align with owned cards. */}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[17px] font-semibold tracking-[-0.02em]" style={{ color: GREEN }}>
+                            {fmt(gross)}
+                          </span>
+                          <span className="text-[12px] text-[#717680]">before tax</span>
+                        </div>
+                        {/* Per-property sale year — locks this property's price to the chosen year. */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11.5px] text-[#717680]">· Sold in</span>
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={saleYear}
+                              onChange={e => setSaleYear(prop.instanceId, Number(e.target.value))}
+                              disabled={yearOptions.length <= 1}
+                              className="appearance-none rounded-md border border-[#D5D7DA] bg-white py-0.5 pl-2 pr-6 text-[11.5px] font-semibold text-[#181D27] outline-none transition-colors hover:border-[#B8BCC4] focus:border-[#7F56D9] disabled:cursor-default disabled:opacity-70"
+                              style={{ cursor: yearOptions.length <= 1 ? 'default' : 'pointer' }}
+                            >
+                              {yearOptions.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={12} className="pointer-events-none absolute right-1.5 text-[#717680]" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -463,8 +459,6 @@ export const RetirementScenarioPanel: React.FC = () => {
           numberById={numberById}
           saleYearById={new Map(Object.entries(saleYears))}
           onCycleMethod={cycleMethod}
-          defaultMethod={defaultMethod}
-          onDefaultMethod={setDefaultMethod}
           taxRatePct={taxRatePct}
           onTaxRate={setTaxRatePct}
           totalTaxAndCosts={taxAndCosts}
