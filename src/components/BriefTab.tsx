@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react'
-import { Target, TrendingUp, Home, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Target, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
@@ -9,7 +9,6 @@ import { ChartCard } from './ui/ChartCard'
 import { InfoPopover } from './RetirementScenario/InfoPopover'
 import { BriefTotalPerformanceChart, BriefCashflowChart, BriefGrowthChart, type PerfHorizon } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
-import { useTabDwellTracking } from '../hooks/useInteractionTracking'
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
@@ -23,25 +22,6 @@ import type { PropertyInstanceDetails } from '../types/propertyInstance'
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
 
 // ── Sub-tab button ──────────────────────────────────────────────────────────
-
-const SubTabItem: React.FC<{
-  icon: React.ReactNode
-  label: string
-  active: boolean
-  onClick: () => void
-}> = ({ icon, label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[7px] text-[13px] font-semibold transition-colors ${
-      active
-        ? 'bg-white text-[#181D27] shadow-sm'
-        : 'text-[#717680] hover:text-[#414651]'
-    }`}
-  >
-    {icon}
-    {label}
-  </button>
-)
 
 // ── Row helpers (§2.2 tables + §2.7 editable hover-pill) ─────────────────────
 // Values render as clean text; on hover an editable value gets a quiet violet-50
@@ -374,8 +354,6 @@ const SummaryGroup: React.FC<{
 
 // ── Main component ──────────────────────────────────────────────────────────
 
-type BriefSubTab = 'purchase' | 'performance'
-
 export const BriefTab: React.FC<{
   /** Switches the dashboard to Portfolio Plan → Purchases (the editable source). */
   onNavigateToPurchases?: () => void
@@ -384,8 +362,6 @@ export const BriefTab: React.FC<{
   /** When provided, renders a back button (used by the standalone per-property page). */
   onBack?: () => void
 }> = ({ onNavigateToPurchases, selectedInstanceId, onBack }) => {
-  const [subTab, setSubTab] = useState<BriefSubTab>('performance')
-  useTabDwellTracking('brief_subtab', subTab)
   const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(20)
   // Series toggled off on the Total performance chart (click legend to hide/show)
   const [hiddenPerfSeries, setHiddenPerfSeries] = useState<string[]>([])
@@ -569,10 +545,9 @@ export const BriefTab: React.FC<{
     </div>
   )
 
-  const purchaseTab = (
-    <div className="flex flex-col gap-4">
-      {/* Visual breakdown — cash donut + LVR gauge (equal height, content fills) */}
-      <div className="grid grid-cols-2 gap-4 items-stretch">
+  // Visual breakdown — cash donut + LVR gauge (equal height, content fills)
+  const purchaseVisual = (
+    <div className="grid grid-cols-2 gap-4 items-stretch">
         <ChartCard title="Where your cash goes">
           <CashDonut segments={cashSegments} total={totalCash} />
         </ChartCard>
@@ -585,10 +560,12 @@ export const BriefTab: React.FC<{
             purchasePrice={purchasePrice}
           />
         </ChartCard>
-      </div>
+    </div>
+  )
 
-      {/* Editable detail — three equal peer tables (§2.5): Purchase costs · Annual cashflow · Deal details */}
-      <div className="grid grid-cols-3 gap-4 items-start">
+  // Editable detail — three equal peer tables (§2.5): Purchase costs · Annual cashflow · Deal details
+  const purchaseDetail = (
+    <div className="grid grid-cols-3 gap-4 items-start">
         {/* Purchase costs — one-off line items → Total cash required */}
         <ChartCard title="Purchase costs" flush>
           <table className="w-full">
@@ -632,14 +609,23 @@ export const BriefTab: React.FC<{
           </table>
         </ChartCard>
       </div>
-    </div>
   )
 
-  // ── Tab 3: The Performance ──────────────────────────────────────────────
+  // ── Performance projections ─────────────────────────────────────────────
 
   // Milestone rows for the metric panel + summary boxes (scaled to horizon,
   // clamped to the furthest year that actually has projection data).
   const perfYearRows = projection.yearRows
+  // Purchase-moment anchor (year 0) for the growth/cashflow charts. The engine's
+  // first row is one full year after purchase, so we seed the series with the
+  // deposit-level equity at the actual purchase year (yearLabel - yearsOwned).
+  const perfPurchase = perfYearRows.length > 0
+    ? {
+        year: Number(perfYearRows[0].yearLabel) - perfYearRows[0].year,
+        propertyValue: purchasePrice,
+        equity: Math.max(0, purchasePrice - loanAmount),
+      }
+    : undefined
   const pickYr = (yr: number) => perfYearRows.find(r => r.year === yr)
   const perfMaxYear = perfYearRows.reduce((m, r) => Math.max(m, r.year), 0)
   const effectiveHorizon = Math.min(perfHorizon, perfMaxYear)
@@ -765,11 +751,20 @@ export const BriefTab: React.FC<{
 
       {/* Standalone projections — cashflow + growth, same chart language as the hero */}
       <div className="grid grid-cols-2 gap-4">
-        <ChartCard title="Cashflow projection" legend={[{ color: '#8B5CF6', label: 'Net cashflow' }]}>
-          <BriefCashflowChart yearRows={perfYearRows} horizon={perfHorizon} />
+        <ChartCard
+          title="Cashflow projection"
+          legend={[{ color: '#8B5CF6', label: 'Net Cashflow', info: 'Rental income minus all holding costs (loan interest, management, rates, insurance, maintenance) each year. Above $0 the property pays for itself; below $0 you top it up out of pocket.' }]}
+        >
+          <BriefCashflowChart yearRows={perfYearRows} horizon={perfHorizon} purchase={perfPurchase} />
         </ChartCard>
-        <ChartCard title="Growth projection" legend={[{ color: '#7C3AED', label: 'Equity' }]}>
-          <BriefGrowthChart yearRows={perfYearRows} horizon={perfHorizon} />
+        <ChartCard
+          title="Growth projection"
+          legend={[
+            { color: '#8B5CF6', label: 'Total Equity', info: 'What you own in the property — its value minus the outstanding loan. Starts at your deposit and grows as the value rises and the loan is paid down.' },
+            { color: '#C4C4CC', label: 'Portfolio Value', variant: 'line', info: "This property's market value over time, growing each year at its growth assumption. The gap down to Total Equity is the remaining mortgage." },
+          ]}
+        >
+          <BriefGrowthChart yearRows={perfYearRows} horizon={perfHorizon} purchase={perfPurchase} />
         </ChartCard>
       </div>
 
@@ -880,23 +875,8 @@ export const BriefTab: React.FC<{
           )}
         </div>
       )}
-      {/* Row 2: sub-tab navigation + purchased button */}
-      <div className="flex items-center justify-between">
-      <div className="flex items-center gap-1.5 bg-[#F2F2F3] p-[3px] rounded-[9px]">
-        <SubTabItem
-          icon={<TrendingUp size={15} />}
-          label="The Performance"
-          active={subTab === 'performance'}
-          onClick={() => setSubTab('performance')}
-        />
-        <SubTabItem
-          icon={<Home size={15} />}
-          label="The Purchase"
-          active={subTab === 'purchase'}
-          onClick={() => setSubTab('purchase')}
-        />
-      </div>
-      <div className="flex items-center gap-2">
+      {/* Row 2: purchased button */}
+      <div className="flex items-center justify-end">
         <button
           onClick={() => {
             if (purchasing) return
@@ -910,9 +890,8 @@ export const BriefTab: React.FC<{
           Purchased property
         </button>
       </div>
-      </div>
 
-      {/* Tab content — pulls away on purchase, next brief slides in */}
+      {/* Merged content — pulls away on purchase, next brief slides in */}
       <motion.div
         key={purchaseSeq}
         initial={purchaseSeq === 0 ? false : { opacity: 0, y: 16 }}
@@ -920,10 +899,14 @@ export const BriefTab: React.FC<{
         transition={{ duration: 0.3, ease: 'easeOut' }}
         className="flex flex-col gap-4"
       >
-        {/* KPI row — always visible across both sub-tabs */}
+        {/* KPI banner */}
         {kpiRow}
-        {subTab === 'performance' && performanceTab}
-        {subTab === 'purchase' && purchaseTab}
+        {/* Purchase snapshot — where the cash goes + loan-to-value */}
+        {purchaseVisual}
+        {/* Purchase detail — costs, annual cashflow, deal record */}
+        {purchaseDetail}
+        {/* Total performance projections */}
+        {performanceTab}
       </motion.div>
     </div>
   )

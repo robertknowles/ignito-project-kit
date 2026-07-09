@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { useChartHoverTracking } from '@/hooks/useInteractionTracking';
 
 export interface LegendItem {
@@ -8,6 +9,8 @@ export interface LegendItem {
   label: string;
   /** 'ring' = open circle outline; 'line' = dotted line; 'swatch' = filled band chip; 'square' = 8×8 bar-chart chip */
   variant?: 'dot' | 'ring' | 'line' | 'swatch' | 'square';
+  /** Optional one-line explainer shown in a small popover when the legend item is hovered. */
+  info?: string;
 }
 
 interface ChartCardProps {
@@ -51,68 +54,57 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const hoverTracking = useChartHoverTracking(title);
 
   const legendNode = legend && legend.length > 0 ? (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-      {legend.map((item, idx) => (
-        <div key={`${item.label}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {item.variant === 'line' ? (
+    <TooltipProvider delayDuration={100}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        {legend.map((item, idx) => {
+          const marker = item.variant === 'line' ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
               <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
               <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: item.color }} />
             </span>
           ) : item.variant === 'swatch' ? (
-            <div
-              style={{
-                width: 12,
-                height: 9,
-                borderRadius: 2,
-                backgroundColor: item.color,
-                flexShrink: 0,
-              }}
-            />
+            <div style={{ width: 12, height: 9, borderRadius: 2, backgroundColor: item.color, flexShrink: 0 }} />
           ) : item.variant === 'square' ? (
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                backgroundColor: item.color,
-                flexShrink: 0,
-              }}
-            />
+            <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: item.color, flexShrink: 0 }} />
           ) : item.variant === 'ring' ? (
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: 'white',
-                border: `1.5px solid ${item.color}`,
-                flexShrink: 0,
-              }}
-            />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'white', border: `1.5px solid ${item.color}`, flexShrink: 0 }} />
           ) : (
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: item.color,
-                flexShrink: 0,
-              }}
-            />
-          )}
-          <span
-            style={{
-              fontSize: 11,
-              color: UUI.neutral500,
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            }}
-          >
-            {item.label}
-          </span>
-        </div>
-      ))}
-    </div>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.color, flexShrink: 0 }} />
+          );
+
+          const row = (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: item.info ? 'help' : 'default' }}>
+              {marker}
+              <span
+                style={{
+                  fontSize: 11,
+                  color: UUI.neutral500,
+                  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                  borderBottom: item.info ? `1px dotted ${UUI.neutral500}` : undefined,
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          );
+
+          return item.info ? (
+            <Tooltip key={`${item.label}-${idx}`}>
+              <TooltipTrigger asChild>{row}</TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-[240px] text-xs leading-snug font-normal"
+                style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}
+              >
+                {item.info}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <React.Fragment key={`${item.label}-${idx}`}>{row}</React.Fragment>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   ) : null;
 
   return (

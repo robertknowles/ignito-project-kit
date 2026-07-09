@@ -10,9 +10,13 @@ import {
   ReferenceDot,
   ResponsiveContainer,
 } from 'recharts';
-import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
+import {
+  usePortfolioProjection,
+  type PortfolioGrowthDataPoint,
+  type CashflowDataPoint,
+} from '../hooks/usePortfolioProjection';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
-import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
@@ -27,6 +31,19 @@ interface BorrowingCapacityChartProps {
     timelineProperties: TimelineProperty[];
     profile: InvestmentProfileData;
   };
+  /** Precomputed projection (Compare). When supplied, the chart plots these
+   *  numbers directly instead of recomputing from the live contexts — so a
+   *  saved plan or an AI-remodel draft charts its own borrowing picture in
+   *  isolation, rather than inheriting the active dashboard scenario's
+   *  instances via getInstance. */
+  projection?: {
+    portfolioGrowthData: PortfolioGrowthDataPoint[];
+    cashflowData: CashflowDataPoint[];
+  };
+  /** Event blocks for the ceiling's rental-serviceability contribution.
+   *  Compare passes [] to match the headless runner (which doesn't persist
+   *  them); omit on the dashboard to use the live selection. */
+  eventBlocksOverride?: EventBlock[];
 }
 
 const UUI = {
@@ -103,11 +120,18 @@ const debtFreePin = (cx: number, cy: number) => {
   );
 };
 
-export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ scenarioData }) => {
-  const { portfolioGrowthData, cashflowData } = usePortfolioProjection(scenarioData);
+export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({
+  scenarioData,
+  projection,
+  eventBlocksOverride,
+}) => {
+  const internal = usePortfolioProjection(scenarioData);
   const { profile: contextProfile } = useInvestmentProfile();
-  const { eventBlocks } = usePropertySelection();
+  const { eventBlocks: contextEventBlocks } = usePropertySelection();
   const profile = scenarioData?.profile ?? contextProfile;
+  const portfolioGrowthData = projection?.portfolioGrowthData ?? internal.portfolioGrowthData;
+  const cashflowData = projection?.cashflowData ?? internal.cashflowData;
+  const eventBlocks = eventBlocksOverride ?? contextEventBlocks;
 
   const data = useMemo(() => {
     const endYear = BASE_YEAR + profile.timelineYears - 1;

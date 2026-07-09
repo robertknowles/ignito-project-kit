@@ -94,6 +94,15 @@ const calYear = (year: number) => String(BASE_YEAR + year - 1);
 interface BriefChartProps {
   yearRows: YearRow[];
   horizon: PerfHorizon;
+  /**
+   * Purchase-moment anchor (year 0). The engine only emits rows from
+   * yearsOwned >= 1 (one full year after purchase), so without this the first
+   * plotted point already includes a year of growth. When provided, the growth
+   * chart starts from the deposit-level equity at the purchase year and the
+   * cashflow chart starts from $0, then both track the true calendar years
+   * (`yearLabel = purchaseYear + yearsOwned`).
+   */
+  purchase?: { year: number; propertyValue: number; equity: number };
 }
 
 /**
@@ -195,119 +204,316 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys
   );
 };
 
-// ── Shared single-series area chart for the two standalone projections ──────
-// Same chart language as the hero: 11px/400 #A1A1AA axes, #F0F1F4 grid,
-// #D5D5DB zero line, round Y ticks (half-step below zero), 5-year X ticks +
-// last, and mid/end value labels on the line.
-const BriefAreaChart: React.FC<{
-  data: { year: string; value: number }[];
-  name: string;
-  color: string;
-  gradientId: string;
-  /** 'fade' = plan growth-chart gradient (10%→0); 'signed' = plan Net
-      Cashflow flat ~14% wash above and below $0 (§3.3). */
-  fillStyle?: 'fade' | 'signed';
-}> = ({ data, name, color, gradientId, fillStyle = 'fade' }) => {
+// ── Dashboard-matched projection charts ─────────────────────────────────────
+// These reproduce the main dashboard's chart language exactly so the Next
+// Purchase Brief reads with the same clarity as Dashboard → Total Equity and
+// Net Cashflow. The data stays scoped to this single next purchase (yearRows),
+// but every visual token — fills, gridlines, axes, $0 baseline, tooltip — is
+// copied from CashflowChart.tsx / InvestmentTimelineChart.tsx.
+
+const CHART = {
+  brand600: '#7C3AED',   // cashflow line + tooltip dot
+  fill: '#8B5CF6',       // equity line + area fill
+  reference: '#C4C4CC',  // dashed Portfolio Value reference line
+  axis: '#A1A1AA',       // §3.5 axis ticks
+  gridline: '#F0F1F4',   // §3.9 value gridlines
+  cashZero: '#D5D5DB',   // §3.3 signed-fill zero line
+  equityZero: '#E4E7EC', // §3.9 equity $0 baseline
+  neutral900: '#181D27',
+  neutral700: '#404040',
+  neutral500: '#717680',
+  neutral200: '#E9EAEB',
+  success: '#17B26A',
+  white: '#FFFFFF',
+  fontFamily: UUI.fontFamily,
+} as const;
+
+// Round $ axis tick — matches CashflowChart.fmtTick ($0 / $Xk / $X.XM, signed).
+const axisTick = (v: number) => {
+  const a = Math.abs(v);
+  const s = v < 0 ? '-' : '';
+  if (a >= 1_000_000) return `${s}$${(a / 1_000_000).toFixed(a % 1_000_000 ? 1 : 0)}M`;
+  if (a >= 1_000) return `${s}$${Math.round(a / 1_000)}k`;
+  return `${s}$${a}`;
+};
+
+// Sparse X ticks — every 5 years + the last year (§3.5).
+const sparseYearTicks = (years: string[]): string[] => {
+  if (years.length === 0) return [];
+  const nums = years.map(Number);
+  const first = nums[0];
+  const last = nums[nums.length - 1];
+  const xt = years.filter((_, i) => (nums[i] - first) % 5 === 0);
+  if (Number(xt[xt.length - 1]) !== last) xt.push(years[years.length - 1]);
+  return xt;
+};
+
+// Shared dashboard-style tooltip card (§ CashflowChart / InvestmentTimelineChart).
+const DashTooltip: React.FC<{
+  active?: boolean;
+  label?: string;
+  rows: { key: string; label: string; display: string; color: string; valueColor: string; dashed?: boolean }[];
+}> = ({ active, label, rows }) => {
+  if (!active) return null;
+  return (
+    <div
+      style={{
+        background: CHART.white,
+        border: `1px solid ${CHART.neutral200}`,
+        borderRadius: 8,
+        padding: '12px 16px',
+        fontFamily: CHART.fontFamily,
+        fontSize: 14,
+        boxShadow: '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.06)',
+      }}
+    >
+      <p style={{ fontWeight: 600, color: CHART.neutral900, marginBottom: 8, fontSize: 14 }}>{label}</p>
+      {rows.map(row => (
+        <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: CHART.neutral500 }}>
+            {row.dashed ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                <span style={{ width: 3, height: 3, borderRadius: '50%', background: row.color }} />
+                <span style={{ width: 3, height: 3, borderRadius: '50%', background: row.color }} />
+              </span>
+            ) : (
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: row.color, flexShrink: 0 }} />
+            )}
+            {row.label}
+          </span>
+          <span style={{ fontWeight: 600, color: row.valueColor }}>{row.display}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/**
+ * Cashflow projection — mirrors Dashboard → Net Cashflow (CashflowChart.tsx).
+ * Solid violet line + signed ~14% fill straddling the $0 baseline, round $
+ * ticks with $0 present, sparse year axis.
+ */
+export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizon, purchase }) => {
+  // Real rows use the engine's true calendar year (yearLabel = purchaseYear +
+  // yearsOwned), not a BASE_YEAR offset. The purchase moment anchors the series
+  // at $0 net cashflow so the axis aligns with the growth chart.
+  const data = [
+    ...(purchase ? [{ year: String(purchase.year), netCashflow: 0 }] : []),
+    ...yearRows
+      .filter(r => r.year >= 1 && r.year <= horizon)
+      .map(r => ({ year: r.yearLabel, netCashflow: Math.round(r.netCashflow) })),
+  ];
+
   if (!data.length) return null;
 
-  const vals = data.map(d => d.value);
-  const maxV = Math.max(0, ...vals);
-  const minV = Math.min(0, ...vals);
-  const niceCeil = (v: number) => {
-    if (v <= 0) return 1_000;
-    const pow = Math.pow(10, Math.floor(Math.log10(v)));
-    for (const s of [1, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= s * pow) return s * pow;
-    return 10 * pow;
-  };
-  const step = niceCeil(maxV) / 4;
-  const below = minV < 0 ? Math.ceil(Math.abs(minV) / (step / 2)) : 0;
-  const yTicks = [
-    ...Array.from({ length: below }, (_, i) => -(below - i) * (step / 2)),
-    ...Array.from({ length: 5 }, (_, i) => i * step),
-  ];
-  const xTicks = data
-    .map(d => d.year)
-    .filter((y, i, arr) => i % 5 === 0 || i === arr.length - 1);
+  // Signed round-number Y frame with $0 always present (§3.9).
+  const vals = data.map(d => d.netCashflow);
+  const lo = Math.min(0, ...vals);
+  const hi = Math.max(0, ...vals);
+  const rawStep = Math.max(1, (hi - lo) / 4);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+  const niceLo = Math.floor(lo / step) * step;
+  const niceHi = Math.ceil(hi / step) * step;
+  const yTicks: number[] = [];
+  for (let v = niceLo; v <= niceHi + step / 2; v += step) yTicks.push(Math.round(v));
+  const xTicks = sparseYearTicks(data.map(d => d.year));
 
-  const lastIdx = data.length - 1;
-  const midIdx = Math.max(0, Math.round(lastIdx / 2));
-  const label = (props: any) => {
-    const { x, y, value, index } = props;
-    if (index !== midIdx && index !== lastIdx) return null;
-    const isEnd = index === lastIdx;
+  const CashflowTooltip = ({ active, payload, label }: any) => {
+    const net = payload?.[0]?.value ?? 0;
     return (
-      <text
-        x={isEnd ? x + 6 : x}
-        y={isEnd ? y + 3 : y - 8}
-        fill={color}
-        fontSize={11}
-        fontWeight={600}
-        textAnchor={isEnd ? 'start' : 'middle'}
-        fontFamily={UUI.fontFamily}
-      >
-        {formatCompact(value)}
-      </text>
+      <DashTooltip
+        active={active && payload?.length}
+        label={label}
+        rows={[{
+          key: 'net',
+          label: 'Net Cashflow',
+          display: `${net >= 0 ? '+' : '-'}$${Math.abs(net).toLocaleString()}/yr`,
+          color: CHART.brand600,
+          valueColor: net >= 0 ? CHART.success : CHART.neutral500,
+        }]}
+      />
     );
   };
 
   return (
-    <div className="h-52">
+    <div style={{ flex: 1, minHeight: 240 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 12, right: 48, left: 0, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 20, right: 8, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              {fillStyle === 'signed' ? (
-                <>
-                  <stop offset="0%" stopColor={color} stopOpacity={0.14} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.14} />
-                </>
-              ) : (
-                <>
-                  <stop offset="0%" stopColor={color} stopOpacity={0.1} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
-                </>
-              )}
+            <linearGradient id="briefCashflowSignedFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART.brand600} stopOpacity={0.14} />
+              <stop offset="100%" stopColor={CHART.brand600} stopOpacity={0.14} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} stroke="#F0F1F4" />
-          <XAxis dataKey="year" {...sharedXAxis} ticks={xTicks} interval={0} />
-          <YAxis {...sharedYAxis} domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks} />
-          <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
-          {minV < 0 && <ReferenceLine y={0} stroke="#D5D5DB" />}
+          <CartesianGrid vertical={false} stroke={CHART.gridline} />
+          <XAxis
+            dataKey="year"
+            ticks={xTicks}
+            interval={0}
+            tick={{ fontSize: 9, fill: CHART.axis, fontFamily: CHART.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            tickMargin={10}
+            padding={{ left: 12, right: 10 }}
+          />
+          <YAxis
+            domain={[niceLo, niceHi]}
+            ticks={yTicks}
+            tickFormatter={axisTick}
+            tick={{ fontSize: 9, fill: CHART.axis, fontFamily: CHART.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            width={42}
+          />
+          <ReferenceLine y={0} stroke={CHART.cashZero} strokeWidth={1} />
+          <Tooltip content={<CashflowTooltip />} cursor={{ stroke: CHART.brand600, strokeWidth: 2 }} />
           <Area
             type="monotone"
-            dataKey="value"
-            name={name}
-            stroke={color}
-            strokeWidth={2.75}
-            fill={`url(#${gradientId})`}
+            dataKey="netCashflow"
+            name="Net Cashflow"
+            stroke={CHART.brand600}
+            strokeWidth={2.5}
+            fill="url(#briefCashflowSignedFill)"
+            baseValue={0}
             dot={false}
             isAnimationActive={false}
-          >
-            <LabelList dataKey="value" content={label} />
-          </Area>
+            activeDot={{ fill: CHART.white, stroke: CHART.brand600, strokeWidth: 2, r: 4 }}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
   );
 };
 
-/** Cashflow Projections — net annual cashflow over the selected horizon. */
-export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizon }) => {
-  const data = yearRows.filter(r => r.year >= 1 && r.year <= horizon).map(r => ({
-    year: calYear(r.year),
-    value: Math.round(r.netCashflow),
-  }));
-  return <BriefAreaChart data={data} name="Net cashflow" color="#8B5CF6" gradientId="briefCfGradient" fillStyle="signed" />;
-};
+/**
+ * Growth projection — mirrors Dashboard → Total Equity (InvestmentTimelineChart).
+ * Violet hero line + subtle 10%→0 gradient fill, round-number Y ceiling, sparse
+ * year axis, $0 baseline one step stronger than the gridlines.
+ */
+export const BriefGrowthChart: React.FC<BriefChartProps> = ({ yearRows, horizon, purchase }) => {
+  // Real rows use the engine's true calendar year (yearLabel = purchaseYear +
+  // yearsOwned). The purchase moment (year 0) anchors the series at the
+  // deposit-level equity + purchase price, so growth reads from what you own on
+  // day one rather than jumping in a year ahead already grown.
+  const data = [
+    ...(purchase
+      ? [{
+          year: String(purchase.year),
+          totalEquity: Math.round(purchase.equity),
+          portfolioValue: Math.round(purchase.propertyValue),
+        }]
+      : []),
+    ...yearRows
+      .filter(r => r.year >= 1 && r.year <= horizon)
+      .map(r => ({
+        year: r.yearLabel,
+        totalEquity: Math.round(r.equity),
+        portfolioValue: Math.round(r.propertyValue),
+      })),
+  ];
 
-/** Growth Projections — equity from purchase over the selected horizon. */
-export const BriefGrowthChart: React.FC<BriefChartProps> = ({ yearRows, horizon }) => {
-  const data = yearRows
-    .filter(r => r.year >= 1 && r.year <= horizon)
-    .map(r => ({
-      year: calYear(r.year),
-      value: Math.round(r.equity),
-    }));
-  return <BriefAreaChart data={data} name="Equity" color="#7C3AED" gradientId="briefGrowthGradient" />;
+  if (!data.length) return null;
+
+  // Round-number Y frame — 4 even ticks up to a nice ceiling (§3.9a).
+  // Portfolio Value sits above equity, so the ceiling keys off it.
+  const max = Math.max(0, ...data.map(d => Math.max(d.totalEquity, d.portfolioValue)));
+  const niceCeil = (v: number) => {
+    if (v <= 0) return 1_000_000;
+    const pow = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const s of [1, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= s * pow) return s * pow;
+    return 10 * pow;
+  };
+  const yCeil = niceCeil(max);
+  const yTicks = [0, 1, 2, 3, 4].map(i => (yCeil * i) / 4);
+  const xTicks = sparseYearTicks(data.map(d => d.year));
+
+  const EquityTooltip = ({ active, payload, label }: any) => {
+    const equity = payload?.find((p: any) => p.dataKey === 'totalEquity')?.value ?? 0;
+    const portfolio = payload?.find((p: any) => p.dataKey === 'portfolioValue')?.value ?? 0;
+    const rows = [
+      {
+        key: 'equity',
+        label: 'Total Equity',
+        display: formatCompact(equity),
+        color: CHART.fill,
+        valueColor: CHART.neutral700,
+        dashed: false,
+        sortValue: equity,
+      },
+      {
+        key: 'portfolio',
+        label: 'Portfolio Value',
+        display: formatCompact(portfolio),
+        color: CHART.reference,
+        valueColor: CHART.neutral500,
+        dashed: true,
+        sortValue: portfolio,
+      },
+    ].sort((a, b) => b.sortValue - a.sortValue);
+    return <DashTooltip active={active && payload?.length} label={label} rows={rows} />;
+  };
+
+  return (
+    <div style={{ flex: 1, minHeight: 240 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 20, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="briefEquityGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART.fill} stopOpacity={0.1} />
+              <stop offset="100%" stopColor={CHART.fill} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke={CHART.gridline} />
+          <XAxis
+            dataKey="year"
+            ticks={xTicks}
+            interval={0}
+            tick={{ fontSize: 9, fill: CHART.axis, fontFamily: CHART.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            tickMargin={10}
+            padding={{ left: 12, right: 10 }}
+          />
+          <YAxis
+            domain={[0, yCeil]}
+            ticks={yTicks}
+            tickFormatter={axisTick}
+            tick={{ fontSize: 9, fill: CHART.axis, fontFamily: CHART.fontFamily }}
+            axisLine={false}
+            tickLine={false}
+            width={42}
+          />
+          <ReferenceLine y={0} stroke={CHART.equityZero} strokeWidth={1} />
+          <Tooltip content={<EquityTooltip />} cursor={{ stroke: CHART.brand600, strokeWidth: 2 }} />
+          {/* Portfolio Value — dashed reference line (no fill), drawn first so
+              the equity hero line sits on top (mirrors InvestmentTimelineChart). */}
+          <Area
+            type="monotone"
+            dataKey="portfolioValue"
+            name="Portfolio Value"
+            stroke={CHART.reference}
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            fill="none"
+            dot={false}
+            isAnimationActive={false}
+            activeDot={{ fill: CHART.white, stroke: CHART.reference, strokeWidth: 2, r: 4 }}
+          />
+          <Area
+            type="monotone"
+            dataKey="totalEquity"
+            name="Total Equity"
+            stroke={CHART.fill}
+            strokeWidth={2.5}
+            fill="url(#briefEquityGradient)"
+            dot={false}
+            isAnimationActive={false}
+            activeDot={{ fill: CHART.white, stroke: CHART.brand600, strokeWidth: 2, r: 4 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 };
