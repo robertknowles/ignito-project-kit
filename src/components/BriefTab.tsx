@@ -242,125 +242,77 @@ const BriefStat: React.FC<{ label: string; value: string }> = ({ label, value })
 
 // ── Cash breakdown donut ────────────────────────────────────────────────────
 
-const CashDonut: React.FC<{
+// ── Funding this purchase — cash-needs donut + loan/price + gearing bar ──────
+// One card (replaces the old cash-donut + LVR-gauge pair). Left: the cash-needed
+// ring; right: the cash-use breakdown, loan vs price, the gearing bar, and a
+// plain-English caption covering gearing, capitalised LMI and funding source.
+const FundingCard: React.FC<{
   segments: { label: string; value: number; color: string }[]
   total: number
-}> = ({ segments, total }) => (
-  <div className="flex items-center gap-6">
-    <div className="relative shrink-0" style={{ width: 168, height: 168 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={segments}
-            dataKey="value"
-            innerRadius={58}
-            outerRadius={82}
-            paddingAngle={2}
-            stroke="none"
-            startAngle={90}
-            endAngle={-270}
-          >
-            {segments.map((s, i) => <Cell key={i} fill={s.color} />)}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-[15px] font-semibold text-neutral-900 leading-tight">{fmt$(total)}</span>
-        <span className="text-[11px] text-neutral-500">cash needed</span>
-      </div>
-    </div>
-    <div className="flex-1 flex flex-col gap-2.5">
-      {segments.map(s => (
-        <div key={s.label} className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-[13px] text-neutral-600">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-            {s.label}
-          </span>
-          <span className="text-[13px] font-medium text-neutral-900">{fmt$(s.value)}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-)
-
-// ── Funding-source strip ────────────────────────────────────────────────────
-// Where the client's total cash required actually comes from. The engine's
-// waterfall draws equity first (only when "use existing equity" is on and there
-// is extractable portfolio equity), then cash, then savings — so a positive
-// `equity` here means the plan is releasing equity to fund this purchase.
-const FundingStrip: React.FC<{
-  funding: { cash: number; savings: number; equity: number; total: number }
-}> = ({ funding }) => {
-  const sources = [
-    { label: 'Cash', value: funding.cash, color: '#7C3AED' },
-    { label: 'Savings', value: funding.savings, color: '#A78BFA' },
-    { label: 'Equity release', value: funding.equity, color: '#2E90FA' },
-  ].filter(s => s.value > 0)
-  if (sources.length === 0) return null
-  return (
-    <div className="mt-4 pt-4 border-t border-[#F2F2F2]">
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[11px] font-semibold tracking-wide uppercase text-neutral-500">Funded by</span>
-        <span className="text-[11px] text-neutral-400">client's own funds</span>
-      </div>
-      <div className="flex flex-col gap-2">
-        {sources.map(s => (
-          <div key={s.label} className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[13px] text-neutral-600">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-              {s.label}
-            </span>
-            <span className="text-[13px] font-medium text-neutral-900">{fmt$(s.value)}</span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-2.5 text-[11px] leading-snug text-neutral-500">
-        {funding.equity > 0
-          ? `Includes ${fmt$(funding.equity)} released from existing portfolio equity.`
-          : 'Funded entirely from cash & savings — no equity release.'}
-      </p>
-    </div>
-  )
-}
-
-// ── Loan-to-value gauge ─────────────────────────────────────────────────────
-
-const LvrGauge: React.FC<{
+  loanAmount: number
+  purchasePrice: number
   lvr: number
   fillPct: number
-  loanAmount: number
-  deposit: number
-  purchasePrice: number
-}> = ({ lvr, fillPct, loanAmount, deposit, purchasePrice }) => {
-  const rows = [
-    { label: 'Loan amount', value: loanAmount, dot: '#7C3AED' },
-    { label: 'Deposit', value: deposit, dot: '#D9D2F2' },
-    { label: 'Purchase price', value: purchasePrice, bold: true },
-  ]
+  lmiCapitalised: boolean
+  lmiAmount: number
+  funding: { cash: number; savings: number; equity: number; total: number }
+}> = ({ segments, total, loanAmount, purchasePrice, lvr, fillPct, lmiCapitalised, lmiAmount, funding }) => {
+  // "cash and savings" / "cash, savings and equity release"
+  const names = [
+    funding.cash > 0 && 'cash',
+    funding.savings > 0 && 'savings',
+    funding.equity > 0 && 'equity release',
+  ].filter(Boolean) as string[]
+  const fundedFrom = names.length === 0 ? 'cash'
+    : names.length === 1 ? names[0]
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return (
-    <div className="flex flex-col gap-4 h-full justify-between">
-      <div className="flex items-baseline gap-2">
-        <span className="text-[28px] font-semibold text-neutral-900 leading-none tracking-tight">{Math.round(lvr)}%</span>
-        <span className="text-[13px] text-neutral-500">geared</span>
+    <div className="flex items-center gap-8">
+      {/* Cash-needed ring */}
+      <div className="relative shrink-0" style={{ width: 190, height: 190 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={segments} dataKey="value" innerRadius={66} outerRadius={92} paddingAngle={2} stroke="none" startAngle={90} endAngle={-270}>
+              {segments.map((s, i) => <Cell key={i} fill={s.color} />)}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[24px] font-semibold text-[#181D27] leading-tight tracking-[-0.02em]">{fmt$(total)}</span>
+          <span className="text-[13px] text-[#717680]">cash needed</span>
+        </div>
       </div>
-      <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: '#D9D2F2' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${fillPct}%`, background: '#7C3AED' }}
-        />
-      </div>
-      <div className="flex flex-col">
-        {rows.map(r => (
-          <div key={r.label} className="flex items-center justify-between py-2.5 border-b border-neutral-100 last:border-b-0">
-            <span className="flex items-center gap-2 text-[13px] text-neutral-600">
-              {r.dot && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: r.dot }} />}
-              {r.label}
+
+      {/* Breakdown + gearing */}
+      <div className="flex-1 flex flex-col">
+        {segments.map(s => (
+          <div key={s.label} className="flex items-center justify-between py-2.5 border-b border-[#F2F2F2]">
+            <span className="flex items-center gap-2.5 text-[14px] text-[#535862]">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+              {s.label}
             </span>
-            <span className={`text-[13px] ${r.bold ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-700'}`}>
-              {fmt$(r.value)}
-            </span>
+            <span className="text-[14px] font-semibold text-[#181D27]">{fmt$(s.value)}</span>
           </div>
         ))}
+        <div className="flex items-center justify-between py-2.5 border-b border-[#F2F2F2]">
+          <span className="text-[14px] text-[#535862]">Loan amount</span>
+          <span className="text-[14px] font-semibold text-[#181D27]">{fmt$(loanAmount)}</span>
+        </div>
+        <div className="flex items-center justify-between py-2.5">
+          <span className="text-[14px] text-[#535862]">Purchase price</span>
+          <span className="text-[14px] font-semibold text-[#181D27]">{fmt$(purchasePrice)}</span>
+        </div>
+
+        {/* Gearing bar */}
+        <div className="flex items-center gap-4 mt-4">
+          <span className="text-[32px] font-semibold text-[#181D27] leading-none tracking-[-0.02em] shrink-0">{Math.round(lvr)}%</span>
+          <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: '#EBE6F9' }}>
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${fillPct}%`, background: '#7C3AED' }} />
+          </div>
+        </div>
+        <p className="mt-3 text-[13px] leading-snug text-[#717680]">
+          Geared at {Math.round(lvr)}%.{lmiCapitalised ? ` Includes ${fmt$(lmiAmount)} LMI added to the loan.` : ''} Funded from {fundedFrom}.
+        </p>
       </div>
     </div>
   )
@@ -608,48 +560,21 @@ export const BriefTab: React.FC<{
 
   // ── Tab 1: The Purchase ─────────────────────────────────────────────────
 
-  // KPI row — persistent across both sub-tabs (rendered above the tab content)
-  const kpiRow = (
-    <div className="grid grid-cols-5 bg-white rounded-xl border border-[#E9EAEB] divide-x divide-[#E9EAEB]">
-      {[
-        { label: 'Purchase price', value: fmt$(purchasePrice) },
-        { label: 'Total cash required', value: fmt$(totalCash) },
-        { label: 'LVR', value: `${Math.round(instanceData.lvr)}%` },
-        { label: 'Gross yield', value: `${grossYield}%` },
-        { label: 'Rent', value: `$${fmtNum(instanceData.rentPerWeek)}/wk` },
-      ].map(s => (
-        <div key={s.label} className="px-[18px] py-4">
-          <span className="text-xs text-[#717680]">{s.label}</span>
-          <div className="mt-2">
-            <span className="text-[24px] font-semibold text-[#181D27] tracking-[-0.02em] leading-none">{s.value}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-
   // Visual breakdown — cash donut + LVR gauge (equal height, content fills)
   const purchaseVisual = (
-    <div className="grid grid-cols-2 gap-4 items-stretch">
-        <ChartCard title="Where your cash goes">
-          <CashDonut segments={cashSegments} total={totalCash} />
-          <FundingStrip funding={funding} />
-        </ChartCard>
-        <ChartCard title="Loan to value">
-          <LvrGauge
-            lvr={instanceData.lvr}
-            fillPct={lvrFill}
-            loanAmount={loanAmount}
-            deposit={deposit}
-            purchasePrice={purchasePrice}
-          />
-          {lmiCapitalised && (
-            <p className="mt-3 pt-3 border-t border-[#F2F2F2] text-[11px] leading-snug text-neutral-500">
-              Loan includes {fmt$(lmiAmount)} LMI capitalised — the client borrows it rather than paying it upfront, so it sits above {Math.round(instanceData.lvr)}% of the price.
-            </p>
-          )}
-        </ChartCard>
-    </div>
+    <ChartCard title="Funding this purchase">
+      <FundingCard
+        segments={cashSegments}
+        total={totalCash}
+        loanAmount={loanAmount}
+        purchasePrice={purchasePrice}
+        lvr={instanceData.lvr}
+        fillPct={lvrFill}
+        lmiCapitalised={lmiCapitalised}
+        lmiAmount={lmiAmount}
+        funding={funding}
+      />
+    </ChartCard>
   )
 
   // Editable detail — three equal peer tables (§2.5): Deal details · Purchase costs · Annual cashflow
@@ -992,8 +917,6 @@ export const BriefTab: React.FC<{
         transition={{ duration: 0.3, ease: 'easeOut' }}
         className="flex flex-col gap-4"
       >
-        {/* KPI banner */}
-        {kpiRow}
         {/* Purchase snapshot — where the cash goes + loan-to-value */}
         {purchaseVisual}
         {/* Purchase detail — costs, annual cashflow, deal record */}
