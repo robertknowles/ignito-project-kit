@@ -162,6 +162,42 @@ const EditableSelectRow: React.FC<{
   )
 }
 
+// ── Editable boolean row (Yes / No) ─────────────────────────────────────────
+// Dedicated boolean variant so toggle-style fields (e.g. LMI Waiver) commit an
+// actual boolean rather than the string value a <select> would emit.
+
+const EditableBoolRow: React.FC<{
+  label: string
+  value: boolean
+  field: keyof PropertyInstanceDetails
+  instanceId: string
+}> = ({ label, value, field, instanceId }) => {
+  const { updateInstance } = usePropertyInstance()
+  const { notifyEdit } = useChangeReceipt()
+
+  return (
+    <tr className={rowContainerCls(undefined, false)}>
+      <td className="py-2 px-3 text-xs font-medium text-[#717680] whitespace-nowrap">
+        {label}
+      </td>
+      <td className="py-1 px-2">
+        <select
+          value={value ? 'yes' : 'no'}
+          onChange={e => {
+            const next = e.target.value === 'yes'
+            notifyEdit('brief', { subject: 'Next purchase', fieldLabel: label, from: value ? 'Yes' : 'No', to: next ? 'Yes' : 'No' })
+            updateInstance(instanceId, { [field]: next } as Partial<PropertyInstanceDetails>)
+          }}
+          className="w-full bg-transparent text-right outline-none rounded px-1.5 py-0.5 text-xs text-[#414651] hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 cursor-pointer transition-colors"
+        >
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </td>
+    </tr>
+  )
+}
+
 const STATE_OPTIONS = [
   { value: 'VIC', label: 'VIC' },
   { value: 'NSW', label: 'NSW' },
@@ -246,6 +282,46 @@ const CashDonut: React.FC<{
     </div>
   </div>
 )
+
+// ── Funding-source strip ────────────────────────────────────────────────────
+// Where the client's total cash required actually comes from. The engine's
+// waterfall draws equity first (only when "use existing equity" is on and there
+// is extractable portfolio equity), then cash, then savings — so a positive
+// `equity` here means the plan is releasing equity to fund this purchase.
+const FundingStrip: React.FC<{
+  funding: { cash: number; savings: number; equity: number; total: number }
+}> = ({ funding }) => {
+  const sources = [
+    { label: 'Cash', value: funding.cash, color: '#7C3AED' },
+    { label: 'Savings', value: funding.savings, color: '#A78BFA' },
+    { label: 'Equity release', value: funding.equity, color: '#2E90FA' },
+  ].filter(s => s.value > 0)
+  if (sources.length === 0) return null
+  return (
+    <div className="mt-4 pt-4 border-t border-[#F2F2F2]">
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-neutral-500">Funded by</span>
+        <span className="text-[11px] text-neutral-400">client's own funds</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {sources.map(s => (
+          <div key={s.label} className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-[13px] text-neutral-600">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+              {s.label}
+            </span>
+            <span className="text-[13px] font-medium text-neutral-900">{fmt$(s.value)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2.5 text-[11px] leading-snug text-neutral-500">
+        {funding.equity > 0
+          ? `Includes ${fmt$(funding.equity)} released from existing portfolio equity.`
+          : 'Funded entirely from cash & savings — no equity release.'}
+      </p>
+    </div>
+  )
+}
 
 // ── Loan-to-value gauge ─────────────────────────────────────────────────────
 
@@ -491,6 +567,13 @@ export const BriefTab: React.FC<{
     { label: 'Other costs', value: otherCosts, color: '#D9D2F2' },
   ]
 
+  // Funding sources for the total cash required (engine waterfall: equity →
+  // cash → savings). Falls back to all-cash if the engine didn't attach a split.
+  const funding = nextProp.fundingBreakdown ?? { cash: totalCash, savings: 0, equity: 0, total: totalCash }
+  // LMI capitalised into the loan (explains loanAmount sitting above price × LVR)
+  const lmiAmount = acqCosts?.lmi ?? 0
+  const lmiCapitalised = !!instanceData.lmiCapitalized && lmiAmount > 0
+
   // ── Combined annual cashflow table (cash in / cash out / net result) ──────
   // One table with section heading rows so the three groups stay visually
   // separated. Rendered on the Purchase tab below the purchase-costs grid.
@@ -550,6 +633,7 @@ export const BriefTab: React.FC<{
     <div className="grid grid-cols-2 gap-4 items-stretch">
         <ChartCard title="Where your cash goes">
           <CashDonut segments={cashSegments} total={totalCash} />
+          <FundingStrip funding={funding} />
         </ChartCard>
         <ChartCard title="Loan to value">
           <LvrGauge
@@ -559,13 +643,42 @@ export const BriefTab: React.FC<{
             deposit={deposit}
             purchasePrice={purchasePrice}
           />
+          {lmiCapitalised && (
+            <p className="mt-3 pt-3 border-t border-[#F2F2F2] text-[11px] leading-snug text-neutral-500">
+              Loan includes {fmt$(lmiAmount)} LMI capitalised — the client borrows it rather than paying it upfront, so it sits above {Math.round(instanceData.lvr)}% of the price.
+            </p>
+          )}
         </ChartCard>
     </div>
   )
 
-  // Editable detail — three equal peer tables (§2.5): Purchase costs · Annual cashflow · Deal details
+  // Editable detail — three equal peer tables (§2.5): Deal details · Purchase costs · Annual cashflow
   const purchaseDetail = (
     <div className="grid grid-cols-3 gap-4 items-start">
+        {/* Deal details — the single editable record of the whole deal (§2.5),
+            mirroring the main dashboard's property editor (Property + Loan). */}
+        <ChartCard title="Deal details" flush>
+          <table className="w-full">
+            <tbody>
+              <EditableSelectRow label="State" value={instanceData.state} field="state" instanceId={iid} options={STATE_OPTIONS} />
+              <EditableSelectRow label="Entity" value={instanceData.entity ?? 'individual'} field="entity" instanceId={iid} options={ENTITY_OPTIONS} />
+              <KVRow label="Purchase year" value={Math.floor(nextProp.affordableYear)} />
+              <EditableNumRow label="Purchase price" unit="money" value={instanceData.purchasePrice} field="purchasePrice" instanceId={iid} />
+              <EditableNumRow label="Valuation at purchase" unit="money" value={instanceData.valuationAtPurchase} field="valuationAtPurchase" instanceId={iid} />
+              <EditableNumRow label="Rent" unit="weekly" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
+              <KVRow label="Gross yield" value={`${grossYield}%`} />
+              <EditableSelectRow label="Growth" value={instanceData.growthAssumption} field="growthAssumption" instanceId={iid} options={GROWTH_OPTIONS} />
+              <EditableNumRow label="LVR" unit="pct" value={instanceData.lvr} field="lvr" instanceId={iid} />
+              <KVRow label="Loan amount" value={fmt$(loanAmount)} />
+              <EditableBoolRow label="LMI waiver" value={!!instanceData.lmiWaiver} field="lmiWaiver" instanceId={iid} />
+              <EditableSelectRow label="Loan product" value={instanceData.loanProduct} field="loanProduct" instanceId={iid} options={LOAN_PRODUCT_OPTIONS} />
+              <EditableNumRow label="Interest rate" unit="pct" decimals={2} value={instanceData.interestRate} field="interestRate" instanceId={iid} />
+              <EditableNumRow label="Loan term (yrs)" value={instanceData.loanTerm} field="loanTerm" instanceId={iid} />
+              <EditableNumRow label="Total cash required" unit="money" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" instanceId={iid} bold />
+            </tbody>
+          </table>
+        </ChartCard>
+
         {/* Purchase costs — one-off line items → Total cash required */}
         <ChartCard title="Purchase costs" flush>
           <table className="w-full">
@@ -574,7 +687,6 @@ export const BriefTab: React.FC<{
               <EditableNumRow label="Stamp duty ($)" value={acqCosts?.stampDuty ?? instanceData.stampDutyOverride ?? 0} field="stampDutyOverride" instanceId={iid} />
               <EditableNumRow label="LMI ($)" value={instanceData.lmiOverride ?? (acqCosts?.lmi ?? 0)} field="lmiOverride" instanceId={iid} />
               <EditableNumRow label="Engagement fee ($)" value={instanceData.engagementFee} field="engagementFee" instanceId={iid} />
-              <EditableNumRow label="Holding deposit ($)" value={instanceData.conditionalHoldingDeposit} field="conditionalHoldingDeposit" instanceId={iid} />
               <EditableNumRow label="Insurance upfront ($)" value={instanceData.buildingInsuranceUpfront} field="buildingInsuranceUpfront" instanceId={iid} />
               <EditableNumRow label="B&P inspection ($)" value={instanceData.buildingPestInspection} field="buildingPestInspection" instanceId={iid} />
               <EditableNumRow label="Plumbing / elec. ($)" value={instanceData.plumbingElectricalInspections} field="plumbingElectricalInspections" instanceId={iid} />
@@ -589,25 +701,6 @@ export const BriefTab: React.FC<{
 
         {/* Annual cashflow — §2.2 matrix ladder, semantic-red Net */}
         {cashflowTable}
-
-        {/* Deal details — the single editable record of the whole deal (§2.5),
-            deliberately mirroring the headline KPI row */}
-        <ChartCard title="Deal details" flush>
-          <table className="w-full">
-            <tbody>
-              <EditableSelectRow label="State" value={instanceData.state} field="state" instanceId={iid} options={STATE_OPTIONS} />
-              <EditableSelectRow label="Entity" value={instanceData.entity ?? 'individual'} field="entity" instanceId={iid} options={ENTITY_OPTIONS} />
-              <KVRow label="Purchase year" value={Math.floor(nextProp.affordableYear)} />
-              <EditableNumRow label="Interest rate" unit="pct" decimals={2} value={instanceData.interestRate} field="interestRate" instanceId={iid} />
-              <EditableSelectRow label="Loan product" value={instanceData.loanProduct} field="loanProduct" instanceId={iid} options={LOAN_PRODUCT_OPTIONS} />
-              <EditableNumRow label="Purchase price" unit="money" value={instanceData.purchasePrice} field="purchasePrice" instanceId={iid} />
-              <EditableNumRow label="Total cash required" unit="money" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" instanceId={iid} />
-              <EditableNumRow label="LVR" unit="pct" value={instanceData.lvr} field="lvr" instanceId={iid} />
-              <KVRow label="Gross yield" value={`${grossYield}%`} />
-              <EditableNumRow label="Rent" unit="weekly" value={instanceData.rentPerWeek} field="rentPerWeek" instanceId={iid} />
-            </tbody>
-          </table>
-        </ChartCard>
       </div>
   )
 
