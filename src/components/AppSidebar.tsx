@@ -289,6 +289,16 @@ export const AppSidebar: React.FC = () => {
             />
           </div>
         )}
+        <div className="py-px">
+          <NavItemButton
+            icon={WrenchIcon}
+            label="Toolkit"
+            collapsed={collapsed}
+            active={pathActive('/toolkit')}
+            disabled={lock(pathActive('/toolkit'))}
+            onClick={() => navigate('/toolkit')}
+          />
+        </div>
         {!isClient && (
           <div className="py-px">
             <NavItemButton
@@ -301,16 +311,6 @@ export const AppSidebar: React.FC = () => {
             />
           </div>
         )}
-        <div className="py-px">
-          <NavItemButton
-            icon={WrenchIcon}
-            label="Toolkit"
-            collapsed={collapsed}
-            active={pathActive('/toolkit')}
-            disabled={lock(pathActive('/toolkit'))}
-            onClick={() => navigate('/toolkit')}
-          />
-        </div>
         {/* ── Recents - every client scenario, most recent first (hidden while
                the rail is collapsed to icons) ── */}
         {!isClient && !collapsed && (
