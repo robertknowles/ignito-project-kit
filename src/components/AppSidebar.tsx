@@ -305,7 +305,6 @@ export const AppSidebar: React.FC = () => {
           <NavItemButton
             icon={WrenchIcon}
             label="Toolkit"
-            badge="BETA"
             collapsed={collapsed}
             active={pathActive('/toolkit')}
             disabled={lock(pathActive('/toolkit'))}

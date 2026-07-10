@@ -11,9 +11,10 @@ interface ToolCardProps {
   title: string
   description: string
   onClick: () => void
+  beta?: boolean
 }
 
-const ToolCard: React.FC<ToolCardProps> = ({ icon, title, description, onClick }) => (
+const ToolCard: React.FC<ToolCardProps> = ({ icon, title, description, onClick, beta = true }) => (
   <button
     onClick={onClick}
     className="flex flex-col items-start gap-3 p-5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors text-left cursor-pointer"
@@ -24,7 +25,9 @@ const ToolCard: React.FC<ToolCardProps> = ({ icon, title, description, onClick }
     <div>
       <div className="flex items-center gap-1.5">
         <p className="text-sm font-semibold text-neutral-900">{title}</p>
-        <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">BETA</span>
+        {beta && (
+          <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">BETA</span>
+        )}
       </div>
       <p className="text-xs text-neutral-500 mt-1">{description}</p>
     </div>
@@ -53,6 +56,7 @@ const Toolkit: React.FC = () => {
                 title="Purchase Brief"
                 description="Model a single property purchase in isolation - projections, cashflow and funding."
                 onClick={() => setShowPurchaseBriefCalc(true)}
+                beta={false}
               />
             </div>
 
