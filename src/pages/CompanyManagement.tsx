@@ -233,7 +233,7 @@ export const CompanyManagementContent = () => {
                   <h2 className="section-heading mb-4">Team Management</h2>
 
                   {/* Team Members Table */}
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="bg-white rounded-[14px] border border-[#E9EAEB] overflow-hidden">
                     {teamMembers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-40">
                         <UsersIcon size={40} className="text-gray-300 mb-2" />
@@ -245,7 +245,7 @@ export const CompanyManagementContent = () => {
                     ) : (
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-gray-200 text-left">
+                          <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
                             <th className="table-header">Member</th>
                             <th className="table-header">Role</th>
                             <th className="table-header">Joined</th>
@@ -264,7 +264,7 @@ export const CompanyManagementContent = () => {
                               : (member.email ? member.email[0].toUpperCase() : 'T');
 
                             return (
-                              <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors last:border-b-0">
+                              <tr key={member.id} className="border-b border-[#E9EAEB] hover:bg-gray-50/30 transition-colors last:border-b-0">
                                 <td className="table-cell">
                                   <div className="flex items-center">
                                     <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-medium mr-3">
@@ -323,7 +323,7 @@ export const CompanyManagementContent = () => {
                 <section>
                   <h2 className="section-heading mb-4">Branding</h2>
 
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Company Name */}
                       <div className="space-y-2">
@@ -491,7 +491,7 @@ export const CompanyManagementContent = () => {
                 <section>
                   <h2 className="section-heading mb-4">Client Portal Settings</h2>
 
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="bg-white rounded-xl border border-[#E9EAEB] p-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="body-dark font-medium">Enable Client Interactivity</h3>

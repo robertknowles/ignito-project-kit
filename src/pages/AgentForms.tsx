@@ -78,14 +78,14 @@ const buildQuestions = (isUpdate: boolean): FormQuestion[] =>
 const FORM_TEMPLATES: FormTemplate[] = [
   {
     key: 'input_form',
-    name: 'Client Details Form',
+    name: 'Onboarding Client Form',
     description: 'Collect financial details from new clients to build their investment roadmap.',
     icon: <UserPlus size={20} />,
     questions: buildQuestions(false),
   },
   {
     key: 'profile_update',
-    name: 'Client Details Update',
+    name: '6-Month Client Update Form',
     description: 'Request updated financial details during a client\'s 6-month review cycle.',
     icon: <RefreshCw size={20} />,
     questions: buildQuestions(true),
@@ -271,8 +271,8 @@ export const AgentFormsContent = () => {
     awaiting: {
       label: 'Awaiting',
       icon: <Eye size={12} />,
-      bg: 'bg-amber-50',
-      text: 'text-amber-700',
+      bg: 'bg-[#F5F5F6]',
+      text: 'text-[#414651]',
     },
     completed: {
       label: 'Completed',
@@ -305,38 +305,29 @@ export const AgentFormsContent = () => {
               {/* Form Template Cards */}
               <div className="grid grid-cols-2 gap-4 mb-8 mt-6">
                 {FORM_TEMPLATES.map(template => {
-                  const isInputForm = template.key === 'input_form'
-                  const badgeLabel = isInputForm ? 'Onboarding' : '6-month review'
-                  const badgeColor = isInputForm ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-neutral-100 text-neutral-600 border-neutral-200'
                   const isSelected = selectedTemplate?.key === template.key
                   const borderColor = isSelected
                     ? 'border-neutral-400 ring-1 ring-neutral-200'
-                    : isInputForm ? 'border-orange-300' : 'border-neutral-200'
+                    : 'border-[#E9EAEB]'
                   const awaiting = awaitingCounts[template.key] || 0
                   const questionCount = template.questions.filter(q => q.type !== 'toggle').length
 
                   return (
                     <div
                       key={template.key}
-                      className={`bg-white border rounded-lg p-5 transition-all ${borderColor}`}
+                      className={`bg-white border rounded-xl p-6 transition-all ${borderColor}`}
                     >
                       {/* Top: name row */}
                       <div className="flex items-start justify-between mb-1">
                         <h3 className="section-heading">{template.name}</h3>
                         {awaiting > 0 && (
-                          <span className="text-[11px] font-medium text-amber-700 flex-shrink-0 ml-2">
+                          <span className="text-[11px] font-medium text-[#535862] flex-shrink-0 ml-2">
                             {awaiting} awaiting
                           </span>
                         )}
                       </div>
 
-                      {/* Badge + question count row */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                          {badgeLabel}
-                        </span>
-                        <span className="meta">{questionCount} questions</span>
-                      </div>
+                      <span className="meta block mb-3">{questionCount} questions</span>
 
                       <p className="meta leading-relaxed mb-4">
                         {template.description}
@@ -413,10 +404,10 @@ export const AgentFormsContent = () => {
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-[#E9EAEB] rounded-[14px] overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200 text-left">
+                      <tr className="border-b border-[#E9EAEB] bg-[#F9FAFB] text-left">
                         <th className="table-header">Client</th>
                         <th className="table-header">Form</th>
                         <th className="table-header">Sent</th>
@@ -457,7 +448,7 @@ export const AgentFormsContent = () => {
                         const formType = submission.form_type === 'input_form' ? 'Client Details Form' : 'Client Details Update'
 
                         return (
-                          <tr key={submission.id} className="border-b border-gray-100 hover:bg-gray-50/30 transition-colors">
+                          <tr key={submission.id} className="border-b border-[#E9EAEB] hover:bg-gray-50/30 transition-colors">
                             <td className="table-cell">
                               <div className="flex items-center gap-2.5">
                                 <div
@@ -496,8 +487,8 @@ export const AgentFormsContent = () => {
                                   Completed
                                 </span>
                               ) : submission.status === 'awaiting' ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#414651]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#667085]" />
                                   Awaiting
                                 </span>
                               ) : (
@@ -527,7 +518,7 @@ export const AgentFormsContent = () => {
                     </tbody>
                   </table>
                   {filteredSubmissions.length > 0 && (
-                    <div className="px-5 py-3 border-t border-gray-100">
+                    <div className="px-5 py-3 border-t border-[#E9EAEB]">
                       <span className="meta">
                         Sorted by most recently sent · showing {filteredSubmissions.length} record{filteredSubmissions.length !== 1 ? 's' : ''}
                       </span>

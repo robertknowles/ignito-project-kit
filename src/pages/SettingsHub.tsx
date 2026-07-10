@@ -12,6 +12,7 @@ import { useAIUsage } from '@/hooks/useAIUsage'
 import { AgentFormsContent } from '@/pages/AgentForms'
 import { CompanyManagementContent } from '@/pages/CompanyManagement'
 import { AssumptionsGrid } from '@/components/AssumptionsGrid'
+import { StatCard } from '@/components/StatCard'
 
 type SettingsTab = 'forms' | 'assumptions' | 'white-label' | 'usage'
 
@@ -120,7 +121,7 @@ export const SettingsHub = () => {
                 </div>
 
                 {usageLoading ? (
-                  <div className="bg-white border border-neutral-200 rounded-lg p-12 text-center">
+                  <div className="bg-white border border-[#E9EAEB] rounded-xl p-12 text-center">
                     <Loader2Icon size={24} className="text-neutral-400 animate-spin mx-auto" />
                   </div>
                 ) : (
@@ -132,38 +133,13 @@ export const SettingsHub = () => {
 
                     {/* Stats grid */}
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-white border border-neutral-200 rounded-lg p-5">
-                        <p className="meta uppercase tracking-wide mb-1">Requests</p>
-                        <p className="text-2xl font-semibold text-neutral-900">
-                          {formatNumber(usage?.requestCount ?? 0)}
-                        </p>
-                      </div>
-                      <div className="bg-white border border-neutral-200 rounded-lg p-5">
-                        <p className="meta uppercase tracking-wide mb-1">Input Tokens</p>
-                        <p className="text-2xl font-semibold text-neutral-900">
-                          {formatNumber(usage?.inputTokens ?? 0)}
-                        </p>
-                      </div>
-                      <div className="bg-white border border-neutral-200 rounded-lg p-5">
-                        <p className="meta uppercase tracking-wide mb-1">Output Tokens</p>
-                        <p className="text-2xl font-semibold text-neutral-900">
-                          {formatNumber(usage?.outputTokens ?? 0)}
-                        </p>
-                      </div>
+                      <StatCard label="Requests" value={formatNumber(usage?.requestCount ?? 0)} />
+                      <StatCard label="Input Tokens" value={formatNumber(usage?.inputTokens ?? 0)} />
+                      <StatCard label="Output Tokens" value={formatNumber(usage?.outputTokens ?? 0)} />
                     </div>
 
                     {/* Total tokens */}
-                    <div className="bg-white border border-neutral-200 rounded-lg p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="meta uppercase tracking-wide mb-1">Total Tokens</p>
-                          <p className="text-2xl font-semibold text-neutral-900">
-                            {formatNumber(usage?.totalTokens ?? 0)}
-                          </p>
-                        </div>
-                        <BarChart3Icon size={32} className="text-neutral-200" />
-                      </div>
-                    </div>
+                    <StatCard label="Total Tokens" value={formatNumber(usage?.totalTokens ?? 0)} />
 
                     <p className="meta">
                       Usage resets at the start of each calendar month. Each chat message uses approximately 2,000–6,000 tokens depending on plan complexity.
