@@ -269,15 +269,33 @@ const FundingCard: React.FC<{
     : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return (
     <div className="flex items-center gap-8">
-      {/* Cash-needed ring */}
+      {/* Cash-needed ring — spins open smoothly on mount (CSS transform, no
+          Recharts sweep which jumps at the end with paddingAngle) */}
       <div className="relative shrink-0" style={{ width: 190, height: 190 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={segments} dataKey="value" innerRadius={66} outerRadius={92} paddingAngle={2} stroke="none" startAngle={90} endAngle={-270}>
-              {segments.map((s, i) => <Cell key={i} fill={s.color} />)}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+        <motion.div
+          style={{ width: '100%', height: '100%', transformOrigin: 'center' }}
+          initial={{ rotate: -270, scale: 0.85, opacity: 0 }}
+          animate={{ rotate: 0, scale: 1, opacity: 1 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={segments}
+                dataKey="value"
+                innerRadius={66}
+                outerRadius={92}
+                paddingAngle={2}
+                stroke="none"
+                startAngle={90}
+                endAngle={-270}
+                isAnimationActive={false}
+              >
+                {segments.map((s, i) => <Cell key={i} fill={s.color} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </motion.div>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-[24px] font-semibold text-[#181D27] leading-tight tracking-[-0.02em]">{fmt$(total)}</span>
           <span className="text-[13px] text-[#717680]">cash needed</span>
