@@ -1,9 +1,18 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Plus, X, Home, CalendarDays } from 'lucide-react'
+import { Plus, Home, CalendarDays, MoreHorizontal, Undo2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { ChartCard } from './ui/ChartCard'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu'
 import { useScenarioSave } from '../contexts/ScenarioSaveContext'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
+import { useRevertPurchase } from '../hooks/useRevertPurchase'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
@@ -413,6 +422,30 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     syncAggregates(next)
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
+  // Revert a "marked as purchased" property back to the plan as the next
+  // purchase. Only the most recent purchase is revertable — earlier ones must
+  // be reverted in reverse order first.
+  const revertPurchase = useRevertPurchase()
+  const lastPurchaseId = useMemo(() => {
+    let maxSeq = -1
+    let id: string | null = null
+    for (const p of existingProperties) {
+      if (p.revert && p.revert.seq > maxSeq) { maxSeq = p.revert.seq; id = p.id }
+    }
+    return id
+  }, [existingProperties])
+
+  const handleRevert = useCallback((id: string) => {
+    const prop = existingProperties.find(p => p.id === id)
+    if (!prop?.revert) return
+    notifyEdit('existing-portfolio', `${changeLogSubject(prop)} reverted to next purchase`)
+    revertPurchase(prop.revert)
+    const next = existingProperties.filter(p => p.id !== id)
+    setExistingProperties(next)
+    syncAggregates(next)
+    toast.success('Reverted to the Next Purchase Brief')
+  }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit, revertPurchase])
+
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
     const prop = existingProperties.find(p => p.id === id)
     const key = Object.keys(updates)[0] as keyof ExistingProperty | undefined
@@ -593,13 +626,44 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
                   </td>
                 ))}
                 <td className="py-1 px-1">
-                  <button
-                    onClick={() => handleRemove(p.id)}
-                    className="p-1 text-[#C4B5FD] hover:text-[#7C3AED] transition-colors bg-transparent border-none cursor-pointer"
-                    title="Remove property"
-                  >
-                    <X size={12} />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="w-7 h-7 inline-flex items-center justify-center rounded-md text-[#98A2B3] hover:text-[#414651] hover:bg-[#F5F5F5] transition-colors bg-transparent border-none cursor-pointer"
+                        title="Actions"
+                        aria-label="Property actions"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      {p.revert && (
+                        <>
+                          <DropdownMenuItem
+                            disabled={p.id !== lastPurchaseId}
+                            onSelect={(e) => { e.preventDefault(); handleRevert(p.id) }}
+                            className="gap-2 text-[#414651]"
+                          >
+                            <Undo2 size={14} className="shrink-0" />
+                            <span className="flex flex-col leading-tight">
+                              <span>Revert to next purchase</span>
+                              {p.id !== lastPurchaseId && (
+                                <span className="text-[11px] text-[#98A2B3]">Revert newer purchases first</span>
+                              )}
+                            </span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      <DropdownMenuItem
+                        onSelect={(e) => { e.preventDefault(); handleRemove(p.id) }}
+                        className="gap-2 text-red-600 focus:text-red-700 focus:bg-red-50"
+                      >
+                        <Trash2 size={14} className="shrink-0" />
+                        Delete property
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}

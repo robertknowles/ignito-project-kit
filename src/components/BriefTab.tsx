@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import type { ExistingProperty } from '@/types/existingProperty'
 import { ChartCard } from './ui/ChartCard'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { InfoPopover } from './RetirementScenario/InfoPopover'
 import { BriefTotalPerformanceChart, BriefCashflowChart, BriefGrowthChart, type PerfHorizon } from './BriefPerformanceCharts'
 import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
@@ -16,7 +17,7 @@ import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { calcGrossYield } from '../utils/sharedFinancialCalcs'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
-import { useRemoveTimelineProperty } from '../hooks/useRemoveTimelineProperty'
+import { useRemoveTimelineProperty, parseInstanceId } from '../hooks/useRemoveTimelineProperty'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
@@ -453,6 +454,16 @@ export const BriefTab: React.FC<{
       strata: instanceData.strata || 0,
       entity: instanceData.entity ?? 'individual',
     }
+    // Capture what we're removing from the timeline so the portfolio can revert
+    // this purchase later. seq marks it as the newest (only the latest is
+    // revertable). instanceData is the exact instance detail being removed.
+    const parsed = parseInstanceId(nextProp.instanceId)
+    newExisting.revert = {
+      seq: 1 + existingProperties.reduce((m, p) => Math.max(m, p.revert?.seq ?? 0), 0),
+      propertyId: parsed?.propertyId ?? '',
+      instanceId: nextProp.instanceId,
+      details: instanceData,
+    }
     const next = [...existingProperties, newExisting]
     setExistingProperties(next)
     // Keep profile aggregates in sync, same as PortfolioTab does on add/edit
@@ -735,35 +746,46 @@ export const BriefTab: React.FC<{
         <div className="flex-1 min-w-0 bg-white border border-[#E9EAEB] rounded-[14px] pt-6 px-[26px] pb-5 flex flex-col">
           <div className="flex items-center justify-between gap-6 flex-wrap mb-4">
             <span className="text-[14px] font-semibold text-[#181D27] whitespace-nowrap">Total performance projection</span>
+            <TooltipProvider delayDuration={100}>
             <div className="flex items-center gap-[18px] flex-wrap">
               {[
-                { key: 'capitalGrowth', color: '#7C3AED', label: 'Capital growth' },
-                { key: 'netCashflow', color: '#8B5CF6', label: 'Net cashflow' },
-                { key: 'principalPaid', color: '#98A2B3', label: 'Principal paid down' },
+                { key: 'capitalGrowth', color: '#7C3AED', label: 'Capital growth', info: "The increase in the property's value over time, growing each year by its assumed growth rate. You realise this value when you sell or draw on the equity." },
+                { key: 'netCashflow', color: '#8B5CF6', label: 'Net cashflow', info: "The rent received each year minus the running costs (loan interest, property management, council rates, insurance and maintenance). Above $0 the rent covers all the costs; below $0 the costs are higher than the rent." },
+                { key: 'principalPaid', color: '#98A2B3', label: 'Principal paid down', info: "The portion of the loan you've repaid, which becomes equity you own. It stays level during the interest-only period, then grows once principal repayments begin." },
               ].map(item => {
                 const hidden = hiddenPerfSeries.includes(item.key)
                 return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => togglePerfSeries(item.key)}
-                    title="Click to show/hide"
-                    className="group flex items-center gap-[7px] cursor-pointer select-none"
-                  >
-                    <span
-                      className="w-4 h-[3px] rounded-[2px] flex-shrink-0 transition-opacity"
-                      style={{ backgroundColor: item.color, opacity: hidden ? 0.25 : 1 }}
-                    />
-                    <span
-                      className={`text-[11px] group-hover:underline ${hidden ? 'text-neutral-400 line-through' : 'text-[#717680]'}`}
+                  <Tooltip key={item.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => togglePerfSeries(item.key)}
+                        className="group flex items-center gap-[7px] cursor-help select-none"
+                      >
+                        <span
+                          className="w-4 h-[3px] rounded-[2px] flex-shrink-0 transition-opacity"
+                          style={{ backgroundColor: item.color, opacity: hidden ? 0.25 : 1 }}
+                        />
+                        <span
+                          className={`text-[11px] group-hover:underline ${hidden ? 'text-neutral-400 line-through' : 'text-[#717680]'}`}
+                        >
+                          {item.label}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-xs leading-snug font-normal"
+                      style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}
                     >
-                      {item.label}
-                    </span>
-                  </button>
+                      {item.info}
+                    </TooltipContent>
+                  </Tooltip>
                 )
               })}
               <HorizonToggle value={perfHorizon} onChange={setPerfHorizon} />
             </div>
+            </TooltipProvider>
           </div>
           <div className="flex-1 mt-2">
             <BriefTotalPerformanceChart yearRows={perfYearRows} horizon={perfHorizon} hiddenKeys={hiddenPerfSeries} />
@@ -787,7 +809,7 @@ export const BriefTab: React.FC<{
       <div className="grid grid-cols-2 gap-4">
         <ChartCard
           title="Cashflow projection"
-          legend={[{ color: '#8B5CF6', label: 'Net Cashflow', info: 'Rental income minus all holding costs (loan interest, management, rates, insurance, maintenance) each year. Above $0 the property pays for itself; below $0 you top it up out of pocket.' }]}
+          legend={[{ color: '#8B5CF6', label: 'Net Cashflow', info: "The rent received each year minus the running costs (loan interest, property management, council rates, insurance and maintenance). Above $0 the rent covers all the costs; below $0 the costs are higher than the rent." }]}
         >
           <BriefCashflowChart yearRows={perfYearRows} horizon={perfHorizon} purchase={perfPurchase} />
         </ChartCard>

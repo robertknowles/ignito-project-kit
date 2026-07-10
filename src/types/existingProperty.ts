@@ -1,3 +1,22 @@
+import type { PropertyInstanceDetails } from './propertyInstance'
+
+/**
+ * Snapshot captured when a planned property is "marked as purchased" from the
+ * Next Purchase Brief. Lets the portfolio revert that purchase — restoring the
+ * exact timeline instance it came from. Only the most recent purchase (highest
+ * `seq`) can be reverted; earlier ones must be reverted in reverse order first.
+ */
+export interface RevertSnapshot {
+  /** Monotonic purchase order — highest = the last purchase (revertable). */
+  seq: number
+  /** Property type id the instance belonged to (e.g. "metro-house-growth"). */
+  propertyId: string
+  /** The instance id it held in the timeline at purchase time. */
+  instanceId: string
+  /** Full instance detail to restore into the timeline on revert. */
+  details: PropertyInstanceDetails
+}
+
 export interface ExistingProperty {
   id: string
   address: string
@@ -34,6 +53,9 @@ export interface ExistingProperty {
   yieldOverride?: number | null
   holdingCostOverride?: number | null
   purchaseCostsOverride?: number | null
+  /** Present when this property was purchased from the Next Purchase Brief;
+   *  drives the "Revert to next purchase" action in the portfolio. */
+  revert?: RevertSnapshot
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({

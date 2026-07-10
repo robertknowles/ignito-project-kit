@@ -99,8 +99,8 @@ interface BriefChartProps {
    * yearsOwned >= 1 (one full year after purchase), so without this the first
    * plotted point already includes a year of growth. When provided, the growth
    * chart starts from the deposit-level equity at the purchase year and the
-   * cashflow chart starts from $0, then both track the true calendar years
-   * (`yearLabel = purchaseYear + yearsOwned`).
+   * cashflow chart starts from the real year-1 net cashflow, then both track the
+   * true calendar years (`yearLabel = purchaseYear + yearsOwned`).
    */
   purchase?: { year: number; propertyValue: number; equity: number };
 }
@@ -295,13 +295,19 @@ const DashTooltip: React.FC<{
  */
 export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizon, purchase }) => {
   // Real rows use the engine's true calendar year (yearLabel = purchaseYear +
-  // yearsOwned), not a BASE_YEAR offset. The purchase moment anchors the series
-  // at $0 net cashflow so the axis aligns with the growth chart.
+  // yearsOwned), not a BASE_YEAR offset.
+  const realRows = yearRows
+    .filter(r => r.year >= 1 && r.year <= horizon)
+    .map(r => ({ year: r.yearLabel, netCashflow: Math.round(r.netCashflow) }));
+
+  // The purchase moment anchors the series so the axis aligns with the growth
+  // chart, but it starts at the real net cashflow you carry from day one (year 1)
+  // rather than an artificial $0.
   const data = [
-    ...(purchase ? [{ year: String(purchase.year), netCashflow: 0 }] : []),
-    ...yearRows
-      .filter(r => r.year >= 1 && r.year <= horizon)
-      .map(r => ({ year: r.yearLabel, netCashflow: Math.round(r.netCashflow) })),
+    ...(purchase && realRows.length > 0
+      ? [{ year: String(purchase.year), netCashflow: realRows[0].netCashflow }]
+      : []),
+    ...realRows,
   ];
 
   if (!data.length) return null;
