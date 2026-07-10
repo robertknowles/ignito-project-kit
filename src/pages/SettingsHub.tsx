@@ -87,6 +87,9 @@ export const SettingsHub = () => {
                     <p className="body-secondary mt-0.5">
                       Modelling assumptions the engine uses for the active plan
                     </p>
+                    <p className="mt-1 text-xs italic text-neutral-400">
+                      All adjustments to assumptions apply to future simulations only.
+                    </p>
                   </div>
                   <button
                     onClick={() => resetAssumptionsRef.current?.()}

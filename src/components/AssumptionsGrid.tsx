@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { trackDebounced, EVENTS } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
+import { InfoPopover } from './RetirementScenario/InfoPopover'
 import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_VACANCY_RATE,
@@ -225,6 +226,164 @@ const LvrTile: React.FC<{
   )
 }
 
+// ── Cost Tile ($ / % money default, collapsed/expanded like DialTile) ───────
+//
+// Backs the global Next-Purchase cost defaults. `value` is the profile override
+// (undefined => the per-type default is used, tile renders grey). When
+// `allowPercent` is set the tile offers a $ / % toggle; in percent mode `value`
+// is a percentage and `mode` is 'percent'.
+
+interface CostTileProps {
+  label: string
+  /** Profile override; undefined = not overridden (use per-type default). */
+  value: number | undefined
+  /** Baseline shown when not overridden (from createMinimalDefaults). */
+  defaultValue: number
+  mode: 'flat' | 'percent'
+  onChange: (value: number | undefined, mode: 'flat' | 'percent') => void
+  description: string
+  /** Enables the $ / % segmented toggle. */
+  allowPercent?: boolean
+  /** Seed % used when switching flat → percent. */
+  percentSeed?: number
+  /** e.g. "of purchase price" — appended to the description in percent mode. */
+  percentBasis?: string
+}
+
+const CostTile: React.FC<CostTileProps> = ({
+  label,
+  value,
+  defaultValue,
+  mode,
+  onChange,
+  description,
+  allowPercent = false,
+  percentSeed = 2,
+  percentBasis,
+}) => {
+  const [expanded, setExpanded] = useState(false)
+  const tileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!expanded) return
+    const handler = (e: MouseEvent) => {
+      if (tileRef.current && !tileRef.current.contains(e.target as Node)) {
+        setExpanded(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [expanded])
+
+  const isOverridden = value !== undefined
+  const displayValue = value ?? defaultValue
+  const formatMoney = (v: number) => `$${Math.round(v).toLocaleString('en-AU')}`
+  const formatValue = (v: number, m: 'flat' | 'percent') =>
+    m === 'percent' ? `${v}%` : formatMoney(v)
+
+  // Defaults render grey; overrides blue — matches DialTile.
+  const valueColor = isOverridden ? 'text-blue-600' : 'text-gray-700'
+
+  // A "% of purchase/value" override is genuine even at the baseline number;
+  // a plain flat-$ (or percent-of-rent) value equal to the baseline reverts to
+  // the per-type default so the tile shows grey again.
+  const percentBasisMode = allowPercent && mode === 'percent'
+
+  const commitNumber = (raw: number) => {
+    const v = Number.isFinite(raw) ? raw : 0
+    if (!percentBasisMode && Math.abs(v - defaultValue) < 0.001) {
+      onChange(undefined, mode)
+    } else {
+      onChange(v, mode)
+    }
+    trackDebounced(EVENTS.assumptionChanged, { assumption: label }, `assumption:${label}`)
+  }
+
+  const setMode = (m: 'flat' | 'percent') => {
+    if (m === mode) return
+    if (m === 'percent') onChange(percentSeed, 'percent')
+    else onChange(undefined, 'flat') // back to per-type default dollars
+  }
+
+  return (
+    <div
+      ref={tileRef}
+      className={`bg-white rounded-lg border transition-all ${
+        expanded
+          ? 'border-blue-300 shadow-sm col-span-2'
+          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+      }`}
+      onClick={() => !expanded && setExpanded(true)}
+    >
+      <div className="px-4 py-4 flex flex-col items-center text-center">
+        <div className={`text-xl font-semibold ${valueColor} tabular-nums leading-tight`}>
+          {formatValue(displayValue, mode)}
+        </div>
+        <div className="text-[11px] text-gray-500 mt-1 leading-tight">{label}</div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-1 border-t border-gray-100">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[11px] text-gray-400">
+              {isOverridden && (
+                <span className="italic">
+                  default {formatValue(defaultValue, allowPercent ? 'flat' : mode)}
+                </span>
+              )}
+            </span>
+            <button
+              className="text-[11px] text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                setExpanded(false)
+              }}
+            >
+              Done
+            </button>
+          </div>
+
+          {allowPercent && (
+            <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5 mb-2">
+              {(['flat', 'percent'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={(e) => { e.stopPropagation(); setMode(m) }}
+                  className={`flex-1 text-[11px] py-1.5 rounded-md font-medium transition-colors ${
+                    mode === m
+                      ? 'bg-white text-neutral-900 shadow-sm'
+                      : 'text-neutral-500 hover:text-neutral-700'
+                  }`}
+                >
+                  {m === 'flat' ? '$ Fixed' : '% Percentage'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">{mode === 'percent' ? '%' : '$'}</span>
+            <input
+              type="number"
+              value={displayValue}
+              min={0}
+              step={mode === 'percent' ? 0.1 : 50}
+              onChange={(e) => { e.stopPropagation(); commitNumber(parseFloat(e.target.value)) }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded-md text-right tabular-nums"
+            />
+          </div>
+
+          <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+            {description}
+            {mode === 'percent' && percentBasis ? ` Applied as a percentage ${percentBasis}.` : ''}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface AssumptionsGridProps {
   /** Whether to render an internal heading + reset button row. AgentHome supplies its own external header so passes false. */
   showHeader?: boolean
@@ -272,6 +431,22 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       smsfTaxRate: 0.15,
       marginalTaxRateAtConsolidation: 0.39,
       cgtOneYearDiscount: 0.50,
+      // Clear global Next-Purchase cost overrides → restore per-type defaults.
+      defaultEngagementFee: undefined,
+      defaultEngagementFeeMode: undefined,
+      defaultConveyancing: undefined,
+      defaultMortgageFees: undefined,
+      defaultBuildingPestInspection: undefined,
+      defaultBuildingInsuranceUpfront: undefined,
+      defaultPlumbingElectricalInspections: undefined,
+      defaultIndependentValuation: undefined,
+      defaultMaintenancePostSettlement: undefined,
+      defaultPropertyManagementPercent: undefined,
+      defaultBuildingInsuranceAnnual: undefined,
+      defaultCouncilRatesWater: undefined,
+      defaultStrata: undefined,
+      defaultMaintenanceAnnual: undefined,
+      defaultMaintenanceAnnualMode: undefined,
     })
   }
 
@@ -481,6 +656,134 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           step={5}
           format="percent"
           description="Capital gains tax discount for assets held over 12 months. Standard Australian discount is 50% for individuals."
+        />
+
+        {/* ── Next-purchase cost defaults ─────────────────────────────── */}
+        <div className="col-span-full flex items-center gap-1 mt-3 pt-3 border-t border-gray-200">
+          <h3 className="text-[13px] font-semibold text-gray-700">Next-purchase cost defaults</h3>
+          <InfoPopover
+            title="Next-purchase cost defaults"
+            body={[
+              'These set the starting purchase and holding costs for future purchases — any property added after you change them.',
+              "Properties already in the plan keep their current figures, so existing projections aren't changed.",
+              'Leave a tile on its grey default to use the cost tailored to each property type.',
+            ]}
+          />
+        </div>
+
+        <CostTile
+          label="Engagement Fee"
+          value={profile.defaultEngagementFee}
+          defaultValue={8000}
+          mode={profile.defaultEngagementFeeMode ?? 'flat'}
+          onChange={(value, mode) =>
+            updateProfile({ defaultEngagementFee: value, defaultEngagementFeeMode: value === undefined ? undefined : mode })
+          }
+          allowPercent
+          percentSeed={2}
+          percentBasis="of the purchase price"
+          description="Buyer's agent engagement fee for a new purchase."
+        />
+        <CostTile
+          label="Conveyancing"
+          value={profile.defaultConveyancing}
+          defaultValue={2200}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultConveyancing: value })}
+          description="Conveyancing / legal fees including searches."
+        />
+        <CostTile
+          label="Mortgage Fees"
+          value={profile.defaultMortgageFees}
+          defaultValue={1000}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultMortgageFees: value })}
+          description="Loan setup and discharge fees."
+        />
+        <CostTile
+          label="Building & Pest"
+          value={profile.defaultBuildingPestInspection}
+          defaultValue={700}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultBuildingPestInspection: value })}
+          description="Building and pest inspection cost."
+        />
+        <CostTile
+          label="Insurance (Upfront)"
+          value={profile.defaultBuildingInsuranceUpfront}
+          defaultValue={1500}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultBuildingInsuranceUpfront: value })}
+          description="Upfront building and landlord insurance premium."
+        />
+        <CostTile
+          label="Plumbing & Electrical"
+          value={profile.defaultPlumbingElectricalInspections}
+          defaultValue={300}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultPlumbingElectricalInspections: value })}
+          description="Plumbing and electrical inspection cost."
+        />
+        <CostTile
+          label="Independent Valuation"
+          value={profile.defaultIndependentValuation}
+          defaultValue={0}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultIndependentValuation: value })}
+          description="Independent property valuation cost (optional)."
+        />
+        <CostTile
+          label="Post-Settlement Maint."
+          value={profile.defaultMaintenancePostSettlement}
+          defaultValue={1500}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultMaintenancePostSettlement: value })}
+          description="Post-settlement maintenance buffer fund."
+        />
+        <CostTile
+          label="Property Management"
+          value={profile.defaultPropertyManagementPercent}
+          defaultValue={8}
+          mode="percent"
+          onChange={(value) => updateProfile({ defaultPropertyManagementPercent: value })}
+          description="Property management fee as a percentage of rent."
+        />
+        <CostTile
+          label="Insurance (Annual)"
+          value={profile.defaultBuildingInsuranceAnnual}
+          defaultValue={1200}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultBuildingInsuranceAnnual: value })}
+          description="Annual building and landlord insurance cost."
+        />
+        <CostTile
+          label="Council Rates & Water"
+          value={profile.defaultCouncilRatesWater}
+          defaultValue={2000}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultCouncilRatesWater: value })}
+          description="Annual council rates and water charges."
+        />
+        <CostTile
+          label="Strata"
+          value={profile.defaultStrata}
+          defaultValue={2000}
+          mode="flat"
+          onChange={(value) => updateProfile({ defaultStrata: value })}
+          description="Annual strata / body corporate fees. $0 for houses."
+        />
+        <CostTile
+          label="Annual Maintenance"
+          value={profile.defaultMaintenanceAnnual}
+          defaultValue={1600}
+          mode={profile.defaultMaintenanceAnnualMode ?? 'flat'}
+          onChange={(value, mode) =>
+            updateProfile({ defaultMaintenanceAnnual: value, defaultMaintenanceAnnualMode: value === undefined ? undefined : mode })
+          }
+          allowPercent
+          percentSeed={0.5}
+          percentBasis="of the property value"
+          description="Annual maintenance allowance."
         />
       </div>
     </div>

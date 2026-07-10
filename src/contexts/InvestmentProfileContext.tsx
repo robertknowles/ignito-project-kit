@@ -74,6 +74,28 @@ export interface InvestmentProfileData {
   smsfTaxRate: number;
   marginalTaxRateAtConsolidation: number;
   cgtOneYearDiscount: number;
+  // ── Global Next-Purchase cost defaults ──
+  // Applied to FUTURE property instances only (at materialisation time in
+  // createInstance / scenarioRunner). undefined => use the per-type default
+  // from property-defaults.json, so untouched fields keep each property type's
+  // tailored costs and no saved scenario changes behaviour.
+  // One-off purchase costs:
+  defaultEngagementFee?: number;
+  defaultEngagementFeeMode?: 'flat' | 'percent'; // percent = % of purchase price
+  defaultConveyancing?: number;
+  defaultMortgageFees?: number;
+  defaultBuildingPestInspection?: number;
+  defaultBuildingInsuranceUpfront?: number;
+  defaultPlumbingElectricalInspections?: number;
+  defaultIndependentValuation?: number;
+  defaultMaintenancePostSettlement?: number;
+  // Annual holding costs:
+  defaultPropertyManagementPercent?: number; // % of rent (reactive in engine)
+  defaultBuildingInsuranceAnnual?: number;
+  defaultCouncilRatesWater?: number;
+  defaultStrata?: number;
+  defaultMaintenanceAnnual?: number;
+  defaultMaintenanceAnnualMode?: 'flat' | 'percent'; // percent = % of property value
 }
 
 export interface CalculatedValues {

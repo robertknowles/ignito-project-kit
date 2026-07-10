@@ -136,7 +136,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
   const lvrOverride = profile.lvrStrategy === 'prudent_80' ? 80
     : profile.lvrStrategy === 'custom' ? (profile.lvrStrategyCustomPercent ?? 80)
     : undefined;
-  const { propertyOrder, instances } = mapToPropertySelections(response, lvrOverride);
+  const { propertyOrder, instances } = mapToPropertySelections(response, lvrOverride, profile);
 
   if (!options?.silent) console.info('[PreCheck] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
 

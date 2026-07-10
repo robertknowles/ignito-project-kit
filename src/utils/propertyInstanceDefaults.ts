@@ -1,5 +1,6 @@
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { GrowthCurve } from '../types/property';
+import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
 import { GROWTH_RATE_TIERS } from '../constants/financialParams';
 import {
   isCellId,
@@ -94,6 +95,57 @@ export const getPropertyInstanceDefaults = (
 
   // 5. Minimal defaults
   return createMinimalDefaults();
+};
+
+/**
+ * Overlays the BA's global Next-Purchase cost defaults (set on the Assumptions
+ * page) onto a freshly-resolved instance-defaults object.
+ *
+ * Applied ONLY at instance materialisation (createInstance / scenarioRunner
+ * gap-fill), so already-placed / loaded instances are never rewritten — the
+ * defaults affect FUTURE purchases only.
+ *
+ * For each field: an `undefined` profile default means "leave the per-type
+ * value" (keeps property-defaults.json's tailored costs). A defined value
+ * overrides. The two `*Mode === 'percent'` fields seed a dollar figure from the
+ * base purchase price. Returns a new object; never mutates `base`.
+ */
+export const applyGlobalCostDefaults = (
+  base: PropertyInstanceDetails,
+  profile: Partial<InvestmentProfileData>
+): PropertyInstanceDetails => {
+  const price = base.purchasePrice;
+  const flat = (v: number | undefined, fallback: number): number =>
+    v === undefined ? fallback : v;
+
+  return {
+    ...base,
+    // One-off purchase costs
+    engagementFee:
+      profile.defaultEngagementFee === undefined
+        ? base.engagementFee
+        : profile.defaultEngagementFeeMode === 'percent'
+          ? Math.round(price * (profile.defaultEngagementFee / 100))
+          : profile.defaultEngagementFee,
+    conveyancing: flat(profile.defaultConveyancing, base.conveyancing),
+    mortgageFees: flat(profile.defaultMortgageFees, base.mortgageFees),
+    buildingPestInspection: flat(profile.defaultBuildingPestInspection, base.buildingPestInspection),
+    buildingInsuranceUpfront: flat(profile.defaultBuildingInsuranceUpfront, base.buildingInsuranceUpfront),
+    plumbingElectricalInspections: flat(profile.defaultPlumbingElectricalInspections, base.plumbingElectricalInspections),
+    independentValuation: flat(profile.defaultIndependentValuation, base.independentValuation),
+    maintenanceAllowancePostSettlement: flat(profile.defaultMaintenancePostSettlement, base.maintenanceAllowancePostSettlement),
+    // Annual holding costs
+    propertyManagementPercent: flat(profile.defaultPropertyManagementPercent, base.propertyManagementPercent),
+    buildingInsuranceAnnual: flat(profile.defaultBuildingInsuranceAnnual, base.buildingInsuranceAnnual),
+    councilRatesWater: flat(profile.defaultCouncilRatesWater, base.councilRatesWater),
+    strata: flat(profile.defaultStrata, base.strata),
+    maintenanceAllowanceAnnual:
+      profile.defaultMaintenanceAnnual === undefined
+        ? base.maintenanceAllowanceAnnual
+        : profile.defaultMaintenanceAnnualMode === 'percent'
+          ? Math.round(price * (profile.defaultMaintenanceAnnual / 100))
+          : profile.defaultMaintenanceAnnual,
+  };
 };
 
 /**

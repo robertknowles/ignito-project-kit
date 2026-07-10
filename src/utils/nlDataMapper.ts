@@ -13,7 +13,7 @@ import type { InvestmentProfileData } from '@/contexts/InvestmentProfileContext'
 import type { PropertySelection } from '@/contexts/PropertySelectionContext';
 import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 import type { ExistingProperty } from '@/types/existingProperty';
-import { getPropertyInstanceDefaults } from '@/utils/propertyInstanceDefaults';
+import { getPropertyInstanceDefaults, applyGlobalCostDefaults } from '@/utils/propertyInstanceDefaults';
 import {
   isCellId,
   translateLegacyTypeKey,
@@ -205,6 +205,7 @@ interface PropertyMappingResult {
 export function mapToPropertySelections(
   response: NLParseResponse,
   lvrOverride?: number,
+  profile?: Partial<InvestmentProfileData>,
 ): PropertyMappingResult {
   const selections: PropertySelection = {};
   const propertyOrder: string[] = [];
@@ -231,8 +232,15 @@ export function mapToPropertySelections(
     // Instance ID convention: {cellId}_instance_{index}
     const instanceId = `${engineId}_instance_${currentCount}`;
 
-    // Pull the full template defaults for this cell.
-    const defaults = getPropertyInstanceDefaults(engineId);
+    // Pull the full template defaults for this cell, then overlay the BA's
+    // global Next-Purchase cost defaults (Assumptions page) so an AI-generated
+    // plan picks up the same universal costs as a manual add. Seed the overlay
+    // with the AI's purchase price so percent-based defaults (engagement fee,
+    // annual maintenance) compute off the real figure, not the template price.
+    const baseDefaults = getPropertyInstanceDefaults(engineId);
+    const defaults = profile
+      ? applyGlobalCostDefaults({ ...baseDefaults, purchasePrice: prop.purchasePrice }, profile)
+      : baseDefaults;
 
     // Overlay Claude's extracted values. Mode comes from prop.mode if Claude
     // sent it (Phase 3+); otherwise inherit the cell's default mode from defaults.
@@ -374,7 +382,8 @@ const SUPPORTED_CHANGE_FIELDS = new Set([
 export function mapModificationToUpdates(
   response: NLParseResponse,
   currentInstances: Record<string, PropertyInstanceDetails>,
-  currentOrder: string[]
+  currentOrder: string[],
+  profile?: Partial<InvestmentProfileData>
 ): ContextUpdates {
   if (!response.modification) {
     console.warn('[nlDataMapper] mapModificationToUpdates called with no modification on response');
@@ -503,7 +512,7 @@ export function mapModificationToUpdates(
   // Add property — target is "portfolio", new property details are in response.properties
   if (action === 'add') {
     if (response.properties && response.properties.length > 0) {
-      const newMapping = mapToPropertySelections(response)
+      const newMapping = mapToPropertySelections(response, undefined, profile)
 
       // Re-index new property IDs to avoid collisions with existing ones.
       // mapToPropertySelections generates IDs starting from _instance_0

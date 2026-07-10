@@ -20,7 +20,7 @@
 
 import { computeTimelineProperties } from './timelineEngine';
 import { computeProjection, type PortfolioProjectionResult } from './projectionEngine';
-import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
+import { getPropertyInstanceDefaults, applyGlobalCostDefaults } from '../utils/propertyInstanceDefaults';
 import {
   INITIAL_INVESTMENT_PROFILE,
   type InvestmentProfileData,
@@ -89,7 +89,7 @@ export function runScenario(scenario: ScenarioInput, env: ScenarioEnv): Scenario
   for (const id of propertyOrder) {
     if (!instances[id]) {
       const type = id.replace(/_instance_\d+$/, '');
-      const defaults = getPropertyInstanceDefaults(type);
+      const defaults = applyGlobalCostDefaults(getPropertyInstanceDefaults(type), profile);
       instances[id] = {
         ...defaults,
         state: defaults.state || 'VIC',

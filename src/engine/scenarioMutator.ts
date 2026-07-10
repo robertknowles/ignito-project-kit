@@ -72,7 +72,7 @@ export function applyNlResponseToScenario(
 
     for (const mod of modList) {
       const singleResponse = { ...response, modification: mod, modifications: undefined };
-      const updates = mapModificationToUpdates(singleResponse, instances, order);
+      const updates = mapModificationToUpdates(singleResponse, instances, order, profile);
 
       if (updates.warnings && updates.warnings.length > 0) {
         warnings.push(...updates.warnings);
@@ -121,7 +121,7 @@ export function applyNlResponseToScenario(
         modification: { target: 'portfolio', action: 'add' as const, params: {} },
         modifications: undefined,
       };
-      const addUpdates = mapModificationToUpdates(addResponse, instances, order);
+      const addUpdates = mapModificationToUpdates(addResponse, instances, order, profile);
       if (addUpdates.selectionChanges) {
         applySelectionChanges(addUpdates.selectionChanges);
       }

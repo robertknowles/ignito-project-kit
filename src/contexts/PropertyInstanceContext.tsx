@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
-import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
+import { getPropertyInstanceDefaults, applyGlobalCostDefaults } from '../utils/propertyInstanceDefaults';
+import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
 
 interface PropertyInstanceContextType {
   instances: Record<string, PropertyInstanceDetails>;
@@ -23,10 +24,14 @@ export const usePropertyInstance = () => {
 
 export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [instances, setInstances] = useState<Record<string, PropertyInstanceDetails>>({});
+  const { profile } = useInvestmentProfile();
 
   const createInstance = useCallback((instanceId: string, propertyType: string, period: number) => {
-    const defaults = getPropertyInstanceDefaults(propertyType);
-    
+    // Overlay the BA's global Next-Purchase cost defaults (Assumptions page)
+    // onto the per-type defaults. Applied here at materialisation so only
+    // FUTURE purchases pick them up — existing instances are untouched.
+    const defaults = applyGlobalCostDefaults(getPropertyInstanceDefaults(propertyType), profile);
+
     // Ensure state is always set (fallback to VIC if missing)
     // Set valuationAtPurchase to purchasePrice by default so users don't have to manually enter it
     const instanceWithState: PropertyInstanceDetails = {
@@ -39,7 +44,7 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
       ...prev,
       [instanceId]: instanceWithState,
     }));
-  }, []);
+  }, [profile]);
 
   const updateInstance = useCallback((instanceId: string, updates: Partial<PropertyInstanceDetails>) => {
     setInstances(prev => {

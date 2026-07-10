@@ -381,7 +381,7 @@ export const ChatPanel: React.FC = () => {
         : profile.lvrStrategy === 'custom' ? (profile.lvrStrategyCustomPercent ?? 80)
         : undefined;
       const { selections: newSelections, propertyOrder: newOrder, instances: newInstances } =
-        mapToPropertySelections(response, lvrOverride)
+        mapToPropertySelections(response, lvrOverride, profile)
       console.warn('[ConfirmPlan] Instances:', Object.entries(newInstances).map(([id, inst]) => `${id} period=${inst.manualPlacementPeriod} manual=${inst.isManuallyPlaced} dismissed=${inst.alertDismissed}`).join(' | '))
       if (newOrder.length > 0) {
         setAllSelections(newSelections, newOrder)
@@ -486,7 +486,7 @@ export const ChatPanel: React.FC = () => {
       for (const mod of modList) {
         // Create a temporary response with just this modification
         const singleResponse = { ...response, modification: mod, modifications: undefined }
-        const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder)
+        const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder, profile)
 
         if (updates.warnings && updates.warnings.length > 0) {
           allWarnings.push(...updates.warnings)
@@ -538,7 +538,7 @@ export const ChatPanel: React.FC = () => {
       if (!hadAddMod && response.properties && response.properties.length > 0) {
         console.info('[ChatPanel] processing orphaned properties as add', { count: response.properties.length })
         const addResponse = { ...response, modification: { target: 'portfolio', action: 'add', params: {} }, modifications: undefined }
-        const addUpdates = mapModificationToUpdates(addResponse, currentInstances, currentOrder)
+        const addUpdates = mapModificationToUpdates(addResponse, currentInstances, currentOrder, profile)
         if (addUpdates.selectionChanges) {
           currentOrder = addUpdates.selectionChanges.propertyOrder
           currentSelections = addUpdates.selectionChanges.selections
