@@ -562,7 +562,23 @@ export const BriefTab: React.FC<{
 
   // Visual breakdown — cash donut + LVR gauge (equal height, content fills)
   const purchaseVisual = (
-    <ChartCard title="Funding this purchase">
+    <ChartCard
+      title="Funding this purchase"
+      action={
+        <button
+          onClick={() => {
+            if (purchasing) return
+            setPurchasing(true)
+            window.setTimeout(() => completePurchaseRef.current(), 380)
+          }}
+          disabled={purchasing}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+        >
+          <CheckCircle2 size={14} />
+          Mark as purchased
+        </button>
+      }
+    >
       <FundingCard
         segments={cashSegments}
         total={totalCash}
@@ -893,22 +909,6 @@ export const BriefTab: React.FC<{
           )}
         </div>
       )}
-      {/* Row 2: purchased button */}
-      <div className="flex items-center justify-end">
-        <button
-          onClick={() => {
-            if (purchasing) return
-            setPurchasing(true)
-            window.setTimeout(() => completePurchaseRef.current(), 380)
-          }}
-          disabled={purchasing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] rounded-lg hover:bg-[#F9FAFB] transition-colors disabled:opacity-50 disabled:pointer-events-none"
-        >
-          <CheckCircle2 size={14} />
-          Purchased property
-        </button>
-      </div>
-
       {/* Merged content — pulls away on purchase, next brief slides in */}
       <motion.div
         key={purchaseSeq}
