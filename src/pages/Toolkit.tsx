@@ -48,7 +48,7 @@ const Toolkit: React.FC = () => {
           <PurchaseBriefCalc onBack={() => setShowPurchaseBriefCalc(false)} />
         ) : (
           <>
-            <h1 className="text-xl font-semibold text-neutral-900 mb-6">Toolkit</h1>
+            <h1 className="page-title mb-6">Toolkit</h1>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
               <ToolCard
