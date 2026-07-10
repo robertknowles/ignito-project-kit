@@ -11,10 +11,10 @@ import { BASE_YEAR } from '../../constants/financialParams';
 import { type ReportMeta } from './ReportShell';
 
 /**
- * PortfolioBriefReport — the unified "Portfolio Brief (Descriptive)" export.
+ * PortfolioBriefReport - the unified "Portfolio Brief (Descriptive)" export.
  *
  * Wired to the same live hooks the dashboard uses, so the brief is always
- * parallel to what's on screen. The document flows continuously — blocks carry
+ * parallel to what's on screen. The document flows continuously - blocks carry
  * `.brief-avoid` so the browser's print engine packs each A4 page full and
  * never splits a card, and only "The next purchase" forces a page break
  * (`.brief-break`). Page margins come from `@page` (index.css). Styling
@@ -116,7 +116,7 @@ const niceAxis = (min: number, max: number, intervals = 3): { min: number; max: 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Inline line chart. Two viewBox scales: `wide` for full-page-width cards
-// (dashboard-like strip proportions) and compact for half-width pairs — each
+// (dashboard-like strip proportions) and compact for half-width pairs - each
 // sized so axis text stays legible at its rendered scale.
 // ─────────────────────────────────────────────────────────────────────────────
 interface ChartPin {
@@ -130,7 +130,7 @@ interface ChartProps {
   years: number[];
   stroke: string;
   area?: string;
-  /** Unique gradient id — renders the dashboard's fade-to-transparent area
+  /** Unique gradient id - renders the dashboard's fade-to-transparent area
       fill (ChartWithRoadmap equityFillGradient) instead of a flat `area`. */
   gradientId?: string;
   baselineZero?: boolean;
@@ -140,7 +140,7 @@ interface ChartProps {
   goalColor?: string;
   /** Full page-width rendering (page-1 portfolio charts) */
   wide?: boolean;
-  /** Purchase-year pins — property glyph in a ringed circle on a stem,
+  /** Purchase-year pins - property glyph in a ringed circle on a stem,
       mirroring the dashboard's pin family (§3.1). */
   pins?: ChartPin[];
 }
@@ -175,7 +175,7 @@ const LineChartSvg: React.FC<ChartProps> = ({
   // zero baseline (dashed) when the range crosses zero
   const showZero = yMin < 0 && yMax > 0;
 
-  // x labels — quarters on wide charts; first/middle/last on half-width ones
+  // x labels - quarters on wide charts; first/middle/last on half-width ones
   const xIdx = wide
     ? Array.from(new Set([0, Math.round((n - 1) * 0.25), Math.round((n - 1) * 0.5), Math.round((n - 1) * 0.75), n - 1]))
     : Array.from(new Set([0, Math.round((n - 1) * 0.5), n - 1]));
@@ -215,7 +215,7 @@ const LineChartSvg: React.FC<ChartProps> = ({
         const px = xAt(i);
         const py = yAt(values[i]);
         const r = 13;
-        // Keep the badge inside the plot area — a first-year purchase sits on
+        // Keep the badge inside the plot area - a first-year purchase sits on
         // the y-axis, so clamp its circle right of the axis labels and let the
         // stem lean from the data point up to it.
         const cx = Math.min(Math.max(px, X0 + r + 2), X1 - r - 2);
@@ -579,7 +579,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
   const eqMid = Math.round((equitySeries.length - 1) / 2);
   const cfMid = Math.round((cfSeries.length - 1) / 2);
 
-  // Purchase-year pins for the portfolio charts — same pin family as the
+  // Purchase-year pins for the portfolio charts - same pin family as the
   // dashboard's equity chart (house for residential, building for commercial).
   const isCommercial = (title?: string) =>
     /commercial|office|retail|industrial|warehouse|shop/i.test(title || '');
@@ -593,7 +593,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <div className="brief-flow" style={{ padding: '0 18mm', background: '#fff', color: INK, fontFamily: FONT, fontSize: 11, lineHeight: 1.5 }}>
-      {/* ═══════════ PAGE 1 — GOAL · TIMELINE · CHARTS ═══════════ */}
+      {/* ═══════════ PAGE 1 - GOAL · TIMELINE · CHARTS ═══════════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `2px solid ${INK}`, paddingBottom: 9, marginBottom: 8 }}>
         <Brand name={companyName} accent={accent} logoUrl={meta.branding.logoUrl} />
         <div style={{ textAlign: 'right' }}>
@@ -665,11 +665,11 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
           </tbody>
         </table>
         <p style={{ fontSize: 8.5, color: FAINT, margin: '6px 0 0', lineHeight: 1.45 }}>
-          The first purchase (highlighted) is detailed in full in the next-purchase section. Purchase costs are the one-off costs to complete each purchase — stamp duty plus engagement, inspection, upfront insurance, mortgage and conveyancing fees — paid on top of the deposit.
+          The first purchase (highlighted) is detailed in full in the next-purchase section. Purchase costs are the one-off costs to complete each purchase - stamp duty plus engagement, inspection, upfront insurance, mortgage and conveyancing fees - paid on top of the deposit.
         </p>
       </Card>
 
-      {/* Equity + cashflow over the plan — full-width stacked, start/mid/end row */}
+      {/* Equity + cashflow over the plan - full-width stacked, start/mid/end row */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <ChartBlock
           title="Total equity"
@@ -771,7 +771,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
             </div>
           </Card>
 
-          {/* First-purchase charts — side by side with the year stat rows */}
+          {/* First-purchase charts - side by side with the year stat rows */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
             <ChartBlock
               title="Equity growth"
@@ -950,7 +950,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
       ) : (
         <div className="brief-break">
           <SectionH>The next purchase</SectionH>
-          <P>No properties in the plan yet — add one to generate the next-purchase detail.</P>
+          <P>No properties in the plan yet - add one to generate the next-purchase detail.</P>
         </div>
       )}
 
@@ -959,10 +959,10 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
         <SectionH>How this plan works</SectionH>
         <div style={{ fontSize: 9.5, color: MUTED, lineHeight: 1.6 }}>
           <p style={{ margin: '0 0 7px' }}>
-            <b style={{ color: TITLE }}>Goal first, one property at a time.</b> Every number in this brief is expressed as progress toward the client's stated goal, {compact(equityGoal)} equity and {compact(cashflowGoal)} a year in income within {horizonYears} years, not as a fixed forecast. The plan is built incrementally: each purchase decision is based on the client's position at that point — the equity available, the borrowing capacity, and the cashflow the existing properties carry — and adding a property updates every downstream figure. {equityTargetYear ? `The goal marker on the equity chart shows the point the equity target is modelled to be reached, around ${equityTargetYear}.` : ''} The plan is a living document that moves with the client's real position, not a single forecast run once and filed away.
+            <b style={{ color: TITLE }}>Goal first, one property at a time.</b> Every number in this brief is expressed as progress toward the client's stated goal, {compact(equityGoal)} equity and {compact(cashflowGoal)} a year in income within {horizonYears} years, not as a fixed forecast. The plan is built incrementally: each purchase decision is based on the client's position at that point - the equity available, the borrowing capacity, and the cashflow the existing properties carry - and adding a property updates every downstream figure. {equityTargetYear ? `The goal marker on the equity chart shows the point the equity target is modelled to be reached, around ${equityTargetYear}.` : ''} The plan is a living document that moves with the client's real position, not a single forecast run once and filed away.
           </p>
           <p style={{ margin: 0 }}>
-            <b style={{ color: TITLE }}>Borrowing capacity and cashflow over the plan.</b> The plan tracks remaining borrowing headroom, modelled here at about {money(borrowingHeadroom)} after the {propertyCount === 1 ? 'purchase' : `${propertyCount} purchases`}; these are indicative estimates to support planning, not a credit assessment or an offer of finance — actual capacity is determined by a lender at the time of each application. In the early years the portfolio runs at a holding cost as each new property is added. As rents rise and the loans hold under interest only, the combined position improves each year{cfPositiveYear ? ` and is modelled to turn cashflow positive around ${cfPositiveYear}` : ''}, building toward an estimated {money(netCashflowEnd)} a year by {cfYears[cfYears.length - 1]}. The income goal is met in the retirement phase, where selected properties are sold down to clear debt and lift net income, set out in the separate retirement scenario.
+            <b style={{ color: TITLE }}>Borrowing capacity and cashflow over the plan.</b> The plan tracks remaining borrowing headroom, modelled here at about {money(borrowingHeadroom)} after the {propertyCount === 1 ? 'purchase' : `${propertyCount} purchases`}; these are indicative estimates to support planning, not a credit assessment or an offer of finance - actual capacity is determined by a lender at the time of each application. In the early years the portfolio runs at a holding cost as each new property is added. As rents rise and the loans hold under interest only, the combined position improves each year{cfPositiveYear ? ` and is modelled to turn cashflow positive around ${cfPositiveYear}` : ''}, building toward an estimated {money(netCashflowEnd)} a year by {cfYears[cfYears.length - 1]}. The income goal is met in the retirement phase, where selected properties are sold down to clear debt and lift net income, set out in the separate retirement scenario.
           </p>
         </div>
       </div>

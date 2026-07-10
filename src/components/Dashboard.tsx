@@ -21,7 +21,7 @@ import { CashflowChart } from './CashflowChart';
 import { PortfolioCashflow } from './PortfolioCashflow';
 import { BorrowingCapacityChart } from './BorrowingCapacityChart';
 import { PropertyRoadmapChart, PropertyRoadmapSummary, ROADMAP_LEGEND } from './PropertyRoadmapChart/PropertyRoadmapChart';
-// EquityMortgageChart and HoldingCostChart hidden for now — components preserved in their files
+// EquityMortgageChart and HoldingCostChart hidden for now - components preserved in their files
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
@@ -53,7 +53,7 @@ interface TabItemProps {
   onClick: () => void;
 }
 
-// Top tabs — §2.4 underline style: 13px/600, active violet text + 2px violet
+// Top tabs - §2.4 underline style: 13px/600, active violet text + 2px violet
 // underline overlapping the header hairline, inactive meta-grey.
 const PrimaryTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }) => (
   <button
@@ -69,7 +69,7 @@ const PrimaryTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }
   </button>
 );
 
-// Sub-tabs — §2.4 segmented control: active = white pill (radius 7 + shadow,
+// Sub-tabs - §2.4 segmented control: active = white pill (radius 7 + shadow,
 // #181D27), inactive meta-grey, 13px/600. The grey track wraps these.
 const SubTabItem: React.FC<TabItemProps> = ({ icon, label, active, onClick }) => (
   <button
@@ -93,7 +93,7 @@ const formatCompact = (value: number): string => {
   return `${sign}$${Math.round(abs)}`;
 };
 
-/** Compact money for summary cards — trims trailing zeros ($5M, $6.59M, $165k). */
+/** Compact money for summary cards - trims trailing zeros ($5M, $6.59M, $165k). */
 const formatMoney = (value: number): string => {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
@@ -123,7 +123,7 @@ const TimeRangeTabs: React.FC<{ value: number; onChange: (v: number) => void }> 
   </div>
 );
 
-/** Static placeholder block — only shimmers when animating */
+/** Static placeholder block - only shimmers when animating */
 const SkeletonBlock = ({ className, animate }: { className?: string; animate?: boolean }) => (
   <div className={`rounded-md bg-gray-200 relative overflow-hidden ${className ?? ''}`}>
     {animate && (
@@ -133,7 +133,7 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
 );
 
 /**
- * PlanLoadingBar — determinate-looking progress bar shown at the top of the
+ * PlanLoadingBar - determinate-looking progress bar shown at the top of the
  * skeleton while a plan is being generated. The fill is simulated (the request
  * has no true progress): it eases toward 92% and the whole bar unmounts the
  * moment the plan lands. Mirrors the Compare page's ScenarioLoadingBar.
@@ -164,13 +164,13 @@ const PlanLoadingBar = () => {
 };
 
 /**
- * PlanLoadingSteps — a single progress line beneath the loading bar showing what
+ * PlanLoadingSteps - a single progress line beneath the loading bar showing what
  * the engine is doing right now. Each step replaces the previous one (no stacking):
  * the old line fades out and the next fades up in its place. Steps advance on their
- * own timers (the request has no true progress signal — same approximation the chat
+ * own timers (the request has no true progress signal - same approximation the chat
  * panel's ChatLoadingSteps uses).
  *
- * Timings are deliberately IRREGULAR so it doesn't feel like a mechanical loop —
+ * Timings are deliberately IRREGULAR so it doesn't feel like a mechanical loop -
  * each step "works" for a different duration. Just before a line is replaced its
  * spinner flips to a green tick for a beat, so the user sees each step complete
  * before the next appears. The final step holds (spinner only) until the plan
@@ -233,7 +233,7 @@ const PlanLoadingSteps = ({ clientName }: { clientName?: string }) => {
 const DashboardSkeleton = ({ animate = false, showProgress = false, clientName }: { animate?: boolean; showProgress?: boolean; clientName?: string }) => (
   <div className="h-full w-full overflow-y-auto bg-white">
     <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 24px 80px 24px', width: '100%', minWidth: 500 }}>
-      {/* Loading header — bar + progress checks, only while actively generating */}
+      {/* Loading header - bar + progress checks, only while actively generating */}
       {showProgress && (
         <div className="flex flex-col items-center pt-6 pb-3">
           <PlanLoadingBar />
@@ -329,13 +329,13 @@ export const Dashboard = () => {
     return null;
   }, [scenarios, scenarioAForComparison, scenarioBForComparison, liveProfile, chartDataA, chartDataB]);
 
-  // Tab state — must be before the early return to satisfy React hooks rules
+  // Tab state - must be before the early return to satisfy React hooks rules
   const { dashboardTab: activeTab, setDashboardTab: setActiveTab } = useLayout();
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>('purchases');
   // Analytics: time spent on the main dashboard tab and the Plan sub-tab.
   useTabDwellTracking('main_tab', activeTab);
   useTabDwellTracking('plan_subtab', planSubTab);
-  // "Add property" opens the blank custom-property form directly — the old
+  // "Add property" opens the blank custom-property form directly - the old
   // template-picker modal (AddToTimelineModal) is deliberately bypassed; the
   // templates still exist in data for the AI/presets, just no picker UI.
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
@@ -348,7 +348,7 @@ export const Dashboard = () => {
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const resetAssumptionsRef = useRef<() => void>(() => {});
 
-  // PDF export — a single unified Portfolio Brief, always available regardless
+  // PDF export - a single unified Portfolio Brief, always available regardless
   // of the active tab.
   const [isExporting, setIsExporting] = useState(false);
 
@@ -392,7 +392,7 @@ export const Dashboard = () => {
       holdingCostsAnnual: lastCf ? Math.round(lastCf.expenses + lastCf.loanRepayments) : 0,
       ...(() => {
         // Cashflow headroom: stated annual savings less the worst shortfall on the
-        // timeline. Raw input — deliberately not scaled by SAVINGS_DEPLOYMENT_RATE.
+        // timeline. Raw input - deliberately not scaled by SAVINGS_DEPLOYMENT_RATE.
         const annualSavings = Math.max(0, Math.round(displayScenarioAData?.profile?.annualSavings ?? 0));
         const endYear = BASE_YEAR + displayYears - 1;
         let tightestHeadroom: number | null = null;
@@ -459,7 +459,7 @@ export const Dashboard = () => {
           }) + (g.newBuildBcUplift ?? 0);
 
           // Real exposure the lender counts: entity-discounted debt less cash
-          // reserves — identical to the chart's "Offset Debt" series.
+          // reserves - identical to the chart's "Offset Debt" series.
           const lenderDebt = g.entityDiscountedDebt ?? g.totalDebt ?? 0;
           const cashOffset = Math.min(g.cashOffset ?? 0, lenderDebt);
           const offsetDebt = Math.round(Math.max(0, lenderDebt - cashOffset));
@@ -490,7 +490,7 @@ export const Dashboard = () => {
     const cashflowGoal = liveProfile?.cashflowGoal ?? 0;
     const equityGoal = liveProfile?.equityGoal ?? 0;
 
-    // Target year = first year BOTH goals are projected to be met — the goal
+    // Target year = first year BOTH goals are projected to be met - the goal
     // isn't achieved while cashflow is still short of target, even if equity
     // got there first. A goal set to $0 means "no target" for that dimension.
     // Falls back to the plan horizon end when never met (goalMet = false).
@@ -540,7 +540,7 @@ export const Dashboard = () => {
     };
   }, [chartDataA, liveProfile, displayYears, liveTimelineProperties, kpis.totalEquity]);
 
-  // Headline metrics the change receipt diffs across edits — equity at the
+  // Headline metrics the change receipt diffs across edits - equity at the
   // displayed horizon, annual cashflow, borrowing headroom, and per-property
   // placement outcomes.
   const receiptMetrics = useMemo<ReceiptMetrics>(() => {
@@ -720,7 +720,7 @@ export const Dashboard = () => {
           </div>
         )}
 
-        {/* Blocked properties: no banner — indicated inline via red year text and red chart icons */}
+        {/* Blocked properties: no banner - indicated inline via red year text and red chart icons */}
 
         {/* ── Tab content ── */}
 
@@ -736,7 +736,7 @@ export const Dashboard = () => {
               const firstName =
                 ((activeClient?.name ?? '').trim().split(/\s+/)[0] || 'Client').toUpperCase();
 
-              // Years to reach the goal — target year is the first year BOTH
+              // Years to reach the goal - target year is the first year BOTH
               // goals are met. When neither year exists in the projection the
               // header shows "N+ years" rather than claiming the goal is hit.
               const yearsToGoal = Math.max(1, ph.targetYear - BASE_YEAR);
@@ -795,7 +795,7 @@ export const Dashboard = () => {
                     fontFamily: ff,
                   }}
                 >
-                  {/* Goal half — violet-50 tint */}
+                  {/* Goal half - violet-50 tint */}
                   <div
                     style={{
                       background: '#F5F3FF',
@@ -937,7 +937,7 @@ export const Dashboard = () => {
                     />
                     <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block w-56 px-3 py-2 rounded-lg bg-neutral-800 text-white text-xs leading-relaxed shadow-lg">
                       {kpis.borrowingStatus.state === 'broken'
-                        ? `Total liabilities overrun borrowing capacity in ${kpis.borrowingStatus.brokenYear}. The plan needs reworking before this point — pace acquisitions or adjust the entity structure.`
+                        ? `Total liabilities overrun borrowing capacity in ${kpis.borrowingStatus.brokenYear}. The plan needs reworking before this point - pace acquisitions or adjust the entity structure.`
                         : kpis.borrowingStatus.state === 'tight'
                           ? `Capacity gets tight in ${kpis.borrowingStatus.tightestYear} (${Math.round(kpis.borrowingStatus.peakUtilization * 100)}% used). Little room for slippage around this point.`
                           : 'If total liabilities exceed borrowing capacity, this is due to the trust entity structure allowing acquisitions beyond individual serviceability limits.'}
@@ -975,7 +975,7 @@ export const Dashboard = () => {
                 <BorrowingCapacityChart scenarioData={displayScenarioAData} />
               </ChartCard>
 
-              {/* Portfolio Cashflow — per-property IN vs OUT with year slider */}
+              {/* Portfolio Cashflow - per-property IN vs OUT with year slider */}
               <ChartCard
                 title="Portfolio Cashflow"
                 expandable
@@ -988,7 +988,7 @@ export const Dashboard = () => {
               </ChartCard>
             </div>
 
-            {/* Property Roadmap — Gantt chart (full width) */}
+            {/* Property Roadmap - Gantt chart (full width) */}
             <ChartCard
               title="Property Roadmap"
               expandable
@@ -1001,7 +1001,7 @@ export const Dashboard = () => {
               <PropertyRoadmapChart displayYears={displayYears} />
             </ChartCard>
 
-            {/* Equity vs Mortgage + What It Costs to Hold — hidden for now, charts preserved in components */}
+            {/* Equity vs Mortgage + What It Costs to Hold - hidden for now, charts preserved in components */}
           </>
         )}
 

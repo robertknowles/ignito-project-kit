@@ -1,9 +1,9 @@
 /**
- * ChatSummaryCard — Step 1.12 of NL-PIVOT-PLAN.csv
+ * ChatSummaryCard - Step 1.12 of NL-PIVOT-PLAN.csv
  *
  * A bordered key-value card shown after initial extraction. Displays what
  * was understood: client names, income, savings, deposit, property details,
- * ownership. The "visual receipt" — not a blocker, just confirmation.
+ * ownership. The "visual receipt" - not a blocker, just confirmation.
  */
 
 import React from 'react'

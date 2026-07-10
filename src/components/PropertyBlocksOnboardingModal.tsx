@@ -63,7 +63,7 @@ export const PropertyBlocksOnboardingModal: React.FC<PropertyBlocksOnboardingMod
                 <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    <span className="font-medium text-gray-900">Welcome!</span> These are your default property templates — 
+                    <span className="font-medium text-gray-900">Welcome!</span> These are your default property templates - 
                     pre-configured "building blocks" for creating investment strategies. Each template represents a different 
                     property type with typical values for your market.
                   </p>

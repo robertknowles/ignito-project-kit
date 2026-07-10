@@ -46,7 +46,7 @@ interface CashflowChartProps {
   };
 }
 
-/** Milestone marker — target pin on a stem (PropPath §3.3, replaces the pill) */
+/** Milestone marker - target pin on a stem (PropPath §3.3, replaces the pill) */
 const cashGoalPin = (cx: number, cy: number, label: string) => {
   const pinY = cy - 30;
   return (
@@ -64,7 +64,7 @@ const cashGoalPin = (cx: number, cy: number, label: string) => {
 };
 
 /**
- * Cashflow Projection — UUI Dashboard 03 "Sales" chart style
+ * Cashflow Projection - UUI Dashboard 03 "Sales" chart style
  *
  * Area chart with striped vertical-line fill pattern (matching UUI's SVG pattern technique).
  * Net cashflow as single visible line. Income/expenses available in tooltip.
@@ -88,7 +88,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     const endYear = BASE_YEAR + profile.timelineYears - 1;
     const capped = rawData.filter(d => Number(d.year) <= endYear);
 
-    // Savings floor mirrors the client's stated annual savings below zero — the
+    // Savings floor mirrors the client's stated annual savings below zero - the
     // deepest sustained shortfall they can hold. Raw input, no deployment scaling.
     const annualSavings = Math.max(0, Math.round(profile.annualSavings ?? 0));
 
@@ -129,7 +129,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
     return `${s}$${a}`;
   };
 
-  // Sparse X ticks (§3.5) — every 5 years + the last year
+  // Sparse X ticks (§3.5) - every 5 years + the last year
   const xTicks = useMemo(() => {
     const yrs = data.map(d => Number(d.year));
     const first = yrs[0], last = yrs[yrs.length - 1];
@@ -264,7 +264,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
           margin={{ top: 20, right: 8, left: 0, bottom: 0 }}
         >
           <defs>
-            {/* Signed violet fill (§3.3) — ~12% opacity, above and below $0 */}
+            {/* Signed violet fill (§3.3) - ~12% opacity, above and below $0 */}
             <linearGradient id="cashflowSignedFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={UUI.brand600} stopOpacity={0.14} />
               <stop offset="100%" stopColor={UUI.brand600} stopOpacity={0.14} />
@@ -278,7 +278,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             vertical={false}
           />
 
-          {/* X-axis — sparse grey year ticks (§3.5) */}
+          {/* X-axis - sparse grey year ticks (§3.5) */}
           <XAxis
             dataKey="year"
             ticks={xTicks}
@@ -294,7 +294,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             padding={{ left: 12, right: 10 }}
           />
 
-          {/* Full-height labelled Y axis (§3.9) — round $ ticks, $0 on the zero line */}
+          {/* Full-height labelled Y axis (§3.9) - round $ ticks, $0 on the zero line */}
           <YAxis
             domain={yDomain}
             ticks={yTicks}
@@ -304,20 +304,20 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             tickLine={false}
             width={42}
           />
-          {/* Hidden axis for tooltip-only series — keeps income/expenses OUT of
+          {/* Hidden axis for tooltip-only series - keeps income/expenses OUT of
               the visible Y scale (they grow far beyond net cashflow and were
               silently stretching the domain, squashing the plot). */}
           <YAxis yAxisId="tooltipOnly" hide />
 
           <Tooltip content={<CustomTooltip />} />
-          {/* Signed-fill zero line (§3.3) — quiet grey baseline */}
+          {/* Signed-fill zero line (§3.3) - quiet grey baseline */}
           <ReferenceLine y={0} stroke={UUI.zeroLine} strokeWidth={1} />
 
           {/* Hidden series so income/expenses data is available in the tooltip payload */}
           <Line yAxisId="tooltipOnly" dataKey="income" name="Rental income" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
           <Line yAxisId="tooltipOnly" dataKey="expenses" name="Expenses" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
-          {/* Client savings rate — dashed floor mirrored below zero; cashflow must stay above it */}
+          {/* Client savings rate - dashed floor mirrored below zero; cashflow must stay above it */}
           {hasSavingsFloor && (
             <Line
               dataKey="savingsFloor"
@@ -331,7 +331,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             />
           )}
 
-          {/* Net Cashflow — solid violet line + signed fill straddling $0 (§3.3) */}
+          {/* Net Cashflow - solid violet line + signed fill straddling $0 (§3.3) */}
           <Area
             type="monotone"
             dataKey="netCashflow"
@@ -344,7 +344,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({ scenarioData }) =>
             isAnimationActive={false}
           />
 
-          {/* Cashflow milestone — target pin on a stem (§3.3) */}
+          {/* Cashflow milestone - target pin on a stem (§3.3) */}
           {milestonePoint && (
             <ReferenceDot
               x={milestonePoint.point.year}

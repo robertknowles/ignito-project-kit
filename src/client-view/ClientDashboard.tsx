@@ -262,7 +262,7 @@ export function ClientDashboard({
   const defaultGrowthRate = 0.06;
   const defaultInterestRate = investmentProfile?.interestRate || 0.065;
   
-  // Default growth curve for tiered growth — matches Medium tier
+  // Default growth curve for tiered growth - matches Medium tier
   // (Gameplans-replication calibration 2026-04-30). Fallback when scenario data
   // doesn't carry an explicit growth curve.
   const defaultGrowthCurve: GrowthCurve = {
@@ -602,7 +602,7 @@ export function ClientDashboard({
               {clientDisplayName}'s Portfolio Plan
               {comparisonMode && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
-                  — Comparing {scenarioA?.name || 'A'} vs {scenarioB?.name || 'B'}
+                  - Comparing {scenarioA?.name || 'A'} vs {scenarioB?.name || 'B'}
                 </span>
               )}
             </h1>
@@ -931,7 +931,7 @@ export function ClientDashboard({
                       Targets Reached
                     </h3>
                     <span className="text-xs text-emerald-600 font-medium">
-                      — {Math.min(equityYearsAhead || 0, incomeYearsAhead || 0)} years ahead
+                      - {Math.min(equityYearsAhead || 0, incomeYearsAhead || 0)} years ahead
                     </span>
                   </div>
                   

@@ -1,12 +1,12 @@
 /**
- * Scenario Mutator — apply an nl-parse response to a plain scenario COPY.
+ * Scenario Mutator - apply an nl-parse response to a plain scenario COPY.
  *
  * Pure re-host of ChatPanel.handleModification's merge loop (compound
  * modifications, valuation auto-sync, orphaned-add safety net) plus
- * handleUpdateProfile — but applied to a ScenarioInput object instead of the
+ * handleUpdateProfile - but applied to a ScenarioInput object instead of the
  * live dashboard contexts. The AI-arg interpretation itself stays in
  * utils/nlDataMapper.ts, shared with ChatPanel, so the two paths can never
- * drift on what a modification MEANS — only on where it lands.
+ * drift on what a modification MEANS - only on where it lands.
  *
  * Used by Compare's "Remodel with AI": mutate a copy of a client's plan,
  * re-run the engine on it, chart it against the original. The client's real
@@ -20,9 +20,9 @@ import type { ScenarioInput } from './scenarioRunner';
 
 export interface MutationResult {
   scenario: ScenarioInput;
-  /** Instance ids the response changed or added — drives row highlighting. */
+  /** Instance ids the response changed or added - drives row highlighting. */
   changedInstanceIds: string[];
-  /** Mapper warnings — things the AI claimed to do that couldn't be applied.
+  /** Mapper warnings - things the AI claimed to do that couldn't be applied.
    *  Must be surfaced; never let the AI's "Done!" stand for a silent drop. */
   warnings: string[];
   /** False when the response produced no applicable change at all. */
@@ -63,7 +63,7 @@ export function applyNlResponseToScenario(
   }
 
   if (response.type === 'modification') {
-    // Compound modifications array or a single modification — same as ChatPanel.
+    // Compound modifications array or a single modification - same as ChatPanel.
     const modList = response.modifications
       ? response.modifications
       : response.modification
@@ -101,7 +101,7 @@ export function applyNlResponseToScenario(
             changed.add(instanceId);
             didChange = true;
           } else {
-            warnings.push("Couldn't find that property to update — it may have been removed.");
+            warnings.push("Couldn't find that property to update - it may have been removed.");
           }
         }
       }
@@ -112,7 +112,7 @@ export function applyNlResponseToScenario(
     }
 
     // Safety net (ChatPanel parity): the AI sometimes returns a compound like
-    // remove+add but puts the add info only in `properties` with no add mod —
+    // remove+add but puts the add info only in `properties` with no add mod -
     // process the orphaned properties as an add so they aren't dropped.
     const hadAddMod = modList.some(m => m.action === 'add');
     if (!hadAddMod && response.properties && response.properties.length > 0) {

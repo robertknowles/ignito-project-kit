@@ -26,13 +26,13 @@ export const getGrowthCurveFromAssumption = (
 /**
  * Normalises a display label to a kebab-case key.
  * e.g. "Units / Apartments" → "units-apartments"
- *      "Metro House — Growth" → "metro-house-—-growth" (then v4-key-equivalent below)
+ *      "Metro House - Growth" → "metro-house---growth" (then v4-key-equivalent below)
  */
 const propertyTypeToKey = (propertyType: string): string => {
   return propertyType
     .toLowerCase()
     .replace(/\s*\/\s*/g, '-')
-    .replace(/\s*—\s*/g, '-')
+    .replace(/\s*-\s*/g, '-')
     .replace(/\s+/g, '-')
     .replace(/[()]/g, '');
 };
@@ -102,7 +102,7 @@ export const getPropertyInstanceDefaults = (
  * page) onto a freshly-resolved instance-defaults object.
  *
  * Applied ONLY at instance materialisation (createInstance / scenarioRunner
- * gap-fill), so already-placed / loaded instances are never rewritten — the
+ * gap-fill), so already-placed / loaded instances are never rewritten - the
  * defaults affect FUTURE purchases only.
  *
  * For each field: an `undefined` profile default means "leave the per-type

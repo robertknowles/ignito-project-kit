@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dashboard } from './components/Dashboard';
 import { AppSidebar, SIDEBAR_WIDTH } from './components/AppSidebar';
-// InputDrawer hidden for NL pivot — component preserved in codebase for future use
+// InputDrawer hidden for NL pivot - component preserved in codebase for future use
 // import { InputDrawer } from './components/InputDrawer';
 import { ChatPanel } from './components/ChatPanel';
 import { NewClientView } from './components/NewClientView';

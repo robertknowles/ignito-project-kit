@@ -1,5 +1,5 @@
 /**
- * ChatMessage — Step 1.10 of NL-PIVOT-PLAN.csv
+ * ChatMessage - Step 1.10 of NL-PIVOT-PLAN.csv
  *
  * Renders a single chat message. Four variants:
  * - user: dark bubble, right-aligned
@@ -74,7 +74,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
     )
   }
 
-  // System message — centered green pill
+  // System message - centered green pill
   if (message.role === 'system') {
     return (
       <div ref={ref}>
@@ -92,7 +92,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
     )
   }
 
-  // User message — light bubble, right-aligned (UUI style)
+  // User message - light bubble, right-aligned (UUI style)
   if (message.role === 'user') {
     return (
       <div ref={ref}>
@@ -110,7 +110,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
     )
   }
 
-  // Assistant message — left-aligned with avatar
+  // Assistant message - left-aligned with avatar
   return (
     <div ref={ref}>
       <motion.div
@@ -164,7 +164,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
               </div>
             )}
 
-            {/* Accuracy nudge — material inputs the BA didn't provide */}
+            {/* Accuracy nudge - material inputs the BA didn't provide */}
             {message.missingInputs && message.missingInputs.length > 0 && (
               <div className="text-xs text-amber-700 italic">
                 For greater accuracy, share:{' '}
@@ -179,7 +179,7 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
               </div>
             )}
 
-            {/* Feedback thumbs — only on text/summary/portfolio assistant messages */}
+            {/* Feedback thumbs - only on text/summary/portfolio assistant messages */}
             {message.type !== 'loading' && onFeedback && (
               <div className="flex items-center gap-1 pt-0.5">
                 <button

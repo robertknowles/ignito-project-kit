@@ -11,7 +11,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar';
-// HomeDrawer removed — navigation restructured
+// HomeDrawer removed - navigation restructured
 import { useCompany, TeamMember } from '@/contexts/CompanyContext';
 import { useBranding } from '@/contexts/BrandingContext';
 import { useAuth } from '@/contexts/AuthContext';

@@ -1,5 +1,5 @@
 /**
- * PropertyCardRow — editable property table on the dashboard.
+ * PropertyCardRow - editable property table on the dashboard.
  *
  * Two modes controlled by `mode` prop:
  *   equity   → value, growth, financing columns
@@ -18,7 +18,7 @@ import { useAffordabilityCalculator } from '../hooks/useAffordabilityCalculator'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
 import { useChangeReceipt } from '../contexts/ChangeReceiptContext';
 
-// Human labels for the change log's cause line ("Property 2 — Rent/wk ($) 480 → 520").
+// Human labels for the change log's cause line ("Property 2 - Rent/wk ($) 480 → 520").
 // High-traffic instance fields; anything missing falls back to a humanized key.
 const CHANGE_LOG_FIELD_LABELS: Partial<Record<keyof PropertyInstanceDetails, string>> = {
   purchasePrice: 'Price ($)',
@@ -78,7 +78,7 @@ const DEFAULT_NEW_CELL_ID: CellId = 'metro-unit-cashflow';
 
 // ── Inline cell components ───────────────────────────────────────────────────
 
-// Shared inline-cell input styling (§2.2 record table — 13px cells). Text colour
+// Shared inline-cell input styling (§2.2 record table - 13px cells). Text colour
 // is set per input type: numerics recede to #535862 and right-align, string
 // selects use body #414651. Focus ring picks up the violet accent.
 const cellBase = 'w-full bg-transparent text-xs py-1 px-1 border-0 outline-none rounded hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors';
@@ -378,7 +378,7 @@ const HOLDING_COMPONENT_FIELDS = new Set<string>([
 // lump `purchaseCostsOverride` (scales the six parts) so existing scenarios
 // don't jump; editing any part in the popover clears that override (see
 // handleFieldChange) so raw values then drive both display and engine. Stamp
-// duty IS included in the headline total — matching the engine's
+// duty IS included in the headline total - matching the engine's
 // settlementTotal, which always adds stamp into totalCashRequired.
 const purchaseCostFigures = (d: PropertyInstanceDetails) => {
   const rawFees =
@@ -406,7 +406,7 @@ const purchaseCostFigures = (d: PropertyInstanceDetails) => {
   };
 };
 
-// Popover row — editable component. Shows a formatted "$x,xxx" value at rest
+// Popover row - editable component. Shows a formatted "$x,xxx" value at rest
 // (matching the record-table style) and switches to a raw editable number on
 // focus. Styling mirrors the Holding $/yr BreakdownTip: 11px, muted labels and
 // a 500-weight value, so both cost breakdowns read identically.
@@ -515,7 +515,7 @@ const HoverPopoverPanel: React.FC<{
   );
 };
 
-// Purchase Costs cell — read-only headline total (fees + stamp) that reveals an
+// Purchase Costs cell - read-only headline total (fees + stamp) that reveals an
 // interactive popover on hover. The popover exposes the six fee components plus
 // stamp duty as editable inputs, then a read-only Deposit + Total cash required
 // footer.
@@ -554,7 +554,7 @@ const PurchaseCostsCell: React.FC<{
   );
 };
 
-// Holding $/yr cell — read-only headline total that reveals an editable popover
+// Holding $/yr cell - read-only headline total that reveals an editable popover
 // mirroring Purchase Costs. Management is edited as a dollar figure and
 // back-solved into propertyManagementPercent; the other four map straight to
 // their annual-expense fields. Editing any component clears the legacy
@@ -601,7 +601,7 @@ const HoldingCostCell: React.FC<{
 };
 
 const readonlyCell = (text: string | number | undefined) => (
-  <span className="text-xs text-[#535862]">{text ?? '—'}</span>
+  <span className="text-xs text-[#535862]">{text ?? '-'}</span>
 );
 
 const yearCellPlaceholder: RenderFn = (card) => readonlyCell(card.purchaseYear);
@@ -802,7 +802,7 @@ const CASHFLOW_COLUMNS: Column[] = [
   },
 ];
 
-// ── Combined "Purchases" columns — streamlined ──────────────────────────────
+// ── Combined "Purchases" columns - streamlined ──────────────────────────────
 
 const PURCHASES_COLUMNS: Column[] = [
   // ── Identity ──
@@ -957,7 +957,7 @@ function buildGroupHeaders(columns: Column[]): { label: string; span: number }[]
   return hasGroups ? groups : null;
 }
 
-// ── Block cards — replicates BriefTab "Property summary" table style ────────
+// ── Block cards - replicates BriefTab "Property summary" table style ────────
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU');
 
@@ -1177,7 +1177,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
 
   const yearCellEditable: RenderFn = (card) => {
     if (card.isUnplaceable) {
-      return <span className="text-amber-600 text-xs" title="Doesn't fit in current timeline">—</span>;
+      return <span className="text-amber-600 text-xs" title="Doesn't fit in current timeline">-</span>;
     }
 
     const year = card.purchaseYear ?? BASE_YEAR;
@@ -1185,7 +1185,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
     const tp = card.timelineProp;
 
     const stepper = (
-      // Compact centred stepper — flush −/+ so the year cell stays as tight as
+      // Compact centred stepper - flush −/+ so the year cell stays as tight as
       // the other numeric cells (§2.2). Buttons keep a py hit-area but no width.
       <div className="flex items-center justify-center gap-0">
         <button
@@ -1275,7 +1275,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                   overflow: 'hidden',
                 }}
               >
-                {/* Card header — single, clean title row */}
+                {/* Card header - single, clean title row */}
                 <div
                   style={{
                     display: 'flex',
@@ -1319,7 +1319,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                 </div>
                 <table className="w-full text-xs">
                   <tbody>
-                      <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '—' : (card.purchaseYear ?? '—')} />
+                      <BlockKVRow label="Purchase year" value={card.isUnplaceable ? '-' : (card.purchaseYear ?? '-')} />
                       <BlockSelectRow label="State" value={d.state} instanceId={iid} field="state" options={BLOCK_STATE_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Growth" value={d.growthAssumption} instanceId={iid} field="growthAssumption" options={BLOCK_GROWTH_OPTIONS} onChange={handleFieldChange} />
                       <BlockSelectRow label="Entity" value={d.entity ?? 'individual'} instanceId={iid} field="entity" options={BLOCK_ENTITY_OPTIONS} onChange={handleFieldChange} />
@@ -1414,7 +1414,7 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
       <div className="overflow-x-auto">
         <table className="w-full text-xs" style={{ minWidth: mode === 'purchases' ? 1548 : mode === 'cashflow' ? 1200 : 700, tableLayout: 'fixed' }}>
           <thead>
-            {/* Column headers — §2.2 record table: 11px / 500 / #717680, numerics right-aligned */}
+            {/* Column headers - §2.2 record table: 11px / 500 / #717680, numerics right-aligned */}
             <tr className="border-b border-[#E9EAEB]">
               {columns.map((col, i) => (
                 <th

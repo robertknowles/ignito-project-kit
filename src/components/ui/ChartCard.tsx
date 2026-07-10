@@ -15,7 +15,7 @@ export interface LegendItem {
 
 interface ChartCardProps {
   title: string;
-  /** Rendered immediately after the title — the calculated-view (i) popover. */
+  /** Rendered immediately after the title - the calculated-view (i) popover. */
   titleInfo?: React.ReactNode;
   action?: React.ReactNode;
   legend?: LegendItem[];
@@ -29,7 +29,7 @@ interface ChartCardProps {
   children: React.ReactNode;
 }
 
-// ── PropPath card tokens (prototype-exact — PropPath Design System §1) ───────
+// ── PropPath card tokens (prototype-exact - PropPath Design System §1) ───────
 const UUI = {
   neutral900: '#181D27',  // primary text / values
   neutral700: '#414651',  // card titles
@@ -40,7 +40,7 @@ const UUI = {
 } as const;
 
 /**
- * ChartCard — PropPath single flat white card
+ * ChartCard - PropPath single flat white card
  *
  * One white card (14px radius, 1px #E9EAEB border). Title (13px/600 #414651)
  * plus optional legend/action/expand in the header, chart content below.
@@ -108,7 +108,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   ) : null;
 
   return (
-    /* Single flat white card — 14px radius, 1px #E9EAEB border (prototype §1) */
+    /* Single flat white card - 14px radius, 1px #E9EAEB border (prototype §1) */
     <div
       onMouseEnter={hoverTracking.onMouseEnter}
       onMouseLeave={hoverTracking.onMouseLeave}
@@ -121,7 +121,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         flexDirection: 'column',
       }}
     >
-      {/* Header — title + legend/action/expand, on the white card */}
+      {/* Header - title + legend/action/expand, on the white card */}
       <div
         style={{ padding: collapsed ? '18px 20px' : '20px 20px 0 20px' }}
         className={collapsible ? 'cursor-pointer select-none' : ''}
@@ -150,7 +150,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Legend — inline in header (unless moved below) */}
+            {/* Legend - inline in header (unless moved below) */}
             {!collapsed && !legendBelow && legendNode}
             {action && !collapsed && action}
             {expandable && !collapsed && (
@@ -167,13 +167,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
         </div>
 
-        {/* Legend — own row beneath the title (narrow cards) */}
+        {/* Legend - own row beneath the title (narrow cards) */}
         {!collapsed && legendBelow && legendNode && (
           <div style={{ marginTop: 8 }}>{legendNode}</div>
         )}
       </div>
 
-      {/* Content — chart/table body. `flush` = edge-to-edge (tables).
+      {/* Content - chart/table body. `flush` = edge-to-edge (tables).
           Flex column so a chart child with flex:1 fills the card height when
           the card is stretched by a taller grid sibling. */}
       {!collapsed && (
@@ -190,7 +190,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       )}
 
-      {/* Expanded modal — large centered view of the same chart */}
+      {/* Expanded modal - large centered view of the same chart */}
       {expandable && (
         <Dialog open={expanded} onOpenChange={setExpanded}>
           <DialogContent className="max-w-5xl w-[92vw] p-6">

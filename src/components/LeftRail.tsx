@@ -75,7 +75,7 @@ export const LeftRail = () => {
         position="right"
       >
       <div id="left-rail" className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-gray-200 z-50 flex flex-col items-center py-4">
-        {/* Home — explicit home icon (replaces former logo-as-home button) */}
+        {/* Home - explicit home icon (replaces former logo-as-home button) */}
         <div className="mb-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -143,7 +143,7 @@ export const LeftRail = () => {
 
         {/* Bottom Navigation Items */}
         <div className="flex flex-col items-center gap-2">
-          {/* Notifications — hidden until the feature is built. */}
+          {/* Notifications - hidden until the feature is built. */}
 
           {/* User Profile Menu */}
           <div className="relative" ref={profileDropdownRef}>

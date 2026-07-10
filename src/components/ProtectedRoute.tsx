@@ -65,7 +65,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Subscription gate is feature-flagged off during testing. When the flag is
   // on, redirect unpaid users to the upgrade page; if subscriptionStatus is
-  // still null, profile data hasn't loaded yet — show the timeout-aware loader.
+  // still null, profile data hasn't loaded yet - show the timeout-aware loader.
   if (SUBSCRIPTION_GATE_ENABLED && requireSubscription) {
     if (subscriptionStatus === null) {
       return <LoadingScreen />;

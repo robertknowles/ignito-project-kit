@@ -1,5 +1,5 @@
 /**
- * ClientSearchModal — ChatGPT-style command palette for finding a client.
+ * ClientSearchModal - ChatGPT-style command palette for finding a client.
  *
  * Opens centrally over whatever page the user is on (triggered from the
  * sidebar's "Search Clients" item or ⌘K). Type to filter, click a client to

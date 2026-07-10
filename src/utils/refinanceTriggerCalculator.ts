@@ -37,7 +37,7 @@ export function calculateRefinanceTriggers(
       const periodsOwned = Math.round(yearsOwned * PERIODS_PER_YEAR);
 
       const currentValue = calculatePropertyGrowth(property.cost, periodsOwned, profileGrowthCurve);
-      const loanBalance = property.loanAmount; // IO loan — balance unchanged
+      const loanBalance = property.loanAmount; // IO loan - balance unchanged
       const extractableEquity = (currentValue * EQUITY_EXTRACTION_LVR_CAP) - loanBalance;
 
       if (extractableEquity >= minExtractableEquity) {

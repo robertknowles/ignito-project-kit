@@ -90,7 +90,7 @@ export const BetaFeedbackWidget: React.FC = () => {
       created_at: new Date().toISOString(),
     };
 
-    // Save to localStorage FIRST — the feedback is safe before we even try Supabase
+    // Save to localStorage FIRST - the feedback is safe before we even try Supabase
     addToQueue(entry);
     setPendingCount(getQueue().length);
 
@@ -102,7 +102,7 @@ export const BetaFeedbackWidget: React.FC = () => {
       return;
     }
 
-    // Success — remove from the queue
+    // Success - remove from the queue
     const queue = getQueue();
     queue.pop();
     if (queue.length) {
@@ -171,7 +171,7 @@ export const BetaFeedbackWidget: React.FC = () => {
                 )}
                 {pendingCount > 0 && status !== 'error' && (
                   <p className="text-xs text-yellow-700 mt-1">
-                    {pendingCount} unsent {pendingCount === 1 ? 'entry' : 'entries'} queued — will retry automatically.
+                    {pendingCount} unsent {pendingCount === 1 ? 'entry' : 'entries'} queued - will retry automatically.
                   </p>
                 )}
                 <div className="flex items-center justify-between mt-3">
@@ -191,7 +191,7 @@ export const BetaFeedbackWidget: React.FC = () => {
         </div>
       )}
 
-      {/* Toggle button — rendered outside, controlled by parent */}
+      {/* Toggle button - rendered outside, controlled by parent */}
       <BetaFeedbackToggle open={open} onToggle={() => setOpen(!open)} />
     </>
   );

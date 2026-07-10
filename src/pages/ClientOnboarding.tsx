@@ -55,7 +55,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-// Slider styles — white thumb with grey border, branded filled track
+// Slider styles - white thumb with grey border, branded filled track
 const sliderClassName = "w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#9CA3AF] [&::-webkit-slider-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-[1.5px] [&::-moz-range-thumb]:border-[#9CA3AF] [&::-moz-range-thumb]:shadow-[0_1px_2px_rgba(0,0,0,0.1)] active:[&::-webkit-slider-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-110 transition-all";
 
 const getSliderStyle = (value: number, min: number, max: number, primaryColor: string) => ({
@@ -177,7 +177,7 @@ export const ClientOnboarding = () => {
   const [error, setError] = useState<string | null>(null);
   const [branding, setBranding] = useState<BrandingData>(defaultBranding);
   const [formData, setFormData] = useState<InvestmentProfileFormData>(defaultFormData);
-  // Fields the client marked "I don't have this". Purely informational — these
+  // Fields the client marked "I don't have this". Purely informational - these
   // are recorded as 'N/A' in clientSubmittedInputs for the agent to review and
   // never feed the calculation engine (investmentProfile keeps its numeric value).
   const [naFields, setNaFields] = useState<Partial<Record<keyof InvestmentProfileFormData, boolean>>>({});
@@ -318,7 +318,7 @@ setError('Failed to load onboarding form');
         // Verbatim snapshot of what the client submitted. Kept separate from
         // investmentProfile (which gets merged with advanced settings and can
         // later be edited from the dashboard) so the agent always has a
-        // faithful record of the client's raw answers. Purely informational —
+        // faithful record of the client's raw answers. Purely informational -
         // nothing in the calculation engine reads this key. Fields the client
         // marked "I don't have this" are stored as 'N/A' here only; the numeric
         // slider value still flows into investmentProfile so the dashboard is
@@ -362,7 +362,7 @@ setError('Failed to load onboarding form');
           },
         });
       } catch {
-        // Non-critical — don't block the client's success screen
+        // Non-critical - don't block the client's success screen
       }
     } catch (err) {
 setError('Failed to submit your details. Please try again.');

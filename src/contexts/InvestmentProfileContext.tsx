@@ -11,7 +11,7 @@ export interface InvestmentProfileData {
   /**
    * True when the user explicitly stated a timeline (e.g. "in 10 years", "by 2040").
    * False/undefined when timelineYears is just the default (15). Drives whether the
-   * "doesn't fit — extend" message appears on property cards: an unplaceable
+   * "doesn't fit - extend" message appears on property cards: an unplaceable
    * property is only flagged when the user has explicitly capped the timeline.
    */
   timelineYearsExplicit?: boolean;
@@ -33,16 +33,16 @@ export interface InvestmentProfileData {
   useExistingEquity: boolean; // Toggle for existing equity in purchases (default: true)
   maxPurchasesPerYear: number; // Annual purchase cap (default: 3, range: 1-4)
   existingPortfolioGrowthRate: number; // Growth rate for mature properties as decimal (default: 0.05 = 5%, matches Gameplans)
-  // NEW: Per-scenario assumption overrides (Tier 1 — Assumptions page)
+  // NEW: Per-scenario assumption overrides (Tier 1 - Assumptions page)
   // Each falls back to platform constants in financialParams.ts when undefined.
   // Adjusting these on the Assumptions page changes the chart projections for
-  // this scenario only — does NOT alter the AI's initial plan generation.
+  // this scenario only - does NOT alter the AI's initial plan generation.
   interestRate: number;       // Decimal, default 0.0625 (matches DEFAULT_INTEREST_RATE)
   vacancyRate: number;        // Decimal, default 0.04 (matches DEFAULT_VACANCY_RATE)
   wageGrowthRate: number;     // Decimal, default 0.025 (matches ANNUAL_WAGE_GROWTH_RATE)
   inflationRate: number;      // Decimal, default 0.03 (matches ANNUAL_INFLATION_RATE)
   valuationPremiumResidential: number; // Decimal, default 0.03 (3% above purchase = manufactured equity from buying under value)
-  valuationPremiumCommercial: number;  // Decimal, default 0.05 (5% commercial premium — distressed-seller opportunity higher)
+  valuationPremiumCommercial: number;  // Decimal, default 0.05 (5% commercial premium - distressed-seller opportunity higher)
   // NEW: Financial Freedom projection
   targetPassiveIncome: number; // Annual passive income target for "freedom" (default: $80,000)
   ioToPiTransitionYears: number; // Years after last purchase to switch IO→P&I (default: 5)
@@ -52,7 +52,7 @@ export interface InvestmentProfileData {
    */
   strategyPreset: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf';
   /**
-   * Internal pacing lever — tier-links across ~9 dials (multiplier, savings
+   * Internal pacing lever - tier-links across ~9 dials (multiplier, savings
    * deployment, equity release, vacancy, BC factor, rental contribution,
    * equity factor, max purchases, low-tier LVR). Default 'aggressive' for
    * 4 of 5 presets (sales tool: ambitious-but-achievable). cf-high default
@@ -63,7 +63,7 @@ export interface InvestmentProfileData {
   pacingMode: 'conservative' | 'moderate' | 'aggressive';
   existingAnnualRent: number;
   // Single canonical rent escalation rate for all properties (existing and new).
-  // Decoupled from per-property growth tiers — rent escalates uniformly.
+  // Decoupled from per-property growth tiers - rent escalates uniformly.
   rentEscalationRate: number;
   sellingCostsPercent: number;
   lvrStrategy: 'client_comfort' | 'prudent_80' | 'custom';
@@ -150,7 +150,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   equityReleaseFactor: 0.70, // recycle 70% of extractable equity
   depositBuffer: 5000,       // floor; engine derives 6-month-of-holding-cost target above this
   rentFactor: 0.75,
-  // Growth curve — matches GROWTH_RATE_TIERS.Medium (Gameplans-replication
+  // Growth curve - matches GROWTH_RATE_TIERS.Medium (Gameplans-replication
   // calibration 2026-04-30). Previous default was the High tier curve
   // (12.5/10/7.5/6) which was inappropriate as the universal fallback.
   growthCurve: {
@@ -163,7 +163,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   useExistingEquity: true,
   maxPurchasesPerYear: 3,
   existingPortfolioGrowthRate: 0.05,
-  // Tier 1 assumption overrides — defaults match platform constants
+  // Tier 1 assumption overrides - defaults match platform constants
   interestRate: 0.0625,
   vacancyRate: 0.04,
   wageGrowthRate: 0.025,

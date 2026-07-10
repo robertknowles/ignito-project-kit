@@ -27,7 +27,7 @@ import { PERIODS_PER_YEAR } from '@/constants/financialParams';
 import { Sparkles, ArrowUp, AlertTriangle, Loader2, Minus, Plus, Check, ChevronDown } from 'lucide-react';
 
 /**
- * Compare — two scenarios side by side, dashboard-styled.
+ * Compare - two scenarios side by side, dashboard-styled.
  *
  * Layout (above the fold): Scenario A/B pickers → grey rule → output:
  * two purchases tables with horizon stats (row click → full detail),
@@ -39,7 +39,7 @@ import { Sparkles, ArrowUp, AlertTriangle, Loader2, Minus, Plus, Check, ChevronD
  */
 
 // Big central loading bar while scenarios fetch. The fill is simulated
-// (a fetch has no true progress) — it eases toward 92% and the whole bar
+// (a fetch has no true progress) - it eases toward 92% and the whole bar
 // unmounts the moment data lands.
 const ScenarioLoadingBar: React.FC = () => {
   const [progress, setProgress] = useState(6);
@@ -89,7 +89,7 @@ interface ScenarioOption {
   cashflowData: CashflowDataPoint[];
   propertyOrder: string[];
   propertyInstances: Record<string, PropertyInstanceDetails>;
-  /** The full scenarios.data blob — hydrates ScenarioInput for live engine runs. */
+  /** The full scenarios.data blob - hydrates ScenarioInput for live engine runs. */
   raw: ScenarioData;
 }
 
@@ -114,25 +114,25 @@ const formatCompact = (v: number): string => {
 };
 
 const fmtMoney = (n: number | null | undefined): string =>
-  n == null || isNaN(n) ? '—' : `$${Math.round(n).toLocaleString('en-AU')}`;
+  n == null || isNaN(n) ? '-' : `$${Math.round(n).toLocaleString('en-AU')}`;
 
 // LVR is stored as a percentage (88) in instances; guard against ratio saves.
 const fmtLvr = (lvr: number | null | undefined): string =>
-  lvr == null || isNaN(lvr) ? '—' : `${Math.round(lvr <= 1 ? lvr * 100 : lvr)}%`;
+  lvr == null || isNaN(lvr) ? '-' : `${Math.round(lvr <= 1 ? lvr * 100 : lvr)}%`;
 
 // ── Purchase rows: join purchase years (chart data) to instance details ─────
 interface PurchaseTableRow {
   year: string;
   title: string;
   instance?: PropertyInstanceDetails;
-  /** Instance id — only present on Scenario B (draft) rows; gates editability. */
+  /** Instance id - only present on Scenario B (draft) rows; gates editability. */
   instanceId?: string;
-  /** Engine-assigned placement period (Scenario B only) — base for the year
+  /** Engine-assigned placement period (Scenario B only) - base for the year
    *  +/- steppers. `Infinity` when the property couldn't be placed. */
   period?: number;
-  /** AI-modified row (remodel draft) — violet tint. */
+  /** AI-modified row (remodel draft) - violet tint. */
   changed?: boolean;
-  /** Engine couldn't fully place/fund this purchase — red year. */
+  /** Engine couldn't fully place/fund this purchase - red year. */
   infeasible?: boolean;
 }
 
@@ -145,7 +145,7 @@ const buildPurchaseRows = (s: ScenarioOption): PurchaseTableRow[] => {
   }
   // propertyOrder is the purchase sequence, so the Nth purchase on the chart
   // corresponds to the Nth instance id. Only trust the join when every planned
-  // property made it onto the chart — a blocked property would shift the
+  // property made it onto the chart - a blocked property would shift the
   // mapping and silently attach the wrong details. (Phase 1 replaces this with
   // the live engine timeline, which carries instance ids directly.)
   if (rows.length === s.propertyOrder.length) {
@@ -190,10 +190,10 @@ const makePurchaseDot = (propsKey: 'propertiesA' | 'propertiesB', color: string,
 };
 
 // ── Condensed purchases table (row click → full detail) ─────────────────────
-// Front-facing numbers only (Rob, 4 Jul) — the descriptive fields (state,
+// Front-facing numbers only (Rob, 4 Jul) - the descriptive fields (state,
 // LVR, rent, entity, costs breakdown) live in the row-detail dialog.
-// `width` — compact px used when both scenarios sit side by side (half width).
-// `spread` — % used when Scenario A previews on its own (full width) so the
+// `width` - compact px used when both scenarios sit side by side (half width).
+// `spread` - % used when Scenario A previews on its own (full width) so the
 // columns fan out evenly instead of bunching left-and-right (sums to 100%).
 const TABLE_COLS: { key: string; header: string; numeric?: boolean; width?: number; spread: string }[] = [
   { key: 'year', header: 'Year', width: 96, spread: '64px' },
@@ -242,7 +242,7 @@ const PurchasesTable: React.FC<{
   onRowClick: (row: PurchaseTableRow, index: number) => void;
   /** Fan the columns across the full width (Scenario A previewing solo). */
   spread?: boolean;
-  /** Scenario B only — nudges a purchase's placement year by ±1 (writes a
+  /** Scenario B only - nudges a purchase's placement year by ±1 (writes a
    *  manual placement period, re-runs the engine). Renders +/- in the Year
    *  cell. Omitted for Scenario A (read-only saved plan). */
   onShiftYear?: (row: PurchaseTableRow, deltaYears: number) => void;
@@ -271,10 +271,10 @@ const PurchasesTable: React.FC<{
       )}
       {rows.map((row, i) => {
         const inst = row.instance;
-        // Holding $/yr — identical expression to the dashboard purchases
+        // Holding $/yr - identical expression to the dashboard purchases
         // table's HoldingCostCell (override ?? mgmt% × annual rent + annual
         // expense fields). fmtMoney renders NaN from missing legacy fields
-        // as "—".
+        // as "-".
         const holding = inst
           ? inst.holdingCostOverride ??
             Math.round(
@@ -292,8 +292,8 @@ const PurchasesTable: React.FC<{
           yield:
             inst?.rentPerWeek != null && inst?.purchasePrice
               ? `${calcGrossYield(inst.rentPerWeek, inst.purchasePrice).toFixed(1)}%`
-              : '—',
-          growth: inst?.growthAssumption ?? '—',
+              : '-',
+          growth: inst?.growthAssumption ?? '-',
           holding: fmtMoney(holding),
         };
         return (
@@ -347,7 +347,7 @@ const PurchasesTable: React.FC<{
   </table>
 );
 
-// ── Row detail dialog — the full purchase picture in four groups ────────────
+// ── Row detail dialog - the full purchase picture in four groups ────────────
 // Scenario B (draft) rows pass `editable` + a live instance so each non-derived
 // field renders an input; derived rows (Loan amount, Deposit, Gross yield) have
 // no `edit` and stay read-only, recomputed from the live instance each render.
@@ -388,8 +388,8 @@ const getRowDetail = (
       items: [
         { label: 'Purchase price', display: fmtMoney(price), edit: { field: 'purchasePrice', kind: 'money', current: price ?? null } },
         { label: 'Valuation at purchase', display: fmtMoney(inst.valuationAtPurchase), edit: { field: 'valuationAtPurchase', kind: 'money', current: inst.valuationAtPurchase ?? null } },
-        { label: 'State', display: inst.state ?? '—', edit: { field: 'state', kind: 'select', current: inst.state ?? '', options: STATE_OPTIONS } },
-        { label: 'Growth assumption', display: inst.growthAssumption ?? '—', edit: { field: 'growthAssumption', kind: 'select', current: inst.growthAssumption ?? '', options: GROWTH_OPTIONS } },
+        { label: 'State', display: inst.state ?? '-', edit: { field: 'state', kind: 'select', current: inst.state ?? '', options: STATE_OPTIONS } },
+        { label: 'Growth assumption', display: inst.growthAssumption ?? '-', edit: { field: 'growthAssumption', kind: 'select', current: inst.growthAssumption ?? '', options: GROWTH_OPTIONS } },
       ],
     },
     {
@@ -397,16 +397,16 @@ const getRowDetail = (
       items: [
         { label: 'LVR', display: fmtLvr(inst.lvr), edit: { field: 'lvr', kind: 'percent', current: lvrPct } },
         { label: 'Loan amount', display: fmtMoney(loan) },
-        { label: 'Product', display: inst.loanProduct === 'IO' ? 'Interest only' : inst.loanProduct === 'PI' ? 'Principal & interest' : '—', edit: { field: 'loanProduct', kind: 'select', current: inst.loanProduct ?? '', options: ['IO', 'PI'] } },
-        { label: 'Rate', display: inst.interestRate != null ? `${inst.interestRate}%` : '—', edit: { field: 'interestRate', kind: 'rate', current: inst.interestRate ?? null } },
-        { label: 'Term', display: inst.loanTerm != null ? `${inst.loanTerm} yrs` : '—', edit: { field: 'loanTerm', kind: 'number', current: inst.loanTerm ?? null } },
+        { label: 'Product', display: inst.loanProduct === 'IO' ? 'Interest only' : inst.loanProduct === 'PI' ? 'Principal & interest' : '-', edit: { field: 'loanProduct', kind: 'select', current: inst.loanProduct ?? '', options: ['IO', 'PI'] } },
+        { label: 'Rate', display: inst.interestRate != null ? `${inst.interestRate}%` : '-', edit: { field: 'interestRate', kind: 'rate', current: inst.interestRate ?? null } },
+        { label: 'Term', display: inst.loanTerm != null ? `${inst.loanTerm} yrs` : '-', edit: { field: 'loanTerm', kind: 'number', current: inst.loanTerm ?? null } },
         { label: 'LMI waiver', display: inst.lmiWaiver ? 'Yes' : 'No', edit: { field: 'lmiWaiver', kind: 'toggle', current: !!inst.lmiWaiver } },
       ],
     },
     {
       group: 'Purchase costs',
       items: [
-        { label: 'Deposit', display: price != null && loan != null ? fmtMoney(price - loan) : '—' },
+        { label: 'Deposit', display: price != null && loan != null ? fmtMoney(price - loan) : '-' },
         { label: 'Stamp duty', display: inst.stampDutyOverride != null ? fmtMoney(inst.stampDutyOverride) : 'Auto (by state)', edit: { field: 'stampDutyOverride', kind: 'money', current: inst.stampDutyOverride ?? null, nullable: true } },
         { label: 'Engagement fee', display: fmtMoney(inst.engagementFee), edit: { field: 'engagementFee', kind: 'money', current: inst.engagementFee ?? null } },
         { label: 'Conveyancing', display: fmtMoney(inst.conveyancing), edit: { field: 'conveyancing', kind: 'money', current: inst.conveyancing ?? null } },
@@ -417,9 +417,9 @@ const getRowDetail = (
     {
       group: 'Cashflow',
       items: [
-        { label: 'Rent', display: inst.rentPerWeek != null ? `$${Math.round(inst.rentPerWeek).toLocaleString('en-AU')}/wk` : '—', edit: { field: 'rentPerWeek', kind: 'money', current: inst.rentPerWeek ?? null } },
-        { label: 'Gross yield', display: rentYr != null && price ? `${((rentYr / price) * 100).toFixed(1)}%` : '—' },
-        { label: 'Management', display: inst.propertyManagementPercent != null ? `${inst.propertyManagementPercent}%` : '—', edit: { field: 'propertyManagementPercent', kind: 'percent', current: inst.propertyManagementPercent ?? null } },
+        { label: 'Rent', display: inst.rentPerWeek != null ? `$${Math.round(inst.rentPerWeek).toLocaleString('en-AU')}/wk` : '-', edit: { field: 'rentPerWeek', kind: 'money', current: inst.rentPerWeek ?? null } },
+        { label: 'Gross yield', display: rentYr != null && price ? `${((rentYr / price) * 100).toFixed(1)}%` : '-' },
+        { label: 'Management', display: inst.propertyManagementPercent != null ? `${inst.propertyManagementPercent}%` : '-', edit: { field: 'propertyManagementPercent', kind: 'percent', current: inst.propertyManagementPercent ?? null } },
         { label: 'Insurance p/a', display: fmtMoney(inst.buildingInsuranceAnnual), edit: { field: 'buildingInsuranceAnnual', kind: 'money', current: inst.buildingInsuranceAnnual ?? null } },
         { label: 'Council rates & water', display: fmtMoney(inst.councilRatesWater), edit: { field: 'councilRatesWater', kind: 'money', current: inst.councilRatesWater ?? null } },
         { label: 'Strata', display: fmtMoney(inst.strata), edit: { field: 'strata', kind: 'money', current: inst.strata ?? null } },
@@ -430,7 +430,7 @@ const getRowDetail = (
 };
 
 // Neutral gray form controls to match the dashboard's PropertyDetailModal /
-// PropertyDetailPanel editors (gray-200 border, gray-400 focus) — kept at the
+// PropertyDetailPanel editors (gray-200 border, gray-400 focus) - kept at the
 // compact 12px inline scale of the read-only detail rows.
 const editInputClass =
   'text-[12px] text-right tabular-nums text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400';
@@ -544,11 +544,11 @@ const RowDetailDialog: React.FC<{
             <DialogTitle
               style={{ fontSize: 15, fontWeight: 600, color: '#181D27', fontFamily: 'Inter, system-ui, sans-serif' }}
             >
-              Purchase {purchaseNo} — {row.title} · {row.year}
+              Purchase {purchaseNo} - {row.title} · {row.year}
             </DialogTitle>
             {sections.length === 0 ? (
               <p className="body-secondary mt-3">
-                No detail saved for this purchase — open the scenario in the dashboard to complete it.
+                No detail saved for this purchase - open the scenario in the dashboard to complete it.
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-x-10 gap-y-5 mt-4">
@@ -581,7 +581,7 @@ const RowDetailDialog: React.FC<{
 // ── Scenario B review brief ─────────────────────────────────────────────────
 // The first AI proposal is held here for the BA to tune BEFORE it lands in the
 // tables and charts (mirrors the dashboard's ConfirmationBrief gate: new plan →
-// review, later tweaks → live). Compact by design — Year steppers, Price, LVR,
+// review, later tweaks → live). Compact by design - Year steppers, Price, LVR,
 // Growth and Rent inline; the full per-property picture stays in RowDetailDialog
 // once the draft is approved.
 // Dashboard "UUI" tokens (mirrors ConfirmationBrief.tsx) so the review brief
@@ -609,7 +609,7 @@ const BRIEF = {
 
 const BRIEF_STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
-/** Source dot after a field label — green = carried from the plan, amber = AI-set. */
+/** Source dot after a field label - green = carried from the plan, amber = AI-set. */
 type BriefSource = 'user' | 'assumed';
 
 const BriefDot: React.FC<{ source: BriefSource }> = ({ source }) => (
@@ -747,7 +747,7 @@ const BriefSellToggle: React.FC<{ value: number | null | undefined; onChange: (v
   );
 };
 
-// Card-based review brief — matches the dashboard's ConfirmationBrief: a
+// Card-based review brief - matches the dashboard's ConfirmationBrief: a
 // "Proposed plan" summary card, a "Proposed Purchases" header with the
 // from-brief/AI-estimate legend, and one editable property card per purchase.
 const ScenarioBReviewBrief: React.FC<{
@@ -917,10 +917,10 @@ const ScenarioBReviewBrief: React.FC<{
   );
 };
 
-// "Remodel with AI" — enabled in production 4 Jul 2026 (see
+// "Remodel with AI" - enabled in production 4 Jul 2026 (see
 // COMPARE-EVOLUTION-PLAN.md). Flip to `import.meta.env.DEV` to pull it
 // from prod builds again; the bundle strips the whole UI when false.
-// Strategy starters — one-click ways for a BA to model a *different* approach
+// Strategy starters - one-click ways for a BA to model a *different* approach
 // off the same client starting position, to hold against their ideal plan.
 const STRATEGY_SUGGESTIONS = [
   'Focus on $500k properties',
@@ -981,7 +981,7 @@ export const Compare: React.FC = () => {
 
   const scenarioA = useMemo(() => allScenarios.find(s => String(s.scenarioId) === selectedA), [allScenarios, selectedA]);
 
-  // ── Remodel with AI — Scenario B is always an AI-modelled draft ──────
+  // ── Remodel with AI - Scenario B is always an AI-modelled draft ──────
   const { run } = useScenarioRunner();
   const baseInput = useMemo(() => (scenarioA ? toScenarioInput(scenarioA.raw) : null), [scenarioA]);
   const remodel = useCompareRemodel(baseInput);
@@ -996,7 +996,7 @@ export const Compare: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenarioA?.scenarioId]);
 
-  // Base scenario run — powers the placement-diff notes in the model-check
+  // Base scenario run - powers the placement-diff notes in the model-check
   // strip, and (in dev) a parity check of headless output vs the saved
   // snapshot. Guarded: a malformed legacy blob must not take the page down.
   const baseRun = useMemo(() => {
@@ -1011,7 +1011,7 @@ export const Compare: React.FC = () => {
 
   // DEV parity check: the headless runner must reproduce the saved snapshot
   // for the same inputs. A mismatch is either an input-assembly bug or the
-  // scenario was saved under different global assumptions — both worth eyes.
+  // scenario was saved under different global assumptions - both worth eyes.
   useEffect(() => {
     if (!import.meta.env.DEV || !baseRun || !scenarioA) return;
     const saved = scenarioA.portfolioGrowthData[scenarioA.portfolioGrowthData.length - 1];
@@ -1032,7 +1032,7 @@ export const Compare: React.FC = () => {
     }
   }, [baseRun, scenarioA]);
 
-  // Side B is either a saved scenario or the live remodel draft — everything
+  // Side B is either a saved scenario or the live remodel draft - everything
   // below (KPIs, table, charts) reads from this one view object.
   interface SideBView {
     label: string;
@@ -1047,7 +1047,7 @@ export const Compare: React.FC = () => {
     const rows: PurchaseTableRow[] = [...draft.run.timelineProperties]
       .sort((a, b) => (a.period === Infinity ? 1 : b.period === Infinity ? -1 : a.period - b.period))
       .map(tp => ({
-        year: tp.period === Infinity ? '—' : String(Math.floor(tp.affordableYear)),
+        year: tp.period === Infinity ? '-' : String(Math.floor(tp.affordableYear)),
         title: tp.title,
         instance: draft.run.instances[tp.instanceId],
         instanceId: tp.instanceId,
@@ -1064,7 +1064,7 @@ export const Compare: React.FC = () => {
     };
   }, [draft, scenarioA]);
 
-  // Model-check notes — the engine's honest response to the remodel: mapper
+  // Model-check notes - the engine's honest response to the remodel: mapper
   // warnings, placements it had to move, purchases it couldn't fully fund.
   const modelCheckNotes = useMemo(() => {
     if (!draft) return [];
@@ -1094,7 +1094,7 @@ export const Compare: React.FC = () => {
     return notes;
   }, [draft, baseRun]);
 
-  // Proposed Scenario B rows for the review brief — same shape/logic as
+  // Proposed Scenario B rows for the review brief - same shape/logic as
   // `sideB.rows`, but read off the un-approved `pending` draft.
   const pendingRows: PurchaseTableRow[] = useMemo(() => {
     if (!pending) return [];
@@ -1102,7 +1102,7 @@ export const Compare: React.FC = () => {
     return [...pending.run.timelineProperties]
       .sort((a, b) => (a.period === Infinity ? 1 : b.period === Infinity ? -1 : a.period - b.period))
       .map(tp => ({
-        year: tp.period === Infinity ? '—' : String(Math.floor(tp.affordableYear)),
+        year: tp.period === Infinity ? '-' : String(Math.floor(tp.affordableYear)),
         title: tp.title,
         instance: pending.run.instances[tp.instanceId],
         instanceId: tp.instanceId,
@@ -1112,7 +1112,7 @@ export const Compare: React.FC = () => {
       }));
   }, [pending]);
 
-  // Model-check notes for the review brief — identical logic to
+  // Model-check notes for the review brief - identical logic to
   // `modelCheckNotes`, but read off `pending`.
   const pendingModelCheck = useMemo(() => {
     if (!pending) return [];
@@ -1168,7 +1168,7 @@ export const Compare: React.FC = () => {
 
   const cashflowChartData = useMemo(() => {
     if (!scenarioA) return [];
-    // Purchases live on portfolioGrowthData — map them by year so they can
+    // Purchases live on portfolioGrowthData - map them by year so they can
     // also be plotted on the cashflow line.
     const propsA = new Map(scenarioA.portfolioGrowthData.map(p => [p.year, p.properties]));
 
@@ -1195,7 +1195,7 @@ export const Compare: React.FC = () => {
   const rowsB = sideB?.rows ?? [];
 
   // Nudge a Scenario B purchase earlier/later by whole years. Writes a manual
-  // placement period on the given draft's instance and lets the engine re-run —
+  // placement period on the given draft's instance and lets the engine re-run -
   // the property lands on the new year if it passes affordability there, so the
   // BA can walk an infeasible (red) purchase forward to a year it can be funded.
   // Factory so the same behaviour drives both the live draft table and the
@@ -1236,7 +1236,7 @@ export const Compare: React.FC = () => {
       <option value="">Select a scenario...</option>
       {allScenarios.map(s => (
         <option key={s.scenarioId} value={String(s.scenarioId)} disabled={String(s.scenarioId) === excludeId}>
-          {s.clientName} — {s.scenarioName}
+          {s.clientName} - {s.scenarioName}
         </option>
       ))}
     </select>
@@ -1280,7 +1280,7 @@ export const Compare: React.FC = () => {
                   <p className="meta">
                     Based on{' '}
                     <span style={{ fontSize: 11, fontWeight: 500, color: '#414651' }}>
-                      {scenarioA ? `${scenarioA.clientName} — ${scenarioA.scenarioName}` : 'select Scenario A first'}
+                      {scenarioA ? `${scenarioA.clientName} - ${scenarioA.scenarioName}` : 'select Scenario A first'}
                     </span>
                   </p>
                   <div className="flex items-center gap-2 rounded-lg border border-[#D5D7DA] bg-white pl-3 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-[#7C3AED]/20 focus-within:border-[#7C3AED]">
@@ -1311,7 +1311,7 @@ export const Compare: React.FC = () => {
                       {remodel.isThinking ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
                     </button>
                   </div>
-                  {/* Strategy starters — model a different approach in one
+                  {/* Strategy starters - model a different approach in one
                       click. Shown until the BA has a draft going. */}
                   {scenarioA && !draft && !remodel.isThinking && (
                     <div className="flex flex-wrap gap-1.5">
@@ -1353,10 +1353,10 @@ export const Compare: React.FC = () => {
               </p>
             )}
 
-            {/* ── Output — grey rule separates inputs from results ────── */}
+            {/* ── Output - grey rule separates inputs from results ────── */}
             {scenarioA && (
               <div className="flex flex-col gap-6 border-t border-[#E9EAEB] pt-6">
-                {/* Model check — the engine's honest response to the remodel */}
+                {/* Model check - the engine's honest response to the remodel */}
                 {draft && modelCheckNotes.length > 0 && (
                   <div className="flex items-start gap-2 rounded-lg border border-[#FEDF89] bg-[#FFFAEB] px-3 py-2">
                     <AlertTriangle size={13} className="mt-0.5 shrink-0 text-[#B54708]" />
@@ -1404,7 +1404,7 @@ export const Compare: React.FC = () => {
                   onClose={() => setDetailRow(null)}
                 />
 
-                {/* Review brief — the first AI proposal, gated for tuning
+                {/* Review brief - the first AI proposal, gated for tuning
                     before it lands in the tables and charts. While it is open
                     there is no `draft`, so nothing below renders behind it. */}
                 {pending && (
@@ -1512,13 +1512,13 @@ export const Compare: React.FC = () => {
                   </div>
                 </ChartCard>
 
-                {/* Borrowing capacity — one card per scenario, side by side.
+                {/* Borrowing capacity - one card per scenario, side by side.
                     Each plots its own headless run's projection (passed in), so
                     Scenario A and the Scenario B draft stay isolated instead of
                     recomputing from the live/active dashboard scenario. */}
                 {baseRun && (
                   <div className={`grid grid-cols-1 gap-6 items-stretch ${sideB ? 'md:grid-cols-2' : ''}`}>
-                    <ChartCard title="Borrowing Capacity — Scenario A">
+                    <ChartCard title="Borrowing Capacity - Scenario A">
                       <BorrowingCapacityChart
                         scenarioData={{ timelineProperties: baseRun.timelineProperties, profile: baseRun.profile }}
                         projection={baseRun.projection}
@@ -1526,7 +1526,7 @@ export const Compare: React.FC = () => {
                       />
                     </ChartCard>
                     {sideB && draft && (
-                      <ChartCard title="Borrowing Capacity — Scenario B">
+                      <ChartCard title="Borrowing Capacity - Scenario B">
                         <BorrowingCapacityChart
                           scenarioData={{ timelineProperties: draft.run.timelineProperties, profile: draft.run.profile }}
                           projection={draft.run.projection}

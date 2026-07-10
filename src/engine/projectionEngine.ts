@@ -1,8 +1,8 @@
 /**
- * Projection Engine — Stage 2 of the calculation pipeline.
+ * Projection Engine - Stage 2 of the calculation pipeline.
  *
  * Pure extraction of usePortfolioProjection's single computation-pass memo
- * body (Phase 0 of the Compare evolution plan). Zero React dependencies —
+ * body (Phase 0 of the Compare evolution plan). Zero React dependencies -
  * callable headlessly with a snapshot of context state.
  *
  * MOVED code, not rewritten: the math here must produce byte-identical numbers
@@ -48,7 +48,7 @@ import {
 import { PROPERTY_COLORS } from '../constants/chartColors';
 
 // ─────────────────────────────────────────────────────────────
-// Types — superset of all previous hooks' output types
+// Types - superset of all previous hooks' output types
 // ─────────────────────────────────────────────────────────────
 
 /** Re-export for backward compatibility with chart components */
@@ -296,7 +296,7 @@ const calculatePropertyGrowthWithEvents = (
 export interface ProjectionEngineInputs {
   profile: InvestmentProfileData;
   timelineProperties: TimelineProperty[];
-  /** Instance lookup — matches what the moved memo body reads (it only ever calls getInstance). */
+  /** Instance lookup - matches what the moved memo body reads (it only ever calls getInstance). */
   getInstance: (instanceId: string) => PropertyInstanceDetails | null;
   existingProperties: ExistingProperty[];
   eventBlocks: EventBlock[];
@@ -332,7 +332,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
   const perPropertyEndYear = startYear + Math.max(profile.timelineYears || 20, 30) - 1;
   const consolidationYear = endYear - (profile.ioToPiTransitionYears ?? 5) + 1;
 
-  // Plottable properties (feasible AND challenging — not Infinity)
+  // Plottable properties (feasible AND challenging - not Infinity)
   const plottableProperties = timelineProperties.filter(p => p.period !== Infinity);
   const feasibleProperties = timelineProperties.filter(
     p => p.status === 'feasible' && p.instanceId,
@@ -473,7 +473,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsFromPurchase);
         epPortfolioValue += grownValue;
 
-        // Amortise existing loans (from useChartDataGenerator — more correct)
+        // Amortise existing loans (from useChartDataGenerator - more correct)
         const epRate = ep.interestRate ? ep.interestRate / 100 : defaultInterestRate;
         const amortisedLoan = calculateRemainingLoanBalance(
           ep.loan,
@@ -518,7 +518,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         isNewBuild: ep.isNewBuild,
         isConsolidationPeriod: ep.saleYear >= consolidationYear,
       });
-      const cgtLiability = cgt.reform.cgt; // 2027 basis — the market already applies it
+      const cgtLiability = cgt.reform.cgt; // 2027 basis - the market already applies it
       const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - ep.loan - cgtLiability);
       salesProceedsCash += netProceeds;
       salesCgtBreakdown.push({
@@ -552,13 +552,13 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         profile,
         capitalGain,
         costBase,
-        valueAtHoldStart: costBase, // new purchase — no embedded pre-hold gain
+        valueAtHoldStart: costBase, // new purchase - no embedded pre-hold gain
         holdStartYear: purchaseYear,
         saleYear: sy,
         isNewBuild: inst?.isNewBuild,
         isConsolidationPeriod: sy >= consolidationYear,
       });
-      const cgtLiability = cgt.reform.cgt; // 2027 basis — the market already applies it
+      const cgtLiability = cgt.reform.cgt; // 2027 basis - the market already applies it
       const netProceeds = Math.max(0, grownValue * (1 - sellingCostsFraction) - rp.prop.loanAmount - cgtLiability);
       salesProceedsCash += netProceeds;
       salesCgtBreakdown.push({
@@ -569,7 +569,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       });
     });
 
-    // ── NEW PROPERTIES: growth with events (from useRoadmapData — period-by-period) ──
+    // ── NEW PROPERTIES: growth with events (from useRoadmapData - period-by-period) ──
     let newPurchasesPortfolioValue = 0;
     let newPurchasesDebt = 0;
     let refiNewValue = 0; // For equity extraction calc
@@ -595,7 +595,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       const periodsOwned = yearsOwned * PERIODS_PER_YEAR;
       const purchasePeriod = (purchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
 
-      // Growth with events — period-by-period (roadmap approach, more accurate)
+      // Growth with events - period-by-period (roadmap approach, more accurate)
       const baseValue = calculatePropertyGrowthWithEvents(
         rp.growthBasis, periodsOwned, rp.growthCurve, eventBlocks, purchasePeriod,
       );
@@ -696,7 +696,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       // Property effective rate (event-adjusted, property-specific)
       const propertyEffectiveRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, rp.instanceId);
 
-      // Growth (same calculation as portfolio value above — consistent)
+      // Growth (same calculation as portfolio value above - consistent)
       const baseValue = calculatePropertyGrowthWithEvents(
         rp.growthBasis, periodsOwned, rp.growthCurve, eventBlocks, purchasePeriod,
       );
@@ -802,7 +802,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
             propertyAccumulators.set(rp.instanceId, acc);
           }
 
-          // Loan amortisation — handles the IO→PI transition (IO term then P&I
+          // Loan amortisation - handles the IO→PI transition (IO term then P&I
           // paydown). Recompute from the original loan each year via the canonical
           // helper so the IO term is respected; the previous P&I-only path left IO
           // loans flat forever and never started principal paydown after the IO term.
@@ -823,7 +823,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
             equity: Math.round(equity),
           });
 
-          // Cashflow for this property (using event-adjusted values — consistent with portfolio)
+          // Cashflow for this property (using event-adjusted values - consistent with portfolio)
           const propNetCashflow = propertyCashflow;
           acc.cashflowOverTime.push({
             year: yearsOwned,
@@ -923,7 +923,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       });
     }
 
-    // ── BORROWING CAPACITY (from useChartDataGenerator — most sophisticated) ──
+    // ── BORROWING CAPACITY (from useChartDataGenerator - most sophisticated) ──
     let grossRentalIncomeForBC = 0;
     propertiesByThisYear.forEach(rp => {
       if (isPlannedSold(rp, year)) return;
@@ -987,7 +987,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
     const availableFundsChart = Math.round(Math.max(0, profile.depositPool + cumulativeSavings + usableEquity - depositsUsed));
     const cashOffset = Math.round(Math.max(0, profile.depositPool + cumulativeSavings - depositsUsed + salesProceedsCash));
 
-    // ── DO-NOTHING BASELINE (from useChartDataGenerator — wage-grown savings) ──
+    // ── DO-NOTHING BASELINE (from useChartDataGenerator - wage-grown savings) ──
     const doNothingBalance = (() => {
       let balance = profile.depositPool;
       for (let y = 0; y < yearsElapsed; y++) {

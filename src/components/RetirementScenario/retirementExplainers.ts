@@ -1,14 +1,14 @@
 /**
- * Retirement sell-down — explainer copy (single source of truth).
+ * Retirement sell-down - explainer copy (single source of truth).
  *
  * Two altitudes (spec §8):
- *   • PAGE   — light info popovers on the headline strip + slider.
- *   • DETAIL — light info popovers inside the sale breakdown panel.
+ *   • PAGE   - light info popovers on the headline strip + slider.
+ *   • DETAIL - light info popovers inside the sale breakdown panel.
  *
  * Keep all policy / model wording here so it can be updated in ONE place when
  * the 2027 CGT rules are legislated, rather than hardcoded across components.
  *
- * Compliance: copy describes the model and the policy only — it must never
+ * Compliance: copy describes the model and the policy only - it must never
  * advise what the client should do, nor prefer one CGT method over another.
  */
 

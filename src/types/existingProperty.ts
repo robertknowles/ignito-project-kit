@@ -2,12 +2,12 @@ import type { PropertyInstanceDetails } from './propertyInstance'
 
 /**
  * Snapshot captured when a planned property is "marked as purchased" from the
- * Next Purchase Brief. Lets the portfolio revert that purchase — restoring the
+ * Next Purchase Brief. Lets the portfolio revert that purchase - restoring the
  * exact timeline instance it came from. Only the most recent purchase (highest
  * `seq`) can be reverted; earlier ones must be reverted in reverse order first.
  */
 export interface RevertSnapshot {
-  /** Monotonic purchase order — highest = the last purchase (revertable). */
+  /** Monotonic purchase order - highest = the last purchase (revertable). */
   seq: number
   /** Property type id the instance belonged to (e.g. "metro-house-growth"). */
   propertyId: string
@@ -46,7 +46,7 @@ export interface ExistingProperty {
   saleYear?: number | null
   allowEquityRelease?: boolean
   entity?: 'individual' | 'trust' | 'company' | 'smsf'
-  /** New build vs established — new builds keep the CGT discount choice and the
+  /** New build vs established - new builds keep the CGT discount choice and the
    *  negative-gearing exemption under the proposed 2027 reform. */
   isNewBuild?: boolean
   lvrOverride?: number | null

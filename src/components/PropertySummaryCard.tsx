@@ -1,5 +1,5 @@
 /**
- * PropertySummaryCard — compact ~220px summary card for the dashboard
+ * PropertySummaryCard - compact ~220px summary card for the dashboard
  * property card row. Shows icon, type bucket + state tag, year, price,
  * caret, and a hover-revealed X to remove.
  *
@@ -31,7 +31,7 @@ interface PropertySummaryCardProps {
   instanceId: string;
   propertyType: string;
   instanceData: PropertyInstanceDetails;
-  /** Calculated purchase year (e.g. 2029) — undefined if not yet placed */
+  /** Calculated purchase year (e.g. 2029) - undefined if not yet placed */
   purchaseYear?: number;
   /** True when the property cannot be afforded inside the planning timeline */
   isUnplaceable?: boolean;
@@ -41,9 +41,9 @@ interface PropertySummaryCardProps {
   cardIndex?: number;
   onClick: () => void;
   onRemove: () => void;
-  /** Inline cell-type change — fires AI re-plan via chatBus (parent supplies). */
+  /** Inline cell-type change - fires AI re-plan via chatBus (parent supplies). */
   onTypeChange?: (newCellId: CellId) => void;
-  /** Inline state change — direct field write. */
+  /** Inline state change - direct field write. */
   onStateChange?: (newState: string) => void;
 }
 
@@ -65,14 +65,14 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
 
   return (
     <div className="flex-shrink-0 group" style={{ width: 220 }}>
-      {/* Year — sits above the card like a chart-axis label */}
+      {/* Year - sits above the card like a chart-axis label */}
       <div
         className={`text-[11px] font-medium mb-1.5 px-1 ${
           isUnplaceable ? 'text-amber-600' : 'text-gray-400'
         }`}
-        title={isUnplaceable ? "This property doesn't fit in the current timeline — extend the timeline or adjust the strategy." : undefined}
+        title={isUnplaceable ? "This property doesn't fit in the current timeline - extend the timeline or adjust the strategy." : undefined}
       >
-        {isUnplaceable ? "Doesn't fit — extend timeline" : (purchaseYear ?? '—')}
+        {isUnplaceable ? "Doesn't fit - extend timeline" : (purchaseYear ?? '-')}
       </div>
 
       <div
@@ -83,7 +83,7 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
             : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
         }`}
       >
-        {/* X — hover-revealed remove */}
+        {/* X - hover-revealed remove */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -103,12 +103,12 @@ export const PropertySummaryCard: React.FC<PropertySummaryCardProps> = ({
               <PropertyTypeIcon propertyTitle={propertyType} size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              {/* Property type is internal — show the read-only category only. */}
+              {/* Property type is internal - show the read-only category only. */}
               <div className="text-[12px] font-semibold text-gray-900 truncate leading-tight">
                 {cellLabel}
               </div>
 
-              {/* Inline-edit State — click chip to swap */}
+              {/* Inline-edit State - click chip to swap */}
               {onStateChange ? (
                 <label
                   className="relative inline-block cursor-pointer mt-0.5 group/state"

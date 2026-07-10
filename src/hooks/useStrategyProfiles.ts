@@ -1,5 +1,5 @@
 /**
- * useStrategyProfiles — load/save the firm's named company strategies.
+ * useStrategyProfiles - load/save the firm's named company strategies.
  *
  * Each strategy is free text describing the firm's preferred approach. The BA
  * picks one per client (pills in the chat input); its text is injected into the

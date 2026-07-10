@@ -1,5 +1,5 @@
 /**
- * ChatLoadingSteps — Phase 2 of the loading experience
+ * ChatLoadingSteps - Phase 2 of the loading experience
  *
  * Displays sequential progress steps in the chat panel during plan generation.
  * Each step shows a spinner while active, then a checkmark when complete.
@@ -52,7 +52,7 @@ export const ChatLoadingSteps = React.forwardRef<HTMLDivElement, ChatLoadingStep
             if (step.status === 'pending') return null
             // First-visible step (i=0 on initial mount) skips the opacity-fade
             // animation so the user gets immediate feedback after pressing
-            // Enter — the staggered fade-in caused a perceptible gap between
+            // Enter - the staggered fade-in caused a perceptible gap between
             // the user message rendering and "Reading X's profile..."
             // appearing (cofounder report 2026-05-06: looked like nothing
             // was happening for ~1s after submit on initial generation).

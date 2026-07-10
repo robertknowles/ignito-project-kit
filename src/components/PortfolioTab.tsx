@@ -402,7 +402,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     updateProfile({ currentDebt: totalDebt, portfolioValue: totalValue, existingAnnualRent })
   }, [updateProfile])
 
-  // Subject for the change log's cause line — address if the BA entered one
+  // Subject for the change log's cause line - address if the BA entered one
   const changeLogSubject = (p: ExistingProperty) =>
     p.address?.trim() || `${p.state} property (${p.boughtYear})`
 
@@ -423,7 +423,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   // Revert a "marked as purchased" property back to the plan as the next
-  // purchase. Only the most recent purchase is revertable — earlier ones must
+  // purchase. Only the most recent purchase is revertable - earlier ones must
   // be reverted in reverse order first.
   const revertPurchase = useRevertPurchase()
   const lastPurchaseId = useMemo(() => {
@@ -539,7 +539,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     )
   }
 
-  // Single segmented KPI bar (§3.10 / prototype) — one card, divided into 6.
+  // Single segmented KPI bar (§3.10 / prototype) - one card, divided into 6.
   // Full (un-abbreviated) figures per request: $1,200,000 rather than $1.2M.
   const kpiCards = (
     <div className="grid grid-cols-6 bg-white rounded-xl border border-[#E9EAEB] divide-x divide-[#E9EAEB]">

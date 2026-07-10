@@ -477,7 +477,7 @@ export const AgentFormsContent = () => {
                                 ? <span className="text-sm text-[#374151]">
                                     {new Date(submission.opened_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                                   </span>
-                                : <span className="meta">—</span>
+                                : <span className="meta">-</span>
                               }
                             </td>
                             <td className="table-cell">

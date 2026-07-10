@@ -179,7 +179,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Update active client if it's the one being updated. Use the
       // functional updater so the check fires against the latest
-      // activeClient — the closure value is stale when updateClient is
+      // activeClient - the closure value is stale when updateClient is
       // called shortly after setActiveClient (e.g. AI plan response
       // landing right after a fresh client was made active).
       setActiveClient(prev => (prev?.id === clientId ? { ...prev, ...updates } : prev));
@@ -233,7 +233,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user, authLoading, role, companyId]);
 
-  // No longer persisting activeClient — reload always goes to New Client view.
+  // No longer persisting activeClient - reload always goes to New Client view.
 
   const value = {
     clients,

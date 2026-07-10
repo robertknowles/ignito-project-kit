@@ -1,12 +1,12 @@
 /**
- * CompanyStrategySelector — pills for the firm's named company strategies.
+ * CompanyStrategySelector - pills for the firm's named company strategies.
  *
  * Replaces StrategyPresetSelector. Instead of the 5 hardcoded engine presets,
  * the BA picks one of the firm's saved strategies (free text). The selected
  * strategy's text is injected into the AI prompt; the AI infers the best-fit
  * engine preset from it + the client brief.
  *
- * Purely presentational — the parent owns selection state (it needs the
+ * Purely presentational - the parent owns selection state (it needs the
  * selected text for the nl-parse wiring) and supplies the strategies.
  */
 

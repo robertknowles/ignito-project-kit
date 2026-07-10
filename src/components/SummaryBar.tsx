@@ -50,7 +50,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
   // Monthly net cashflow from the most recent year's data.
   // Computed from components (rentalIncome − expenses − loanRepayments) rather
   // than reading the `cashflow` field directly. This guarantees the KPI matches
-  // what the CashflowChart displays in its Net tooltip — both now use identical
+  // what the CashflowChart displays in its Net tooltip - both now use identical
   // arithmetic on the same fields. Defensive against any upstream cashflow-field
   // aggregation drift.
   const monthlyCashflow = useMemo(() => {
@@ -76,7 +76,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
     const next = future[0]
     const buyYear = Math.floor(next.affordableYear)
 
-    // Calculate readiness — how much of deposit is funded now
+    // Calculate readiness - how much of deposit is funded now
     const fb = next.fundingBreakdown
     const total = (fb.cash || 0) + (fb.equity || 0) + (fb.savings || 0)
     // Simple readiness: cash portion is ready now, rest is future
@@ -180,7 +180,7 @@ export const SummaryBar: React.FC<SummaryBarProps> = ({ scenarioData }) => {
               {nextPurchase.year}
             </span>
           ) : (
-            <span className="text-lg font-medium text-[#181D27] tracking-tight">—</span>
+            <span className="text-lg font-medium text-[#181D27] tracking-tight">-</span>
           )}
         </div>
       </div>

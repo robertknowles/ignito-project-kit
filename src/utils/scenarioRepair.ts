@@ -1,5 +1,5 @@
 /**
- * scenarioRepair — last-resort recovery tool for partially-corrupted scenarios.
+ * scenarioRepair - last-resort recovery tool for partially-corrupted scenarios.
  *
  * Symptoms of the kind of corruption this fixes:
  *   - propertyInstances has entries (the per-property details survived)
@@ -7,13 +7,13 @@
  *   - propertySelections is {} (empty)
  *
  * That's the signature of a saveScenario partial overwrite during a client
- * transition — the managed keys (propertyOrder, propertySelections, etc.)
+ * transition - the managed keys (propertyOrder, propertySelections, etc.)
  * were written empty while propertyInstances/portfolioTracking/chatHistory
  * stayed intact (they're written by separate version-locked writers).
  *
  * Recovery: rebuild propertyOrder from Object.keys(propertyInstances) and
  * derive propertySelections by counting instance prefixes. The scenario
- * comes back without needing to re-run the AI prompt — propertyInstances
+ * comes back without needing to re-run the AI prompt - propertyInstances
  * already contains all the financial detail.
  *
  * MANUAL-ONLY. There is no auto-trigger for this. Cofounder explicitly
@@ -61,8 +61,8 @@ export async function diagnoseScenario(scenarioId: number): Promise<
     diagnosis: {
       needsRepair,
       reason: needsRepair
-        ? `${instanceCount} property instances are stored but propertyOrder/propertySelections are empty — this is the partial-write corruption signature.`
-        : `Scenario looks intact — ${instanceCount} instances, ${orderCount} ordered, ${selectionCount} selection keys.`,
+        ? `${instanceCount} property instances are stored but propertyOrder/propertySelections are empty - this is the partial-write corruption signature.`
+        : `Scenario looks intact - ${instanceCount} instances, ${orderCount} ordered, ${selectionCount} selection keys.`,
       instanceCount,
       orderCount,
       selectionCount,

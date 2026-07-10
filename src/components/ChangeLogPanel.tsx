@@ -3,7 +3,7 @@
  *
  * ChangeLogBell sits in the TopBar: amber with a red unread counter while
  * there are unseen changes, neutral otherwise. Clicking toggles
- * ChangeLogPanel — a thin right-side panel listing what each table edit did
+ * ChangeLogPanel - a thin right-side panel listing what each table edit did
  * to the plan (equity / cashflow / headroom deltas + outcome changes).
  */
 import React from 'react';
@@ -49,7 +49,7 @@ export const ChangeLogBell: React.FC = () => {
       } ${panelOpen ? 'ring-1 ring-neutral-300' : ''}`}
     >
       <Bell size={15} />
-      {/* Shimmer sweep while unread — same attention pattern as the Retirement
+      {/* Shimmer sweep while unread - same attention pattern as the Retirement
           sell button. Inner clipped layer so the badge (outside the button
           bounds) isn't cut off. */}
       {hasUnread && <span className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none bell-shimmer" />}
@@ -146,7 +146,7 @@ export const ChangeLogPanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {history.length === 0 ? (
           <div style={{ fontSize: 12, color: '#A3A3A3', padding: '28px 16px', textAlign: 'center', lineHeight: '18px' }}>
-            Edits that change the plan — and AI decisions about it — will appear here.
+            Edits that change the plan - and AI decisions about it - will appear here.
           </div>
         ) : (
           history.map(entry => (

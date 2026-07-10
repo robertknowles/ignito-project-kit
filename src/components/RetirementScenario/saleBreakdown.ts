@@ -2,7 +2,7 @@ import type { InvestmentProfileData } from '../../contexts/InvestmentProfileCont
 import type { RetirementPropertyProjection } from './useRetirementProjection'
 
 /**
- * Retirement sell-down — sale breakdown & CGT helper.
+ * Retirement sell-down - sale breakdown & CGT helper.
  *
  * Pure, unit-testable. Turns a projected property at the retirement year into a
  * waterfall (sale price → costs → loan → cash before tax → CGT → net cash) and
@@ -13,14 +13,14 @@ import type { RetirementPropertyProjection } from './useRetirementProjection'
  * the time-apportioned engine in utils/cgtCalculator.ts (whole-period method),
  * which the spec flags (§12) as the intended treatment for this what-if.
  *
- * Compliance: this only models and compares — it never prefers a method.
+ * Compliance: this only models and compares - it never prefers a method.
  * Every figure is an estimate; the UI carries the not-tax-advice disclaimer.
  */
 
 export type CgtMethod = 'discount' | 'indexation'
 export type SaleLedger = 'personal' | 'smsf'
 
-/** 1 July 2027 — sales on/after this default to the indexation method. */
+/** 1 July 2027 - sales on/after this default to the indexation method. */
 export const CGT_REFORM_START_YEAR = 2027.5
 /** Minimum tax rate on the real (post-indexation) gain. */
 export const CGT_INDEXATION_FLOOR = 0.30
@@ -52,13 +52,13 @@ export interface SaleBreakdown {
   costBase: number
   holdingYears: number
   ledger: SaleLedger
-  /** Sale value less selling costs — the proceeds CGT is worked out on. */
+  /** Sale value less selling costs - the proceeds CGT is worked out on. */
   capitalProceeds: number
   /** max(0, capitalProceeds − costBase). */
   grossGain: number
   /** The method actually applied to this property (grandfathering / SMSF aware). */
   appliedMethod: CgtMethod
-  /** Tax rate applied (decimal) — the local what-if rate. */
+  /** Tax rate applied (decimal) - the local what-if rate. */
   rate: number
   /** CGT under the active method (or the SMSF treatment). */
   activeCgt: number
@@ -77,7 +77,7 @@ export interface SaleBreakdown {
  * Grandfathering: assets *acquired* before 1 Jul 2027 keep the current 50%
  * discount for their whole life; assets acquired on/after fall under the
  * proposed indexation method. The cutoff is the purchase year, not the sale
- * year — a property bought in 2018 and sold in 2040 is still grandfathered.
+ * year - a property bought in 2018 and sold in 2040 is still grandfathered.
  *
  * SMSF and new builds are handled separately by the caller (SMSF keeps its own
  * one-third treatment; new builds may elect either method).
@@ -105,7 +105,7 @@ export function buildSaleBreakdown(
   const holdingYears = Math.max(0, retirementYear - prop.purchaseYear)
   const cashBeforeTax = salePrice - sellingCosts - loanPayout
 
-  // Method A — current 50% discount.
+  // Method A - current 50% discount.
   const discountTaxable = grossGain * (1 - CGT_DISCOUNT)
   const discountCgt = discountTaxable * rate
   const discount: RegimeResult = {
@@ -114,7 +114,7 @@ export function buildSaleBreakdown(
     net: cashBeforeTax - discountCgt,
   }
 
-  // Method B — proposed indexation (real gain taxed at max(rate, 30%)).
+  // Method B - proposed indexation (real gain taxed at max(rate, 30%)).
   const indexedCostBase = costBase * Math.pow(1 + cpi, holdingYears)
   const indexationTaxable = Math.max(0, capitalProceeds - indexedCostBase)
   const indexationCgt = Math.max(indexationTaxable * rate, indexationTaxable * CGT_INDEXATION_FLOOR)
@@ -125,7 +125,7 @@ export function buildSaleBreakdown(
     net: cashBeforeTax - indexationCgt,
   }
 
-  // SMSF — out of scope of the reform, keeps its one-third discount at 15%.
+  // SMSF - out of scope of the reform, keeps its one-third discount at 15%.
   let smsf: RegimeResult | undefined
   if (ledger === 'smsf') {
     const smsfTaxable = grossGain * (1 - SMSF_DISCOUNT)

@@ -1,5 +1,5 @@
 /**
- * useChatConversation — Step 1.14 of NL-PIVOT-PLAN.csv
+ * useChatConversation - Step 1.14 of NL-PIVOT-PLAN.csv
  *
  * Manages chat state: message history, loading state, conversation context.
  * Handles sending messages to the nl-parse edge function, receiving
@@ -55,13 +55,13 @@ interface UseChatConversationOptions {
   userId?: string
   /** Client name for personalised loading text */
   clientName?: string
-  /** Strategy preset — drives chatbot cell selection and property sequencing. */
+  /** Strategy preset - drives chatbot cell selection and property sequencing. */
   strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf'
   /** Selected company strategy text, injected into the AI prompt. When set
    *  (the strategy picked via the pills), it overrides the default; otherwise
    *  we fall back to the firm's first saved strategy. */
   strategyProfileText?: string
-  /** True when a plan already exists — used to reject misclassified initial_plan rebuilds. */
+  /** True when a plan already exists - used to reject misclassified initial_plan rebuilds. */
   hasExistingPlan?: boolean
   /** When true, force currentPlan to null on the next sendMessage call.
    *  Used by pending-prompt (home page → dashboard) to prevent stale plan state
@@ -126,7 +126,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const optionsRef = useRef(options)
   optionsRef.current = options
 
-  // Same trick for messages — the pending-prompt handler does
+  // Same trick for messages - the pending-prompt handler does
   // clearMessages() → setTimeout(sendMessage, 50). The setTimeout
   // captures sendMessage from the render BEFORE clearMessages landed,
   // so conversationHistory built from messages-via-closure leaks the
@@ -138,7 +138,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
-  // And for isLoading — the early-return guard reads this. Without a
+  // And for isLoading - the early-return guard reads this. Without a
   // ref a captured sendMessage from a stale render could re-fire after
   // a real send had already started, slipping past the guard and
   // duplicating the user message + AI request.
@@ -263,7 +263,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
       try {
         // Get current plan state for context. Read from the ref so the AI
-        // request payload reflects the LATEST in-memory plan — not whatever
+        // request payload reflects the LATEST in-memory plan - not whatever
         // was captured when sendMessage was first created. The captured
         // version may have closed over a previous client's propertyOrder/
         // profile if sendMessage was scheduled (via pending-prompt
@@ -278,7 +278,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
         // Build conversation history (text messages only, for context).
         // Sliding window: keep only the last 20 entries (~10 user/assistant turns).
-        // Prevents context-window blow-up on long threads — older messages stay in
+        // Prevents context-window blow-up on long threads - older messages stay in
         // the UI but get dropped from the LLM payload. Recent context is what
         // matters for follow-up coherence; older turns rarely change the answer.
         const HISTORY_WINDOW = 20
@@ -298,7 +298,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         const MAX_RETRIES_BY_CODE: Record<string, number> = {
           RATE_LIMIT: 2,  // Anthropic rate-limit windows are short; backoff buys recovery time
           TIMEOUT: 1,     // Claude/edge slow; try once more, don't pile on
-          _default: 1,    // Generic edge function errors (500s) — one retry
+          _default: 1,    // Generic edge function errors (500s) - one retry
         }
         // Base delays in ms before each retry (index = retry attempt number).
         // Add jitter to break up thundering-herd patterns when many users
@@ -436,12 +436,12 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             !!response.strategyPreset &&
             response.strategyPreset !== liveStrategyPreset
           if (!isStrategySwitch) {
-            console.warn('[nl-parse] initial_plan returned while plan exists (not a strategy switch) — treating as explanation.')
+            console.warn('[nl-parse] initial_plan returned while plan exists (not a strategy switch) - treating as explanation.')
             effectiveType = 'explanation'
           }
         }
         if (response.type === 'comparison') {
-          console.warn('[nl-parse] comparison response intercepted — treating as explanation.')
+          console.warn('[nl-parse] comparison response intercepted - treating as explanation.')
           effectiveType = 'explanation'
         }
 
@@ -474,7 +474,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             // Skip the chart-context enrichment for explanations that aren't
             // anchored to specific periods or properties. Questions like "what
             // if rates rise 2%?" or "model selling property 1" have no period
-            // to look up — the follow-up just re-asks the AI the same question
+            // to look up - the follow-up just re-asks the AI the same question
             // and yields a near-duplicate response, producing a visible double-
             // message UX with a long loading state between them (founder
             // report 2026-05-05, B4). Skip if no period/property anchors AND
@@ -498,7 +498,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               try {
                 const explResult = await supabase.functions.invoke('nl-parse', {
                   body: {
-                    message: `[EXPLANATION REQUEST]\nOriginal question: "${userText}"\n\nHere is the actual calculated data from the engine. Reference ONLY these numbers in your explanation — never make up figures.\n\n${chartContext}\n\nNow explain in plain English, referencing the specific numbers above. Keep it concise (2-4 sentences). No hedging. Do not return a new plan or a properties array — respond only with the explanation message.`,
+                    message: `[EXPLANATION REQUEST]\nOriginal question: "${userText}"\n\nHere is the actual calculated data from the engine. Reference ONLY these numbers in your explanation - never make up figures.\n\n${chartContext}\n\nNow explain in plain English, referencing the specific numbers above. Keep it concise (2-4 sentences). No hedging. Do not return a new plan or a properties array - respond only with the explanation message.`,
                     conversationHistory: [
                       ...conversationHistory,
                       { role: 'user', content: userText },
@@ -523,7 +523,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               }
             }
 
-            // Fallback: show Claude's initial classification message — but if we
+            // Fallback: show Claude's initial classification message - but if we
             // downgraded from a misclassified initial_plan, the message talks
             // about "Built a 4-property portfolio..." which doesn't answer the
             // question. Ask for clarification instead of a dead-end sorry.
@@ -564,7 +564,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           }
 
           default: {
-            // Fallback — just show the message
+            // Fallback - just show the message
             const fallbackMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, fallbackMsg])
           }
@@ -593,13 +593,13 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             friendlyMessage = 'That took a bit long. Send it again and it should go through.'
             break
           case 'RATE_LIMIT':
-            friendlyMessage = 'Busy right now — give it a few seconds then resend.'
+            friendlyMessage = 'Busy right now - give it a few seconds then resend.'
             break
           case 'OFFLINE':
             friendlyMessage = "Can't reach the server. Check your connection and resend."
             break
           default:
-            friendlyMessage = 'Didn\'t go through — try sending that again.'
+            friendlyMessage = 'Didn\'t go through - try sending that again.'
         }
 
         const errorMsg = createMessage('assistant', 'text', friendlyMessage)

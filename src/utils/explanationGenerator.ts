@@ -1,12 +1,12 @@
 /**
- * Explanation Generator — Step 2.6 of NL-PIVOT-PLAN.csv
+ * Explanation Generator - Step 2.6 of NL-PIVOT-PLAN.csv
  *
  * Builds data context for explanation-type requests. When a BA asks
  * "why is cashflow negative in 2029", this module extracts the relevant
  * calculated data from the chart data and timeline properties, then
  * formats it into a context block that Claude can reference.
  *
- * Claude MUST reference real engine numbers — never make up figures.
+ * Claude MUST reference real engine numbers - never make up figures.
  */
 
 import type { PortfolioGrowthDataPoint, CashflowDataPoint } from '@/hooks/usePortfolioProjection'

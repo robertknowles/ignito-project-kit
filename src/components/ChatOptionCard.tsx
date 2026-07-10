@@ -1,5 +1,5 @@
 /**
- * ChatOptionCard — Step 1.11 of NL-PIVOT-PLAN.csv
+ * ChatOptionCard - Step 1.11 of NL-PIVOT-PLAN.csv
  *
  * A compact clickable list item shown when the engine pushes back on a
  * modification. Shows icon, bold title, one-line description, right arrow.

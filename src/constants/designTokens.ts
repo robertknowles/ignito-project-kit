@@ -1,5 +1,5 @@
 /**
- * DESIGN TOKENS — Single Source of Truth
+ * DESIGN TOKENS - Single Source of Truth
  *
  * Values sourced from Untitled UI's official theme.css (installed via npx untitledui init)
  * and verified via live Chrome DevTools inspection (May 2026).
@@ -30,40 +30,40 @@
 // =============================================================================
 
 export const COLORS = {
-  // ── Brand (PropPath violet — Tailwind violet scale) ───────────────
+  // ── Brand (PropPath violet - Tailwind violet scale) ───────────────
   brand: {
-    950: '#2E1065',   // violet-950 — deepest
+    950: '#2E1065',   // violet-950 - deepest
     900: '#4C1D95',   // violet-900
-    800: '#5B21B6',   // violet-800 — gradient stops
-    700: '#6D28D9',   // violet-700 — hover state, links
-    600: '#7C3AED',   // violet-600 — ★ PRIMARY (ink) — buttons, solid bg, markers
-    500: '#8B5CF6',   // violet-500 — fill — chart lines/areas, lighter accent
-    400: '#A78BFA',   // violet-400 — chart line 3, badges
-    300: '#C4B5FD',   // violet-300 — on-brand quaternary text
-    200: '#DDD6FE',   // violet-200 — tag backgrounds, on-brand secondary
-    100: '#EDE9FE',   // violet-100 — brand secondary bg
-    50:  '#F5F3FF',   // violet-50 — brand primary bg, surface tint, .editable pill
+    800: '#5B21B6',   // violet-800 - gradient stops
+    700: '#6D28D9',   // violet-700 - hover state, links
+    600: '#7C3AED',   // violet-600 - ★ PRIMARY (ink) - buttons, solid bg, markers
+    500: '#8B5CF6',   // violet-500 - fill - chart lines/areas, lighter accent
+    400: '#A78BFA',   // violet-400 - chart line 3, badges
+    300: '#C4B5FD',   // violet-300 - on-brand quaternary text
+    200: '#DDD6FE',   // violet-200 - tag backgrounds, on-brand secondary
+    100: '#EDE9FE',   // violet-100 - brand secondary bg
+    50:  '#F5F3FF',   // violet-50 - brand primary bg, surface tint, .editable pill
   },
 
   // ── Neutral (Tailwind default scale, used by UUI semantics) ───────
   neutral: {
     950: '#0A0A0A',   // overlay bg
-    900: '#171717',   // text-primary — headings, stat values (verified)
+    900: '#171717',   // text-primary - headings, stat values (verified)
     800: '#262626',   // text-primary-alt
-    700: '#404040',   // text-secondary — names, breadcrumb active (verified)
-    600: '#525252',   // text-tertiary — subtitles, timestamps (verified)
-    500: '#737373',   // text-quaternary — breadcrumbs, icons, placeholders (verified)
+    700: '#404040',   // text-secondary - names, breadcrumb active (verified)
+    600: '#525252',   // text-tertiary - subtitles, timestamps (verified)
+    500: '#737373',   // text-quaternary - breadcrumbs, icons, placeholders (verified)
     400: '#A3A3A3',   // disabled, fg-quaternary
     300: '#D4D4D4',   // border-primary (stronger)
-    200: '#E5E5E5',   // border-secondary (default) — sidebar divider, card ring (verified)
-    100: '#F5F5F5',   // bg-tertiary — pill tab container bg, hover bg (verified)
-    50:  '#FAFAFA',   // bg-secondary, bg-active — active sidebar item (verified)
-    0:   '#FFFFFF',   // bg-primary — card backgrounds, content area
+    200: '#E5E5E5',   // border-secondary (default) - sidebar divider, card ring (verified)
+    100: '#F5F5F5',   // bg-tertiary - pill tab container bg, hover bg (verified)
+    50:  '#FAFAFA',   // bg-secondary, bg-active - active sidebar item (verified)
+    0:   '#FFFFFF',   // bg-primary - card backgrounds, content area
   },
 
   // ── Semantic (from UUI theme.css fg/text mappings) ────────────────
   // UUI maps success/error/warning to their respective -600 slots
-  success: '#17B26A',  // PropPath positive (§1.3) — financial sign
+  success: '#17B26A',  // PropPath positive (§1.3) - financial sign
   error:   '#F04438',  // PropPath negative (§1.3), also index.css --destructive
   warning: '#F79009',  // UUI warning-600
   info:    '#7C3AED',  // brand-600 violet (no blue)
@@ -91,12 +91,12 @@ export const COLORS = {
 // =============================================================================
 
 export const TYPOGRAPHY = {
-  /** Font stack — Inter with UUI OpenType features */
+  /** Font stack - Inter with UUI OpenType features */
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   fontFeatures: "'cv01', 'cv03', 'cv04'",
 
   // ── Scale (matches UUI exactly) ───────────────────────────────────
-  /** Page title: "Dashboard", "Portfolio" — 24px/32px semibold */
+  /** Page title: "Dashboard", "Portfolio" - 24px/32px semibold */
   pageTitle: {
     fontSize: 24,
     fontWeight: 600,
@@ -104,7 +104,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[900],
   },
 
-  /** Page heading: "Welcome back, Olivia" — 20px/30px semibold */
+  /** Page heading: "Welcome back, Olivia" - 20px/30px semibold */
   pageHeading: {
     fontSize: 20,
     fontWeight: 600,
@@ -112,7 +112,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[900],
   },
 
-  /** Page subtext: "Your current sales summary" — 16px/24px regular */
+  /** Page subtext: "Your current sales summary" - 16px/24px regular */
   pageSubtext: {
     fontSize: 16,
     fontWeight: 400,
@@ -120,7 +120,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[600],
   },
 
-  /** Section heading: card titles, table headers — 16px/24px semibold */
+  /** Section heading: card titles, table headers - 16px/24px semibold */
   sectionHeading: {
     fontSize: 16,
     fontWeight: 600,
@@ -128,7 +128,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[900],
   },
 
-  /** Stat number: KPI values "$11.01M" — 30px/38px semibold */
+  /** Stat number: KPI values "$11.01M" - 30px/38px semibold */
   statNumber: {
     fontSize: 30,
     fontWeight: 600,
@@ -137,7 +137,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[900],
   },
 
-  /** Stat label: "Portfolio Value" — 14px/20px medium */
+  /** Stat label: "Portfolio Value" - 14px/20px medium */
   statLabel: {
     fontSize: 14,
     fontWeight: 500,
@@ -145,7 +145,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[600],
   },
 
-  /** Body: primary table text, names — 14px/20px regular */
+  /** Body: primary table text, names - 14px/20px regular */
   body: {
     fontSize: 14,
     fontWeight: 400,
@@ -153,7 +153,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[700],
   },
 
-  /** Body secondary: descriptions, timestamps — 14px/20px regular */
+  /** Body secondary: descriptions, timestamps - 14px/20px regular */
   bodySecondary: {
     fontSize: 14,
     fontWeight: 400,
@@ -161,7 +161,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[600],
   },
 
-  /** Small/meta: axis labels, footnotes — 12px/18px regular */
+  /** Small/meta: axis labels, footnotes - 12px/18px regular */
   meta: {
     fontSize: 12,
     fontWeight: 400,
@@ -169,7 +169,7 @@ export const TYPOGRAPHY = {
     color: COLORS.neutral[500],
   },
 
-  /** Nav item: sidebar labels — 16px/24px regular (active: semibold) */
+  /** Nav item: sidebar labels - 16px/24px regular (active: semibold) */
   navItem: {
     fontSize: 16,
     fontWeight: 400,
@@ -178,7 +178,7 @@ export const TYPOGRAPHY = {
     activeWeight: 600,
   },
 
-  /** Breadcrumb — 14px/20px semibold */
+  /** Breadcrumb - 14px/20px semibold */
   breadcrumb: {
     fontSize: 14,
     fontWeight: 600,
@@ -187,7 +187,7 @@ export const TYPOGRAPHY = {
     activeColor: COLORS.neutral[700],
   },
 
-  /** Button — 14px/20px semibold */
+  /** Button - 14px/20px semibold */
   button: {
     fontSize: 14,
     fontWeight: 600,
@@ -223,7 +223,7 @@ export const SPACING = {
 export const LAYOUT = {
   /** Sidebar width (expanded with labels) */
   sidebarWidth: 280,
-  /** Sidebar width (collapsed, icon-only) — not used in redesign */
+  /** Sidebar width (collapsed, icon-only) - not used in redesign */
   sidebarCollapsed: 68,
   /** Floating chat widget width */
   chatWidgetWidth: 400,
@@ -380,7 +380,7 @@ export const COMPONENTS = {
 // =============================================================================
 
 export const CHART_TOKENS = {
-  /** Reduced axis ticks — show bookends + a few midpoints */
+  /** Reduced axis ticks - show bookends + a few midpoints */
   xAxis: {
     tick: {
       fontSize: 12,

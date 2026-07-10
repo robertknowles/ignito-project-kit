@@ -1,5 +1,5 @@
 /**
- * Plan Pre-Check — runs the affordability engine against an AI-proposed plan
+ * Plan Pre-Check - runs the affordability engine against an AI-proposed plan
  * BEFORE showing the confirmation brief.
  *
  * Uses the same checkAffordability + calculateAvailableFunds as the dashboard.
@@ -109,7 +109,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
   }
 
   // Build profile: start from the actual dashboard profile (same source of truth),
-  // then overlay the AI response's updates — exactly what confirmPlan does.
+  // then overlay the AI response's updates - exactly what confirmPlan does.
   const profileUpdates = mapToInvestmentProfile(response);
   const profile: InvestmentProfileData = {
     ...(baseProfile ?? INITIAL_PROFILE_DEFAULTS),
@@ -117,7 +117,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
   } as InvestmentProfileData;
 
   // When the AI response omits the existing portfolio, fall back to what the
-  // dashboard already holds — confirmPlan keeps the context's existing
+  // dashboard already holds - confirmPlan keeps the context's existing
   // properties when the response has none, so the dashboard tests with their
   // equity. Without the same fallback here, the pre-check sees less available
   // funding than the dashboard and rejects placements the dashboard accepts.
@@ -271,7 +271,7 @@ export function runPlanPreCheck(response: NLParseResponse, baseProfile?: Investm
     return `- ${f.propertyLabel}: ${tests.join(', ')}`;
   }).join('\n');
 
-  const feedbackMessage = `[SYSTEM] The engine ran a pre-check on your proposed plan. ${failures.length} of ${propertyOrder.length} properties failed affordability tests:\n\n${failureLines}\n\nAdjust the plan and CALL create_plan AGAIN with the corrected properties. Do NOT respond with a text message — you MUST use the create_plan tool to resubmit. Options:\n1. Set entity to "trust" on properties that failed (reduces serviceability impact by 75%)\n2. Reduce property prices to fit within capacity\n3. Reduce the number of properties`;
+  const feedbackMessage = `[SYSTEM] The engine ran a pre-check on your proposed plan. ${failures.length} of ${propertyOrder.length} properties failed affordability tests:\n\n${failureLines}\n\nAdjust the plan and CALL create_plan AGAIN with the corrected properties. Do NOT respond with a text message - you MUST use the create_plan tool to resubmit. Options:\n1. Set entity to "trust" on properties that failed (reduces serviceability impact by 75%)\n2. Reduce property prices to fit within capacity\n3. Reduce the number of properties`;
 
   return { allFeasible: false, failures, feedbackMessage };
 }
@@ -290,11 +290,11 @@ export interface PropertyTimingInsight {
   /**
    * Human-readable reasons for the binding constraint. When the property
    * fails at its tested period, these describe that failure. When it passes,
-   * these describe why the year before earliestFeasiblePeriod fails — i.e.
+   * these describe why the year before earliestFeasiblePeriod fails - i.e.
    * what is stopping it from being earlier.
    */
   blockers: string[];
-  /** Structured version of blockers — which tests bind this property's timing */
+  /** Structured version of blockers - which tests bind this property's timing */
   bindingTests: BindingTest[];
 }
 
@@ -333,7 +333,7 @@ export function analyzePlanTimings(
   const SCAN_AHEAD_PERIODS = 20; // 10 years
 
   // Which properties already fail in the plan as-is. A candidate move is only
-  // "feasible" if it doesn't break any property that currently passes —
+  // "feasible" if it doesn't break any property that currently passes -
   // otherwise "could buy earlier" would just shuffle the failure elsewhere.
   const baseResult = runPlanPreCheck(response, baseProfile, fallbackExistingProps, { silent: true });
   const originallyFailing = new Set(baseResult.failures.map(f => f.propertyIndex));
@@ -375,7 +375,7 @@ export function analyzePlanTimings(
       blockers = describeFailure(atTested.own);
       bindingTests = failedTestKinds(atTested.own);
     } else if (earliestFeasiblePeriod !== null && earliestFeasiblePeriod > 2) {
-      // Passing — explain what blocks the year before the earliest slot
+      // Passing - explain what blocks the year before the earliest slot
       const earlier = checkAt(earliestFeasiblePeriod - 2);
       if (earlier.own) {
         blockers = describeFailure(earlier.own);
@@ -555,7 +555,7 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
           propertyLabel: `Property ${idx + 1} ($${Math.round(dropped.purchasePrice / 1000)}k)`,
           changeType: 'dropped',
           reason: 'borrowing capacity',
-          detail: `Removed — could not fit within borrowing capacity even after pushing to later periods`,
+          detail: `Removed - could not fit within borrowing capacity even after pushing to later periods`,
         });
       }
       fixedResponse.properties.splice(idx, 1);
@@ -578,10 +578,10 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
       fixedResponse.message = fixedResponse.message
         .replace(/\b\d+-property plan/, `${count}-property plan`)
         .replace(/(?:at|from) \$[\d,]+k(?:\s+to\s+\$[\d,]+k)?/, priceRange)
-        // Remove "Properties X, Y held in trusts …" sentence — may reference dropped properties
+        // Remove "Properties X, Y held in trusts …" sentence - may reference dropped properties
         .replace(/\s*Properties\s+[\d,\s]+held in trusts[^.]*\./g, '')
         // Remove "trust structures reduce serviceability…" fragment if orphaned
-        .replace(/\s*—\s*trust structures reduce serviceability impact so the engine can place all purchases\./g, '');
+        .replace(/\s*-\s*trust structures reduce serviceability impact so the engine can place all purchases\./g, '');
     }
   }
 
@@ -636,5 +636,5 @@ function buildExplanationPrompt(changes: AutoFixChange[], stillHasIssues = false
     );
   }
 
-  return `[SYSTEM] The engine auto-adjusted this plan before showing it to the user. Briefly explain these changes in a natural, helpful way (1-2 sentences max, no bullet points). Do NOT mention "the engine" or "pre-check" — just explain the strategy as if you made the decision:\n\n${parts.join('\n\n')}`;
+  return `[SYSTEM] The engine auto-adjusted this plan before showing it to the user. Briefly explain these changes in a natural, helpful way (1-2 sentences max, no bullet points). Do NOT mention "the engine" or "pre-check" - just explain the strategy as if you made the decision:\n\n${parts.join('\n\n')}`;
 }

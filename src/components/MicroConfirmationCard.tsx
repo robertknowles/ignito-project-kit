@@ -1,8 +1,8 @@
 /**
- * MicroConfirmationCard — Step 1.13 of NL-PIVOT-PLAN.csv
+ * MicroConfirmationCard - Step 1.13 of NL-PIVOT-PLAN.csv
  *
  * A small animated card that flashes the critical numbers (income + savings)
- * as the plan starts generating. Not a blocker — just a quick visual receipt
+ * as the plan starts generating. Not a blocker - just a quick visual receipt
  * of the numbers that matter most. If these are wrong, everything is wrong,
  * so the BA catches it immediately.
  */

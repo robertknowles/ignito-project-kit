@@ -11,7 +11,7 @@ interface MiniSparklineProps {
 
 /**
  * Tiny inline equity-curve preview used on the AgentHome Recents tiles.
- * Renders a smooth area chart in SVG — no external deps, cheap to mount in
+ * Renders a smooth area chart in SVG - no external deps, cheap to mount in
  * a grid of 16 tiles. Falls back to a flat baseline when given fewer than
  * 2 data points.
  */

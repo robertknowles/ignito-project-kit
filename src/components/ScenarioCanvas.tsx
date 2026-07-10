@@ -29,7 +29,7 @@ export const ScenarioCanvas: React.FC<ScenarioCanvasProps> = ({ scenarioId }) =>
 
   if (!scenario) return null;
 
-  // Build scenarioData prop — live for active, stored for inactive
+  // Build scenarioData prop - live for active, stored for inactive
   const scenarioData = isMultiScenarioMode ? {
     timelineProperties: isActive ? liveTimelineProperties : scenario.timeline,
     profile: isActive ? liveProfile : scenario.investmentProfile,

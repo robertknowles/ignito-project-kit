@@ -1,7 +1,7 @@
 /**
  * Visualises the PropPath outreach flow with all branches.
  *
- * Drop into any page inside the dark CRM admin area — scales responsively
+ * Drop into any page inside the dark CRM admin area - scales responsively
  * via SVG viewBox, designed for ~720px content width but works down to
  * ~480px before labels get cramped. No external dependencies.
  *
@@ -67,7 +67,7 @@ export default function OutreachFlowDiagram() {
         <text x="313" y="10" fill={label} fontSize="11">Success exit</text>
       </g>
 
-      {/* Day 0 — Blank LinkedIn request */}
+      {/* Day 0 - Blank LinkedIn request */}
       <g>
         <rect x="220" y="55" width="280" height="48" rx="6" fill={action.fill} stroke={action.stroke} />
         <text x="360" y="76" textAnchor="middle" fontSize="13" fontWeight="500" fill={action.title}>
@@ -79,7 +79,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 360 103 L 360 130" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day 1–10 — Accepted? */}
+      {/* Day 1–10 - Accepted? */}
       <g>
         <rect x="260" y="135" width="200" height="48" rx="6" fill={decision.fill} stroke={decision.stroke} />
         <text x="360" y="156" textAnchor="middle" fontSize="13" fontWeight="500" fill={decision.title}>
@@ -94,7 +94,7 @@ export default function OutreachFlowDiagram() {
       <path d="M 360 183 L 360 260" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
       <text x="368" y="225" fontSize="11" fill={label}>Yes</text>
 
-      {/* InMail — Day 10 fallback */}
+      {/* InMail - Day 10 fallback */}
       <g>
         <rect x="20" y="200" width="220" height="48" rx="6" fill={action.fill} stroke={action.stroke} />
         <text x="130" y="221" textAnchor="middle" fontSize="13" fontWeight="500" fill={action.title}>
@@ -106,7 +106,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 130 248 L 240 280" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day +1 — Video + DM */}
+      {/* Day +1 - Video + DM */}
       <g>
         <rect x="220" y="265" width="280" height="48" rx="6" fill={action.fill} stroke={action.stroke} />
         <text x="360" y="286" textAnchor="middle" fontSize="13" fontWeight="500" fill={action.title}>
@@ -118,7 +118,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 360 313 L 360 330" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day +4 — Replied? */}
+      {/* Day +4 - Replied? */}
       <g>
         <rect x="260" y="335" width="200" height="48" rx="6" fill={decision.fill} stroke={decision.stroke} />
         <text x="360" y="356" textAnchor="middle" fontSize="13" fontWeight="500" fill={decision.title}>
@@ -156,7 +156,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 220 453 L 320 470" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day +14 — Replied? */}
+      {/* Day +14 - Replied? */}
       <g>
         <rect x="260" y="475" width="200" height="48" rx="6" fill={decision.fill} stroke={decision.stroke} />
         <text x="360" y="496" textAnchor="middle" fontSize="13" fontWeight="500" fill={decision.title}>
@@ -171,7 +171,7 @@ export default function OutreachFlowDiagram() {
       <path d="M 460 499 L 550 535" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
       <text x="475" y="518" fontSize="11" fill={label}>Yes</text>
 
-      {/* Day +14 — Remodel hook (Option B) */}
+      {/* Day +14 - Remodel hook (Option B) */}
       <g>
         <rect x="80" y="545" width="280" height="48" rx="6" fill={action.fill} stroke={action.stroke} />
         <text x="220" y="566" textAnchor="middle" fontSize="13" fontWeight="500" fill={action.title}>
@@ -194,7 +194,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 220 593 L 320 610" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day +28 — Email */}
+      {/* Day +28 - Email */}
       <g>
         <rect x="220" y="615" width="280" height="48" rx="6" fill={action.fill} stroke={action.stroke} />
         <text x="360" y="636" textAnchor="middle" fontSize="13" fontWeight="500" fill={action.title}>
@@ -206,7 +206,7 @@ export default function OutreachFlowDiagram() {
       </g>
       <path d="M 360 663 L 360 680" stroke={connector} strokeWidth="1.5" markerEnd="url(#op-arrow)" fill="none" />
 
-      {/* Day +30 — Dead */}
+      {/* Day +30 - Dead */}
       <g>
         <rect x="260" y="685" width="200" height="48" rx="6" fill={decision.fill} stroke={decision.stroke} />
         <text x="360" y="706" textAnchor="middle" fontSize="13" fontWeight="500" fill={decision.title}>
@@ -225,7 +225,7 @@ export default function OutreachFlowDiagram() {
         fill="none"
       />
 
-      {/* Day +120 — Optional re-engage */}
+      {/* Day +120 - Optional re-engage */}
       <g opacity="0.7">
         <rect x="200" y="755" width="320" height="48" rx="6" fill={decision.fill} stroke={decision.stroke} />
         <text x="360" y="776" textAnchor="middle" fontSize="13" fontWeight="500" fill={decision.title}>

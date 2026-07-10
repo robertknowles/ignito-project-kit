@@ -9,7 +9,7 @@ interface PublicRouteProps {
 export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { user, loading, role } = useAuth();
 
-  // Subscriptions are disabled during the testing period — drop any stale
+  // Subscriptions are disabled during the testing period - drop any stale
   // pending-plan flag so it doesn't trigger checkout flows that no longer exist.
   useEffect(() => {
     if (user) {
@@ -28,7 +28,7 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   // If user is authenticated, redirect based on role.
   // (Previously new users were sent to /dashboard for an onboarding tour.
   // Tour is disabled and the home page is the new "build a property plan"
-  // entry point, so all users — new or returning — land on /home.)
+  // entry point, so all users - new or returning - land on /home.)
   if (user) {
     // Clear any leftover new-user flag so we don't trip old code paths.
     if (localStorage.getItem('ignito_is_new_user') === 'true') {

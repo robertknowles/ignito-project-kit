@@ -256,11 +256,11 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
                 <td className="text-right py-2 px-2 font-medium text-gray-700">{formatExact(initialValue)}</td>
                 <td className="text-right py-2 px-2 font-medium text-gray-700">{formatExact(timelineData.loanAmount)}</td>
                 <td className="text-right py-2 px-2 font-medium text-gray-700">{formatExact(initialEquity)}</td>
-                <td className="text-right py-2 px-2 text-gray-400">—</td>
-                <td className="text-right py-2 px-2 text-gray-400">—</td>
-                <td className="text-right py-2 px-2 text-gray-400">—</td>
-                <td className="text-right py-2 px-2 text-gray-400">—</td>
-                <td className="text-right py-2 pl-2 text-gray-400">—</td>
+                <td className="text-right py-2 px-2 text-gray-400">-</td>
+                <td className="text-right py-2 px-2 text-gray-400">-</td>
+                <td className="text-right py-2 px-2 text-gray-400">-</td>
+                <td className="text-right py-2 px-2 text-gray-400">-</td>
+                <td className="text-right py-2 pl-2 text-gray-400">-</td>
               </tr>
 
               {/* Year rows */}
@@ -285,7 +285,7 @@ export const OwnedPropertyCard: React.FC<OwnedPropertyCardProps> = ({
         </div>
       </div>
 
-      {/* ── Section 5: Bottom Row — 3 Summary Cards ────────────────────── */}
+      {/* ── Section 5: Bottom Row - 3 Summary Cards ────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-5 pb-5">
         {/* Cash on Cash Return */}
         <div className="border border-gray-200 rounded-lg p-4">

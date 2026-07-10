@@ -1,7 +1,7 @@
 /**
- * ChatPanel — Step 1.15 of NL-PIVOT-PLAN.csv
+ * ChatPanel - Step 1.15 of NL-PIVOT-PLAN.csv
  *
- * The main chat container — replaces InputDrawer as the primary left panel.
+ * The main chat container - replaces InputDrawer as the primary left panel.
  * Header shows "PropPath AI". Scrollable message list + text input pinned
  * to bottom. Typing indicator while waiting. Auto-scrolls to latest message.
  */
@@ -109,7 +109,7 @@ export const ChatPanel: React.FC = () => {
     startW: number; startH: number;
   } | null>(null)
 
-  // Set default position (bottom-right) on mount — stored as expanded position
+  // Set default position (bottom-right) on mount - stored as expanded position
   useEffect(() => {
     if (!chatPos) {
       setChatPos({
@@ -191,13 +191,13 @@ export const ChatPanel: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator()
   const chartData = usePortfolioProjection()
 
-  // Client context — for resetting chat on client switch
+  // Client context - for resetting chat on client switch
   const { activeClient, updateClient } = useClient()
 
-  // Scenario persistence — sync chat messages
+  // Scenario persistence - sync chat messages
   const { chatMessages: savedChatMessages, setChatMessages: saveChatMessages, scenarioId, saveScenario, setChatRequestInFlight, loadedScenarioClientId, existingProperties, setExistingProperties } = useScenarioSave()
 
-  // Explicit save trigger — bypasses the change-detection + autosave debounce
+  // Explicit save trigger - bypasses the change-detection + autosave debounce
   // chain that we suspect is racing with auth/navigation flows. Called from
   // handlePlanGenerated / handleModification after state updates so the DB
   // row is durable before the user can navigate or log out.
@@ -212,22 +212,22 @@ export const ChatPanel: React.FC = () => {
   // messages into the scenario context BEFORE scheduling saveScenario.
   // Otherwise the messages-sync useEffect runs in a separate flush from the
   // setTimeout(0), so saveScenario could fire while context.chatMessages is
-  // still missing the assistant's summary/portfolio response — saving the
+  // still missing the assistant's summary/portfolio response - saving the
   // user prompt only and dropping the AI reply (cofounder report 2026-05-06:
   // dashboard restored on click, user msg restored, assistant reply missing).
   const saveScenarioRef = useRef(saveScenario)
   saveScenarioRef.current = saveScenario
   const messagesForSaveRef = useRef<typeof messages>([])
-  // messagesForSaveRef gets populated below — declared here so the callback
+  // messagesForSaveRef gets populated below - declared here so the callback
   // closes over a stable ref. Same for saveChatMessagesRef.
   const saveChatMessagesRef = useRef(saveChatMessages)
   saveChatMessagesRef.current = saveChatMessages
   const flushSaveAfterStateUpdate = useCallback(() => {
     // Defer through two macrotasks so React has time to flush:
     //   1) setMessages(summary)/setMessages(portfolio)/setAllSelections from
-    //      the response handler — once flushed, messagesForSaveRef.current
+    //      the response handler - once flushed, messagesForSaveRef.current
     //      reflects the LATEST local messages including the assistant reply
-    //   2) saveChatMessages — once flushed, context.chatMessages reflects
+    //   2) saveChatMessages - once flushed, context.chatMessages reflects
     //      the latest persisted-shape messages, which is what saveScenario
     //      reads via getCurrentScenarioData.
     setTimeout(() => {
@@ -241,7 +241,7 @@ export const ChatPanel: React.FC = () => {
 
   // Track client names extracted from the chat-generated plan. These are sent
   // to the AI as plan context AND drive the loading-step display ("Reading
-  // X's profile"). Reset whenever the active client changes — without this,
+  // X's profile"). Reset whenever the active client changes - without this,
   // names from a previous client's plan leak into the next session, both as
   // a cosmetic glitch (wrong name in the loading text) and a real correctness
   // issue (the AI receives stale clientNames in its plan-context block).
@@ -318,7 +318,7 @@ export const ChatPanel: React.FC = () => {
     }
   }, [profile, propertyOrder, instances, chartData, timelineProperties])
 
-  // Handle plan generation — store response for confirmation screen
+  // Handle plan generation - store response for confirmation screen
   const handlePlanGenerated = useCallback(
     (response: NLParseResponse) => {
       // Refinancing is always on for AI-supplied existing properties
@@ -368,7 +368,7 @@ export const ChatPanel: React.FC = () => {
     [activeClient, updateClient, setPendingPlanResponse, profile, existingProperties]
   )
 
-  // Confirm plan — hydrate contexts from the (possibly edited) response
+  // Confirm plan - hydrate contexts from the (possibly edited) response
   const confirmPlan = useCallback(
     (response: NLParseResponse) => {
       console.warn('[ConfirmPlan] Properties:', response.properties?.map((p, i) => `P${i+1} targetPeriod=${p.targetPeriod} alertDismissed=${p.alertDismissed}`).join(' | '))
@@ -411,7 +411,7 @@ export const ChatPanel: React.FC = () => {
 
   // Regenerate the (not-yet-approved) pending plan with a different strategy
   // preset. Driven by the confirmation screen's strategy dropdown. Without
-  // this, changing the dropdown only relabelled the plan — the properties
+  // this, changing the dropdown only relabelled the plan - the properties
   // stayed as the originally-inferred preset. We rebuild a fresh brief from the
   // pending response's profile and re-run create_plan with the new preset
   // forced (forceFreshPlan → currentPlan: null, so the AI always rebuilds and
@@ -449,7 +449,7 @@ export const ChatPanel: React.FC = () => {
     return () => { replanPlanHandler.current = null }
   }, [replanWithPreset, replanPlanHandler])
 
-  // Handle modifications — supports single modification or compound modifications array
+  // Handle modifications - supports single modification or compound modifications array
   const handleModification = useCallback(
     (response: NLParseResponse) => {
       // If compound modifications array exists, process each one
@@ -516,7 +516,7 @@ export const ChatPanel: React.FC = () => {
               }
             } else {
               console.warn(`[ChatPanel] mapper returned update for missing instance ${instanceId}`)
-              allWarnings.push(`Couldn't find that property to update — it may have been removed.`)
+              allWarnings.push(`Couldn't find that property to update - it may have been removed.`)
             }
           }
         }
@@ -578,7 +578,7 @@ export const ChatPanel: React.FC = () => {
         flushSaveAfterStateUpdate()
         // Visible confirmation that the modification landed. Without this,
         // when the chart's visual change is small (e.g. one property's price
-        // shifted slightly), users can't tell whether anything happened —
+        // shifted slightly), users can't tell whether anything happened -
         // especially after the AI's "engine will re-run" hedge previously
         // suggested there'd be a separate loading event. Toast is brief and
         // doesn't compete with the chat message.
@@ -599,7 +599,7 @@ export const ChatPanel: React.FC = () => {
 
   // Scenario comparison fork is disabled by product decision. Comparison
   // responses are intercepted in useChatConversation and downgraded to
-  // plain explanations — this handler is retained as a no-op so no path
+  // plain explanations - this handler is retained as a no-op so no path
   // can silently add a second scenario.
   const handleComparison = useCallback(
     (_response: NLParseResponse) => {
@@ -625,12 +625,12 @@ export const ChatPanel: React.FC = () => {
     [chartData, timelineProperties]
   )
 
-  // Handle add_event — add timeline events from NL.
+  // Handle add_event - add timeline events from NL.
   //
   // Only `refinance` and `salary_change` are wired into the calculation
   // engine. Other event types (sell_property, interest_rate_change,
   // market_correction) have placeholder logic in useAffordabilityCalculator
-  // that does nothing — adding them looked successful but the dashboard
+  // that does nothing - adding them looked successful but the dashboard
   // never moved, which is exactly the "looks functional but silently does
   // nothing" trap we're cleaning up. Bounce them with a clear system
   // message instead of pretending to apply them.
@@ -649,7 +649,7 @@ export const ChatPanel: React.FC = () => {
         const label = UNSUPPORTED_EVENT_LABELS[eventType] ?? eventType
         console.warn(`[nl-parse] blocking unsupported add_event type: ${eventType}`)
         addSystemMessageRef.current?.(
-          `Heads up — ${label} isn't modelled in the engine yet, so I haven't added a timeline event for it. The dashboard wouldn't change. I can describe the directional impact in chat, but the numbers won't move until this is implemented.`,
+          `Heads up - ${label} isn't modelled in the engine yet, so I haven't added a timeline event for it. The dashboard wouldn't change. I can describe the directional impact in chat, but the numbers won't move until this is implemented.`,
         )
         return
       }
@@ -674,7 +674,7 @@ export const ChatPanel: React.FC = () => {
     [addEvent]
   )
 
-  // Handle update_profile — apply partial profile updates without rebuilding
+  // Handle update_profile - apply partial profile updates without rebuilding
   const handleUpdateProfile = useCallback(
     (response: NLParseResponse) => {
       // Refinancing is always on for AI-supplied existing properties
@@ -696,7 +696,7 @@ export const ChatPanel: React.FC = () => {
     [updateProfile, setExistingProperties, flushSaveAfterStateUpdate]
   )
 
-  // Handle explanation — highlight relevant period on the chart
+  // Handle explanation - highlight relevant period on the chart
   const handleExplanation = useCallback(
     (response: NLParseResponse) => {
       if (response.explanation?.relevantPeriod) {
@@ -747,11 +747,11 @@ export const ChatPanel: React.FC = () => {
   messagesForSaveRef.current = messages
 
   // Clear chat when scenario is reset (scenarioId goes from a value to null)
-  // ON THE SAME CLIENT. Also reset clientNamesRef — without this, names from
+  // ON THE SAME CLIENT. Also reset clientNamesRef - without this, names from
   // the previous plan leak into the next session.
   // Founder report 2026-05-05: AI kept referencing "Sarah" after reset.
   //
-  // Important: skip this clear on client switches — when the user launches a
+  // Important: skip this clear on client switches - when the user launches a
   // new client from AgentHome, scenarioId goes null because the new client has
   // no saved scenario. Clearing here would wipe the pending-prompt message
   // that was just injected by the home-flow handler.
@@ -807,7 +807,7 @@ export const ChatPanel: React.FC = () => {
   // Cofounder report 2026-05-06: clicking a recent client tile sometimes
   // showed the dashboard but an EMPTY chat panel. Cause: the previous binary
   // loadedRef pattern marked itself loaded on the first render after a client
-  // switch — but at that moment savedChatMessages was still empty (ChatPanel's
+  // switch - but at that moment savedChatMessages was still empty (ChatPanel's
   // effects fire BEFORE ScenarioSaveContext's loadClientScenario does its
   // async fetch). When the chat data eventually arrived, the effect re-fired
   // but loadedRef was already true, so the chat never landed.
@@ -815,7 +815,7 @@ export const ChatPanel: React.FC = () => {
   // Fix: track which client's chat has been loaded. Don't mark "loaded" until
   // we see actual chat content, OR until savedChatMessages settles to empty
   // for the current client (so a genuinely empty chat doesn't loop forever).
-  // Skipped if the user arrived from AgentHome with a pending prompt — that
+  // Skipped if the user arrived from AgentHome with a pending prompt - that
   // handler wants a fresh thread.
   // ChatPanel effects fire BEFORE ScenarioSaveContext's loadClientScenario
   // kicks off, so on a client switch the first render still sees
@@ -824,11 +824,11 @@ export const ChatPanel: React.FC = () => {
   // updates, so clicking between clients showed a frozen old chat alongside
   // a new dashboard.
   //
-  // Gate on loadedScenarioClientId — set by ScenarioSaveContext only after
+  // Gate on loadedScenarioClientId - set by ScenarioSaveContext only after
   // a load completes for that specific client. Until that signal matches
   // activeClient.id, savedChatMessages might still be stale, so we hold
   // local messages clear and wait. Once it matches, we sync messages to
-  // savedChatMessages exactly (which may be empty for a chat-less client —
+  // savedChatMessages exactly (which may be empty for a chat-less client -
   // that's correct).
   //
   // Skipped when the user arrived from AgentHome with a pending prompt; the
@@ -847,7 +847,7 @@ export const ChatPanel: React.FC = () => {
     }
     if (loadedChatForClientRef.current === activeClient.id) return
 
-    // If local messages already have content, it's authoritative — local
+    // If local messages already have content, it's authoritative - local
     // was populated by sendMessage's pending-prompt path (user prompt +
     // loading indicator) or by the user typing directly. Don't overwrite
     // with the context version, which can be a FILTERED subset (the
@@ -859,7 +859,7 @@ export const ChatPanel: React.FC = () => {
       return
     }
 
-    // Local is empty — load from context, which holds the saved chat for
+    // Local is empty - load from context, which holds the saved chat for
     // this client (possibly empty for a brand-new client with no chat yet).
     loadMessages(savedChatMessages)
     loadedChatForClientRef.current = activeClient.id
@@ -868,7 +868,7 @@ export const ChatPanel: React.FC = () => {
 
   // Sync current messages to scenario save context (for persistence).
   // Skip while we're mid-transition between clients (loadedScenarioClientId
-  // hasn't caught up to activeClient.id yet) — otherwise the previous
+  // hasn't caught up to activeClient.id yet) - otherwise the previous
   // client's still-in-memory messages would briefly overwrite the new
   // client's slot before loadClientScenario settles.
   useEffect(() => {
@@ -886,7 +886,7 @@ export const ChatPanel: React.FC = () => {
 
   // Sync loading state to layout context for Dashboard skeleton UI + step
   // progression. Also lift to ScenarioSaveContext so TopBar (above the route
-  // layer) can disable tab nav while a request is in flight — switching
+  // layer) can disable tab nav while a request is in flight - switching
   // routes mid-fetch remounts ChatPanel and orphans the in-flight promise
   // (visible glitch + dropped response).
   useEffect(() => {
@@ -948,12 +948,12 @@ export const ChatPanel: React.FC = () => {
     if (selectedFile) {
       try {
         const docText = await extractTextFromDocument(selectedFile)
-        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded document (${selectedFile.name}). Extract any relevant financial data from it — look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${docText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
+        messageText = `[UPLOADED DOCUMENT START]\nThe following text was extracted from an uploaded document (${selectedFile.name}). Extract any relevant financial data from it - look for: income, borrowing capacity, loan amount approved, deposit, liabilities, savings, expenses, property values, interest rates.\n---\n${docText}\n[UPLOADED DOCUMENT END]\n\n${messageText || 'Please extract the relevant data and build a plan.'}`
       } catch (err) {
         const errMsg = err instanceof Error && err.message === 'SCAN_PDF'
-          ? "Couldn't read that document clearly. Try a text-based file — scanned documents aren't supported yet."
+          ? "Couldn't read that document clearly. Try a text-based file - scanned documents aren't supported yet."
           : 'Could not read the file. Please try a different one.'
-        // Show error as system message — don't send to AI
+        // Show error as system message - don't send to AI
         addSystemMessage(errMsg)
         setSelectedFile(null)
         return
@@ -1028,7 +1028,7 @@ export const ChatPanel: React.FC = () => {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }, [])
 
-  // Handle option card click — apply the fix directly to contexts
+  // Handle option card click - apply the fix directly to contexts
   const handleOptionSelect = useCallback(
     (card: ChatOptionCardData) => {
       const payload = card.actionPayload
@@ -1052,7 +1052,7 @@ export const ChatPanel: React.FC = () => {
           })
         }
         // Confirm in chat
-        addSystemMessage(`Applied — ${card.description}`)
+        addSystemMessage(`Applied - ${card.description}`)
       } else if (payload.type === 'remove-property') {
         const instanceId = payload.instanceId as string
         const newOrder = propertyOrder.filter((id) => id !== instanceId)
@@ -1070,8 +1070,8 @@ export const ChatPanel: React.FC = () => {
         setInstances(newInstances)
         addSystemMessage(`Removed ${card.label.replace('Remove ', '')} from the plan`)
       } else {
-        // Fallback — send as message
-        sendMessage(card.label + ' — ' + card.description)
+        // Fallback - send as message
+        sendMessage(card.label + ' - ' + card.description)
       }
     },
     [instances, propertyOrder, setInstances, setAllSelections, sendMessage, addSystemMessage]
@@ -1113,7 +1113,7 @@ export const ChatPanel: React.FC = () => {
 
   // One-shot per client: when AgentHome's hero input sends us here with a
   // pending prompt, clear any prior chat and fire the prompt as the first
-  // message of a fresh thread — so the dashboard loads with the user's message
+  // message of a fresh thread - so the dashboard loads with the user's message
   // + the normal AI shimmer/response flow, exactly like typing it in directly.
   // Reset when activeClient changes so subsequent launches from Home work.
   const pendingPromptHandledRef = useRef(false)
@@ -1143,7 +1143,7 @@ export const ChatPanel: React.FC = () => {
     setPendingStrategyText(pendingStrategy || null)
 
     clearMessages()
-    // Force null currentPlan for this send — prevents stale plan state from
+    // Force null currentPlan for this send - prevents stale plan state from
     // causing the AI to misroute a fresh client brief as update_profile.
     forceNewPlanRef.current = true
     // Defer one tick so the cleared state lands before the new send.
@@ -1157,7 +1157,7 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <>
-      {/* Messenger-style chat widget — hidden during confirmation brief */}
+      {/* Messenger-style chat widget - hidden during confirmation brief */}
       {chatPos && !pendingPlanResponse && (
       <div
         className={`fixed z-50 flex flex-col overflow-hidden transition-colors ${
@@ -1175,12 +1175,12 @@ export const ChatPanel: React.FC = () => {
         title={minimized ? 'PropPath AI' : undefined}
       >
         {minimized ? (
-          /* Collapsed — §2.6 circular FAB with white sparkle */
+          /* Collapsed - §2.6 circular FAB with white sparkle */
           <div className="flex items-center justify-center w-full h-full text-white">
             <SparklesIcon size={24} />
           </div>
         ) : (
-        /* Expanded — popover header (online dot + title + close) */
+        /* Expanded - popover header (online dot + title + close) */
         <div
           className="flex-shrink-0 flex items-center h-[48px] px-3 select-none"
           style={{ borderBottom: '1px solid #E9EAEB' }}
@@ -1208,7 +1208,7 @@ export const ChatPanel: React.FC = () => {
         </div>
         )}
 
-        {/* Body — hidden when minimized */}
+        {/* Body - hidden when minimized */}
         {!minimized && (
           <>
             {/* Compliance disclaimer */}
@@ -1328,7 +1328,7 @@ export const ChatPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Resize handle — bottom-right corner */}
+            {/* Resize handle - bottom-right corner */}
             <div
               onMouseDown={onResizeMouseDown}
               className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-10 flex items-end justify-end p-1"

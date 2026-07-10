@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { DollarSign, Home, Landmark } from 'lucide-react'
+import { DollarSign, Home, Landmark, FileText } from 'lucide-react'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
 import { BorrowingPowerModal } from '@/components/BorrowingPowerModal'
 import { MortgageRepaymentModal } from '@/components/MortgageRepaymentModal'
 import { StampDutyModal } from '@/components/StampDutyModal'
+import { PurchaseBriefCalc } from '@/components/PurchaseBriefCalc'
 
 interface ToolCardProps {
   icon: React.ReactNode
@@ -34,37 +35,52 @@ const Toolkit: React.FC = () => {
   const [showBorrowingPower, setShowBorrowingPower] = useState(false)
   const [showMortgageRepayment, setShowMortgageRepayment] = useState(false)
   const [showStampDuty, setShowStampDuty] = useState(false)
+  const [showPurchaseBriefCalc, setShowPurchaseBriefCalc] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-white">
       <AppSidebar />
       <main className="flex-1 px-8 py-8" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
-        <h1 className="text-xl font-semibold text-neutral-900 mb-6">Toolkit</h1>
+        {showPurchaseBriefCalc ? (
+          <div className="max-w-5xl">
+            <PurchaseBriefCalc onBack={() => setShowPurchaseBriefCalc(false)} />
+          </div>
+        ) : (
+          <>
+            <h1 className="text-xl font-semibold text-neutral-900 mb-6">Toolkit</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
-          <ToolCard
-            icon={<DollarSign size={20} className="text-neutral-600" />}
-            title="Borrowing Power"
-            description="Estimate max borrowing capacity based on income, expenses and debts."
-            onClick={() => setShowBorrowingPower(true)}
-          />
-          <ToolCard
-            icon={<Home size={20} className="text-neutral-600" />}
-            title="Mortgage Repayment"
-            description="Model home loan repayments, extra payments and the full amortisation schedule."
-            onClick={() => setShowMortgageRepayment(true)}
-          />
-          <ToolCard
-            icon={<Landmark size={20} className="text-neutral-600" />}
-            title="Stamp Duty"
-            description="Estimate stamp duty, government fees and first home buyer grants by state."
-            onClick={() => setShowStampDuty(true)}
-          />
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
+              <ToolCard
+                icon={<DollarSign size={20} className="text-neutral-600" />}
+                title="Borrowing Power"
+                description="Estimate max borrowing capacity based on income, expenses and debts."
+                onClick={() => setShowBorrowingPower(true)}
+              />
+              <ToolCard
+                icon={<Home size={20} className="text-neutral-600" />}
+                title="Mortgage Repayment"
+                description="Model home loan repayments, extra payments and the full amortisation schedule."
+                onClick={() => setShowMortgageRepayment(true)}
+              />
+              <ToolCard
+                icon={<Landmark size={20} className="text-neutral-600" />}
+                title="Stamp Duty"
+                description="Estimate stamp duty, government fees and first home buyer grants by state."
+                onClick={() => setShowStampDuty(true)}
+              />
+              <ToolCard
+                icon={<FileText size={20} className="text-neutral-600" />}
+                title="Purchase Brief Calc"
+                description="Model a single property purchase in isolation - projections, cashflow and funding."
+                onClick={() => setShowPurchaseBriefCalc(true)}
+              />
+            </div>
 
-        <BorrowingPowerModal isOpen={showBorrowingPower} onClose={() => setShowBorrowingPower(false)} />
-        <MortgageRepaymentModal isOpen={showMortgageRepayment} onClose={() => setShowMortgageRepayment(false)} />
-        <StampDutyModal isOpen={showStampDuty} onClose={() => setShowStampDuty(false)} />
+            <BorrowingPowerModal isOpen={showBorrowingPower} onClose={() => setShowBorrowingPower(false)} />
+            <MortgageRepaymentModal isOpen={showMortgageRepayment} onClose={() => setShowMortgageRepayment(false)} />
+            <StampDutyModal isOpen={showStampDuty} onClose={() => setShowStampDuty(false)} />
+          </>
+        )}
       </main>
     </div>
   )

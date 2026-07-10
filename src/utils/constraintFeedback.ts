@@ -1,5 +1,5 @@
 /**
- * Constraint Feedback Handler — Step 2.3 of NL-PIVOT-PLAN.csv
+ * Constraint Feedback Handler - Step 2.3 of NL-PIVOT-PLAN.csv
  *
  * Translates engine constraint violations (from guardrailValidator +
  * suggestedFixes) into ChatOptionCardData objects for the chat UI.
@@ -33,13 +33,13 @@ export function buildConstraintMessage(
 
     switch (v.type) {
       case 'deposit':
-        parts.push(`Not enough deposit — short by ${shortfallStr}`)
+        parts.push(`Not enough deposit - short by ${shortfallStr}`)
         break
       case 'borrowing':
         parts.push(`Exceeds borrowing capacity by ${shortfallStr}`)
         break
       case 'serviceability':
-        parts.push(`Serviceability ${v.severity === 'error' ? 'fails' : 'is tight'} — ${shortfallStr} short`)
+        parts.push(`Serviceability ${v.severity === 'error' ? 'fails' : 'is tight'} - ${shortfallStr} short`)
         break
     }
   }
@@ -144,7 +144,7 @@ function mapFixToCard(
 }
 
 /**
- * Builds a "remove this property" option card — useful when no fix
+ * Builds a "remove this property" option card - useful when no fix
  * can resolve the constraint.
  */
 export function buildRemoveCard(

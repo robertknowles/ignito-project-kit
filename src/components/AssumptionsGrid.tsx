@@ -246,7 +246,7 @@ interface CostTileProps {
   allowPercent?: boolean
   /** Seed % used when switching flat → percent. */
   percentSeed?: number
-  /** e.g. "of purchase price" — appended to the description in percent mode. */
+  /** e.g. "of purchase price" - appended to the description in percent mode. */
   percentBasis?: string
 }
 
@@ -281,7 +281,7 @@ const CostTile: React.FC<CostTileProps> = ({
   const formatValue = (v: number, m: 'flat' | 'percent') =>
     m === 'percent' ? `${v}%` : formatMoney(v)
 
-  // Defaults render grey; overrides blue — matches DialTile.
+  // Defaults render grey; overrides blue - matches DialTile.
   const valueColor = isOverridden ? 'text-blue-600' : 'text-gray-700'
 
   // A "% of purchase/value" override is genuine even at the baseline number;
@@ -453,7 +453,7 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
   // Expose reset to parents that supply their own header (AgentHome).
   useEffect(() => {
     onResetExposed?.(handleResetAll)
-    // handleResetAll is stable enough for our purposes — re-running would
+    // handleResetAll is stable enough for our purposes - re-running would
     // re-publish the same closure each render which is harmless.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onResetExposed])
@@ -664,7 +664,7 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           <InfoPopover
             title="Next-purchase cost defaults"
             body={[
-              'These set the starting purchase and holding costs for future purchases — any property added after you change them.',
+              'These set the starting purchase and holding costs for future purchases - any property added after you change them.',
               "Properties already in the plan keep their current figures, so existing projections aren't changed.",
               'Leave a tile on its grey default to use the cost tailored to each property type.',
             ]}

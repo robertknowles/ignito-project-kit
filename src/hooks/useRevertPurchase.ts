@@ -25,7 +25,7 @@ export const useRevertPurchase = () => {
     const { propertyId, details } = snapshot
     if (!propertyId || !details) return
 
-    // Next free index for this type — avoids colliding with instances that were
+    // Next free index for this type - avoids colliding with instances that were
     // renumbered after the original purchase removed this one.
     const nextIndex = getPropertyQuantity(propertyId)
     const newInstanceId = `${propertyId}_instance_${nextIndex}`

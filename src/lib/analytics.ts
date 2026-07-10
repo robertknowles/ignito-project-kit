@@ -1,7 +1,7 @@
 import posthog from 'posthog-js';
 
 /**
- * Product analytics — the named "moments that matter".
+ * Product analytics - the named "moments that matter".
  *
  * PostHog already auto-captures every click and page view. On top of that we
  * track the specific actions below so the dashboards can answer real product
@@ -9,7 +9,7 @@ import posthog from 'posthog-js';
  * a client, and so on.
  *
  * Keep every tracked action in this one catalog so event names stay
- * consistent — PostHog groups by exact event name, and a typo means a
+ * consistent - PostHog groups by exact event name, and a typo means a
  * silently split funnel. To add a new event: add it here, then call
  * `track(EVENTS.yourEvent, { ...props })` at the success point in the code.
  *
@@ -45,7 +45,7 @@ const ANALYTICS_ENABLED = Boolean(import.meta.env.VITE_POSTHOG_KEY);
 
 /**
  * Send a named event to PostHog. No-ops when analytics is disabled (no key),
- * and never throws — analytics must not be able to break the app.
+ * and never throws - analytics must not be able to break the app.
  */
 export function track(
   event: AnalyticsEvent,
@@ -55,7 +55,7 @@ export function track(
   try {
     posthog.capture(event, properties);
   } catch {
-    // Swallow — a failed analytics call should never surface to the user.
+    // Swallow - a failed analytics call should never surface to the user.
   }
 }
 

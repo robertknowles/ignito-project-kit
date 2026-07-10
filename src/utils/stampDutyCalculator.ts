@@ -1,16 +1,16 @@
 /**
- * Stamp duty / transfer duty calculator — investor (non-owner-occupier) rates.
+ * Stamp duty / transfer duty calculator - investor (non-owner-occupier) rates.
  * Last verified: 2026-05-27 against each state revenue office.
  *
  * Sources:
- *   QLD — https://qro.qld.gov.au/duties/transfer-duty/calculate/rates/
- *   NSW — https://www.revenue.nsw.gov.au/taxes-duties-levies-royalties/transfer-duty (2025-26 indexed)
- *   VIC — https://www.sro.vic.gov.au/about-us/rates-and-statistics/current-rates/land-transfer-duty-non-principal-place-residence-current-rates
- *   SA  — https://www.revenuesa.sa.gov.au/stamp-duty-land/rate-of-stamp-duty
- *   WA  — https://apps.osr.wa.gov.au/portal/0/calculators/transferduty
- *   TAS — https://www.service.tas.gov.au/services/housing-and-property/rates-land-tax-and-duty/calculate-property-transfer-duty/
- *   NT  — https://treasury.nt.gov.au/dtf/territory-revenue-office/stamp-duty/stamp-duty-calculators
- *   ACT — https://www.revenue.act.gov.au/rates-and-property-charges/conveyance-duty-stamp-duty/conveyance-duty-for-non-commercial-property
+ *   QLD - https://qro.qld.gov.au/duties/transfer-duty/calculate/rates/
+ *   NSW - https://www.revenue.nsw.gov.au/taxes-duties-levies-royalties/transfer-duty (2025-26 indexed)
+ *   VIC - https://www.sro.vic.gov.au/about-us/rates-and-statistics/current-rates/land-transfer-duty-non-principal-place-residence-current-rates
+ *   SA  - https://www.revenuesa.sa.gov.au/stamp-duty-land/rate-of-stamp-duty
+ *   WA  - https://apps.osr.wa.gov.au/portal/0/calculators/transferduty
+ *   TAS - https://www.service.tas.gov.au/services/housing-and-property/rates-land-tax-and-duty/calculate-property-transfer-duty/
+ *   NT  - https://treasury.nt.gov.au/dtf/territory-revenue-office/stamp-duty/stamp-duty-calculators
+ *   ACT - https://www.revenue.act.gov.au/rates-and-property-charges/conveyance-duty-stamp-duty/conveyance-duty-for-non-commercial-property
  *
  * TODO: Foreign buyer surcharges not implemented (QLD/NSW/VIC/SA/WA/TAS have surcharges; ACT/NT do not).
  * Users can override via stampDutyOverride field.

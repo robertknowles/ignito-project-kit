@@ -45,7 +45,7 @@ export const calculatePropertyGrowth = (
 };
 
 // Growth rate for existing/mature portfolios
-// Uses flat 5% annual rate (vs tiered rates for new purchases) — matches Gameplans default
+// Uses flat 5% annual rate (vs tiered rates for new purchases) - matches Gameplans default
 // (calibration 2026-04-30). Duplicate of constants/financialParams.ts; consolidate later.
 export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.05; // 5% annual
 
@@ -405,7 +405,7 @@ export const calculateGrowthProjections = (
         const periodsHeld = yearsHeld * PERIODS_PER_YEAR;
         // Equity calc uses growthBasis (manufactured equity flows forward).
         // Rent calc uses cost-compounded value because rent is market-determined,
-        // not valuation-determined — yield is set against actual purchase price.
+        // not valuation-determined - yield is set against actual purchase price.
         const growthBasis = purchase.growthBasis ?? purchase.cost;
         const valueForEquity = calculatePropertyGrowth(growthBasis, periodsHeld, growthCurve);
         const valueForRent = (growthBasis === purchase.cost)
@@ -538,7 +538,7 @@ export const projectPropertyTimeline = (
 
   // Land tax (from expense breakdown, grows with inflation)
   const baseAnnualLandTax = eb ? eb.landTax * PERIODS_PER_YEAR : 0;
-  // Deductions (depreciation benefits — stays roughly constant)
+  // Deductions (depreciation benefits - stays roughly constant)
   const baseAnnualDeductions = (property as any).potentialDeductions ?? 0;
 
   let loanBalance = property.loanAmount;
@@ -567,7 +567,7 @@ export const projectPropertyTimeline = (
     // Mortgage payment
     let annualMortgage: number;
     if (property.loanType === 'PI' && loanBalance > 0) {
-      // P&I amortisation — standard 30-year term
+      // P&I amortisation - standard 30-year term
       const monthlyRate = interestRate / 12;
       const remainingMonths = Math.max(1, (30 - yearsOwned) * 12);
       const monthlyPayment = loanBalance *
@@ -578,7 +578,7 @@ export const projectPropertyTimeline = (
       const principalPortion = Math.min(annualMortgage - interestPortion, loanBalance);
       loanBalance = Math.max(0, loanBalance - principalPortion);
     } else {
-      // IO — interest only, balance constant
+      // IO - interest only, balance constant
       annualMortgage = loanBalance * interestRate;
     }
 

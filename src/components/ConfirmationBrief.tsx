@@ -59,7 +59,7 @@ const periodToYear = (p: number) => BASE_YEAR + Math.floor((p - 1) / PERIODS_PER
 
 // Only offer a pull-forward when it changes the DISPLAYED year. The engine
 // works in half-year periods, so "earlier" can mean H2 → H1 of the same
-// year — invisible in the year-granular UI and confusing to offer.
+// year - invisible in the year-granular UI and confusing to offer.
 const isPullForward = (t: PropertyTimingInsight) =>
   t.feasibleAtTested &&
   t.earliestFeasiblePeriod !== null &&
@@ -347,7 +347,7 @@ interface PropertyBlockProps {
 }
 
 // One-line timing hint under the purchase year. Shown ONLY when the property
-// could be bought earlier than planned — failures are covered by the
+// could be bought earlier than planned - failures are covered by the
 // affordability alert popup, and properties at their earliest need no note.
 const TimingHint: React.FC<{ insight: PropertyTimingInsight; onMove: (period: number) => void }> = ({ insight, onMove }) => {
   const earliest = insight.earliestFeasiblePeriod;
@@ -438,7 +438,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
       </div>
 
-      {/* Type (new build vs established — affects proposed 2027 CGT) */}
+      {/* Type (new build vs established - affects proposed 2027 CGT) */}
       <div>
         {fieldLabel('Type', 'isNewBuild')}
         <Segmented options={[{ value: 'established', label: 'Established' }, { value: 'new', label: 'New build' }]} value={property.isNewBuild ? 'new' : 'established'} onChange={v => onFieldChange('isNewBuild', v === 'new')} />
@@ -471,7 +471,7 @@ const PropertyBlock: React.FC<PropertyBlockProps> = ({ index, total, property, s
         </div>
       </div>
 
-      {/* Timing insight — pull-forward opportunity or binding constraint */}
+      {/* Timing insight - pull-forward opportunity or binding constraint */}
       {insight && <TimingHint insight={insight} onMove={period => onFieldChange('targetPeriod', period)} />}
 
       {/* Price + Rent */}
@@ -683,7 +683,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const { profile } = useInvestmentProfile();
   const contextExistingProps = useExistingPropertiesSafe();
 
-  // Existing portfolio — declared before the pre-check so edits to it
+  // Existing portfolio - declared before the pre-check so edits to it
   // immediately re-test affordability.
   const [existingProps, setExistingProps] = useState<ExistingProp[]>(
     () => cp?.existingPortfolio ? structuredClone(cp.existingPortfolio) : []
@@ -700,7 +700,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   );
 
   // Falls back to the dashboard's existing properties when neither the AI
-  // nor the user supplied any — the same data the dashboard tests with.
+  // nor the user supplied any - the same data the dashboard tests with.
   const preCheckResult = useMemo(
     () => runPlanPreCheck(responseForCheck, profile, contextExistingProps),
     [responseForCheck, profile, contextExistingProps]
@@ -749,7 +749,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const constraintNotes = useMemo(() => {
     const counts: Record<BindingTest, number> = { deposit: 0, serviceability: 0, borrowingCapacity: 0 };
     // Only count a constraint as "limiting" when the property actually FAILS at
-    // its placed period — i.e. it doesn't fit where the plan puts it. A purchase
+    // its placed period - i.e. it doesn't fit where the plan puts it. A purchase
     // that is feasible where it sits but simply couldn't be brought earlier is
     // normal sequencing, not a problem; counting those made the note claim
     // "deposit holds back N purchases" on plans where every purchase is fine.
@@ -760,15 +760,15 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     return ([
       {
         n: counts.deposit,
-        text: `Deposit cash holds back ${plural(counts.deposit)} — improve with higher savings, equity release from existing properties, or lower purchase prices.`,
+        text: `Deposit cash holds back ${plural(counts.deposit)} - improve with higher savings, equity release from existing properties, or lower purchase prices.`,
       },
       {
         n: counts.serviceability,
-        text: `Loan serviceability limits ${plural(counts.serviceability)} — trust structures, stronger rents, or higher income lift it.`,
+        text: `Loan serviceability limits ${plural(counts.serviceability)} - trust structures, stronger rents, or higher income lift it.`,
       },
       {
         n: counts.borrowingCapacity,
-        text: `The borrowing capacity ceiling limits ${plural(counts.borrowingCapacity)} — trust entities or an updated lending pre-approval raise it.`,
+        text: `The borrowing capacity ceiling limits ${plural(counts.borrowingCapacity)} - trust entities or an updated lending pre-approval raise it.`,
       },
     ] as const)
       .filter(e => e.n > 0)
@@ -826,21 +826,21 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
 
     // AI decisions land in the change bell so they stay findable after the
     // brief closes: timing hints the user didn't act on, and properties the
-    // auto-fix dropped. (The brief renders outside the provider — queued.)
+    // auto-fix dropped. (The brief renders outside the provider - queued.)
     const insightItems: ReceiptItem[] = [];
     timingInsights.filter(isPullForward).forEach(t => {
       insightItems.push({
-        text: `Property ${t.propertyIndex + 1} could be bought in ${periodToYear(t.earliestFeasiblePeriod!)} — earlier than planned. Move it in Purchases.`,
+        text: `Property ${t.propertyIndex + 1} could be bought in ${periodToYear(t.earliestFeasiblePeriod!)} - earlier than planned. Move it in Purchases.`,
         positive: true,
       });
     });
     (current._autoFixChanges ?? []).filter(c => c.changeType === 'dropped').forEach(c => {
       insightItems.push({
-        text: `${c.propertyLabel} removed — could not fit within borrowing capacity.`,
+        text: `${c.propertyLabel} removed - could not fit within borrowing capacity.`,
         positive: false,
       });
     });
-    queueAiInsight('Plan approved — AI notes', insightItems);
+    queueAiInsight('Plan approved - AI notes', insightItems);
 
     confirmPlanHandler.current?.(finalResponse);
   };
@@ -920,14 +920,14 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                         iconSize={13}
                         title="Usable equity"
                         body={[
-                          'Calculated from the existing portfolio below — 80% of each property’s value minus its loan.',
+                          'Calculated from the existing portfolio below - 80% of each property’s value minus its loan.',
                           'Edit the property values in the Existing Portfolio section to change it.',
                         ]}
                       />
                     ) : undefined}
                   >
                     {existingProps.length > 0 ? (
-                      // Derived from the existing portfolio blocks below — the engine
+                      // Derived from the existing portfolio blocks below - the engine
                       // uses per-property values when they exist, so show that figure
                       // instead of an editable field that would be ignored.
                       <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral900 }} title="Derived from the existing portfolio below (80% of value less loans)">
@@ -952,7 +952,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                         title="Timeline"
                         body={[
                           'Set from the client brief.',
-                          'Ask in chat to change the timeline — the whole plan replans around it.',
+                          'Ask in chat to change the timeline - the whole plan replans around it.',
                         ]}
                       />
                     }
@@ -965,7 +965,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   <ClientRow label="Cashflow goal" source={getSource(editedProfileSources, 'cashflowGoal')} delay={200}>
                     <NumInput value={ip?.cashflowGoal ?? 0} prefix="$" onChange={v => updateProfileField('cashflowGoal', v)} />
                   </ClientRow>
-                  {/* Strategy is read-only here — the AI picks it from the brief
+                  {/* Strategy is read-only here - the AI picks it from the brief
                       and company strategy; changing it belongs in chat, where a
                       full replan happens. */}
                   <ClientRow
@@ -978,7 +978,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                         title="Strategy"
                         body={[
                           'Chosen by the AI from the brief and your company strategy.',
-                          'Ask in chat to change strategy — the whole plan replans.',
+                          'Ask in chat to change strategy - the whole plan replans.',
                         ]}
                       />
                     }
@@ -1007,7 +1007,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 }}
                 className="hover:bg-neutral-50 transition-colors"
               >
-                No existing properties — click to add
+                No existing properties - click to add
               </div>
             ) : (
               <div className="flex gap-3">
@@ -1106,7 +1106,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 }}
               >
                 <div style={{ fontSize: 11, color: '#92400E', lineHeight: '17px' }}>
-                  {listStr} removed — could not fit within borrowing capacity even after adjusting timing and entity structures. You can add properties back using the + button below.
+                  {listStr} removed - could not fit within borrowing capacity even after adjusting timing and entity structures. You can add properties back using the + button below.
                 </div>
               </div>
             );

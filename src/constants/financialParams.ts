@@ -107,7 +107,7 @@ export const DEFAULT_EQUITY_FACTOR = 0.80;
  * - Trust: 70% of loan payments count. Many lenders discount trust debt because
  *   the trust's rental income self-services the loan. Range in practice: 50-80%.
  *   70% is a mid-market consensus across major Australian lenders.
- * - SMSF: 0% — Limited Recourse Borrowing Arrangement (LRBA) means the lender
+ * - SMSF: 0% - Limited Recourse Borrowing Arrangement (LRBA) means the lender
  *   cannot access personal assets. SMSF debt is assessed purely on the fund's
  *   own cashflow and does not count against personal serviceability.
  *
@@ -129,7 +129,7 @@ export const ENTITY_SERVICEABILITY_FACTORS: Record<string, number> = {
 /**
  * Default interest rate for calculations when not specified
  *
- * Refresh quarterly. Currently 6.25% — median variable investor P&I
+ * Refresh quarterly. Currently 6.25% - median variable investor P&I
  * across the Big 4 as of Q1 2026.
  *
  * Used for:
@@ -164,7 +164,7 @@ export const DEFAULT_GROWTH_RATE = 0.06; // 6%
  * Annual wage growth rate for client income projection.
  *
  * Matches Gameplans default of 2.5% (RBA wage inflation target band).
- * Currently DECLARED ONLY — engine does not yet apply this to BC ceiling
+ * Currently DECLARED ONLY - engine does not yet apply this to BC ceiling
  * or projected income. Reserved for B-bucket goal-anchored backwards-calc
  * work where projected income materially affects deposit-readiness math.
  */
@@ -178,7 +178,7 @@ export const ANNUAL_WAGE_GROWTH_RATE = 0.025; // 2.5%
  * Default vacancy rate
  *
  * Calibrated against Gameplans/lender consensus (BA-research workstream B + 2026-04-30
- * Gameplans-replication pass). 4% ≈ 2 weeks/yr — sits within standard Australian
+ * Gameplans-replication pass). 4% ≈ 2 weeks/yr - sits within standard Australian
  * lender assessment range (3–6%). Prior 2% (1 week/yr) was outside consensus.
  *
  * Tier-linked:
@@ -202,7 +202,7 @@ export const DEFAULT_EXPENSE_RATIO = 0.30; // 30% of rental income
  *
  * Aggressive Pacing default = 2 per 6-month period (4/year ceiling).
  * Tier-linked: Conservative 1 / Moderate 2 / Aggressive 2.
- * 4/year is the realistic per-client ceiling — the prior 6/year
+ * 4/year is the realistic per-client ceiling - the prior 6/year
  * (3 per period) was institutional-velocity territory and produced
  * plausibility-breaking bursts.
  *
@@ -221,7 +221,7 @@ export const MAX_PURCHASES_PER_PERIOD = 2;
  *
  * Note: This is a fallback default. The actual value comes from profile.existingPortfolioGrowthRate.
  * NOTE: Three local duplicates of this constant exist in metricsCalculator.ts,
- * useRoadmapData.ts, and InvestmentTimeline.tsx — all updated together. Consolidate later.
+ * useRoadmapData.ts, and InvestmentTimeline.tsx - all updated together. Consolidate later.
  */
 export const DEFAULT_EXISTING_PORTFOLIO_GROWTH_RATE = 0.05; // 5% annual
 
@@ -282,7 +282,7 @@ export const GROWTH_RATE_TIERS: Record<string, GrowthCurve> = {
   // Medium tier calibrated 2026-04-30 to ~5.4% average across 15 years
   // (Gameplans-replication "smart match" position). Previous 8/7/6/5 averaged
   // ~6.4% which produced equity outputs ~30% above Gameplans on like-for-like
-  // scenarios. Current curve sits ~2% above Gameplans' 5% flat default —
+  // scenarios. Current curve sits ~2% above Gameplans' 5% flat default -
   // deliberate slight overshoot (still defensible vs 6.8% national 25-yr avg)
   // while leaving headroom for B-bucket per-property historical compound floor
   // to close the residual gap.

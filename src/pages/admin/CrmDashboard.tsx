@@ -117,13 +117,13 @@ export default function CrmDashboard() {
         {page === 'crm' ? (
           /* CRM views */
           <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
-            {/* Top pane — Industry map */}
+            {/* Top pane - Industry map */}
             <section
               className="px-6 py-4 overflow-x-auto overflow-y-auto flex-shrink-0"
               style={{ height: `${splitPercent}%` }}
             >
               <p className="text-xs text-muted-foreground mb-3">
-                View 1 — industry map (one column per company, ranked left to right by relevance)
+                View 1 - industry map (one column per company, ranked left to right by relevance)
               </p>
               <IndustryMapView
                 companies={companies}
@@ -142,13 +142,13 @@ export default function CrmDashboard() {
               <GripHorizontal size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground/70" />
             </div>
 
-            {/* Bottom pane — Pipeline */}
+            {/* Bottom pane - Pipeline */}
             <section
               className="px-6 py-4 overflow-x-auto overflow-y-auto"
               style={{ height: `${100 - splitPercent}%` }}
             >
               <p className="text-xs text-muted-foreground mb-3">
-                View 2 — pipeline (kanban by stage, same {activeCount} active people from above)
+                View 2 - pipeline (kanban by stage, same {activeCount} active people from above)
               </p>
               <CrmKanban
                 companies={companies}
@@ -164,7 +164,7 @@ export default function CrmDashboard() {
           /* Results page */
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <p className="text-xs text-muted-foreground mb-4">
-              Weekly metrics — tracking outreach activity and conversion goals
+              Weekly metrics - tracking outreach activity and conversion goals
             </p>
             <CrmMetrics companies={companies} />
           </div>

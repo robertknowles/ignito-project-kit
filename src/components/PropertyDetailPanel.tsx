@@ -1,5 +1,5 @@
 /**
- * PropertyDetailPanel — wide editor surface for a single property card.
+ * PropertyDetailPanel - wide editor surface for a single property card.
  *
  * Lives on the dashboard, opens below the PropertyCardRow when a summary
  * card is clicked. 4 tabs (Property / Loan / Assumptions / Costs) with
@@ -20,7 +20,7 @@ import {
   type CellId,
 } from '../utils/propertyCells';
 
-// Slider styling — chunky white thumb with a clearly visible grey ring.
+// Slider styling - chunky white thumb with a clearly visible grey ring.
 // 16px thumb, 2px solid #6B7280 (gray-500) border, raised shadow.
 const sliderClassName =
   'w-full appearance-none cursor-pointer bg-gray-200 rounded-full h-1.5 ' +
@@ -128,9 +128,9 @@ interface PropertyDetailPanelProps {
   instanceId: string;
   instanceData: PropertyInstanceDetails;
   propertyType: string;
-  /** Generic field write — for slider/numeric edits; cascades math only. */
+  /** Generic field write - for slider/numeric edits; cascades math only. */
   onFieldChange: (field: keyof PropertyInstanceDetails, value: any) => void;
-  /** Cell change — fires AI re-plan via chatBus instead of writing directly. */
+  /** Cell change - fires AI re-plan via chatBus instead of writing directly. */
   onBucketChange: (newCellId: CellId) => void;
 }
 
@@ -217,12 +217,12 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
         ))}
       </div>
 
-      {/* Tab Content — 4 columns side-by-side on wide screens */}
+      {/* Tab Content - 4 columns side-by-side on wide screens */}
       <div className="px-6 py-5">
         {/* PROPERTY */}
         {activeTab === 'property' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
-            {/* Property type is internal — read-only category label only. */}
+            {/* Property type is internal - read-only category label only. */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[12px] font-medium text-gray-600">
@@ -361,7 +361,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
         {/* ASSUMPTIONS */}
         {activeTab === 'assumptions' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-7">
-            {/* Growth — Low/Med/High slider, simplified per §4 */}
+            {/* Growth - Low/Med/High slider, simplified per §4 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[12px] font-medium text-gray-600">
@@ -398,7 +398,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
               </div>
             </div>
 
-            {/* Stamp Duty — auto-with-override */}
+            {/* Stamp Duty - auto-with-override */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[12px] font-medium text-gray-600">

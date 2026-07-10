@@ -27,7 +27,7 @@ import {
  * Accepts:
  *   - A v4 cell ID directly ("metro-house-growth")
  *   - A legacy v3 type key ("duplexes", "units-apartments")
- *   - A legacy positional engine ID ("property_5") — defensive
+ *   - A legacy positional engine ID ("property_5") - defensive
  *
  * Returns null if no translation possible (unknown type).
  */
@@ -46,7 +46,7 @@ const resolveCellId = (value: string): CellId | null => {
  * Maps NLParseResponse to a partial InvestmentProfileData that can be
  * passed to InvestmentProfileContext.updateProfile().
  *
- * Only sets fields that Claude extracted — the rest keep their defaults.
+ * Only sets fields that Claude extracted - the rest keep their defaults.
  */
 export function mapToInvestmentProfile(
   response: NLParseResponse
@@ -117,7 +117,7 @@ export function mapToInvestmentProfile(
  * Force refinancing (equity release) ON for every AI-extracted existing
  * property. The AI sometimes returns allowEquityRelease: false, which
  * silently removes that property's equity from all funding calculations.
- * Product decision: plans always arrive with refinancing on — the BA can
+ * Product decision: plans always arrive with refinancing on - the BA can
  * still turn it off per property in the confirmation brief or Portfolio tab.
  */
 export function forceRefinanceOn(response: NLParseResponse): NLParseResponse {
@@ -195,9 +195,9 @@ interface PropertyMappingResult {
 
 /**
  * Maps NLParseResponse.properties[] to the three things PropPath needs:
- * 1. PropertySelection — { propertyTypeId: count }
- * 2. propertyOrder — ordered list of instance IDs
- * 3. instances — Record<instanceId, PropertyInstanceDetails>
+ * 1. PropertySelection - { propertyTypeId: count }
+ * 2. propertyOrder - ordered list of instance IDs
+ * 3. instances - Record<instanceId, PropertyInstanceDetails>
  *
  * Uses getPropertyInstanceDefaults() as the base template (fills all 36 fields),
  * then overlays Claude's specific values (price, state, growth, LVR, loan type).
@@ -222,7 +222,7 @@ export function mapToPropertySelections(
     // Resolve Claude's `prop.type` to a v4 cell ID. Accepts cell IDs,
     // legacy v3 keys, or positional engine IDs.
     const resolvedCellId = resolveCellId(prop.type);
-    // If unresolvable (truly unknown type), fall back to the raw input —
+    // If unresolvable (truly unknown type), fall back to the raw input -
     // engine still works, it just won't have matrix-defined defaults.
     const engineId: string = resolvedCellId ?? prop.type;
 
@@ -304,7 +304,7 @@ export function mapToPropertySelections(
  *
  * The update_profile type handles mid-conversation profile corrections
  * like "he actually makes 150k" or "borrowing capacity is 800k". The
- * AI extracts only the changed fields into profileUpdates — we map
+ * AI extracts only the changed fields into profileUpdates - we map
  * them to the investment profile shape.
  */
 export function mapUpdateProfileToUpdates(
@@ -454,20 +454,20 @@ export function mapModificationToUpdates(
 
         // Surface any params Claude tried to set that we don't actually
         // support. Without this, the mapper silently dropped them and the
-        // chat happily said "Done!" — the source of "I asked it to change X
+        // chat happily said "Done!" - the source of "I asked it to change X
         // and nothing happened" reports.
         //
         // EXCEPTION: a no-op `type` "change" is silently suppressed. The cell
         // ID is encoded as the instanceId prefix (e.g. "regional-house-growth_
         // instance_0"); when the AI emits a type change matching the current
-        // cell, it's just acknowledging — not actually mutating. Surfacing a
+        // cell, it's just acknowledging - not actually mutating. Surfacing a
         // warning for that is misleading (founder report 2026-05-05, B3:
         // "make property 1 a regional house" when it already was).
         const currentCellId = instanceId.replace(/_instance_\d+$/, '');
         const unsupported = Object.keys(params).filter((k) => {
           if (SUPPORTED_CHANGE_FIELDS.has(k)) return false;
           if (k === 'type' && params.type === currentCellId) {
-            // No-op type "change" — current type already matches. Silent skip.
+            // No-op type "change" - current type already matches. Silent skip.
             return false;
           }
           return true;
@@ -479,7 +479,7 @@ export function mapModificationToUpdates(
         if (Object.keys(instanceChanges).length > 0) {
           updates.instanceUpdates = [{ instanceId, updates: instanceChanges }];
         } else if (unsupported.length === 0) {
-          // No supported and no unsupported fields — Claude returned an empty
+          // No supported and no unsupported fields - Claude returned an empty
           // params object. Tell the user.
           console.warn('[nlDataMapper] empty params for property change', { target, requestedNumber });
         }
@@ -487,7 +487,7 @@ export function mapModificationToUpdates(
       }
 
       case 'remove': {
-        // Remove this property — rebuild selections without it
+        // Remove this property - rebuild selections without it
         const newOrder = currentOrder.filter((id) => id !== instanceId);
         const newInstances = { ...currentInstances };
         delete newInstances[instanceId];
@@ -509,7 +509,7 @@ export function mapModificationToUpdates(
     }
   }
 
-  // Add property — target is "portfolio", new property details are in response.properties
+  // Add property - target is "portfolio", new property details are in response.properties
   if (action === 'add') {
     if (response.properties && response.properties.length > 0) {
       const newMapping = mapToPropertySelections(response, undefined, profile)
@@ -539,10 +539,10 @@ export function mapModificationToUpdates(
             existing.purchasePrice === incoming.purchasePrice &&
             existing.state === incoming.state
           if (isDuplicate) {
-            // AI returned an existing property verbatim — skip it
+            // AI returned an existing property verbatim - skip it
             continue
           }
-          // Genuine new property of the same type — re-index to next slot
+          // Genuine new property of the same type - re-index to next slot
           const type = id.replace(/_instance_\d+$/, '')
           const nextIdx = (maxIndexByType[type] ?? -1) + 1
           maxIndexByType[type] = nextIdx
@@ -574,7 +574,7 @@ export function mapModificationToUpdates(
       }
     } else {
       // AI said "added a property" but didn't include the property details on
-      // response.properties — without this guard the mapper silently no-ops
+      // response.properties - without this guard the mapper silently no-ops
       // and the chat happily says "Added a 6th property…" with no actual
       // change on the dashboard (founder report 2026-05-05, B6).
       console.warn('[nlDataMapper] add action returned with no response.properties array');
@@ -653,7 +653,7 @@ export function mapModificationToUpdates(
   // Decide whether a no-update outcome deserves a user-visible warning.
   // Claude sometimes sends compound modifications that include redundant
   // "change" mods on context-only targets like clientProfile / investmentProfile
-  // — those are not real targets and should be silently ignored instead of
+  // - those are not real targets and should be silently ignored instead of
   // confusing the user with "I couldn't apply it" messages while the actual
   // remove/change worked.
   const KNOWN_NON_PROPERTY_TARGETS = new Set([
@@ -679,7 +679,7 @@ export function mapModificationToUpdates(
 
   if (!producedUpdates && warnings.length === 0) {
     if (!isKnownTarget) {
-      // Unknown target — Claude sent us something we don't model. Log for
+      // Unknown target - Claude sent us something we don't model. Log for
       // diagnostics but do NOT surface to the user; this commonly fires for
       // redundant context-only mods alongside a real change in the same batch.
       console.warn('[nlDataMapper] ignoring unknown modification target', {

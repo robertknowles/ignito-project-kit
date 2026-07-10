@@ -61,14 +61,14 @@ export const useAffordabilityCalculator = () => {
   // Delegate to engine for loan payment calculation
   const calculateAnnualLoanPayment = engineCalculateAnnualLoanPayment;
 
-  // Affordability helpers (growth curve, engine deps, funds, affordability) —
+  // Affordability helpers (growth curve, engine deps, funds, affordability) -
   // moved to src/engine/timelineEngine.ts. The bridge closes over the same
   // context values the inline helpers used to capture.
   const { calculatePropertyGrowth, engineDeps, calculateAvailableFunds, checkAffordability } =
     createAffordabilityBridge({ profile, existingProperties, eventBlocks, getInstance, getPropertyData });
 
   const calculateTimelineProperties = useMemo((): TimelineProperty[] => {
-    // Pure placement computation — moved verbatim to src/engine/timelineEngine.ts
+    // Pure placement computation - moved verbatim to src/engine/timelineEngine.ts
     return computeTimelineProperties({
       profile,
       propertyOrder,

@@ -13,11 +13,11 @@ export interface RetirementPropertyProjection {
   title: string;
   propertyType: string | null;
   purchasePrice: number;
-  /** Acquisition costs (stamp duty, LMI, legal, etc.) — cost-base add-on */
+  /** Acquisition costs (stamp duty, LMI, legal, etc.) - cost-base add-on */
   acquisitionCosts: number;
   /** CGT cost base = purchasePrice + acquisitionCosts */
   costBase: number;
-  /** Ownership entity (drives CGT treatment — smsf uses its own discount) */
+  /** Ownership entity (drives CGT treatment - smsf uses its own discount) */
   entity?: 'individual' | 'trust' | 'company' | 'smsf';
   /** New build (may choose either CGT method) */
   isNewBuild?: boolean;
@@ -68,7 +68,7 @@ export interface RetirementSummary {
  * Projects all feasible properties forward to a retirement year,
  * then calculates sell/hold outcomes.
  *
- * Uses projectPropertyTimeline() — NO duplicate calculation logic.
+ * Uses projectPropertyTimeline() - NO duplicate calculation logic.
  */
 export function useRetirementProjection(
   timelineProperties: TimelineProperty[],
@@ -216,7 +216,7 @@ export function useRetirementProjection(
     // These aren't in the timeline (which only models *future* purchases), so
     // we project them forward from today's value to the retirement year. The
     // real acquisition year (boughtYear) is kept for CGT cost base, holding
-    // period and grandfathering — most are pre-2027 → keep the 50% discount.
+    // period and grandfathering - most are pre-2027 → keep the 50% discount.
     const existingProjections: RetirementPropertyProjection[] = existingProperties.map(ep => {
       const boughtYear = ep.boughtYear && ep.boughtYear > 0 ? ep.boughtYear : BASE_YEAR;
       const currentValue = ep.currentValue || ep.purchasePrice || 0;
@@ -301,7 +301,7 @@ export function useRetirementProjection(
     //   • Cash in hand   = sale proceeds (equity released by sold properties)
     //   • Debt remaining = debt still owed on held properties
     //   • Equity retained= equity locked in held properties (value − debt)
-    // Sale cash is NOT netted against held debt — the BA decides what to do
+    // Sale cash is NOT netted against held debt - the BA decides what to do
     // with the cash separately, so both numbers are shown at face value.
     const cashInHand = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const portfolioValue = held.reduce((sum, p) => sum + p.futureValue, 0);

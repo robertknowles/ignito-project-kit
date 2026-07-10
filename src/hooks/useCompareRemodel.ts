@@ -1,5 +1,5 @@
 /**
- * useCompareRemodel — the "Remodel with AI" brain for the Compare page.
+ * useCompareRemodel - the "Remodel with AI" brain for the Compare page.
  *
  * Takes a BASE scenario (a copy of the selected saved plan), sends the BA's
  * instruction to the same nl-parse edge function the dashboard chat uses,
@@ -23,7 +23,7 @@ import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 export interface RemodelDraft {
   scenario: ScenarioInput;
   run: ScenarioRunResult;
-  /** Cumulative across refinements — keeps changed rows highlighted. */
+  /** Cumulative across refinements - keeps changed rows highlighted. */
   changedInstanceIds: string[];
   /** Mapper warnings from the LATEST instruction. */
   warnings: string[];
@@ -33,7 +33,7 @@ const NL_PARSE_TIMEOUT_MS = 30_000;
 const HISTORY_WINDOW = 20;
 
 /** Mirror of ChatPanel.getCurrentPlan, built from a headless run instead of
- *  live contexts — so the AI sees the draft's actual engine numbers. */
+ *  live contexts - so the AI sees the draft's actual engine numbers. */
 const buildCurrentPlan = (scenario: ScenarioInput, run: ScenarioRunResult): CurrentPlanState => {
   const profile = run.profile;
 
@@ -199,7 +199,7 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
               });
             }
           } else {
-            // The AI said it changed something but nothing applied — surface
+            // The AI said it changed something but nothing applied - surface
             // that instead of letting "Done!" stand (nlDataMapper contract).
             const dropNote = mutation.warnings.length > 0
               ? mutation.warnings.join(' ')
@@ -212,7 +212,7 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
       } catch (e) {
         if (session === sessionRef.current) {
           const msg = e instanceof Error ? e.message : 'Something went wrong';
-          setError(msg === 'TIMEOUT' ? 'The AI took too long to respond — try again.' : msg);
+          setError(msg === 'TIMEOUT' ? 'The AI took too long to respond - try again.' : msg);
         }
       } finally {
         if (session === sessionRef.current) setIsThinking(false);
@@ -221,7 +221,7 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
     [baseScenario, draft, isThinking, run, user?.id],
   );
 
-  // Direct (non-AI) edit of a single draft instance — the BA hand-tunes a
+  // Direct (non-AI) edit of a single draft instance - the BA hand-tunes a
   // Scenario B property in the row-detail dialog. Re-runs the SAME headless
   // engine used for AI drafts, so charts, StatStrip and model-check notes
   // update off the new `draft.run`. Does not touch changedInstanceIds

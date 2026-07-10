@@ -7,7 +7,7 @@ interface PlaceholderChartProps {
 }
 
 /**
- * PlaceholderChart — UUI-style empty chart placeholder
+ * PlaceholderChart - UUI-style empty chart placeholder
  *
  * Shows a dashed border region with an icon and label indicating
  * what chart will be built here. Matches the neutral design tokens.

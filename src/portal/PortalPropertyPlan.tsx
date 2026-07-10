@@ -58,7 +58,7 @@ export const PortalPropertyPlan = () => {
         <Info size={14} style={{ color: branding.primaryColor }} />
         <span className="text-gray-600">
           <span className="font-medium" style={{ color: branding.primaryColor }}>Explore mode</span>
-          {' '}— tweak the numbers to see how they change. Your agent's plan is always preserved.
+          {' '}- tweak the numbers to see how they change. Your agent's plan is always preserved.
         </span>
       </div>
 

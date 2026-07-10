@@ -43,7 +43,7 @@ export const ClientSelector: React.FC = () => {
   const [pendingDeleteClient, setPendingDeleteClient] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Repair scenario confirm dialog (LAST-RESORT recovery — manual only).
+  // Repair scenario confirm dialog (LAST-RESORT recovery - manual only).
   const [pendingRepairClient, setPendingRepairClient] = useState<Client | null>(null);
   const [repairDiagnosis, setRepairDiagnosis] = useState<{ needsRepair: boolean; reason: string; instanceCount: number; orderCount: number; selectionCount: number } | null>(null);
   const [repairing, setRepairing] = useState(false);
@@ -258,7 +258,7 @@ export const ClientSelector: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Three-dot menu trigger — visible on hover or while its
+                    {/* Three-dot menu trigger - visible on hover or while its
                         own menu is open. Stays out of edit-mode so renaming
                         is uncluttered. */}
                     {!isEditingThisRow && (
@@ -293,7 +293,7 @@ export const ClientSelector: React.FC = () => {
                             setRowMenuId(null);
                             // Look up the latest scenario id for this client and run a
                             // diagnostic before opening the confirm dialog. We only
-                            // want to repair if the corruption signature is present —
+                            // want to repair if the corruption signature is present -
                             // otherwise warn the user to avoid clobbering an intact
                             // scenario.
                             const { data: row, error } = await supabase
@@ -390,7 +390,7 @@ export const ClientSelector: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Repair scenario — manual last-resort recovery. Only does anything
+      {/* Repair scenario - manual last-resort recovery. Only does anything
           if the diagnostic flagged the partial-write corruption signature
           (propertyInstances populated but propertyOrder/propertySelections
           empty). When intact, the dialog warns the user and disables the
@@ -475,7 +475,7 @@ export const ClientSelector: React.FC = () => {
                   return;
                 }
                 toast.success(
-                  `Repaired ${pendingRepairClient.name} — ${result.restoredOrder.length} properties restored`,
+                  `Repaired ${pendingRepairClient.name} - ${result.restoredOrder.length} properties restored`,
                 );
                 setPendingRepairClient(null);
                 setRepairDiagnosis(null);

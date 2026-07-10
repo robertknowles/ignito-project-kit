@@ -1,5 +1,5 @@
 /**
- * PlanningDefaultsModal — Planning Defaults settings panel
+ * PlanningDefaultsModal - Planning Defaults settings panel
  *
  * Gear icon in ChatPanel header opens this modal. BA sets default preferences
  * for property types, states, loan terms, timeline, etc. These feed into
@@ -36,16 +36,16 @@ const DEFAULT_PLANNING: PlanningDefaults = {
 }
 
 const PROPERTY_TYPES = [
-  { key: 'metro-house-growth', label: 'Metro House — Growth' },
-  { key: 'metro-house-cashflow', label: 'Metro House — Cashflow' },
-  { key: 'regional-house-growth', label: 'Regional House — Growth' },
-  { key: 'regional-house-cashflow', label: 'Regional House — Cashflow' },
-  { key: 'metro-unit-growth', label: 'Metro Unit — Growth' },
-  { key: 'metro-unit-cashflow', label: 'Metro Unit — Cashflow' },
-  { key: 'regional-unit-growth', label: 'Regional Unit — Growth' },
-  { key: 'regional-unit-cashflow', label: 'Regional Unit — Cashflow' },
-  { key: 'commercial-high-cost', label: 'Commercial — High Cost' },
-  { key: 'commercial-low-cost', label: 'Commercial — Low Cost' },
+  { key: 'metro-house-growth', label: 'Metro House - Growth' },
+  { key: 'metro-house-cashflow', label: 'Metro House - Cashflow' },
+  { key: 'regional-house-growth', label: 'Regional House - Growth' },
+  { key: 'regional-house-cashflow', label: 'Regional House - Cashflow' },
+  { key: 'metro-unit-growth', label: 'Metro Unit - Growth' },
+  { key: 'metro-unit-cashflow', label: 'Metro Unit - Cashflow' },
+  { key: 'regional-unit-growth', label: 'Regional Unit - Growth' },
+  { key: 'regional-unit-cashflow', label: 'Regional Unit - Cashflow' },
+  { key: 'commercial-high-cost', label: 'Commercial - High Cost' },
+  { key: 'commercial-low-cost', label: 'Commercial - Low Cost' },
 ]
 
 const STATES = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT']
@@ -244,10 +244,10 @@ export const PlanningDefaultsModal: React.FC<PlanningDefaultsModalProps> = ({ is
                   onChange={e => setDefaults(d => ({ ...d, defaultStrategyPreset: e.target.value as PlanningDefaults['defaultStrategyPreset'] }))}
                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md"
                 >
-                  <option value="eg-low">Equity Growth — Low Price</option>
-                  <option value="eg-high">Equity Growth — High Price</option>
-                  <option value="cf-low">Cash Flow — Low Price</option>
-                  <option value="cf-high">Cash Flow — High Price</option>
+                  <option value="eg-low">Equity Growth - Low Price</option>
+                  <option value="eg-high">Equity Growth - High Price</option>
+                  <option value="cf-low">Cash Flow - Low Price</option>
+                  <option value="cf-high">Cash Flow - High Price</option>
                   <option value="commercial-transition">Commercial Transition</option>
                   <option value="eg-to-cf">Growth to Cash Flow</option>
                 </select>

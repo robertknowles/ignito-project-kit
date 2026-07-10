@@ -1,5 +1,5 @@
 /**
- * Mortgage repayment calculator — toolkit.
+ * Mortgage repayment calculator - toolkit.
  *
  * Standard amortising home-loan model. The periodic repayment is derived from
  * the monthly principal & interest payment using the common Australian

@@ -1,5 +1,5 @@
 /**
- * AppSidebar — UUI "Sections dividers" sidebar navigation
+ * AppSidebar - UUI "Sections dividers" sidebar navigation
  *
  * Built from the installed UUI source at:
  *   src/components/application/app-navigation/sidebar-navigation/sidebar-section-dividers.tsx
@@ -64,7 +64,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> 
   </div>
 );
 
-// ── Nav item button — shares the exact styling of the original nav list ────────
+// ── Nav item button - shares the exact styling of the original nav list ────────
 const NavItemButton: React.FC<{
   icon: React.FC<{ size?: number; className?: string }>;
   label: string;
@@ -264,7 +264,7 @@ export const AppSidebar: React.FC = () => {
           </div>
         )}
 
-        {/* Client role has no client list — give them a way back to their plan */}
+        {/* Client role has no client list - give them a way back to their plan */}
         {isClient && (
           <div className="py-px">
             <NavItemButton
@@ -312,7 +312,7 @@ export const AppSidebar: React.FC = () => {
             onClick={() => navigate('/toolkit')}
           />
         </div>
-        {/* ── Recents — every client scenario, most recent first (hidden while
+        {/* ── Recents - every client scenario, most recent first (hidden while
                the rail is collapsed to icons) ── */}
         {!isClient && !collapsed && (
           <>

@@ -20,7 +20,7 @@ import { getCategoryLabel } from '../utils/propertyCells'
 import type { TimelineProperty } from '../types/property'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 
-// ── PropPath chart tokens (prototype-exact — PropPath Design System §3) ──────
+// ── PropPath chart tokens (prototype-exact - PropPath Design System §3) ──────
 const UUI = {
   brand600: '#7C3AED',
   ink: '#7C3AED',        // pin outlines / goal glyph
@@ -48,7 +48,7 @@ interface InvestmentTimelineChartProps {
   };
 }
 
-/** Equity-goal marker — target pin on a stem (PropPath §3.9, replaces the pill) */
+/** Equity-goal marker - target pin on a stem (PropPath §3.9, replaces the pill) */
 const goalPin = (cx: number, cy: number) => {
   const pinY = cy - 30;
   return (
@@ -66,12 +66,12 @@ const goalPin = (cx: number, cy: number) => {
 };
 
 /**
- * InvestmentTimelineChart — UUI charts-base style
+ * InvestmentTimelineChart - UUI charts-base style
  *
  * Three series following UUI's multi-series Area pattern:
- *   Portfolio Value — brand-600 line + gradient fill (primary)
- *   Total Equity   — brand-400 line, no fill (secondary)
- *   Savings Only   — brand-700 dashed line, no fill (tertiary)
+ *   Portfolio Value - brand-600 line + gradient fill (primary)
+ *   Total Equity   - brand-400 line, no fill (secondary)
+ *   Savings Only   - brand-700 dashed line, no fill (tertiary)
  *
  * Gradient uses brand-700 at 70%→0% opacity (matching UUI source).
  * Active dots: white fill + brand-600 stroke.
@@ -130,7 +130,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
     return { yCeil: ceil, yTicks: ticks, xTicks: xt }
   }, [data])
 
-  // Axis-tick format (§1.4 — compact, round increments)
+  // Axis-tick format (§1.4 - compact, round increments)
   const fmtTick = (v: number) => {
     if (v === 0) return '$0'
     if (v >= 1e6) { const m = v / 1e6; return `$${Number.isInteger(m) ? m : m.toFixed(1)}M` }
@@ -224,7 +224,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             strokeOpacity={1}
           />
 
-          {/* X-axis — sparse year ticks (§3.5), first point inset clear of labels */}
+          {/* X-axis - sparse year ticks (§3.5), first point inset clear of labels */}
           <XAxis
             dataKey="year"
             ticks={xTicks}
@@ -236,7 +236,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             padding={{ left: 12, right: 10 }}
           />
 
-          {/* Full-height labelled $ Y axis — round ceiling, 50px gutter (§3.9a) */}
+          {/* Full-height labelled $ Y axis - round ceiling, 50px gutter (§3.9a) */}
           <YAxis
             domain={[0, yCeil]}
             ticks={yTicks}
@@ -246,7 +246,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             tickLine={false}
             width={42}
           />
-          {/* $0 baseline — one step stronger than the gridlines (§3.9) */}
+          {/* $0 baseline - one step stronger than the gridlines (§3.9) */}
           <ReferenceLine y={0} stroke="#E4E7EC" strokeWidth={1} />
 
           <Tooltip
@@ -257,7 +257,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Portfolio Value — dashed reference-grey line, no fill (secondary) */}
+          {/* Portfolio Value - dashed reference-grey line, no fill (secondary) */}
           <Area
             type="monotone"
             dataKey="portfolioValue"
@@ -276,7 +276,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Total Equity — violet hero line + subtle fill (primary) */}
+          {/* Total Equity - violet hero line + subtle fill (primary) */}
           <Area
             type="monotone"
             dataKey="totalEquity"
@@ -294,7 +294,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             }}
           />
 
-          {/* Equity-goal milestone — target pin on a stem (§3.9) */}
+          {/* Equity-goal milestone - target pin on a stem (§3.9) */}
           {equityGoalPoint && (
             <ReferenceDot
               x={equityGoalPoint.year}
@@ -304,7 +304,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
             />
           )}
 
-          {/* Purchase markers — violet house-pins on stems (§3.1/§3.9) */}
+          {/* Purchase markers - violet house-pins on stems (§3.1/§3.9) */}
           {purchasePoints.map((pt) => (
             <ReferenceDot
               key={`purchase-${pt.year}`}
@@ -349,7 +349,7 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
                           aria-label={`Open ${label} in Per-Property view`}
                         >
                           <title>{`Open ${label}`}</title>
-                          {/* Inverted house pin — accent disc, white ring, solid
+                          {/* Inverted house pin - accent disc, white ring, solid
                               white house silhouette + door (reads as a house,
                               not a tree, at 17px). */}
                           <circle cx={cx} cy={pinY} r={8.5} fill={strokeCol} stroke={UUI.white} strokeWidth={1.5} />

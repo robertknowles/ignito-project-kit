@@ -66,7 +66,7 @@ export const PortfolioCashflow: React.FC = () => {
   );
 
   // Full, stable property list (union across all years) so every row is always
-  // present — rows stay muted until their purchase year, then fill in (§3.7).
+  // present - rows stay muted until their purchase year, then fill in (§3.7).
   const allProperties = useMemo(() => {
     if (!data) return [] as { instanceId: string; title: string; purchaseYear: number }[];
     const byId = new Map<string, { instanceId: string; title: string; purchaseYear: number }>();
@@ -89,7 +89,7 @@ export const PortfolioCashflow: React.FC = () => {
 
   const chartHeight = Math.max(allProperties.length * ROW_HEIGHT + 8, 48);
 
-  // Customized renderer — draws icons, bars, labels inside the Recharts coordinate system
+  // Customized renderer - draws icons, bars, labels inside the Recharts coordinate system
   const CashflowBars = useCallback((props: any) => {
     const { offset } = props;
     if (!offset) return null;
@@ -123,7 +123,7 @@ export const PortfolioCashflow: React.FC = () => {
 
           return (
             <g key={prop.instanceId}>
-              {/* Header — property name + net/yr (muted with — before purchase) */}
+              {/* Header - property name + net/yr (muted with - before purchase) */}
               <text
                 x={labelX} y={headerY} fontSize={12} fontWeight={600}
                 fill={nameFill} dominantBaseline="central" fontFamily={UUI.fontFamily}
@@ -134,20 +134,20 @@ export const PortfolioCashflow: React.FC = () => {
                 x={valueRightX} y={headerY} fontSize={12} fontWeight={600}
                 fill={active ? UUI.neutral700 : UUI.muted} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}
               >
-                {active ? `${fmtNet(entry!.netCashflow)}/yr` : '—'}
+                {active ? `${fmtNet(entry!.netCashflow)}/yr` : '-'}
               </text>
 
-              {/* In — violet fill on a track */}
+              {/* In - violet fill on a track */}
               <text x={labelX} y={inY} fontSize={10} fill={labelFill} dominantBaseline="central" fontFamily={UUI.fontFamily}>In</text>
               <rect x={barStartX} y={inY - BAR_H / 2} width={barTrackW} height={BAR_H} rx={1.5} fill="#F2F2F3" />
               {active && <rect x={barStartX} y={inY - BAR_H / 2} width={inW} height={BAR_H} rx={1.5} fill="#8B5CF6" />}
-              <text x={valueRightX} y={inY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.grossIncome) : '—'}</text>
+              <text x={valueRightX} y={inY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.grossIncome) : '-'}</text>
 
-              {/* Out — light-violet fill on a track */}
+              {/* Out - light-violet fill on a track */}
               <text x={labelX} y={outY} fontSize={10} fill={labelFill} dominantBaseline="central" fontFamily={UUI.fontFamily}>Out</text>
               <rect x={barStartX} y={outY - BAR_H / 2} width={barTrackW} height={BAR_H} rx={1.5} fill="#F2F2F3" />
               {active && <rect x={barStartX} y={outY - BAR_H / 2} width={outW} height={BAR_H} rx={1.5} fill="#D9D2F2" />}
-              <text x={valueRightX} y={outY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.totalOutgoings) : '—'}</text>
+              <text x={valueRightX} y={outY} fontSize={11} fill={labelFill} textAnchor="end" dominantBaseline="central" fontFamily={UUI.fontFamily}>{active ? fmt(entry!.totalOutgoings) : '-'}</text>
             </g>
           );
         })}
@@ -170,7 +170,7 @@ export const PortfolioCashflow: React.FC = () => {
 
   return (
     <div style={{ fontFamily: UUI.fontFamily, padding: '0 16px' }}>
-      {/* ── KPI headline — matches Dashboard pattern ── */}
+      {/* ── KPI headline - matches Dashboard pattern ── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-baseline gap-2">
           <span
@@ -205,7 +205,7 @@ export const PortfolioCashflow: React.FC = () => {
         onChange={setSelectedYear}
       />
 
-      {/* ── Chart — Recharts frame with custom SVG content ── */}
+      {/* ── Chart - Recharts frame with custom SVG content ── */}
       <div style={{ marginTop: 8 }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <ComposedChart

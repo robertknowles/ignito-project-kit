@@ -1,5 +1,5 @@
 /**
- * useAIUsage — Fetches current month's AI usage for the logged-in user.
+ * useAIUsage - Fetches current month's AI usage for the logged-in user.
  * Used in SettingsHub to display token counts and request totals.
  */
 

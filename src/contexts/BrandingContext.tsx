@@ -20,7 +20,7 @@ interface BrandingContextType {
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
   logoUrl: null,
-  // Black is the neutral fallback — avoids a blue flash before the
+  // Black is the neutral fallback - avoids a blue flash before the
   // company's actual primary colour is fetched from Supabase on first login.
   primaryColor: '#000000',
   isClientInteractiveEnabled: true,
@@ -64,7 +64,7 @@ const writeCachedBranding = (companyId: string | null, branding: BrandingSetting
   }
 };
 
-// Drop every cached branding entry — used on sign-out so the next account
+// Drop every cached branding entry - used on sign-out so the next account
 // starts from a clean slate instead of inheriting the previous user's branding.
 const clearCachedBranding = () => {
   try {

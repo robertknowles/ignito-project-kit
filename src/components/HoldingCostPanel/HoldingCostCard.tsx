@@ -43,7 +43,7 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
 
   return (
     <div className="overflow-hidden">
-      {/* Main card — no inner border */}
+      {/* Main card - no inner border */}
       <button
         className="w-full text-left px-1 py-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}

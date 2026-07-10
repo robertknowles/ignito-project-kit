@@ -142,7 +142,7 @@ const StatusPill: React.FC<StatusPillProps> = ({ status, onClick, isClickable = 
   );
 };
 
-// Custom tooltip factory — accepts refinanceTriggers to show refinance info
+// Custom tooltip factory - accepts refinanceTriggers to show refinance info
 const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -178,7 +178,7 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
           )}
           {yearTriggers.map(t => (
             <p key={t.instanceId} className="text-xs text-amber-600 mt-1">
-              {getCategoryLabel(t.propertyTitle)}: Refinance-ready — {formatCurrency(t.extractableEquity)} extractable
+              {getCategoryLabel(t.propertyTitle)}: Refinance-ready - {formatCurrency(t.extractableEquity)} extractable
             </p>
           ))}
           {data?.purchaseInYear && data?.purchaseDetails && data.purchaseDetails.length > 0 && (
@@ -198,7 +198,7 @@ const createCustomTooltip = (refinanceTriggers: RefinanceTrigger[]) => {
   return CustomTooltip;
 };
 
-// Violet outline pin glyph (§3.1 pin family) — replaces the photographic PNG
+// Violet outline pin glyph (§3.1 pin family) - replaces the photographic PNG
 // marker. House for residential, building for commercial; red when challenging.
 const PinGlyph: React.FC<{ isHouse: boolean; challenging?: boolean }> = ({ isHouse, challenging }) => {
   const color = challenging ? '#ef4444' : CHART_COLORS.violetInk;
@@ -474,7 +474,7 @@ const DroppableYearColumn: React.FC<DroppableYearColumnProps> = ({
   );
 };
 
-/** Goal achieved marker — full-height vertical line with badge at top, rendered as HTML overlay */
+/** Goal achieved marker - full-height vertical line with badge at top, rendered as HTML overlay */
 const GoalAchievedOverlay: React.FC<{ x: number; chartHeight: number }> = ({ x, chartHeight }) => (
   <div
     style={{
@@ -913,7 +913,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return result;
   }, [chartData, mostRecentPurchase]);
 
-  // Refinance trigger dots — first year each property has extractable equity > $50k
+  // Refinance trigger dots - first year each property has extractable equity > $50k
   const refinanceTriggers = useMemo(() => {
     return calculateRefinanceTriggers(
       timelineProperties,
@@ -987,7 +987,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
     return positions.filter(pos => pos.property !== undefined);
   }, [chartData, yearColumnWidth, profile.equityGoal, timelineProperties, chartPlotArea]);
 
-  // Goal marker X position — same column-center logic as property icons
+  // Goal marker X position - same column-center logic as property icons
   const goalMarkerX = useMemo(() => {
     if (!equityGoalReached || !chartData.length) return null;
     const yearIndex = chartData.findIndex(cd => cd.year === equityGoalReached.year);
@@ -1096,7 +1096,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
               <defs>
-                {/* Subtle violet fill under the equity hero line — same ramp as
+                {/* Subtle violet fill under the equity hero line - same ramp as
                     the other charts (§3.9 timelineGradient) */}
                 <linearGradient id="equityFillGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.1} />
@@ -1104,7 +1104,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 </linearGradient>
               </defs>
 
-              {/* Phase labels — no background fill */}
+              {/* Phase labels - no background fill */}
               {phases.map((phase, i) => (
                 <ReferenceArea
                   key={`phase-${i}`}
@@ -1118,7 +1118,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 />
               ))}
 
-              {/* Explanation highlight — translucent overlay for relevant time period */}
+              {/* Explanation highlight - translucent overlay for relevant time period */}
               {highlightPeriod && (
                 <ReferenceArea
                   x1={highlightPeriod.startYear}
@@ -1157,7 +1157,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
 
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Portfolio Value Line — secondary violet (lighter weight, §1.1) */}
+              {/* Portfolio Value Line - secondary violet (lighter weight, §1.1) */}
               <Line
                 type="monotone"
                 dataKey="portfolioValue"
@@ -1173,7 +1173,7 @@ export const ChartWithRoadmap: React.FC<ChartWithRoadmapProps> = ({ scenarioData
                 }}
               />
 
-              {/* Total Equity Line — violet hero + subtle fill (§1.1) */}
+              {/* Total Equity Line - violet hero + subtle fill (§1.1) */}
               <Area
                 type="monotone"
                 dataKey="totalEquity"

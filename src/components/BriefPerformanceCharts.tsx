@@ -57,7 +57,7 @@ const MiniTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// §3.11 axis type — 11px/400 #A1A1AA (the prototype's chart-axis grey)
+// §3.11 axis type - 11px/400 #A1A1AA (the prototype's chart-axis grey)
 const sharedXAxis = {
   axisLine: false as const,
   tickLine: false as const,
@@ -72,12 +72,12 @@ const sharedXAxis = {
  * Recharts' 'preserveStartEnd' thins labels with an algorithm that can leave
  * uneven gaps (e.g. 2030 2031 2032 clustered then a wide jump). Returning a
  * fixed integer interval makes Recharts render ticks at indices 0, N, 2N, …,
- * which are equally spaced on a category axis — so the labels are always
+ * which are equally spaced on a category axis - so the labels are always
  * visually evenly distributed, stepping up sequentially by a constant number
  * of years rather than squeezing in extras.
  */
 const evenTickInterval = (count: number): number => {
-  if (count <= 11) return 0; // few enough points — show every year
+  if (count <= 11) return 0; // few enough points - show every year
   return Math.ceil(count / 10) - 1; // ~10 evenly spaced labels
 };
 
@@ -106,7 +106,7 @@ interface BriefChartProps {
 }
 
 /**
- * Total Performance Projections — the hero multi-series chart.
+ * Total Performance Projections - the hero multi-series chart.
  * Plots cumulative principal paid, cumulative net cashflow, cumulative capital
  * growth, and total performance including principal, over the selected horizon.
  */
@@ -186,15 +186,15 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys
           <YAxis {...sharedYAxis} domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks} />
           <Tooltip content={<MiniTooltip />} cursor={{ stroke: UUI.brand600, strokeWidth: 1.5 }} />
           <ReferenceLine y={0} stroke="#D5D5DB" />
-          {/* Capital growth — violet ink */}
+          {/* Capital growth - violet ink */}
           <Line type="monotone" dataKey="capitalGrowth" name="Capital growth" stroke="#7C3AED" strokeWidth={2.75} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('capitalGrowth')}>
             {!hiddenKeys.includes('capitalGrowth') && <LabelList dataKey="capitalGrowth" content={makeLabel('#7C3AED')} />}
           </Line>
-          {/* Net cashflow — violet fill */}
+          {/* Net cashflow - violet fill */}
           <Line type="monotone" dataKey="netCashflow" name="Net cashflow" stroke="#8B5CF6" strokeWidth={2.75} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('netCashflow')}>
             {!hiddenKeys.includes('netCashflow') && <LabelList dataKey="netCashflow" content={makeLabel('#8B5CF6')} />}
           </Line>
-          {/* Principal paid down — muted grey */}
+          {/* Principal paid down - muted grey */}
           <Line type="monotone" dataKey="principalPaid" name="Principal paid down" stroke="#98A2B3" strokeWidth={2.5} dot={false} isAnimationActive={false} hide={hiddenKeys.includes('principalPaid')}>
             {!hiddenKeys.includes('principalPaid') && <LabelList dataKey="principalPaid" content={makeLabel('#98A2B3')} />}
           </Line>
@@ -208,7 +208,7 @@ export const BriefTotalPerformanceChart: React.FC<BriefChartProps & { hiddenKeys
 // These reproduce the main dashboard's chart language exactly so the Next
 // Purchase Brief reads with the same clarity as Dashboard → Total Equity and
 // Net Cashflow. The data stays scoped to this single next purchase (yearRows),
-// but every visual token — fills, gridlines, axes, $0 baseline, tooltip — is
+// but every visual token - fills, gridlines, axes, $0 baseline, tooltip - is
 // copied from CashflowChart.tsx / InvestmentTimelineChart.tsx.
 
 const CHART = {
@@ -228,7 +228,7 @@ const CHART = {
   fontFamily: UUI.fontFamily,
 } as const;
 
-// Round $ axis tick — matches CashflowChart.fmtTick ($0 / $Xk / $X.XM, signed).
+// Round $ axis tick - matches CashflowChart.fmtTick ($0 / $Xk / $X.XM, signed).
 const axisTick = (v: number) => {
   const a = Math.abs(v);
   const s = v < 0 ? '-' : '';
@@ -237,7 +237,7 @@ const axisTick = (v: number) => {
   return `${s}$${a}`;
 };
 
-// Sparse X ticks — every 5 years + the last year (§3.5).
+// Sparse X ticks - every 5 years + the last year (§3.5).
 const sparseYearTicks = (years: string[]): string[] => {
   if (years.length === 0) return [];
   const nums = years.map(Number);
@@ -289,7 +289,7 @@ const DashTooltip: React.FC<{
 };
 
 /**
- * Cashflow projection — mirrors Dashboard → Net Cashflow (CashflowChart.tsx).
+ * Cashflow projection - mirrors Dashboard → Net Cashflow (CashflowChart.tsx).
  * Solid violet line + signed ~14% fill straddling the $0 baseline, round $
  * ticks with $0 present, sparse year axis.
  */
@@ -394,7 +394,7 @@ export const BriefCashflowChart: React.FC<BriefChartProps> = ({ yearRows, horizo
 };
 
 /**
- * Growth projection — mirrors Dashboard → Total Equity (InvestmentTimelineChart).
+ * Growth projection - mirrors Dashboard → Total Equity (InvestmentTimelineChart).
  * Violet hero line + subtle 10%→0 gradient fill, round-number Y ceiling, sparse
  * year axis, $0 baseline one step stronger than the gridlines.
  */
@@ -422,7 +422,7 @@ export const BriefGrowthChart: React.FC<BriefChartProps> = ({ yearRows, horizon,
 
   if (!data.length) return null;
 
-  // Round-number Y frame — 4 even ticks up to a nice ceiling (§3.9a).
+  // Round-number Y frame - 4 even ticks up to a nice ceiling (§3.9a).
   // Portfolio Value sits above equity, so the ceiling keys off it.
   const max = Math.max(0, ...data.map(d => Math.max(d.totalEquity, d.portfolioValue)));
   const niceCeil = (v: number) => {
@@ -493,7 +493,7 @@ export const BriefGrowthChart: React.FC<BriefChartProps> = ({ yearRows, horizon,
           />
           <ReferenceLine y={0} stroke={CHART.equityZero} strokeWidth={1} />
           <Tooltip content={<EquityTooltip />} cursor={{ stroke: CHART.brand600, strokeWidth: 2 }} />
-          {/* Portfolio Value — dashed reference line (no fill), drawn first so
+          {/* Portfolio Value - dashed reference line (no fill), drawn first so
               the equity hero line sits on top (mirrors InvestmentTimelineChart). */}
           <Area
             type="monotone"

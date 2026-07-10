@@ -1,5 +1,5 @@
 /**
- * scenarioDataWriter — safe writer for arbitrary fields inside scenarios.data
+ * scenarioDataWriter - safe writer for arbitrary fields inside scenarios.data
  *
  * Background: scenarios.data is a JSONB column. ScenarioSaveContext autosaves
  * its managed keys (propertySelections, propertyOrder, investmentProfile,
@@ -11,7 +11,7 @@
  * Without coordination, those direct writes race the autosave and get stomped
  * (cofounder reports 2026-05-04 / 2026-05-05). The autosave was patched to
  * preserve unmanaged keys via RMW, but its read-then-write window is still a
- * race target — if a direct writer commits between the autosave's SELECT and
+ * race target - if a direct writer commits between the autosave's SELECT and
  * UPDATE, the autosave's preserved snapshot is stale and the direct write is
  * lost.
  *
@@ -19,7 +19,7 @@
  * It uses optimistic version locking with retry: every write bumps version,
  * every write requires the version to be unchanged since read. If two writers
  * collide, the loser re-reads and re-applies its mutation against the latest
- * state (the mutator is idempotent by construction — it operates on whatever
+ * state (the mutator is idempotent by construction - it operates on whatever
  * the latest data is).
  *
  * Pair with ScenarioSaveContext.syncScenarioVersion in React callers so the
@@ -82,12 +82,12 @@ export async function mutateScenarioData(
     if (updated && updated.length > 0) {
       return { ok: true, newVersion };
     }
-    // Version mismatch — another writer committed in the meantime. Re-read
+    // Version mismatch - another writer committed in the meantime. Re-read
     // and re-apply the mutator on the next attempt.
   }
 
   return {
     ok: false,
-    error: 'Concurrent modification — could not save after retries.',
+    error: 'Concurrent modification - could not save after retries.',
   };
 }

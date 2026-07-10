@@ -29,7 +29,7 @@ export const PropertyInstanceProvider: React.FC<{ children: React.ReactNode }> =
   const createInstance = useCallback((instanceId: string, propertyType: string, period: number) => {
     // Overlay the BA's global Next-Purchase cost defaults (Assumptions page)
     // onto the per-type defaults. Applied here at materialisation so only
-    // FUTURE purchases pick them up — existing instances are untouched.
+    // FUTURE purchases pick them up - existing instances are untouched.
     const defaults = applyGlobalCostDefaults(getPropertyInstanceDefaults(propertyType), profile);
 
     // Ensure state is always set (fallback to VIC if missing)

@@ -1,5 +1,5 @@
 /**
- * Borrowing Capacity Ceiling — SINGLE SOURCE OF TRUTH
+ * Borrowing Capacity Ceiling - SINGLE SOURCE OF TRUTH
  *
  * This function computes the borrowing capacity ceiling for a given period.
  * It is used by BOTH the BorrowingCapacityChart (for display) and the
@@ -14,7 +14,7 @@
  * The equity boost from portfolio appreciation is NOT added to this ceiling.
  * Equity release is a funding mechanism (helps with deposits), not a lending
  * ceiling expansion. A bank doesn't give you a higher BC just because your
- * existing properties appreciated — they assess your income capacity.
+ * existing properties appreciated - they assess your income capacity.
  */
 
 import {

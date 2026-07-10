@@ -1,5 +1,5 @@
 /**
- * Stamp duty calculator — toolkit (owner-occupier & investor).
+ * Stamp duty calculator - toolkit (owner-occupier & investor).
  *
  * Estimates the government costs of a residential property purchase across all
  * Australian states and territories:
@@ -12,7 +12,7 @@
  * Duty brackets for the standard/investor path reuse the verified engine in
  * ./stampDutyCalculator. The ACT is charged on a separate residential
  * (owner-occupier) scale. Concession thresholds are documented inline and are
- * indicative only — they change frequently and vary with individual
+ * indicative only - they change frequently and vary with individual
  * circumstances. This is an estimate, not advice. Figures do not include
  * foreign-buyer surcharges. Last reviewed against state revenue offices: 2026-07.
  */
@@ -78,7 +78,7 @@ const MORTGAGE_REGISTRATION_FEE: Record<AusState, number> = {
   ACT: 184,
 }
 
-/** Land transfer / title registration fee — tiered by value (indicative). */
+/** Land transfer / title registration fee - tiered by value (indicative). */
 function landTransferFee(state: AusState, price: number): number {
   switch (state) {
     case 'ACT':
@@ -136,7 +136,7 @@ function firstHomeOwnerGrant(input: StampDutyInput): number {
     case 'NT':
       return 50000
     case 'ACT':
-      return 0 // ACT has no FHOG — uses the Home Buyer Concession Scheme instead
+      return 0 // ACT has no FHOG - uses the Home Buyer Concession Scheme instead
     default:
       return 0
   }
@@ -160,12 +160,12 @@ function dutyWithConcessions(input: StampDutyInput, fullDuty: number): { duty: n
   const eligible = isFirstHomeBuyer || isPensioner
   const who = isFirstHomeBuyer ? 'First home buyer' : 'Pensioner'
 
-  // ACT — Home Buyer Concession Scheme: nil duty when household income is under
+  // ACT - Home Buyer Concession Scheme: nil duty when household income is under
   // the threshold (raised per dependent child), regardless of new/established.
   if (state === 'ACT' && eligible) {
     const incomeThreshold = 250000 + numberOfChildren * 4600
     if (totalIncome <= incomeThreshold) {
-      return { duty: 0, note: `${who} — ACT Home Buyer Concession Scheme: no duty payable.` }
+      return { duty: 0, note: `${who} - ACT Home Buyer Concession Scheme: no duty payable.` }
     }
     return { duty: fullDuty, note: `Household income exceeds the ACT concession threshold (${incomeThreshold.toLocaleString('en-AU')}).` }
   }
@@ -176,31 +176,31 @@ function dutyWithConcessions(input: StampDutyInput, fullDuty: number): { duty: n
     case 'NSW': {
       // Exempt to $800k, tapered concession to $1m.
       const payable = taperedConcession(propertyValue, 800000, 1000000, fullDuty)
-      return { duty: payable, note: payable === 0 ? `${who} — full duty exemption applied.` : payable < fullDuty ? `${who} — concessional duty applied.` : `Value above the NSW concession ceiling.` }
+      return { duty: payable, note: payable === 0 ? `${who} - full duty exemption applied.` : payable < fullDuty ? `${who} - concessional duty applied.` : `Value above the NSW concession ceiling.` }
     }
     case 'VIC': {
       const payable = taperedConcession(propertyValue, 600000, 750000, fullDuty)
-      return { duty: payable, note: payable === 0 ? `${who} — full duty exemption applied.` : payable < fullDuty ? `${who} — concessional duty applied.` : `Value above the VIC concession ceiling.` }
+      return { duty: payable, note: payable === 0 ? `${who} - full duty exemption applied.` : payable < fullDuty ? `${who} - concessional duty applied.` : `Value above the VIC concession ceiling.` }
     }
     case 'QLD': {
       const payable = taperedConcession(propertyValue, 700000, 800000, fullDuty)
-      return { duty: payable, note: payable === 0 ? `${who} — full duty exemption applied.` : payable < fullDuty ? `${who} — concessional duty applied.` : `Value above the QLD concession ceiling.` }
+      return { duty: payable, note: payable === 0 ? `${who} - full duty exemption applied.` : payable < fullDuty ? `${who} - concessional duty applied.` : `Value above the QLD concession ceiling.` }
     }
     case 'WA': {
       const payable = taperedConcession(propertyValue, 450000, 600000, fullDuty)
-      return { duty: payable, note: payable === 0 ? `${who} — full duty exemption applied.` : payable < fullDuty ? `${who} — concessional duty applied.` : `Value above the WA concession ceiling.` }
+      return { duty: payable, note: payable === 0 ? `${who} - full duty exemption applied.` : payable < fullDuty ? `${who} - concessional duty applied.` : `Value above the WA concession ceiling.` }
     }
     case 'SA': {
       // Full relief for new homes / vacant land (first home); established gets no relief.
       if (purchaseType === 'new' || purchaseType === 'vacant') {
-        return { duty: 0, note: `${who} — SA full duty relief on new home / vacant land.` }
+        return { duty: 0, note: `${who} - SA full duty relief on new home / vacant land.` }
       }
       return { duty: fullDuty, note: `SA duty relief applies to new homes and vacant land only.` }
     }
     case 'TAS': {
       // 50% concession on established homes to $750k.
       if (purchaseType === 'established' && propertyValue <= 750000) {
-        return { duty: fullDuty * 0.5, note: `${who} — TAS 50% duty concession applied.` }
+        return { duty: fullDuty * 0.5, note: `${who} - TAS 50% duty concession applied.` }
       }
       return { duty: fullDuty, note: null }
     }

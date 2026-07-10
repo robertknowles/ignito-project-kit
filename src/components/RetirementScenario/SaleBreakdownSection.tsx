@@ -9,15 +9,15 @@ import {
 } from './retirementExplainers'
 
 /**
- * Retirement sell-down — Tax and sale details (presentational).
+ * Retirement sell-down - Tax and sale details (presentational).
  *
  * One column per sold property, rows walking sale price → selling costs → loan
  * payout → estimated CGT → net cash released. Each property carries a CGT
  * treatment badge (auto from its hold period / ownership; click to change).
  * The scenario-wide default method + marginal tax rate live once in the header.
  *
- * Compliance (spec §2): treatments are modelled neutrally — no method is
- * labelled better — and the not-tax-advice footer is always present.
+ * Compliance (spec §2): treatments are modelled neutrally - no method is
+ * labelled better - and the not-tax-advice footer is always present.
  */
 
 const BRAND = '#7F56D9'
@@ -28,7 +28,7 @@ const INTER = 'Inter, system-ui, sans-serif'
 /** Full money with thousands separators (en-AU). */
 const fmtFull = (value: number): string => `$${Math.round(value).toLocaleString('en-AU')}`
 
-/** Compact money — for the header total. */
+/** Compact money - for the header total. */
 const fmtCompact = (value: number): string => {
   const abs = Math.abs(value)
   const sign = value < 0 ? '-' : ''
@@ -50,7 +50,7 @@ interface SaleBreakdownSectionProps {
   breakdowns: SaleBreakdownEntry[]
   /** Stable "Prop N" numbers shared with the property cards. */
   numberById: Map<string, number>
-  /** The year each property is sold in — shown under its column header. */
+  /** The year each property is sold in - shown under its column header. */
   saleYearById?: Map<string, number>
   /** Cycle one property's CGT method (discount ↔ indexation). SMSF ignores this. */
   onCycleMethod: (instanceId: string, current: CgtMethod) => void
@@ -62,7 +62,7 @@ interface SaleBreakdownSectionProps {
   onToggle: () => void
 }
 
-/** CGT treatment badge — colour + label from the applied method / SMSF. */
+/** CGT treatment badge - colour + label from the applied method / SMSF. */
 const treatmentBadge = (d: SaleBreakdown): { label: string; color: string; bg: string } => {
   if (d.ledger === 'smsf') return { label: 'Super rate', color: BRAND, bg: 'rgba(127, 86, 217, 0.10)' }
   if (d.appliedMethod === 'discount') return { label: '50% discount', color: GREEN, bg: 'rgba(6, 118, 71, 0.10)' }
@@ -174,7 +174,7 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
                 <ValueRow label="Loan payout" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.loanPayout)}`} muted />
                 <ValueRow label="Estimated CGT" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.activeCgt)}`} muted />
 
-                {/* Net cash released — highlighted */}
+                {/* Net cash released - highlighted */}
                 <tr className="border-t border-[#E9EAEB]">
                   <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] font-semibold" style={{ color: BRAND }}>
                     Net cash released
