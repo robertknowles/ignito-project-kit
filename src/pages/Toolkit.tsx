@@ -42,12 +42,21 @@ const Toolkit: React.FC = () => {
       <AppSidebar />
       <main className="flex-1 px-8 py-8" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         {showPurchaseBriefCalc ? (
-          <div className="max-w-5xl">
-            <PurchaseBriefCalc onBack={() => setShowPurchaseBriefCalc(false)} />
-          </div>
+          <PurchaseBriefCalc onBack={() => setShowPurchaseBriefCalc(false)} />
         ) : (
           <>
             <h1 className="text-xl font-semibold text-neutral-900 mb-6">Toolkit</h1>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
+              <ToolCard
+                icon={<FileText size={20} className="text-neutral-600" />}
+                title="Purchase Brief"
+                description="Model a single property purchase in isolation - projections, cashflow and funding."
+                onClick={() => setShowPurchaseBriefCalc(true)}
+              />
+            </div>
+
+            <hr className="my-6 border-neutral-200 max-w-3xl" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
               <ToolCard
@@ -67,12 +76,6 @@ const Toolkit: React.FC = () => {
                 title="Stamp Duty"
                 description="Estimate stamp duty, government fees and first home buyer grants by state."
                 onClick={() => setShowStampDuty(true)}
-              />
-              <ToolCard
-                icon={<FileText size={20} className="text-neutral-600" />}
-                title="Purchase Brief Calc"
-                description="Model a single property purchase in isolation - projections, cashflow and funding."
-                onClick={() => setShowPurchaseBriefCalc(true)}
               />
             </div>
 
