@@ -79,6 +79,25 @@ const formatFactFindValue = (value: unknown, format: FactFindFormat): string => 
   return String(value)
 }
 
+// Per-property breakdown line, e.g.
+// "  - Property 1: $450,000 value, $300,000 debt, $520/wk (6.0% yield), Trust"
+const buildPropertyLines = (inputs: Record<string, unknown>): string[] => {
+  const raw = inputs.existingProperties
+  if (!Array.isArray(raw) || raw.length === 0) return []
+  const money = (n: number) => `$${Math.round(Number(n) || 0).toLocaleString('en-AU')}`
+  const lines = [`Current portfolio (${raw.length} propert${raw.length === 1 ? 'y' : 'ies'}):`]
+  raw.forEach((p: any, i: number) => {
+    const value = Number(p?.value) || 0
+    const weeklyRent = Number(p?.weeklyRent) || 0
+    const grossYield = value > 0 ? ((weeklyRent * 52) / value) * 100 : 0
+    const rent = weeklyRent > 0
+      ? `${money(weeklyRent)}/wk${value > 0 ? ` (${grossYield.toFixed(1)}% yield)` : ''}`
+      : 'no rent given'
+    lines.push(`  - Property ${i + 1}: ${money(value)} value, ${money(Number(p?.debt) || 0)} debt, ${rent}, ${p?.entity || 'Personal'}`)
+  })
+  return lines
+}
+
 // Turn a client's submitted answers into a readable block the agent can drop
 // into the chat and edit before running the plan.
 const buildFactFindText = (name: string, inputs: Record<string, unknown>): string => {
@@ -87,6 +106,7 @@ const buildFactFindText = (name: string, inputs: Record<string, unknown>): strin
     const v = formatFactFindValue(inputs[f.key], f.format)
     if (v) lines.push(`${f.label}: ${v}`)
   }
+  lines.push(...buildPropertyLines(inputs))
   const who = name?.trim() ? `${name.trim()}'s submitted details` : 'Client submitted details'
   return `${who}:\n${lines.join('\n')}`
 }

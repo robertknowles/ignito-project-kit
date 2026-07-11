@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { supabase } from '@/integrations/supabase/client'
 import type { Client } from '@/contexts/ClientContext'
+import type { ExistingProperty } from '@/pages/ClientOnboarding'
 
 interface Props {
   open: boolean
@@ -46,6 +47,21 @@ const formatValue = (value: unknown, format: FieldFormat): string => {
   if (format === 'currency') return `$${Number(value).toLocaleString('en-AU')}`
   if (format === 'years') return `${value} year${Number(value) === 1 ? '' : 's'}`
   return String(value)
+}
+
+const money = (n: number): string => `$${Math.round(n).toLocaleString('en-AU')}`
+
+// Read the per-property breakdown the client submitted, tolerating older
+// snapshots that predate it (returns []).
+const readExistingProperties = (inputs: Record<string, unknown> | null): ExistingProperty[] => {
+  const raw = inputs?.existingProperties
+  if (!Array.isArray(raw)) return []
+  return raw.map((p: any) => ({
+    value: Number(p?.value) || 0,
+    debt: Number(p?.debt) || 0,
+    weeklyRent: Number(p?.weeklyRent) || 0,
+    entity: p?.entity || 'Personal',
+  }))
 }
 
 export const ClientInputsModal: React.FC<Props> = ({ open, onOpenChange, client }) => {
@@ -93,6 +109,8 @@ export const ClientInputsModal: React.FC<Props> = ({ open, onOpenChange, client 
     return v !== null && v !== undefined && v !== ''
   })
 
+  const existingProperties = readExistingProperties(inputs)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
@@ -137,6 +155,41 @@ export const ClientInputsModal: React.FC<Props> = ({ open, onOpenChange, client 
                 )
               })}
             </div>
+
+            {existingProperties.length > 0 && (
+              <div className="mt-4">
+                <p className="text-[10px] font-semibold text-[#717680] uppercase tracking-wide mb-2">
+                  Current portfolio breakdown
+                </p>
+                <div className="space-y-2">
+                  {existingProperties.map((p, i) => {
+                    const grossYield = p.value > 0 ? ((p.weeklyRent * 52) / p.value) * 100 : 0
+                    return (
+                      <div key={i} className="rounded-lg border border-[#E9EAEB] px-3.5 py-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium text-[#414651]">Property {i + 1}</span>
+                          <span className="text-[11px] font-medium text-[#717680] bg-[#F2F4F7] rounded-full px-2 py-0.5">
+                            {p.entity}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          <span className="text-[#717680]">Value</span>
+                          <span className="text-right font-medium text-[#111827]">{money(p.value)}</span>
+                          <span className="text-[#717680]">Debt</span>
+                          <span className="text-right font-medium text-[#111827]">{money(p.debt)}</span>
+                          <span className="text-[#717680]">Equity</span>
+                          <span className="text-right font-medium text-[#111827]">{money(p.value - p.debt)}</span>
+                          <span className="text-[#717680]">Rent</span>
+                          <span className="text-right font-medium text-[#111827]">
+                            {money(p.weeklyRent)}/wk{p.value > 0 && p.weeklyRent > 0 ? ` · ${grossYield.toFixed(1)}%` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-2">
               <button
