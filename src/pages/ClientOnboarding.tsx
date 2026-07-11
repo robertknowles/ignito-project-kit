@@ -134,15 +134,17 @@ const SliderField: React.FC<SliderFieldProps> = ({
         isActive ? 'border-[#D5D7DA] shadow-sm' : 'border-[#E9EAEB] hover:border-[#D5D7DA]'
       }`}
     >
-      {/* Header: Label and editable Value */}
-      <div className="flex justify-between items-start mb-1 gap-3">
+      {/* Header: Label and editable Value.
+          Stacks on mobile so the title never gets squeezed by the input;
+          sits side-by-side from sm up. */}
+      <div className="flex flex-col gap-2 mb-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div>
           <span className="text-sm font-semibold text-[#414651]">{label}</span>
           {description && (
             <p className="text-xs text-[#717680] mt-0.5">{description}</p>
           )}
         </div>
-        <div className="relative flex-shrink-0">
+        <div className="relative w-full sm:w-40 sm:flex-shrink-0">
           {formatAsCurrency && (
             <span
               className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-medium pointer-events-none"
@@ -156,7 +158,7 @@ const SliderField: React.FC<SliderFieldProps> = ({
             inputMode="numeric"
             value={value ? value.toLocaleString('en-AU') : ''}
             onChange={(e) => handleTyped(e.target.value)}
-            className={`w-40 py-1.5 text-right text-base font-medium rounded-lg border border-[#E9EAEB] bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent ${
+            className={`w-full py-1.5 text-right text-base font-medium rounded-lg border border-[#E9EAEB] bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent ${
               formatAsCurrency ? 'pl-7 pr-3' : suffix ? 'pl-3 pr-14' : 'px-3'
             }`}
             style={{ color: primaryColor }}
@@ -618,11 +620,11 @@ setError('Failed to submit your details. Please try again.');
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-sm p-8 border border-[#E9EAEB]">
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 border border-[#E9EAEB]">
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Personal Details Section */}
             <div>
-              <h3 className="text-[13px] font-semibold text-[#414651] mb-4 pb-2 border-b border-[#E9EAEB]">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#717680] mb-4 pb-2 border-b border-[#E9EAEB]">
                 Your Financial Position
               </h3>
               <div className="flex flex-col gap-4">
@@ -680,12 +682,12 @@ setError('Failed to submit your details. Please try again.');
 
             {/* Current Portfolio Section */}
             <div>
-              <h3 className="text-[13px] font-semibold text-[#414651] mb-4 pb-2 border-b border-[#E9EAEB]">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#717680] mb-4 pb-2 border-b border-[#E9EAEB]">
                 Current Portfolio (if any)
               </h3>
               <div className="flex flex-col gap-4">
                 {/* How many properties → spawns a card per property */}
-                <div className="bg-white rounded-xl border border-[#E9EAEB] px-5 py-4 flex items-center justify-between gap-4">
+                <div className="bg-white rounded-xl border border-[#E9EAEB] px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <div>
                     <span className="text-sm font-semibold text-[#414651]">Investment properties owned</span>
                     <p className="text-xs text-[#717680] mt-0.5">How many investment properties do you currently own?</p>
@@ -693,7 +695,7 @@ setError('Failed to submit your details. Please try again.');
                   <select
                     value={properties.length}
                     onChange={(e) => setPropertyCount(Number(e.target.value))}
-                    className="px-3 py-2.5 border border-[#D5D7DA] rounded-lg text-sm text-[#414651] bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent"
+                    className="w-full sm:w-auto px-3 py-2.5 border border-[#D5D7DA] rounded-lg text-sm text-[#414651] bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent"
                   >
                     {Array.from({ length: MAX_EXISTING_PROPERTIES + 1 }, (_, n) => (
                       <option key={n} value={n}>{n === 0 ? 'None' : n}</option>
@@ -712,9 +714,9 @@ setError('Failed to submit your details. Please try again.');
                 ))}
 
                 {properties.length > 0 && (
-                  <div className="flex items-center justify-between px-5 py-3 rounded-xl bg-[#F9FAFB] border border-[#E9EAEB]">
+                  <div className="flex flex-col gap-1 px-5 py-3 rounded-xl bg-[#F9FAFB] border border-[#E9EAEB] sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-sm text-[#717680]">Portfolio totals</span>
-                    <span className="text-sm font-normal text-[#414651] text-right">
+                    <span className="text-sm font-normal text-[#414651] sm:text-right">
                       {formatCurrency(portfolioTotals.portfolioValue)} value · {formatCurrency(portfolioTotals.currentDebt)} debt · {formatCurrency(portfolioTotals.portfolioValue - portfolioTotals.currentDebt)} equity
                     </span>
                   </div>
@@ -724,7 +726,7 @@ setError('Failed to submit your details. Please try again.');
 
             {/* Investment Goals Section */}
             <div>
-              <h3 className="text-[13px] font-semibold text-[#414651] mb-4 pb-2 border-b border-[#E9EAEB]">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#717680] mb-4 pb-2 border-b border-[#E9EAEB]">
                 Your Investment Goals
               </h3>
               <div className="flex flex-col gap-4">
