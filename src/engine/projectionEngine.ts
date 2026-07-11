@@ -391,7 +391,11 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       loanType: (propertyInstance?.loanProduct ?? 'IO') as 'IO' | 'PI',
       loanTerm: propertyInstance?.loanTerm ?? 30,
       ioTermYears: propertyInstance?.ioTermYears ?? 5,
+      // Instance rates are pre-filled with the platform default (6.25) by the
+      // cell templates, so only a rate moved OFF that default counts as a
+      // per-property override; otherwise the profile/assumptions rate governs.
       interestRate: propertyInstance?.interestRate
+        && propertyInstance.interestRate / 100 !== DEFAULT_INTEREST_RATE
         ? propertyInstance.interestRate / 100
         : defaultInterestRate,
     };
@@ -694,7 +698,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       const purchasePeriod = (purchaseYear - BASE_YEAR) * PERIODS_PER_YEAR;
 
       // Property effective rate (event-adjusted, property-specific)
-      const propertyEffectiveRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, rp.instanceId);
+      const propertyEffectiveRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, rp.instanceId, rp.interestRate);
 
       // Growth (same calculation as portfolio value above - consistent)
       const baseValue = calculatePropertyGrowthWithEvents(
@@ -1037,7 +1041,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
     if (year <= endYear) {
       const purchasesThisYear = purchasesByYear.get(year);
       const purchaseFundingBreakdowns = new Map<string, FundingBreakdown>();
-      const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks);
+      const effectiveInterestRate = getEffectiveInterestRate(periodsElapsed, eventBlocks, defaultInterestRate);
       const extractableEquity = profile.useExistingEquity
         ? Math.max(0, refiEligibleValueBeforeThisYear * EQUITY_EXTRACTION_LVR_CAP - refiEligibleDebtBeforeThisYear)
         : 0;
@@ -1089,7 +1093,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
           const yearsOwned = year - pYear;
           const propRentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsOwned);
           const propInfl = Math.pow(1 + profileInflation, yearsOwned);
-          const propEffRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, rp.instanceId);
+          const propEffRate = getPropertyEffectiveRate(periodsElapsed, eventBlocks, rp.instanceId, rp.interestRate);
           netCashflowFromPriorProps += rp.prop.grossRentalIncome * propRentEsc - rp.prop.loanAmount * propEffRate - rp.prop.expenses * propInfl;
         });
         const cashflowDeduction = netCashflowFromPriorProps < 0 ? netCashflowFromPriorProps : 0;

@@ -358,7 +358,8 @@ export function calculateTotalAnnualLoanPayments(
   deps: EngineDeps,
 ): number {
   let totalAnnualLoanPayment = 0;
-  const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks);
+  const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
+  const effectiveMarketRate = getEffectiveInterestRate(currentPeriod, eventBlocks, baseRate);
 
   // Existing portfolio debt payments
   if (existingProperties.length > 0) {
@@ -374,7 +375,6 @@ export function calculateTotalAnnualLoanPayments(
   }
 
   // Previous purchases
-  const baseRate = profile.interestRate ?? DEFAULT_INTEREST_RATE;
   previousPurchases.forEach(purchase => {
     if (purchase.period <= currentPeriod) {
       if (isPurchaseSold(purchase, currentPeriod, deps)) return;
