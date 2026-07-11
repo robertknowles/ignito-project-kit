@@ -40,6 +40,8 @@ export interface ExistingProperty {
   latitude?: number
   longitude?: number
   placeId?: string
+  /** Street View (or satellite fallback) image cached by the property-image function */
+  photoUrl?: string
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({
