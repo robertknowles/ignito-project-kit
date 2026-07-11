@@ -15,6 +15,7 @@ import { useChangeReceipt } from '../contexts/ChangeReceiptContext'
 import { useRevertPurchase } from '../hooks/useRevertPurchase'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
+import { AddressAutocomplete } from './AddressAutocomplete'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
@@ -289,7 +290,23 @@ interface Column {
 const COLUMNS: Column[] = [
   {
     key: 'address', width: 140, header: 'Address',
-    render: (p, onChange) => <TextCell value={p.address} onChange={v => onChange(p.id, { address: v })} placeholder="Enter address" />,
+    render: (p, onChange) => (
+      <AddressAutocomplete
+        variant="cell"
+        value={p.address}
+        onInputChange={v => onChange(p.id, { address: v })}
+        onSelect={sel => onChange(p.id, {
+          address: sel.streetLine,
+          suburb: sel.suburb,
+          state: sel.state || p.state,
+          postcode: sel.postcode,
+          latitude: sel.latitude,
+          longitude: sel.longitude,
+          placeId: sel.placeId,
+        })}
+        placeholder="Enter address"
+      />
+    ),
   },
   {
     key: 'year', width: 72, header: 'Year',

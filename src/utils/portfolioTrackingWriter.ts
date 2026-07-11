@@ -19,6 +19,12 @@ export interface PortfolioTrackingEntry {
   isPurchased: boolean;
   address: string;
   photo: string;
+  /** Google Places metadata, set when the address came from autocomplete */
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
+  /** Where the photo came from — Street View, satellite fallback, or a user-pasted URL */
+  photoSource?: 'streetview' | 'staticmap' | 'manual';
 }
 
 export async function savePortfolioTracking(

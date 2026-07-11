@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useBranding } from '@/contexts/BrandingContext'
 import { usePortalClient } from '@/hooks/usePortalClient'
 import { supabase } from '@/integrations/supabase/client'
@@ -25,6 +25,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { AddressAutocomplete } from '@/components/AddressAutocomplete'
+import { fetchPropertyImage } from '@/utils/propertyImage'
+import type { AddressSelection } from '@/hooks/useAddressSearch'
 
 interface ClientProperty {
   id: number
@@ -42,6 +45,10 @@ interface ClientProperty {
   rental_income_weekly: number | null
   tenanted_until: string | null
   notes: string | null
+  photo_url: string | null
+  latitude: number | null
+  longitude: number | null
+  place_id: string | null
 }
 
 const EMPTY_FORM: Omit<ClientProperty, 'id' | 'client_id' | 'company_id'> = {
@@ -57,6 +64,10 @@ const EMPTY_FORM: Omit<ClientProperty, 'id' | 'client_id' | 'company_id'> = {
   rental_income_weekly: null,
   tenanted_until: '',
   notes: '',
+  photo_url: null,
+  latitude: null,
+  longitude: null,
+  place_id: null,
 }
 
 const PROPERTY_TYPES = ['House', 'Unit/Apartment', 'Townhouse', 'Land', 'Villa', 'Duplex']
@@ -149,6 +160,10 @@ export const PortalPortfolio = () => {
       rental_income_weekly: property.rental_income_weekly,
       tenanted_until: property.tenanted_until ? property.tenanted_until.split('T')[0] : '',
       notes: property.notes || '',
+      photo_url: property.photo_url,
+      latitude: property.latitude,
+      longitude: property.longitude,
+      place_id: property.place_id,
     })
     setFormOpen(true)
   }
@@ -174,6 +189,10 @@ export const PortalPortfolio = () => {
         rental_income_weekly: formData.rental_income_weekly,
         tenanted_until: formData.tenanted_until || null,
         notes: formData.notes || null,
+        photo_url: formData.photo_url,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        place_id: formData.place_id,
       }
 
       if (editingProperty) {
@@ -235,6 +254,31 @@ export const PortalPortfolio = () => {
   // Update form field
   const setField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }))
+  }
+
+  // Address picked from autocomplete — fill the location fields and fetch a
+  // Street View (or satellite fallback) photo in the background.
+  const [fetchingPhoto, setFetchingPhoto] = useState(false)
+  const photoFetchSeq = useRef(0)
+  const handleAddressSelect = (sel: AddressSelection) => {
+    setFormData(prev => ({
+      ...prev,
+      address: sel.streetLine,
+      suburb: sel.suburb,
+      state: sel.state || prev.state,
+      postcode: sel.postcode,
+      latitude: sel.latitude,
+      longitude: sel.longitude,
+      place_id: sel.placeId,
+      photo_url: null,
+    }))
+    const seq = ++photoFetchSeq.current
+    setFetchingPhoto(true)
+    fetchPropertyImage(sel.latitude, sel.longitude, sel.placeId).then(result => {
+      if (seq !== photoFetchSeq.current) return
+      setFetchingPhoto(false)
+      if (result) setFormData(prev => ({ ...prev, photo_url: result.url }))
+    })
   }
 
   if (loading || propsLoading) {
@@ -318,7 +362,17 @@ export const PortalPortfolio = () => {
                 className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div>
+                  {property.photo_url && (
+                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0 mr-4">
+                      <img
+                        src={property.photo_url}
+                        alt={displayAddress}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-gray-900">{displayAddress}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       {property.property_type && (
@@ -404,11 +458,25 @@ export const PortalPortfolio = () => {
             {/* Address */}
             <div className="grid gap-2">
               <Label>Street address</Label>
-              <Input
+              <AddressAutocomplete
                 value={formData.address || ''}
-                onChange={(e) => setField('address', e.target.value)}
+                onInputChange={(v) => setField('address', v)}
+                onSelect={handleAddressSelect}
                 placeholder="123 Example Street"
               />
+              {fetchingPhoto && (
+                <p className="text-xs text-gray-400">Fetching Street View image…</p>
+              )}
+              {formData.photo_url && (
+                <div className="h-24 rounded-lg overflow-hidden bg-gray-50 border border-gray-200">
+                  <img
+                    src={formData.photo_url}
+                    alt="Property"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3">

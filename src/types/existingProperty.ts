@@ -56,6 +56,12 @@ export interface ExistingProperty {
   /** Present when this property was purchased from the Next Purchase Brief;
    *  drives the "Revert to next purchase" action in the portfolio. */
   revert?: RevertSnapshot
+  /** Google Places metadata, populated when the address is picked from autocomplete */
+  suburb?: string
+  postcode?: string
+  latitude?: number
+  longitude?: number
+  placeId?: string
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({
