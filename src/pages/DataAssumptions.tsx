@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Plus,
   Home,
@@ -28,7 +28,10 @@ import { CustomBlockModal } from '../components/CustomBlockModal'
 import type { CustomPropertyBlock } from '../components/CustomBlockModal'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-import { savePortfolioTracking } from '@/utils/portfolioTrackingWriter'
+import { savePortfolioTracking, type PortfolioTrackingEntry } from '@/utils/portfolioTrackingWriter'
+import { AddressAutocomplete } from '../components/AddressAutocomplete'
+import { fetchPropertyImage } from '@/utils/propertyImage'
+import type { AddressSelection } from '@/hooks/useAddressSearch'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import {
   Dialog,
@@ -138,7 +141,7 @@ export const DataAssumptions = () => {
   // Portfolio state
   const [scenarioData, setScenarioData] = useState<Record<number, ClientScenarioData[]>>({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
-  const [purchaseStates, setPurchaseStates] = useState<Record<string, { isPurchased: boolean; address: string; photo: string }>>({})
+  const [purchaseStates, setPurchaseStates] = useState<Record<string, PortfolioTrackingEntry>>({})
   const [portfolioFilter, setPortfolioFilter] = useState<'all' | 'owned' | 'planned'>('all')
   const [detailProperty, setDetailProperty] = useState<{ property: PortfolioProperty; scenarioId: number } | null>(null)
 
@@ -148,6 +151,10 @@ export const DataAssumptions = () => {
   const [activatingScenarioId, setActivatingScenarioId] = useState<number | null>(null)
   const [activateAddress, setActivateAddress] = useState('')
   const [activatePhoto, setActivatePhoto] = useState('')
+  const [activatePlace, setActivatePlace] = useState<AddressSelection | null>(null)
+  const [activatePhotoSource, setActivatePhotoSource] = useState<PortfolioTrackingEntry['photoSource']>(undefined)
+  const [fetchingImage, setFetchingImage] = useState(false)
+  const imageFetchSeq = useRef(0)
   const [saving, setSaving] = useState(false)
 
   const handleSaveCustomBlock = (block: CustomPropertyBlock) => {
@@ -171,7 +178,7 @@ export const DataAssumptions = () => {
         if (error) throw error
 
         const dataMap: Record<number, ClientScenarioData[]> = {}
-        const purchaseMap: Record<string, { isPurchased: boolean; address: string; photo: string }> = {}
+        const purchaseMap: Record<string, PortfolioTrackingEntry> = {}
 
         scenarios?.forEach(scenario => {
           const sd = scenario.data as any
@@ -405,9 +412,8 @@ export const DataAssumptions = () => {
       // Optimistic local update; revert on save failure.
       setPurchaseStates(prev => ({ ...prev, [key]: { ...prev[key], isPurchased: false } }))
       const result = await savePortfolioTracking(scenarioId, property.instanceId, {
+        ...current,
         isPurchased: false,
-        address: current.address,
-        photo: current.photo,
       })
       if (!result.ok) {
         setPurchaseStates(prev => ({ ...prev, [key]: { ...prev[key], isPurchased: true } }))
@@ -421,20 +427,46 @@ export const DataAssumptions = () => {
       setActivatingProperty(property)
       setActivateAddress(current?.address || '')
       setActivatePhoto(current?.photo || '')
+      setActivatePlace(null)
+      setActivatePhotoSource(current?.photoSource)
+      setFetchingImage(false)
       setActivatingScenarioId(scenarioId)
       setActivateModalOpen(true)
     }
+  }
+
+  // Address picked from autocomplete — store the place and auto-fetch a Street
+  // View (or satellite fallback) photo via the property-image edge function.
+  const handleActivateAddressSelect = (sel: AddressSelection) => {
+    setActivateAddress(sel.shortAddress)
+    setActivatePlace(sel)
+    const seq = ++imageFetchSeq.current
+    setFetchingImage(true)
+    fetchPropertyImage(sel.latitude, sel.longitude, sel.placeId).then(result => {
+      if (seq !== imageFetchSeq.current) return
+      setFetchingImage(false)
+      if (result) {
+        setActivatePhoto(result.url)
+        setActivatePhotoSource(result.source)
+      }
+    })
   }
 
   const handleConfirmActivate = async () => {
     if (!activatingProperty || !activatingScenarioId) return
     setSaving(true)
     const key = `${activatingScenarioId}_${activatingProperty.instanceId}`
-    const result = await savePortfolioTracking(activatingScenarioId, activatingProperty.instanceId, {
+    const existing = purchaseStates[key]
+    const entry: PortfolioTrackingEntry = {
       isPurchased: true,
       address: activateAddress,
       photo: activatePhoto,
-    })
+      latitude: activatePlace?.latitude ?? existing?.latitude,
+      longitude: activatePlace?.longitude ?? existing?.longitude,
+      placeId: activatePlace?.placeId ?? existing?.placeId,
+      photoSource: activatePhotoSource,
+    }
+    const result = await savePortfolioTracking(activatingScenarioId, activatingProperty.instanceId, entry)
     setSaving(false)
     if (!result.ok) {
       toast.error(`Couldn't mark ${activatingProperty.title} as purchased. Please retry.`)
@@ -443,7 +475,7 @@ export const DataAssumptions = () => {
     syncScenarioVersion(result.newVersion)
     setPurchaseStates(prev => ({
       ...prev,
-      [key]: { isPurchased: true, address: activateAddress, photo: activatePhoto },
+      [key]: entry,
     }))
     setActivateModalOpen(false)
     setActivatingProperty(null)
@@ -1089,10 +1121,11 @@ export const DataAssumptions = () => {
                   Property Address
                 </div>
               </Label>
-              <Input
+              <AddressAutocomplete
                 id="purchase-address"
                 value={activateAddress}
-                onChange={(e) => setActivateAddress(e.target.value)}
+                onInputChange={setActivateAddress}
+                onSelect={handleActivateAddressSelect}
                 placeholder="e.g. 42 Smith Street, Richmond VIC 3121"
               />
             </div>
@@ -1106,9 +1139,15 @@ export const DataAssumptions = () => {
               <Input
                 id="purchase-photo"
                 value={activatePhoto}
-                onChange={(e) => setActivatePhoto(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
+                onChange={(e) => { setActivatePhoto(e.target.value); setActivatePhotoSource('manual') }}
+                placeholder="Auto-filled from Street View, or paste a URL"
               />
+              {fetchingImage && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <Loader2 size={12} className="animate-spin" />
+                  Fetching Street View image…
+                </div>
+              )}
               {activatePhoto && (
                 <div className="mt-1 h-24 rounded-lg overflow-hidden bg-gray-50 border border-gray-200">
                   <img

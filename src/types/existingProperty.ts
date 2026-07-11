@@ -34,6 +34,12 @@ export interface ExistingProperty {
   yieldOverride?: number | null
   holdingCostOverride?: number | null
   purchaseCostsOverride?: number | null
+  /** Google Places metadata, populated when the address is picked from autocomplete */
+  suburb?: string
+  postcode?: string
+  latitude?: number
+  longitude?: number
+  placeId?: string
 }
 
 export const createDefaultExistingProperty = (): ExistingProperty => ({
