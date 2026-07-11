@@ -25,7 +25,7 @@ interface TopBarProps {
    *  'menuItem' = a full-width row for the kebab actions menu. The share
    *  Dialogs render the same way regardless (they portal to <body>). */
   variant?: 'button' | 'menuItem'
-  /** Called after the share action is triggered — lets the parent menu close. */
+  /** Called after the share action is triggered - lets the parent menu close. */
   onAction?: () => void
 }
 
@@ -38,7 +38,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
   const navigate = useNavigate()
   const isClient = role === 'client'
 
-  // Tab navigation moved to AppSidebar — TopBar now only hosts action buttons
+  // Tab navigation moved to AppSidebar - TopBar now only hosts action buttons
   
   // State for share dashboard modal
   const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -88,7 +88,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
 
       // If no share_id exists, generate one. Guard with .is('share_id', null)
       // so a concurrent click in another tab can't have its newly-generated id
-      // overwritten — only one writer wins, the other re-reads the canonical id.
+      // overwritten - only one writer wins, the other re-reads the canonical id.
       if (!shareId) {
         const candidate = Math.random().toString(36).substring(2, 15) +
                   Math.random().toString(36).substring(2, 15)
@@ -248,7 +248,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
 
         // Create a new user account for the client via the create-client-user
         // edge function. This bypasses the email-confirmation step that
-        // supabase.auth.signUp would otherwise require — agents are vouching
+        // supabase.auth.signUp would otherwise require - agents are vouching
         // for the client by manually creating the account, and forcing the
         // client to receive + click a confirm link before they can log in
         // produces "Email not confirmed" errors at sign-in (cofounder report
@@ -273,7 +273,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
         if (result.alreadyExisted) {
           setShareCredentials({
             email: clientEmail,
-            password: '(Account already exists — use Forgot password to reset)',
+            password: '(Account already exists - use Forgot password to reset)',
             loginUrl: `${window.location.origin}/login`,
             clientName: activeClient.name || 'Client',
           })
@@ -337,7 +337,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
       if (result.alreadyExisted) {
         setShareCredentials({
           email: pendingEmail.trim(),
-          password: '(Account already exists — use Forgot password to reset)',
+          password: '(Account already exists - use Forgot password to reset)',
           loginUrl: `${window.location.origin}/login`,
           clientName: activeClient.name || 'Client',
         })

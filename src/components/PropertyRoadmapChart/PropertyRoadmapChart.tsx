@@ -16,7 +16,7 @@ import { usePropertyRoadmapData, type PropertyRoadmapBar, type RoadmapEvent } fr
 import { BASE_YEAR } from '../../constants/financialParams';
 
 const UUI = {
-  brand600: '#7C3AED',   // single violet accent (ink) — glyphs, markers
+  brand600: '#7C3AED',   // single violet accent (ink) - glyphs, markers
   lifeline: '#D5D5DB',   // grey scaffolding lifelines (§3.8)
   neutral900: '#181D27',
   neutral700: '#404040',
@@ -28,7 +28,7 @@ const UUI = {
   fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 } as const;
 
-// One violet accent for every event glyph (§3.8 — differentiate by glyph, not hue)
+// One violet accent for every event glyph (§3.8 - differentiate by glyph, not hue)
 const EVENT_COLORS: Record<RoadmapEvent['type'], string> = {
   purchase: UUI.brand600,
   equity_unlock: UUI.brand600,
@@ -119,7 +119,7 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
 
     return (
       <g>
-        {/* Current year indicator — subtle dashed line */}
+        {/* Current year indicator - subtle dashed line */}
         {BASE_YEAR >= startYear && BASE_YEAR <= endYear && (() => {
           const cx = scale(BASE_YEAR);
           if (cx == null || isNaN(cx)) return null;
@@ -167,12 +167,12 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                 );
               })}
 
-              {/* Event markers — violet glyph-badges on the lifeline (§3.8).
+              {/* Event markers - violet glyph-badges on the lifeline (§3.8).
                   Differentiated by glyph, not colour. Refinance marker dropped. */}
               {(() => {
                 // Same-year events (e.g. equity unlock + pull the moment it
                 // crosses the threshold) would draw badges on top of each other,
-                // hiding one and its tooltip — spread them side by side instead.
+                // hiding one and its tooltip - spread them side by side instead.
                 const xOffsets = new Map<RoadmapEvent, number>();
                 const byYear = new Map<number, RoadmapEvent[]>();
                 prop.events
@@ -224,7 +224,7 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                   >
                     {/* hit area */}
                     <circle cx={cx} cy={cy} r={13} fill="transparent" />
-                    {/* amount / year label — always above the badge */}
+                    {/* amount / year label - always above the badge */}
                     {label && (
                       <text
                         x={cx} y={labelY} textAnchor="middle"
@@ -234,7 +234,7 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                         {label}
                       </text>
                     )}
-                    {/* badge — inverted: accent disc, white ring, white glyph */}
+                    {/* badge - inverted: accent disc, white ring, white glyph */}
                     <circle cx={cx} cy={cy} r={9} fill={UUI.brand600} stroke={UUI.white} strokeWidth={1.5} pointerEvents="none" />
                     {/* glyph */}
                     {evt.type === 'purchase' && (
@@ -389,7 +389,7 @@ const EventTooltip: React.FC<{ event: RoadmapEvent; prop: PropertyRoadmapBar }> 
   );
 };
 
-/** KPI summary — "Releasable Now" value for ChartCard action slot */
+/** KPI summary - "Releasable Now" value for ChartCard action slot */
 export const PropertyRoadmapSummary: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();
@@ -416,7 +416,7 @@ export const PropertyRoadmapSummary: React.FC = () => {
   );
 };
 
-/** Legend items for ChartCard — one violet accent, glyph-differentiated on-chart */
+/** Legend items for ChartCard - one violet accent, glyph-differentiated on-chart */
 export const ROADMAP_LEGEND = [
   { color: '#7C3AED', label: 'Purchase' },
   { color: '#7C3AED', label: 'Equity unlock' },

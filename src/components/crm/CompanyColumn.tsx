@@ -63,7 +63,7 @@ export function CompanyColumn({ company, onToggleActive, onOpenContact }: Props)
           </div>
         </div>
 
-        {/* Row 2: Meta — state, staff, tier */}
+        {/* Row 2: Meta - state, staff, tier */}
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
           {stateDisplay && <span>{stateDisplay}</span>}
           {stateDisplay && employeesDisplay && <span>·</span>}
@@ -72,7 +72,7 @@ export function CompanyColumn({ company, onToggleActive, onOpenContact }: Props)
           <span>{activeContacts.length}/{totalContacts} active</span>
         </div>
 
-        {/* Row 3: Links — website + about toggle */}
+        {/* Row 3: Links - website + about toggle */}
         <div className="flex items-center gap-2">
           {company.website && (
             <a

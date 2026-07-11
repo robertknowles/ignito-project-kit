@@ -406,7 +406,7 @@ export const BorrowingPowerModal: React.FC<BorrowingPowerModalProps> = ({
                   <p className="font-semibold text-gray-700 mb-1">Income shading</p>
                   <p>
                     Base PAYG income is taken at 100%. Additional income (bonuses, commissions, overtime,
-                    rental income) is "shaded" — only {(INCOME_SHADING_RATE * 100).toFixed(0)}% is counted
+                    rental income) is "shaded" - only {(INCOME_SHADING_RATE * 100).toFixed(0)}% is counted
                     because these income streams are considered less reliable.
                   </p>
                 </div>
@@ -416,7 +416,7 @@ export const BorrowingPowerModal: React.FC<BorrowingPowerModalProps> = ({
                   <p>
                     Lenders use {(CREDIT_CARD_FACTOR * 100).toFixed(1)}% of your total credit card limit
                     (not balance) as an annual commitment. A $10,000 limit counts as ${Math.round(10000 * CREDIT_CARD_FACTOR).toLocaleString()}/year
-                    in commitments — even if the card balance is zero. Reducing unused limits directly increases
+                    in commitments - even if the card balance is zero. Reducing unused limits directly increases
                     borrowing power.
                   </p>
                 </div>

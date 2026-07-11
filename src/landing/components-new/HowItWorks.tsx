@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ILLUSTRATIONS — scaled up for clarity
+   ILLUSTRATIONS - scaled up for clarity
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ─── 1. AI-POWERED PLANNING ─── */
@@ -48,7 +48,7 @@ const AIPlanningIllustration: React.FC = () => (
             <stop offset="0%" stopColor="#a855f7" stopOpacity="0.35" />
             <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
           </radialGradient>
-          {/* Static cloud textures (ChatGPT-style) — drift smoothly via translation */}
+          {/* Static cloud textures (ChatGPT-style) - drift smoothly via translation */}
           <filter id="orbClouds" x="-40%" y="-40%" width="180%" height="180%">
             <feTurbulence type="fractalNoise" baseFrequency="0.02 0.014" numOctaves="3" seed="7" stitchTiles="stitch" result="n" />
             <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.2 0 0 0 -0.25" />
@@ -103,7 +103,7 @@ const AIPlanningIllustration: React.FC = () => (
           </g>
         </g>
 
-        {/* ── AI orb (center) — purple cloud sphere ── */}
+        {/* ── AI orb (center) - purple cloud sphere ── */}
         <circle cx="200" cy="150" r="50" fill="url(#orbHalo)" />
         <motion.g
           style={{ transformOrigin: '200px 150px' }}
@@ -151,7 +151,7 @@ const AIPlanningIllustration: React.FC = () => (
 /* ─── 1b. CONVERSATIONAL SCENARIO CHAT ─── */
 const chatThread = [
   { role: 'user', text: 'What if interest rates rise 1%?' },
-  { role: 'ai', text: 'Borrowing capacity drops ~$48k — the 2036 goal still holds.' },
+  { role: 'ai', text: 'Borrowing capacity drops ~$48k - the 2036 goal still holds.' },
   { role: 'user', text: 'And if they save $2k more a month?' },
   { role: 'ai', text: 'It offsets the rise. Purchase 2 moves up to 2028.' },
 ];
@@ -190,7 +190,7 @@ const ConversationIllustration: React.FC = () => (
         )}
       </div>
 
-      {/* input box — next question being typed */}
+      {/* input box - next question being typed */}
       <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
         <span className="flex-1 inline-flex items-center text-[12px] text-gray-600">
           What if we add a 5th property?
@@ -330,7 +330,7 @@ const ScenarioIllustration: React.FC = () => (
         <div className="h-1.5 bg-[#7F56D9]/20 rounded-full mt-3" />
       </div>
 
-      {/* Compare line — subtle pulse */}
+      {/* Compare line - subtle pulse */}
       <motion.div
         animate={{ opacity: [0.3, 0.7, 0.3] }}
         transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
@@ -438,7 +438,7 @@ const ClientPortalIllustration: React.FC = () => (
     >
       {/* URL bar */}
       <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm w-full">
-        {/* Live status dot — the single subtle animation */}
+        {/* Live status dot - the single subtle animation */}
         <motion.div
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
@@ -476,7 +476,7 @@ const ClientPortalIllustration: React.FC = () => (
 );
 
 /* ═══════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT — single bento section with 5 feature cards
+   MAIN COMPONENT - single bento section with 5 feature cards
    ═══════════════════════════════════════════════════════════════════════ */
 
 const features = [
@@ -507,7 +507,7 @@ const features = [
   {
     label: 'THE CLIENT PORTAL',
     title: 'Built for the relationship',
-    desc: "Every client gets their own portal. Portfolio value, equity position, and cashflow projections update as properties are added. Loan balances tracked. Milestones flagged. Not just for the session — for the entire relationship.",
+    desc: "Every client gets their own portal. Portfolio value, equity position, and cashflow projections update as properties are added. Loan balances tracked. Milestones flagged. Not just for the session - for the entire relationship.",
     illustration: <ClientPortalIllustration />,
   },
 ];
@@ -522,7 +522,7 @@ const HowItWorks: React.FC = () => (
       </h2>
     </div>
 
-    {/* Bento grid — 2 large top, 3 small bottom */}
+    {/* Bento grid - 2 large top, 3 small bottom */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       {features.slice(0, 2).map((feature) => (
         <div key={feature.label} className="rounded-2xl border border-gray-200 bg-white overflow-hidden flex flex-col">

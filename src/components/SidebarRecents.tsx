@@ -1,5 +1,5 @@
 /**
- * SidebarRecents — ChatGPT-style flat list of recent client scenarios.
+ * SidebarRecents - ChatGPT-style flat list of recent client scenarios.
  *
  * Replaces the ClientSelector dropdown: every client is listed directly in
  * the sidebar, most recently touched first. Clicking a row makes that client
@@ -134,7 +134,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
   const [repairing, setRepairing] = useState(false);
 
   // Pull the full recency-sorted list (no slice) so we can hoist the active
-  // client to the top before trimming to 4 — selecting a client doesn't bump
+  // client to the top before trimming to 4 - selecting a client doesn't bump
   // its scenario updated_at, so recency alone wouldn't float it up.
   const { buckets } = useBucketedRecents(query);
   // Sidebar shows a flat, date-label-free list. (The search palette keeps the
@@ -312,7 +312,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
                 <button
                   onClick={async () => {
                     setMenuId(null);
-                    // Diagnose before opening the confirm dialog — only repair
+                    // Diagnose before opening the confirm dialog - only repair
                     // when the corruption signature is present.
                     const { data: row, error } = await supabase
                       .from('scenarios')
@@ -400,7 +400,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
         </DialogContent>
       </Dialog>
 
-      {/* Repair scenario — manual last-resort recovery. Only does anything
+      {/* Repair scenario - manual last-resort recovery. Only does anything
           if the diagnostic flagged the partial-write corruption signature
           (propertyInstances populated but propertyOrder/propertySelections
           empty). When intact, the dialog warns the user and flips the
@@ -485,7 +485,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
                   return;
                 }
                 toast.success(
-                  `Repaired ${pendingRepairClient.name} — ${result.restoredOrder.length} properties restored`,
+                  `Repaired ${pendingRepairClient.name} - ${result.restoredOrder.length} properties restored`,
                 );
                 setPendingRepairClient(null);
                 setRepairDiagnosis(null);

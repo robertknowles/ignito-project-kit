@@ -10,9 +10,13 @@ import {
   ReferenceDot,
   ResponsiveContainer,
 } from 'recharts';
-import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
+import {
+  usePortfolioProjection,
+  type PortfolioGrowthDataPoint,
+  type CashflowDataPoint,
+} from '../hooks/usePortfolioProjection';
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile';
-import { usePropertySelection } from '../contexts/PropertySelectionContext';
+import { usePropertySelection, type EventBlock } from '../contexts/PropertySelectionContext';
 import {
   BASE_YEAR,
   ANNUAL_WAGE_GROWTH_RATE,
@@ -27,6 +31,19 @@ interface BorrowingCapacityChartProps {
     timelineProperties: TimelineProperty[];
     profile: InvestmentProfileData;
   };
+  /** Precomputed projection (Compare). When supplied, the chart plots these
+   *  numbers directly instead of recomputing from the live contexts - so a
+   *  saved plan or an AI-remodel draft charts its own borrowing picture in
+   *  isolation, rather than inheriting the active dashboard scenario's
+   *  instances via getInstance. */
+  projection?: {
+    portfolioGrowthData: PortfolioGrowthDataPoint[];
+    cashflowData: CashflowDataPoint[];
+  };
+  /** Event blocks for the ceiling's rental-serviceability contribution.
+   *  Compare passes [] to match the headless runner (which doesn't persist
+   *  them); omit on the dashboard to use the live selection. */
+  eventBlocksOverride?: EventBlock[];
 }
 
 const UUI = {
@@ -52,7 +69,7 @@ const CAPACITY_STROKE = UUI.fill;
 const DEBT_STROKE = '#414651';
 const OFFSET_STROKE = UUI.reference;
 
-// Purchase markers — violet house-pins on stems, anchored on the Capacity line (§3.1)
+// Purchase markers - violet house-pins on stems, anchored on the Capacity line (§3.1)
 const PurchaseDot = (props: any) => {
   const { cx, cy, payload } = props;
   if (!cx || !cy || isNaN(cx) || isNaN(cy)) return null;
@@ -71,7 +88,7 @@ const PurchaseDot = (props: any) => {
         const pinY = cy - baseLift - idx * stemGap;
         return (
           <g key={`${payload.year}-${idx}`}>
-            {/* Inverted house pin — accent disc, white ring, solid white house + door */}
+            {/* Inverted house pin - accent disc, white ring, solid white house + door */}
             <circle cx={cx} cy={pinY} r={8.5} fill={UUI.ink} stroke={UUI.white} strokeWidth={1.5} />
             <path
               transform={`translate(${cx}, ${pinY})`}
@@ -86,7 +103,7 @@ const PurchaseDot = (props: any) => {
   );
 };
 
-// Debt-free milestone — target pin on a stem (replaces the pill)
+// Debt-free milestone - target pin on a stem (replaces the pill)
 const debtFreePin = (cx: number, cy: number) => {
   const pinY = cy - 30;
   return (
@@ -103,11 +120,18 @@ const debtFreePin = (cx: number, cy: number) => {
   );
 };
 
-export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ scenarioData }) => {
-  const { portfolioGrowthData, cashflowData } = usePortfolioProjection(scenarioData);
+export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({
+  scenarioData,
+  projection,
+  eventBlocksOverride,
+}) => {
+  const internal = usePortfolioProjection(scenarioData);
   const { profile: contextProfile } = useInvestmentProfile();
-  const { eventBlocks } = usePropertySelection();
+  const { eventBlocks: contextEventBlocks } = usePropertySelection();
   const profile = scenarioData?.profile ?? contextProfile;
+  const portfolioGrowthData = projection?.portfolioGrowthData ?? internal.portfolioGrowthData;
+  const cashflowData = projection?.cashflowData ?? internal.cashflowData;
+  const eventBlocks = eventBlocksOverride ?? contextEventBlocks;
 
   const data = useMemo(() => {
     const endYear = BASE_YEAR + profile.timelineYears - 1;
@@ -127,7 +151,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
 
         // SINGLE SOURCE OF TRUTH: same function used by the affordability calculator.
         // Display-only new-build uplift (retained negative-gearing add-back) is
-        // layered on top — gating uses the un-uplifted ceiling.
+        // layered on top - gating uses the un-uplifted ceiling.
         const borrowingCeiling = calculateBorrowingCeiling(period, {
           statedBC: profile.borrowingCapacity ?? 0,
           baseSalary: profile.baseSalary ?? 60000,
@@ -288,7 +312,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
             tickMargin={10}
             padding={{ left: 12, right: 10 }}
           />
-          {/* Full-height labelled $ Y axis — round ceiling, 50px gutter (§3.9a) */}
+          {/* Full-height labelled $ Y axis - round ceiling, 50px gutter (§3.9a) */}
           <YAxis
             domain={[0, yCeil]}
             ticks={yTicks}
@@ -298,7 +322,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
             tickLine={false}
             width={42}
           />
-          {/* Hidden axis for tooltip-only series — keeps them OUT of the visible
+          {/* Hidden axis for tooltip-only series - keeps them OUT of the visible
               Y scale (Total Liabilities can exceed the ceiling and was silently
               stretching the domain, squashing the band into the bottom). */}
           <YAxis yAxisId="tooltipOnly" hide />
@@ -308,7 +332,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
           <Line yAxisId="tooltipOnly" dataKey="borrowingCeiling" name="Borrowing Capacity" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
           <Line yAxisId="tooltipOnly" dataKey="totalDebt" name="Total Liabilities" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
 
-          {/* Debt not Offset — grey line = lower edge of the headroom band */}
+          {/* Debt not Offset - grey line = lower edge of the headroom band */}
           <Area
             type="monotone"
             dataKey="offsetDebt"
@@ -322,7 +346,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
             isAnimationActive={false}
           />
 
-          {/* Headroom band — violet tint from Debt-not-Offset up to Capacity;
+          {/* Headroom band - violet tint from Debt-not-Offset up to Capacity;
               its top edge (stacked to the ceiling) draws the violet Capacity line */}
           <Area
             type="monotone"
@@ -338,7 +362,7 @@ export const BorrowingCapacityChart: React.FC<BorrowingCapacityChartProps> = ({ 
             isAnimationActive={false}
           />
 
-          {/* Debt-free milestone — target pin on a stem */}
+          {/* Debt-free milestone - target pin on a stem */}
           {debtFreePoint && (
             <ReferenceDot
               x={debtFreePoint.year}

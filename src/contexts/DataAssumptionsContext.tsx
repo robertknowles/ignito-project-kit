@@ -16,7 +16,7 @@ import {
 
 // Property Type Template: Contains all PropertyInstanceDetails fields plus identity.
 export interface PropertyTypeTemplate extends PropertyInstanceDetails {
-  propertyType: string; // Display label (e.g., "Metro House — Growth")
+  propertyType: string; // Display label (e.g., "Metro House - Growth")
   cellId: CellId;       // v4 cell ID (e.g., "metro-house-growth")
 }
 
@@ -235,7 +235,7 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
           globalFactors?: GlobalEconomicFactors;
         };
 
-        // Load property type templates if available — but only if every saved
+        // Load property type templates if available - but only if every saved
         // template carries a v4 `cellId`. Pre-pivot saves stored the 8-template
         // model without cell IDs; loading those would leave propertyTypes with
         // `id: undefined` and break engine lookups. Discard pre-pivot saves
@@ -321,9 +321,9 @@ export const DataAssumptionsProvider: React.FC<DataAssumptionsProviderProps> = (
    * Resolve any caller-supplied property identifier to its template.
    * Accepts:
    *   - v4 cell ID ("metro-house-growth")
-   *   - v4 display label ("Metro House — Growth")
-   *   - Legacy v3 key ("duplexes") — translated to v4 cell ID
-   *   - Legacy v3 display label ("Duplexes") — translated by normalising and re-checking
+   *   - v4 display label ("Metro House - Growth")
+   *   - Legacy v3 key ("duplexes") - translated to v4 cell ID
+   *   - Legacy v3 display label ("Duplexes") - translated by normalising and re-checking
    */
   const getPropertyTypeTemplate = (propertyType: string): PropertyTypeTemplate | undefined => {
     // 1. Direct cell ID match

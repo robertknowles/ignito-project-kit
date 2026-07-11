@@ -1,5 +1,5 @@
 /**
- * AppSidebar — UUI "Sections dividers" sidebar navigation
+ * AppSidebar - UUI "Sections dividers" sidebar navigation
  *
  * Built from the installed UUI source at:
  *   src/components/application/app-navigation/sidebar-navigation/sidebar-section-dividers.tsx
@@ -58,13 +58,13 @@ const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> 
   className,
 }) => (
   <div
-    className={`px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#717680] ${className ?? ''}`}
+    className={`px-2 pb-1 text-[14px] font-semibold text-[#181D27] ${className ?? ''}`}
   >
     {children}
   </div>
 );
 
-// ── Nav item button — shares the exact styling of the original nav list ────────
+// ── Nav item button - shares the exact styling of the original nav list ────────
 const NavItemButton: React.FC<{
   icon: React.FC<{ size?: number; className?: string }>;
   label: string;
@@ -264,7 +264,7 @@ export const AppSidebar: React.FC = () => {
           </div>
         )}
 
-        {/* Client role has no client list — give them a way back to their plan */}
+        {/* Client role has no client list - give them a way back to their plan */}
         {isClient && (
           <div className="py-px">
             <NavItemButton
@@ -289,6 +289,16 @@ export const AppSidebar: React.FC = () => {
             />
           </div>
         )}
+        <div className="py-px">
+          <NavItemButton
+            icon={WrenchIcon}
+            label="Toolkit"
+            collapsed={collapsed}
+            active={pathActive('/toolkit')}
+            disabled={lock(pathActive('/toolkit'))}
+            onClick={() => navigate('/toolkit')}
+          />
+        </div>
         {!isClient && (
           <div className="py-px">
             <NavItemButton
@@ -301,18 +311,7 @@ export const AppSidebar: React.FC = () => {
             />
           </div>
         )}
-        <div className="py-px">
-          <NavItemButton
-            icon={WrenchIcon}
-            label="Toolkit"
-            badge="BETA"
-            collapsed={collapsed}
-            active={pathActive('/toolkit')}
-            disabled={lock(pathActive('/toolkit'))}
-            onClick={() => navigate('/toolkit')}
-          />
-        </div>
-        {/* ── Recents — every client scenario, most recent first (hidden while
+        {/* ── Recents - every client scenario, most recent first (hidden while
                the rail is collapsed to icons) ── */}
         {!isClient && !collapsed && (
           <>

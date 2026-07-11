@@ -169,13 +169,13 @@ export const generateStrategySummary = (
   const goalStatuses: string[] = [];
   
   if (equityGoalAchieved) {
-    goalStatuses.push(`${formatCurrency(finalEquity)} projected equity — clears the ${formatCurrency(profile.equityGoal)} target`);
+    goalStatuses.push(`${formatCurrency(finalEquity)} projected equity - clears the ${formatCurrency(profile.equityGoal)} target`);
   } else {
     goalStatuses.push(`${formatCurrency(finalEquity)} projected equity (${formatCurrency(profile.equityGoal - finalEquity)} short of target)`);
   }
 
   if (cashflowGoalAchieved) {
-    goalStatuses.push(`${formatCurrency(finalCashflow)} projected annual cashflow — clears the ${formatCurrency(profile.cashflowGoal)} target`);
+    goalStatuses.push(`${formatCurrency(finalCashflow)} projected annual cashflow - clears the ${formatCurrency(profile.cashflowGoal)} target`);
   } else {
     goalStatuses.push(`${formatCurrency(finalCashflow)} projected cashflow (${formatCurrency(profile.cashflowGoal - finalCashflow)} short of target)`);
   }

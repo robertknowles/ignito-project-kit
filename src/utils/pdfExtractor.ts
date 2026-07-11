@@ -1,5 +1,5 @@
 /**
- * PDF Text Extractor — extracts text from PDF files in the browser
+ * PDF Text Extractor - extracts text from PDF files in the browser
  * using pdfjs-dist. Used for broker letter / financial document upload.
  */
 
@@ -10,7 +10,7 @@ import * as pdfjsLib from 'pdfjs-dist'
  * Returns the full text content or throws on failure.
  */
 export async function extractTextFromPdf(file: File): Promise<string> {
-  // Set worker source lazily — ensures it's set on the same module instance
+  // Set worker source lazily - ensures it's set on the same module instance
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
       'pdfjs-dist/build/pdf.worker.min.mjs',

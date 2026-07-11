@@ -1,5 +1,5 @@
 /**
- * Negative Gearing & After-Tax Cashflow — SINGLE SOURCE OF TRUTH
+ * Negative Gearing & After-Tax Cashflow - SINGLE SOURCE OF TRUTH
  *
  * Models the holding-period tax position of an investment property so the
  * tool can show the new-build vs established difference the 2027 reform creates.
@@ -15,15 +15,15 @@
  * The reform logic (the load-bearing bit)
  * ---------------------------------------
  * Under the proposed 2026-27 Budget changes (effective 1 Jul 2027 if passed):
- *   - NEW BUILDS keep negative gearing against wages — full benefit.
+ *   - NEW BUILDS keep negative gearing against wages - full benefit.
  *   - ESTABLISHED properties bought AFTER 12 May 2026 can only offset rental
  *     losses against other property income, not wages → "ring-fenced". For a
  *     growth-phase portfolio (net negative), that means ~no wage benefit.
- *   - Established bought BEFORE 12 May 2026 are GRANDFATHERED — they keep full
+ *   - Established bought BEFORE 12 May 2026 are GRANDFATHERED - they keep full
  *     negative gearing. We treat already-owned ("existing") properties as
  *     grandfathered regardless of type.
  *
- * Everything here is illustrative and covered by the app's tax disclaimer —
+ * Everything here is illustrative and covered by the app's tax disclaimer -
  * depreciation and marginal rate are modelled with sensible defaults, not a
  * formal quantity-surveyor schedule or personal tax return.
  */
@@ -46,11 +46,11 @@ export const NEW_BUILD_DEPRECIATION_RATE = 0.02;
 export const ESTABLISHED_DEPRECIATION_RATE = 0.005;
 
 export interface NgBenefitInput {
-  /** Depreciation base — property purchase/construction cost. */
+  /** Depreciation base - property purchase/construction cost. */
   propertyCost: number;
   /** Net rental income for the year (after vacancy). */
   annualRentNet: number;
-  /** Deductible holding costs for the year — loan interest, management,
+  /** Deductible holding costs for the year - loan interest, management,
    *  insurance, rates, strata, maintenance, land tax. NOT principal. */
   deductibleExpenses: number;
   isNewBuild: boolean;
@@ -103,11 +103,11 @@ export function calculateNegativeGearingBenefit(input: NgBenefitInput): NgBenefi
 /**
  * Borrowing-capacity uplift a NEW BUILD provides over the established baseline.
  *
- * The broker's stated capacity reflects what the client asked about — an
+ * The broker's stated capacity reflects what the client asked about - an
  * established purchase (99% of the market), which post-reform no longer carries
  * the NG wage add-back. A new build restores it: the lender adds the retained
  * benefit back to serviceable income, capitalised by the serviceability
- * multiplier. This is DISPLAY-ONLY — purchase gating stays pre-tax.
+ * multiplier. This is DISPLAY-ONLY - purchase gating stays pre-tax.
  */
 export function calculateNewBuildBcUplift(ngBenefit: number, salaryMultiplier: number): number {
   if (ngBenefit <= 0) return 0;

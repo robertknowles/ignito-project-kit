@@ -277,7 +277,7 @@ export const ClientFormModal = ({ open, onOpenChange, client, formType }: Props)
                     <div className="text-right flex-shrink-0">
                       {hasAnswer
                         ? <p className="text-sm font-semibold text-[#111827]">{formatAnswer(rawVal, q.type)}</p>
-                        : <p className="text-sm text-[#D5D7DA]">—</p>
+                        : <p className="text-sm text-[#D5D7DA]">-</p>
                       }
                     </div>
                   </div>

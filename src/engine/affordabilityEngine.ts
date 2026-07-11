@@ -1,5 +1,5 @@
 /**
- * Affordability Engine — SINGLE SOURCE OF TRUTH
+ * Affordability Engine - SINGLE SOURCE OF TRUTH
  *
  * Pure functions for the three affordability tests: deposit, serviceability,
  * and borrowing capacity ceiling. Zero React dependencies.
@@ -38,7 +38,7 @@ import {
 } from '../constants/financialParams';
 import { calculateExistingPortfolioGrowthByPeriod } from '../utils/metricsCalculator';
 
-// Hot-path debug logging (per-scanned-period BC trace). Off by default —
+// Hot-path debug logging (per-scanned-period BC trace). Off by default -
 // flip to true locally when debugging borrowing-capacity disagreements.
 const DEBUG_BC_LOGGING = false;
 
@@ -226,7 +226,7 @@ export function calculateAvailableFunds(
   let runningSavingsBalance = totalBaseSavings + totalCashflowReinvestment;
   let cumulativeEquityUsed = 0;
 
-  // Process previous purchases — equity-first allocation
+  // Process previous purchases - equity-first allocation
   for (let period = 1; period <= currentPeriod; period++) {
     // Calculate extractable equity at this period
     let extractableEquityThisPeriod = existingPortfolioEquity;
@@ -458,7 +458,7 @@ export function calculateTotalRentalIncome(
   return totalRentalIncome;
 }
 
-// ── Check Affordability — THE THREE TESTS ────────────────────────────
+// ── Check Affordability - THE THREE TESTS ────────────────────────────
 
 export function checkAffordability(
   property: { cost: number; depositRequired: number; loanAmount: number; instanceId: string; title: string; loanType?: 'IO' | 'PI' },
@@ -525,7 +525,7 @@ export function checkAffordability(
   const borrowingCapacityTestPass = perLoanBCPass && cumulativeBCPass;
 
   // DEBUG: log BC inputs from both callers.
-  // Hot path — checkAffordability runs once per scanned period, so this is
+  // Hot path - checkAffordability runs once per scanned period, so this is
   // gated behind a module flag (flip to true locally when debugging BC).
   if (DEBUG_BC_LOGGING) {
     console.warn(`[Engine BC] ${property.instanceId} period=${currentPeriod} entity=${newPropInst?.entity ?? 'individual'} factor=${newPropertyEntityFactor} loan=${Math.round(property.loanAmount/1000)}k discountedLoan=${Math.round(newLoanEntityDiscounted/1000)}k existingDebt=${Math.round(existingDebt/1000)}k totalDebt=${Math.round(totalDebtAfterPurchase/1000)}k cash=${Math.round(cashReserves/1000)}k offsetDebt=${Math.round(offsetDebt/1000)}k ceiling=${Math.round(effectiveBorrowingCapacity/1000)}k perLoan=${perLoanBCPass} cumBC=${cumulativeBCPass} PASS=${borrowingCapacityTestPass} prevPurchases=${previousPurchases.length}`);

@@ -27,7 +27,7 @@ export interface PropertyEquityTimeline {
 
 /**
  * Data hook for the Equity Unlock chart.
- * Uses projectPropertyTimeline() for the heavy lifting — extracts only
+ * Uses projectPropertyTimeline() for the heavy lifting - extracts only
  * the equity-related fields and identifies refinance-ready years.
  *
  * Extraction events are calculated by finding later purchases that used equity,
@@ -99,7 +99,7 @@ export function useEquityUnlockTimeline(
 
       const totalExtractable = donorContributions.reduce((s, d) => s + d.extractable, 0);
 
-      // Attribute proportional share to each donor — accumulate ALL events
+      // Attribute proportional share to each donor - accumulate ALL events
       donorContributions.forEach(({ donorIdx, extractable }) => {
         const share = totalExtractable > 0
           ? Math.round((extractable / totalExtractable) * equityUsed)

@@ -22,7 +22,7 @@ import {
 import { TourStep } from '@/components/TourManager'
 import { PropertyTimeline } from '../components/PropertyTimeline'
 import { AppSidebar, SIDEBAR_WIDTH } from '@/components/AppSidebar'
-// HomeDrawer removed — navigation restructured
+// HomeDrawer removed - navigation restructured
 import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { ClientProfileModal } from '../components/ClientProfileModal'
@@ -1111,7 +1111,7 @@ toast.error('Failed to create client invite');
 
                         return (
                           <tr key={client.id} className="border-b border-[#F2F4F7] hover:bg-[#F9FAFB] transition-colors duration-100">
-                            {/* Client name + strategy type — popup lets the
+                            {/* Client name + strategy type - popup lets the
                                 agent jump to the dashboard or view the raw
                                 inputs the client submitted. */}
                             <td className="table-cell">
@@ -1233,7 +1233,7 @@ toast.error('Failed to create client invite');
                               <span className="body-dark">
                                 {client.created_at
                                   ? new Date(client.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-                                  : '—'}
+                                  : '-'}
                               </span>
                             </td>
 

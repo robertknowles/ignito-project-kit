@@ -19,7 +19,7 @@ const periodToYear = (period: number): number =>
 
 // ── Read-only row ───────────────────────────────────────────────────────────
 
-// PropPath Client Inputs record rows — label #535862 / value #181D27 right-
+// PropPath Client Inputs record rows - label #535862 / value #181D27 right-
 // aligned, #F2F2F2 dividers, no vertical rule. The one derived row (Usable
 // equity) gets weight 600 + a #FAFAFA band.
 const KVRow: React.FC<{
@@ -157,7 +157,7 @@ export const ClientInputsTab: React.FC = () => {
     { eventType: 'interest_rate_change', category: 'market' },
   ]
 
-  // Safe accessors — older scenarios may not have all fields
+  // Safe accessors - older scenarios may not have all fields
   const p = {
     depositPool: profile.depositPool ?? 0,
     borrowingCapacity: profile.borrowingCapacity ?? 0,
@@ -279,7 +279,7 @@ export const ClientInputsTab: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {/* Default event slots — always visible for types not yet added */}
+            {/* Default event slots - always visible for types not yet added */}
             {DEFAULT_EVENT_SLOTS
               .filter(slot => !eventBlocks.some(e => e.eventType === slot.eventType))
               .map(slot => {

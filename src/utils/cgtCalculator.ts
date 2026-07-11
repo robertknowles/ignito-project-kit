@@ -32,7 +32,7 @@ export function getEffectiveCgtRate(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROPOSED CGT REFORM (2026-27 Federal Budget — NOT YET LAW)
+// PROPOSED CGT REFORM (2026-27 Federal Budget - NOT YET LAW)
 //
 // Announced 12 May 2026, intended to commence 1 July 2027 if the Treasury Laws
 // Amendment (Tax Reform No. 1) Bill 2026 passes the Senate. For individuals,
@@ -43,7 +43,7 @@ export function getEffectiveCgtRate(
 //
 // We model this as a "base-level" TIME-APPORTIONED approximation (see
 // calculateCgtComparison) so it can sit alongside current law as a scenario.
-// Current law remains the product default — nothing here changes existing
+// Current law remains the product default - nothing here changes existing
 // roadmap numbers.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ export const CGT_REFORM_MIN_RATE = 0.30
 export interface CgtRegimeResult {
   /** Dollar CGT liability. */
   cgt: number
-  /** cgt / capitalGain — for display only. */
+  /** cgt / capitalGain - for display only. */
   effectiveRate: number
 }
 
@@ -70,7 +70,7 @@ export interface CgtComparison {
     postReformGain: number
     /** Inflation indexed out of the post-reform slice. */
     indexationRelief: number
-    /** False for company/SMSF — reform doesn't apply, so reform === current. */
+    /** False for company/SMSF - reform doesn't apply, so reform === current. */
     inScope: boolean
   }
 }
@@ -84,7 +84,7 @@ export interface CgtComparison {
  * accrued before the cutoff.
  *
  * New builds keep a CHOICE between the 50% discount and the new method, applied
- * to the whole gain (no pre/post split) — we take whichever is cheaper.
+ * to the whole gain (no pre/post split) - we take whichever is cheaper.
  *
  * BASE-LEVEL SIMPLIFICATIONS (deliberate, see scope decision):
  *  - Established apportionment is straight-line by time, not by an actual
@@ -121,7 +121,7 @@ export function calculateCgtComparison(params: {
   const currentCgt = safeGain * currentRate
   const current: CgtRegimeResult = { cgt: currentCgt, effectiveRate: currentRate }
 
-  // Companies & SMSFs are out of scope of the reform — mirror current law.
+  // Companies & SMSFs are out of scope of the reform - mirror current law.
   if (e === 'company' || e === 'smsf') {
     return {
       capitalGain: safeGain,
@@ -133,7 +133,7 @@ export function calculateCgtComparison(params: {
     }
   }
 
-  // ── Reform — shared rate inputs ──
+  // ── Reform - shared rate inputs ──
   const discount = profile.cgtOneYearDiscount ?? 0.50
   const marginal = (isConsolidationPeriod && e === 'individual')
     ? (profile.marginalTaxRateAtConsolidation ?? profile.marginalTaxRate ?? 0.39)
@@ -143,7 +143,7 @@ export function calculateCgtComparison(params: {
   const totalYears = Math.max(saleYear - holdStartYear, 1e-6)
 
   // New builds CHOOSE the cheaper of (a) the 50% discount or (b) the new method
-  // applied to the whole gain — they are not subject to the pre/post-2027 split.
+  // applied to the whole gain - they are not subject to the pre/post-2027 split.
   if (isNewBuild) {
     const relief = Math.min(safeGain, Math.max(0, costBase * (Math.pow(1 + cpi, totalYears) - 1)))
     const realGain = Math.max(0, safeGain - relief)

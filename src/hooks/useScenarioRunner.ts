@@ -1,9 +1,9 @@
 /**
- * useScenarioRunner — captures the agent-level environment (property type
+ * useScenarioRunner - captures the agent-level environment (property type
  * templates + assumption lookups) from live contexts and returns a memoized
  * headless engine runner.
  *
- * The env values are passed by REFERENCE, never copied — getPropertyData must
+ * The env values are passed by REFERENCE, never copied - getPropertyData must
  * always be the live DataAssumptionsContext function so headless runs can't
  * drift from the dashboard (the planPreCheck growth-curve incident).
  */

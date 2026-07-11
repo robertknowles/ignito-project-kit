@@ -1,13 +1,13 @@
 /**
- * AgentHome — landing page after login.
+ * AgentHome - landing page after login.
  *
  * Three left-aligned sections within a wide centred container:
- *   1. Hero chat card — textarea on top, strategy preset chips inline along
+ *   1. Hero chat card - textarea on top, strategy preset chips inline along
  *      the bottom-left, send button bottom-right (Adobe-style in-prompt
  *      controls). Press Enter to launch a fresh dashboard scenario.
- *   2. Recents — ChartCard wrapping client tiles with mini equity sparklines
+ *   2. Recents - ChartCard wrapping client tiles with mini equity sparklines
  *      pulled from each client's most recent saved scenario.
- *   3. Assumptions — ChartCard wrapping the 11-tile dial grid (replaces the
+ *   3. Assumptions - ChartCard wrapping the 11-tile dial grid (replaces the
  *      standalone /assumptions page).
  */
 
@@ -212,7 +212,7 @@ export const AgentHome: React.FC = () => {
           } catch (err: any) {
             const msg = err?.message
             if (msg === 'SCAN_PDF') {
-              toast.error('This file appears to be a scanned image — text could not be extracted.')
+              toast.error('This file appears to be a scanned image - text could not be extracted.')
             } else if (msg === 'UNSUPPORTED_FORMAT') {
               toast.error(`Supported formats: ${getSupportedExtensions()}`)
             } else {
@@ -297,7 +297,7 @@ export const AgentHome: React.FC = () => {
       <AppSidebar />
       <div className="relative flex-1 overflow-auto" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         {/* ── Atmospheric aurora wash at the top of the page ─────
-            Two overlapping radial gradients — one warm, one cool —
+            Two overlapping radial gradients - one warm, one cool -
             anchored above the viewport so they peek down from the top
             and fade out by ~360px. Subtle enough not to distract from
             content, distinct enough to give the page atmosphere. */}
@@ -437,7 +437,7 @@ export const AgentHome: React.FC = () => {
             >
               {recentClients.length === 0 ? (
                 <div className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-5 py-8 text-center">
-                  No recent clients yet — type a scenario above to start your first plan.
+                  No recent clients yet - type a scenario above to start your first plan.
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -480,7 +480,7 @@ export const AgentHome: React.FC = () => {
                             : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                       >
-                        {/* Three-dot menu — top-right of the card */}
+                        {/* Three-dot menu - top-right of the card */}
                         <div className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -524,7 +524,7 @@ export const AgentHome: React.FC = () => {
                                 <div className="text-[18px] font-semibold text-gray-900 tabular-nums leading-tight mt-0.5">
                                   {preview!.finalEquity !== null && preview!.finalEquity > 0
                                     ? formatEquity(preview!.finalEquity)
-                                    : '—'}
+                                    : '-'}
                                 </div>
                               </div>
                               <div className="flex flex-col gap-0.5">

@@ -23,7 +23,7 @@ export function GoalAchievedCard() {
                 fontFamily: 'Figtree, sans-serif',
               }}
             >
-              Portfolio Target Reached — Year 2045
+              Portfolio Target Reached - Year 2045
             </h3>
           </div>
         </div>

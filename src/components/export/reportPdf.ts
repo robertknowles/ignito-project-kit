@@ -1,10 +1,10 @@
 /**
- * reportPdf — turns the mounted Portfolio Brief DOM into a downloaded PDF.
+ * reportPdf - turns the mounted Portfolio Brief DOM into a downloaded PDF.
  *
  * Replaces the old `window.print()` flow (which forced users through the
  * browser's print dialog and stamped its own date/URL headers on the pages).
  *
- * Pagination strategy — cut-offs are structurally impossible:
+ * Pagination strategy - cut-offs are structurally impossible:
  *  1. The brief flow is CLONED into an off-screen stage (so React's tree is
  *     never mutated) at the exact same width, where it lays out identically.
  *  2. Every direct child of `.brief-flow` is an atomic block. Blocks are
@@ -14,8 +14,8 @@
  *  3. Each group is physically moved into its own fixed-height "page" div,
  *     and every page div is captured SEPARATELY with html-to-image (the
  *     browser itself rasterises, so text/SVG are pixel-faithful). Because a
- *     page's pixels come from its own container — not from slicing one tall
- *     canvas at coordinates measured elsewhere — content can never straddle
+ *     page's pixels come from its own container - not from slicing one tall
+ *     canvas at coordinates measured elsewhere - content can never straddle
  *     or clip at a page boundary, regardless of document length.
  *  4. jsPDF composes the pages and draws the disclaimer footer + "Page X of
  *     Y" vectorially in the bottom margin.
@@ -44,7 +44,7 @@ const MARGIN_BOTTOM = 16;
 const CONTENT_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM;
 
 // Raster scale for page capture. The flow is ~794 CSS px wide, so scale 3
-// prints at ~290 DPI (scale 2 was ~190 DPI — visibly soft text on paper).
+// prints at ~290 DPI (scale 2 was ~190 DPI - visibly soft text on paper).
 // Transient canvas cost at 3 is ~29MB per page; fine.
 const RASTER_SCALE = 3;
 
@@ -69,12 +69,12 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
   });
 
 // Inter, self-embedded as data-URI @font-face CSS. We hand this to
-// html-to-image instead of letting it scan document.styleSheets — its own
+// html-to-image instead of letting it scan document.styleSheets - its own
 // font discovery walks every stylesheet on the page (Tailwind, PostHog's
 // injected recorder styles, cross-origin Google Fonts) and can hang without
 // a timeout. Every fetch here is timeout-guarded; on any failure we return
 // '' which tells html-to-image to skip font embedding entirely (system-font
-// fallback in the capture — degraded but never stuck).
+// fallback in the capture - degraded but never stuck).
 const INTER_CSS_URL =
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
 let cachedFontCss: string | null = null;
@@ -83,7 +83,7 @@ async function buildFontEmbedCss(): Promise<string> {
   if (cachedFontCss !== null) return cachedFontCss;
   try {
     const css = await (await fetchWithTimeout(INTER_CSS_URL, 6000)).text();
-    // Keep only the latin-subset @font-face blocks — the brief is English-only
+    // Keep only the latin-subset @font-face blocks - the brief is English-only
     // and the full unicode-range set balloons the embedded CSS (and with it
     // the per-page SVG) by ~8×.
     const latinBlocks = css
@@ -110,7 +110,7 @@ async function buildFontEmbedCss(): Promise<string> {
 /**
  * Rasterise an html-to-image SVG data URL onto a canvas.
  *
- * The SVG must be loaded via a data: URL — Chrome taints the canvas when a
+ * The SVG must be loaded via a data: URL - Chrome taints the canvas when a
  * foreignObject SVG is drawn from a blob: URL, which would block toDataURL.
  * We re-encode html-to-image's URI-escaped payload as base64 (smaller and
  * cheaper for Chrome to parse than a percent-encoded URL). The historical

@@ -30,13 +30,13 @@ export const ASSESSMENT_BUFFER = 0.03
 /** Minimum assessment rate floor (APRA guidance) */
 export const FLOOR_RATE = 0.055
 
-/** Current market carded rate — Big 4 median Q1 2026 */
+/** Current market carded rate - Big 4 median Q1 2026 */
 export const DEFAULT_CARDED_RATE = 0.0625
 
 /** Standard P&I loan term in years */
 export const DEFAULT_LOAN_TERM = 30
 
-/** Net Surplus Ratio minimum — loan passes if NSR >= 1.0 (Macquarie Notes: F34) */
+/** Net Surplus Ratio minimum - loan passes if NSR >= 1.0 (Macquarie Notes: F34) */
 export const NSR_MINIMUM = 1.0
 
 /** NSR required when LVR > 90% (Macquarie Notes: J36) */
@@ -48,7 +48,7 @@ export const NSR_HIGH_LVR = 1.2
  * Australian PAYG income tax brackets (2024-25 onward, post Stage 3 cuts).
  * Macquarie's spreadsheet calculates tax internally via the Loan Workings sheet
  * to convert gross assessable income to net. This is the single biggest factor
- * in serviceability — using gross income overstates borrowing power by ~40%.
+ * in serviceability - using gross income overstates borrowing power by ~40%.
  */
 const TAX_BRACKETS: Array<{ threshold: number; rate: number; base: number }> = [
   { threshold: 18_200,  rate: 0,    base: 0 },
@@ -80,7 +80,7 @@ const calculateAnnualTax = (taxableIncome: number): number => {
 // ─── Income-Tiered HEM Benchmarks ───────────────────────────────────────────
 
 /**
- * HEM (Household Expenditure Measure) benchmarks — annual, income-tiered.
+ * HEM (Household Expenditure Measure) benchmarks - annual, income-tiered.
  *
  * Derived from Macquarie's HEM Table sheet (23 income tiers × status codes).
  * The spreadsheet formula (B91) does:
@@ -253,7 +253,7 @@ export const calculateBorrowingPower = (
   // ── Step 2: Income Tax ──
   // Macquarie calculates PAYG tax via Loan Workings sheet to get net income.
   // Tax is calculated per-applicant on their individual assessable income,
-  // then summed — this matters for couples (two $75k earners pay less tax
+  // then summed - this matters for couples (two $75k earners pay less tax
   // than one $150k earner).
   const tax1 = calculateAnnualTax(applicant1Gross)
   const tax2 = applicants >= 2 ? calculateAnnualTax(applicant2Gross) : 0

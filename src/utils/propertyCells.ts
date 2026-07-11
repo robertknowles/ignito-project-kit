@@ -1,5 +1,5 @@
 /**
- * Property Cells — single source of truth for the 10-cell type×mode matrix.
+ * Property Cells - single source of truth for the 10-cell type×mode matrix.
  *
  * Replaces the 8-template model and the propertyTypeBuckets display layer.
  * Each cell is a research-defensible (Type × Mode) configuration with its
@@ -76,15 +76,15 @@ export const getCellDisplayLabel = (cellId: CellId): string => {
 };
 
 /**
- * Simplified display label — strips property type, keeps focus only.
+ * Simplified display label - strips property type, keeps focus only.
  * "Metro House Growth" → "Property - Equity Focus"  (or "Property 1 - Equity Focus" with index)
  * "Regional Unit Cashflow" → "Property - Cashflow Focus"
- * Also handles em-dash variants ("Metro House — Growth") and raw titles.
+ * Also handles em-dash variants ("Metro House - Growth") and raw titles.
  *
  * @param index  Optional 1-based position number (e.g. 1, 2, 3).
  */
 export const getSimplifiedDisplayLabel = (title: string, index?: number): string => {
-  const lower = title.toLowerCase().replace(/\s*—\s*/g, ' ');
+  const lower = title.toLowerCase().replace(/\s*-\s*/g, ' ');
   const prefix = index != null ? `Property ${index}` : 'Property';
   if (lower.includes('cashflow') || lower.includes('cash flow')) return `${prefix} - Cashflow Focus`;
   if (lower.includes('growth')) return `${prefix} - Equity Focus`;
@@ -99,7 +99,7 @@ export const isCellId = (value: string): value is CellId =>
 
 /**
  * Client-facing category label. The granular type (Metro/Regional, House/Unit)
- * is internal — every user-visible surface (charts, tooltips, cards, the client
+ * is internal - every user-visible surface (charts, tooltips, cards, the client
  * report) shows only one of three categories, driven by the cell's mode:
  *   Growth   → "Equity Growth Property"
  *   Cashflow → "Cashflow Property"
@@ -124,7 +124,7 @@ export const getCategoryLabel = (input: string): string => {
     if (mode === 'Cashflow') return 'Cashflow Property';
     return 'Commercial Property';
   }
-  // Fall back to keyword parsing of a display title. Commercial first — a
+  // Fall back to keyword parsing of a display title. Commercial first - a
   // commercial title may not carry a growth/cashflow keyword.
   const lower = input.toLowerCase();
   if (
@@ -163,7 +163,7 @@ export interface StrategyPresetMeta {
   phase1?: CellId[];
   phase2?: CellId[];
   /**
-   * LVR target at acquisition for this preset (architectural — preset-driven,
+   * LVR target at acquisition for this preset (architectural - preset-driven,
    * not cell-driven). Cell defaults remain as fallbacks for the rare path
    * where no preset is selected. Per BA-research consensus: 80% across
    * residential presets; commercial-transition splits 80% Phase 1 / 70% Phase 2.
@@ -174,7 +174,7 @@ export interface StrategyPresetMeta {
   /**
    * Default Pacing Mode for this preset. Most presets default 'aggressive'
    * (sales tool: ambitious-but-achievable plans, infeasibility flagged honestly).
-   * cf-high defaults 'moderate' — Property Couch retire-on-yield is a
+   * cf-high defaults 'moderate' - Property Couch retire-on-yield is a
    * fundamentally conservative thesis. BA can override via chat hint.
    */
   defaultPacing: PacingMode;
@@ -352,7 +352,7 @@ export const translateLegacyInstanceId = (oldInstanceId: string): string => {
 
   const [, typePart, indexPart] = match;
 
-  // Already a new cell ID — no translation needed
+  // Already a new cell ID - no translation needed
   if (isCellId(typePart)) return oldInstanceId;
 
   // Try positional map first (property_N), then legacy key map (e.g. duplexes)

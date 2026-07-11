@@ -16,7 +16,7 @@ const HoldingCostYearContext = createContext<{
 const fmtMo = (v: number) => `$${Math.abs(Math.round(v)).toLocaleString()}`;
 
 /**
- * Monthly Holding Costs — Expandable table with year dropdown
+ * Monthly Holding Costs - Expandable table with year dropdown
  *
  * Summary hero number at top, then expandable rows per property showing
  * costs, rent, coverage mini-bar, and net cashflow. Expanded state shows

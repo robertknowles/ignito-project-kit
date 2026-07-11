@@ -1,5 +1,5 @@
 /**
- * StrategyPresetSelector — replaces PacingToggle.
+ * StrategyPresetSelector - replaces PacingToggle.
  *
  * Lets the BA pick one of the 5 strategy presets (Ben Handler's framework)
  * before generating a portfolio. Drives the chatbot's cell selection logic.
@@ -129,7 +129,7 @@ export const StrategyPresetSelector: React.FC<StrategyPresetSelectorProps> = ({ 
     )
   }
 
-  // Full mode — 5 full-stretch rows, one preset per row (used inside ChatPanel
+  // Full mode - 5 full-stretch rows, one preset per row (used inside ChatPanel
   // empty state on the dashboard).
   return (
     <div className="w-full space-y-2.5">

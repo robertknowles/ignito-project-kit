@@ -1,6 +1,6 @@
 /**
  * Property type icons from Untitled UI Icons
- * Clean, consistent stroke icons — 24x24, 2px stroke, round caps/joins
+ * Clean, consistent stroke icons - 24x24, 2px stroke, round caps/joins
  */
 
 import React from 'react'
@@ -11,7 +11,7 @@ interface IconProps {
   color?: string
 }
 
-/** currency-dollar — used for refinance events */
+/** currency-dollar - used for refinance events */
 export const CurrencyDollarIcon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -24,7 +24,7 @@ export const CurrencyDollarIcon: React.FC<IconProps> = ({ size = 24, className, 
   </svg>
 )
 
-/** building-01 — office building with windows and entrance */
+/** building-01 - office building with windows and entrance */
 export const Building01Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -37,7 +37,7 @@ export const Building01Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** building-02 — storefront with awnings */
+/** building-02 - storefront with awnings */
 export const Building02Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -50,7 +50,7 @@ export const Building02Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** building-03 — tall building with horizontal lines */
+/** building-03 - tall building with horizontal lines */
 export const Building03Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -63,7 +63,7 @@ export const Building03Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** building-05 — L-shaped building */
+/** building-05 - L-shaped building */
 export const Building05Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -76,7 +76,7 @@ export const Building05Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** building-07 — building with wings */
+/** building-07 - building with wings */
 export const Building07Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -89,7 +89,7 @@ export const Building07Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** building-08 — Greek temple with columns */
+/** building-08 - Greek temple with columns */
 export const Building08Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -102,7 +102,7 @@ export const Building08Icon: React.FC<IconProps> = ({ size = 24, className, colo
   </svg>
 )
 
-/** home-03 — house with door */
+/** home-03 - house with door */
 export const Home03Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -115,7 +115,7 @@ export const Home03Icon: React.FC<IconProps> = ({ size = 24, className, color = 
   </svg>
 )
 
-/** trend-up-01 — upward trend line (UUI) */
+/** trend-up-01 - upward trend line (UUI) */
 export const TrendUp01Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -128,7 +128,7 @@ export const TrendUp01Icon: React.FC<IconProps> = ({ size = 24, className, color
   </svg>
 )
 
-/** bar-chart-square-02 — bar chart in square (UUI) */
+/** bar-chart-square-02 - bar chart in square (UUI) */
 export const BarChartSquare02Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -141,7 +141,7 @@ export const BarChartSquare02Icon: React.FC<IconProps> = ({ size = 24, className
   </svg>
 )
 
-/** wallet-02 — wallet icon (UUI) */
+/** wallet-02 - wallet icon (UUI) */
 export const Wallet02Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -154,7 +154,7 @@ export const Wallet02Icon: React.FC<IconProps> = ({ size = 24, className, color 
   </svg>
 )
 
-/** calendar-check-01 — calendar with checkmark (UUI) */
+/** calendar-check-01 - calendar with checkmark (UUI) */
 export const CalendarCheck01Icon: React.FC<IconProps> = ({ size = 24, className, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
     <path
@@ -216,7 +216,7 @@ export const PROPERTY_TYPE_ICONS: Record<string, React.FC<IconProps>> = {
 
 /**
  * Get the icon component for a property type string.
- * Accepts cell IDs ("metro-house-growth"), display labels ("Metro House — Growth"),
+ * Accepts cell IDs ("metro-house-growth"), display labels ("Metro House - Growth"),
  * or legacy keys ("units-apartments"). Falls back to Building01Icon if no match.
  */
 export const getPropertyIcon = (propertyType: string): React.FC<IconProps> => {
@@ -224,7 +224,7 @@ export const getPropertyIcon = (propertyType: string): React.FC<IconProps> => {
   const direct = PROPERTY_TYPE_ICONS[normalised]
   if (direct) return direct
 
-  // Fallback for display labels: strip the " — Mode" suffix and try keyword match.
+  // Fallback for display labels: strip the " - Mode" suffix and try keyword match.
   const lower = propertyType.toLowerCase()
   if (lower.includes('metro house')) return PROPERTY_TYPE_ICONS['metro-house-growth']
   if (lower.includes('regional house') || lower.includes('house')) return PROPERTY_TYPE_ICONS['regional-house-growth']

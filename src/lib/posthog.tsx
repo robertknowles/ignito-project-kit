@@ -6,14 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 /**
  * PostHog product analytics.
  *
- * Captures how beta testers use the app — page views, clicks (autocapture),
- * and session replays — so we can see real usage without hand-instrumenting
+ * Captures how beta testers use the app - page views, clicks (autocapture),
+ * and session replays - so we can see real usage without hand-instrumenting
  * every button.
  *
  * Configured entirely through env vars so it stays off in any environment
  * that doesn't set a key (local dev without analytics, CI, etc.):
- *   VITE_POSTHOG_KEY   — project API key (starts with "phc_")
- *   VITE_POSTHOG_HOST  — ingestion host (defaults to PostHog US cloud)
+ *   VITE_POSTHOG_KEY   - project API key (starts with "phc_")
+ *   VITE_POSTHOG_HOST  - ingestion host (defaults to PostHog US cloud)
  *
  * When the key is absent this whole layer becomes a no-op pass-through.
  */

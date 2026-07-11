@@ -75,10 +75,10 @@ const DownloadProgress: React.FC<{ progress: PdfProgress; clientName: string }> 
 );
 
 /**
- * ReportExportRenderer — mounts the unified Portfolio Brief into an off-screen
+ * ReportExportRenderer - mounts the unified Portfolio Brief into an off-screen
  * root (`#brief-print-root`), waits for fonts and the logo to load, then
  * generates a PDF client-side (html2canvas + jsPDF, see reportPdf.ts) and
- * downloads it directly — no print dialog, no browser-stamped headers. A
+ * downloads it directly - no print dialog, no browser-stamped headers. A
  * progress card shows on the page while the file is produced.
  *
  * If PDF generation fails for any reason, falls back to the previous

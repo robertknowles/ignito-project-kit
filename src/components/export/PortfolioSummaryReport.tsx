@@ -18,7 +18,7 @@ import {
 } from './ReportShell';
 
 /**
- * PortfolioSummaryReport — whole-portfolio export for the Portfolio Plan tab.
+ * PortfolioSummaryReport - whole-portfolio export for the Portfolio Plan tab.
  *
  * Pulls live scenario data from the same hooks the dashboard uses (no
  * scenarioData arg = active scenario), so the PDF always matches the screen.

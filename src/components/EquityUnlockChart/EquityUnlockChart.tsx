@@ -26,10 +26,10 @@ const fmt = (v: number) => {
 };
 
 /**
- * Equity Unlock Timeline — Unstacked line chart
+ * Equity Unlock Timeline - Unstacked line chart
  *
  * Each property gets an independent line showing its extractable equity over time.
- * Lines are NOT stacked — each reads at its true value.
+ * Lines are NOT stacked - each reads at its true value.
  * Refinance events shown as open circle dots on the source property's line.
  * Full equity release narrative lives in the tooltip on hover.
  */
@@ -138,8 +138,8 @@ export const EquityUnlockChart: React.FC = () => {
           borderColor: '#E9EAEB',
           padding: '12px 16px',
           fontSize: 13,
-          // Was maxWidth 260 — too narrow when an equity-released entry has
-          // two property titles ("Metro House — Growth → Metro Unit — Growth")
+          // Was maxWidth 260 - too narrow when an equity-released entry has
+          // two property titles ("Metro House - Growth → Metro Unit - Growth")
           // which clipped or hid the second event entirely. Widen + allow
           // wrapping inside event lines so all events stay readable.
           maxWidth: 360,
@@ -243,7 +243,7 @@ export const EquityUnlockChart: React.FC = () => {
           />
           <Tooltip content={<CustomTooltip />} allowEscapeViewBox={{ x: true, y: true }} />
 
-          {/* Property lines — NOT stacked */}
+          {/* Property lines - NOT stacked */}
           {propertyTimelines.map((prop, idx) => (
             <Area
               key={prop.instanceId}
@@ -258,7 +258,7 @@ export const EquityUnlockChart: React.FC = () => {
             />
           ))}
 
-          {/* Refinance event markers — currency dollar icon */}
+          {/* Refinance event markers - currency dollar icon */}
           {refinanceEvents.map((evt, ei) => {
             const dataPoint = chartData.find(d => d.year === evt.year);
             if (!dataPoint) return null;
@@ -301,7 +301,7 @@ export const EquityUnlockChart: React.FC = () => {
   );
 };
 
-/** Small component for ChartCard action slot — shows total extractable */
+/** Small component for ChartCard action slot - shows total extractable */
 export const EquityUnlockSummary: React.FC = () => {
   const { timelineProperties } = useAffordabilityCalculator();
   const { profile } = useInvestmentProfile();

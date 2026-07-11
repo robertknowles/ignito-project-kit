@@ -1,10 +1,10 @@
 /**
- * PostPlanRefinement — 2-step refinement flow after plan generation
+ * PostPlanRefinement - 2-step refinement flow after plan generation
  *
  * Step 1: Fixed category buttons (# properties, prices, types, strategy)
  * Step 2: Contextual sub-options based on what was clicked
  *
- * Fully client-side — no AI call needed for the button display.
+ * Fully client-side - no AI call needed for the button display.
  */
 
 import React, { useState } from 'react'
@@ -90,10 +90,10 @@ const categories: Category[] = [
     label: 'Change property prices',
     icon: <DollarSignIcon size={12} />,
     getOptions: () => [
-      { label: 'Cheaper entry points', prompt: 'Bring property prices down — focus on more affordable entry points under $500k' },
+      { label: 'Cheaper entry points', prompt: 'Bring property prices down - focus on more affordable entry points under $500k' },
       { label: 'Mid-range ($500-700k)', prompt: 'Adjust property prices to the $500-700k range' },
-      { label: 'Higher end ($700k+)', prompt: 'Push property prices higher — $700k+ range for better capital growth' },
-      { label: 'Mix of price points', prompt: 'Mix up the prices — start cheap and work up to more expensive properties later' },
+      { label: 'Higher end ($700k+)', prompt: 'Push property prices higher - $700k+ range for better capital growth' },
+      { label: 'Mix of price points', prompt: 'Mix up the prices - start cheap and work up to more expensive properties later' },
     ],
   },
   {
@@ -104,7 +104,7 @@ const categories: Category[] = [
       { label: 'All units/apartments', prompt: 'Switch all properties to units or apartments' },
       { label: 'All houses', prompt: 'Switch all properties to houses' },
       { label: 'Townhouses / villas', prompt: 'Switch to townhouses or villas for better land content' },
-      { label: 'Mix of types', prompt: 'Mix property types — some units, some houses, some townhouses' },
+      { label: 'Mix of types', prompt: 'Mix property types - some units, some houses, some townhouses' },
     ],
   },
   {
@@ -145,7 +145,7 @@ export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ property
 
       <AnimatePresence mode="wait">
         {!expandedCategory ? (
-          /* Step 1 — Category buttons in 2-col grid */
+          /* Step 1 - Category buttons in 2-col grid */
           <motion.div
             key="categories"
             initial={{ opacity: 0 }}
@@ -166,7 +166,7 @@ export const PostPlanRefinement: React.FC<PostPlanRefinementProps> = ({ property
             ))}
           </motion.div>
         ) : (
-          /* Step 2 — Sub-options for selected category */
+          /* Step 2 - Sub-options for selected category */
           <motion.div
             key={`options-${expandedCategory}`}
             initial={{ opacity: 0, x: 8 }}

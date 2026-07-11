@@ -37,7 +37,7 @@ export function calculateOneOffCosts(
   depositBalance: number
 ): OneOffCosts {
   // "Purchase Costs" override (purchases table) replaces the six fee/inspection
-  // components as a lump sum — deposit, stamp duty, holding deposit, independent
+  // components as a lump sum - deposit, stamp duty, holding deposit, independent
   // valuation and post-settlement maintenance sit outside it, matching the
   // table's rolled-up column. Scale the parts proportionally so itemised views
   // and totalCashRequired reflect the edited figure.

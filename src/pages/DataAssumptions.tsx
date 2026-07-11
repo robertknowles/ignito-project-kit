@@ -92,7 +92,7 @@ const formatCurrency = (value: number) => {
   return `${sign}$${abs.toFixed(0)}`
 }
 
-// Property images mapping — matches TitleDeedCard.tsx
+// Property images mapping - matches TitleDeedCard.tsx
 const PORTFOLIO_PROPERTY_IMAGES: Record<string, string> = {
   'Metro Houses': '/images/properties/metro-house.png',
   'Units / Apartments': '/images/properties/units-apartments.png',
@@ -102,17 +102,17 @@ const PORTFOLIO_PROPERTY_IMAGES: Record<string, string> = {
   'Small Blocks (3-4 Units)': '/images/properties/smaller-blocks-3-4.png',
   'Larger Blocks (10-20 Units)': '/images/properties/larger-blocks-10-20.png',
   'Commercial Property': '/images/properties/commercial-property.png',
-  // v4 cell display labels — share existing image assets per cell type/mode pair.
-  'Metro House — Growth': '/images/properties/metro-house.png',
-  'Metro House — Cashflow': '/images/properties/metro-house.png',
-  'Regional House — Growth': '/images/properties/regional-house.png',
-  'Regional House — Cashflow': '/images/properties/regional-house.png',
-  'Metro Unit — Growth': '/images/properties/townhouses.png',
-  'Metro Unit — Cashflow': '/images/properties/units-apartments.png',
-  'Regional Unit — Growth': '/images/properties/townhouses.png',
-  'Regional Unit — Cashflow': '/images/properties/units-apartments.png',
-  'Commercial — High Cost': '/images/properties/commercial-property.png',
-  'Commercial — Low Cost': '/images/properties/commercial-property.png',
+  // v4 cell display labels - share existing image assets per cell type/mode pair.
+  'Metro House - Growth': '/images/properties/metro-house.png',
+  'Metro House - Cashflow': '/images/properties/metro-house.png',
+  'Regional House - Growth': '/images/properties/regional-house.png',
+  'Regional House - Cashflow': '/images/properties/regional-house.png',
+  'Metro Unit - Growth': '/images/properties/townhouses.png',
+  'Metro Unit - Cashflow': '/images/properties/units-apartments.png',
+  'Regional Unit - Growth': '/images/properties/townhouses.png',
+  'Regional Unit - Cashflow': '/images/properties/units-apartments.png',
+  'Commercial - High Cost': '/images/properties/commercial-property.png',
+  'Commercial - Low Cost': '/images/properties/commercial-property.png',
 }
 
 const getPortfolioPropertyImage = (title: string): string | undefined => {
@@ -256,7 +256,7 @@ export const DataAssumptions = () => {
             : []
 
           if (feasibleSnapshot.length > 0) {
-            // PATH 1: Use timelineSnapshot (most accurate — has calculated years/costs)
+            // PATH 1: Use timelineSnapshot (most accurate - has calculated years/costs)
             feasibleSnapshot
               .sort((a: any, b: any) => (a.affordableYear || 0) - (b.affordableYear || 0))
               .forEach((item: any, idx: number) => {
@@ -274,7 +274,7 @@ export const DataAssumptions = () => {
                 }
               })
           } else if (propertyOrder.length > 0 || Object.keys(propertySelections).length > 0) {
-            // PATH 2: Fallback — use propertyOrder + propertyInstances + propertySelections
+            // PATH 2: Fallback - use propertyOrder + propertyInstances + propertySelections
             // Build instance list from propertyOrder, or reconstruct from propertySelections
             let instanceIds: string[] = propertyOrder.length > 0
               ? propertyOrder
@@ -378,7 +378,7 @@ export const DataAssumptions = () => {
   const activeClient = clients.find(c => c.id === activeClientId)
   const activeScenarios = activeClientId ? scenarioData[activeClientId] || [] : []
 
-  // Portfolio summary — includes ALL properties (owned + planned)
+  // Portfolio summary - includes ALL properties (owned + planned)
   const portfolioSummary = useMemo(() => {
     if (!activeClientId) return null
     const allProps = activeScenarios.flatMap(s =>
@@ -423,7 +423,7 @@ export const DataAssumptions = () => {
       syncScenarioVersion(result.newVersion)
       toast.success(`${property.title} marked as not yet purchased`)
     } else {
-      // Turn on — show modal
+      // Turn on - show modal
       setActivatingProperty(property)
       setActivateAddress(current?.address || '')
       setActivatePhoto(current?.photo || '')
@@ -483,7 +483,7 @@ export const DataAssumptions = () => {
     toast.success(`${activatingProperty.title} marked as purchased!`)
   }
 
-  // Handle view change — auto-select first client when entering portfolio
+  // Handle view change - auto-select first client when entering portfolio
   const handleViewChange = (view: 'library' | 'portfolio') => {
     setActiveView(view)
     if (view === 'portfolio' && !activeClientId && drawerClients.length > 0) {
@@ -608,12 +608,12 @@ export const DataAssumptions = () => {
                       <div>
                         <h1 className="page-title">Portfolio</h1>
                         <p className="body-secondary mt-1">
-                          {activeClient.name}'s real properties and planned purchases — everything in one place.
+                          {activeClient.name}'s real properties and planned purchases - everything in one place.
                         </p>
                       </div>
                     </div>
 
-                    {/* Summary stat cards — always visible */}
+                    {/* Summary stat cards - always visible */}
                     {portfolioSummary && (
                       <div className="grid grid-cols-4 gap-4 mb-6">
                         <div className="bg-white border border-gray-200 rounded-lg p-5">

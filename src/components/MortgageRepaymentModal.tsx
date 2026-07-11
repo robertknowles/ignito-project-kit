@@ -285,7 +285,7 @@ export const MortgageRepaymentModal: React.FC<MortgageRepaymentModalProps> = ({ 
                 </p>
                 <div>
                   <p className="font-semibold text-neutral-700 mb-1">Interest rates</p>
-                  <p>We assume the rate you enter applies to your loan for the full loan term — even if you choose a variable rate, or an interest-only rate which in practice applies for a limited period only.</p>
+                  <p>We assume the rate you enter applies to your loan for the full loan term - even if you choose a variable rate, or an interest-only rate which in practice applies for a limited period only.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-neutral-700 mb-1">Interest and repayments</p>

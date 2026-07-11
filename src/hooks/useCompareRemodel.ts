@@ -1,5 +1,5 @@
 /**
- * useCompareRemodel — the "Remodel with AI" brain for the Compare page.
+ * useCompareRemodel - the "Remodel with AI" brain for the Compare page.
  *
  * Takes a BASE scenario (a copy of the selected saved plan), sends the BA's
  * instruction to the same nl-parse edge function the dashboard chat uses,
@@ -18,11 +18,12 @@ import { useScenarioRunner } from './useScenarioRunner';
 import { applyNlResponseToScenario } from '@/engine/scenarioMutator';
 import type { ScenarioInput, ScenarioRunResult } from '@/engine/scenarioRunner';
 import type { NLParseResponse, CurrentPlanState } from '@/types/nlParse';
+import type { PropertyInstanceDetails } from '@/types/propertyInstance';
 
 export interface RemodelDraft {
   scenario: ScenarioInput;
   run: ScenarioRunResult;
-  /** Cumulative across refinements — keeps changed rows highlighted. */
+  /** Cumulative across refinements - keeps changed rows highlighted. */
   changedInstanceIds: string[];
   /** Mapper warnings from the LATEST instruction. */
   warnings: string[];
@@ -32,7 +33,7 @@ const NL_PARSE_TIMEOUT_MS = 30_000;
 const HISTORY_WINDOW = 20;
 
 /** Mirror of ChatPanel.getCurrentPlan, built from a headless run instead of
- *  live contexts — so the AI sees the draft's actual engine numbers. */
+ *  live contexts - so the AI sees the draft's actual engine numbers. */
 const buildCurrentPlan = (scenario: ScenarioInput, run: ScenarioRunResult): CurrentPlanState => {
   const profile = run.profile;
 
@@ -94,6 +95,9 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
   const { run } = useScenarioRunner();
 
   const [draft, setDraft] = useState<RemodelDraft | null>(null);
+  // First-draft proposal held for BA review before it lands in the graphs.
+  // Refinements skip this and apply to `draft` live.
+  const [pending, setPending] = useState<RemodelDraft | null>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +110,7 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
     sessionRef.current += 1;
     historyRef.current = [];
     setDraft(null);
+    setPending(null);
     setAiMessage(null);
     setError(null);
     setIsThinking(false);
@@ -172,16 +177,29 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
           const mutation = applyNlResponseToScenario(targetScenario, response);
           if (mutation.didChange) {
             const newRun = run(mutation.scenario);
-            setDraft(prev => ({
-              scenario: mutation.scenario,
-              run: newRun,
-              changedInstanceIds: [
-                ...new Set([...(prev?.changedInstanceIds ?? []), ...mutation.changedInstanceIds]),
-              ],
-              warnings: mutation.warnings,
-            }));
+            if (draft) {
+              // Refinement of an already-approved Scenario B: apply live so the
+              // graphs update immediately (mirrors the dashboard's small-tweak flow).
+              setDraft(prev => ({
+                scenario: mutation.scenario,
+                run: newRun,
+                changedInstanceIds: [
+                  ...new Set([...(prev?.changedInstanceIds ?? []), ...mutation.changedInstanceIds]),
+                ],
+                warnings: mutation.warnings,
+              }));
+            } else {
+              // First draft: hold for review in the confirmation brief before it
+              // lands in the tables/charts.
+              setPending({
+                scenario: mutation.scenario,
+                run: newRun,
+                changedInstanceIds: mutation.changedInstanceIds,
+                warnings: mutation.warnings,
+              });
+            }
           } else {
-            // The AI said it changed something but nothing applied — surface
+            // The AI said it changed something but nothing applied - surface
             // that instead of letting "Done!" stand (nlDataMapper contract).
             const dropNote = mutation.warnings.length > 0
               ? mutation.warnings.join(' ')
@@ -194,7 +212,7 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
       } catch (e) {
         if (session === sessionRef.current) {
           const msg = e instanceof Error ? e.message : 'Something went wrong';
-          setError(msg === 'TIMEOUT' ? 'The AI took too long to respond — try again.' : msg);
+          setError(msg === 'TIMEOUT' ? 'The AI took too long to respond - try again.' : msg);
         }
       } finally {
         if (session === sessionRef.current) setIsThinking(false);
@@ -203,5 +221,71 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
     [baseScenario, draft, isThinking, run, user?.id],
   );
 
-  return { draft, isThinking, aiMessage, error, submit, reset };
+  // Direct (non-AI) edit of a single draft instance - the BA hand-tunes a
+  // Scenario B property in the row-detail dialog. Re-runs the SAME headless
+  // engine used for AI drafts, so charts, StatStrip and model-check notes
+  // update off the new `draft.run`. Does not touch changedInstanceIds
+  // (manual edits are not highlighted) or aiMessage/warnings.
+  // Pure re-run of a single instance patch on any draft (live or pending).
+  const patchDraft = useCallback(
+    (prev: RemodelDraft | null, instanceId: string, patch: Partial<PropertyInstanceDetails>) => {
+      if (!prev) return prev;
+      // Fall back to the run's materialized instance if the scenario blob
+      // didn't carry one (runScenario defaults missing instances).
+      const current =
+        prev.scenario.propertyInstances[instanceId] ?? prev.run.instances[instanceId];
+      if (!current) return prev;
+      const nextScenario: ScenarioInput = {
+        ...prev.scenario,
+        propertyInstances: {
+          ...prev.scenario.propertyInstances,
+          [instanceId]: { ...current, ...patch },
+        },
+      };
+      return { ...prev, scenario: nextScenario, run: run(nextScenario) };
+    },
+    [run],
+  );
+
+  const editInstance = useCallback(
+    (instanceId: string, patch: Partial<PropertyInstanceDetails>) => {
+      setDraft(prev => patchDraft(prev, instanceId, patch));
+    },
+    [patchDraft],
+  );
+
+  // Hand-tune a proposed Scenario B property inside the review brief, before
+  // it is approved into the graphs.
+  const editPending = useCallback(
+    (instanceId: string, patch: Partial<PropertyInstanceDetails>) => {
+      setPending(prev => patchDraft(prev, instanceId, patch));
+    },
+    [patchDraft],
+  );
+
+  // Promote the reviewed proposal into the live Scenario B draft.
+  const approvePending = useCallback(() => {
+    if (!pending) return;
+    setDraft(pending);
+    setPending(null);
+  }, [pending]);
+
+  const discardPending = useCallback(() => {
+    setPending(null);
+    setError(null);
+  }, []);
+
+  return {
+    draft,
+    pending,
+    isThinking,
+    aiMessage,
+    error,
+    submit,
+    reset,
+    editInstance,
+    editPending,
+    approvePending,
+    discardPending,
+  };
 };

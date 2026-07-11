@@ -20,7 +20,7 @@ const Pricing: React.FC = () => {
   return (
     <section id="pricing" className="py-24 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-start">
-        {/* Left — headline + deal card */}
+        {/* Left - headline + deal card */}
         <div>
           <h2 className="text-4xl md:text-[44px] font-semibold text-gray-900 leading-[1.15] mb-5">
             The "Compound Interest"<br />Pricing Model
@@ -43,12 +43,12 @@ const Pricing: React.FC = () => {
           </div>
         </div>
 
-        {/* Right — version timeline */}
+        {/* Right - version timeline */}
         <div className="relative">
           {/* Timeline line */}
           <div className="absolute left-[11px] top-[12px] bottom-4 w-px bg-gray-200 hidden md:block" />
 
-          {/* v1.0 — Current */}
+          {/* v1.0 - Current */}
           <div className="relative mb-6">
             <div className="flex items-start gap-6">
               <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-gray-900 border-[3px] border-gray-900 shrink-0 mt-1 hidden md:block" />
@@ -100,7 +100,7 @@ const Pricing: React.FC = () => {
             </div>
           </div>
 
-          {/* v1.1 — Next Month */}
+          {/* v1.1 - Next Month */}
           <div className="relative mb-6">
             <div className="flex items-start gap-6">
               <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-white border-2 border-gray-300 shrink-0 mt-1 hidden md:block" />
@@ -124,7 +124,7 @@ const Pricing: React.FC = () => {
             </div>
           </div>
 
-          {/* v1.2 — Future */}
+          {/* v1.2 - Future */}
           <div className="relative">
             <div className="flex items-start gap-6">
               <div className="relative z-10 w-[22px] h-[22px] rounded-full bg-white border-2 border-gray-200 shrink-0 mt-1 hidden md:block" />

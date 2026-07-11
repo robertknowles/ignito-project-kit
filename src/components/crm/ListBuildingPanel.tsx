@@ -8,7 +8,7 @@ interface Source {
 }
 
 const DIRECTORIES: Source[] = [
-  { name: 'REBAA member directory', note: 'Industry body — buyers agent association', url: 'https://rebaa.com.au/find-a-buyers-agent/' },
+  { name: 'REBAA member directory', note: 'Industry body - buyers agent association', url: 'https://rebaa.com.au/find-a-buyers-agent/' },
   { name: 'PIPA member directory', note: 'Investment-focused property professionals', url: 'https://pipa.asn.au/find-a-pipa-investment-professional/' },
   { name: 'HTAG directory', note: 'URL to confirm' },
 ];
@@ -24,7 +24,7 @@ function SourceRow({ source }: { source: Source }) {
   return (
     <li className="flex items-center gap-2 text-xs text-muted-foreground leading-relaxed">
       <span className="text-foreground font-medium">{source.name}</span>
-      <span className="text-muted-foreground/70">—</span>
+      <span className="text-muted-foreground/70">-</span>
       <span className="flex-1">{source.note}</span>
       {source.url && (
         <a

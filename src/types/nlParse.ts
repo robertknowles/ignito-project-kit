@@ -2,7 +2,7 @@
  * NL Parse Types
  *
  * Contract between the nl-parse Supabase Edge Function and the frontend.
- * Claude extracts structured data from natural language — all financial
+ * Claude extracts structured data from natural language - all financial
  * calculations happen client-side in the existing engine.
  */
 
@@ -42,14 +42,14 @@ export interface CurrentPlanState {
     /** v4 mode of the cell ("Growth"/"Cashflow" for residential; "HighCost"/"LowCost" for Commercial). */
     mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
     entity?: 'individual' | 'trust' | 'company' | 'smsf';
-    /** Engine result — 'feasible' or 'challenging'. Only populated after engine runs. */
+    /** Engine result - 'feasible' or 'challenging'. Only populated after engine runs. */
     engineStatus?: 'feasible' | 'challenging';
-    /** Engine result — remaining BC after this purchase. Negative = BC exceeded. */
+    /** Engine result - remaining BC after this purchase. Negative = BC exceeded. */
     borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
   /**
-   * Engine output snapshot — the actual projected horizon values from the
+   * Engine output snapshot - the actual projected horizon values from the
    * simulator, computed from the current chart data. Sent on every turn
    * AFTER the first one so the AI can cite real numbers (matching the
    * dashboard) instead of doing its own rough projection that drifts.
@@ -62,7 +62,7 @@ export interface CurrentPlanState {
     horizonYear: number;
     /** Projected portfolio gross value at horizon (AUD) */
     projectedPortfolioValue: number;
-    /** Projected total equity at horizon (AUD) — the BA's primary goal metric */
+    /** Projected total equity at horizon (AUD) - the BA's primary goal metric */
     projectedEquity: number;
     /** Projected net annual cashflow at horizon (AUD/yr) */
     projectedAnnualCashflow?: number;
@@ -76,7 +76,7 @@ export interface CurrentPlanState {
 export interface NLParseResponse {
   type: 'initial_plan' | 'modification' | 'explanation' | 'comparison' | 'add_event' | 'property_suggestions' | 'update_profile' | 'conversation';
 
-  // For initial_plan — client financial details
+  // For initial_plan - client financial details
   clientProfile?: {
     members: Array<{ name: string; annualIncome: number }>;
     monthlySavings: number;
@@ -106,7 +106,7 @@ export interface NLParseResponse {
     }>;
   };
 
-  // For initial_plan — mapped to InvestmentProfileData
+  // For initial_plan - mapped to InvestmentProfileData
   investmentProfile?: {
     depositPool: number;
     annualSavings: number;
@@ -117,7 +117,7 @@ export interface NLParseResponse {
     targetPassiveIncome?: number;
   };
 
-  // For initial_plan — property sequence
+  // For initial_plan - property sequence
   properties?: Array<{
     type: string; // v4 cell ID (e.g. "metro-house-growth"). Legacy v3 keys still accepted.
     /** v4 mode of the cell. If omitted, the cell's default mode is used. */
@@ -135,21 +135,21 @@ export interface NLParseResponse {
     isNewBuild?: boolean; // New build vs established (default established)
   }>;
 
-  // For modification — what to change (single or multiple)
+  // For modification - what to change (single or multiple)
   modification?: {
     target: string; // e.g. "property-2", "savings", "interest-rate"
     action: string; // e.g. "move", "change", "add", "remove"
     params: Record<string, unknown>;
   };
 
-  // For compound modifications — multiple changes at once
+  // For compound modifications - multiple changes at once
   modifications?: Array<{
     target: string;
     action: string;
     params: Record<string, unknown>;
   }>;
 
-  // For explanation — what to look up
+  // For explanation - what to look up
   explanation?: {
     question: string;
     relevantPeriods: number[];
@@ -157,7 +157,7 @@ export interface NLParseResponse {
     relevantPeriod?: { startYear: number; endYear: number };
   };
 
-  // For comparison — "what if" scenario fork
+  // For comparison - "what if" scenario fork
   comparison?: {
     description: string; // e.g. "Brisbane instead of Melbourne for property 3"
     changes: Array<{
@@ -172,12 +172,12 @@ export interface NLParseResponse {
   message: string; // Conversational response for the chat
   assumptions: string[]; // What was assumed (shown in confirmation)
 
-  // Material inputs the BA did NOT provide — used to flag rows in amber and
+  // Material inputs the BA did NOT provide - used to flag rows in amber and
   // surface a "for greater accuracy, share X" nudge. Canonical keys:
   // 'income' | 'savings' | 'deposit' | 'borrowing_capacity' | 'goal' | 'existing_debt'
   missingInputs?: string[];
 
-  // For property_suggestions — AI-suggested property cards
+  // For property_suggestions - AI-suggested property cards
   propertySuggestions?: Array<{
     propertyType: string;
     label: string;
@@ -187,14 +187,14 @@ export interface NLParseResponse {
     prompt: string;
   }>;
 
-  // For add_event — timeline events (refinance, salary change, sell, rate change)
+  // For add_event - timeline events (refinance, salary change, sell, rate change)
   event?: {
     eventType: 'refinance' | 'salary_change' | 'sell_property' | 'interest_rate_change';
     targetYear: number;
     parameters: Record<string, unknown>;
   };
 
-  // For update_profile — partial profile field updates
+  // For update_profile - partial profile field updates
   profileUpdates?: {
     baseSalary?: number;
     annualSavings?: number;
@@ -299,6 +299,6 @@ export interface ChatOptionCardData {
   id: string;
   icon: 'arrow-down' | 'arrow-up' | 'zap' | 'refresh' | 'plus' | 'minus';
   label: string; // e.g. "Lower purchase price"
-  description: string; // e.g. "Drop to $380k — affordable by mid-2026"
+  description: string; // e.g. "Drop to $380k - affordable by mid-2026"
   actionPayload: Record<string, unknown>; // Applied when clicked
 }

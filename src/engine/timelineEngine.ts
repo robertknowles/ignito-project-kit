@@ -1,8 +1,8 @@
 /**
- * Timeline Placement Engine — Stage 1 of the calculation pipeline.
+ * Timeline Placement Engine - Stage 1 of the calculation pipeline.
  *
  * Pure extraction of useAffordabilityCalculator's `calculateTimelineProperties`
- * memo body (Phase 0 of the Compare evolution plan). Zero React dependencies —
+ * memo body (Phase 0 of the Compare evolution plan). Zero React dependencies -
  * callable headlessly with a snapshot of context state.
  *
  * MOVED code, not rewritten: the math here must produce byte-identical numbers
@@ -128,7 +128,7 @@ export const createAffordabilityBridge = (ctx: AffordabilityBridgeContext) => {
     return currentValue;
   };
 
-  // Engine dependency bridge — passes caller-supplied lookups into pure engine functions
+  // Engine dependency bridge - passes caller-supplied lookups into pure engine functions
   const engineDeps: EngineDeps = {
     getInstance,
     getPropertyData,
@@ -142,8 +142,8 @@ export const createAffordabilityBridge = (ctx: AffordabilityBridgeContext) => {
       return engineCalculateAvailableFunds(currentPeriod, previousPurchases, profile, existingProperties, engineDeps);
     };
 
-  // OLD calculateAvailableFunds body removed — now delegated to engine.
-  // OLD checkAffordability body removed — now delegated to engine.
+  // OLD calculateAvailableFunds body removed - now delegated to engine.
+  // OLD checkAffordability body removed - now delegated to engine.
   // See src/engine/affordabilityEngine.ts for the single source of truth.
 
 
@@ -881,7 +881,7 @@ return { period: Infinity };
       });
     }
 
-    // BORROWING CAPACITY CEILING for timeline display — SINGLE SOURCE OF TRUTH
+    // BORROWING CAPACITY CEILING for timeline display - SINGLE SOURCE OF TRUTH
     const purchasePeriodForCeiling = result.period !== Infinity ? result.period : 1;
     const timelineEffectiveBorrowingCapacity = calculateBorrowingCeiling(purchasePeriodForCeiling, {
       statedBC: profile.borrowingCapacity ?? 0,
@@ -1003,7 +1003,7 @@ return { period: Infinity };
         // Key purchase history by the resolvable cell id, NOT property.title.
         // Since 13961b4 property.title is the client-facing category label
         // ("Equity Growth Property") which getPropertyData() cannot resolve to a
-        // template — so the engine's equity-release loop skipped every prior
+        // template - so the engine's equity-release loop skipped every prior
         // property and released $0, starving the deposit test. The brief
         // (planPreCheck) keys by cell id, which is why it disagreed. Mirror it.
         title: instanceId.replace(/_instance_\d+$/, ''),
@@ -1019,7 +1019,7 @@ return { period: Infinity };
 
   // Return properties in user-defined order (FIFO - as they were added)
   // No longer sorting by period - properties stay in the order they were added
-  // DEBUG: compare with pre-check (dev-only — hot-path logging gated for production)
+  // DEBUG: compare with pre-check (dev-only - hot-path logging gated for production)
   if (import.meta.env.DEV && timelineProperties.some(p => p.status === 'challenging')) {
     console.warn('[Dashboard Engine] Profile:', { BC: profile.borrowingCapacity, salary: profile.baseSalary, deposit: profile.depositPool, savings: profile.annualSavings, currentDebt: profile.currentDebt, portfolioValue: profile.portfolioValue, interestRate: profile.interestRate, wageGrowth: profile.wageGrowthRate, equityFactor: profile.equityFactor, equityRelease: profile.equityReleaseFactor, salaryMult: profile.salaryServiceabilityMultiplier });
     timelineProperties.forEach((p, i) => {

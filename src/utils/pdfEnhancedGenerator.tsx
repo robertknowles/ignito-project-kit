@@ -134,7 +134,7 @@ const detectConsolidationMilestone = (
     return {
       year: consolidationProperty.affordableYear,
       displayPeriod: consolidationProperty.displayPeriod,
-      message: `Hold period begins — no further acquisitions modelled`
+      message: `Hold period begins - no further acquisitions modelled`
     };
   }
 
@@ -328,7 +328,7 @@ const addPageFooter = (
     
     pdf.text(brandingText, pageWidth / 2, brandingY, { align: 'center' });
     
-    // Disclaimer (variant C — short form)
+    // Disclaimer (variant C - short form)
     pdf.setFontSize(6.5);
     pdf.setTextColor(156, 163, 175);
     pdf.text('Factual information only. Not financial, credit, or tax advice. Inputs and projections are estimates.', pageWidth / 2, brandingY + 4, { align: 'center' });

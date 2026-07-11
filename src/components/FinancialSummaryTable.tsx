@@ -58,7 +58,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const yearCount = years.length;
   const hasSales = years.some(y => y.cashFromSales > 0);
 
-  // PropPath §2.2 matrix table — 12px cells / 9px padding, sticky label column,
+  // PropPath §2.2 matrix table - 12px cells / 9px padding, sticky label column,
   // numbers right-aligned. 3-step weight ladder: section lines 500 #181D27
   // (numbers #252B37) · breakdowns indented one step, label #717680, numbers
   // #535862 · Net the one 600 emphasis. Negatives semantic red.
@@ -71,7 +71,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
   const subVal = 'text-xs font-normal text-[#535862]';
   // Row rules: hairline above each section start, none on breakdown rows,
   // a stronger rule above the bottom line. No vertical rules, no spacer bands.
-  // Read-only table: no hover response — hover means editable elsewhere in the app.
+  // Read-only table: no hover response - hover means editable elsewhere in the app.
   const rowHover = '';
   const sectionRowClass = 'border-t border-[#E9EAEB]';
   const netRowClass = 'border-t border-[#D5D7DA]';
@@ -95,7 +95,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {/* BUY — parent row */}
+            {/* BUY - parent row */}
             <tr className={sectionRowClass}>
               <td className={labelClass}>Buy</td>
               {years.map((yearData) => (
@@ -111,7 +111,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* BUY — Cash sub-row */}
+            {/* BUY - Cash sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Cash</td>
               {years.map((yearData) => (
@@ -127,7 +127,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* BUY — Savings sub-row */}
+            {/* BUY - Savings sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Savings</td>
               {years.map((yearData) => (
@@ -143,7 +143,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* BUY — Equity release sub-row */}
+            {/* BUY - Equity release sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Equity release</td>
               {years.map((yearData) => (
@@ -169,7 +169,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* FUNDS — Cash sub-row */}
+            {/* FUNDS - Cash sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Cash</td>
               {years.map((yearData) => (
@@ -181,7 +181,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* FUNDS — Savings sub-row */}
+            {/* FUNDS - Savings sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Savings</td>
               {years.map((yearData) => (
@@ -193,7 +193,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* FUNDS — Equity release sub-row */}
+            {/* FUNDS - Equity release sub-row */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Equity release</td>
               {years.map((yearData) => (
@@ -215,7 +215,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* PROPERTY EQUITY ($) — portfolioValue - totalDebt */}
+            {/* PROPERTY EQUITY ($) - portfolioValue - totalDebt */}
             <tr className={rowHover}>
               <td className={hasSales ? subLabelClass : labelClass}>
                 {hasSales ? 'Property equity' : 'Equity ($)'}
@@ -229,7 +229,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               ))}
             </tr>
 
-            {/* CAPITAL GAINS TAX ($) — tax paid on sales settling that year (2027 basis) */}
+            {/* CAPITAL GAINS TAX ($) - tax paid on sales settling that year (2027 basis) */}
             {hasSales && (
               <tr className={rowHover}>
                 <td className={subLabelClass}>Capital gains tax</td>
@@ -244,7 +244,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               </tr>
             )}
 
-            {/* CASH FROM SALES ($) — net proceeds after CGT, the year a sale settles */}
+            {/* CASH FROM SALES ($) - net proceeds after CGT, the year a sale settles */}
             {hasSales && (
               <tr className={rowHover}>
                 <td className={subLabelClass}>Net proceeds from sales</td>
@@ -256,7 +256,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               </tr>
             )}
 
-            {/* TOTAL EQUITY ($) — Property Equity + Cash from Sales (only show when sales exist) */}
+            {/* TOTAL EQUITY ($) - Property Equity + Cash from Sales (only show when sales exist) */}
             {hasSales && (
               <tr className={netRowClass}>
                 <td className={labelClass}>Total Equity ($)</td>
@@ -281,7 +281,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               })}
             </tr>
 
-            {/* EXPENSES ($) — breakdown row under Income */}
+            {/* EXPENSES ($) - breakdown row under Income */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Expenses ($)</td>
               {years.map((yearData) => {
@@ -294,7 +294,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               })}
             </tr>
 
-            {/* LOANS ($) — breakdown row under Income */}
+            {/* LOANS ($) - breakdown row under Income */}
             <tr className={rowHover}>
               <td className={subLabelClass}>Loans ($)</td>
               {years.map((yearData) => {
@@ -307,7 +307,7 @@ export const FinancialSummaryTable: React.FC<FinancialSummaryTableProps> = ({
               })}
             </tr>
 
-            {/* NET ($) — the one intentional emphasis: weight 600 + a stronger rule (§2.2) */}
+            {/* NET ($) - the one intentional emphasis: weight 600 + a stronger rule (§2.2) */}
             <tr className={netRowClass}>
               <td className="sticky left-0 z-[1] bg-white py-[9px] px-4 text-left text-[13px] font-semibold text-[#181D27] whitespace-nowrap w-[200px] min-w-[200px]">Net ($)</td>
               {years.map((yearData) => {

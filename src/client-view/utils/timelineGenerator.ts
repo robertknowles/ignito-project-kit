@@ -228,7 +228,7 @@ const generateNextMove = (
   purchasedProperties: PropertySelection[]
 ): string => {
   if (!nextProperty) {
-    return "Portfolio enters hold period — no further acquisitions modelled.";
+    return "Portfolio enters hold period - no further acquisitions modelled.";
   }
   
   const currentYear = Math.round(currentProperty.affordableYear || currentProperty.purchaseYear || 2025);
@@ -504,7 +504,7 @@ export const generateSummaryData = (investmentProfile: any) => {
     startingCash: formatCurrency(startingCash),
     borrowingCapacity: formatCurrency(borrowingCapacity),
     annualSavings: formatCurrency(annualSavings),
-    goal: `Financial Independence by ${targetYear} — ${formatCurrency(equityGoal)} Portfolio`,
+    goal: `Financial Independence by ${targetYear} - ${formatCurrency(equityGoal)} Portfolio`,
   };
 };
 

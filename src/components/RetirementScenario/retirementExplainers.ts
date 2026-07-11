@@ -1,14 +1,14 @@
 /**
- * Retirement sell-down — explainer copy (single source of truth).
+ * Retirement sell-down - explainer copy (single source of truth).
  *
  * Two altitudes (spec §8):
- *   • PAGE   — light info popovers on the headline strip + slider.
- *   • DETAIL — light info popovers inside the sale breakdown panel.
+ *   • PAGE   - light info popovers on the headline strip + slider.
+ *   • DETAIL - light info popovers inside the sale breakdown panel.
  *
  * Keep all policy / model wording here so it can be updated in ONE place when
  * the 2027 CGT rules are legislated, rather than hardcoded across components.
  *
- * Compliance: copy describes the model and the policy only — it must never
+ * Compliance: copy describes the model and the policy only - it must never
  * advise what the client should do, nor prefer one CGT method over another.
  */
 
@@ -60,17 +60,6 @@ export const DETAIL_EXPLAINERS = {
     ],
   },
 } satisfies Record<string, Explainer>
-
-/** CGT method policy explainer — paragraphs plus a warning-colour caveat line. */
-export const CGT_METHOD_EXPLAINER = {
-  title: 'How CGT is calculated',
-  body: [
-    '50% discount (today). Hold over 12 months and you\u2019re taxed on half the gain, at your marginal rate.',
-    'Indexation (proposed, 1 Jul 2027). The discount is replaced. Your cost is lifted by inflation, so only the real gain is taxed, with a 30% minimum rate.',
-    'Only gains after 1 Jul 2027 use the new method. New builds can choose either. SMSF keeps its own one-third discount.',
-  ],
-  caveat: 'Proposed, not yet law.',
-}
 
 /** Always shown beneath the breakdown panel (spec §2). */
 export const COMPLIANCE_FOOTER =

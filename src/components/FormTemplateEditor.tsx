@@ -272,6 +272,14 @@ export const FormTemplateEditor = ({ open, onOpenChange }: Props) => {
         </DialogHeader>
 
         <div className="space-y-2 pt-1">
+          <button
+            onClick={addQuestion}
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#D5D7DA] rounded-lg text-sm text-[#717680] hover:border-[#535862] hover:text-[#414651] hover:bg-[#F9FAFB] transition-all"
+          >
+            <PlusIcon size={14} />
+            Add question
+          </button>
+
           {questions.map((q, idx) => (
             <QuestionRow
               key={q.id}
@@ -285,14 +293,6 @@ export const FormTemplateEditor = ({ open, onOpenChange }: Props) => {
               onMove={dir => moveQuestion(q.id, dir)}
             />
           ))}
-
-          <button
-            onClick={addQuestion}
-            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#D5D7DA] rounded-lg text-sm text-[#717680] hover:border-[#535862] hover:text-[#414651] hover:bg-[#F9FAFB] transition-all"
-          >
-            <PlusIcon size={14} />
-            Add question
-          </button>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

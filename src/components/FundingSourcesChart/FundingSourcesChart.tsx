@@ -9,7 +9,7 @@ import { PROPERTY_COLORS } from '../../constants/chartColors';
 import { getCategoryLabel } from '../../utils/propertyCells';
 
 /**
- * Funding Sources — Expandable table rows
+ * Funding Sources - Expandable table rows
  *
  * Each property is a collapsible row showing: colour dot, property name,
  * readiness indicator, and total funding needed. Expanded state shows

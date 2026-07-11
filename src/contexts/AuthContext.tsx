@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Skip profile fetch on initial mount — getSession() handles that below
+        // Skip profile fetch on initial mount - getSession() handles that below
         if (!initialLoadDone) return;
 
         // Handle subsequent auth changes (sign-in, sign-out, token refresh)

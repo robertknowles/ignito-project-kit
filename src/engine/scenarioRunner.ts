@@ -1,11 +1,11 @@
 /**
- * Scenario Runner — run the full calculation pipeline (placement + projection)
+ * Scenario Runner - run the full calculation pipeline (placement + projection)
  * on an arbitrary scenario object, headlessly.
  *
  * Powers Compare: re-running saved scenarios live and charting AI-remodelled
  * drafts. Calls the SAME extracted engines the dashboard hooks delegate to
  * (src/engine/timelineEngine.ts, src/engine/projectionEngine.ts), so a run
- * here is the dashboard's math by construction — parity failures can only
+ * here is the dashboard's math by construction - parity failures can only
  * come from input assembly, which this module owns.
  *
  * Parity conditions (must mirror a freshly-loaded dashboard):
@@ -14,13 +14,13 @@
  *   valuation synced to purchase price);
  * - `timelineLoanTypes` is `{}` (session-only state, empty after any reload);
  * - `eventBlocks`/`pauseBlocks` default to `[]` (not persisted in saves);
- * - `getPropertyData` MUST be the live DataAssumptionsContext function —
+ * - `getPropertyData` MUST be the live DataAssumptionsContext function -
  *   never a copy (see the planPreCheck growth-curve drift incident).
  */
 
 import { computeTimelineProperties } from './timelineEngine';
 import { computeProjection, type PortfolioProjectionResult } from './projectionEngine';
-import { getPropertyInstanceDefaults } from '../utils/propertyInstanceDefaults';
+import { getPropertyInstanceDefaults, applyGlobalCostDefaults } from '../utils/propertyInstanceDefaults';
 import {
   INITIAL_INVESTMENT_PROFILE,
   type InvestmentProfileData,
@@ -58,7 +58,7 @@ export interface ScenarioRunResult {
   timelineProperties: TimelineProperty[];
   projection: PortfolioProjectionResult;
   allFeasible: boolean;
-  /** Goal-achievement years — same expressions as useChartDataSync, which is
+  /** Goal-achievement years - same expressions as useChartDataSync, which is
    *  what populates the saved chartData's equityGoalYear/incomeGoalYear. */
   equityGoalYear: number | null;
   incomeGoalYear: number | null;
@@ -66,7 +66,7 @@ export interface ScenarioRunResult {
 
 export function runScenario(scenario: ScenarioInput, env: ScenarioEnv): ScenarioRunResult {
   // Own copies of everything: the placement loop mutates its own purchase
-  // history records, and two sides (A/B) may run from related objects — a run
+  // history records, and two sides (A/B) may run from related objects - a run
   // must never bleed into the caller's scenario or a sibling run.
   const profile: InvestmentProfileData = {
     ...INITIAL_INVESTMENT_PROFILE,
@@ -89,7 +89,7 @@ export function runScenario(scenario: ScenarioInput, env: ScenarioEnv): Scenario
   for (const id of propertyOrder) {
     if (!instances[id]) {
       const type = id.replace(/_instance_\d+$/, '');
-      const defaults = getPropertyInstanceDefaults(type);
+      const defaults = applyGlobalCostDefaults(getPropertyInstanceDefaults(type), profile);
       instances[id] = {
         ...defaults,
         state: defaults.state || 'VIC',
@@ -122,7 +122,7 @@ export function runScenario(scenario: ScenarioInput, env: ScenarioEnv): Scenario
     getPropertyData: env.getPropertyData,
   });
 
-  // Goal years — byte-identical logic to useChartDataSync so a live run's
+  // Goal years - byte-identical logic to useChartDataSync so a live run's
   // goals agree with what the saved snapshot would say.
   let equityGoalYear: number | null = null;
   let incomeGoalYear: number | null = null;

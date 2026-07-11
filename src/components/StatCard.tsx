@@ -98,7 +98,7 @@ export const StatCard: React.FC<StatCardProps> = ({ label, value, subtitle, tren
                 : 'text-[#717680]'
             }`}
           >
-            {trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '—'}{' '}
+            {trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '-'}{' '}
             {trend.value}
           </span>
         </div>

@@ -237,7 +237,7 @@ export const BorrowingCalculatorModal: React.FC<BorrowingCalculatorModalProps> =
 
             {/* Disclaimer */}
             <p className="mt-3 text-[10px] text-gray-400 leading-relaxed italic">
-              PropPath provides factual modelling, not financial or credit advice. This calculator provides estimates only — actual borrowing capacity will vary based on individual circumstances and lender criteria. Speak to a licensed mortgage broker before relying on these figures.
+              PropPath provides factual modelling, not financial or credit advice. This calculator provides estimates only - actual borrowing capacity will vary based on individual circumstances and lender criteria. Speak to a licensed mortgage broker before relying on these figures.
             </p>
           </div>
         </div>

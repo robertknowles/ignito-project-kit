@@ -212,7 +212,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   const { propertyTypeTemplates } = useDataAssumptions();
 
   // Mark this provider as ready once a client is active. Loading state is no
-  // longer tied to a localStorage read — the source of truth is Supabase via
+  // longer tied to a localStorage read - the source of truth is Supabase via
   // ScenarioSaveContext.
   useEffect(() => {
     if (activeClient?.id) {
@@ -475,7 +475,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
       .sort((a, b) => a.period - b.period);
   }, [eventBlocks]);
 
-  // Bulk setter for scenario restoration — sets selections and propertyOrder
+  // Bulk setter for scenario restoration - sets selections and propertyOrder
   // atomically. In-memory only; persistence is via ScenarioSaveContext on
   // explicit save.
   const setAllSelections = useCallback((newSelections: PropertySelection, newPropertyOrder: string[]) => {
@@ -487,7 +487,7 @@ export const PropertySelectionProvider: React.FC<PropertySelectionProviderProps>
   /**
    * Reset all in-memory scenario state for the active client. Called when
    * switching clients or when ScenarioSaveContext determines no saved
-   * scenario exists. No localStorage involvement — persistence happens
+   * scenario exists. No localStorage involvement - persistence happens
    * only on explicit save.
    *
    * The clientId parameter is retained for API compatibility with

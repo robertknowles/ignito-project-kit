@@ -1,12 +1,12 @@
 /**
- * ClientInputsModal — read-only view of the raw answers a client submitted
+ * ClientInputsModal - read-only view of the raw answers a client submitted
  * through their onboarding / Client Details Form.
  *
  * Purely informational: it reads the verbatim snapshot stored on the client's
  * scenario (`data.clientSubmittedInputs`, written on submit in
  * ClientOnboarding). For clients who submitted before that snapshot existed it
  * falls back to `data.investmentProfile`. Nothing here feeds the calculation
- * engine or the dashboard — it just surfaces what the client told the agent.
+ * engine or the dashboard - it just surfaces what the client told the agent.
  */
 
 import React, { useEffect, useState } from 'react'
@@ -128,7 +128,7 @@ export const ClientInputsModal: React.FC<Props> = ({ open, onOpenChange, client 
                     </div>
                     <div className="text-right flex-shrink-0">
                       {!has
-                        ? <p className="text-sm text-[#D5D7DA]">—</p>
+                        ? <p className="text-sm text-[#D5D7DA]">-</p>
                         : raw === 'N/A'
                           ? <p className="text-sm font-semibold text-[#A4A7AE]">N/A</p>
                           : <p className="text-sm font-semibold text-[#111827]">{formatValue(raw, f.format)}</p>}

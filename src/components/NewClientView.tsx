@@ -1,9 +1,9 @@
 /**
- * NewClientView — the "no client selected" state inside the Dashboard.
+ * NewClientView - the "no client selected" state inside the Dashboard.
  *
  * Extracted from AgentHome. Renders the hero chat card (textarea + strategy
  * preset chips + file attach) and a Recents grid of recent client tiles.
- * No sidebar or layout wrapper — App.tsx provides those.
+ * No sidebar or layout wrapper - App.tsx provides those.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -159,7 +159,7 @@ export const NewClientView: React.FC = () => {
   const [loadingInputs, setLoadingInputs] = useState(false)
   const [submittedInputsByClient, setSubmittedInputsByClient] = useState<Record<number, Record<string, unknown>>>({})
 
-  // Company strategies — the BA picks one (pills); its text rides along to the
+  // Company strategies - the BA picks one (pills); its text rides along to the
   // launched client so the AI can infer the engine preset from it.
   const { profiles: strategyProfiles, reload: reloadStrategies } = useStrategyProfiles()
   const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null)
@@ -360,7 +360,7 @@ export const NewClientView: React.FC = () => {
           } catch (err: any) {
             const msg = err?.message
             if (msg === 'SCAN_PDF') {
-              toast.error('This file appears to be a scanned image — text could not be extracted.')
+              toast.error('This file appears to be a scanned image - text could not be extracted.')
             } else if (msg === 'UNSUPPORTED_FORMAT') {
               toast.error(`Supported formats: ${getSupportedExtensions()}`)
             } else {
@@ -447,7 +447,7 @@ export const NewClientView: React.FC = () => {
       <div className="relative flex-1 overflow-auto flex flex-col">
         {/* Aurora wash */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          {/* Purple glow concentrated around the hero — soft, irregular, drifting gently */}
+          {/* Purple glow concentrated around the hero - soft, irregular, drifting gently */}
           <div
             className="aurora-blob aurora-a absolute"
             style={{
@@ -472,7 +472,7 @@ export const NewClientView: React.FC = () => {
               filter: 'blur(52px)',
             }}
           />
-          {/* White vignette — fades the hue to clean white at every edge */}
+          {/* White vignette - fades the hue to clean white at every edge */}
           <div
             className="absolute inset-0"
             style={{ background: 'radial-gradient(ellipse 85% 62% at 50% 44%, rgba(255,255,255,0) 34%, rgba(255,255,255,0.92) 88%)' }}
@@ -598,7 +598,7 @@ export const NewClientView: React.FC = () => {
             >
               {recentClients.length === 0 ? (
                 <div className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-5 py-8 text-center">
-                  No recent clients yet — type a scenario above to start your first plan.
+                  No recent clients yet - type a scenario above to start your first plan.
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -652,7 +652,7 @@ export const NewClientView: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Three-dot menu — occupies the time slot on hover */}
+                        {/* Three-dot menu - occupies the time slot on hover */}
                         <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -684,7 +684,7 @@ export const NewClientView: React.FC = () => {
                             <div className="text-[24px] font-semibold text-neutral-900 tabular-nums leading-none mt-2.5">
                               {preview!.finalEquity !== null && preview!.finalEquity > 0
                                 ? formatEquity(preview!.finalEquity)
-                                : '—'}
+                                : '-'}
                             </div>
                             <div className="text-[11px] text-neutral-400 mt-1">Total equity</div>
                           </>
@@ -725,7 +725,7 @@ export const NewClientView: React.FC = () => {
         </div>
       </div>
 
-      {/* Add client details — upload a document, or pull in a submitted form */}
+      {/* Add client details - upload a document, or pull in a submitted form */}
       <Dialog
         open={detailsModalOpen}
         onOpenChange={(open) => {
@@ -755,7 +755,7 @@ export const NewClientView: React.FC = () => {
             </span>
           </button>
 
-          {/* Divider — dashboard "kicker" style (11 / 600 / 0.06em / #717680) */}
+          {/* Divider - dashboard "kicker" style (11 / 600 / 0.06em / #717680) */}
           <div className="flex items-center gap-3 py-0.5">
             <div className="h-px flex-1 bg-[#E9EAEB]" />
             <span className="text-[11px] font-semibold uppercase text-[#717680] tracking-[0.06em]">or pick a submitted form</span>

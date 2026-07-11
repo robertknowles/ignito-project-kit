@@ -61,7 +61,7 @@ export function AtAGlancePage({ investmentProfile, propertySelections, chartData
   const defaultGrowthRate = 0.06; // 6% annual growth
   const defaultInterestRate = investmentProfile?.interestRate || 0.065; // 6.5% interest
   
-  // Default growth curve for tiered growth — matches Medium tier
+  // Default growth curve for tiered growth - matches Medium tier
   // (Gameplans-replication calibration 2026-04-30). Used when chartData isn't
   // pre-calculated and we fall back to recomputing from propertySelections.
   const defaultGrowthCurve: GrowthCurve = {

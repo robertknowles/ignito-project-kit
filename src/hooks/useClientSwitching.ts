@@ -13,7 +13,7 @@ export const useClientSwitching = () => {
   // Track the last loaded client to prevent unnecessary reloads
   const lastLoadedClientRef = useRef<number | null>(null);
 
-  // Handle client switching — only when client ID actually changes.
+  // Handle client switching - only when client ID actually changes.
   //
   // Removed the "Client Loaded" toast (founder report 2026-05-06): on the
   // Home → new-client flow it fires after the new client lands but before
@@ -21,7 +21,7 @@ export const useClientSwitching = () => {
   // notification. The toast added no information the UI doesn't already
   // show via the ClientSelector / chat panel.
   //
-  // Removed activeClient?.name from the deps too — name updates (e.g. when
+  // Removed activeClient?.name from the deps too - name updates (e.g. when
   // the AI extracts a real name and replaces "Untitled Client") would
   // re-fire this effect even though id was unchanged, which was wasteful.
   useEffect(() => {

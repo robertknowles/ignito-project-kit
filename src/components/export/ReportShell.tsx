@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * ReportShell — shared building blocks for the PDF exports.
+ * ReportShell - shared building blocks for the PDF exports.
  *
  * Everything here is styled with inline hex (mirroring ChartCard's approach)
  * rather than Tailwind utility classes. This keeps the rendered output an exact
@@ -203,7 +203,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({
           color: RC.neutral400,
         }}
       >
-        <span>{branding.companyName} — generated {todayLabel()}</span>
+        <span>{branding.companyName} - generated {todayLabel()}</span>
         <span>Page {pageNumber} of {totalPages}</span>
       </div>
     </div>

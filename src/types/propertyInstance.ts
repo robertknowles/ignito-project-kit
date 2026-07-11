@@ -95,7 +95,7 @@ export interface PropertyInstanceDetails {
   /** Override for calculated land tax (null = use calculated value) */
   landTaxOverride: number | null;
 
-  /** Vacancy rate as % of rental income (e.g., 2 for 2%). Optional — UI surfaces it for per-property override; engine currently uses DEFAULT_VACANCY_RATE constant globally. */
+  /** Vacancy rate as % of rental income (e.g., 2 for 2%). Optional - UI surfaces it for per-property override; engine currently uses DEFAULT_VACANCY_RATE constant globally. */
   vacancyRate?: number;
 
   // Section F: Manual Placement (Drag-and-Drop)
@@ -118,7 +118,7 @@ export interface PropertyInstanceDetails {
   /**
    * Strategic configuration mode for the property type.
    * 'Growth' | 'Cashflow' for residential cells; 'HighCost' | 'LowCost' for commercial.
-   * Optional during the pivot — defaults inferred from the cell ID via propertyCells.ts.
+   * Optional during the pivot - defaults inferred from the cell ID via propertyCells.ts.
    */
   mode?: 'Growth' | 'Cashflow' | 'HighCost' | 'LowCost';
 
@@ -126,7 +126,7 @@ export interface PropertyInstanceDetails {
 
   entity?: 'individual' | 'trust' | 'company' | 'smsf';
 
-  /** New build vs established — new builds keep the CGT discount choice and the
+  /** New build vs established - new builds keep the CGT discount choice and the
    *  negative-gearing exemption under the proposed 2027 reform. Default established. */
   isNewBuild?: boolean;
 

@@ -21,7 +21,7 @@ import {
 } from './ReportShell';
 
 /**
- * NextPurchaseReport — single-property export for the Next Purchase Brief tab.
+ * NextPurchaseReport - single-property export for the Next Purchase Brief tab.
  *
  * Mirrors BriefTab's data flow exactly (same hooks, same derivations) so the
  * PDF is a faithful snapshot of the on-screen brief.
@@ -47,7 +47,7 @@ export const NextPurchaseReport: React.FC<{ meta: ReportMeta }> = ({ meta }) => 
       <ReportPage meta={meta} pageNumber={1} totalPages={1}>
         <Section title="Next purchase">
           <div style={{ fontSize: 12, color: RC.neutral400, padding: '12px 4px' }}>
-            No properties in the plan yet — add one to generate the brief.
+            No properties in the plan yet - add one to generate the brief.
           </div>
         </Section>
         <Disclaimer />

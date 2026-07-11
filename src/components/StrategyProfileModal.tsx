@@ -14,7 +14,7 @@ const PLACEHOLDER = `e.g. "One purchase every two years. High-capacity clients s
 
 const MAX_LENGTH = 2000
 
-/** Default name for a freshly added strategy — "Company Strategy N". */
+/** Default name for a freshly added strategy - "Company Strategy N". */
 const nextName = (profiles: StrategyProfile[]): string => {
   const used = new Set(profiles.map((p) => p.name.trim()))
   let n = profiles.length + 1
@@ -77,7 +77,7 @@ export const StrategyProfileModal: React.FC<StrategyProfileModalProps> = ({ isOp
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
           <p className="text-xs text-gray-500 leading-relaxed">
             Save the strategies your firm uses, in plain English. Pick one per client in the chat
-            input — the AI factors it into property selection, pricing and plan structure, and
+            input - the AI factors it into property selection, pricing and plan structure, and
             chooses the best-fit modelling approach from it and the client's brief.
             The more you spell out, the closer the plan lands: how purchase prices scale with a
             client's capacity, how often they buy, appetite for negative cashflow, when commercial
@@ -88,7 +88,7 @@ export const StrategyProfileModal: React.FC<StrategyProfileModalProps> = ({ isOp
             <div className="h-[160px] bg-gray-50 rounded-lg animate-pulse" />
           ) : draft.length === 0 ? (
             <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-4 py-6 text-center">
-              No strategies yet — add your first one below.
+              No strategies yet - add your first one below.
             </div>
           ) : (
             draft.map((p) => (

@@ -1,5 +1,5 @@
 /**
- * Change Receipt — Pipedrive-style change log for dashboard edits.
+ * Change Receipt - Pipedrive-style change log for dashboard edits.
  *
  * Editable tables call notifyEdit(source, detail) when the user changes a
  * value. The provider snapshots the headline plan metrics at that moment,
@@ -12,7 +12,7 @@
  * captured before the FIRST keystroke, and the cause line shows the original
  * value → the final value. Typing back to the original removes the entry.
  *
- * Only explicit notifyEdit calls produce entries — scenario loads and client
+ * Only explicit notifyEdit calls produce entries - scenario loads and client
  * switches never do.
  *
  * AI decisions (timing hints, dropped properties) from the plan-review brief
@@ -65,7 +65,7 @@ export interface ChangeLogEntry {
   id: number;
   /** Which table produced the edit, e.g. 'purchases' | 'existing-portfolio' | 'brief' */
   source: string;
-  /** Human cause line, e.g. "Marley St — Refi turned on" */
+  /** Human cause line, e.g. "Marley St - Refi turned on" */
   summary?: string;
   items: ReceiptItem[];
   timestamp: number;
@@ -86,20 +86,20 @@ const fmtDelta = formatDelta;
 
 /**
  * Compose a cause line for a field edit, e.g.
- *   "Marley St — Refi turned on"
- *   "Property 3 — Rent/wk ($) 480 → 520"
+ *   "Marley St - Refi turned on"
+ *   "Property 3 - Rent/wk ($) 480 → 520"
  */
 export function describeFieldEdit(subject: string, fieldLabel: string, from: unknown, to: unknown): string {
-  if (typeof to === 'boolean') return `${subject} — ${fieldLabel} turned ${to ? 'on' : 'off'}`;
-  // Years (2035) read wrong with separators — only localize genuinely big numbers
+  if (typeof to === 'boolean') return `${subject} - ${fieldLabel} turned ${to ? 'on' : 'off'}`;
+  // Years (2035) read wrong with separators - only localize genuinely big numbers
   const fmt = (v: unknown) =>
-    v === null || v === undefined || v === '' ? '—'
+    v === null || v === undefined || v === '' ? '-'
       : typeof v === 'number' ? (Math.abs(v) >= 10_000 ? v.toLocaleString('en-AU') : String(v))
       : String(v);
   if (from === null || from === undefined || from === '' || from === to) {
-    return `${subject} — ${fieldLabel} set to ${fmt(to)}`;
+    return `${subject} - ${fieldLabel} set to ${fmt(to)}`;
   }
-  return `${subject} — ${fieldLabel} ${fmt(from)} → ${fmt(to)}`;
+  return `${subject} - ${fieldLabel} ${fmt(from)} → ${fmt(to)}`;
 }
 
 const summarize = (detail?: EditDetail | string): string | undefined => {
@@ -154,9 +154,9 @@ export function diffMetrics(before: ReceiptMetrics, after: ReceiptMetrics): Rece
     const label = `Property ${i + 1}`;
     if (prev.year !== p.year) {
       if (p.year === null) items.push({ text: `${label} no longer fits within the timeline`, positive: false });
-      else if (prev.year === null) items.push({ text: `${label} now fits — buys in ${p.year}`, positive: true });
-      else if (p.year < prev.year) items.push({ text: `${label} can be purchased earlier — ${p.year} (was ${prev.year})`, positive: true });
-      else items.push({ text: `${label} must be purchased later — ${p.year} (was ${prev.year})`, positive: false });
+      else if (prev.year === null) items.push({ text: `${label} now fits - buys in ${p.year}`, positive: true });
+      else if (p.year < prev.year) items.push({ text: `${label} can be purchased earlier - ${p.year} (was ${prev.year})`, positive: true });
+      else items.push({ text: `${label} must be purchased later - ${p.year} (was ${prev.year})`, positive: false });
     }
     if (prev.challenging !== p.challenging) {
       items.push(
@@ -192,7 +192,7 @@ const NOOP_VALUE: ChangeReceiptContextValue = {
 
 const ChangeReceiptContext = createContext<ChangeReceiptContextValue | null>(null);
 
-/** Safe everywhere — a no-op outside the provider */
+/** Safe everywhere - a no-op outside the provider */
 export const useChangeReceipt = (): ChangeReceiptContextValue => {
   const ctx = useContext(ChangeReceiptContext);
   return ctx ?? NOOP_VALUE;
@@ -244,7 +244,7 @@ export const ChangeReceiptProvider: React.FC<{ metrics: ReceiptMetrics; children
       return;
     }
     const items = diffMetrics(pending.baseline, metrics);
-    if (items.length === 0) return; // engine may not have recomputed yet — keep waiting
+    if (items.length === 0) return; // engine may not have recomputed yet - keep waiting
     pendingRef.current = null;
 
     const now = Date.now();
@@ -252,7 +252,7 @@ export const ChangeReceiptProvider: React.FC<{ metrics: ReceiptMetrics; children
     const top = current[0];
     const key = mergeKeyOf(pending.source, pending.detail);
 
-    // Burst continuation: the previous entry was the same field moments ago —
+    // Burst continuation: the previous entry was the same field moments ago -
     // replace it, re-diffing against ITS pre-burst baseline.
     if (top && key && mergeKeyOf(top.source, top.detail) === key && now - top.timestamp < MERGE_WINDOW_MS) {
       const mergedDetail: EditDetail = {
@@ -261,7 +261,7 @@ export const ChangeReceiptProvider: React.FC<{ metrics: ReceiptMetrics; children
       };
       const mergedItems = diffMetrics(top.baseline, metrics);
       const rest = current.slice(1);
-      // Typed back to the original value — net zero, drop the entry entirely
+      // Typed back to the original value - net zero, drop the entry entirely
       const next = mergedItems.length === 0
         ? rest
         : [{ id: top.id, source: pending.source, summary: summarize(mergedDetail), items: mergedItems, timestamp: now, detail: mergedDetail, baseline: top.baseline }, ...rest];
@@ -279,7 +279,7 @@ export const ChangeReceiptProvider: React.FC<{ metrics: ReceiptMetrics; children
     if (!panelOpenRef.current) setUnreadCount(c => c + 1);
   }, [metrics]);
 
-  // Drain queued AI insights — on mount (the brief unmounts the provider, so
+  // Drain queued AI insights - on mount (the brief unmounts the provider, so
   // approve-time insights land here) and whenever a new one is queued live.
   useEffect(() => {
     const drain = () => {

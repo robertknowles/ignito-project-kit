@@ -145,7 +145,7 @@ export const StampDutyModal: React.FC<StampDutyModalProps> = ({ isOpen, onClose 
             </DialogTitle>
           </DialogHeader>
           <p className="text-[13px] text-neutral-500 mt-2 max-w-2xl">
-            Estimate the amount of tax you'll have to pay on your property purchase — whether you're an investor or an
+            Estimate the amount of tax you'll have to pay on your property purchase - whether you're an investor or an
             owner-occupier.
           </p>
 

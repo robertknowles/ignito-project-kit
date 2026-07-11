@@ -43,7 +43,7 @@ const Hero: React.FC = () => {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Center-aligned hero content */}
         <div className="flex flex-col items-center text-center">
-          {/* Announcement badge — matches UUI pattern exactly */}
+          {/* Announcement badge - matches UUI pattern exactly */}
           <button
             onClick={scrollToPricing}
             className="inline-flex items-center gap-2 mb-4 pl-3 pr-2.5 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer group"
@@ -76,7 +76,7 @@ const Hero: React.FC = () => {
           </div>
         </div>
 
-        {/* Dashboard Mockup — full-width, matches real dashboard */}
+        {/* Dashboard Mockup - full-width, matches real dashboard */}
         <div className="mt-16 sm:mt-20">
           <div className="rounded-[24px] sm:rounded-[32px] bg-white p-[3px] sm:p-1 shadow-lg ring-[1.5px] sm:ring-[2px] ring-inset ring-gray-300/60">
             <div className="rounded-[21px] sm:rounded-[28px] overflow-hidden shadow-[inset_0_0_4px_1.5px_rgba(10,13,18,0.08),inset_0_0_3px_1px_rgba(10,13,18,0.03)] bg-white">
@@ -188,7 +188,7 @@ const Hero: React.FC = () => {
                           <span className="text-[13px] text-gray-500">by 2045</span>
                         </div>
                       </div>
-                      {/* SVG Chart — no Y-axis, like real dashboard */}
+                      {/* SVG Chart - no Y-axis, like real dashboard */}
                       <div className="flex-1 relative px-4 pb-6 min-h-0">
                         <svg className="w-full h-full" viewBox="0 0 900 180" preserveAspectRatio="none">
                           {/* Faint grid lines */}
@@ -204,7 +204,7 @@ const Hero: React.FC = () => {
                           {/* Portfolio Value dashed line (above equity) */}
                           <path d="M15,155 C100,154 200,150 300,142 S500,120 600,100 S750,65 890,30" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeDasharray="6 3" />
 
-                          {/* Total Equity line — gentle slope matching real chart */}
+                          {/* Total Equity line - gentle slope matching real chart */}
                           <path d="M15,160 C100,159 200,156 300,150 S500,135 600,118 S750,85 890,45" fill="none" stroke="#7F56D9" strokeWidth="2" />
 
                           {/* Gradient fill */}
@@ -216,7 +216,7 @@ const Hero: React.FC = () => {
                           </defs>
                           <path d="M15,160 C100,159 200,156 300,150 S500,135 600,118 S750,85 890,45 L890,170 L15,170 Z" fill="url(#eqGrad2)" />
 
-                          {/* Purchase markers — circles */}
+                          {/* Purchase markers - circles */}
                           {[
                             { x: 55, y: 158 },
                             { x: 140, y: 155 },
@@ -227,7 +227,7 @@ const Hero: React.FC = () => {
                           ))}
                         </svg>
 
-                        {/* X-axis labels — every year */}
+                        {/* X-axis labels - every year */}
                         <div className="absolute bottom-1 left-[16px] right-[16px] flex justify-between text-[9px] text-gray-400 font-medium">
                           {['2026','2027','2028','2029','2030','2031','2032','2033','2034','2035','2036','2037','2038','2039','2040','2041','2042','2043','2044','2045'].map((year) => (
                             <span key={year}>{year}</span>
@@ -237,7 +237,7 @@ const Hero: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ── Cashflow Chart Card — full height ── */}
+                  {/* ── Cashflow Chart Card - full height ── */}
                   <div className="rounded-xl flex-1 flex flex-col" style={{ background: '#FAFAFA', boxShadow: '#E5E5E5 0px 0px 0px 1px inset, rgba(0,0,0,0.05) 0px 1px 2px 0px' }}>
                     <div className="px-5 pt-3 flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -281,7 +281,7 @@ const Hero: React.FC = () => {
                           <text x="398" y="14" textAnchor="middle" fill="white" fontSize="8" fontWeight="600" fontFamily="Inter">CF Positive ✓</text>
                           <line x1="398" y1="20" x2="398" y2="72" stroke="#7F56D9" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                          {/* Net cashflow line — starts slightly negative, curves up */}
+                          {/* Net cashflow line - starts slightly negative, curves up */}
                           <path d="M15,95 C100,97 200,98 300,95 S420,78 500,68 S650,45 800,28 L890,18" fill="none" stroke="#7F56D9" strokeWidth="2" />
 
                           {/* Gradient fill instead of stripes for cleaner rendering */}
@@ -308,9 +308,9 @@ const Hero: React.FC = () => {
                   </div>
                 </div>
 
-                {/* PropPath AI Chat — matches real chat panel */}
+                {/* PropPath AI Chat - matches real chat panel */}
                 <div className="absolute bottom-4 right-4 w-[340px] bg-white rounded-2xl shadow-[0px_20px_24px_-4px_rgba(0,0,0,0.08),0px_8px_8px_-4px_rgba(0,0,0,0.03)] overflow-hidden hidden sm:block" style={{ border: '1px solid #E5E5E5' }}>
-                  {/* Header — green dot, title, grid + close icons */}
+                  {/* Header - green dot, title, grid + close icons */}
                   <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#7F56D9]" />
@@ -329,13 +329,13 @@ const Hero: React.FC = () => {
 
                   {/* Messages */}
                   <div className="px-5 py-3 space-y-3">
-                    {/* User message — right aligned, grey pill */}
+                    {/* User message - right aligned, grey pill */}
                     <div className="flex justify-end">
                       <div className="bg-[#F5F5F5] rounded-full px-4 py-2 text-[12px] text-gray-700 max-w-[85%]">
                         John. 2m borrowing cap. 200k income. 200k deposit
                       </div>
                     </div>
-                    {/* System response — left aligned, white bg, paragraph style */}
+                    {/* System response - left aligned, white bg, paragraph style */}
                     <div>
                       <div className="bg-white rounded-xl px-4 py-3 text-[11px] text-gray-700 leading-[1.6] border border-gray-100">
                         Built a 4-property equity-growth plan for John across QLD, VIC, and NSW. With $200k income, $2M borrowing capacity, and $200k deposit, he's well positioned to move quickly on the first property.

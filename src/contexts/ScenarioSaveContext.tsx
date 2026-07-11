@@ -100,7 +100,7 @@ export interface ScenarioData {
   onboardingCompleted?: boolean;
   onboardingCompletedAt?: string;
   lastSaved: string;
-  // NL Chat history — persists conversation with scenario
+  // NL Chat history - persists conversation with scenario
   chatHistory?: ChatMessage[];
   // Multi-scenario comparison data
   comparisonMode?: boolean;
@@ -136,7 +136,7 @@ interface ScenarioSaveContextType {
   /**
    * True while a chat request is in flight (plan generation, modification,
    * explanation). Lifted to this context (which lives above the route layer)
-   * so other components — notably the tab nav in TopBar — can react to it
+   * so other components - notably the tab nav in TopBar - can react to it
    * across route changes. Without this, switching tabs mid-request remounts
    * ChatPanel and orphans the in-flight fetch in the unmounted component's
    * closure, causing visible glitches and dropped responses.
@@ -200,7 +200,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // still stale from the previous one.
   const [loadedScenarioClientId, setLoadedScenarioClientId] = useState<number | null>(null);
   // Optimistic concurrency: capture the version at load time, increment on successful save.
-  // If a save fails because DB version no longer matches, another tab won — reload.
+  // If a save fails because DB version no longer matches, another tab won - reload.
   const [loadedVersion, setLoadedVersion] = useState<number>(0);
   // Pause change-detection during a load so we don't briefly flag a freshly-loaded scenario as "unsaved".
   const [isLoadingScenario, setIsLoadingScenario] = useState<boolean>(false);
@@ -269,7 +269,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    // Block saves while a load is in flight — the in-memory state is
+    // Block saves while a load is in flight - the in-memory state is
     // mid-transition and would overwrite the DB with partial/empty data.
     if (loadInProgressRef.current) {
       return;
@@ -323,7 +323,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // scenarios.data.portfolioTracking via their own savePortfolioTracking
       // helper. Without this merge, our autosave would build scenarioData from
       // in-memory state (which has no portfolioTracking) and stomp those
-      // writes — that's the "marked as purchased turns back off after nav"
+      // writes - that's the "marked as purchased turns back off after nav"
       // bug (cofounder report 2026-05-05).
       //
       // Preserve any unmanaged keys from the existing DB row. Managed keys
@@ -384,7 +384,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (error) throw error;
 
         if (!updated || updated.length === 0) {
-          // Version conflict — another tab saved while we were editing.
+          // Version conflict - another tab saved while we were editing.
           // Reload so the user sees the freshest state.
           if (!silent) {
             toast({
@@ -398,7 +398,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         setLoadedVersion(updated[0].version);
       } else {
-        // No scenarioId in state. Defensive pre-check in case state and DB drifted —
+        // No scenarioId in state. Defensive pre-check in case state and DB drifted -
         // if a row exists we should reload, not insert a duplicate.
         const { data: existing, error: existingError } = await supabase
           .from('scenarios')
@@ -419,7 +419,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return;
         }
 
-        // Truly new — INSERT with version 0
+        // Truly new - INSERT with version 0
         const { data: newScenario, error } = await supabase
           .from('scenarios')
           .insert({
@@ -490,7 +490,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     loadInProgressRef.current = true;
     setIsLoadingScenario(true);
-    // Eager-clear chat history ONLY when switching to a different client —
+    // Eager-clear chat history ONLY when switching to a different client -
     // otherwise (self-heal recovery, same-client reload from save conflict)
     // we'd wipe in-memory chat messages that haven't been autosaved yet,
     // making the user's last message vanish on navigation. Same-client
@@ -498,7 +498,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // it's at least as long (see chat-restore block below).
     //
     // Use loadedClientRef.current (the LAST client we initiated a load for)
-    // rather than activeClient?.id from the closure — the closure can be
+    // rather than activeClient?.id from the closure - the closure can be
     // stale because loadClientScenario isn't redeclared on every activeClient
     // change. When the parent effect fires loadClientScenario(client2) right
     // after setActiveClient(client2), the closure here may still see
@@ -550,7 +550,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!data) {
         // No saved scenario for this client. Wipe selections/instances/profile
         // ONLY when this is a real client switch (not a self-heal of the
-        // same client) — for self-heal we preserve in-memory state because
+        // same client) - for self-heal we preserve in-memory state because
         // the user may have unsaved chat-driven data they're about to save.
         // Replaces AgentHome's previous synchronous reset, which raced with
         // the autosave timer for the OUTGOING client and could clobber its
@@ -608,7 +608,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // Apply selections + propertyOrder atomically to avoid a window
         // where resetSelections() has cleared state but setPropertyOrder()
-        // hasn't fired yet — that window let autosave write empty state.
+        // hasn't fired yet - that window let autosave write empty state.
         setAllSelections(translatedSelections, resolvedOrder);
 
         // Apply investment profile
@@ -638,7 +638,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // Restore NL chat history. On a same-client reload (recovery path),
         // only adopt the DB version if it's at least as long as what's in
-        // memory — otherwise an autosave that hadn't fired yet would have
+        // memory - otherwise an autosave that hadn't fired yet would have
         // its in-memory chat overwritten by stale DB data, making the user's
         // last message disappear on navigation.
         if (scenarioData.chatHistory && scenarioData.chatHistory.length > 0) {
@@ -652,7 +652,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } else if (!isSameClientReload) {
           setChatMessages([]);
         }
-        // (else: same-client reload with no DB chat — keep whatever's in memory)
+        // (else: same-client reload with no DB chat - keep whatever's in memory)
 
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
@@ -663,7 +663,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         //
         // The pattern: propertyInstances populated, propertyOrder/
         // propertySelections empty. This is what a partial-write during
-        // a client transition leaves behind — instances + chatHistory +
+        // a client transition leaves behind - instances + chatHistory +
         // portfolioTracking survive (separate writers), but the managed
         // keys saveScenario controls were overwritten with empty state.
         //
@@ -710,7 +710,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
               autoRepairAttemptedRef.current = null;
               // Re-run loadClientScenario so the freshly-repaired row
               // populates in-memory state. Skip if the user already
-              // navigated away — loadInProgressRef will short-circuit
+              // navigated away - loadInProgressRef will short-circuit
               // a stale call anyway.
               await loadClientScenarioRef.current?.(clientId);
             })();
@@ -724,7 +724,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         return scenarioData;
       } else {
-        // Row exists but has no `data` payload — treat the same as no saved
+        // Row exists but has no `data` payload - treat the same as no saved
         // scenario: blank slate.
         setLastSavedData(null);
         setLastSaved(null);
@@ -830,7 +830,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     try {
       // Query scenarios by client_user_id. maybeSingle so a no-rows case
-      // returns null cleanly — see loadClientScenario for why .single() was
+      // returns null cleanly - see loadClientScenario for why .single() was
       // a 15-second auth-retry stall.
       const { data, error } = await supabase
         .from('scenarios')
@@ -845,7 +845,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       if (!data) {
-        // No scenario for this client user — full blank slate.
+        // No scenario for this client user - full blank slate.
         setNoScenarioForClient(true);
         setLastSavedData(null);
         setLastSaved(null);
@@ -946,7 +946,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reset the load guard when the auth user changes (logout/login). Without
   // this, logout-then-login leaves loadedClientRef pointing at the previous
   // session's client id, so the load effect below silently skips the
-  // re-fetch — and any client-side wipe to the contexts during logout (e.g.
+  // re-fetch - and any client-side wipe to the contexts during logout (e.g.
   // future cleanup we add, or framework-level state churn) leaves the
   // dashboard blank with no recovery path.
   useEffect(() => {
@@ -969,7 +969,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // holds the row and chat history is intact. Reproduced across multiple
   // navigation pathways (cofounder report 2026-05-04, 2026-05-05).
   //
-  // Root cause is hard to pin down — could be transient context churn, a child
+  // Root cause is hard to pin down - could be transient context churn, a child
   // provider remount, or a stale closure. Rather than chase per-page, we detect
   // the empty-state-with-saved-row condition at the context level and refetch.
   //
@@ -980,14 +980,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   //  - no load is currently in flight
   //  - role is owner/agent (client sandbox has its own loader)
   //
-  // Covers all entry pathways automatically — Dashboard, Portfolio, Retirement,
+  // Covers all entry pathways automatically - Dashboard, Portfolio, Retirement,
   // Settings, DataAssumptions, the property detail modal, and any future page
   // that reads scenario state. loadInProgressRef inside loadClientScenario
   // guards against concurrent calls if a route-level recovery also fires.
   // Track which (client, scenario) pair we've already attempted recovery on.
   // Without this, scenarios with corrupt data (chatHistory present but
   // propertyOrder/propertySelections genuinely empty in the DB row) cause
-  // the self-heal to loop infinitely — fetch returns the same empty data,
+  // the self-heal to loop infinitely - fetch returns the same empty data,
   // propertyOrder.length stays 0, loadInProgressRef + isLoadingScenario
   // toggle false, effect re-fires, repeat forever (cofounder report
   // 2026-05-06: hundreds of identical GETs to /scenarios on Lucy click).
@@ -1009,7 +1009,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const changeDetectionTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Don't run change-detection while a load is in flight — the freshly-loaded
+    // Don't run change-detection while a load is in flight - the freshly-loaded
     // state needs a moment to settle before it makes sense to compare against
     // lastSavedData. Without this, we briefly flash hasUnsavedChanges=true on
     // a scenario the user just opened.
@@ -1060,7 +1060,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Autosave: when there are unsaved changes, persist them silently after a
   // short debounce. This means scenarios are durable as soon as the chat
-  // generates a plan or the user touches a property card — no manual Save click
+  // generates a plan or the user touches a property card - no manual Save click
   // required. Reset is the only way to clear the saved state.
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -1074,7 +1074,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     autosaveTimerRef.current = setTimeout(() => {
       autosaveTimerRef.current = null;
-      // Fire and forget — saveScenario handles its own errors.
+      // Fire and forget - saveScenario handles its own errors.
       void saveScenario(true);
     }, 250);
 
@@ -1086,7 +1086,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [hasUnsavedChanges, role, activeClient, isLoadingScenario, saveScenario]);
 
-  // beforeunload safety net — only fires if a user closes the tab DURING the
+  // beforeunload safety net - only fires if a user closes the tab DURING the
   // 1s autosave debounce window. With autosave wired up, this should rarely
   // trigger, but it prevents silent data loss in the edge case.
   useEffect(() => {

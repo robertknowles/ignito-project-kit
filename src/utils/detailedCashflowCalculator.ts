@@ -22,7 +22,7 @@ export interface CashflowBreakdown {
   principalPayments: number;
   totalNonDeductibleExpenses: number;
 
-  // Deductions (kept on the breakdown for backward compatibility — always 0 now)
+  // Deductions (kept on the breakdown for backward compatibility - always 0 now)
   potentialDeductions: number;
 
   // Net
@@ -45,10 +45,10 @@ export function calculateDetailedCashflow(
    */
   profileVacancyDefault?: number
 ): CashflowBreakdown {
-  // Income — vacancy resolution order:
-  //   1. Per-instance property.vacancyRate (PropertyDetailPanel slider) — percentage form
-  //   2. Profile-level profileVacancyDefault (Assumptions page) — decimal form
-  //   3. Platform DEFAULT_VACANCY_RATE — decimal form
+  // Income - vacancy resolution order:
+  //   1. Per-instance property.vacancyRate (PropertyDetailPanel slider) - percentage form
+  //   2. Profile-level profileVacancyDefault (Assumptions page) - decimal form
+  //   3. Platform DEFAULT_VACANCY_RATE - decimal form
   const weeklyRent = property.rentPerWeek;
   const computedGrossAnnualIncome = weeklyRent * 52;
   const grossAnnualIncome = property.grossAnnualIncomeOverride ?? computedGrossAnnualIncome;

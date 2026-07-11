@@ -2,9 +2,9 @@
  * Centralized Chart Color Palette
  *
  * SINGLE SOURCE OF TRUTH for all chart and data visualization colors.
- * DO NOT define chart colors elsewhere — always import from this file.
+ * DO NOT define chart colors elsewhere - always import from this file.
  *
- * Design: PropPath design system — ONE violet accent (§1.1) over a four-step
+ * Design: PropPath design system - ONE violet accent (§1.1) over a four-step
  * grey ramp (§1.2). Violet `#7C3AED` (ink: text/interactive/markers) and
  * `#8B5CF6` (fill: chart lines/areas); tints `#F5F3FF` / `#EDE9FE` / `#D9D2F2`.
  * Grey = axis/scaffolding only; violet = data. Property series use violet
@@ -12,24 +12,24 @@
  */
 
 // =============================================================================
-// SYSTEM TOKENS — the violet accent + grey ramp, defined once
+// SYSTEM TOKENS - the violet accent + grey ramp, defined once
 // =============================================================================
 
 /** Violet accent family (PropPath §1.1). */
 const VIOLET = {
-  ink: '#7C3AED',    // violet-600 — text / interactive / markers
-  fill: '#8B5CF6',   // violet-500 — chart lines & area fills (hero)
-  light: '#A78BFA',  // violet-400 — lighter / secondary series
-  tint: '#D9D2F2',   // violet tint — "out"/secondary bars (§3.7/§3.10)
+  ink: '#7C3AED',    // violet-600 - text / interactive / markers
+  fill: '#8B5CF6',   // violet-500 - chart lines & area fills (hero)
+  light: '#A78BFA',  // violet-400 - lighter / secondary series
+  tint: '#D9D2F2',   // violet tint - "out"/secondary bars (§3.7/§3.10)
   tint100: '#EDE9FE',// violet-100
-  tint50: '#F5F3FF', // violet-50 — surface tint, .editable hover pill (§2.7)
+  tint50: '#F5F3FF', // violet-50 - surface tint, .editable hover pill (§2.7)
 } as const;
 
 /** RGB triplets for rgba() fills. */
 const INK_RGB = '124, 58, 237';   // #7C3AED
 const FILL_RGB = '139, 92, 246';  // #8B5CF6
 
-/** Grey ramp — scaffolding only (§1.2, §3.x chart greys). */
+/** Grey ramp - scaffolding only (§1.2, §3.x chart greys). */
 const GREY = {
   axis: '#A1A1AA',      // chart axis / ticks (§3.5)
   gridline: '#F0F1F4',  // value gridlines (§3.9)
@@ -43,14 +43,14 @@ const GREY = {
   labelText: '#535862', // secondary label text
 } as const;
 
-/** Semantic — financial SIGN only, never decorative (§1.3). */
+/** Semantic - financial SIGN only, never decorative (§1.3). */
 const SEMANTIC = {
   positive: '#17B26A',
   negative: '#F04438',
 } as const;
 
 // =============================================================================
-// PROPERTY COLOURS — violet weight ramp (one accent, no foreign hues)
+// PROPERTY COLOURS - violet weight ramp (one accent, no foreign hues)
 // =============================================================================
 
 export const PROPERTY_COLORS = [
@@ -66,11 +66,11 @@ export const PROPERTY_COLORS = [
 
 export const CHART_COLORS = {
   // ── Core line colors ───────────────────────────────────────────────
-  /** Primary line — portfolio value, main metric (hero violet) */
+  /** Primary line - portfolio value, main metric (hero violet) */
   primary: VIOLET.fill,
-  /** Secondary line — equity, second series */
+  /** Secondary line - equity, second series */
   secondary: VIOLET.light,
-  /** Tertiary line — debt, background series (dashed grey) */
+  /** Tertiary line - debt, background series (dashed grey) */
   tertiary: GREY.reference,
 
   // Semantic (chart series; sign lives on figures, lines stay accent/grey)
@@ -79,13 +79,13 @@ export const CHART_COLORS = {
   net: VIOLET.fill,
 
   // ── Property lines (violet weight ramp) ───────────────────────────
-  // One accent — differentiated by weight, not hue
+  // One accent - differentiated by weight, not hue
   property1: '#6D28D9',  // violet-700
   property2: '#7C3AED',  // violet-600
   property3: '#8B5CF6',  // violet-500
   property4: '#A78BFA',  // violet-400
 
-  // Legacy aliases — map to the violet family
+  // Legacy aliases - map to the violet family
   lineBlue: VIOLET.ink,
   linePurple: VIOLET.fill,
   lineAqua: VIOLET.light,

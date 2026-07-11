@@ -1,5 +1,5 @@
 /**
- * usePortfolioProjection — Unified projection engine.
+ * usePortfolioProjection - Unified projection engine.
  *
  * Replaces three separate hooks that previously computed year-by-year
  * projections independently (useChartDataGenerator, useRoadmapData,
@@ -37,7 +37,7 @@ import {
 } from '../engine/projectionEngine';
 
 // ─────────────────────────────────────────────────────────────
-// Types — moved verbatim to the pure engine (src/engine/projectionEngine.ts).
+// Types - moved verbatim to the pure engine (src/engine/projectionEngine.ts).
 // Re-exported here so existing import sites keep working unchanged.
 // ─────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ export const usePortfolioProjection = (
 
   // ───────────────────────────────────────────────────────────
   // SINGLE COMPUTATION PASS
-  // Moved verbatim to src/engine/projectionEngine.ts — this hook
+  // Moved verbatim to src/engine/projectionEngine.ts - this hook
   // is now a thin context adapter over the pure engine.
   // ───────────────────────────────────────────────────────────
   const projectionResult = useMemo((): PortfolioProjectionResult => {

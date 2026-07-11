@@ -13,11 +13,11 @@ export interface RetirementPropertyProjection {
   title: string;
   propertyType: string | null;
   purchasePrice: number;
-  /** Acquisition costs (stamp duty, LMI, legal, etc.) — cost-base add-on */
+  /** Acquisition costs (stamp duty, LMI, legal, etc.) - cost-base add-on */
   acquisitionCosts: number;
   /** CGT cost base = purchasePrice + acquisitionCosts */
   costBase: number;
-  /** Ownership entity (drives CGT treatment — smsf uses its own discount) */
+  /** Ownership entity (drives CGT treatment - smsf uses its own discount) */
   entity?: 'individual' | 'trust' | 'company' | 'smsf';
   /** New build (may choose either CGT method) */
   isNewBuild?: boolean;
@@ -68,17 +68,20 @@ export interface RetirementSummary {
  * Projects all feasible properties forward to a retirement year,
  * then calculates sell/hold outcomes.
  *
- * Uses projectPropertyTimeline() — NO duplicate calculation logic.
+ * Uses projectPropertyTimeline() - NO duplicate calculation logic.
  */
 export function useRetirementProjection(
   timelineProperties: TimelineProperty[],
   profile: InvestmentProfileData,
   retirementYears: number,
-  soldIds: Set<string>,
+  saleYearById: Record<string, number>,
   getInstance?: (instanceId: string) => PropertyInstanceDetails | undefined,
   existingProperties: ExistingProperty[] = [],
 ): RetirementSummary {
   return useMemo(() => {
+    // Each key in saleYearById is a property flagged to be sold, mapped to the
+    // year it's sold in. Held properties simply have no entry.
+    const soldIds = new Set(Object.keys(saleYearById));
     const feasible = timelineProperties.filter(p => p.status === 'feasible');
 
     if (feasible.length === 0 && existingProperties.length === 0) {
@@ -120,6 +123,13 @@ export function useRetirementProjection(
 
       // Get the last snapshot (retirement year)
       const lastSnapshot = projected.snapshots[projected.snapshots.length - 1];
+
+      // Value the property at ITS OWN sale year when it's being sold, so its
+      // price is locked to that year rather than the shared retirement year.
+      // Held properties (no sale year) keep the retirement-year snapshot.
+      const valuationYear = saleYearById[prop.instanceId] ?? retirementYear;
+      const saleSnapshot =
+        projected.snapshots.find(s => s.year === valuationYear) ?? lastSnapshot;
 
       if (!lastSnapshot) {
         return {
@@ -193,9 +203,9 @@ export function useRetirementProjection(
         isNewBuild,
         purchaseYear: propPurchaseYear,
         purchasedByRetirement,
-        futureValue: lastSnapshot.propertyValue,
-        futureDebt: lastSnapshot.loanBalance,
-        futureEquity: lastSnapshot.propertyValue - lastSnapshot.loanBalance,
+        futureValue: saleSnapshot.propertyValue,
+        futureDebt: saleSnapshot.loanBalance,
+        futureEquity: saleSnapshot.propertyValue - saleSnapshot.loanBalance,
         annualCashflow: Math.round(annualCashflow),
         annualRent: lastSnapshot.annualRent,
         annualCosts: lastSnapshot.annualTotalCosts,
@@ -206,7 +216,7 @@ export function useRetirementProjection(
     // These aren't in the timeline (which only models *future* purchases), so
     // we project them forward from today's value to the retirement year. The
     // real acquisition year (boughtYear) is kept for CGT cost base, holding
-    // period and grandfathering — most are pre-2027 → keep the 50% discount.
+    // period and grandfathering - most are pre-2027 → keep the 50% discount.
     const existingProjections: RetirementPropertyProjection[] = existingProperties.map(ep => {
       const boughtYear = ep.boughtYear && ep.boughtYear > 0 ? ep.boughtYear : BASE_YEAR;
       const currentValue = ep.currentValue || ep.purchasePrice || 0;
@@ -232,8 +242,11 @@ export function useRetirementProjection(
         profile.rentEscalationRate ?? 0.05,
       );
       const last = projected.snapshots[projected.snapshots.length - 1];
-      const futureValue = last ? last.propertyValue : currentValue;
-      const futureDebt = last ? last.loanBalance : (ep.loan ?? 0);
+      // Lock value/debt to the property's own sale year when it's being sold.
+      const valuationYear = saleYearById[ep.id] ?? retirementYear;
+      const saleSnap = projected.snapshots.find(s => s.year === valuationYear) ?? last;
+      const futureValue = saleSnap ? saleSnap.propertyValue : currentValue;
+      const futureDebt = saleSnap ? saleSnap.loanBalance : (ep.loan ?? 0);
 
       // Cashflow grown from today's rent/expenses (existing-property values are
       // current, so escalate over years-from-now, not from acquisition).
@@ -288,7 +301,7 @@ export function useRetirementProjection(
     //   • Cash in hand   = sale proceeds (equity released by sold properties)
     //   • Debt remaining = debt still owed on held properties
     //   • Equity retained= equity locked in held properties (value − debt)
-    // Sale cash is NOT netted against held debt — the BA decides what to do
+    // Sale cash is NOT netted against held debt - the BA decides what to do
     // with the cash separately, so both numbers are shown at face value.
     const cashInHand = sold.reduce((sum, p) => sum + Math.max(0, p.futureEquity), 0);
     const portfolioValue = held.reduce((sum, p) => sum + p.futureValue, 0);
@@ -331,5 +344,5 @@ export function useRetirementProjection(
       zoneName,
       chipLabel,
     };
-  }, [timelineProperties, profile, retirementYears, soldIds, getInstance, existingProperties]);
+  }, [timelineProperties, profile, retirementYears, saleYearById, getInstance, existingProperties]);
 }

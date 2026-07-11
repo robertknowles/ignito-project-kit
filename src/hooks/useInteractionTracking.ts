@@ -47,8 +47,8 @@ export function useChartHoverTracking(
 
 /**
  * Tracks how long a user stays on each tab within a section. Pass the current
- * active tab; whenever it changes — and when the component unmounts or the
- * page is hidden — it fires `tab_viewed` for the tab being left, with the
+ * active tab; whenever it changes - and when the component unmounts or the
+ * page is hidden - it fires `tab_viewed` for the tab being left, with the
  * seconds spent on it. `section` namespaces the tabs (e.g. 'main_tab',
  * 'brief_subtab') so the same tab name in different places doesn't collide.
  */

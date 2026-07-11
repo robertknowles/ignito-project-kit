@@ -1,32 +1,41 @@
 import React from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { RetirementPropertyProjection } from './useRetirementProjection'
 import type { CgtMethod, SaleBreakdown } from './saleBreakdown'
 import { InfoPopover } from './InfoPopover'
 import {
-  CGT_METHOD_EXPLAINER,
   COMPLIANCE_FOOTER,
   DETAIL_EXPLAINERS,
 } from './retirementExplainers'
 
 /**
- * Retirement sell-down — Sale breakdown panel (presentational).
+ * Retirement sell-down - Tax and sale details (presentational).
  *
- * Reveals how each sold property's sale price becomes net cash: a waterfall
- * (sale price → selling costs → loan payout → cash before tax → CGT → net cash)
- * with the scenario assumptions (CGT method + tax rate) living once in the
- * header and applying to every sold property.
+ * One column per sold property, rows walking sale price → selling costs → loan
+ * payout → estimated CGT → net cash released. Each property carries a CGT
+ * treatment badge (auto from its hold period / ownership; click to change).
+ * The scenario-wide default method + marginal tax rate live once in the header.
  *
- * Compliance (spec §2): both CGT methods are shown side by side, neutrally —
- * no method is labelled better. The not-tax-advice footer is always present.
+ * Compliance (spec §2): treatments are modelled neutrally - no method is
+ * labelled better - and the not-tax-advice footer is always present.
  */
 
 const BRAND = '#7F56D9'
-const INDIGO = '#4F46E5'
+const GREEN = '#067647'
+const AMBER = '#B54708'
 const INTER = 'Inter, system-ui, sans-serif'
 
 /** Full money with thousands separators (en-AU). */
-const fmtFull = (value: number): string =>
-  `$${Math.round(value).toLocaleString('en-AU')}`
+const fmtFull = (value: number): string => `$${Math.round(value).toLocaleString('en-AU')}`
+
+/** Compact money - for the header total. */
+const fmtCompact = (value: number): string => {
+  const abs = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+  if (abs >= 1_000_000) return `${sign}$${Math.round((abs / 1_000_000) * 100) / 100}M`
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`
+  return `${sign}$${Math.round(abs)}`
+}
 
 // Current AU resident marginal rates (2024-25). Plain figures are ex-Medicare
 // (30/37/45); the +2% variants (32/39/47) fold in the 2% Medicare levy.
@@ -39,211 +48,184 @@ export interface SaleBreakdownEntry {
 
 interface SaleBreakdownSectionProps {
   breakdowns: SaleBreakdownEntry[]
-  /** Override the CGT method for one property (defaults follow its buy year). */
-  onMethod: (instanceId: string, m: CgtMethod) => void
+  /** Stable "Prop N" numbers shared with the property cards. */
+  numberById: Map<string, number>
+  /** The year each property is sold in - shown under its column header. */
+  saleYearById?: Map<string, number>
+  /** Cycle one property's CGT method (discount ↔ indexation). SMSF ignores this. */
+  onCycleMethod: (instanceId: string, current: CgtMethod) => void
   taxRatePct: number
   onTaxRate: (pct: number) => void
-  activeTab: string | null
-  onTab: (instanceId: string) => void
+  /** Sum of selling costs + CGT across all sold properties (header total). */
+  totalTaxAndCosts: number
+  open: boolean
+  onToggle: () => void
+}
+
+/** CGT treatment badge - colour + label from the applied method / SMSF. */
+const treatmentBadge = (d: SaleBreakdown): { label: string; color: string; bg: string } => {
+  if (d.ledger === 'smsf') return { label: 'Super rate', color: BRAND, bg: 'rgba(127, 86, 217, 0.10)' }
+  if (d.appliedMethod === 'discount') return { label: '50% discount', color: GREEN, bg: 'rgba(6, 118, 71, 0.10)' }
+  return { label: 'Indexation', color: AMBER, bg: 'rgba(181, 71, 8, 0.10)' }
 }
 
 export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
   breakdowns,
-  onMethod,
+  numberById,
+  saleYearById,
+  onCycleMethod,
   taxRatePct,
   onTaxRate,
-  activeTab,
-  onTab,
+  totalTaxAndCosts,
+  open,
+  onToggle,
 }) => {
   if (breakdowns.length === 0) return null
 
-  // Map instanceId → index for stable "Prop N" labels matching the card grid.
-  const indexById = new Map(breakdowns.map((b, i) => [b.prop.instanceId, i]))
-  const selected =
-    breakdowns.find(b => b.prop.instanceId === activeTab) ?? breakdowns[0]
-  const d = selected.data
-  const isSmsf = d.ledger === 'smsf'
-
-  // The selected property's applied method (grandfathering / SMSF aware) drives
-  // the waterfall + the active toggle state. Each property defaults to its
-  // grandfathered method; the BA can override to model a not-yet-law scenario.
-  const appliedMethod = d.appliedMethod
-
   return (
-    <div className="rounded-xl border border-[#E9EAEB] bg-[#FCFCFD]">
-      {/* ── Header: title + assumptions ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <span className="text-[15px] font-semibold text-[#181D27]">Sale breakdown</span>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center text-[13px] text-[#535862]">
-            CGT method
-            <InfoPopover
-              title={CGT_METHOD_EXPLAINER.title}
-              body={CGT_METHOD_EXPLAINER.body}
-              caveat={CGT_METHOD_EXPLAINER.caveat}
-              align="end"
-            />
+    <div className="rounded-2xl border border-[#E9EAEB] bg-white" style={{ fontFamily: INTER }}>
+      {/* ── Header: title + total + collapse toggle ─────────────────────── */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
+      >
+        <span className="text-[15px] font-semibold text-[#181D27]">Tax and sale details</span>
+        <span className="flex items-center gap-2">
+          <span className="text-[13px] text-[#717680]">
+            <span className="font-semibold text-[#181D27]">{fmtCompact(totalTaxAndCosts)}</span> total tax and costs
           </span>
+          {open ? <ChevronUp size={16} className="text-[#717680]" /> : <ChevronDown size={16} className="text-[#717680]" />}
+        </span>
+      </button>
 
-          {/* The selected property's method is set automatically by its buy year
-              (grandfathering); the BA can still flip it to model a not-yet-law
-              scenario. SMSF can't elect, so its toggle is read-only. */}
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-[#E9EAEB] bg-[#F5F5F5] p-0.5">
-            {([
-              ['discount', '50% discount'],
-              ['indexation', 'Indexation'],
-            ] as [CgtMethod, string][]).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                disabled={isSmsf}
-                onClick={() => onMethod(selected.prop.instanceId, m)}
-                className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                  appliedMethod === m && !isSmsf
-                    ? 'bg-white text-neutral-900 shadow-sm'
-                    : 'text-neutral-500 hover:text-neutral-700'
-                } ${isSmsf ? 'cursor-not-allowed opacity-50 hover:text-neutral-500' : ''}`}
-              >
-                {label}
-              </button>
-            ))}
+      {open && (
+        <>
+          {/* ── Per-property table ──────────────────────────────────────── */}
+          <div className="overflow-x-auto border-t border-[#F2F2F4] px-6 pb-2 pt-4">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-white py-2 pr-4 text-left align-bottom">
+                    {/* Marginal tax rate lives here so it hugs the CGT treatment row (no dead space). */}
+                    <span className="flex items-center gap-2">
+                      <span className="flex items-center text-[13px] font-normal text-[#535862]">
+                        Marginal tax rate
+                        <InfoPopover title={DETAIL_EXPLAINERS.marginalRate.title} body={DETAIL_EXPLAINERS.marginalRate.body} />
+                      </span>
+                      <select
+                        value={taxRatePct}
+                        onChange={e => onTaxRate(Number(e.target.value))}
+                        className="rounded-lg border border-[#D5D7DA] bg-white px-2 py-1 text-[12.5px] text-[#181D27] outline-none focus:border-[#98A2B3]"
+                      >
+                        {TAX_RATE_OPTIONS.map(pct => (
+                          <option key={pct} value={pct}>{pct}%</option>
+                        ))}
+                      </select>
+                    </span>
+                  </th>
+                  {breakdowns.map(b => {
+                    const saleYear = saleYearById?.get(b.prop.instanceId)
+                    return (
+                      <th
+                        key={b.prop.instanceId}
+                        className="min-w-[128px] py-2 pl-4 text-right align-bottom text-[13px] font-semibold text-[#181D27]"
+                      >
+                        Prop {numberById.get(b.prop.instanceId)}
+                        {saleYear != null && (
+                          <span className="mt-0.5 block text-[11px] font-medium text-[#717680]">Sold {saleYear}</span>
+                        )}
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {/* CGT treatment badges */}
+                <tr className="border-t border-[#F2F2F4]">
+                  <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] text-[#535862]">CGT treatment</td>
+                  {breakdowns.map(b => {
+                    const badge = treatmentBadge(b.data)
+                    const isSmsf = b.data.ledger === 'smsf'
+                    return (
+                      <td key={b.prop.instanceId} className="py-3 pl-4 text-right align-top">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            disabled={isSmsf}
+                            onClick={() => onCycleMethod(b.prop.instanceId, b.data.appliedMethod)}
+                            title={isSmsf ? 'SMSF keeps its own treatment' : 'Click to change the CGT method'}
+                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-opacity ${
+                              isSmsf ? 'cursor-default' : 'cursor-pointer hover:opacity-80'
+                            }`}
+                            style={{ backgroundColor: badge.bg, color: badge.color }}
+                          >
+                            {badge.label}
+                            {!isSmsf && <ChevronDown size={12} style={{ color: badge.color }} />}
+                          </button>
+                        </div>
+                      </td>
+                    )
+                  })}
+                </tr>
+
+                <ValueRow label="Sale price" breakdowns={breakdowns} pick={d => fmtFull(d.salePrice)} />
+                <ValueRow label="Selling costs" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.sellingCosts)}`} muted />
+                <ValueRow label="Loan payout" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.loanPayout)}`} muted />
+                <ValueRow label="Estimated CGT" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.activeCgt)}`} muted />
+
+                {/* Net cash released - highlighted */}
+                <tr className="border-t border-[#E9EAEB]">
+                  <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] font-semibold" style={{ color: BRAND }}>
+                    Net cash released
+                  </td>
+                  {breakdowns.map(b => (
+                    <td
+                      key={b.prop.instanceId}
+                      className="py-3 pl-4 text-right text-[15px] font-bold tabular-nums"
+                      style={{ color: BRAND }}
+                    >
+                      {fmtFull(b.data.netCashReleased)}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <span className="flex items-center text-[13px] text-[#535862]">
-            Tax rate
-            <InfoPopover
-              title={DETAIL_EXPLAINERS.marginalRate.title}
-              body={DETAIL_EXPLAINERS.marginalRate.body}
-              align="end"
-            />
-          </span>
-          <select
-            value={taxRatePct}
-            onChange={e => onTaxRate(Number(e.target.value))}
-            className="rounded-lg border border-[#D5D7DA] bg-white px-2 py-1 text-[12.5px] text-[#181D27] outline-none focus:border-[#98A2B3]"
-          >
-            {TAX_RATE_OPTIONS.map(pct => (
-              <option key={pct} value={pct}>
-                {pct}%
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* ── Per-property tabs ───────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-1.5 px-5">
-        {breakdowns.map(b => {
-          const isActive = b.prop.instanceId === selected.prop.instanceId
-          return (
-            <button
-              key={b.prop.instanceId}
-              type="button"
-              onClick={() => onTab(b.prop.instanceId)}
-              className={`rounded-t-lg px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                isActive ? 'bg-white' : 'text-[#717680] hover:text-[#535862]'
-              }`}
-              style={isActive ? { color: INDIGO, boxShadow: `inset 0 -2px 0 ${INDIGO}` } : undefined}
-            >
-              Prop {(indexById.get(b.prop.instanceId) ?? 0) + 1}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ── Waterfall ───────────────────────────────────────────────────── */}
-      <div className="mx-5 mb-4 mt-2 rounded-xl border border-[#E9EAEB] bg-white px-5 py-1">
-        <Row label="Sale price" value={fmtFull(d.salePrice)} />
-        <Row
-          label="Selling costs"
-          sub="Agent, marketing, legal"
-          value={`\u2212${fmtFull(d.sellingCosts)}`}
-          info={
-            <InfoPopover
-              title={DETAIL_EXPLAINERS.sellingCosts.title}
-              body={DETAIL_EXPLAINERS.sellingCosts.body}
-            />
-          }
-        />
-        <Row
-          label="Loan payout"
-          sub="Debt cleared on this property"
-          value={`\u2212${fmtFull(d.loanPayout)}`}
-        />
-        <Row label="Cash before tax" value={fmtFull(d.cashBeforeTax)} subtotal />
-
-        <Row
-          label="Estimated CGT"
-          value={`\u2212${fmtFull(d.activeCgt)}`}
-          info={
-            <InfoPopover
-              title="How this is worked out"
-              rows={[
-                { label: 'Cost base', value: fmtFull(d.costBase) },
-                { label: 'Holding period', value: `${Math.round(d.holdingYears)} yrs` },
-                { label: 'Gross gain', value: fmtFull(d.grossGain) },
-                { label: 'Method', value: isSmsf ? 'SMSF (one-third)' : appliedMethod === 'discount' ? '50% discount' : 'Indexation', muted: true },
-                { label: 'Taxable gain', value: fmtFull(d.activeTaxableGain), muted: true },
-                { label: 'Rate', value: isSmsf ? '15%' : `${taxRatePct}%`, muted: true },
-              ]}
-            />
-          }
-        />
-
-        {/* Net cash released — highlighted. */}
-        <div
-          className="-mx-5 mt-1 flex items-center justify-between gap-3 rounded-b-xl px-5 py-3.5"
-          style={{ backgroundColor: 'rgba(127, 86, 217, 0.06)' }}
-        >
-          <span className="flex flex-col">
-            <span className="text-[13px] font-semibold" style={{ color: BRAND }}>Net cash released</span>
-            <span className="text-[11px] text-[#717680]">Lands in the client&rsquo;s account</span>
-          </span>
-          <span className="text-xl font-bold tabular-nums" style={{ color: BRAND, fontFamily: INTER }}>
-            {fmtFull(d.netCashReleased)}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Compliance footer (always present) ──────────────────────────── */}
-      <div className="px-5 pb-4 text-[11px] leading-relaxed text-[#A4A7AE]">
-        <span className="font-semibold text-[#717680]">Estimate only, not tax advice.</span>{' '}
-        {COMPLIANCE_FOOTER.replace('Estimate only, not tax advice. ', '')}
-      </div>
+          {/* ── Notes + compliance footer ───────────────────────────────── */}
+          <div className="space-y-1.5 px-6 pb-5 pt-1">
+            <p className="text-[12px] text-[#717680]">
+              Treatments are applied automatically from each property&rsquo;s hold period and ownership structure. Click a badge to change it.
+            </p>
+            <p className="text-[11px] leading-relaxed text-[#A4A7AE]">
+              <span className="font-semibold text-[#717680]">Estimate only, not tax advice.</span>{' '}
+              {COMPLIANCE_FOOTER.replace('Estimate only, not tax advice. ', '')}
+            </p>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-// ── Row primitives ──────────────────────────────────────────────────────────
+// ── Value row (one label + a cell per property) ─────────────────────────────
 
-const Row: React.FC<{
+const ValueRow: React.FC<{
   label: string
-  value: string
-  sub?: string
-  subtotal?: boolean
-  info?: React.ReactNode
-}> = ({ label, value, sub, subtotal, info }) => (
-  <div className="flex items-baseline justify-between gap-3 border-b border-[#F2F2F4] py-2.5 last:border-b-0">
-    <span className="flex items-center">
-      <span className="flex flex-col">
-        <span
-          className={
-            subtotal
-              ? 'text-[11px] font-medium uppercase tracking-wide text-[#717680]'
-              : 'text-[13px] text-[#181D27]'
-          }
-        >
-          {label}
-        </span>
-        {sub && <span className="mt-0.5 text-[11px] text-[#A4A7AE]">{sub}</span>}
-      </span>
-      {info}
-    </span>
-    <span
-      className={`tabular-nums ${subtotal ? 'text-[13px] font-semibold text-[#717680]' : 'text-[13.5px] font-semibold text-[#181D27]'}`}
-    >
-      {value}
-    </span>
-  </div>
+  breakdowns: SaleBreakdownEntry[]
+  pick: (d: SaleBreakdown) => string
+  muted?: boolean
+}> = ({ label, breakdowns, pick, muted }) => (
+  <tr className="border-t border-[#F2F2F4]">
+    <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] text-[#535862]">{label}</td>
+    {breakdowns.map(b => (
+      <td
+        key={b.prop.instanceId}
+        className={`py-3 pl-4 text-right text-[13.5px] tabular-nums ${muted ? 'text-[#717680]' : 'font-semibold text-[#181D27]'}`}
+      >
+        {pick(b.data)}
+      </td>
+    ))}
+  </tr>
 )

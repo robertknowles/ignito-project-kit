@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { App } from './App'
 import { Landing } from './landing/Landing'
-// AgentHome removed — content now lives in NewClientView inside Dashboard
+// AgentHome removed - content now lives in NewClientView inside Dashboard
 import { AgentForms } from './pages/AgentForms'
 import { ClientScenarios } from './pages/ClientScenarios'
 import { Portfolio } from './pages/Portfolio'
@@ -127,13 +127,13 @@ export function AppRouter() {
                             {/* Public client onboarding form - no authentication required */}
                             <Route path="/onboarding/:onboardingId" element={<ClientOnboarding />} />
                             
-                            {/* /home removed — redirect to dashboard */}
+                            {/* /home removed - redirect to dashboard */}
                             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
 
                             {/* Protected app routes - require authentication */}
                             {/* /dashboard is owner/agent only. Clients shared via
                                 the Share button get a /portal login that surfaces
-                                their plan view-only — they don't get edit access
+                                their plan view-only - they don't get edit access
                                 to the chat panel here. */}
                             <Route
                               path="/dashboard"
@@ -210,7 +210,7 @@ export function AppRouter() {
                                 </ProtectedRoute>
                               }
                             />
-                            {/* PropPath internal CRM — standalone admin portal */}
+                            {/* PropPath internal CRM - standalone admin portal */}
                             <Route
                               path="/admin"
                               element={
@@ -231,7 +231,7 @@ export function AppRouter() {
                             {/* Redirect old /data path to /settings */}
                             <Route path="/data" element={<Navigate to="/settings" replace />} />
 
-                            {/* Client Portal routes — wrap in LayoutProvider
+                            {/* Client Portal routes - wrap in LayoutProvider
                                 because PortalPropertyPlan renders <Dashboard/>
                                 which uses useLayout() (chatPanelWidth, drawerOpen,
                                 planGenerating, etc.). Without this provider the
