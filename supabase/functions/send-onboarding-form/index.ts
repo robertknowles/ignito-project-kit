@@ -1,5 +1,5 @@
 /**
- * send-onboarding-form — emails a client the link to fill out their
+ * send-onboarding-form - emails a client the link to fill out their
  * financial details questionnaire via Resend.
  *
  * Also supports a "completion" mode: when the client finishes the form,
@@ -58,7 +58,7 @@ Deno.serve(async (req: Request) => {
 
     const body = (await req.json()) as RequestBody;
 
-    // For the completion notification we skip auth — the client isn't logged in
+    // For the completion notification we skip auth - the client isn't logged in
     if (!body.notifyAgent) {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
@@ -85,10 +85,12 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Always send as PropPath — not the white-label company name
+    // Always send as PropPath - not the white-label company name
     const companyName = 'PropPath';
     const logoUrl: string | null = null;
-    const primaryColor = '#F97316';
+    // Neutral charcoal for the header band, button and links (matches the
+    // app's dark title colour) instead of the old orange brand accent.
+    const primaryColor = '#1a1a1a';
 
     let to: string;
     let subject: string;
@@ -149,8 +151,8 @@ Deno.serve(async (req: Request) => {
 
       to = body.clientEmail;
       subject = isUpdate
-        ? `${companyName} — please update your financial details`
-        : `${companyName} — let's get your investment details`;
+        ? `${companyName} - please update your financial details`
+        : `${companyName} - let's get your investment details`;
       html = buildClientFormHtml({
         companyName,
         logoUrl,
@@ -207,7 +209,7 @@ function buildClientFormHtml(opts: {
   const { companyName, logoUrl, primaryColor, displayName, onboardingUrl, isUpdate } = opts;
   const heading = isUpdate
     ? 'Time to update your details'
-    : 'Welcome — let’s get started';
+    : "Welcome, let's get started";
   const body = isUpdate
     ? `Hi ${displayName}, your adviser has requested updated financial details to keep your investment roadmap accurate.`
     : `Hi ${displayName}, your property investment adviser has invited you to share your financial details so they can build a personalised investment roadmap for you.`;
@@ -268,7 +270,7 @@ function buildAgentNotificationHtml(opts: {
 
   const fmt = (v?: number) => v != null
     ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(v)
-    : '—';
+    : '-';
 
   const row = (label: string, value: string) =>
     `<tr><td style="padding:6px 0;color:#717680;font-size:14px;">${label}</td><td style="padding:6px 0;text-align:right;font-weight:600;font-size:14px;">${value}</td></tr>`;
@@ -282,7 +284,7 @@ function buildAgentNotificationHtml(opts: {
                 ${row('Annual Savings', fmt(formData.annualSavings))}
                 ${row('Existing Portfolio Value', fmt(formData.portfolioValue))}
                 ${row('Current Debt', fmt(formData.currentDebt))}
-                ${row('Timeline', `${formData.timelineYears ?? '—'} years`)}
+                ${row('Timeline', `${formData.timelineYears ?? '-'} years`)}
                 ${row('Equity Goal', fmt(formData.equityGoal))}
                 ${row('Cashflow Goal', fmt(formData.cashflowGoal))}
               </table>
