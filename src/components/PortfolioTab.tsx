@@ -16,6 +16,8 @@ import { useRevertPurchase } from '../hooks/useRevertPurchase'
 import type { ExistingProperty } from '../types/existingProperty'
 import { createDefaultExistingProperty } from '../types/existingProperty'
 import { AddressAutocomplete } from './AddressAutocomplete'
+import { fetchPropertyImage } from '../utils/propertyImage'
+import { createPortal } from 'react-dom'
 import { calcGrossYield, calcAnnualRent, calcReleasableEquity } from '../utils/sharedFinancialCalcs'
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
@@ -182,6 +184,36 @@ const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
   <span className="text-xs text-neutral-600">{text}</span>
 )
 
+// Street View thumbnail in the address cell; hover shows a larger preview.
+// The preview is portalled to <body> because the table wrapper clips overflow.
+const PhotoThumb: React.FC<{ url: string; address: string }> = ({ url, address }) => {
+  const [hovered, setHovered] = useState(false)
+  const ref = useRef<HTMLImageElement>(null)
+  const rect = hovered ? ref.current?.getBoundingClientRect() : undefined
+  return (
+    <>
+      <img
+        ref={ref}
+        src={url}
+        alt={address}
+        className="w-6 h-6 rounded object-cover border border-neutral-200 flex-shrink-0 cursor-zoom-in"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+      />
+      {hovered && rect && createPortal(
+        <div
+          className="z-[100] bg-white border border-neutral-200 rounded-lg shadow-lg p-1 pointer-events-none"
+          style={{ position: 'fixed', top: rect.bottom + 6, left: rect.left }}
+        >
+          <img src={url} alt={address} className="w-64 h-40 rounded object-cover" />
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 // ── Sale year toggle ────────────────────────────────────────────────────────
 
 const SaleYearTogglePortfolio: React.FC<{
@@ -291,21 +323,25 @@ const COLUMNS: Column[] = [
   {
     key: 'address', width: 140, header: 'Address',
     render: (p, onChange) => (
-      <AddressAutocomplete
-        variant="cell"
-        value={p.address}
-        onInputChange={v => onChange(p.id, { address: v })}
-        onSelect={sel => onChange(p.id, {
-          address: sel.streetLine,
-          suburb: sel.suburb,
-          state: sel.state || p.state,
-          postcode: sel.postcode,
-          latitude: sel.latitude,
-          longitude: sel.longitude,
-          placeId: sel.placeId,
-        })}
-        placeholder="Enter address"
-      />
+      <div className="flex items-center gap-1.5">
+        {p.photoUrl && <PhotoThumb url={p.photoUrl} address={p.address} />}
+        <AddressAutocomplete
+          variant="cell"
+          value={p.address}
+          onInputChange={v => onChange(p.id, { address: v })}
+          onSelect={sel => onChange(p.id, {
+            address: sel.streetLine,
+            suburb: sel.suburb,
+            state: sel.state || p.state,
+            postcode: sel.postcode,
+            latitude: sel.latitude,
+            longitude: sel.longitude,
+            placeId: sel.placeId,
+            photoUrl: undefined,
+          })}
+          placeholder="Enter address"
+        />
+      </div>
     ),
   },
   {
@@ -463,6 +499,11 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     toast.success('Reverted to the Next Purchase Brief')
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit, revertPurchase])
 
+  // Latest array for async callbacks (the photo fetch below resolves after
+  // renders have replaced the handleUpdate closure).
+  const existingPropertiesRef = useRef(existingProperties)
+  existingPropertiesRef.current = existingProperties
+
   const handleUpdate = useCallback((id: string, updates: Partial<ExistingProperty>) => {
     const prop = existingProperties.find(p => p.id === id)
     const key = Object.keys(updates)[0] as keyof ExistingProperty | undefined
@@ -476,6 +517,17 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     setExistingProperties(next)
     if ('loan' in updates || 'currentValue' in updates || 'rentPerWeek' in updates) {
       syncAggregates(next)
+    }
+    // Address picked from autocomplete — fetch the Street View thumb in the
+    // background and attach it once resolved (skipped if the row was deleted
+    // or the address changed again in the meantime).
+    if (updates.placeId && updates.latitude != null && updates.longitude != null) {
+      fetchPropertyImage(updates.latitude, updates.longitude, updates.placeId).then(result => {
+        if (!result) return
+        const latest = existingPropertiesRef.current
+        if (!latest.some(p => p.id === id && p.placeId === updates.placeId)) return
+        setExistingProperties(latest.map(p => p.id === id ? { ...p, photoUrl: result.url } : p))
+      })
     }
   }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
