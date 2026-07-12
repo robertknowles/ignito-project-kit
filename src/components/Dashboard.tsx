@@ -791,12 +791,12 @@ export const Dashboard = () => {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       gap: 24, flexWrap: 'wrap',
-                      background: 'linear-gradient(120deg, #8E77F8 0%, #7D63F0 100%)',
-                      borderRadius: 16, padding: '26px 32px', color: '#FFFFFF',
+                      background: 'linear-gradient(120deg, #EFEDFC 0%, #E7E2FB 100%)',
+                      borderRadius: 16, padding: '26px 32px', color: '#2E2266',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#6C5FA6', marginBottom: 8 }}>
                         Your Goal
                       </div>
                       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
@@ -804,29 +804,29 @@ export const Dashboard = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.25)' }} />
+                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(110,99,168,0.3)' }} />
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginBottom: 4 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: '#6C5FA6', marginBottom: 4 }}>
                           {ph.goalMet ? 'Goal Achieved' : 'Projected'}
                         </div>
                         <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
                           {ph.targetYear}
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.75)', marginTop: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#6C5FA6', marginTop: 6 }}>
                           {ph.count} {ph.count === 1 ? 'property' : 'properties'}
                         </div>
                       </div>
-                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.25)' }} />
+                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(110,99,168,0.3)' }} />
                       <svg width={52} height={52} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
                         {/* Concentric bullseye rings */}
-                        <circle cx="21" cy="24" r="15.5" stroke="#FFFFFF" strokeWidth="1.6" />
-                        <circle cx="21" cy="24" r="11" stroke="#FFFFFF" strokeWidth="1.6" />
-                        <circle cx="21" cy="24" r="6.5" stroke="#FFFFFF" strokeWidth="1.6" />
-                        <circle cx="21" cy="24" r="2.6" fill="#FFFFFF" />
+                        <circle cx="21" cy="24" r="15.5" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="11" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="6.5" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="2.6" fill="#6455D6" />
                         {/* Arrow shaft into the centre */}
-                        <path d="M21 24 L34 11" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" />
+                        <path d="M21 24 L34 11" stroke="#6455D6" strokeWidth="2.4" strokeLinecap="round" />
                         {/* Swallowtail feather at the tail */}
-                        <path d="M31 14 L33 5.5 L35.5 10 L39.5 12 Z" fill="#FFFFFF" />
+                        <path d="M31 14 L33 5.5 L35.5 10 L39.5 12 Z" fill="#6455D6" />
                       </svg>
                     </div>
                   </div>
