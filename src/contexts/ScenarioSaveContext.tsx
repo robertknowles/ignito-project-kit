@@ -65,6 +65,7 @@ export interface ScenarioData {
     cashflow: number;
     equityGoal?: number;
     cashflowGoal?: number;
+    goalPriority?: 'equity' | 'cashflow';
     portfolioValueGoal?: number;
     targetYear?: number;
     growthCurve?: {

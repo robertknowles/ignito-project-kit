@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays } from 'lucide-react';
+import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
+import { useClient } from '@/contexts/ClientContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
 import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext';
 import { AffordabilityAlert } from '@/components/ui/AffordabilityAlert';
@@ -54,6 +55,14 @@ const STATE_OPTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
 
 const getSource = (map: FieldSourceMap | undefined, field: string): FieldSource =>
   map?.[field] ?? 'assumed';
+
+// A "real" client name is one the BA actually wrote - not blank and not the
+// "Client"/"Client 1" placeholder the parser falls back to. Plans must have one
+// before they can be approved.
+const isRealName = (name?: string): boolean => {
+  const n = (name ?? '').trim();
+  return n.length > 0 && !/^client\s*\d*$/i.test(n);
+};
 
 const periodToYear = (p: number) => BASE_YEAR + Math.floor((p - 1) / PERIODS_PER_YEAR);
 
@@ -645,7 +654,8 @@ function enrichProperties(response: NLParseResponse): NLParseResponse {
 }
 
 export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }) => {
-  const { confirmPlanHandler } = useLayout();
+  const { confirmPlanHandler, replanPlanHandler, setPendingPlanResponse, setDashboardTab } = useLayout();
+  const { setActiveClient } = useClient();
   const [editedResponse, setEditedResponse] = useState<NLParseResponse>(() => enrichProperties(response));
   const editedResponseRef = useRef(editedResponse);
   editedResponseRef.current = editedResponse;
@@ -678,6 +688,31 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const updateProfileField = (field: string, value: any) => {
     setEditedResponse(prev => ({ ...prev, investmentProfile: prev.investmentProfile ? { ...prev.investmentProfile, [field]: value } : prev.investmentProfile }));
     setEditedProfileSources(prev => ({ ...prev, [field]: 'user' }));
+  };
+
+  // Client name - plans must be named before approval. When the parser gave no
+  // real name, show an editable field in the header (fixed at mount so it
+  // doesn't vanish mid-typing) and block approval until one is written.
+  const [nameEditable] = useState(() =>
+    !(response.clientProfile?.members ?? []).some(m => isRealName(m.name)),
+  );
+  const [nameDraft, setNameDraft] = useState(() => {
+    const first = (response.clientProfile?.members ?? [])[0]?.name;
+    return isRealName(first) ? (first ?? '').trim() : '';
+  });
+  const [showNameError, setShowNameError] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const updateClientName = (value: string) => {
+    setNameDraft(value);
+    setEditedResponse(prev => {
+      const existing = prev.clientProfile?.members ?? [];
+      const nextMembers = existing.length > 0
+        ? existing.map((m, i) => (i === 0 ? { ...m, name: value } : m))
+        : [{ name: value, annualIncome: 0 }];
+      return { ...prev, clientProfile: { ...(prev.clientProfile as any), members: nextMembers } };
+    });
+    if (value.trim()) setShowNameError(false);
   };
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
   const { profile } = useInvestmentProfile();
@@ -816,6 +851,12 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
 
   const handleConfirm = () => {
     const current = editedResponseRef.current;
+    // Block unnamed plans - direct the BA to write a client name first.
+    if (!(current.clientProfile?.members ?? []).some(m => isRealName(m.name))) {
+      setShowNameError(true);
+      nameInputRef.current?.focus();
+      return;
+    }
     console.warn('[Brief] handleConfirm targetPeriods:', (current.properties ?? []).map((p, i) => `P${i+1}=${p.targetPeriod}`).join(', '));
     const finalResponse = {
       ...mergeExistingIntoResponse(current, existingPropsRef.current),
@@ -845,11 +886,13 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
     confirmPlanHandler.current?.(finalResponse);
   };
 
-  const clientName = cp?.members?.map(m => m.name).filter(Boolean).join(' & ') || 'Client';
+  const realNames = (cp?.members ?? []).map(m => (m.name ?? '').trim()).filter(isRealName);
+  const nameProvided = realNames.length > 0;
+  const clientName = realNames.join(' & ') || 'Client';
   const propertyCount = editedResponse.properties?.length ?? 0;
   const timelineYears = ip?.timelineYears ?? 20;
   const strategyLabel = STRATEGY_LABELS[editedResponse.strategyPreset ?? ''] ?? 'Equity growth · low entry';
-  const initial = clientName.charAt(0).toUpperCase();
+  const initial = (nameEditable ? nameDraft : clientName).charAt(0).toUpperCase() || 'C';
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(3px)' }}>
@@ -885,8 +928,26 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: UUI.neutral700, color: UUI.white, fontFamily: UUI.font, fontSize: 11, fontWeight: 600 }}>{initial}</div>
                   <div>
-                    <div style={{ fontFamily: UUI.font, fontSize: 14, fontWeight: 600, color: UUI.neutral900, lineHeight: '18px' }}>{clientName}</div>
-                    <div style={{ fontFamily: UUI.font, fontSize: 11, color: UUI.neutral400, lineHeight: '16px' }}>Client plan · {propertyCount} properties · {timelineYears} yrs</div>
+                    {nameEditable ? (
+                      <input
+                        ref={nameInputRef}
+                        value={nameDraft}
+                        onChange={e => updateClientName(e.target.value)}
+                        placeholder="Add client name"
+                        style={{
+                          fontFamily: UUI.font, fontSize: 14, fontWeight: 600,
+                          color: UUI.neutral900, lineHeight: '18px',
+                          border: `1px solid ${showNameError ? '#EF4444' : UUI.neutral200}`,
+                          borderRadius: 6, padding: '2px 8px', outline: 'none',
+                          width: 200, background: UUI.white,
+                        }}
+                      />
+                    ) : (
+                      <div style={{ fontFamily: UUI.font, fontSize: 14, fontWeight: 600, color: UUI.neutral900, lineHeight: '18px' }}>{clientName}</div>
+                    )}
+                    <div style={{ fontFamily: UUI.font, fontSize: 11, color: showNameError && !nameProvided ? '#EF4444' : UUI.neutral400, lineHeight: '16px' }}>
+                      {showNameError && !nameProvided ? 'Enter a client name to approve this plan' : `Client plan · ${propertyCount} properties · ${timelineYears} yrs`}
+                    </div>
                   </div>
                 </div>
                 <SourceLegend />
@@ -964,6 +1025,32 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                   </ClientRow>
                   <ClientRow label="Cashflow goal" source={getSource(editedProfileSources, 'cashflowGoal')} delay={200}>
                     <NumInput value={ip?.cashflowGoal ?? 0} prefix="$" onChange={v => updateProfileField('cashflowGoal', v)} />
+                  </ClientRow>
+                  <ClientRow
+                    label="Goal priority"
+                    source={getSource(editedProfileSources, 'goalPriority')}
+                    delay={225}
+                    info={
+                      <InfoPopover
+                        iconSize={13}
+                        title="Goal priority"
+                        body={[
+                          'The plan still targets both the equity and cashflow goals.',
+                          'This sets which one to reach first when they can’t both be hit at once.',
+                        ]}
+                      />
+                    }
+                  >
+                    <div style={{ width: 168 }}>
+                      <Segmented
+                        options={[
+                          { value: 'equity', label: 'Equity' },
+                          { value: 'cashflow', label: 'Cashflow' },
+                        ]}
+                        value={ip?.goalPriority ?? 'equity'}
+                        onChange={v => updateProfileField('goalPriority', v)}
+                      />
+                    </div>
                   </ClientRow>
                   {/* Strategy is read-only here - the AI picks it from the brief
                       and company strategy; changing it belongs in chat, where a
@@ -1148,7 +1235,20 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
           {/* ── Planned property blocks ── */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.neutral700 }}>Proposed Purchases</span>
+              <div className="flex items-center gap-2">
+                <span style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.neutral700 }}>Proposed Purchases</span>
+                <button
+                  type="button"
+                  onClick={() => replanPlanHandler.current?.(editedResponse.strategyPreset ?? 'eg-low', editedResponse)}
+                  title="Re-run the plan using your edited inputs"
+                  className="inline-flex items-center gap-1 transition-colors cursor-pointer"
+                  style={{ fontFamily: UUI.font, fontSize: 11, fontWeight: 600, color: UUI.purple600, backgroundColor: UUI.white, border: `1px solid ${UUI.neutral200}`, borderRadius: 8, padding: '4px 10px', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = UUI.neutral50; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = UUI.white; }}
+                >
+                  <RefreshCw size={12} /> Re-run
+                </button>
+              </div>
               <SourceLegend />
             </div>
             <div className="flex gap-3">
@@ -1206,17 +1306,42 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
         </div>
 
         {/* ── Sticky footer ── */}
-        <div className="flex items-center justify-end px-6 py-3" style={{ borderTop: `1px solid ${UUI.neutral100}`, background: UUI.white }}>
+        <div className="flex items-center justify-between px-6 py-3" style={{ borderTop: `1px solid ${UUI.neutral100}`, background: UUI.white }}>
             <button
-              onClick={handleConfirm}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg transition-colors cursor-pointer"
-              style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.white, backgroundColor: UUI.purple600 }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = UUI.purple700)}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = UUI.purple600)}
+              onClick={() => {
+                // Carry the original inputs back to the build-a-plan page so the
+                // agent lands on their filled-in chat box, not an empty one.
+                const src = sessionStorage.getItem('proppath:brief-source-prompt');
+                if (src) sessionStorage.setItem('proppath:restore-prompt', src);
+                setPendingPlanResponse(null);
+                setDashboardTab('plan');
+                setActiveClient(null);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.neutral700, backgroundColor: UUI.white, border: `1px solid ${UUI.neutral200}` }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = UUI.neutral50)}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = UUI.white)}
             >
-              <Check size={14} />
-              Approve
+              <ArrowLeft size={14} />
+              Back
             </button>
+            <div className="flex items-center gap-3">
+              {showNameError && !nameProvided && (
+                <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: '#EF4444' }}>
+                  Add a client name to approve
+                </span>
+              )}
+              <button
+                onClick={handleConfirm}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg transition-colors cursor-pointer"
+                style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.white, backgroundColor: nameProvided ? UUI.purple600 : UUI.neutral400 }}
+                onMouseEnter={e => { if (nameProvided) e.currentTarget.style.backgroundColor = UUI.purple700; }}
+                onMouseLeave={e => { if (nameProvided) e.currentTarget.style.backgroundColor = UUI.purple600; }}
+              >
+                <Check size={14} />
+                Approve
+              </button>
+            </div>
         </div>
       </div>
     </div>

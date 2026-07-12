@@ -17,6 +17,12 @@ export interface InvestmentProfileData {
   timelineYearsExplicit?: boolean;
   equityGoal: number; // Changed from equityGrowth percentage to dollar amount
   cashflowGoal: number; // Changed from cashflow percentage to dollar amount
+  /**
+   * Which goal the plan should prioritise when it can't satisfy both at once.
+   * The engine still targets both equity and cashflow goals; this records the
+   * client's preference for which one to reach first.
+   */
+  goalPriority: 'equity' | 'cashflow';
   // Enhanced dynamic features
   equityFactor: number; // Factor for equity contribution to borrowing capacity (0.5-1.0)
   // NEW: Dual serviceability model
@@ -134,6 +140,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   timelineYearsExplicit: false,
   equityGoal: 1000000, // Default $1M equity goal
   cashflowGoal: 50000, // Default $50k annual cashflow goal
+  goalPriority: 'equity', // Default: reach the equity goal first
   // Enhanced dynamic features
   // Aggressive default. Tier-link: Conservative 0.65 / Moderate 0.75 / Aggressive 0.80
   equityFactor: 0.80,

@@ -102,6 +102,7 @@ export function mapToInvestmentProfile(
     if (ip.timelineYears !== undefined) updates.timelineYears = ip.timelineYears;
     if (ip.equityGoal !== undefined) updates.equityGoal = ip.equityGoal;
     if (ip.cashflowGoal !== undefined) updates.cashflowGoal = ip.cashflowGoal;
+    if (ip.goalPriority !== undefined) updates.goalPriority = ip.goalPriority;
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
   }
 

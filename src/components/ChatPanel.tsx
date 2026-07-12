@@ -433,6 +433,7 @@ export const ChatPanel: React.FC = () => {
       if (ip.timelineYears) parts.push(`${ip.timelineYears} year horizon`)
       if (ip.equityGoal) parts.push(`equity goal ${Math.round(ip.equityGoal).toLocaleString()}`)
       if (ip.cashflowGoal) parts.push(`cashflow goal ${Math.round(ip.cashflowGoal).toLocaleString()}`)
+      if (ip.goalPriority) parts.push(`prioritise the ${ip.goalPriority} goal first`)
       const presetLabel = PRESET_LABELS[preset] ?? preset
       const brief = `Rebuild the plan as a ${presetLabel} plan. ${parts.join(', ')}.`
       // Clear the current pending plan so the confirmation screen shows the

@@ -27,6 +27,7 @@ export interface CurrentPlanState {
     timelineYears: number;
     equityGoal: number;
     cashflowGoal: number;
+    goalPriority?: 'equity' | 'cashflow';
     /** v4 strategy preset selected by the BA. Drives chatbot cell selection. */
     strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf';
   };
@@ -114,6 +115,7 @@ export interface NLParseResponse {
     timelineYears: number;
     equityGoal?: number;
     cashflowGoal?: number;
+    goalPriority?: 'equity' | 'cashflow';
     targetPassiveIncome?: number;
   };
 

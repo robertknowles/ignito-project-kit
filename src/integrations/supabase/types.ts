@@ -56,6 +56,7 @@ export interface ScenarioData {
     timelineYears: number;
     equityGoal: number;
     cashflowGoal: number;
+    goalPriority?: 'equity' | 'cashflow';
     // Enhanced dynamic features
     equityFactor: number;
     // Dual serviceability model

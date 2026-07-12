@@ -55,6 +55,13 @@ const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
 // Carries the chosen company strategy's text to ChatPanel, which injects it
 // into the AI prompt for the freshly-launched client.
 const PENDING_STRATEGY_KEY = 'proppath:pending-strategy-text'
+// A durable copy of the prompt that produced the current plan. Unlike
+// PENDING_PROMPT_KEY (consumed by ChatPanel during generation), this survives
+// so the confirmation brief's Back button can restore the original inputs.
+const BRIEF_SOURCE_PROMPT_KEY = 'proppath:brief-source-prompt'
+// Set by the confirmation brief's Back button; consumed here on mount to
+// repopulate the chat box with the inputs the agent originally entered.
+const RESTORE_PROMPT_KEY = 'proppath:restore-prompt'
 
 // The eight fields a client fills out on their onboarding / details form, in
 // display order. Mirrors ClientInputsModal so the pasted text reads the same
@@ -275,6 +282,25 @@ export const NewClientView: React.FC = () => {
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`
   }, [])
 
+  // When the agent clicks Back on the confirmation brief we re-mount here with
+  // no active client. Restore the original inputs into the chat box so they can
+  // tweak and re-run, rather than facing an empty box. A fresh "New Scenario"
+  // never sets this key, so it stays empty in that case.
+  useEffect(() => {
+    const restore = sessionStorage.getItem(RESTORE_PROMPT_KEY)
+    if (restore) {
+      sessionStorage.removeItem(RESTORE_PROMPT_KEY)
+      setPrompt(restore)
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (el) {
+          el.style.height = 'auto'
+          el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+        }
+      })
+    }
+  }, [])
+
   // When the details modal opens, load the verbatim form snapshots for every
   // client so we can list the ones who have actually submitted.
   useEffect(() => {
@@ -411,6 +437,12 @@ export const NewClientView: React.FC = () => {
         else sessionStorage.removeItem(PENDING_STRATEGY_KEY)
 
         sessionStorage.setItem(PENDING_PROMPT_KEY, finalPrompt)
+        // Keep a durable copy so Back on the confirmation brief can restore the
+        // agent's original inputs into the chat box. We store the visible
+        // textarea content (not the doc-prefixed prompt) so the box reads the
+        // same way it did before launching.
+        if (trimmed) sessionStorage.setItem(BRIEF_SOURCE_PROMPT_KEY, trimmed)
+        else sessionStorage.removeItem(BRIEF_SOURCE_PROMPT_KEY)
       } catch {
         toast.error('Something went wrong starting the scenario')
         setSubmitting(false)
