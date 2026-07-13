@@ -10,7 +10,7 @@
  */
 
 import { convertExistingToInstance } from '../utils/existingPropertyAdapter';
-import { calculateNegativeGearingBenefit, calculateNewBuildBcUplift } from '../utils/negativeGearingCalculator';
+import { calculateNegativeGearingBenefit, calculateNewBuildBcUplift, isContractPostNgCutoff, resolveDepreciationRate } from '../utils/negativeGearingCalculator';
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator';
 import { calculateCgtComparison } from '../utils/cgtCalculator';
 import { getPropertyInstanceDefaults, getGrowthCurveFromAssumption } from '../utils/propertyInstanceDefaults';
@@ -661,16 +661,19 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       totalExpenses += propTotalExpenses;
       totalLoanPayments += breakdown.loanInterest;
 
-      // After-tax: negative-gearing benefit. Existing holdings are
-      // grandfathered (buyYear in the past → never ring-fenced), so they keep
-      // the benefit whether new build or established.
+      // After-tax: negative-gearing benefit. Grandfathering is driven by the
+      // contract date (blank => grandfathered), SMSF is exempt, and the
+      // ring-fence only phases in from FY2027-28.
       const epDeductibleExpenses = opExpenses + breakdown.loanInterest + (breakdown.landTax ?? 0) * inflFactor;
       const epNg = calculateNegativeGearingBenefit({
         propertyCost: ep.purchasePrice || ep.currentValue || 0,
         annualRentNet: adjustedIncome,
         deductibleExpenses: epDeductibleExpenses,
         isNewBuild: !!ep.isNewBuild,
-        buyYear: ep.boughtYear || 0,
+        entity: ep.entity,
+        projectionYear: year,
+        contractedAfterCutoff: isContractPostNgCutoff(ep.contractDate, ep.boughtYear),
+        depreciationRate: resolveDepreciationRate(ep, profile),
         marginalRate: profile.marginalTaxRate ?? 0.45,
       });
       totalNgBenefit += epNg.ngBenefit;
@@ -737,7 +740,11 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
           annualRentNet: adjustedIncome,
           deductibleExpenses: npDeductibleExpenses,
           isNewBuild: !!propertyInstance.isNewBuild,
-          buyYear: purchaseYear,
+          entity: propertyInstance.entity,
+          projectionYear: year,
+          // A planned purchase is always contracted after the 12 May 2026 cutoff.
+          contractedAfterCutoff: true,
+          depreciationRate: resolveDepreciationRate(propertyInstance, profile),
           marginalRate: profile.marginalTaxRate ?? 0.45,
         });
         totalNgBenefit += npNg.ngBenefit;

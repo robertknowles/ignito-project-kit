@@ -411,6 +411,8 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
   const smsfTaxPct = (profile.smsfTaxRate ?? 0.15) * 100
   const consolidationTaxPct = (profile.marginalTaxRateAtConsolidation ?? 0.39) * 100
   const cgtDiscountPct = (profile.cgtOneYearDiscount ?? 0.50) * 100
+  const depNewBuildPct = (profile.depreciationRateNewBuild ?? 0.02) * 100
+  const depEstablishedPct = (profile.depreciationRateEstablished ?? 0.005) * 100
 
   const handleResetAll = () => {
     updateProfile({
@@ -431,6 +433,8 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
       smsfTaxRate: 0.15,
       marginalTaxRateAtConsolidation: 0.39,
       cgtOneYearDiscount: 0.50,
+      depreciationRateNewBuild: 0.02,
+      depreciationRateEstablished: 0.005,
       // Clear global Next-Purchase cost overrides → restore per-type defaults.
       defaultEngagementFee: undefined,
       defaultEngagementFeeMode: undefined,
@@ -656,6 +660,28 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           step={5}
           format="percent"
           description="Capital gains tax discount for assets held over 12 months. Standard Australian discount is 50% for individuals."
+        />
+        <DialTile
+          label="Depreciation – new build"
+          value={depNewBuildPct}
+          defaultValue={2}
+          onChange={(v) => updateProfile({ depreciationRateNewBuild: v / 100 })}
+          min={0}
+          max={5}
+          step={0.1}
+          format="percent"
+          description="Annual depreciation as a % of cost for new builds (Div 43 capital works + Div 40 plant & equipment). Drives the negative-gearing tax benefit. Per-property overrides take precedence."
+        />
+        <DialTile
+          label="Depreciation – established"
+          value={depEstablishedPct}
+          defaultValue={0.5}
+          onChange={(v) => updateProfile({ depreciationRateEstablished: v / 100 })}
+          min={0}
+          max={5}
+          step={0.1}
+          format="percent"
+          description="Annual depreciation as a % of cost for established (second-hand) properties — capital works on the original structure only. Per-property overrides take precedence."
         />
 
         {/* ── Next-purchase cost defaults ─────────────────────────────── */}

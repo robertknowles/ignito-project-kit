@@ -37,6 +37,7 @@ const CHANGE_LOG_FIELD_LABELS: Partial<Record<keyof PropertyInstanceDetails, str
   lmiWaiver: 'LMI waiver',
   holdingCostOverride: 'Holding $/yr',
   purchaseCostsOverride: 'Purchase costs ($)',
+  depreciationRateOverride: 'Depreciation (%)',
   depositOverride: 'Deposit ($)',
   stampDutyOverride: 'Stamp duty ($)',
   engagementFee: 'Engagement fee ($)',
@@ -1009,6 +1010,50 @@ const BlockNumRow: React.FC<{
   );
 };
 
+// Depreciation override row. Stores a DECIMAL (0.02) but displays a PERCENT (2).
+// Blank clears the override (null) → the property falls back to the global
+// new-build / established default from the Assumptions tab.
+const BlockDepreciationRow: React.FC<{
+  label: string;
+  /** Current override as a decimal, or null when using the default. */
+  value: number | null | undefined;
+  /** Resolved default percent (for placeholder), e.g. 2 or 0.5. */
+  defaultPct: number;
+  instanceId: string;
+  onChange: (id: string, field: keyof PropertyInstanceDetails, value: any) => void;
+}> = ({ label, value, defaultPct, instanceId, onChange }) => {
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
+  const pct = value != null ? value * 100 : null;
+  const display = focused ? draft : (pct != null ? String(pct) : '');
+  return (
+    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+      <td className={blockLabelCls}>{label}</td>
+      <td className="py-1 px-2">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={display}
+          placeholder={`${defaultPct} (default)`}
+          onFocus={() => { setFocused(true); setDraft(pct != null ? String(pct) : ''); }}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => {
+            setFocused(false);
+            if (draft.trim() === '') { if (value != null) onChange(instanceId, 'depreciationRateOverride', null); return; }
+            const n = parseShorthandNumber(draft);
+            if (n !== null) {
+              const dec = n / 100;
+              if (dec !== value) onChange(instanceId, 'depreciationRateOverride', dec);
+            }
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className={blockInputCls}
+        />
+      </td>
+    </tr>
+  );
+};
+
 const BlockSelectRow: React.FC<{
   label: string;
   value: string;
@@ -1335,6 +1380,13 @@ export const PropertyCardRow: React.FC<PropertyCardRowProps> = ({ mode = 'equity
                       <BlockNumRow label="Yield (%)" value={d.yieldOverride ?? (d.purchasePrice > 0 ? parseFloat(calcGrossYield(d.rentPerWeek, d.purchasePrice).toFixed(1)) : 0)} instanceId={iid} field="yieldOverride" onChange={handleFieldChange} />
                       <BlockNumRow label="Purchase costs" value={d.purchaseCostsOverride ?? purchaseCosts} instanceId={iid} field="purchaseCostsOverride" onChange={handleFieldChange} />
                       <BlockNumRow label="Holding $/yr" value={d.holdingCostOverride ?? holdingTotal} instanceId={iid} field="holdingCostOverride" onChange={handleFieldChange} />
+                      <BlockDepreciationRow
+                        label="Deprec. (%)"
+                        value={d.depreciationRateOverride}
+                        defaultPct={(d.isNewBuild ? (profile.depreciationRateNewBuild ?? 0.02) : (profile.depreciationRateEstablished ?? 0.005)) * 100}
+                        instanceId={iid}
+                        onChange={handleFieldChange}
+                      />
                       <tr className="border-b border-[#F2F2F2] last:border-b-0">
                         <td className={blockLabelCls}>Sell</td>
                         <td className="py-1 px-2">

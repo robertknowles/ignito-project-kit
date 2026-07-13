@@ -12,6 +12,11 @@ import { useBranding } from './contexts/BrandingContext';
 import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
 
+// Comfortable floor for the dashboard pane in the docked-chat split. Below this
+// the dashboard stops shrinking and slides off the right edge instead of
+// cramping (see the main-content wrapper below).
+const DASHBOARD_MIN_WIDTH = 820;
+
 function AppContent() {
   const { activeClient } = useClient();
   const { role } = useAuth();
@@ -95,18 +100,29 @@ function AppContent() {
               </div>
             </div>
           ) : (
-            <>
+            // Docked "Claude Code" layout: a flex row to the right of the fixed
+            // sidebar holds the AI chat column (when open) and the dashboard.
+            // ChatPanel is always mounted (keeps chat listeners/effects alive)
+            // and self-sizes based on drawerOpen + chatPanelWidth.
+            <div
+              className="flex-1 flex overflow-hidden min-w-0"
+              style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
+            >
               <ChatPanel />
+              {/* Dashboard keeps a comfortable minimum width. As the chat column
+                  grows it shrinks only down to this floor, then slides off the
+                  right edge (clipped by the row's overflow-hidden) rather than
+                  cramping its cards - matching the Claude Code split behaviour. */}
               <div
                 id="main-content"
-                className="flex-1 flex flex-col overflow-hidden"
-                style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
+                className="flex flex-col overflow-hidden"
+                style={{ flex: '1 1 auto', minWidth: DASHBOARD_MIN_WIDTH }}
               >
                 <div className="flex-1 overflow-hidden">
                   <Dashboard key={activeClient.id} />
                 </div>
               </div>
-            </>
+            </div>
           )
         ) : (
           <div

@@ -80,6 +80,11 @@ export interface InvestmentProfileData {
   smsfTaxRate: number;
   marginalTaxRateAtConsolidation: number;
   cgtOneYearDiscount: number;
+  // ── Global depreciation defaults (illustrative, editable per scenario) ──
+  // Annual depreciation as a fraction of property cost. Per-property overrides
+  // take precedence; these are the fallback for the new-build / established split.
+  depreciationRateNewBuild: number;   // Decimal, default 0.02 (2.0%)
+  depreciationRateEstablished: number; // Decimal, default 0.005 (0.5%)
   // ── Global Next-Purchase cost defaults ──
   // Applied to FUTURE property instances only (at materialisation time in
   // createInstance / scenarioRunner). undefined => use the per-type default
@@ -193,6 +198,8 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   smsfTaxRate: 0.15,
   marginalTaxRateAtConsolidation: 0.39,
   cgtOneYearDiscount: 0.50,
+  depreciationRateNewBuild: 0.02,
+  depreciationRateEstablished: 0.005,
 };
 
 export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps> = ({ children }) => {

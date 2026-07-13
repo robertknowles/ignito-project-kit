@@ -184,6 +184,19 @@ const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
   <span className="text-xs text-neutral-600">{text}</span>
 )
 
+// Contract-of-sale date. Native date input; empty => grandfathered for NG.
+const DateCell: React.FC<{
+  value?: string | null
+  onChange: (v: string | null) => void
+}> = ({ value, onChange }) => (
+  <input
+    type="date"
+    value={value ?? ''}
+    onChange={e => onChange(e.target.value || null)}
+    className={`${cellInput} cursor-pointer`}
+  />
+)
+
 // Street View thumbnail in the address cell; hover shows a larger preview.
 // The preview is portalled to <body> because the table wrapper clips overflow.
 const PhotoThumb: React.FC<{ url: string; address: string }> = ({ url, address }) => {
@@ -349,6 +362,10 @@ const COLUMNS: Column[] = [
     render: (p, onChange) => <NumCell value={p.boughtYear} onChange={v => onChange(p.id, { boughtYear: v })} />,
   },
   {
+    key: 'contractDate', width: 128, header: 'Contract date',
+    render: (p, onChange) => <DateCell value={p.contractDate} onChange={v => onChange(p.id, { contractDate: v })} />,
+  },
+  {
     key: 'growth', width: 84, header: 'Growth',
     render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
   },
@@ -425,6 +442,15 @@ const COLUMNS: Column[] = [
       const computed = Math.round(p.baFee + p.buildingPest + p.legals)
       const display = p.purchaseCostsOverride ?? computed
       return <NumCell right grouped value={display} onChange={v => onChange(p.id, { purchaseCostsOverride: v || null })} />
+    },
+  },
+  {
+    // Depreciation rate override (% of cost). Blank => use the global default
+    // (2.0% new build / 0.5% established, editable in Assumptions).
+    key: 'depreciation', width: 78, header: 'Deprec. (%)', align: 'right',
+    render: (p, onChange) => {
+      const overridePct = p.depreciationRateOverride != null ? p.depreciationRateOverride * 100 : 0
+      return <NumCell right value={overridePct} onChange={v => onChange(p.id, { depreciationRateOverride: v ? v / 100 : null })} />
     },
   },
   {
@@ -665,7 +691,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     }>
       <div className="px-5 pb-5">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: 1620, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: 1826, tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b border-[#E9EAEB]">
               {COLUMNS.map((col, i) => (
