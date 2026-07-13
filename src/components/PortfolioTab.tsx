@@ -799,6 +799,49 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
           </div>
         </ChartCard>
       </div>
+
+      {/* Property blocks gallery — one visual card per property, image fills the
+          block with the address and purchase value along the bottom. Newest
+          appears on the left. */}
+      {properties.some(p => p.address?.trim() || p.photoUrl) && (
+        <div className="grid grid-cols-3 gap-4">
+          {[...properties]
+            .filter(p => p.address?.trim() || p.photoUrl)
+            .reverse()
+            .map((p, i) => (
+              <div
+                key={p.id ?? i}
+                className="relative rounded-xl overflow-hidden border border-[#E9EAEB] bg-neutral-100"
+                style={{ height: 200 }}
+              >
+                {p.photoUrl ? (
+                  <img
+                    src={p.photoUrl}
+                    alt={p.address || 'Property'}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-[#717680]">
+                    No image
+                  </div>
+                )}
+                {/* Gradient scrim so the address/value stay legible over the photo */}
+                <div
+                  className="absolute inset-x-0 bottom-0 px-3 py-2.5"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0) 100%)' }}
+                >
+                  <div className="text-[13px] font-semibold text-white leading-snug truncate" title={p.address}>
+                    {p.address?.trim() || 'Address not set'}
+                  </div>
+                  <div className="text-xs font-medium text-white/85 mt-0.5">
+                    {p.purchasePrice > 0 ? fmt(p.purchasePrice) : 'Purchase value not set'}
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   )
 }
