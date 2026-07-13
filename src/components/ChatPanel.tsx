@@ -372,6 +372,18 @@ export const ChatPanel: React.FC = () => {
   const confirmPlan = useCallback(
     (response: NLParseResponse) => {
       console.warn('[ConfirmPlan] Properties:', response.properties?.map((p, i) => `P${i+1} targetPeriod=${p.targetPeriod} alertDismissed=${p.alertDismissed}`).join(' | '))
+
+      // Persist a name the BA typed in the confirmation brief to the client
+      // record so the sidebar reflects it. Placeholder names ("Client",
+      // "client 1", "Untitled Client") don't count as real.
+      const confirmedNames = (response.clientProfile?.members ?? [])
+        .map((m) => (m.name ?? '').trim())
+        .filter((n) => n.length > 0 && !/^client\s*\d*$/i.test(n) && !/^untitled client$/i.test(n))
+      if (activeClient && confirmedNames.length > 0) {
+        const newName = confirmedNames.length === 1 ? confirmedNames[0] : `${confirmedNames[0]} & ${confirmedNames[1]}`
+        if (newName !== activeClient.name) void updateClient(activeClient.id, { name: newName })
+      }
+
       const profileUpdates = mapToInvestmentProfile(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
@@ -400,7 +412,7 @@ export const ChatPanel: React.FC = () => {
       setPendingPlanResponse(null)
       flushSaveAfterStateUpdate()
     },
-    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent]
+    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent, activeClient, updateClient]
   )
 
   // Expose confirmPlan to the confirmation screen via LayoutContext ref
