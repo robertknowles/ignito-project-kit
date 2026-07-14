@@ -323,7 +323,7 @@ export const RESPOND_TOOL = {
     properties: {
       message: {
         type: 'string' as const,
-        description: 'Your conversational response.',
+        description: 'Your conversational response, formatted for skim-reading (see Message Formatting). Bold ONLY the takeaway in a sentence — never lead-in labels, year prefixes ("2026:", "Year 10:"), the first few words, or every figure. Most sentences carry zero or one bold span. Any answer with 3+ figures, a projection, or a before/after MUST close with a "What stands out" section of 2-4 bullets.',
       },
       explanation: {
         type: 'object' as const,

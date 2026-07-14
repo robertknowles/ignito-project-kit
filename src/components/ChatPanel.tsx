@@ -262,7 +262,10 @@ export const ChatPanel: React.FC = () => {
   // from the simulator, so the AI can cite them in chat (matching the
   // dashboard) instead of doing its own rough projection that drifts ~20%.
   const getCurrentPlan = useCallback((): CurrentPlanState | null => {
-    if (propertyOrder.length === 0) return null
+    // Return a plan when there's EITHER a planned portfolio OR existing
+    // properties on file - otherwise the AI can't answer questions about a
+    // client who only has existing holdings and no forward plan yet.
+    if (propertyOrder.length === 0 && existingProperties.length === 0) return null
 
     // Resolve engine projection from chartData if it exists. portfolioGrowthData
     // is the same array the dashboard reads, so values here always match what
@@ -315,10 +318,24 @@ export const ChatPanel: React.FC = () => {
           borrowingCapacityRemaining: engineProp?.borrowingCapacityRemaining,
         }
       }),
+      existingProperties: existingProperties.map((ep) => ({
+        address: ep.address,
+        state: ep.state,
+        boughtYear: ep.boughtYear,
+        purchasePrice: ep.purchasePrice,
+        currentValue: ep.currentValue,
+        loan: ep.loan,
+        equity: (ep.currentValue ?? 0) - (ep.loan ?? 0),
+        rentPerWeek: ep.rentPerWeek,
+        interestRate: ep.interestRate,
+        loanType: ep.loanType,
+        growthAssumption: ep.growthAssumption,
+        entity: ep.entity,
+      })),
       clientNames: clientNamesRef.current,
       enginePlanState,
     }
-  }, [profile, propertyOrder, instances, chartData, timelineProperties])
+  }, [profile, propertyOrder, instances, chartData, timelineProperties, existingProperties])
 
   // Handle plan generation - store response for confirmation screen
   const handlePlanGenerated = useCallback(

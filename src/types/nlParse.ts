@@ -50,6 +50,28 @@ export interface CurrentPlanState {
   }>;
   clientNames: string[];
   /**
+   * The client's already-owned properties (the "Existing Portfolio" tab). These
+   * are real holdings with actual purchase prices, current values, loans, rents
+   * and costs entered by the BA - distinct from `properties`, which are the
+   * PLANNED future purchases. Sent so the AI can answer questions about the
+   * existing portfolio ("what are the costs on my 2 properties") instead of
+   * saying it has no details on file.
+   */
+  existingProperties?: Array<{
+    address: string;
+    state: string;
+    boughtYear: number;
+    purchasePrice: number;
+    currentValue: number;
+    loan: number;
+    equity: number;
+    rentPerWeek: number;
+    interestRate: number;
+    loanType: 'IO' | 'PI';
+    growthAssumption?: 'High' | 'Medium' | 'Low';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+  }>;
+  /**
    * Engine output snapshot - the actual projected horizon values from the
    * simulator, computed from the current chart data. Sent on every turn
    * AFTER the first one so the AI can cite real numbers (matching the
