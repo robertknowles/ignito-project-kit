@@ -11,7 +11,7 @@ const Hero: React.FC = () => {
 
   // Laptop "open" effect: the screen reclines back then flattens to face you as you scroll.
   const { scrollY } = useScroll();
-  const rotateX = useTransform(scrollY, [0, 520], [-46, 0]);
+  const rotateX = useTransform(scrollY, [0, 280], [-46, 0]);
 
   return (
     <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden bg-white">
