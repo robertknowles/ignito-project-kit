@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
             className="flex items-center gap-2.5 font-semibold text-[16px] tracking-tight text-gray-900"
           >
             <img
-              src="/images/proppath-icon.png"
+              src="/images/proppath-logo.svg"
               alt="PropPath"
               className={`rounded-lg transition-all duration-300 ease-in-out ${
                 scrolled ? 'w-6 h-6' : 'w-8 h-8'
@@ -53,7 +53,7 @@ const Navbar: React.FC = () => {
               Pricing
             </a>
             <a href="#founders" className="text-[14px] font-semibold text-gray-700 hover:text-gray-900 transition-colors">
-              Founding Agency
+              Contact
             </a>
           </div>
         </div>
@@ -96,7 +96,7 @@ const Navbar: React.FC = () => {
             Pricing
           </a>
           <a href="#founders" onClick={() => setMobileMenuOpen(false)} className="text-[14px] font-semibold text-gray-700 py-2">
-            Founding Agency
+            Contact
           </a>
           <div className="h-px bg-gray-200 my-2" />
           <button
