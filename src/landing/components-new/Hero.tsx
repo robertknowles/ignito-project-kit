@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   ArrowRight,
   TrendingUp,
@@ -26,6 +27,10 @@ const Hero: React.FC = () => {
     const el = document.getElementById('pricing');
     el?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Laptop "open" effect: the screen reclines back then flattens to face you as you scroll.
+  const { scrollY } = useScroll();
+  const rotateX = useTransform(scrollY, [0, 520], [-46, 0]);
 
   return (
     <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden bg-white">
@@ -76,8 +81,12 @@ const Hero: React.FC = () => {
           </div>
         </div>
 
-        {/* Dashboard Mockup - full-width, matches real dashboard */}
-        <div className="mt-16 sm:mt-20">
+        {/* Dashboard Mockup inside a laptop - screen opens on scroll */}
+        <div className="mt-16 sm:mt-20 mx-auto max-w-[960px] [perspective:2000px]">
+          <motion.div
+            style={{ rotateX, transformOrigin: 'bottom center', transformStyle: 'preserve-3d' }}
+            className="will-change-transform"
+          >
           <div className="rounded-[24px] sm:rounded-[32px] bg-white p-[3px] sm:p-1 shadow-lg ring-[1.5px] sm:ring-[2px] ring-inset ring-gray-300/60">
             <div className="rounded-[21px] sm:rounded-[28px] overflow-hidden shadow-[inset_0_0_4px_1.5px_rgba(10,13,18,0.08),inset_0_0_3px_1px_rgba(10,13,18,0.03)] bg-white">
             <div className="flex h-[500px] sm:h-[640px] lg:h-[740px]">
@@ -358,6 +367,18 @@ const Hero: React.FC = () => {
                 </div>
               </div>
             </div>
+            </div>
+          </div>
+          </motion.div>
+
+          {/* Laptop base / keyboard deck */}
+          <div className="relative mx-auto -mt-[2px]">
+            {/* hinge line */}
+            <div className="mx-auto h-[7px] w-[101%] max-w-[calc(100%+16px)] rounded-b-[6px] bg-gradient-to-b from-[#CED2D7] to-[#B7BBC1]" />
+            {/* deck - slightly wider than the screen, like a real laptop base */}
+            <div className="relative mx-auto -mt-[2px] h-[15px] sm:h-[20px] w-[105%] max-w-[calc(100%+56px)] rounded-b-[13px] bg-gradient-to-b from-[#DEE1E5] via-[#C7CBD0] to-[#AAAEB4] shadow-[0_22px_34px_-12px_rgba(0,0,0,0.32)]">
+              {/* front opening lip */}
+              <div className="absolute left-1/2 top-0 h-[4px] w-[84px] sm:w-[120px] -translate-x-1/2 rounded-b-[5px] bg-[#A2A6AC]" />
             </div>
           </div>
         </div>

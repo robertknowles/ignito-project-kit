@@ -21,14 +21,12 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 flex w-full items-center justify-center transition-all duration-300 ease-in-out ${
-        scrolled ? 'pt-1.5' : 'pt-3'
-      }`}
-    >
+    <header className="fixed top-0 left-0 right-0 z-50 flex w-full items-center justify-center pt-3 px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out">
       <div
-        className={`flex w-full max-w-[1280px] items-center justify-between gap-4 rounded-2xl bg-white/95 backdrop-blur-md px-4 pr-3 pl-4 shadow-sm ring-1 ring-gray-200 mx-4 sm:mx-6 lg:mx-8 transition-all duration-300 ease-in-out ${
-          scrolled ? 'py-1.5' : 'py-3'
+        className={`flex w-full items-center justify-between gap-4 rounded-full transition-all duration-300 ease-in-out ${
+          scrolled
+            ? 'max-w-[880px] bg-white/95 backdrop-blur-md px-4 py-1.5 shadow-lg ring-1 ring-gray-200'
+            : 'max-w-[1200px] bg-transparent px-2 py-3 shadow-none ring-0'
         }`}
       >
         {/* Left group: logo + nav items */}
