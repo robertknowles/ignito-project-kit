@@ -24,6 +24,7 @@ import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
 import { usePropertySelection } from '../contexts/PropertySelectionContext'
 import { getPropertyInstanceDefaults, applyGlobalCostDefaults } from '../utils/propertyInstanceDefaults'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
+import { DEFAULT_INTEREST_RATE } from '../constants/financialParams'
 import type { PropertyInstanceDetails } from '../types/propertyInstance'
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext'
 import type { ScenarioInput } from '../engine/scenarioRunner'
@@ -38,7 +39,7 @@ const seedInstance = (
   profile: Partial<InvestmentProfileData>,
 ): PropertyInstanceDetails => {
   const base = applyGlobalCostDefaults(getPropertyInstanceDefaults(typeId), profile)
-  const rate = profile.interestRate ?? 0.0625 // decimal → per-property field is a %
+  const rate = profile.interestRate ?? DEFAULT_INTEREST_RATE // decimal → per-property field is a %
   return {
     ...base,
     state: base.state || 'VIC',

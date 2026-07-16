@@ -107,10 +107,10 @@ export const NextPurchaseReport: React.FC<{ meta: ReportMeta }> = ({ meta }) => 
   const netCf = instanceData.netAnnualCashflowOverride ?? cashflow.netAnnualCashflow;
   const cashflowRows: KVRow[] = [
     { label: 'Cash in', value: '', heading: true },
-    { label: 'Gross annual income', value: fmtMoney(instanceData.grossAnnualIncomeOverride ?? cashflow.grossAnnualIncome) },
-    { label: 'Adjusted income (after vacancy)', value: fmtMoney(instanceData.adjustedIncomeOverride ?? cashflow.adjustedIncome) },
+    { label: 'Gross annual income', value: fmtMoney(instanceData.adjustedIncomeOverride ?? instanceData.grossAnnualIncomeOverride ?? cashflow.grossAnnualIncome) },
     { label: 'Cash out', value: '', heading: true },
     { label: 'Loan interest', value: fmtMoney(instanceData.loanInterestOverride ?? cashflow.loanInterest) },
+    { label: 'Property management', value: fmtMoney(cashflow.propertyManagementFee) },
     { label: 'Building insurance', value: fmtMoney(instanceData.buildingInsuranceAnnual) },
     { label: 'Council rates + water', value: fmtMoney(instanceData.councilRatesWater) },
     { label: 'Strata', value: fmtMoney(instanceData.strata) },

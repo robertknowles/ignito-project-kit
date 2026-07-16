@@ -139,7 +139,7 @@ export function calculateAvailableFunds(
       const salePeriod = yearToPeriod(ep.saleYear);
       if (currentPeriod >= salePeriod) return;
     }
-    const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+    const epInstance = convertExistingToInstance(ep, profile.interestRate ?? DEFAULT_INTEREST_RATE);
     const yearsElapsed = (currentPeriod - 1) / PERIODS_PER_YEAR;
     const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
     const inflFactor = calculateInflationFactor(currentPeriod - 1, profile.inflationRate ?? ANNUAL_INFLATION_RATE);

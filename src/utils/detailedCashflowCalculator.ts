@@ -5,7 +5,14 @@ export interface CashflowBreakdown {
   // Income
   weeklyRent: number;
   grossAnnualIncome: number;
+  /**
+   * Vacancy allowance in dollars. NOT deducted from the client-facing
+   * cashflow lines (netAnnualCashflow uses gross rent, matching how the
+   * figures are presented industry-wide). Kept on the breakdown because
+   * serviceability / funding projections still apply it via adjustedIncome.
+   */
   vacancyAmount: number;
+  /** Vacancy-adjusted income - used by serviceability/funding paths only. */
   adjustedIncome: number;
 
   // Expenses
@@ -59,6 +66,11 @@ export function calculateDetailedCashflow(
   const computedAdjustedIncome = grossAnnualIncome - vacancyAmount;
   const adjustedIncome = property.adjustedIncomeOverride ?? computedAdjustedIncome;
 
+  // Client-facing income basis: GROSS rent (vacancy is an assessment-side
+  // allowance, not a deduction on the displayed cashflow). An explicit
+  // adjustedIncomeOverride is a deliberate user edit and still wins.
+  const clientIncome = property.adjustedIncomeOverride ?? grossAnnualIncome;
+
   // Expenses
   const computedLoanInterest = loanAmount * (property.interestRate / 100);
   const loanInterest = property.loanInterestOverride ?? computedLoanInterest;
@@ -66,7 +78,7 @@ export function calculateDetailedCashflow(
   // components as a lump sum. Scale each component to it proportionally so
   // consumers that re-sum the parts (brief rows, projections) match the
   // edited total instead of silently ignoring it.
-  const computedPropertyManagementFee = adjustedIncome * (property.propertyManagementPercent / 100);
+  const computedPropertyManagementFee = clientIncome * (property.propertyManagementPercent / 100);
   const computedHoldingSubtotal =
     computedPropertyManagementFee +
     property.buildingInsuranceAnnual +
@@ -102,8 +114,8 @@ export function calculateDetailedCashflow(
 
   const potentialDeductions = 0;
 
-  // Net cashflow
-  const computedNetAnnualCashflow = adjustedIncome - totalOperatingExpenses - totalNonDeductibleExpenses;
+  // Net cashflow - gross-rent basis (see clientIncome above)
+  const computedNetAnnualCashflow = clientIncome - totalOperatingExpenses - totalNonDeductibleExpenses;
   const netAnnualCashflow = property.netAnnualCashflowOverride ?? computedNetAnnualCashflow;
   const netMonthlyCashflow = property.netMonthlyCashflowOverride ?? (netAnnualCashflow / 12);
   const netWeeklyCashflow = property.netWeeklyCashflowOverride ?? (netAnnualCashflow / 52);

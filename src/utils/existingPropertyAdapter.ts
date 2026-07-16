@@ -1,6 +1,6 @@
 import type { ExistingProperty } from '../types/existingProperty';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
-import { BASE_YEAR } from '../constants/financialParams';
+import { BASE_YEAR, DEFAULT_INTEREST_RATE } from '../constants/financialParams';
 
 export interface ExistingPropertyEngineEntry {
   instanceId: string;
@@ -15,7 +15,7 @@ export interface ExistingPropertyEngineEntry {
 
 export function convertExistingToInstance(
   ep: ExistingProperty,
-  profileInterestRate: number = 0.0625,
+  profileInterestRate: number = DEFAULT_INTEREST_RATE,
 ): PropertyInstanceDetails {
   return {
     state: ep.state,

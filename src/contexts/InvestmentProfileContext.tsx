@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import type { GrowthCurve } from '../types/property';
+import { DEFAULT_INTEREST_RATE } from '../constants/financialParams';
 
 export interface InvestmentProfileData {
   depositPool: number;
@@ -37,7 +38,7 @@ export interface InvestmentProfileData {
   // Each falls back to platform constants in financialParams.ts when undefined.
   // Adjusting these on the Assumptions page changes the chart projections for
   // this scenario only - does NOT alter the AI's initial plan generation.
-  interestRate: number;       // Decimal, default 0.0625 (matches DEFAULT_INTEREST_RATE)
+  interestRate: number;       // Decimal, default DEFAULT_INTEREST_RATE (financialParams.ts)
   vacancyRate: number;        // Decimal, default 0.04 (matches DEFAULT_VACANCY_RATE)
   wageGrowthRate: number;     // Decimal, default 0.025 (matches ANNUAL_WAGE_GROWTH_RATE)
   inflationRate: number;      // Decimal, default 0.03 (matches ANNUAL_INFLATION_RATE)
@@ -164,7 +165,7 @@ export const INITIAL_INVESTMENT_PROFILE: InvestmentProfileData = {
   maxPurchasesPerYear: 3,
   existingPortfolioGrowthRate: 0.05,
   // Tier 1 assumption overrides - defaults match platform constants
-  interestRate: 0.0625,
+  interestRate: DEFAULT_INTEREST_RATE,
   vacancyRate: 0.04,
   wageGrowthRate: 0.025,
   inflationRate: 0.03,

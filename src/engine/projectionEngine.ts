@@ -391,7 +391,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       loanType: (propertyInstance?.loanProduct ?? 'IO') as 'IO' | 'PI',
       loanTerm: propertyInstance?.loanTerm ?? 30,
       ioTermYears: propertyInstance?.ioTermYears ?? 5,
-      // Instance rates are pre-filled with the platform default (6.25) by the
+      // Instance rates are pre-filled with the platform default (DEFAULT_INTEREST_RATE) by the
       // cell templates, so only a rate moved OFF that default counts as a
       // per-property override; otherwise the profile/assumptions rate governs.
       interestRate: propertyInstance?.interestRate
@@ -643,14 +643,15 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
     // Existing property cashflow
     existingProperties.forEach(ep => {
       if (ep.saleYear && year >= ep.saleYear) return;
-      const epInstance = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+      const epInstance = convertExistingToInstance(ep, profile.interestRate ?? DEFAULT_INTEREST_RATE);
       const rentEscFactor = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), yearsElapsed);
       const inflFactor = Math.pow(1 + profileInflation, yearsElapsed);
 
       const breakdown = calculateDetailedCashflow(epInstance, ep.loan, profileVacancyRate);
-      const adjustedGrossIncome = breakdown.grossAnnualIncome * rentEscFactor;
-      const adjustedVacancy = breakdown.vacancyAmount * rentEscFactor;
-      const adjustedIncome = adjustedGrossIncome - adjustedVacancy;
+      // Client-facing cashflow uses GROSS rent - vacancy stays an
+      // assessment-side allowance (serviceability/funding), not a deduction
+      // on the displayed line.
+      const adjustedIncome = breakdown.grossAnnualIncome * rentEscFactor;
 
       const adjustedManagement = breakdown.propertyManagementFee * rentEscFactor;
       const adjustedInsurance = breakdown.buildingInsurance * inflFactor;
@@ -716,9 +717,8 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         const breakdown = calculateDetailedCashflow(propertyInstance, rp.prop.loanAmount, profileVacancyRate);
         const adjustedLoanInterest = rp.prop.loanAmount * propertyEffectiveRate;
 
-        const adjustedGrossIncome = breakdown.grossAnnualIncome * rentEscalationFactor;
-        const adjustedVacancy = breakdown.vacancyAmount * rentEscalationFactor;
-        const adjustedIncome = adjustedGrossIncome - adjustedVacancy;
+        // GROSS rent for the displayed line (see existing-property block above)
+        const adjustedIncome = breakdown.grossAnnualIncome * rentEscalationFactor;
 
         const adjustedManagement = breakdown.propertyManagementFee * rentEscalationFactor;
         const adjustedInsurance = breakdown.buildingInsurance * inflationFactor;
@@ -903,7 +903,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         const adjustedCashflow =
           (fallbackBreakdown.netAnnualCashflow + fallbackBreakdown.loanInterest) * fallbackRentEsc - adjustedLoanInterest;
 
-        totalRentalIncome += fallbackBreakdown.adjustedIncome * fallbackRentEsc;
+        totalRentalIncome += fallbackBreakdown.grossAnnualIncome * fallbackRentEsc;
         totalExpenses += fallbackExpenses;
         totalLoanPayments += adjustedLoanInterest;
       }
@@ -1080,7 +1080,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         let netCashflowFromPriorProps = 0;
         existingProperties.forEach(ep => {
           if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
-          const epInst = convertExistingToInstance(ep, profile.interestRate ?? 0.0625);
+          const epInst = convertExistingToInstance(ep, profile.interestRate ?? DEFAULT_INTEREST_RATE);
           const epYears = year - BASE_YEAR;
           const epRentEsc = Math.pow(1 + (profile.rentEscalationRate ?? 0.05), epYears);
           const epInfl = Math.pow(1 + profileInflation, epYears);

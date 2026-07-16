@@ -449,6 +449,7 @@ export const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({
               max={10}
               step={0.5}
               format="percent"
+              hint="Applied in serviceability & funding tests - cashflow shows gross rent"
             />
           </div>
         )}
