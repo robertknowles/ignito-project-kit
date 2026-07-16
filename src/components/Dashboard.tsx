@@ -753,6 +753,17 @@ export const Dashboard = () => {
               const portfolioAtTarget = growthAtTarget?.portfolioValue ?? kpis.portfolioValue;
               const netCashflowAtTarget = cashflowAtTarget?.cashflow ?? kpis.netCashflowAnnual;
 
+              // Quantified goal gaps - when the plan never meets a goal the
+              // header must say by how much, not just hint with the "+".
+              const cashflowShortfall =
+                !ph.goalMet && ph.cashflowGoal > 0 && netCashflowAtTarget < ph.cashflowGoal
+                  ? ph.cashflowGoal - netCashflowAtTarget
+                  : 0;
+              const equityShortfall =
+                !ph.goalMet && ph.equityGoal > 0 && equityAtTarget < ph.equityGoal
+                  ? ph.equityGoal - equityAtTarget
+                  : 0;
+
               const lastBuyYearRel = ph.lastYear ? ph.lastYear - BASE_YEAR : null;
 
               // ── PropPath §2.1 unified hero pair + §1.4 stat ramp ──────────
@@ -820,6 +831,20 @@ export const Dashboard = () => {
                       to reach <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.equityGoal)} equity</span>
                       {' '}and <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.cashflowGoal)}/yr income</span>
                     </div>
+                    {(cashflowShortfall > 0 || equityShortfall > 0) && (
+                      <div style={{ fontSize: 13, color: '#D92D20', marginTop: 10, maxWidth: 240, lineHeight: 1.45 }}>
+                        {cashflowShortfall > 0 && (
+                          <div>
+                            Income projected <span style={{ fontWeight: 600 }}>{formatMoney(netCashflowAtTarget)}/yr</span> by {ph.targetYear} — {formatMoney(cashflowShortfall)}/yr short
+                          </div>
+                        )}
+                        {equityShortfall > 0 && (
+                          <div>
+                            Equity projected <span style={{ fontWeight: 600 }}>{formatMoney(equityAtTarget)}</span> by {ph.targetYear} — {formatMoney(equityShortfall)} short
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Outcome half */}
