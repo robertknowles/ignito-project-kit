@@ -1,7 +1,7 @@
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { GrowthCurve } from '../types/property';
 import type { InvestmentProfileData } from '../contexts/InvestmentProfileContext';
-import { GROWTH_RATE_TIERS } from '../constants/financialParams';
+import { GROWTH_RATE_TIERS, DEFAULT_INTEREST_RATE_PERCENT } from '../constants/financialParams';
 import {
   isCellId,
   translateLegacyTypeKey,
@@ -162,7 +162,7 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     lvr: 88,
     lmiWaiver: false,
     loanProduct: 'IO',
-    interestRate: 6.5,
+    interestRate: DEFAULT_INTEREST_RATE_PERCENT,
     loanTerm: 30,
     ioTermYears: 5,
     engagementFee: 8000,
@@ -176,10 +176,10 @@ const createMinimalDefaults = (): PropertyInstanceDetails => {
     maintenanceAllowancePostSettlement: 1500,
     stampDutyOverride: null,
     propertyManagementPercent: 8,
-    buildingInsuranceAnnual: 1200,
-    councilRatesWater: 2000,
+    buildingInsuranceAnnual: 450,
+    councilRatesWater: 1300,
     strata: 2000,
-    maintenanceAllowanceAnnual: 1600,
+    maintenanceAllowanceAnnual: 350,
     landTaxOverride: null,
     lmiCapitalized: false,
     mode: 'Growth',
