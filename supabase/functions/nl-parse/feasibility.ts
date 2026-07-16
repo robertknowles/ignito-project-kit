@@ -41,6 +41,13 @@ interface FeasibilityInput {
   cashflowGoal?: number;
   /** Present on plan-affecting turns where the engine has already run. */
   engineProjection?: EngineProjection | null;
+  /**
+   * Drop on-track (ratio >= 0.9) descriptors. Used on modify turns, where
+   * the projection describes the PRE-modification plan — a stale positive
+   * must never read as success for the just-modified plan. Shortfalls still
+   * inject: they are conservative, and the dashboard refreshes the numbers.
+   */
+  suppressOnTrack?: boolean;
 }
 
 interface CashflowFeasibilityResult {
@@ -145,11 +152,27 @@ export function computeFeasibility(input: FeasibilityInput): FeasibilityResult |
   }
 
   // ── Cashflow goal ───────────────────────────────────────────────
-  const cashflow = hasCashflowGoal
+  let cashflow = hasCashflowGoal
     ? computeCashflowFeasibility(properties, cashflowGoal!, timelineYears, engineProjection)
     : undefined;
 
-  return { descriptor, ratio, projectedEquity, isGoalProvided: hasEquityGoal, cashflow };
+  let isGoalProvided = hasEquityGoal;
+  if (input.suppressOnTrack) {
+    if (ratio >= 0.9) {
+      isGoalProvided = false;
+      descriptor = '';
+    }
+    if (cashflow && cashflow.ratio >= 0.9) {
+      cashflow = undefined;
+    }
+  }
+
+  // Nothing left to say — don't touch the message at all.
+  if (!isGoalProvided && !cashflow) {
+    return null;
+  }
+
+  return { descriptor, ratio, projectedEquity, isGoalProvided, cashflow };
 }
 
 function computeCashflowFeasibility(

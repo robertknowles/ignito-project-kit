@@ -202,8 +202,8 @@ Deno.serve(async (req: Request) => {
             properties: parsedResponse.properties,
             equityGoal: parsedResponse.investmentProfile?.equityGoal ?? 0,
             cashflowGoal: parsedResponse.investmentProfile?.cashflowGoal
-              ?? parsedResponse.investmentProfile?.targetPassiveIncome
-              ?? 0,
+              || parsedResponse.investmentProfile?.targetPassiveIncome
+              || 0,
             timelineYears: parsedResponse.investmentProfile?.timelineYears ?? 20,
           });
           if (feasibility) {
@@ -248,6 +248,7 @@ Deno.serve(async (req: Request) => {
             cashflowGoal: ip.cashflowGoal ?? 0,
             timelineYears: ip.timelineYears ?? 20,
             engineProjection: currentPlan?.enginePlanState ?? null,
+            suppressOnTrack: true,
           });
           if (feasibility) {
             parsedResponse.message = injectFeasibilityDescriptor(parsedResponse.message, feasibility);
