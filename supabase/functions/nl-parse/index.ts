@@ -196,16 +196,19 @@ Deno.serve(async (req: Request) => {
         // Template the message (code writes it, not AI)
         parsedResponse.message = buildCreatePlanMessage(data as any);
 
-        // Feasibility injection
+        // Feasibility injection (equity AND cashflow goals)
         if (parsedResponse.properties?.length > 0) {
           const feasibility = computeFeasibility({
             properties: parsedResponse.properties,
             equityGoal: parsedResponse.investmentProfile?.equityGoal ?? 0,
+            cashflowGoal: parsedResponse.investmentProfile?.cashflowGoal
+              ?? parsedResponse.investmentProfile?.targetPassiveIncome
+              ?? 0,
             timelineYears: parsedResponse.investmentProfile?.timelineYears ?? 20,
           });
           if (feasibility) {
             parsedResponse.message = injectFeasibilityDescriptor(parsedResponse.message, feasibility);
-            console.info(`nl-parse: feasibility ratio=${feasibility.ratio.toFixed(2)}, descriptor="${feasibility.descriptor}"`);
+            console.info(`nl-parse: feasibility ratio=${feasibility.ratio.toFixed(2)}, descriptor="${feasibility.descriptor}"${feasibility.cashflow ? `, cashflow ratio=${feasibility.cashflow.ratio.toFixed(2)}, cashflow descriptor="${feasibility.cashflow.descriptor}"` : ''}`);
           }
         }
 
@@ -231,6 +234,26 @@ Deno.serve(async (req: Request) => {
 
         // Template the message
         parsedResponse.message = buildModifyPlanMessage(data as any);
+
+        // Re-check goal feasibility on every plan-affecting turn — a missed
+        // goal must never be silently glossed over by a modification reply.
+        // The engine projection sent with the request (enginePlanState) is
+        // authoritative here; the modification itself hasn't been applied
+        // yet, so this describes the plan as it currently stands.
+        if (currentProperties.length > 0) {
+          const ip = currentPlan?.investmentProfile ?? {};
+          const feasibility = computeFeasibility({
+            properties: currentProperties,
+            equityGoal: ip.equityGoal ?? 0,
+            cashflowGoal: ip.cashflowGoal ?? 0,
+            timelineYears: ip.timelineYears ?? 20,
+            engineProjection: currentPlan?.enginePlanState ?? null,
+          });
+          if (feasibility) {
+            parsedResponse.message = injectFeasibilityDescriptor(parsedResponse.message, feasibility);
+            console.info(`nl-parse: modify feasibility ratio=${feasibility.ratio === Infinity ? 'n/a' : feasibility.ratio.toFixed(2)}${feasibility.cashflow ? `, cashflow ratio=${feasibility.cashflow.ratio.toFixed(2)}, cashflow descriptor="${feasibility.cashflow.descriptor}"` : ''}`);
+          }
+        }
 
         if (validation.warnings.length > 0) {
           parsedResponse.assumptions = [
