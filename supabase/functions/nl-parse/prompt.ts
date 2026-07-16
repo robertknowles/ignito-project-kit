@@ -141,6 +141,18 @@ ${strategyProfileText.trim()}
 - **Purchase cadence** (e.g. "one per year", "every 18 months"): space \`targetPeriod\` accordingly. Periods are semi-annual (2 per year), so "one per year" ≈ 2 periods apart.
 - **Mid-plan transition** (e.g. "move to cashflow halfway", "commercial after year 7"): use the matching two-phase preset (\`eg-to-cf\` or \`commercial-transition\`). This is a REAL shift, not just later timing — Phase 1 properties use the preset's growth cells; Phase 2 properties MUST switch to the preset's cash-flow (or commercial) cells and take on those cells' distinct characteristics (typically lower price point, higher yield → higher rent relative to price). Place Phase 2 at a higher \`targetPeriod\`; if the strategy says to transition but not when, start Phase 2 at roughly the HALFWAY point of the plan horizon. The finished plan should visibly read as growth assets early, cash-flow assets later — never all-growth with a different date.
 - **Property kind / price point** (e.g. "established freestanding homes", "units"): steer cell selection toward the matching cells (never name the cell or location back to the BA). Where a preset lists multiple primary/secondary cells, rotate between them across properties rather than reusing one cell every time.
+- **BA fee / engagement fee** (e.g. "our fee is $12k per purchase", "$15k inc GST"): set each property's \`engagementFee\` to the stated dollar amount. This feeds the cash required at every purchase — leaving the default when the firm stated a fee makes every purchase land too early. If the fee is a percentage of price, compute the dollar amount per property.
+- **Purchase / upfront costs** (e.g. "allow $8k in fees", "budget $30k on top of the deposit"): set \`purchaseCostsTotal\` per property for the FEE bundle (BA fee, inspections, legals, mortgage/insurance fees). Stamp duty is calculated separately and is NOT part of this lump — only set \`stampDutyOverride\` when a duty figure or concession is explicitly stated, and \`conveyancing\` when legals are stated on their own. If a stated all-in figure clearly includes duty, put only the non-duty remainder in \`purchaseCostsTotal\` and note the split in \`assumptions\`.
+- **Interest rate** (e.g. "we model at 6.5%", "assess at 7%"): set \`interestRate\` (a percentage, e.g. 6.5) on EVERY property AND on \`investmentProfile.interestRate\`. Do not keep the engine default when a rate is stated.
+- **Loan structure** (e.g. "IO for the first 7 years then P&I", "P&I from day one"): set \`loanProduct\`, and \`ioTermYears\` to the stated IO length whenever a length is given. "P&I from day one" → \`loanProduct: "PI"\`.
+- **Deposit / LVR** (e.g. "20% deposits", "we stretch to 88% with LMI"): deposit % = 100 − LVR. A strategy-stated LVR OVERRIDES the capacity-based LVR rules — apply it to every property unless the client's brief overrides it. "88% with LMI" → \`lvr: 88, lmiCapitalized: true\`.
+- **Property management fee** (e.g. "PM at 7%"): set \`propertyManagementPercent\` on every property.
+- **Vacancy** (e.g. "2 weeks a year", "allow 3% vacancy"): convert weeks to a fraction of annual rent (2 weeks ≈ 0.04) and set \`investmentProfile.vacancyRate\`.
+- **Rent growth** (e.g. "rents grow 3% a year"): set \`investmentProfile.rentEscalationRate\` as a fraction (3% → 0.03).
+- **Buying under market value** (e.g. "we buy 5–10% under market"): set \`valuationAtPurchase\` above \`purchasePrice\` by the stated margin (5% under market on a $580k purchase → valuationAtPurchase ≈ 610500). This gives the plan its day-one equity — omitting it erases the firm's core value proposition from the model.
+- **Planned sell-down / exit** (e.g. "sell one or two in the final five years to clear debt"): set \`saleYear\` on the properties the strategy would sell, timed per the stated exit plan.
+
+**If the strategy states a cost, fee, rate, or expense you have no field for, say so in \`assumptions\` (e.g. "Strategy's letting-fee allowance noted — not separately modelled") rather than silently ignoring it. A silently-dropped stated number is the worst failure mode.**
 Then bias property cells toward the preset you chose.`
     : '';
 
@@ -304,7 +316,7 @@ Active preset: **${preset.toUpperCase()} — ${presetLabel}**. Bias toward this 
 ### Plan Generation Defaults (for create_plan)
 - **EVERY PROPOSED PROPERTY MUST BE PURCHASABLE (hard rule).** Each property must be fundable at its placement period from the running pool of deposit + accumulated savings + released equity, while staying within serviceability and the borrowing-capacity ceiling. Walk the purchases in time order and only place one if the funds and capacity exist by then. If a property won't fit: make it cheaper, push it later (so savings/equity build), switch later purchases to trusts, OR drop it and reduce the count. NEVER propose a property the client cannot actually buy — a proposed plan must contain ZERO unaffordable purchases. If the goal can't be reached with a fully-fundable plan, propose the best plan that DOES fit and state the shortfall in the message. It is always better to propose fewer properties that all fit than more that don't.
 - Loan product: IO. LVR: per capacity rules above.
-- Timeline: 20 years if not specified (set timelineYearsExplicit: false).
+- Timeline: 20 years if not specified (set timelineYearsExplicit: false). When the BA DOES state a timeframe ("30-year plan", "over 25 years"), set timelineYears to it AND timelineYearsExplicit: true — otherwise the stated horizon is clamped to 20.
 - Count: derive from goal. eg-low: 4-7, eg-high: 2-4, cf-low: 4-7, cf-high: 3-4, commercial-transition: 3-5 (2-3 residential Phase 1 + 1-2 commercial Phase 2), eg-to-cf: 4-6 (growth Phase 1 + cash-flow Phase 2).
 - Default goal: Equity Growth → ~2x deposit pool. Cash Flow → ~$50k/yr income.
 - Capacity sanity check: total acquisition ≤ ~2x borrowing capacity.
@@ -346,7 +358,7 @@ If the BA mentions trusts/SMSF, respect their preference. If they say "all indiv
 - "Property 2" = property #2 in the list above.
 - Relative changes: compute ABSOLUTE value. "Increase by 500k" on a $700k property → purchasePrice: 1200000.
 - Valid targets: property-1 through property-N, savings, income, timeline, equityGoal, cashflowGoal, portfolio (for add/remove).
-- Supported \`change\` params: \`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`, \`entity\`.
+- Supported \`change\` params: \`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`, \`entity\`, \`ioTermYears\`, \`engagementFee\`, \`propertyManagementPercent\`, \`valuationAtPurchase\`, \`saleYear\`.
 - Adding properties: include ONLY new properties in the properties array.
 - For "add" with a clear type/price/state: use modify_plan. For vague "add another": use suggest_properties.
 

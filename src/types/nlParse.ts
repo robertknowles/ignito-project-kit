@@ -112,9 +112,13 @@ export interface NLParseResponse {
     annualSavings: number;
     baseSalary: number; // Highest earner for serviceability
     timelineYears: number;
+    timelineYearsExplicit?: boolean; // true when the BA stated the timeline
     equityGoal?: number;
     cashflowGoal?: number;
     targetPassiveIncome?: number;
+    interestRate?: number; // Percent (e.g. 6.5) - only when the strategy/brief states one
+    vacancyRate?: number; // Fraction (e.g. 0.04) - only when stated
+    rentEscalationRate?: number; // Fraction (e.g. 0.03) - only when stated
   };
 
   // For initial_plan - property sequence
@@ -133,6 +137,14 @@ export interface NLParseResponse {
     alertDismissed?: boolean; // Buyer's agent dismissed the affordability alert
     saleYear?: number | null; // Planned sale year (null/undefined = hold)
     isNewBuild?: boolean; // New build vs established (default established)
+    interestRate?: number; // Percent (e.g. 6.5) - only when stated
+    ioTermYears?: number; // IO years before P&I - only when stated
+    engagementFee?: number; // BA fee in dollars - only when stated
+    propertyManagementPercent?: number; // PM fee % of rent - only when stated
+    valuationAtPurchase?: number; // Market value for buy-under-market - only when stated
+    stampDutyOverride?: number; // Stated stamp duty in dollars - only when stated
+    conveyancing?: number; // Stated conveyancing/legals in dollars - only when stated
+    purchaseCostsTotal?: number; // All-in upfront costs lump in dollars - only when stated
   }>;
 
   // For modification - what to change (single or multiple)
@@ -206,6 +218,9 @@ export interface NLParseResponse {
     existingPropertyDebt?: number;
     existingPropertyEquity?: number;
     targetPassiveIncome?: number;
+    interestRate?: number; // Percent (e.g. 6.5) - only when stated
+    vacancyRate?: number; // Fraction (e.g. 0.04) - only when stated
+    rentEscalationRate?: number; // Fraction (e.g. 0.03) - only when stated
     existingPortfolio?: Array<{
       address?: string;
       state: string;

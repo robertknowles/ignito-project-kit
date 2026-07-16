@@ -10,7 +10,7 @@ interface StrategyProfileModalProps {
   onSaved?: () => void
 }
 
-const PLACEHOLDER = `e.g. "One purchase every two years. High-capacity clients start blue-chip near their borrowing maximum and wear negative cashflow early; average earners start around $500k with a cashflow focus. Transition into a commercial purchase once equity supports it. IO loans for the first 5 years."`
+const PLACEHOLDER = `e.g. "Our fee is $12k per purchase, allow $8k in other costs. We model at 6.5%, PM at 7%, rents grow 3%. One purchase every two years: high-capacity clients start blue-chip near their borrowing maximum; average earners start around $500k with a cashflow focus. We buy 5-10% under market. Transition into a commercial purchase once equity supports it. IO loans for the first 7 years."`
 
 const MAX_LENGTH = 2000
 
@@ -79,9 +79,10 @@ export const StrategyProfileModal: React.FC<StrategyProfileModalProps> = ({ isOp
             Save the strategies your firm uses, in plain English. Pick one per client in the chat
             input - the AI factors it into property selection, pricing and plan structure, and
             chooses the best-fit modelling approach from it and the client's brief.
-            The more you spell out, the closer the plan lands: how purchase prices scale with a
-            client's capacity, how often they buy, appetite for negative cashflow, when commercial
-            enters the plan, and whether a home purchase can sit inside it.
+            The more you spell out, the closer the plan lands: your fee and purchase costs, the
+            rate you model at, deposit/LVR and loan structure, PM fee, vacancy and rent growth,
+            buying under market value, price bands and yields, how often clients buy, and when
+            commercial enters the plan.
           </p>
 
           {loading ? (

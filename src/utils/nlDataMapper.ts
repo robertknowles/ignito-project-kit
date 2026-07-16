@@ -40,6 +40,17 @@ const resolveCellId = (value: string): CellId | null => {
   return null;
 };
 
+/**
+ * Rate-unit normalisers. The AI is instructed to emit percents for instance
+ * rates (6.5) and fractions for profile rates (0.065 / 0.04), but briefs say
+ * "6.5%" and "0.04" interchangeably and the model follows the text. Values on
+ * the wrong side of 1 are unambiguous for real-world AU rates (no one models
+ * 0.5% interest or 400% vacancy), so normalise instead of silently mis-scaling
+ * by 100x.
+ */
+const asPercent = (v: number): number => (v > 0 && v < 1 ? v * 100 : v);
+const asFraction = (v: number): number => (v >= 1 ? v / 100 : v);
+
 // ── Step 1.6: Map to Investment Profile ────────────────────────────
 
 /**
@@ -100,9 +111,17 @@ export function mapToInvestmentProfile(
     if (ip.annualSavings !== undefined) updates.annualSavings = ip.annualSavings;
     if (ip.baseSalary !== undefined) updates.baseSalary = ip.baseSalary;
     if (ip.timelineYears !== undefined) updates.timelineYears = ip.timelineYears;
+    // Must travel WITH timelineYears: updateProfile clamps non-explicit
+    // timelines to exactly 20, so dropping this flag rewrote every stated
+    // "30-year plan" to 20 (field re-audit 16 Jul, gap B2).
+    if (ip.timelineYearsExplicit !== undefined) updates.timelineYearsExplicit = ip.timelineYearsExplicit;
     if (ip.equityGoal !== undefined) updates.equityGoal = ip.equityGoal;
     if (ip.cashflowGoal !== undefined) updates.cashflowGoal = ip.cashflowGoal;
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
+    // Strategy-stated portfolio-wide assumptions. Profile stores fractions.
+    if (ip.interestRate !== undefined) updates.interestRate = asFraction(ip.interestRate);
+    if (ip.vacancyRate !== undefined) updates.vacancyRate = asFraction(ip.vacancyRate);
+    if (ip.rentEscalationRate !== undefined) updates.rentEscalationRate = asFraction(ip.rentEscalationRate);
   }
 
   // Strategy preset from NL input.
@@ -244,10 +263,15 @@ export function mapToPropertySelections(
 
     // Overlay Claude's extracted values. Mode comes from prop.mode if Claude
     // sent it (Phase 3+); otherwise inherit the cell's default mode from defaults.
+    // valuationAtPurchase: an AI-supplied value means the strategy/brief stated
+    // buy-under-market — overwriting it with purchasePrice erased the firm's
+    // day-one equity (coverage audit gap #9). Mark it manual so downstream
+    // recalcs don't reset it.
     const instance: PropertyInstanceDetails = {
       ...defaults,
       purchasePrice: prop.purchasePrice,
-      valuationAtPurchase: prop.purchasePrice,
+      valuationAtPurchase: prop.valuationAtPurchase ?? prop.purchasePrice,
+      valuationAtPurchaseManual: prop.valuationAtPurchase !== undefined,
       state: prop.state,
       growthAssumption: prop.growthAssumption,
       loanProduct: prop.loanProduct,
@@ -264,6 +288,30 @@ export function mapToPropertySelections(
     // Optional: entity type (individual, trust, company, smsf)
     if (prop.entity !== undefined) {
       instance.entity = prop.entity;
+    }
+
+    // Strategy-stated per-property overrides (coverage audit §4a). Extracted
+    // value beats default; absent keeps the template/global default.
+    if (prop.interestRate !== undefined) {
+      instance.interestRate = asPercent(prop.interestRate);
+    }
+    if (prop.ioTermYears !== undefined) {
+      instance.ioTermYears = prop.ioTermYears;
+    }
+    if (prop.engagementFee !== undefined) {
+      instance.engagementFee = prop.engagementFee;
+    }
+    if (prop.propertyManagementPercent !== undefined) {
+      instance.propertyManagementPercent = asPercent(prop.propertyManagementPercent);
+    }
+    if (prop.stampDutyOverride !== undefined) {
+      instance.stampDutyOverride = prop.stampDutyOverride;
+    }
+    if (prop.conveyancing !== undefined) {
+      instance.conveyancing = prop.conveyancing;
+    }
+    if (prop.purchaseCostsTotal !== undefined) {
+      instance.purchaseCostsOverride = prop.purchaseCostsTotal;
     }
 
     // Optional: manual placement if Claude suggested a specific period
@@ -327,6 +375,9 @@ export function mapUpdateProfileToUpdates(
   if (pu.cashflowGoal !== undefined) updates.cashflowGoal = pu.cashflowGoal;
   if (pu.timelineYears !== undefined) updates.timelineYears = pu.timelineYears;
   if (pu.targetPassiveIncome !== undefined) updates.targetPassiveIncome = pu.targetPassiveIncome;
+  if (pu.interestRate !== undefined) updates.interestRate = asFraction(pu.interestRate);
+  if (pu.vacancyRate !== undefined) updates.vacancyRate = asFraction(pu.vacancyRate);
+  if (pu.rentEscalationRate !== undefined) updates.rentEscalationRate = asFraction(pu.rentEscalationRate);
 
   if (typeof pu.existingPropertyDebt === 'number') {
     updates.currentDebt = pu.existingPropertyDebt;
@@ -371,6 +422,11 @@ const SUPPORTED_CHANGE_FIELDS = new Set([
   'rentPerWeek',
   'interestRate',
   'entity',
+  'ioTermYears',
+  'engagementFee',
+  'propertyManagementPercent',
+  'valuationAtPurchase',
+  'saleYear',
 ]);
 
 /**
@@ -465,10 +521,26 @@ export function mapModificationToUpdates(
           instanceChanges.rentPerWeek = params.rentPerWeek as number;
         }
         if (params.interestRate !== undefined) {
-          instanceChanges.interestRate = params.interestRate as number;
+          instanceChanges.interestRate = asPercent(params.interestRate as number);
         }
         if (params.entity !== undefined) {
           instanceChanges.entity = params.entity as 'individual' | 'trust' | 'company' | 'smsf';
+        }
+        if (params.ioTermYears !== undefined) {
+          instanceChanges.ioTermYears = params.ioTermYears as number;
+        }
+        if (params.engagementFee !== undefined) {
+          instanceChanges.engagementFee = params.engagementFee as number;
+        }
+        if (params.propertyManagementPercent !== undefined) {
+          instanceChanges.propertyManagementPercent = asPercent(params.propertyManagementPercent as number);
+        }
+        if (params.valuationAtPurchase !== undefined) {
+          instanceChanges.valuationAtPurchase = params.valuationAtPurchase as number;
+          instanceChanges.valuationAtPurchaseManual = true;
+        }
+        if (params.saleYear !== undefined) {
+          instanceChanges.saleYear = params.saleYear as number | null;
         }
 
         // Surface any params Claude tried to set that we don't actually
