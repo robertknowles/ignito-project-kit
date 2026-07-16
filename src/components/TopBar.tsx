@@ -380,7 +380,7 @@ export const TopBar: React.FC<TopBarProps> = ({ variant = 'button', onAction }) 
           <button
             onClick={handleShareClick}
             disabled={shareDisabled}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
             title={shareTitle}
           >
             <Share2 size={15} className="text-[#717680]" />

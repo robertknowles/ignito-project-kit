@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import type { RetirementPropertyProjection } from './useRetirementProjection'
 import type { CgtMethod, SaleBreakdown } from './saleBreakdown'
 import { InfoPopover } from './InfoPopover'
@@ -82,121 +82,118 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
 }) => {
   if (breakdowns.length === 0) return null
 
+  const totals = breakdowns.reduce(
+    (t, b) => {
+      t.salePrice += b.data.salePrice
+      t.sellingCosts += b.data.sellingCosts
+      t.loanPayout += b.data.loanPayout
+      t.activeCgt += b.data.activeCgt
+      t.netCashReleased += b.data.netCashReleased
+      return t
+    },
+    { salePrice: 0, sellingCosts: 0, loanPayout: 0, activeCgt: 0, netCashReleased: 0 },
+  )
+
   return (
     <div className="rounded-2xl border border-[#E9EAEB] bg-white" style={{ fontFamily: INTER }}>
       {/* ── Header: title + total + collapse toggle ─────────────────────── */}
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
+        className="flex w-full items-center justify-between gap-3 px-6 py-5 text-left"
       >
-        <span className="text-[15px] font-semibold text-[#181D27]">Tax and sale details</span>
-        <span className="flex items-center gap-2">
-          <span className="text-[13px] text-[#717680]">
-            <span className="font-semibold text-[#181D27]">{fmtCompact(totalTaxAndCosts)}</span> total tax and costs
-          </span>
-          {open ? <ChevronUp size={16} className="text-[#717680]" /> : <ChevronDown size={16} className="text-[#717680]" />}
+        <span className="text-[17px] font-semibold tracking-[-0.01em] text-[#181D27]">Tax and sale details</span>
+        <span className="text-[13px] text-[#717680]">
+          <span className="font-semibold text-[#181D27]">{fmtCompact(totalTaxAndCosts)}</span> total tax and costs
         </span>
       </button>
 
       {open && (
         <>
-          {/* ── Per-property table ──────────────────────────────────────── */}
-          <div className="overflow-x-auto border-t border-[#F2F2F4] px-6 pb-2 pt-4">
+          {/* Marginal tax rate control */}
+          <div className="flex items-center gap-2 px-6 pb-2">
+            <span className="flex items-center text-[13px] text-[#535862]">
+              Marginal tax rate
+              <InfoPopover title={DETAIL_EXPLAINERS.marginalRate.title} body={DETAIL_EXPLAINERS.marginalRate.body} />
+            </span>
+            <select
+              value={taxRatePct}
+              onChange={e => onTaxRate(Number(e.target.value))}
+              className="rounded-lg border border-[#D5D7DA] bg-white px-2.5 py-1 text-[13px] text-[#181D27] outline-none focus:border-[#98A2B3]"
+            >
+              {TAX_RATE_OPTIONS.map(pct => (
+                <option key={pct} value={pct}>{pct}%</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── Per-property table (one row per property) ────────────────── */}
+          <div className="overflow-x-auto px-6 pb-2 pt-3">
             <table className="w-full border-collapse">
               <thead>
-                <tr>
-                  <th className="sticky left-0 bg-white py-2 pr-4 text-left align-bottom">
-                    {/* Marginal tax rate lives here so it hugs the CGT treatment row (no dead space). */}
-                    <span className="flex items-center gap-2">
-                      <span className="flex items-center text-[13px] font-normal text-[#535862]">
-                        Marginal tax rate
-                        <InfoPopover title={DETAIL_EXPLAINERS.marginalRate.title} body={DETAIL_EXPLAINERS.marginalRate.body} />
-                      </span>
-                      <select
-                        value={taxRatePct}
-                        onChange={e => onTaxRate(Number(e.target.value))}
-                        className="rounded-lg border border-[#D5D7DA] bg-white px-2 py-1 text-[12.5px] text-[#181D27] outline-none focus:border-[#98A2B3]"
-                      >
-                        {TAX_RATE_OPTIONS.map(pct => (
-                          <option key={pct} value={pct}>{pct}%</option>
-                        ))}
-                      </select>
-                    </span>
-                  </th>
-                  {breakdowns.map(b => {
-                    const saleYear = saleYearById?.get(b.prop.instanceId)
-                    return (
-                      <th
-                        key={b.prop.instanceId}
-                        className="min-w-[128px] py-2 pl-4 text-right align-bottom text-[13px] font-semibold text-[#181D27]"
-                      >
-                        Prop {numberById.get(b.prop.instanceId)}
-                        {saleYear != null && (
-                          <span className="mt-0.5 block text-[11px] font-medium text-[#717680]">Sold {saleYear}</span>
-                        )}
-                      </th>
-                    )
-                  })}
+                <tr className="border-b border-[#E9EAEB]">
+                  <th className="py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Property</th>
+                  <th className="w-[136px] px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">CGT treatment</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Sale price</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Selling costs</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Loan payout</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Est. CGT</th>
+                  <th className="py-2 pl-4 text-right text-[11px] font-semibold uppercase tracking-wide text-[#A4A7AE]">Net cash</th>
                 </tr>
               </thead>
               <tbody>
-                {/* CGT treatment badges */}
-                <tr className="border-t border-[#F2F2F4]">
-                  <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] text-[#535862]">CGT treatment</td>
-                  {breakdowns.map(b => {
-                    const badge = treatmentBadge(b.data)
-                    const isSmsf = b.data.ledger === 'smsf'
-                    return (
-                      <td key={b.prop.instanceId} className="py-3 pl-4 text-right align-top">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            disabled={isSmsf}
-                            onClick={() => onCycleMethod(b.prop.instanceId, b.data.appliedMethod)}
-                            title={isSmsf ? 'SMSF keeps its own treatment' : 'Click to change the CGT method'}
-                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-opacity ${
-                              isSmsf ? 'cursor-default' : 'cursor-pointer hover:opacity-80'
-                            }`}
-                            style={{ backgroundColor: badge.bg, color: badge.color }}
-                          >
-                            {badge.label}
-                            {!isSmsf && <ChevronDown size={12} style={{ color: badge.color }} />}
-                          </button>
-                        </div>
+                {breakdowns.map(b => {
+                  const badge = treatmentBadge(b.data)
+                  const isSmsf = b.data.ledger === 'smsf'
+                  const saleYear = saleYearById?.get(b.prop.instanceId)
+                  return (
+                    <tr key={b.prop.instanceId} className="border-b border-[#F2F2F4]">
+                      <td className="py-3.5 pr-4 text-left whitespace-nowrap">
+                        <span className="text-[14px] font-semibold text-[#181D27]">Prop {numberById.get(b.prop.instanceId)}</span>
+                        {saleYear != null && <span className="ml-2 text-[13px] text-[#A4A7AE]">{saleYear}</span>}
                       </td>
-                    )
-                  })}
-                </tr>
+                      <td className="px-4 py-3.5 text-left">
+                        <button
+                          type="button"
+                          disabled={isSmsf}
+                          onClick={() => onCycleMethod(b.prop.instanceId, b.data.appliedMethod)}
+                          title={isSmsf ? 'SMSF keeps its own treatment' : 'Click to change the CGT method'}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold transition-opacity ${
+                            isSmsf ? 'cursor-default' : 'cursor-pointer hover:opacity-80'
+                          }`}
+                          style={{ backgroundColor: badge.bg, color: badge.color }}
+                        >
+                          {badge.label}
+                          {!isSmsf && <ChevronDown size={12} style={{ color: badge.color }} />}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#181D27]">{fmtFull(b.data.salePrice)}</td>
+                      <td className="px-4 py-3.5 text-right text-[14px] tabular-nums text-[#717680]">{`\u2212${fmtFull(b.data.sellingCosts)}`}</td>
+                      <td className="px-4 py-3.5 text-right text-[14px] tabular-nums text-[#717680]">{`\u2212${fmtFull(b.data.loanPayout)}`}</td>
+                      <td className="px-4 py-3.5 text-right text-[14px] tabular-nums text-[#717680]">{`\u2212${fmtFull(b.data.activeCgt)}`}</td>
+                      <td className="py-3.5 pl-4 text-right text-[14px] font-bold tabular-nums" style={{ color: GREEN }}>{fmtFull(b.data.netCashReleased)}</td>
+                    </tr>
+                  )
+                })}
 
-                <ValueRow label="Sale price" breakdowns={breakdowns} pick={d => fmtFull(d.salePrice)} />
-                <ValueRow label="Selling costs" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.sellingCosts)}`} muted />
-                <ValueRow label="Loan payout" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.loanPayout)}`} muted />
-                <ValueRow label="Estimated CGT" breakdowns={breakdowns} pick={d => `\u2212${fmtFull(d.activeCgt)}`} muted />
-
-                {/* Net cash released - highlighted */}
-                <tr className="border-t border-[#E9EAEB]">
-                  <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] font-semibold" style={{ color: BRAND }}>
-                    Net cash released
-                  </td>
-                  {breakdowns.map(b => (
-                    <td
-                      key={b.prop.instanceId}
-                      className="py-3 pl-4 text-right text-[15px] font-bold tabular-nums"
-                      style={{ color: BRAND }}
-                    >
-                      {fmtFull(b.data.netCashReleased)}
-                    </td>
-                  ))}
+                {/* Total row */}
+                <tr className="border-t-2 border-[#181D27]">
+                  <td className="py-3.5 pr-4 text-left text-[14px] font-bold text-[#181D27]">Total</td>
+                  <td className="px-4 py-3.5" />
+                  <td className="px-4 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#181D27]">{fmtFull(totals.salePrice)}</td>
+                  <td className="px-4 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#181D27]">{`\u2212${fmtFull(totals.sellingCosts)}`}</td>
+                  <td className="px-4 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#181D27]">{`\u2212${fmtFull(totals.loanPayout)}`}</td>
+                  <td className="px-4 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#181D27]">{`\u2212${fmtFull(totals.activeCgt)}`}</td>
+                  <td className="py-3.5 pl-4 text-right text-[14px] font-bold tabular-nums" style={{ color: GREEN }}>{fmtFull(totals.netCashReleased)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* ── Notes + compliance footer ───────────────────────────────── */}
-          <div className="space-y-1.5 px-6 pb-5 pt-1">
+          <div className="space-y-1.5 px-6 pb-5 pt-3">
             <p className="text-[12px] text-[#717680]">
-              Treatments are applied automatically from each property&rsquo;s hold period and ownership structure. Click a badge to change it.
+              Treatments applied automatically from hold period and ownership. Click a badge to change it.
             </p>
             <p className="text-[11px] leading-relaxed text-[#A4A7AE]">
               <span className="font-semibold text-[#717680]">Estimate only, not tax advice.</span>{' '}
@@ -208,24 +205,3 @@ export const SaleBreakdownSection: React.FC<SaleBreakdownSectionProps> = ({
     </div>
   )
 }
-
-// ── Value row (one label + a cell per property) ─────────────────────────────
-
-const ValueRow: React.FC<{
-  label: string
-  breakdowns: SaleBreakdownEntry[]
-  pick: (d: SaleBreakdown) => string
-  muted?: boolean
-}> = ({ label, breakdowns, pick, muted }) => (
-  <tr className="border-t border-[#F2F2F4]">
-    <td className="sticky left-0 bg-white py-3 pr-4 text-[13px] text-[#535862]">{label}</td>
-    {breakdowns.map(b => (
-      <td
-        key={b.prop.instanceId}
-        className={`py-3 pl-4 text-right text-[13.5px] tabular-nums ${muted ? 'text-[#717680]' : 'font-semibold text-[#181D27]'}`}
-      >
-        {pick(b.data)}
-      </td>
-    ))}
-  </tr>
-)

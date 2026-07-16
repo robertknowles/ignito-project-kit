@@ -637,7 +637,7 @@ export const Dashboard = () => {
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
                   <button
                     onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
                   >
                     <SlidersHorizontalIcon size={15} className="text-[#717680]" />
                     Assumptions
@@ -645,7 +645,7 @@ export const Dashboard = () => {
                   <button
                     onClick={() => { if (!isExporting) setIsExporting(true); setActionsMenuOpen(false); }}
                     disabled={isExporting}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isExporting ? <Loader2 size={15} className="animate-spin text-[#717680]" /> : <DownloadIcon size={15} className="text-[#717680]" />}
                     Export PDF
