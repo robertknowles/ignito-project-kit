@@ -49,10 +49,19 @@ const buildCurrentPlan = (scenario: ScenarioInput, run: ScenarioRunResult): Curr
       profile.equityGoal > 0
         ? growthData.find(d => d.equity >= profile.equityGoal)
         : undefined;
+    // Net annual cashflow at the same horizon year - feeds the server-side
+    // cashflow-goal feasibility check (and the AI's verbatim citations).
+    const cashflowSeries = run.projection.cashflowData ?? [];
+    const horizonCashflowPoint =
+      cashflowSeries.find(d => parseInt(d.year, 10) >= horizonYear) ??
+      cashflowSeries[cashflowSeries.length - 1];
     enginePlanState = {
       horizonYear,
       projectedPortfolioValue: Math.round(horizonPoint?.portfolioValue ?? 0),
       projectedEquity: Math.round(horizonPoint?.equity ?? 0),
+      projectedAnnualCashflow: horizonCashflowPoint
+        ? Math.round(horizonCashflowPoint.cashflow ?? 0)
+        : undefined,
       equityGoalReachedYear: equityGoalReachedPoint
         ? parseInt(equityGoalReachedPoint.year, 10)
         : null,
