@@ -1,0 +1,109 @@
+{
+  "source": {
+    "name": "Compound (Ben & Adam) Calculator",
+    "deal": "5/804 Warrigal Road, Malvern East, VIC 3145 (filename says 8/804)",
+    "contractDate": "2025-05-13",
+    "transcription": "accuracy-testing/external-sources/benadam-compound-transcription.md",
+    "rawCsvs": "/Users/robknowles/Projects/Company Calculators/Ben:Adam/"
+  },
+  "inputs": {
+    "purchasePrice": 315000,
+    "valuationAtPurchase": 380000,
+    "state": "VIC",
+    "growthAssumption": "High (their tab: per-year 12/10/8/5/5, then 5% flat years 6-10)",
+    "rentPerWeek": 450,
+    "vacancyWeeks": 0,
+    "lvr": 88,
+    "lmiWaiver": false,
+    "lmiPercentOfLoan": 0.02,
+    "lmi": 5544,
+    "lmiCapitalized": true,
+    "baseLoan": 277200,
+    "loanCarried": 282744,
+    "loanProduct": "IO",
+    "interestRatePct": 6.04,
+    "interestFlatAllTenYears": true,
+    "loanTermYears": 30,
+    "propertyManagementPercent": 6.6,
+    "buildingInsuranceAnnual": 350,
+    "councilRatesWater": 2000,
+    "strata": 2700,
+    "maintenanceAllowanceAnnual": 0,
+    "landTax": 975,
+    "lettingFee": 0,
+    "expenseInflationPct": 3,
+    "rentalGrowthPct": { "years1to5": 4, "years6to10": 3 },
+    "upfrontCash": {
+      "engagementFee": 10000,
+      "holdingDeposit": 10000,
+      "buildingLandlordInsuranceAtExchange": 1401.64,
+      "buildingPestInspection": 600,
+      "plumbingElectricalAndValuation": 0,
+      "depositBalance": 27800,
+      "stampDutyEstimate": 13970,
+      "mortgageFeesAndDischarge": 1000,
+      "conveyancing": 2200,
+      "ratesAdjustment": 0,
+      "totalCashRequired": 66972
+    },
+    "stageSubtotals": {
+      "engagement": 10000,
+      "exchange": 12002,
+      "unconditional": 0,
+      "settlement": 44970,
+      "postSettlement": 0
+    }
+  },
+  "priceGrowthCurveByYearPct": [12, 10, 8, 5, 5, 5, 5, 5, 5, 5],
+  "rentalGrowthByYearIncrementPct": [4, 4, 4, 4, 4, 3, 3, 3, 3],
+  "year1CashflowLines": {
+    "grossAnnualRentalIncome": 23400,
+    "loanInterest": 16983.4,
+    "propertyManagement": 1544.4,
+    "buildingLandlordInsurance": 350,
+    "councilRatesWater": 2000,
+    "strata": 2700,
+    "maintenanceAllowance": 0,
+    "forecastAnnualCashExpenses": 23577.77,
+    "landTax": 975,
+    "principalPayments": 0,
+    "potentialAnnualNetCashOutflows": 24552.77,
+    "netAnnualCashflowYear1": -1153
+  },
+  "tenYearTable": {
+    "columns": ["year", "propertyValue", "loan", "equity", "grossIncome", "cashDeductions", "netCashflow", "netCashflowCumulative", "perMonth", "perWeek"],
+    "atPurchase": { "propertyValue": 380000, "loan": 282744, "equity": 97256 },
+    "rows": [
+      { "year": 1,  "propertyValue": 425600, "loan": 282744, "equity": 142856, "grossIncome": 23400, "cashDeductions": 24553, "netCashflow": -1153, "netCashflowCumulative": -1153, "perMonth": -96, "perWeek": -22 },
+      { "year": 2,  "propertyValue": 468160, "loan": 282744, "equity": 185416, "grossIncome": 24336, "cashDeductions": 24780, "netCashflow": -444,  "netCashflowCumulative": -1597, "perMonth": -37, "perWeek": -9 },
+      { "year": 3,  "propertyValue": 505613, "loan": 282744, "equity": 222869, "grossIncome": 25309, "cashDeductions": 25014, "netCashflow": 296,   "netCashflowCumulative": -1301, "perMonth": 25,  "perWeek": 6 },
+      { "year": 4,  "propertyValue": 530893, "loan": 282744, "equity": 248149, "grossIncome": 26322, "cashDeductions": 25255, "netCashflow": 1067,  "netCashflowCumulative": -234,  "perMonth": 89,  "perWeek": 21 },
+      { "year": 5,  "propertyValue": 557438, "loan": 282744, "equity": 274694, "grossIncome": 27375, "cashDeductions": 25503, "netCashflow": 1872,  "netCashflowCumulative": 1638,  "perMonth": 156, "perWeek": 36 },
+      { "year": 6,  "propertyValue": 585310, "loan": 282744, "equity": 302566, "grossIncome": 28470, "cashDeductions": 25758, "netCashflow": 2711,  "netCashflowCumulative": 4349,  "perMonth": 226, "perWeek": 52 },
+      { "year": 7,  "propertyValue": 614576, "loan": 282744, "equity": 331832, "grossIncome": 29324, "cashDeductions": 26022, "netCashflow": 3302,  "netCashflowCumulative": 7652,  "perMonth": 275, "perWeek": 64 },
+      { "year": 8,  "propertyValue": 645304, "loan": 282744, "equity": 362560, "grossIncome": 30203, "cashDeductions": 26293, "netCashflow": 3911,  "netCashflowCumulative": 11562, "perMonth": 326, "perWeek": 75 },
+      { "year": 9,  "propertyValue": 677570, "loan": 282744, "equity": 394826, "grossIncome": 31110, "cashDeductions": 26572, "netCashflow": 4538,  "netCashflowCumulative": 16100, "perMonth": 378, "perWeek": 87 },
+      { "year": 10, "propertyValue": 711448, "loan": 282744, "equity": 428704, "grossIncome": 32043, "cashDeductions": 26765, "netCashflow": 5278,  "netCashflowCumulative": 21378, "perMonth": 440, "perWeek": 101 }
+    ],
+    "supportingRows": {
+      "interestExpensePerYear": "flat 16,983 (year 10 shows 16,889 in one cell - sheet anomaly)",
+      "operatingExpenses": "7,569 (Y1) -> 9,876 (Y10), i.e. the WHOLE non-interest bucket (incl. property management AND land tax) inflated at 3%/yr",
+      "grossYield": "7.4% -> 10.2%",
+      "netYield": "-0.4% -> 1.7%",
+      "capitalGrowthCumulative": 331448,
+      "totalPerformance": { "y1": 44447, "y5": 179076, "y10": 352826 },
+      "cashOnCashCumulative": { "y1": -0.017, "y10": 0.319 },
+      "returnOnInvestedCapital": { "y1": 0.664, "y10": 5.268 },
+      "initialCapitalReturnedInYears": 2
+    }
+  },
+  "sheetAnomaliesNotReplicated": [
+    "Year-1 loan interest 16,983.40 implies 6.04% on ~281,182, not on the carried loan 282,744 (which would be 17,077.74). All 10 years use the lower figure.",
+    "Year-10 interest cell shows 16,889 instead of the flat 16,983.",
+    "Property management is inflated at 3%/yr with the general expense bucket instead of tracking rent (which grows 4%/yr) - PM should be 6.6% of rent every year but is only in year 1.",
+    "Insurance $350/yr in the hold cashflow vs $1,401.64 paid at exchange (different policies or a stale cell).",
+    "Rental growth 4%->3% in the sheet body vs the Growth Assumptions tab's High rental column reading 9/9/7/5/5/3.7%.",
+    "LGA dropdown says Muswellbrook for a Malvern East VIC property.",
+    "No IO->P&I reversion is modelled in any of the 10 years despite a 30-year 'loan term'."
+  ]
+}

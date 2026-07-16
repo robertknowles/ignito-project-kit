@@ -1,0 +1,79 @@
+{
+  "source": {
+    "document": "accuracy-testing/external-sources/ella-transcription.md",
+    "sheet": "Cashflow Calculator — tab '11 Emma Ct Driver' (Darwin NT)",
+    "screenshot": "/Users/robknowles/Projects/Company Calculators/Ella/WhatsApp Image 2026-07-16 at 09.59.08.jpeg",
+    "transcribed": "2026-07-16"
+  },
+  "inputs": {
+    "propertyType": "House",
+    "state": "NT",
+    "purchasePrice": 650000,
+    "depositPercent": 20.0,
+    "depositPaid": 130000,
+    "loanAmount": 520000,
+    "interestRatePI": 6.29,
+    "interestRateIO": 6.39,
+    "rentPerWeek": 650,
+    "rentAnnual": 33800,
+    "managementFeePercent": 8.8,
+    "councilWaterRatesAnnual": 3500,
+    "insuranceAnnual": 1000,
+    "advertisingLettingAnnual": 750,
+    "landTaxAnnual": 1300,
+    "conveyancerLegals": 1500,
+    "buildingAndPest": 1850,
+    "buyersAgentFee": null,
+    "loanTermYearsImpliedByPmtHelper": 30
+  },
+  "herComputedLines": {
+    "loanRepaymentsMonthlyIO_629": 2725.67,
+    "loanRepaymentsMonthlyIO_639": 2769.0,
+    "managementFee_midBlock_8_8pct": 2974,
+    "managementFee_annualTotalBlock": 1859,
+    "managementFeeAmbiguityNote": "Sheet shows the fee twice: $2,974 (= 8.8% x $33,800 = $2,974.40, the true 8.8% figure) in the mid block, but $1,859 inside the Annual Total. $1,859 = exactly 5.5% x $33,800, so the annual total appears to use a 5.5% rate despite the '@8.8%' label. Compare against BOTH; never silently pick one.",
+    "yieldOnPurchasePrice": 5.2,
+    "yieldOnTotalAcquisition": 4.9,
+    "yieldOnLoan": 6.5,
+    "annualLoanRepaymentsIO_629": 32708,
+    "annualLoanRepaymentsIO_639": 33228,
+    "annualExpenseTotal_629": 41117,
+    "annualExpenseTotal_639": 41637,
+    "pmtHelper": {
+      "pv": 520000,
+      "weeklyRate": 0.0012,
+      "n": 1560,
+      "weeklyPmt_partiallyCutOff": "741.xx",
+      "impliedAnnualPIRepayment_weeklyPmtx52": 38557
+    }
+  },
+  "initialOutlay": {
+    "purchasePrice": 650000,
+    "deposit": 130000,
+    "stampDutyPlusTransfer": 35838,
+    "conveyancerLegals": 1500,
+    "buyersAgentFee": null,
+    "buildingAndPest": 1850,
+    "totalFundsRequired": 169188,
+    "totalAcquisitionCost": 689188
+  },
+  "cashflowBottomBlock": {
+    "interestOnly_629": { "annual": -7317, "perMonth": null, "perWeek": null },
+    "interestOnly_639": { "annual": -7837, "perMonth": -653.08, "perWeek": -163.27 },
+    "principalAndInterest_629": { "annual": -13166, "perMonth": -1097.17, "perWeek": -274.29 }
+  },
+  "transcriptionCrossChecks": {
+    "interest629": "520000 x 6.29% = 32,708",
+    "interest639": "520000 x 6.39% = 33,228",
+    "rentAnnual": "650 x 52 = 33,800",
+    "outlay": "130,000 + 35,838 + 1,500 + 1,850 = 169,188",
+    "cashflow629": "33,800 - 41,117 = -7,317",
+    "cashflow639": "33,800 - 41,637 = -7,837"
+  },
+  "notes": [
+    "NT property (Darwin). NT has NO land tax on individually-held property, yet her sheet carries a $1,300 land tax line — replicated in our engine via landTaxOverride.",
+    "No vacancy line anywhere on her sheet — matches our gross-rent client cashflow basis.",
+    "No growth or multi-year projection on the sheet: it validates year-1 cashflow + upfront cash only.",
+    "Her P&I repayment comes from a WEEKLY PMT (r=0.12%/wk, n=1560) x 52 = ~$38,557; our engine uses a MONTHLY PMT x 12."
+  ]
+}

@@ -7,8 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { SendIcon, Loader2Icon, PaperclipIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, SparklesIcon } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { Loader2Icon, PlusIcon, ArrowUpIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, SparklesIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { track, EVENTS } from '@/lib/analytics'
 import { ChatMessage } from './ChatMessage'
@@ -59,14 +58,12 @@ export const ChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const { drawerOpen: isOpen, setPlanGenerating, setHighlightPeriod, toggleDrawer, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler, pendingPlanResponse } = useLayout()
-  const [minimized, setMinimized] = useState(true)
+  const { drawerOpen, setDrawerOpen, chatPanelWidth, setChatPanelWidth, setPlanGenerating, setHighlightPeriod, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler, pendingPlanResponse } = useLayout()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
-  const location = useLocation()
 
   // Company strategies (named, free-text). The BA picks one; its text is fed to
   // the AI, which infers the engine preset from it + the brief.
@@ -90,97 +87,102 @@ export const ChatPanel: React.FC = () => {
   // Ref for sendMessage so auto-fix can send explanation to AI
   const sendMessageRef = useRef<((text: string, presetOverride?: string, forceFreshPlan?: boolean) => void) | null>(null)
 
-  // ── Drag & resize state ──
-  const DEFAULT_SIZE = { width: 380, height: 420 }
-  const [chatSize, setChatSize] = useState(DEFAULT_SIZE)
-  const [chatPos, setChatPos] = useState<{ x: number; y: number } | null>(null)
-  const minimizedRef = useRef(minimized)
-  minimizedRef.current = minimized
-  const chatPosRef = useRef(chatPos)
-  chatPosRef.current = chatPos
-  const chatSizeRef = useRef(chatSize)
-  chatSizeRef.current = chatSize
+  // ── Divider resize (horizontal) ──
+  // The docked chat column sits between the sidebar and the dashboard. Dragging
+  // the right-edge divider widens/narrows the chat, which reflows the dashboard.
+  // Width is clamped + persisted by LayoutContext.setChatPanelWidth.
+  const resizeState = useRef<{ startX: number; startW: number } | null>(null)
+  const chatWidthRef = useRef(chatPanelWidth)
+  chatWidthRef.current = chatPanelWidth
 
-  const dragState = useRef<{
-    active: boolean; startX: number; startY: number;
-    startPosX: number; startPosY: number; moved: boolean;
-  } | null>(null)
-  const resizeState = useRef<{
-    active: boolean; startX: number; startY: number;
-    startW: number; startH: number;
-  } | null>(null)
-
-  // Set default position (bottom-right) on mount - stored as expanded position
-  useEffect(() => {
-    if (!chatPos) {
-      setChatPos({
-        x: window.innerWidth - DEFAULT_SIZE.width - 24,
-        y: window.innerHeight - DEFAULT_SIZE.height - 24,
-      })
-    }
-  }, [])
-
-  // Reset to bottom-right default position & size on route change
-  useEffect(() => {
-    setChatSize(DEFAULT_SIZE)
-    setChatPos({
-      x: window.innerWidth - DEFAULT_SIZE.width - 24,
-      y: window.innerHeight - DEFAULT_SIZE.height - 24,
-    })
-  }, [location.pathname])
-
-  // Global mouse listeners for drag & resize
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      if (dragState.current?.active) {
-        const dx = e.clientX - dragState.current.startX
-        const dy = e.clientY - dragState.current.startY
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.current.moved = true
-        const newX = Math.max(0, Math.min(window.innerWidth - 200, dragState.current.startPosX + dx))
-        const newY = Math.max(0, Math.min(window.innerHeight - 48, dragState.current.startPosY + dy))
-        setChatPos({ x: newX, y: newY })
-      }
-      if (resizeState.current?.active) {
-        const dw = e.clientX - resizeState.current.startX
-        const dh = e.clientY - resizeState.current.startY
-        setChatSize({
-          width: Math.max(320, Math.min(700, resizeState.current.startW + dw)),
-          height: Math.max(360, Math.min(window.innerHeight - 48, resizeState.current.startH + dh)),
-        })
-      }
+      if (!resizeState.current) return
+      const dx = e.clientX - resizeState.current.startX
+      setChatPanelWidth(resizeState.current.startW + dx)
     }
     const onMouseUp = () => {
-      if (dragState.current) {
-        if (!dragState.current.moved) setMinimized(!minimizedRef.current)
-        dragState.current = null
+      if (resizeState.current) {
+        resizeState.current = null
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
       }
-      if (resizeState.current) resizeState.current = null
     }
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
     return () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp) }
+  }, [setChatPanelWidth])
+
+  const onDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    resizeState.current = { startX: e.clientX, startW: chatWidthRef.current }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  // ── Draggable launcher FAB ──
+  // The sparkle button defaults to the bottom-right corner but can be dragged
+  // anywhere; its position persists across reloads. A drag past a small
+  // threshold suppresses the click, so dropping it doesn't also open the chat.
+  const FAB_SIZE = 48
+  const FAB_MARGIN = 20
+  const FAB_POS_KEY = 'proppath.fabPos'
+  const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(() => {
+    try {
+      const raw = localStorage.getItem(FAB_POS_KEY)
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })
+  const fabPosRef = useRef(fabPos)
+  fabPosRef.current = fabPos
+  const fabDrag = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null)
+
+  const clampFab = useCallback((x: number, y: number) => {
+    const maxX = window.innerWidth - FAB_SIZE - 4
+    const maxY = window.innerHeight - FAB_SIZE - 4
+    return { x: Math.min(Math.max(4, x), Math.max(4, maxX)), y: Math.min(Math.max(4, y), Math.max(4, maxY)) }
   }, [])
 
-  const onHeaderMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return
-    e.preventDefault()
-    const pos = chatPosRef.current
-    if (!pos) return
-    dragState.current = {
-      active: true, startX: e.clientX, startY: e.clientY,
-      startPosX: pos.x, startPosY: pos.y, moved: false,
-    }
-  }
+  const onFabMouseMove = useCallback((e: MouseEvent) => {
+    const d = fabDrag.current
+    if (!d) return
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 4) d.moved = true
+    const next = clampFab(d.origX + dx, d.origY + dy)
+    fabPosRef.current = next  // keep ref current so mouseup can persist it
+    setFabPos(next)
+  }, [clampFab])
 
-  const onResizeMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const sz = chatSizeRef.current
-    resizeState.current = {
-      active: true, startX: e.clientX, startY: e.clientY,
-      startW: sz.width, startH: sz.height,
+  const onFabMouseUp = useCallback(() => {
+    window.removeEventListener('mousemove', onFabMouseMove)
+    window.removeEventListener('mouseup', onFabMouseUp)
+    document.body.style.userSelect = ''
+    const d = fabDrag.current
+    fabDrag.current = null
+    if (!d) return
+    if (!d.moved) {
+      setDrawerOpen(true)
+    } else if (fabPosRef.current) {
+      try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(fabPosRef.current)) } catch { /* ignore */ }
     }
-  }
+  }, [onFabMouseMove, setDrawerOpen])
+
+  const onFabMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    fabDrag.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top, moved: false }
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', onFabMouseMove)
+    window.addEventListener('mouseup', onFabMouseUp)
+  }, [onFabMouseMove, onFabMouseUp])
+
+  // Keep the FAB on-screen when the viewport is resized.
+  useEffect(() => {
+    const onResize = () => setFabPos((p) => (p ? clampFab(p.x, p.y) : p))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [clampFab])
 
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
@@ -261,7 +263,10 @@ export const ChatPanel: React.FC = () => {
   // from the simulator, so the AI can cite them in chat (matching the
   // dashboard) instead of doing its own rough projection that drifts ~20%.
   const getCurrentPlan = useCallback((): CurrentPlanState | null => {
-    if (propertyOrder.length === 0) return null
+    // Return a plan when there's EITHER a planned portfolio OR existing
+    // properties on file - otherwise the AI can't answer questions about a
+    // client who only has existing holdings and no forward plan yet.
+    if (propertyOrder.length === 0 && existingProperties.length === 0) return null
 
     // Resolve engine projection from chartData if it exists. portfolioGrowthData
     // is the same array the dashboard reads, so values here always match what
@@ -323,10 +328,24 @@ export const ChatPanel: React.FC = () => {
           borrowingCapacityRemaining: engineProp?.borrowingCapacityRemaining,
         }
       }),
+      existingProperties: existingProperties.map((ep) => ({
+        address: ep.address,
+        state: ep.state,
+        boughtYear: ep.boughtYear,
+        purchasePrice: ep.purchasePrice,
+        currentValue: ep.currentValue,
+        loan: ep.loan,
+        equity: (ep.currentValue ?? 0) - (ep.loan ?? 0),
+        rentPerWeek: ep.rentPerWeek,
+        interestRate: ep.interestRate,
+        loanType: ep.loanType,
+        growthAssumption: ep.growthAssumption,
+        entity: ep.entity,
+      })),
       clientNames: clientNamesRef.current,
       enginePlanState,
     }
-  }, [profile, propertyOrder, instances, chartData, timelineProperties])
+  }, [profile, propertyOrder, instances, chartData, timelineProperties, existingProperties])
 
   // Handle plan generation - store response for confirmation screen.
   // Returns a corrected chat-message string when auto-fix changed the plan
@@ -395,6 +414,18 @@ export const ChatPanel: React.FC = () => {
   const confirmPlan = useCallback(
     (response: NLParseResponse) => {
       console.warn('[ConfirmPlan] Properties:', response.properties?.map((p, i) => `P${i+1} targetPeriod=${p.targetPeriod} alertDismissed=${p.alertDismissed}`).join(' | '))
+
+      // Persist a name the BA typed in the confirmation brief to the client
+      // record so the sidebar reflects it. Placeholder names ("Client",
+      // "client 1", "Untitled Client") don't count as real.
+      const confirmedNames = (response.clientProfile?.members ?? [])
+        .map((m) => (m.name ?? '').trim())
+        .filter((n) => n.length > 0 && !/^client\s*\d*$/i.test(n) && !/^untitled client$/i.test(n))
+      if (activeClient && confirmedNames.length > 0) {
+        const newName = confirmedNames.length === 1 ? confirmedNames[0] : `${confirmedNames[0]} & ${confirmedNames[1]}`
+        if (newName !== activeClient.name) void updateClient(activeClient.id, { name: newName })
+      }
+
       const profileUpdates = mapToInvestmentProfile(response)
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
@@ -423,7 +454,7 @@ export const ChatPanel: React.FC = () => {
       setPendingPlanResponse(null)
       flushSaveAfterStateUpdate()
     },
-    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent]
+    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent, activeClient, updateClient]
   )
 
   // Expose confirmPlan to the confirmation screen via LayoutContext ref
@@ -456,6 +487,7 @@ export const ChatPanel: React.FC = () => {
       if (ip.timelineYears) parts.push(`${ip.timelineYears} year horizon`)
       if (ip.equityGoal) parts.push(`equity goal ${Math.round(ip.equityGoal).toLocaleString()}`)
       if (ip.cashflowGoal) parts.push(`cashflow goal ${Math.round(ip.cashflowGoal).toLocaleString()}`)
+      if (ip.goalPriority) parts.push(`prioritise the ${ip.goalPriority} goal first`)
       const presetLabel = PRESET_LABELS[preset] ?? preset
       const brief = `Rebuild the plan as a ${presetLabel} plan. ${parts.join(', ')}.`
       // Clear the current pending plan so the confirmation screen shows the
@@ -946,21 +978,22 @@ export const ChatPanel: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loadingStep])
 
-  // Auto-expand when loading starts (e.g. plan triggered from Home page)
+  // Auto-open the docked chat when loading starts (e.g. plan triggered from
+  // Home page or a dashboard card via the chat bus).
   useEffect(() => {
-    if (isLoading && minimized) {
-      setMinimized(false)
+    if (isLoading && !drawerOpen) {
+      setDrawerOpen(true)
     }
   }, [isLoading])
 
-  // Instantly jump to bottom when expanding from minimized
+  // Instantly jump to bottom when the chat opens
   useEffect(() => {
-    if (!minimized) {
+    if (drawerOpen) {
       requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
       })
     }
-  }, [minimized])
+  }, [drawerOpen])
 
   // Handle send
   const handleSend = useCallback(async () => {
@@ -1186,192 +1219,186 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <>
-      {/* Messenger-style chat widget - hidden during confirmation brief */}
-      {chatPos && !pendingPlanResponse && (
-      <div
-        className={`fixed z-50 flex flex-col overflow-hidden transition-colors ${
-          minimized
-            ? 'rounded-full bg-[#7C3AED] shadow-lg cursor-pointer hover:bg-[#6D28D9]'
-            : 'bg-white rounded-2xl shadow-2xl ring-1 ring-neutral-200/60'
-        }`}
-        style={{
-          right: 28,
-          bottom: 28,
-          width: minimized ? 56 : 360,
-          height: minimized ? 56 : Math.min(chatSize.height, 560),
-        }}
-        onClick={minimized ? () => setMinimized(false) : undefined}
-        title={minimized ? 'PropPath AI' : undefined}
-      >
-        {minimized ? (
-          /* Collapsed - §2.6 circular FAB with white sparkle */
-          <div className="flex items-center justify-center w-full h-full text-white">
-            <SparklesIcon size={24} />
-          </div>
-        ) : (
-        /* Expanded - popover header (online dot + title + close) */
+      {/* Docked AI chat column - sits between the sidebar and the dashboard.
+          Hidden during the confirmation brief. */}
+      {drawerOpen && !pendingPlanResponse && (
         <div
-          className="flex-shrink-0 flex items-center h-[48px] px-3 select-none"
-          style={{ borderBottom: '1px solid #E9EAEB' }}
+          className="relative flex flex-col h-full flex-shrink-0 bg-white border-r border-neutral-200"
+          style={{ width: chatPanelWidth }}
         >
-          <div className="flex items-center gap-2 pl-1">
-            <div className="w-2 h-2 rounded-full bg-[#17B26A]" />
-            <span className="text-sm font-semibold text-[#181D27]">PropPath AI</span>
+          {/* Header - title + strategies + close */}
+          <div
+            className="flex-shrink-0 flex items-center h-[48px] px-3 select-none"
+            style={{ borderBottom: '1px solid #E9EAEB' }}
+          >
+            <div className="flex items-center pl-1">
+              <span className="text-[13px] font-semibold text-[#181D27]">PropPath AI</span>
+            </div>
+            <div className="ml-auto flex items-center gap-0.5">
+              <button
+                onClick={() => setStrategyProfileOpen(true)}
+                className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#7C3AED] hover:bg-neutral-100 transition-colors"
+                title="Company strategies"
+              >
+                <SparklesIcon size={13} />
+              </button>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-neutral-100 transition-colors"
+                title="Close chat"
+              >
+                <XIcon size={14} />
+              </button>
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-0.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); setStrategyProfileOpen(true); }}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#7C3AED] hover:bg-neutral-100 transition-colors"
-              title="Company strategies"
-            >
-              <SparklesIcon size={13} />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setMinimized(true); }}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-neutral-100 transition-colors"
-              title="Close"
-            >
-              <XIcon size={14} />
-            </button>
+
+          {/* Compliance disclaimer */}
+          <div className="flex-shrink-0 px-3 py-1.5 border-b border-neutral-100 bg-neutral-50/50">
+            <p className="text-[10px] text-neutral-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
+          </div>
+
+          {/* Messages area */}
+          <div
+            className={`flex-1 min-h-0 overflow-y-auto px-3.5 pt-3 pb-6 space-y-3 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
+                  Describe a client scenario to generate an investment roadmap.
+                </p>
+                <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
+                  e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
+                </p>
+                <CompanyStrategySelector
+                  profiles={strategyProfiles}
+                  selectedId={selectedStrategyId}
+                  onSelect={(id) => { setSelectedStrategyId(id); setPendingStrategyText(null); }}
+                  onManage={() => setStrategyProfileOpen(true)}
+                />
+              </div>
+            )}
+
+            <AnimatePresence mode="popLayout">
+              {messages.map((msg) =>
+                msg.type === 'loading' ? (
+                  <ChatLoadingSteps
+                    key={msg.id}
+                    clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                    activeStep={loadingStep}
+                    isComplete={false}
+                  />
+                ) : (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    onOptionSelect={handleOptionSelect}
+                    onFeedback={handleFeedback}
+                  />
+                )
+              )}
+            </AnimatePresence>
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input area */}
+          <div className="flex-shrink-0 px-3 pb-3 pt-2">
+            {/* File preview */}
+            {selectedFile && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-neutral-50 rounded-lg">
+                <FileTextIcon size={14} className="text-neutral-500 flex-shrink-0" />
+                <span className="text-xs text-neutral-500 truncate flex-1">{selectedFile.name}</span>
+                <span className="text-xs text-neutral-400">{formatFileSize(selectedFile.size)}</span>
+                <button
+                  onClick={() => setSelectedFile(null)}
+                  className="text-neutral-400 hover:text-neutral-600"
+                >
+                  <XIcon size={12} />
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.txt,.csv,.docx,.xlsx"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            <div className="flex items-center gap-2 bg-white rounded-[24px] pl-2 pr-2 py-1.5 border border-neutral-200 focus-within:border-[#7C3AED]/40 shadow-sm transition-colors">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
+                title="Attach PDF or transcript"
+                aria-label="Attach file"
+              >
+                <PlusIcon size={18} />
+              </button>
+              <textarea
+                ref={inputRef}
+                value={inputValue}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                placeholder="How can I help?"
+                rows={1}
+                className="flex-1 bg-transparent text-[12px] text-[#414651] placeholder-neutral-400 resize-none outline-none leading-[1.5] max-h-[120px] px-1"
+                disabled={isLoading}
+              />
+              {(() => {
+                const isActive = Boolean(inputValue.trim() || selectedFile)
+                return (
+                  <button
+                    onClick={handleSend}
+                    disabled={!isActive || isLoading}
+                    className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: isActive || isLoading ? '#7C3AED' : '#EDE6FB',
+                    }}
+                    aria-label="Send message"
+                  >
+                    {isLoading ? (
+                      <Loader2Icon size={15} className="animate-spin text-white" />
+                    ) : (
+                      <ArrowUpIcon size={16} strokeWidth={2.5} className={isActive ? 'text-white' : 'text-[#B69EE8]'} />
+                    )}
+                  </button>
+                )
+              })()}
+            </div>
+          </div>
+
+          {/* Drag divider - right edge. Widens/narrows the chat, reflowing the dashboard. */}
+          <div
+            onMouseDown={onDividerMouseDown}
+            className="group absolute top-0 right-0 h-full w-2 translate-x-1/2 cursor-col-resize z-20"
+            style={{ touchAction: 'none' }}
+            title="Drag to resize"
+          >
+            <div className="w-px h-full mx-auto bg-transparent group-hover:bg-[#7C3AED]/50 transition-colors" />
           </div>
         </div>
-        )}
-
-        {/* Body - hidden when minimized */}
-        {!minimized && (
-          <>
-            {/* Compliance disclaimer */}
-            <div className="flex-shrink-0 px-3 py-1.5 border-b border-neutral-100 bg-neutral-50/50">
-              <p className="text-[10px] text-neutral-400 italic leading-snug">{DISCLAIMER_D_TEXT}</p>
-            </div>
-
-            {/* Messages area */}
-            <div
-              className={`flex-1 min-h-0 overflow-y-auto px-3.5 pt-3 pb-6 space-y-3 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
-                    Describe a client scenario to generate an investment roadmap.
-                  </p>
-                  <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
-                    e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
-                  </p>
-                  <CompanyStrategySelector
-                    profiles={strategyProfiles}
-                    selectedId={selectedStrategyId}
-                    onSelect={(id) => { setSelectedStrategyId(id); setPendingStrategyText(null); }}
-                    onManage={() => setStrategyProfileOpen(true)}
-                  />
-                </div>
-              )}
-
-              <AnimatePresence mode="popLayout">
-                {messages.map((msg) =>
-                  msg.type === 'loading' ? (
-                    <ChatLoadingSteps
-                      key={msg.id}
-                      clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
-                      activeStep={loadingStep}
-                      isComplete={false}
-                    />
-                  ) : (
-                    <ChatMessage
-                      key={msg.id}
-                      message={msg}
-                      onOptionSelect={handleOptionSelect}
-                      onFeedback={handleFeedback}
-                    />
-                  )
-                )}
-              </AnimatePresence>
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input area */}
-            <div className="flex-shrink-0 px-3 pb-3 pt-2">
-              {/* File preview */}
-              {selectedFile && (
-                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-neutral-50 rounded-lg">
-                  <FileTextIcon size={14} className="text-neutral-500 flex-shrink-0" />
-                  <span className="text-xs text-neutral-500 truncate flex-1">{selectedFile.name}</span>
-                  <span className="text-xs text-neutral-400">{formatFileSize(selectedFile.size)}</span>
-                  <button
-                    onClick={() => setSelectedFile(null)}
-                    className="text-neutral-400 hover:text-neutral-600"
-                  >
-                    <XIcon size={12} />
-                  </button>
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.txt,.csv,.docx,.xlsx"
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-neutral-200 focus-within:border-neutral-300 transition-colors">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors"
-                  title="Attach PDF or transcript"
-                  aria-label="Attach file"
-                >
-                  <PaperclipIcon size={14} />
-                </button>
-                <textarea
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={handleInput}
-                  onKeyDown={handleKeyDown}
-                  placeholder="How can I help?"
-                  rows={1}
-                  className="flex-1 bg-transparent text-[11px] text-[#414651] placeholder-neutral-400 resize-none outline-none leading-[1.5] max-h-[120px]"
-                  disabled={isLoading}
-                />
-                {(() => {
-                  const isActive = Boolean(inputValue.trim() || selectedFile)
-                  return (
-                    <button
-                      onClick={handleSend}
-                      disabled={!isActive || isLoading}
-                      className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:cursor-not-allowed"
-                      style={{
-                        opacity: !isActive && !isLoading ? 0.4 : 1,
-                      }}
-                    >
-                      {isLoading ? (
-                        <Loader2Icon size={13} className="animate-spin text-[#7F56D9]" />
-                      ) : (
-                        <SendIcon size={13} className={isActive ? 'text-[#7F56D9]' : 'text-neutral-400'} />
-                      )}
-                    </button>
-                  )
-                })()}
-              </div>
-            </div>
-
-            {/* Resize handle - bottom-right corner */}
-            <div
-              onMouseDown={onResizeMouseDown}
-              className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-10 flex items-end justify-end p-1"
-              style={{ touchAction: 'none' }}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" className="text-neutral-300">
-                <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="1.5" />
-                <line x1="9" y1="5" x2="5" y2="9" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </div>
-          </>
-        )}
-      </div>
       )}
+
+      {/* Launcher - purple sparkle FAB shown when the chat is closed.
+          Defaults to the bottom-right corner; draggable anywhere. */}
+      {!drawerOpen && !pendingPlanResponse && (
+        <button
+          onMouseDown={onFabMouseDown}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrawerOpen(true) } }}
+          className="fixed z-50 w-12 h-12 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] shadow-lg flex items-center justify-center text-white transition-colors cursor-grab active:cursor-grabbing select-none touch-none"
+          style={fabPos
+            ? { left: fabPos.x, top: fabPos.y }
+            : { right: FAB_MARGIN, bottom: 24 }}
+          title="Ask PropPath AI (drag to move)"
+          aria-label="Open PropPath AI chat"
+        >
+          <SparklesIcon size={22} />
+        </button>
+      )}
+
       <StrategyProfileModal
         isOpen={strategyProfileOpen}
         onClose={() => setStrategyProfileOpen(false)}

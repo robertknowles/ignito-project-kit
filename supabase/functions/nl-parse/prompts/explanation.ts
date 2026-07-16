@@ -121,7 +121,7 @@ Return type "explanation" with:
 - \`explanation.relevantPeriods\`: period numbers if about a time range
 - \`explanation.relevantProperties\`: property IDs if about specific properties
 - \`explanation.relevantPeriod\`: \`{ startYear, endYear }\` if about a dashboard time period
-- \`message\`: 2-4 sentence plain-English answer referencing specific numbers from the plan
+- \`message\`: plain-English answer referencing specific numbers from the plan. A one-line factual answer stays plain text. But the moment the answer carries 3+ figures, a before/after, an Annual/Monthly split, a year-by-year projection, or a sell-down breakdown, you MUST format it with markdown — do NOT return it as prose paragraphs. Required formatting: **bold sparingly** — only the key takeaway or headline figure in each part, never every number; \`## \` section headings when there are 2+ parts (e.g. "## Cash Flow", "## Tax Position"); one key takeaway per paragraph; "- " bullet lists for label→value pairs; and GFM pipe tables (label column first, numeric columns after) for ANY multi-column number set such as Annual/Monthly breakdowns — in tables bold ONLY the total/final row, not every cell. Close analytical answers with a **Bottom line** line stating the single most important conclusion, and/or a **What stands out** section of 2-4 bullets. Aim for the clean, scannable layout of a tidy report, not one block of text.
 - \`assumptions\`: empty array
 
 Do NOT include \`clientProfile\`, \`investmentProfile\`, or \`properties\` — those would rebuild the dashboard.`;

@@ -357,6 +357,36 @@
   .aurora-a, .aurora-b, .aurora-c { animation: none; }
 }
 
+/* Prompt box: a purple line that travels around the border on focus */
+@property --prompt-border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes prompt-border-spin {
+  to { --prompt-border-angle: 360deg; }
+}
+.prompt-border {
+  background: conic-gradient(
+    from var(--prompt-border-angle),
+    transparent 0deg,
+    transparent 250deg,
+    rgba(167, 139, 250, 0.7) 300deg,
+    #7c3aed 330deg,
+    rgba(167, 139, 250, 0.7) 350deg,
+    transparent 360deg
+  );
+  padding: 1.5px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: prompt-border-spin 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .prompt-border { animation: none; }
+}
+
 /* Landing page animations */
 @keyframes fade-in {
   from {

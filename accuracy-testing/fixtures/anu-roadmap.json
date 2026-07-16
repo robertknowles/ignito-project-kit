@@ -1,0 +1,171 @@
+{
+  "source": {
+    "name": "Anu Varughese — 'Fresh Start — PROPERTY ROADMAP' (Google Sheets workbook, 'Property Roadmap')",
+    "transcription": "accuracy-testing/external-sources/anu-transcription.md",
+    "rawImages": "/Users/robknowles/Projects/Company Calculators/Anu/",
+    "captured": "Screenshots of Google Meet product demo (1 Jun), received 16 Jul 2026 via WhatsApp",
+    "scope": "PORTFOLIO-LEVEL external source: 16 property slots (4 filled), Summary tab Year 0-18 multi-property projection",
+    "unknowns": [
+      "Cashflow/Commercial tab — never shown; contents unknown",
+      "'Other Expenses' breakdown on the Purchases sheet — section header visible, contents cut off; only the per-property annual totals ($2,940 / $2,979) are known",
+      "No explicit growth-rate cell visible anywhere — growth rates below are DERIVED by fitting her Portfolio Value curve, not transcribed",
+      "Columns beyond Year 18 on the Summary (if any)",
+      "P5 column was demo-only (added then absent in later frames) — excluded from this fixture; the Year 0-18 Summary table corresponds to the 4-property portfolio"
+    ]
+  },
+
+  "properties": [
+    {
+      "id": "P1",
+      "purchaseYearLabel": "Year 1",
+      "summaryYearIndexFirstOwned": 0,
+      "state": "VIC",
+      "propertyValue": 550000,
+      "stampDuty": 28070,
+      "buyersAgentFee": 19500,
+      "legalFeesAndOtherCharges": 2500,
+      "subtotalPurchaseCosts": 600070,
+      "lendersMortgageInsurance": 0,
+      "totalPurchaseCosts": 600070,
+      "lvr": 0.80,
+      "depositAmount": 110000,
+      "loanAmount": 440000,
+      "loanType": "IO",
+      "interestRatePct": 6.00,
+      "annualInterestCosts": 27206,
+      "weeklyRent": 500,
+      "managementFeePct": 7.0,
+      "insuranceAnnual": 1250,
+      "ratesAnnual": 1500,
+      "otherExpensesAnnual": 2940,
+      "annualNetCashflow": -8716
+    },
+    {
+      "id": "P2",
+      "purchaseYearLabel": "Year 2",
+      "summaryYearIndexFirstOwned": 1,
+      "state": "NSW",
+      "propertyValue": 550000,
+      "stampDuty": 19957,
+      "buyersAgentFee": 19500,
+      "legalFeesAndOtherCharges": 2500,
+      "subtotalPurchaseCosts": 591957,
+      "lendersMortgageInsurance": 0,
+      "totalPurchaseCosts": 591957,
+      "lvr": 0.80,
+      "depositAmount": 110000,
+      "loanAmount": 440000,
+      "loanType": "IO",
+      "interestRatePct": 6.00,
+      "annualInterestCosts": 27206,
+      "weeklyRent": 500,
+      "managementFeePct": 7.0,
+      "insuranceAnnual": 1250,
+      "ratesAnnual": 1500,
+      "otherExpensesAnnual": 2940,
+      "annualNetCashflow": -8716
+    },
+    {
+      "id": "P3",
+      "purchaseYearLabel": "Year 3",
+      "summaryYearIndexFirstOwned": 2,
+      "state": "TAS",
+      "propertyValue": 600000,
+      "stampDuty": 22498,
+      "buyersAgentFee": 19500,
+      "legalFeesAndOtherCharges": 2500,
+      "subtotalPurchaseCosts": 644498,
+      "lendersMortgageInsurance": 0,
+      "totalPurchaseCosts": 644498,
+      "lvr": 0.80,
+      "depositAmount": 120000,
+      "loanAmount": 480000,
+      "loanType": "IO",
+      "interestRatePct": 6.00,
+      "annualInterestCosts": 29679,
+      "weeklyRent": 550,
+      "managementFeePct": 7.0,
+      "insuranceAnnual": 1250,
+      "ratesAnnual": 1500,
+      "otherExpensesAnnual": 2979,
+      "annualNetCashflow": -8810
+    },
+    {
+      "id": "P4",
+      "purchaseYearLabel": "Year 4",
+      "summaryYearIndexFirstOwned": 3,
+      "state": "NSW",
+      "propertyValue": 600000,
+      "stampDuty": 22207,
+      "buyersAgentFee": 19500,
+      "legalFeesAndOtherCharges": 2500,
+      "subtotalPurchaseCosts": 644207,
+      "lendersMortgageInsurance": 0,
+      "totalPurchaseCosts": 644207,
+      "lvr": 0.80,
+      "depositAmount": 120000,
+      "loanAmount": 480000,
+      "loanType": "IO",
+      "interestRatePct": 6.00,
+      "annualInterestCosts": 29679,
+      "weeklyRent": 550,
+      "managementFeePct": 7.0,
+      "insuranceAnnual": 1250,
+      "ratesAnnual": 1500,
+      "otherExpensesAnnual": 2979,
+      "annualNetCashflow": -8810
+    }
+  ],
+
+  "portfolioSummaryYear0to18": {
+    "note": "Transcribed verbatim from the Summary tab (Section 5 of the transcription). Interest/Operating/Cashflow rows were displayed as negatives in red parentheses; stored signed here. Year index 0-18.",
+    "portfolioValue": [550000, 1155000, 1870500, 2637585, 2860016, 3080017, 3295618, 3526312, 3773153, 4037274, 4319883, 4622275, 4945834, 5292043, 5662486, 6058860, 6482980, 6936789, 7422364],
+    "equity": [110000, 275000, 510500, 797585, 1020016, 1240017, 1455618, 1686312, 1933153, 2197274, 2479883, 2782275, 3105834, 3452043, 3822486, 4218860, 4642980, 5096789, 5582364],
+    "grossRentalIncome": [26000, 53300, 84565, 117393, 123263, 129426, 135897, 142692, 149827, 157318, 165184, 173443, 182115, 191221, 200782, 210821, 221362, 232431, 244052],
+    "interestCosts": [-27206, -54412, -84091, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770, -113770],
+    "operatingCosts": [-7510, -15282, -23546, -32102, -33229, -34398, -35612, -36870, -38176, -39531, -40937, -42397, -43911, -45484, -47116, -48810, -50570, -52397, -54294],
+    "cashflowAnnual": [-8716, -16393, -23071, -28478, -23736, -18742, -13484, -7947, -2119, 4018, 10477, 17277, 24435, 31968, 39897, 48241, 57023, 66264, 75988],
+    "cashflowMonthly": [-726, -1366, -1923, -2373, -1978, -1562, -1124, -662, -177, 335, 873, 1440, 2036, 2664, 3325, 4020, 4752, 5522, 6332],
+    "cashflowPositiveCrossoverYearIndex": 9
+  },
+
+  "derivedNotTranscribed": {
+    "note": "No growth-rate, escalation, or compounding cell is visible in any screenshot. Everything in this block was INFERRED by fitting her displayed numbers; the fit reproduces all 6 Summary rows x 19 years to within $1 (cashflow within $0.89). Verified in run-anu-comparison.ts (Anu-replica section).",
+    "capitalGrowth": {
+      "ratePctByOwnershipYear": "10% in ownership years 1 and 2, 7% in ownership year 3 and every year after",
+      "fitMethod": "Year-over-year Portfolio Value ratios between purchases: Y6->Y7 onward = 1.0700 exactly (all properties past year 2). Per-property back-out: Year 3 value = P1*1.1*1.1*g3 + P2*1.1*1.1 + P3*1.1 + P4 solves g3=1.07; forward-check reproduces Y4 ($2,860,016) and Y5 ($3,080,017) to the dollar with 10/10/7/7...",
+      "annualCompounding": true,
+      "appliedFromFirstOwnershipYear": "Value shown at cost in the first owned Summary year; growth applied from the following year"
+    },
+    "rentEscalationPct": 5.0,
+    "rentEscalationFit": "Y1 gross rent 53,300 = 26,000*1.05 + 26,000; Y3 117,393 = 26,000*1.05^3 + 26,000*1.05^2 + 28,600*1.05 + 28,600 (exact)",
+    "operatingCostEscalation": {
+      "managementFee": "7% of (escalated) gross rent — rides the 5% rent escalation",
+      "flatBlockInflationPct": 3.0,
+      "flatBlockFit": "insurance+rates+other ($5,690 for P1) inflates at 3.0%/yr by ownership year: Y1 opex 15,282 = 7,510 + (1,820*1.05 + 5,690*1.03); Y2 23,546 and all later years reproduce at 3.0% (exact)"
+    },
+    "interestConvention": {
+      "statedRatePct": 6.00,
+      "impliedEffectiveRatePct": 6.18313,
+      "fit": "Interest Costs = loan x 6.183%: 27,206/440,000 and 29,679/480,000 both = 6.1831% = effective annual rate of 6.00% nominal compounded DAILY ((1+0.06/365)^365 - 1 = 6.18313%); 440,000*6.18313% = 27,205.78, 480,000*6.18313% = 29,679.03",
+      "ioForever": "Interest flat at $113,770 from Year 3 through Year 18 — loans never amortise; Equity = Portfolio Value minus constant $1,840,000 debt"
+    },
+    "vacancy": "No vacancy row anywhere; gross rent flows straight into cashflow",
+    "noTaxModelling": "No negative-gearing / after-tax line, no land tax, no CGT, no equity recycling visible on the Summary",
+    "otherExpensesLine": "UNKNOWN source. $2,940 (P1/P2, $550k) vs $2,979 (P3/P4, $600k) — not proportional to value or rent; the 'Other Expenses' breakdown section was never shown. Values used verbatim as a flat annual opex line."
+  },
+
+  "engineMappingForComparison": {
+    "note": "How run-anu-comparison.ts maps the above into PropPath engine inputs — every field set explicitly.",
+    "purchaseYearMapping": "Her Summary Year 0 -> calendar 2026 (P1 manually placed at period 3). P2 2027, P3 2028, P4 2029. 2026+ start chosen deliberately: all four purchases are then post-NG-reform established buys, so the engine's negative-gearing benefit is $0 and its cashflow line is pre-tax like hers.",
+    "growthCurveMapping": "Engine tier structure is year1 / years2to3 / year4 / year5plus (years 2 AND 3 share a rate) and cannot express her 10/10/7/7...; best-fit custom curve via assumptions: year1=10, years2to3=sqrt(1.10*1.07)-1=8.48963% (geometric mean so ownership-year-3 cumulative value is exact), year4=7, year5plus=7. Exact at every integer ownership year except year 2 (transient -1.37% dip per property). Nearest BUILT-IN tier is High (12.5/10/7.5/6) — compared separately.",
+    "interestVariants": {
+      "A-as-stated": "instance interestRate 6.00 (our simple annual-interest convention: loan x 6.00%)",
+      "B-her-convention": "instance interestRate 6.18313 (her daily-compounded effective rate) to isolate the convention gap"
+    },
+    "opexMapping": "propertyManagementPercent 7, buildingInsuranceAnnual 1250, councilRatesWater 1500, strata 0, maintenanceAllowanceAnnual = her 'Other Expenses' (2940/2979 — the only flat opex slot left; her breakdown unknown), landTaxOverride 0",
+    "purchaseCostMapping": "engagementFee 19500, conveyancing 2500, all other one-off cost fields 0, stampDutyOverride = her transcribed figure (our calculator's own figures compared separately per state)",
+    "loanMapping": "lvr 80, loanProduct IO, ioTermYears 30, loanTerm 30, lmiWaiver false (LMI $0 at 80% LVR), lmiCapitalized false. Note: the engine's PORTFOLIO-level debt/interest lines hold planned loans at the original loan amount regardless of ioTermYears (IO-forever at portfolio level), which matches her sheet by construction.",
+    "profileDials": "vacancyRate 0 (profile AND per-instance) to match her missing vacancy row — noted as HER modelling gap, not ours; rentEscalationRate 0.05; inflationRate 0.03; interestRate matches variant; funding made generous (depositPool 900k, savings 60k/yr, salary 350k, BC $5m) so placement gating cannot contaminate the projection comparison"
+  }
+}

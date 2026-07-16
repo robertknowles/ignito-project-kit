@@ -184,6 +184,19 @@ const ReadonlyCell: React.FC<{ text: string }> = ({ text }) => (
   <span className="text-xs text-neutral-600">{text}</span>
 )
 
+// Contract-of-sale date. Native date input; empty => grandfathered for NG.
+const DateCell: React.FC<{
+  value?: string | null
+  onChange: (v: string | null) => void
+}> = ({ value, onChange }) => (
+  <input
+    type="date"
+    value={value ?? ''}
+    onChange={e => onChange(e.target.value || null)}
+    className={`${cellInput} cursor-pointer`}
+  />
+)
+
 // Street View thumbnail in the address cell; hover shows a larger preview.
 // The preview is portalled to <body> because the table wrapper clips overflow.
 const PhotoThumb: React.FC<{ url: string; address: string }> = ({ url, address }) => {
@@ -349,6 +362,10 @@ const COLUMNS: Column[] = [
     render: (p, onChange) => <NumCell value={p.boughtYear} onChange={v => onChange(p.id, { boughtYear: v })} />,
   },
   {
+    key: 'contractDate', width: 128, header: 'Contract date',
+    render: (p, onChange) => <DateCell value={p.contractDate} onChange={v => onChange(p.id, { contractDate: v })} />,
+  },
+  {
     key: 'growth', width: 84, header: 'Growth',
     render: (p, onChange) => <SelectCell value={p.growthAssumption ?? 'Medium'} options={GROWTH_OPTIONS} onChange={v => onChange(p.id, { growthAssumption: v as 'High' | 'Medium' | 'Low' })} />,
   },
@@ -425,6 +442,15 @@ const COLUMNS: Column[] = [
       const computed = Math.round(p.baFee + p.buildingPest + p.legals)
       const display = p.purchaseCostsOverride ?? computed
       return <NumCell right grouped value={display} onChange={v => onChange(p.id, { purchaseCostsOverride: v || null })} />
+    },
+  },
+  {
+    // Depreciation rate override (% of cost). Blank => use the global default
+    // (2.0% new build / 0.5% established, editable in Assumptions).
+    key: 'depreciation', width: 78, header: 'Deprec. (%)', align: 'right',
+    render: (p, onChange) => {
+      const overridePct = p.depreciationRateOverride != null ? p.depreciationRateOverride * 100 : 0
+      return <NumCell right value={overridePct} onChange={v => onChange(p.id, { depreciationRateOverride: v ? v / 100 : null })} />
     },
   },
   {
@@ -665,7 +691,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     }>
       <div className="px-5 pb-5">
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ minWidth: 1620, tableLayout: 'fixed' }}>
+        <table className="w-full text-xs" style={{ minWidth: 1826, tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b border-[#E9EAEB]">
               {COLUMNS.map((col, i) => (
@@ -747,6 +773,50 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     <div className="flex flex-col gap-6">
       {kpiCards}
       {propertiesTable}
+
+      {/* Property blocks gallery — one visual card per property, image fills the
+          block with the address and purchase value along the bottom. Newest
+          appears on the left. Sits above the charts. */}
+      {properties.some(p => p.address?.trim() || p.photoUrl) && (
+        <div className="grid grid-cols-3 gap-4">
+          {[...properties]
+            .filter(p => p.address?.trim() || p.photoUrl)
+            .reverse()
+            .map((p, i) => (
+              <div
+                key={p.id ?? i}
+                className="relative rounded-xl overflow-hidden border border-[#E9EAEB] bg-neutral-100"
+                style={{ height: 200 }}
+              >
+                {p.photoUrl ? (
+                  <img
+                    src={p.photoUrl}
+                    alt={p.address || 'Property'}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-[#717680]">
+                    No image
+                  </div>
+                )}
+                {/* Gradient scrim so the address/value stay legible over the photo */}
+                <div
+                  className="absolute inset-x-0 bottom-0 px-3 py-2.5"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0) 100%)' }}
+                >
+                  <div className="text-[13px] font-semibold text-white leading-snug truncate" title={p.address}>
+                    {p.address?.trim() || 'Address not set'}
+                  </div>
+                  <div className="text-xs font-medium text-white/85 mt-0.5">
+                    {p.purchasePrice > 0 ? fmt(p.purchasePrice) : 'Purchase value not set'}
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4">
         <ChartCard title="Capital Composition" legendBelow legend={[
           { color: '#D9D2F2', label: 'Loan balance', variant: 'square' },

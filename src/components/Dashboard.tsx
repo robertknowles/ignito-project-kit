@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, BarChart3Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -582,7 +582,7 @@ export const Dashboard = () => {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          Updating plan...
+          Analysing...
         </div>
       )}
       {/* ── Sticky top navbar (white bar over the grey content) ── */}
@@ -637,7 +637,7 @@ export const Dashboard = () => {
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
                   <button
                     onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
                   >
                     <SlidersHorizontalIcon size={15} className="text-[#717680]" />
                     Assumptions
@@ -645,7 +645,7 @@ export const Dashboard = () => {
                   <button
                     onClick={() => { if (!isExporting) setIsExporting(true); setActionsMenuOpen(false); }}
                     disabled={isExporting}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isExporting ? <Loader2 size={15} className="animate-spin text-[#717680]" /> : <DownloadIcon size={15} className="text-[#717680]" />}
                     Export PDF
@@ -732,25 +732,29 @@ export const Dashboard = () => {
               const ph = planHeader;
               const ff = TYPOGRAPHY.fontFamily;
 
-              // Client first name (uppercased) for the panel headings.
-              const firstName =
-                ((activeClient?.name ?? '').trim().split(/\s+/)[0] || 'Client').toUpperCase();
+              // ── Projection endpoints ─────────────────────────────────────
+              // "Current" = today's starting position (first projected year);
+              // "In {horizonYear}" = the plan-horizon figures already computed
+              // in `kpis` (last data point). The banner uses the goal target
+              // year (first year BOTH goals are met, else the horizon).
+              const growth = chartDataA.portfolioGrowthData ?? [];
+              const cf = chartDataA.cashflowData ?? [];
+              const firstGrowth = growth[0];
+              const lastGrowth = growth[growth.length - 1];
+              const horizonYear = lastGrowth ? Number(lastGrowth.year) : ph.targetYear;
 
-              // Years to reach the goal - target year is the first year BOTH
-              // goals are met. When neither year exists in the projection the
-              // header shows "N+ years" rather than claiming the goal is hit.
-              const yearsToGoal = Math.max(1, ph.targetYear - BASE_YEAR);
-              const yearsToGoalLabel = `${yearsToGoal}${ph.goalMet ? '' : '+'}`;
+              const currentCashflow = cf[0]?.cashflow ?? 0;
+              const currentEquity = firstGrowth?.equity ?? 0;
+              const currentPortfolio = firstGrowth?.portfolioValue ?? 0;
 
-              // Projected outcomes at the target year (fall back to horizon KPIs).
-              const growthAtTarget = chartDataA.portfolioGrowthData.find(
-                g => Number(g.year) === ph.targetYear,
-              );
-              const cashflowAtTarget = chartDataA.cashflowData?.find(
-                c => Number(c.year) === ph.targetYear,
-              );
+              const futureCashflow = kpis.netCashflowAnnual;
+              const futureEquity = kpis.totalEquity;
+              const futurePortfolio = kpis.portfolioValue;
+
+              // Projected outcomes at the goal-target year (fall back to horizon KPIs).
+              const growthAtTarget = growth.find(g => Number(g.year) === ph.targetYear);
+              const cashflowAtTarget = cf.find(c => Number(c.year) === ph.targetYear);
               const equityAtTarget = growthAtTarget?.equity ?? kpis.totalEquity;
-              const portfolioAtTarget = growthAtTarget?.portfolioValue ?? kpis.portfolioValue;
               const netCashflowAtTarget = cashflowAtTarget?.cashflow ?? kpis.netCashflowAnnual;
 
               // Quantified goal gaps - when the plan never meets a goal the
@@ -764,72 +768,83 @@ export const Dashboard = () => {
                   ? ph.equityGoal - equityAtTarget
                   : 0;
 
-              const lastBuyYearRel = ph.lastYear ? ph.lastYear - BASE_YEAR : null;
+              const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+              // Live progress bars: how far each current value has come toward
+              // its projected "In {year}" figure. Negative current reads blank.
+              const progress = (current: number, future: number) =>
+                future > 0 ? clamp01(current / future) : 0;
+              const cashflowPct = progress(currentCashflow, futureCashflow);
+              const equityPct = progress(currentEquity, futureEquity);
+              const portfolioPct = progress(currentPortfolio, futurePortfolio);
 
-              // ── PropPath §2.1 unified hero pair + §1.4 stat ramp ──────────
-              // Shared uppercase kicker (11/600/0.06em/#717680).
-              const kicker: React.CSSProperties = {
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
-                textTransform: 'uppercase', color: '#717680', fontFamily: ff,
-              };
-
-              // Outcome rows. Net cashflow carries semantic sign colour (§1.3);
-              // the rest stay neutral. "Properties bought" splits its "by year N"
-              // qualifier into a muted 13px suffix.
-              const rows: {
-                label: string; value: string; suffix?: string; color?: string;
+              const cards: {
+                title: string; accent: string;
+                current: number; future: number; pct: number; footer: string;
               }[] = [
                 {
-                  label: 'Net cashflow',
-                  value: `${formatMoney(netCashflowAtTarget)}/yr`,
-                  color: netCashflowAtTarget >= 0 ? '#17B26A' : '#F04438',
+                  title: 'Net Annual Cash Flow',
+                  accent: '#17B26A',
+                  current: currentCashflow, future: futureCashflow, pct: cashflowPct,
+                  footer: `Cashflow goal: ${formatMoney(ph.cashflowGoal)}`,
                 },
-                { label: 'Equity', value: formatMoney(equityAtTarget) },
-                { label: 'Portfolio value', value: formatMoney(portfolioAtTarget) },
                 {
-                  label: 'Properties bought',
-                  value: String(ph.count),
-                  suffix: lastBuyYearRel != null ? `by year ${lastBuyYearRel}` : undefined,
+                  title: 'Total Equity',
+                  accent: '#17B26A',
+                  current: currentEquity, future: futureEquity, pct: equityPct,
+                  footer: `Equity goal: ${formatMoney(ph.equityGoal)}`,
+                },
+                {
+                  title: 'Portfolio Value',
+                  accent: '#17B26A',
+                  current: currentPortfolio, future: futurePortfolio, pct: portfolioPct,
+                  footer: `Total properties: ${ph.count}`,
                 },
               ];
 
               return (
-                // One bordered card, split goal (violet tint) / outcome (white).
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '0.85fr 1.4fr',
-                    background: '#FFFFFF',
-                    border: '1px solid #E9EAEB',
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                    fontFamily: ff,
-                  }}
-                >
-                  {/* Goal half - violet-50 tint */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff }}>
+                  {/* ── Goal banner (violet gradient) ── */}
                   <div
                     style={{
-                      background: '#F5F3FF',
-                      padding: '30px 32px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      borderRight: '1px solid #E9EAEB',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 24, flexWrap: 'wrap',
+                      background: 'linear-gradient(120deg, #EFEDFC 0%, #E7E2FB 100%)',
+                      borderRadius: 16, padding: '26px 32px', color: '#2E2266',
                     }}
                   >
-                    <div style={kicker}>{firstName}'S GOAL</div>
-                    <div
-                      style={{
-                        fontSize: 46, fontWeight: 600, letterSpacing: '-0.025em',
-                        lineHeight: 1.05, color: '#181D27', marginTop: 14,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {yearsToGoalLabel} {yearsToGoal === 1 ? 'year' : 'years'}
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#6C5FA6', marginBottom: 8 }}>
+                        Your Goal
+                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                        {formatMoney(ph.equityGoal)} Equity & {formatMoney(ph.cashflowGoal)}/yr Income
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, color: '#535862', marginTop: 10, maxWidth: 240, lineHeight: 1.45 }}>
-                      to reach <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.equityGoal)} equity</span>
-                      {' '}and <span style={{ fontWeight: 600, color: '#414651' }}>{formatMoney(ph.cashflowGoal)}/yr income</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(110,99,168,0.3)' }} />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: '#6C5FA6', marginBottom: 4 }}>
+                          {ph.goalMet ? 'Goal Achieved' : 'Projected'}
+                        </div>
+                        <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                          {ph.targetYear}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#6C5FA6', marginTop: 6 }}>
+                          {ph.count} {ph.count === 1 ? 'property' : 'properties'}
+                        </div>
+                      </div>
+                      <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(110,99,168,0.3)' }} />
+                      <svg width={52} height={52} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Concentric bullseye rings */}
+                        <circle cx="21" cy="24" r="15.5" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="11" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="6.5" stroke="#6455D6" strokeWidth="1.6" />
+                        <circle cx="21" cy="24" r="2.6" fill="#6455D6" />
+                        {/* Arrow shaft into the centre */}
+                        <path d="M21 24 L34 11" stroke="#6455D6" strokeWidth="2.4" strokeLinecap="round" />
+                        {/* Swallowtail feather at the tail */}
+                        <path d="M31 14 L33 5.5 L35.5 10 L39.5 12 Z" fill="#6455D6" />
+                      </svg>
                     </div>
                     {(cashflowShortfall > 0 || equityShortfall > 0) && (
                       <div style={{ fontSize: 13, color: '#D92D20', marginTop: 10, maxWidth: 240, lineHeight: 1.45 }}>
@@ -847,27 +862,47 @@ export const Dashboard = () => {
                     )}
                   </div>
 
-                  {/* Outcome half */}
-                  <div style={{ padding: '24px 32px' }}>
-                    <div style={{ ...kicker, marginBottom: 6 }}>
-                      IN {yearsToGoalLabel} {yearsToGoal === 1 ? 'YEAR' : 'YEARS'}, {firstName} HAS
-                    </div>
-                    {rows.map((r, i) => (
+                  {/* ── Metric cards ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                    {cards.map((c) => (
                       <div
-                        key={r.label}
-                        className="flex items-center justify-between"
+                        key={c.title}
                         style={{
-                          padding: '13px 0',
-                          borderBottom: i < rows.length - 1 ? '1px solid #F2F2F2' : 'none',
+                          background: '#FFFFFF', border: '1px solid #E9EAEB',
+                          borderRadius: 14, padding: '20px 22px',
+                          display: 'flex', flexDirection: 'column',
                         }}
                       >
-                        <span style={{ fontSize: 13, color: '#535862' }}>{r.label}</span>
-                        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em', color: r.color ?? '#181D27' }}>
-                          {r.value}
-                          {r.suffix && (
-                            <span style={{ fontSize: 13, fontWeight: 400, color: '#717680' }}> {r.suffix}</span>
-                          )}
-                        </span>
+                        <div style={{ marginBottom: 18 }}>
+                          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: '#181D27' }}>
+                            {c.title}
+                          </span>
+                        </div>
+                        <div className="flex items-end justify-between" style={{ marginBottom: 14 }}>
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: c.accent }}>
+                              {formatMoney(c.current)}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#717680', marginTop: 2 }}>Current</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1, color: '#181D27' }}>
+                              {formatMoney(c.future)}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#717680', marginTop: 4 }}>In {horizonYear}</div>
+                          </div>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 999, background: 'rgba(125, 99, 240, 0.16)', overflow: 'hidden', marginBottom: 14 }}>
+                          <div style={{ height: '100%', width: `${Math.round(c.pct * 100)}%`, background: '#7D63F0', borderRadius: 999 }} />
+                        </div>
+                        <div
+                          style={{
+                            alignSelf: 'flex-end', background: '#F5F5F6', borderRadius: 8,
+                            padding: '5px 10px', fontSize: 12, color: '#535862',
+                          }}
+                        >
+                          {c.footer}
+                        </div>
                       </div>
                     ))}
                   </div>

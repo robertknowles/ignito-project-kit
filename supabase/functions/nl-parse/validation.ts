@@ -93,6 +93,37 @@ function validateProperty(
     fixed.loanProduct = 'IO';
   }
 
+  // Strategy-stated overrides (added 16 Jul 2026): these are optional and
+  // default-safe, so an implausible value is DROPPED (falls back to defaults)
+  // rather than clamped — a clamped wrong number would silently masquerade as
+  // the stated one. Bounds accept both unit forms (percent or fraction); the
+  // frontend mapper normalises units.
+  const dropImplausible = (field: string, ok: (v: number) => boolean) => {
+    const v = fixed[field];
+    if (v === undefined || v === null) return;
+    if (typeof v !== 'number' || !Number.isFinite(v) || !ok(v)) {
+      warnings.push(`Property ${index + 1}: implausible ${field} (${v}) ignored`);
+      delete fixed[field];
+    }
+  };
+  dropImplausible('interestRate', (v) => v > 0 && v <= 20);
+  dropImplausible('ioTermYears', (v) => v >= 0 && v <= 30);
+  dropImplausible('engagementFee', (v) => v >= 0 && v <= 200_000);
+  dropImplausible('propertyManagementPercent', (v) => v > 0 && v <= 20);
+  dropImplausible('stampDutyOverride', (v) => v >= 0 && v <= 400_000);
+  dropImplausible('conveyancing', (v) => v >= 0 && v <= 50_000);
+  dropImplausible('purchaseCostsTotal', (v) => v >= 0 && v <= 500_000);
+  dropImplausible('saleYear', (v) => Number.isInteger(v) && v >= 2020 && v <= 2100);
+  if (typeof fixed.valuationAtPurchase === 'number' && typeof fixed.purchasePrice === 'number') {
+    const ratio = (fixed.valuationAtPurchase as number) / (fixed.purchasePrice as number);
+    if (!Number.isFinite(ratio) || ratio < 0.5 || ratio > 2) {
+      warnings.push(`Property ${index + 1}: implausible valuationAtPurchase (${fixed.valuationAtPurchase}) ignored`);
+      delete fixed.valuationAtPurchase;
+    }
+  } else if (fixed.valuationAtPurchase !== undefined && typeof fixed.valuationAtPurchase !== 'number') {
+    delete fixed.valuationAtPurchase;
+  }
+
   return { warnings, fixed };
 }
 
@@ -137,6 +168,21 @@ export function validateCreatePlan(data: Record<string, unknown>): ValidationRes
     if (typeof ip.timelineYears === 'number' && (ip.timelineYears < 1 || ip.timelineYears > 40)) {
       warnings.push(`Timeline ${ip.timelineYears} years out of range, clamped to 1-40`);
       ip.timelineYears = Math.max(1, Math.min(40, ip.timelineYears as number));
+    }
+    // Strategy-stated rates (added 16 Jul 2026): drop implausible values —
+    // same guards as validateUpdateProfile; mapper normalises units.
+    const ipRateBounds: Record<string, (v: number) => boolean> = {
+      interestRate: (v) => v > 0 && v <= 20,
+      vacancyRate: (v) => v >= 0 && v <= 50,
+      rentEscalationRate: (v) => v >= 0 && v <= 20,
+    };
+    for (const [field, ok] of Object.entries(ipRateBounds)) {
+      const v = ip[field];
+      if (v === undefined) continue;
+      if (typeof v !== 'number' || !Number.isFinite(v) || !ok(v)) {
+        warnings.push(`Implausible ${field} (${v}) ignored`);
+        delete ip[field];
+      }
     }
   }
 
@@ -249,6 +295,23 @@ export function validateUpdateProfile(data: Record<string, unknown>): Validation
   // Timeline bounds
   if (typeof updates.timelineYears === 'number') {
     updates.timelineYears = Math.max(1, Math.min(40, updates.timelineYears as number));
+  }
+
+  // Strategy-stated rates (added 16 Jul 2026): drop implausible values so the
+  // profile keeps its defaults instead of absorbing a mis-extraction. Bounds
+  // accept both percent and fraction forms; the frontend mapper normalises.
+  const rateBounds: Record<string, (v: number) => boolean> = {
+    interestRate: (v) => v > 0 && v <= 20,
+    vacancyRate: (v) => v >= 0 && v <= 50,
+    rentEscalationRate: (v) => v >= 0 && v <= 20,
+  };
+  for (const [field, ok] of Object.entries(rateBounds)) {
+    const v = updates[field];
+    if (v === undefined) continue;
+    if (typeof v !== 'number' || !Number.isFinite(v) || !ok(v)) {
+      warnings.push(`Implausible ${field} (${v}) ignored`);
+      delete updates[field];
+    }
   }
 
   return { valid: true, warnings, data: fixed };

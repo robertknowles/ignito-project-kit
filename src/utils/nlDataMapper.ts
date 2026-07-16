@@ -117,6 +117,7 @@ export function mapToInvestmentProfile(
     if (ip.timelineYearsExplicit !== undefined) updates.timelineYearsExplicit = ip.timelineYearsExplicit;
     if (ip.equityGoal !== undefined) updates.equityGoal = ip.equityGoal;
     if (ip.cashflowGoal !== undefined) updates.cashflowGoal = ip.cashflowGoal;
+    if (ip.goalPriority !== undefined) updates.goalPriority = ip.goalPriority;
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
     // Strategy-stated portfolio-wide assumptions. Profile stores fractions.
     if (ip.interestRate !== undefined) updates.interestRate = asFraction(ip.interestRate);
@@ -196,7 +197,10 @@ export function mapToExistingProperties(
       growthAssumption: 'Medium' as const,
       loanTerm: 30,
       strata: 0,
-      vacancyRate: 2,
+      // FRACTION, not percent: affordabilityEngine computes rent × (1 − rate).
+      // This was 2 (i.e. −100% of rent) — every AI-extracted existing property
+      // contributed NEGATIVE rent to serviceability (re-sweep finding C2).
+      vacancyRate: 0.02,
       allowEquityRelease: p.allowEquityRelease !== false,
       saleYear: p.saleYear ?? null,
       isNewBuild: p.isNewBuild ?? false,
@@ -373,7 +377,13 @@ export function mapUpdateProfileToUpdates(
   if (pu.borrowingCapacity !== undefined) updates.borrowingCapacity = pu.borrowingCapacity;
   if (pu.equityGoal !== undefined) updates.equityGoal = pu.equityGoal;
   if (pu.cashflowGoal !== undefined) updates.cashflowGoal = pu.cashflowGoal;
-  if (pu.timelineYears !== undefined) updates.timelineYears = pu.timelineYears;
+  if (pu.timelineYears !== undefined) {
+    updates.timelineYears = pu.timelineYears;
+    // update_profile only fires on a BA-stated correction, so a timeline here
+    // is explicit by construction — without the flag updateProfile clamps it
+    // back to 20 (re-sweep finding R2).
+    updates.timelineYearsExplicit = true;
+  }
   if (pu.targetPassiveIncome !== undefined) updates.targetPassiveIncome = pu.targetPassiveIncome;
   if (pu.interestRate !== undefined) updates.interestRate = asFraction(pu.interestRate);
   if (pu.vacancyRate !== undefined) updates.vacancyRate = asFraction(pu.vacancyRate);
@@ -692,7 +702,10 @@ export function mapModificationToUpdates(
   if (target === 'timeline') {
     const val = (params.timelineYears ?? params.timeline ?? params.years) as number | undefined;
     if (val !== undefined) {
-      updates.profileUpdates = { timelineYears: val };
+      // A BA changing the timeline mid-conversation IS an explicit statement —
+      // without the flag, updateProfile clamps the new value back to 20
+      // (re-sweep finding R2, same class as the create_plan B2 bug).
+      updates.profileUpdates = { timelineYears: val, timelineYearsExplicit: true };
     }
   }
 

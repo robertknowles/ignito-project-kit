@@ -53,6 +53,13 @@ export interface ExistingProperty {
   yieldOverride?: number | null
   holdingCostOverride?: number | null
   purchaseCostsOverride?: number | null
+  /** Contract-of-sale date (ISO yyyy-mm-dd). Drives negative-gearing
+   *  grandfathering: contracts after 12 May 2026 are in scope of the reform.
+   *  Blank => grandfathered (kept out of scope). */
+  contractDate?: string | null
+  /** Per-property depreciation rate override (decimal). null => use the global
+   *  new-build/established default from the profile. */
+  depreciationRateOverride?: number | null
   /** Present when this property was purchased from the Next Purchase Brief;
    *  drives the "Revert to next purchase" action in the portfolio. */
   revert?: RevertSnapshot

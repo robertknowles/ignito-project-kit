@@ -55,6 +55,13 @@ const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
 // Carries the chosen company strategy's text to ChatPanel, which injects it
 // into the AI prompt for the freshly-launched client.
 const PENDING_STRATEGY_KEY = 'proppath:pending-strategy-text'
+// A durable copy of the prompt that produced the current plan. Unlike
+// PENDING_PROMPT_KEY (consumed by ChatPanel during generation), this survives
+// so the confirmation brief's Back button can restore the original inputs.
+const BRIEF_SOURCE_PROMPT_KEY = 'proppath:brief-source-prompt'
+// Set by the confirmation brief's Back button; consumed here on mount to
+// repopulate the chat box with the inputs the agent originally entered.
+const RESTORE_PROMPT_KEY = 'proppath:restore-prompt'
 
 // The eight fields a client fills out on their onboarding / details form, in
 // display order. Mirrors ClientInputsModal so the pasted text reads the same
@@ -79,6 +86,25 @@ const formatFactFindValue = (value: unknown, format: FactFindFormat): string => 
   return String(value)
 }
 
+// Per-property breakdown line, e.g.
+// "  - Property 1: $450,000 value, $300,000 debt, $520/wk (6.0% yield), Trust"
+const buildPropertyLines = (inputs: Record<string, unknown>): string[] => {
+  const raw = inputs.existingProperties
+  if (!Array.isArray(raw) || raw.length === 0) return []
+  const money = (n: number) => `$${Math.round(Number(n) || 0).toLocaleString('en-AU')}`
+  const lines = [`Current portfolio (${raw.length} propert${raw.length === 1 ? 'y' : 'ies'}):`]
+  raw.forEach((p: any, i: number) => {
+    const value = Number(p?.value) || 0
+    const weeklyRent = Number(p?.weeklyRent) || 0
+    const grossYield = value > 0 ? ((weeklyRent * 52) / value) * 100 : 0
+    const rent = weeklyRent > 0
+      ? `${money(weeklyRent)}/wk${value > 0 ? ` (${grossYield.toFixed(1)}% yield)` : ''}`
+      : 'no rent given'
+    lines.push(`  - Property ${i + 1}: ${money(value)} value, ${money(Number(p?.debt) || 0)} debt, ${rent}, ${p?.entity || 'Personal'}`)
+  })
+  return lines
+}
+
 // Turn a client's submitted answers into a readable block the agent can drop
 // into the chat and edit before running the plan.
 const buildFactFindText = (name: string, inputs: Record<string, unknown>): string => {
@@ -87,6 +113,7 @@ const buildFactFindText = (name: string, inputs: Record<string, unknown>): strin
     const v = formatFactFindValue(inputs[f.key], f.format)
     if (v) lines.push(`${f.label}: ${v}`)
   }
+  lines.push(...buildPropertyLines(inputs))
   const who = name?.trim() ? `${name.trim()}'s submitted details` : 'Client submitted details'
   return `${who}:\n${lines.join('\n')}`
 }
@@ -172,6 +199,38 @@ export const NewClientView: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resetAssumptionsRef = useRef<() => void>(() => {})
+  const auroraMouseRef = useRef<HTMLDivElement>(null)
+
+  // Aurora glow slowly drifts toward the mouse position (eased, not 1:1 tracking).
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const target = { x: 0, y: 0 }
+    const current = { x: 0, y: 0 }
+    let rafId: number
+
+    const handleMouseMove = (e: MouseEvent) => {
+      target.x = ((e.clientX / window.innerWidth) - 0.5) * 260
+      target.y = ((e.clientY / window.innerHeight) - 0.5) * 260
+    }
+
+    const animate = () => {
+      current.x += (target.x - current.x) * 0.045
+      current.y += (target.y - current.y) * 0.045
+      if (auroraMouseRef.current) {
+        auroraMouseRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`
+      }
+      rafId = requestAnimationFrame(animate)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    rafId = requestAnimationFrame(animate)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      cancelAnimationFrame(rafId)
+    }
+  }, [])
 
   const [previewByClient, setPreviewByClient] = useState<Record<number, ScenarioPreview>>({})
 
@@ -253,6 +312,25 @@ export const NewClientView: React.FC = () => {
     setPrompt(el.value)
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+  }, [])
+
+  // When the agent clicks Back on the confirmation brief we re-mount here with
+  // no active client. Restore the original inputs into the chat box so they can
+  // tweak and re-run, rather than facing an empty box. A fresh "New Scenario"
+  // never sets this key, so it stays empty in that case.
+  useEffect(() => {
+    const restore = sessionStorage.getItem(RESTORE_PROMPT_KEY)
+    if (restore) {
+      sessionStorage.removeItem(RESTORE_PROMPT_KEY)
+      setPrompt(restore)
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (el) {
+          el.style.height = 'auto'
+          el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+        }
+      })
+    }
   }, [])
 
   // When the details modal opens, load the verbatim form snapshots for every
@@ -391,6 +469,12 @@ export const NewClientView: React.FC = () => {
         else sessionStorage.removeItem(PENDING_STRATEGY_KEY)
 
         sessionStorage.setItem(PENDING_PROMPT_KEY, finalPrompt)
+        // Keep a durable copy so Back on the confirmation brief can restore the
+        // agent's original inputs into the chat box. We store the visible
+        // textarea content (not the doc-prefixed prompt) so the box reads the
+        // same way it did before launching.
+        if (trimmed) sessionStorage.setItem(BRIEF_SOURCE_PROMPT_KEY, trimmed)
+        else sessionStorage.removeItem(BRIEF_SOURCE_PROMPT_KEY)
       } catch {
         toast.error('Something went wrong starting the scenario')
         setSubmitting(false)
@@ -447,31 +531,33 @@ export const NewClientView: React.FC = () => {
       <div className="relative flex-1 overflow-auto flex flex-col">
         {/* Aurora wash */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          {/* Purple glow concentrated around the hero - soft, irregular, drifting gently */}
-          <div
-            className="aurora-blob aurora-a absolute"
-            style={{
-              width: 1500, height: 620, left: '50%', top: '44%', marginLeft: -750, marginTop: -310,
-              background: 'radial-gradient(ellipse 60% 70% at 48% 46%, rgba(167, 139, 250, 0.22), transparent 70%)',
-              filter: 'blur(56px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-b absolute"
-            style={{
-              width: 900, height: 520, left: '40%', top: '38%', marginLeft: -450, marginTop: -260,
-              background: 'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(192, 132, 252, 0.16), transparent 72%)',
-              filter: 'blur(50px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-c absolute"
-            style={{
-              width: 820, height: 480, left: '62%', top: '54%', marginLeft: -410, marginTop: -240,
-              background: 'radial-gradient(ellipse 65% 62% at 45% 48%, rgba(196, 181, 253, 0.14), transparent 74%)',
-              filter: 'blur(52px)',
-            }}
-          />
+          {/* Purple glow concentrated around the hero - soft, irregular, drifting gently, and following the mouse */}
+          <div ref={auroraMouseRef} className="absolute inset-0">
+            <div
+              className="aurora-blob aurora-a absolute"
+              style={{
+                width: 1900, height: 800, left: '50%', top: '44%', marginLeft: -950, marginTop: -400,
+                background: 'radial-gradient(ellipse 60% 70% at 48% 46%, rgba(167, 139, 250, 0.22), transparent 70%)',
+                filter: 'blur(64px)',
+              }}
+            />
+            <div
+              className="aurora-blob aurora-b absolute"
+              style={{
+                width: 1180, height: 680, left: '40%', top: '38%', marginLeft: -590, marginTop: -340,
+                background: 'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(192, 132, 252, 0.16), transparent 72%)',
+                filter: 'blur(58px)',
+              }}
+            />
+            <div
+              className="aurora-blob aurora-c absolute"
+              style={{
+                width: 1060, height: 620, left: '62%', top: '54%', marginLeft: -530, marginTop: -310,
+                background: 'radial-gradient(ellipse 65% 62% at 45% 48%, rgba(196, 181, 253, 0.14), transparent 74%)',
+                filter: 'blur(60px)',
+              }}
+            />
+          </div>
           {/* White vignette - fades the hue to clean white at every edge */}
           <div
             className="absolute inset-0"
@@ -489,7 +575,12 @@ export const NewClientView: React.FC = () => {
               {firstName ? `Hi ${firstName}, let's build a property plan` : "Let's build a property plan"}
             </h1>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
+            <div className="group bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
+              {/* Purple line that runs around the frame while the box is focused */}
+              <div
+                aria-hidden="true"
+                className="prompt-border pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-focus-within:opacity-100"
+              />
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <button
                   onClick={() => setDetailsModalOpen(true)}

@@ -12,6 +12,7 @@ const ASSUMPTION_KEYS: (keyof InvestmentProfileData)[] = [
   'existingPortfolioGrowthRate', 'maxPurchasesPerYear', 'equityReleaseFactor',
   'marginalTaxRate', 'companyTaxRate', 'trustTaxRate', 'smsfTaxRate',
   'marginalTaxRateAtConsolidation', 'cgtOneYearDiscount',
+  'depreciationRateNewBuild', 'depreciationRateEstablished',
   'growthCurve',
 ]
 

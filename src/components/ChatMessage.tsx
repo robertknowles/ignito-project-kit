@@ -12,6 +12,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { BotIcon, ThumbsUp, ThumbsDown } from 'lucide-react'
 import type { ChatMessage as ChatMessageType, ChatOptionCardData } from '@/types/nlParse'
+import { MessageMarkdown } from './MessageMarkdown'
 import { ChatOptionCard } from './ChatOptionCard'
 import { ChatSummaryCard } from './ChatSummaryCard'
 import { ChatPortfolioCard } from './ChatPortfolioCard'
@@ -120,14 +121,13 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(({
         className="flex items-start gap-2.5"
       >
         <div className="flex-1 min-w-0">
-          {/* Single bubble wrapping all content */}
-          <div className="px-3 py-2 rounded-xl rounded-bl-md bg-white border border-neutral-100 space-y-2">
-            {/* Text content */}
-            {message.content && (
-              <div className="text-[11px] text-[#414651] leading-[1.5]">
-                {message.content}
-              </div>
-            )}
+          {/* Answer renders as plain text - no bubble, border or background,
+              so it reads like a clean report (see reference). Only the user's
+              question keeps a grey bubble. */}
+          <div className="space-y-2">
+            {/* Text content - rendered as markdown so headings, bullet lists and
+                tables display as a scannable layout instead of one text block. */}
+            {message.content && <MessageMarkdown content={message.content} />}
 
             {/* Micro confirmation card */}
             {message.type === 'micro-confirmation' && message.microConfirmation && (

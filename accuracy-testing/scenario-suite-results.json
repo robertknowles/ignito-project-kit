@@ -1,0 +1,1493 @@
+{
+  "mode": "engine-only",
+  "timestamp": "2026-07-16T09:23:17.008Z",
+  "pass": 10,
+  "fail": 13,
+  "expectedFail": 0,
+  "results": [
+    {
+      "id": "FIX-ANU-275",
+      "source": "fixture",
+      "archetype": "anu · high income, aggressive, 7-year passive-income goal",
+      "brief": "With 5 mil borrowing capacity, 300k income, 150k deposit, want to achieve 200k passive income, no existing properties. [follow-up] To achieve this goal in a seven-year timeframe",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": false,
+          "detail": "expected 4-8 planned properties, saved plan has 1",
+          "cause": "persistence"
+        },
+        {
+          "name": "existing-count",
+          "pass": false,
+          "detail": "expected 0 existing properties per brief, saved state has 1 (portfolioValue $630,000)",
+          "cause": "extraction"
+        },
+        {
+          "name": "price-band",
+          "pass": true,
+          "detail": "all 1 prices within $500,000-$900,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "yield-band",
+          "pass": true,
+          "detail": "all yields within 3.5-8%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "timeline-persisted",
+          "pass": false,
+          "detail": "user stated 7-year timeframe; profile.timelineYears = 20",
+          "cause": "extraction"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 1 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$200,000/yr never reached within the modelled horizon (max $25,524/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[persistence] property-count: expected 4-8 planned properties, saved plan has 1",
+        "[extraction] existing-count: expected 0 existing properties per brief, saved state has 1 (portfolioValue $630,000)",
+        "[extraction] timeline-persisted: user stated 7-year timeframe; profile.timelineYears = 20",
+        "[engine-goal] cashflow-goal: $200,000/yr never reached within the modelled horizon (max $25,524/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "metro-house-cashflow_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 630000,
+          "entity": "individual"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2037,
+        "incomeGoalYear": null
+      },
+      "notes": [
+        "Saved state has 1 planned property and portfolioValue $630k — identical to the planned property price — despite \"no existing properties\" in the brief."
+      ]
+    },
+    {
+      "id": "FIX-ANU-287",
+      "source": "fixture",
+      "archetype": "anu · commercial transition, $1m BC, $100k passive, ~$2m commercial",
+      "brief": "- $1,000,000 borrowing capacity - $100,000 passive income - Want to buy a commercial property worth around $2,000,000 - Monthly savings: $3,000. [follow-up] add $100k savings at the start of the journey and remap accordingly",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 3 planned properties, saved plan has 3",
+          "cause": "persistence"
+        },
+        {
+          "name": "yield-band",
+          "pass": false,
+          "detail": "outliers: commercial-high-cost $245,000 @ 49.5%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[2]-price",
+          "pass": false,
+          "detail": "commercial-high-cost $245,000 vs stated $1,600,000-$2,400,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "trust-usage",
+          "pass": true,
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 2",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "commercial-finisher",
+          "pass": true,
+          "detail": "last property is commercial-high-cost — labelled commercial",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "transition-visible",
+          "pass": true,
+          "detail": "growth phase places 2033-2036, yield phase 2039-2039 — visible transition",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": true,
+          "detail": "$100,000/yr net cashflow reached 2042 vs stated by 2045",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[plan-selection] yield-band: outliers: commercial-high-cost $245,000 @ 49.5%",
+        "[plan-selection] property[2]-price: commercial-high-cost $245,000 vs stated $1,600,000-$2,400,000"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2033,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2036,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "commercial-high-cost_instance_0",
+          "year": 2039,
+          "status": "feasible",
+          "cost": 245000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2040,
+        "incomeGoalYear": 2042
+      },
+      "notes": [
+        "Assistant message claimed \"priced from $600k to $2M\"; saved commercial instance is $245,000 with $2,330/wk rent (49% gross yield)."
+      ]
+    },
+    {
+      "id": "FIX-ELLA-314",
+      "source": "fixture",
+      "archetype": "ella · $700k BC, retire on $150k by 2045, cap P1 at -$1,500/mo, then \"only one purchase\"",
+      "brief": "i have $700,000 in borrowing capacity. I want to retire on $150k passive income by 2045. I want the first property to be negative by no more than $1,500 per month. [follow-up] annual income is $180k, sole income earner, $200k deposit saved, saving $5k per month. [follow-up] can you please reconfigure to include only one purchase",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": false,
+          "detail": "expected 1 planned properties, saved plan has 3",
+          "cause": "persistence"
+        },
+        {
+          "name": "timeline-persisted",
+          "pass": true,
+          "detail": "user stated 20-year timeframe; profile.timelineYears = 20",
+          "cause": "extraction"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "p1-monthly-floor",
+          "pass": true,
+          "detail": "year-1 net cashflow $-686/mo vs client cap $-1,500/mo",
+          "cause": "engine-goal"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$150,000/yr never reached within the modelled horizon (max $29,822/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[persistence] property-count: expected 1 planned properties, saved plan has 3",
+        "[engine-goal] cashflow-goal: $150,000/yr never reached within the modelled horizon (max $29,822/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2030,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2042,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2037,
+        "incomeGoalYear": null
+      },
+      "notes": [
+        "Assistant claimed \"Removed property 2..5\"; saved state still contains 3 planned instances."
+      ]
+    },
+    {
+      "id": "FIX-ELLA-315",
+      "source": "fixture",
+      "archetype": "ella · $250k income / $300k deposit / 3 existing — blue-chip expectation",
+      "brief": "I own 3 properties, one in Townsville (2024) worth $600k renting $550/wk, 80% LVR. One in Melbourne for $920k (2025, 100% LVR) renting $300/wk, plus a $180k granny flat plan renting $400/wk. A Darwin house bought $500k (2025, 80% LVR), now $600k, rents $550/wk. [income $250k, savings $100k/yr, deposit $300k]",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": false,
+          "detail": "expected 2-4 planned properties, saved plan has 0",
+          "cause": "persistence"
+        },
+        {
+          "name": "equity-goal",
+          "pass": true,
+          "detail": "$3,000,000 equity reached 2040 vs stated by 2045",
+          "cause": "engine-goal"
+        },
+        {
+          "name": "blue-chip-selection",
+          "pass": false,
+          "detail": "Ella criterion: a $250k-income / $300k-deposit client should get fewer, higher-value blue-chip properties (~$750k+). Assistant chat: \"Built a 4-property plan, priced from $400k to $500k\" — four cheap properties.",
+          "cause": "plan-selection"
+        }
+      ],
+      "failReasons": [
+        "[persistence] property-count: expected 2-4 planned properties, saved plan has 0",
+        "[plan-selection] blue-chip-selection: Ella criterion: a $250k-income / $300k-deposit client should get fewer, higher-value blue-chip properties (~$750k+). Assistant chat: \"Built a 4-property plan, priced from $400k to $500k\" — four cheap properties."
+      ],
+      "placement": [],
+      "goalYears": {
+        "equityGoalYear": 2040,
+        "incomeGoalYear": null
+      },
+      "notes": [
+        "Saved propertyOrder is EMPTY — the claimed 4-property plan was never persisted; engine run covers existing portfolio only."
+      ]
+    },
+    {
+      "id": "FIX-ELLA-316",
+      "source": "fixture",
+      "archetype": "ella · cf-high with 6%-yield commercial interest, retire 2046 on $250k",
+      "brief": "I own 3 properties, QLD (600k, 80% LVR), Vic ($920k, 100% LVR) & NT ($500k, 80% LVR). Goal: retire by 2046 on $250k cash flow. Interested in a commercial property with a 6% yield, and a $180k granny flat on the Vic house. [income $250k, $300k cash; loans QLD $442,594 / VIC $945k / NT $400k] [follow-up] Change the client goal to reach $1m+ in equity and $250k passive income by 2046",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": false,
+          "detail": "expected 3-5 planned properties, saved plan has 2",
+          "cause": "persistence"
+        },
+        {
+          "name": "property[0]-yield",
+          "pass": false,
+          "detail": "commercial-high-cost yield 8.5% vs stated 5-7%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "commercial-labelled",
+          "pass": true,
+          "detail": "plan contains an explicitly-labelled commercial cell",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": false,
+          "detail": "unplaced/infeasible: commercial-high-cost_instance_0(challenging), metro-house-cashflow_instance_0(challenging)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$250,000/yr never reached within the modelled horizon (max $8,980/yr) — shortfall",
+          "cause": "engine-goal"
+        },
+        {
+          "name": "equity-goal",
+          "pass": true,
+          "detail": "$1,000,000 equity reached 2031 vs stated by 2046",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[persistence] property-count: expected 3-5 planned properties, saved plan has 2",
+        "[plan-selection] property[0]-yield: commercial-high-cost yield 8.5% vs stated 5-7%",
+        "[engine-placement] all-placed: unplaced/infeasible: commercial-high-cost_instance_0(challenging), metro-house-cashflow_instance_0(challenging)",
+        "[engine-goal] cashflow-goal: $250,000/yr never reached within the modelled horizon (max $8,980/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "commercial-high-cost_instance_0",
+          "year": null,
+          "status": "challenging",
+          "cost": 750000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-house-cashflow_instance_0",
+          "year": null,
+          "status": "challenging",
+          "cost": 420000,
+          "entity": "individual"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2031,
+        "incomeGoalYear": null
+      },
+      "notes": [
+        "Saved plan has 2 planned instances (commercial $750k @ $1,225/wk = 8.5% yield, metro-house-cashflow $420k), not the 4 claimed.",
+        "Granny flat request has no representation in the saved plan (no schema field for improvements/granny flats)."
+      ]
+    },
+    {
+      "id": "FIX-ELLA-317",
+      "source": "fixture",
+      "archetype": "ella · \"4 properties, retire on 250k\" — $250k income / $300k deposit / $15k mo savings",
+      "brief": "i want to buy 4 properties and retire on 250k. [follow-up] annual income - $250k, $300k deposit, monthly savings = $15k, no debt, BC +2m",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 4 planned properties, saved plan has 4",
+          "cause": "persistence"
+        },
+        {
+          "name": "avg-price",
+          "pass": true,
+          "detail": "average price $695,000 vs blue-chip floor $650,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "yield-band",
+          "pass": true,
+          "detail": "all yields within 3-7%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "trust-usage",
+          "pass": true,
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 2",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 4 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "pacing",
+          "pass": false,
+          "detail": "purchases in 2026, 2027, 2028, 2031 — avg gap 1.67y vs conservative-correct ≥1.75y",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$250,000/yr never reached within the modelled horizon (max $37,773/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[engine-placement] pacing: purchases in 2026, 2027, 2028, 2031 — avg gap 1.67y vs conservative-correct ≥1.75y",
+        "[engine-goal] cashflow-goal: $250,000/yr never reached within the modelled horizon (max $37,773/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 750000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 650000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-growth_instance_0",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 800000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2031,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "FIX-JULIAN-210",
+      "source": "fixture",
+      "archetype": "julian · goal-anchored: $1m BC, $100k income, $50k CF + $2m equity in 20y",
+      "brief": "Rob. $1m borrowing capacity. $100k income. $150k deposit. $50k/year cashflow goal. $2m equity goal. 20 years.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 4-6 planned properties, saved plan has 5",
+          "cause": "persistence"
+        },
+        {
+          "name": "price-band",
+          "pass": true,
+          "detail": "all 5 prices within $350,000-$800,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "trust-usage",
+          "pass": false,
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 0",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "commercial-finisher",
+          "pass": true,
+          "detail": "last property is commercial-low-cost — labelled commercial",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": false,
+          "detail": "unplaced/infeasible: regional-unit-cashflow_instance_1(challenging), regional-house-cashflow_instance_1(challenging), commercial-low-cost_instance_0(challenging)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": true,
+          "detail": "$50,000/yr net cashflow reached 2041 vs stated by 2045",
+          "cause": "engine-goal"
+        },
+        {
+          "name": "equity-goal",
+          "pass": true,
+          "detail": "$2,000,000 equity reached 2039 vs stated by 2045",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[plan-selection] trust-usage: capacity is tight — expected ≥1 trust-held property, plan has 0",
+        "[engine-placement] all-placed: unplaced/infeasible: regional-unit-cashflow_instance_1(challenging), regional-house-cashflow_instance_1(challenging), commercial-low-cost_instance_0(challenging)"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 380000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 480000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_1",
+          "year": 2028,
+          "status": "challenging",
+          "cost": 380000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_1",
+          "year": 2029,
+          "status": "challenging",
+          "cost": 490000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "commercial-low-cost_instance_0",
+          "year": 2031,
+          "status": "challenging",
+          "cost": 750000,
+          "entity": "individual"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2039,
+        "incomeGoalYear": 2041
+      }
+    },
+    {
+      "id": "FIX-JULIAN-290",
+      "source": "fixture",
+      "archetype": "julian · $100k passive goal, 1 existing property, $750k BC, couple on $300k",
+      "brief": "$100,000 passive income, already own 1 property worth 600,000 with yearly costs of 20,000 and current borrowing capacity of $750,000. [follow-up] 70% LVR, couple earning 300k household, 250k cash, saving 2500/month",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "trust-usage",
+          "pass": true,
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 3",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "profile-cashflowGoal",
+          "pass": false,
+          "detail": "profile.cashflowGoal = 50000 vs stated 100000",
+          "cause": "extraction"
+        },
+        {
+          "name": "profile-useExistingEquity",
+          "pass": true,
+          "detail": "profile.useExistingEquity = true vs stated true",
+          "cause": "extraction"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 4 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$100,000/yr never reached within the modelled horizon (max $49,286/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[extraction] profile-cashflowGoal: profile.cashflowGoal = 50000 vs stated 100000",
+        "[engine-goal] cashflow-goal: $100,000/yr never reached within the modelled horizon (max $49,286/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2030,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-growth_instance_0",
+          "year": 2033,
+          "status": "feasible",
+          "cost": 430000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2038,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2032,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-CF-80K",
+      "source": "variant",
+      "archetype": "grid · $80k income, cash-flow, no existing",
+      "brief": "Client earns $80k, single, $60k deposit saved, saving $1k/month. Wants $30k passive income in 15 years. Cash flow focus, nothing over $450k.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "price-band",
+          "pass": true,
+          "detail": "all 2 prices within $300,000-$450,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "yield-band",
+          "pass": true,
+          "detail": "all yields within 5-7.5%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 2 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$30,000/yr never reached within the modelled horizon (max $29,351/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[engine-goal] cashflow-goal: $30,000/yr never reached within the modelled horizon (max $29,351/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 380000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2039,
+          "status": "feasible",
+          "cost": 430000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": null,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-EG-80K-EXIST",
+      "source": "variant",
+      "archetype": "grid · $80k income, equity-growth, existing portfolio (equity-funded deposit)",
+      "brief": "Client earns $80k, owns an investment unit worth $500k with $300k owing, rents $420/week. Only $20k cash but happy to use the equity. Wants one more growth property around $450k within the next two years.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property[0]-placed-by",
+          "pass": false,
+          "detail": "regional-unit-growth places 2030 vs expected by 2027",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 1 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [
+        "[engine-placement] property[0]-placed-by: regional-unit-growth places 2030 vs expected by 2027"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-unit-growth_instance_0",
+          "year": 2030,
+          "status": "feasible",
+          "cost": 450000,
+          "entity": "individual"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2028,
+        "incomeGoalYear": 2041
+      }
+    },
+    {
+      "id": "VAR-EGCF-150K",
+      "source": "variant",
+      "archetype": "grid · $150k income, eg-to-cf, transition must be visible",
+      "brief": "Couple earning $150k combined, $120k deposit, saving $2.5k/month, borrowing capacity $900k. Build equity first, then switch to cash flow. Want to retire on $80k in 20 years.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "transition-visible",
+          "pass": true,
+          "detail": "growth phase places 2028-2031, yield phase 2034-2035 — visible transition",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 4 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": false,
+          "detail": "$80,000/yr never reached within the modelled horizon (max $68,934/yr) — shortfall",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [
+        "[engine-goal] cashflow-goal: $80,000/yr never reached within the modelled horizon (max $68,934/yr) — shortfall"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 620000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2034,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2035,
+          "status": "feasible",
+          "cost": 380000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2036,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-CT-150K-TRUST",
+      "source": "variant",
+      "archetype": "grid · $150k income, commercial-transition, \"properties 2 and 3 in a trust\"",
+      "brief": "$150k income, $100k deposit, $3k/month savings, $1m capacity. Three properties: two residential growth then finish with a commercial. Put properties 2 and 3 in a trust.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 3 planned properties, saved plan has 3",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[1]-entity",
+          "pass": true,
+          "detail": "regional-house-growth entity \"trust\" vs stated \"trust\"",
+          "cause": "extraction"
+        },
+        {
+          "name": "property[2]-entity",
+          "pass": true,
+          "detail": "commercial-low-cost entity \"trust\" vs stated \"trust\"",
+          "cause": "extraction"
+        },
+        {
+          "name": "commercial-finisher",
+          "pass": true,
+          "detail": "last property is commercial-low-cost — labelled commercial",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "transition-visible",
+          "pass": true,
+          "detail": "growth phase places 2028-2031, yield phase 2036-2036 — visible transition",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 620000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 620000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "commercial-low-cost_instance_0",
+          "year": 2036,
+          "status": "feasible",
+          "cost": 750000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2036,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-CF-150K-BANDS",
+      "source": "variant",
+      "archetype": "grid · $150k income, cash-flow, explicit price AND yield bands",
+      "brief": "Client earning $150k, $150k deposit, $4k/month, BC $1.2m. Buy three cash flow properties between $500k and $650k, yields between 5.5% and 6.5%. No cheap regional stock under $300k.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "price-band",
+          "pass": true,
+          "detail": "all 3 prices within $500,000-$650,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "yield-band",
+          "pass": true,
+          "detail": "all yields within 5.5-6.5%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": true,
+          "detail": "$60,000/yr net cashflow reached 2039 vs stated by 2045",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 520000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_1",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "metro-house-cashflow_instance_0",
+          "year": 2032,
+          "status": "feasible",
+          "cost": 640000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2036,
+        "incomeGoalYear": 2039
+      }
+    },
+    {
+      "id": "VAR-EG-250K-BLUECHIP",
+      "source": "variant",
+      "archetype": "grid · $250k income, equity-growth blue-chip, conservative pacing requested",
+      "brief": "High earner — $250k income, $300k in savings, saving $8k/month, BC $2m. Wants blue-chip growth assets, negatively geared is fine. Fewer, higher-quality properties — nothing under $750k. One purchase every couple of years, no rush.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "price-band",
+          "pass": true,
+          "detail": "all 3 prices within $750,000-$1,200,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "yield-band",
+          "pass": true,
+          "detail": "all yields within 2.5-4.5%",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "pacing",
+          "pass": false,
+          "detail": "purchases in 2026, 2027, 2029 — avg gap 1.50y vs conservative-correct ≥1.75y",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [
+        "[engine-placement] pacing: purchases in 2026, 2027, 2029 — avg gap 1.50y vs conservative-correct ≥1.75y"
+      ],
+      "placement": [
+        {
+          "instanceId": "metro-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 900000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-house-growth_instance_1",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 950000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "metro-house-growth_instance_2",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 1000000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2032,
+        "incomeGoalYear": null
+      },
+      "notes": [
+        "pacingMode is not read by the engine and maxPurchasesPerYear/pacing is not in the nl-parse schema — the only lever is per-property targetPeriod, which a faithful extraction of \"one every couple of years\" would need to set explicitly."
+      ]
+    },
+    {
+      "id": "VAR-CT-250K-SMSF",
+      "source": "variant",
+      "archetype": "grid · $250k income, commercial-transition, commercial held in SMSF",
+      "brief": "$250k income, $200k deposit, $5k/month, BC $1.5m. Two growth houses in personal names, then a $1.1m commercial inside the client's SMSF.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "property[2]-entity",
+          "pass": true,
+          "detail": "commercial-high-cost entity \"smsf\" vs stated \"smsf\"",
+          "cause": "extraction"
+        },
+        {
+          "name": "commercial-finisher",
+          "pass": true,
+          "detail": "last property is commercial-high-cost — labelled commercial",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "transition-visible",
+          "pass": true,
+          "detail": "growth phase places 2026-2028, yield phase 2033-2033 — visible transition",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "metro-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 900000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 650000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "commercial-high-cost_instance_0",
+          "year": 2033,
+          "status": "feasible",
+          "cost": 1100000,
+          "entity": "smsf"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2033,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-EGCF-250K-EXIST",
+      "source": "variant",
+      "archetype": "grid · $250k income, eg-to-cf, existing portfolio with equity release",
+      "brief": "Clients earn $250k, own an IP worth $700k with a $450k loan renting $600/wk. $150k cash, $6k/month savings, BC $1.8m. Growth now, cash flow later — want $100k passive by 2045, happy to release equity along the way.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "transition-visible",
+          "pass": true,
+          "detail": "growth phase places 2026-2027, yield phase 2028-2029 — visible transition",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 4 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "cashflow-goal",
+          "pass": true,
+          "detail": "$100,000/yr net cashflow reached 2042 vs stated by 2045",
+          "cause": "engine-goal"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 700000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 580000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 500000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 380000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2030,
+        "incomeGoalYear": 2042
+      }
+    },
+    {
+      "id": "VAR-ADAM-BAND",
+      "source": "variant",
+      "archetype": "adam · explicit sequence: 3 × $375-390k then a ~$600k freestanding house",
+      "brief": "Buy 3 properties between $375k and $390k over the first three years, then a freestanding house around $600k. Income $120k, $90k deposit, saving $2k/month, BC $1.1m.",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 4 planned properties, saved plan has 4",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[0]-price",
+          "pass": true,
+          "detail": "regional-unit-cashflow $380,000 vs stated $375,000-$390,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[0]-placed-by",
+          "pass": true,
+          "detail": "regional-unit-cashflow places 2026 vs expected by 2028",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "property[1]-price",
+          "pass": true,
+          "detail": "regional-unit-cashflow $385,000 vs stated $375,000-$390,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[1]-placed-by",
+          "pass": false,
+          "detail": "regional-unit-cashflow places 2031 vs expected by 2028",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "property[2]-price",
+          "pass": true,
+          "detail": "regional-unit-cashflow $390,000 vs stated $375,000-$390,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "property[2]-placed-by",
+          "pass": false,
+          "detail": "regional-unit-cashflow places 2036 vs expected by 2028",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "property[3]-price",
+          "pass": true,
+          "detail": "regional-house-growth $600,000 vs stated $570,000-$630,000",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 4 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [
+        "[engine-placement] property[1]-placed-by: regional-unit-cashflow places 2031 vs expected by 2028",
+        "[engine-placement] property[2]-placed-by: regional-unit-cashflow places 2036 vs expected by 2028"
+      ],
+      "placement": [
+        {
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 380000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_1",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 385000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_2",
+          "year": 2036,
+          "status": "feasible",
+          "cost": 390000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2042,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2043,
+        "incomeGoalYear": 2040
+      }
+    },
+    {
+      "id": "VAR-ADAM-EQUITY",
+      "source": "variant",
+      "archetype": "adam · existing equity funds later deposits (low cash)",
+      "brief": "Client owns a $700k IP with $350k owing, rents $580/wk. Just $25k cash, saves $1.5k/month, earns $140k, BC $900k. Use the equity for the next deposits — two more around $450k each.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "property[0]-placed-by",
+          "pass": true,
+          "detail": "regional-house-cashflow places 2026 vs expected by 2028",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "property[1]-placed-by",
+          "pass": true,
+          "detail": "regional-house-cashflow places 2027 vs expected by 2033",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 2 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 450000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-cashflow_instance_1",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 450000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2027,
+        "incomeGoalYear": 2035
+      }
+    },
+    {
+      "id": "VAR-BAFEE",
+      "source": "variant",
+      "archetype": "schema coverage · explicit BA engagement fee statement (fixed 16 Jul 2026)",
+      "brief": "$150k income, $120k deposit, $3k/month savings, BC $1m. Two properties around $550k. Include my $15k engagement fee on each purchase in the numbers.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 2 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "schema:properties.items.properties.engagementFee",
+          "pass": true,
+          "detail": "BA fee (\"include my $15k engagement fee\") must be expressible per property. Was a known schema gap (EXPECTED-FAIL) until engagementFee was added to create_plan on 16 Jul 2026 — a failure here now is a REGRESSION. [schema field EXISTS]",
+          "cause": "schema-gap"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 550000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 550000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2035,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-PURCHCOSTS",
+      "source": "variant",
+      "archetype": "schema coverage · explicit purchase-costs statement (fixed 16 Jul 2026)",
+      "brief": "$200k income, $250k deposit, $5k/month, BC $1.6m. Three properties around $600k in Sydney. Budget $45k purchase costs per property — NSW stamp duty plus legals — make sure that's in the model.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        },
+        {
+          "name": "schema:properties.items.properties.stampDutyOverride",
+          "pass": true,
+          "detail": "Explicit purchase-cost statements (\"budget $45k stamp duty + legals per property\") must be representable. Was a known schema gap (EXPECTED-FAIL) until stampDutyOverride was added on 16 Jul 2026 — a failure here now is a REGRESSION. [schema field EXISTS]",
+          "cause": "schema-gap"
+        },
+        {
+          "name": "schema:properties.items.properties.conveyancing",
+          "pass": true,
+          "detail": "Stated legals must be representable. conveyancing added to create_plan on 16 Jul 2026 — a failure here now is a REGRESSION. [schema field EXISTS]",
+          "cause": "schema-gap"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2033,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-STRAT-FEES",
+      "source": "variant",
+      "archetype": "company strategy · fee / PM% / rate / IO term must stick per property",
+      "brief": "New client: $160k income, $140k deposit, saving $3k/month, BC $1.1m. Build a two-property plan around $550k each following our company strategy.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "property-count",
+          "pass": true,
+          "detail": "expected 2 planned properties, saved plan has 2",
+          "cause": "plan-selection"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 2 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 550000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2029,
+          "status": "feasible",
+          "cost": 550000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2035,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-STRAT-GROWTH",
+      "source": "variant",
+      "archetype": "company strategy · rent growth / vacancy / portfolio rate + explicit 30y timeline",
+      "brief": "Couple earning $90k each, $150k deposit, $4k/month savings, BC $1.4m. Three properties following our strategy, and make it a 30-year plan.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "timeline-persisted",
+          "pass": true,
+          "detail": "user stated 30-year timeframe; profile.timelineYears = 30",
+          "cause": "extraction"
+        },
+        {
+          "name": "profile-rentEscalationRate",
+          "pass": true,
+          "detail": "profile.rentEscalationRate = 0.03 vs stated 0.03",
+          "cause": "extraction"
+        },
+        {
+          "name": "profile-vacancyRate",
+          "pass": true,
+          "detail": "profile.vacancyRate = 0.04 vs stated 0.04",
+          "cause": "extraction"
+        },
+        {
+          "name": "profile-interestRate",
+          "pass": true,
+          "detail": "profile.interestRate = 0.065 vs stated 0.065",
+          "cause": "extraction"
+        },
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 3 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 520000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2028,
+          "status": "feasible",
+          "cost": 540000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2031,
+          "status": "feasible",
+          "cost": 560000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2035,
+        "incomeGoalYear": null
+      }
+    },
+    {
+      "id": "VAR-STRAT-UMV",
+      "source": "variant",
+      "archetype": "company strategy · buy-under-market valuation + 80% LVR + stated sell-down",
+      "brief": "$200k income, $250k deposit, $5k/month savings, BC $1.6m. Two properties at $600k following our strategy, and per the exit plan sell the second one in 2041.",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "all-placed",
+          "pass": true,
+          "detail": "all 2 properties place (feasible)",
+          "cause": "engine-placement"
+        }
+      ],
+      "failReasons": [],
+      "placement": [
+        {
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2027,
+          "status": "feasible",
+          "cost": 600000,
+          "entity": "trust"
+        }
+      ],
+      "goalYears": {
+        "equityGoalYear": 2033,
+        "incomeGoalYear": null
+      }
+    }
+  ]
+}

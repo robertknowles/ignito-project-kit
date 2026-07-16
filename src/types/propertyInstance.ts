@@ -135,6 +135,10 @@ export interface PropertyInstanceDetails {
   yieldOverride?: number | null;
   holdingCostOverride?: number | null;
   purchaseCostsOverride?: number | null;
+  /** Per-property depreciation rate override (decimal). null => use the global
+   *  new-build/established default from the profile. Planned purchases are always
+   *  post-cutoff so no contract date is needed. */
+  depreciationRateOverride?: number | null;
   loanAmountOverride?: number | null;
   depositOverride?: number | null;
   lmiOverride?: number | null;

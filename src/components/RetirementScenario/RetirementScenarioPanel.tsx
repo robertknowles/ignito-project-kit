@@ -222,11 +222,22 @@ export const RetirementScenarioPanel: React.FC = () => {
       {/* ── Hero summary card ────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-[#E9EAEB] bg-white p-6">
         <p className="max-w-3xl text-[17px] leading-[1.7] text-[#414651]">
-          Retiring in <span className="font-semibold text-[#181D27]">{retirementYear}</span>, selling{' '}
-          <span className="font-semibold text-[#181D27]">{soldCount}</span> of{' '}
-          <span className="font-semibold text-[#181D27]">{purchasedCount}</span> properties, your client ends up with{' '}
-          <span className="font-bold" style={{ fontSize: 26, color: BRAND }}>{fmt(netCashInHand)}</span>{' '}
-          cash in the bank after tax and costs
+          Retiring in <span className="font-semibold text-[#181D27]">{retirementYear}</span>,{' '}
+          {soldCount === 0 ? (
+            <>
+              holding all <span className="font-semibold text-[#181D27]">{purchasedCount}</span>{' '}
+              propert{purchasedCount === 1 ? 'y' : 'ies'}, your client keeps{' '}
+              <span className="font-bold" style={{ fontSize: 26, color: BRAND }}>{fmt(0)}</span>{' '}
+              cash and lives off rental income
+            </>
+          ) : (
+            <>
+              selling <span className="font-semibold text-[#181D27]">{soldCount}</span> of{' '}
+              <span className="font-semibold text-[#181D27]">{purchasedCount}</span>, your client keeps{' '}
+              <span className="font-bold" style={{ fontSize: 26, color: BRAND }}>{fmt(netCashInHand)}</span>{' '}
+              cash after tax and costs
+            </>
+          )}
         </p>
 
         <div className="mt-5 grid grid-cols-3 gap-6 border-t border-[#F2F2F4] pt-5">
@@ -315,10 +326,10 @@ export const RetirementScenarioPanel: React.FC = () => {
                           <span className="text-[13px] font-semibold text-[#181D27]">
                             Prop {numberById.get(prop.instanceId)}
                           </span>
-                          {prop.isExisting ? (
-                            <span className="rounded-full bg-[#F5F5F5] px-1.5 py-0.5 text-[10px] font-medium text-[#717680]">Owned</span>
-                          ) : (
-                            tag && <span className="text-[11px] font-medium text-[#717680]">{tag}</span>
+                          {(prop.isExisting || tag) && (
+                            <span className="rounded-full bg-[#EFF0F3] px-2 py-0.5 text-[11px] font-medium text-[#535862]">
+                              {prop.isExisting ? 'Existing' : tag}
+                            </span>
                           )}
                         </div>
                         <div className="mt-1 flex items-baseline gap-1.5">
@@ -367,18 +378,14 @@ export const RetirementScenarioPanel: React.FC = () => {
           <div className="mb-3 flex items-center gap-2 px-1">
             <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: GREEN }} />
             <span className="text-[14px] font-semibold text-[#181D27]">Properties sold</span>
-            <span
-              className="ml-auto rounded-full px-2 py-0.5 text-[12px] font-semibold"
-              style={{ backgroundColor: 'rgba(6, 118, 71, 0.10)', color: GREEN }}
-            >
-              {soldCount} of {purchasedCount}
-            </span>
+            <span className="ml-auto text-[12px] text-[#717680]">Proceeds before tax</span>
           </div>
 
           <div className="flex flex-1 flex-col gap-2.5">
             {soldProps.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#C7E3D6] bg-white/60 px-4 py-10 text-center text-[13px] text-[#8A9E93]">
-                No sales yet - click <span className="mx-1 font-semibold" style={{ color: BRAND }}>Sell</span> on a property to cash it out
+              <div className="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#D5D7DA] bg-white/60 px-4 py-10 text-center">
+                <span className="text-[13px] font-semibold text-[#535862]">Nothing sold yet</span>
+                <span className="text-[13px] leading-[1.5] text-[#A4A7AE]">Tap Sell on a property to model selling it in your client's retirement year</span>
               </div>
             ) : (
               soldProps.map(prop => {
@@ -398,47 +405,42 @@ export const RetirementScenarioPanel: React.FC = () => {
                         <span className="text-[13px] font-semibold text-[#181D27]">
                           Prop {numberById.get(prop.instanceId)}
                         </span>
-                        {prop.isExisting ? (
-                          <span className="rounded-full bg-[#F5F5F5] px-1.5 py-0.5 text-[10px] font-medium text-[#717680]">Owned</span>
-                        ) : (
-                          tag && <span className="text-[11px] font-medium text-[#717680]">{tag}</span>
+                        {(prop.isExisting || tag) && (
+                          <span className="rounded-full bg-[#EFF0F3] px-2 py-0.5 text-[11px] font-medium text-[#535862]">
+                            {prop.isExisting ? 'Existing' : tag}
+                          </span>
                         )}
                       </div>
-                      {/* Value + sale year on one row so sold cards align with owned cards. */}
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[17px] font-semibold tracking-[-0.02em]" style={{ color: GREEN }}>
-                            {fmt(gross)}
-                          </span>
-                          <span className="text-[12px] text-[#717680]">before tax</span>
-                        </div>
-                        {/* Per-property sale year - locks this property's price to the chosen year. */}
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11.5px] text-[#717680]">· Sold in</span>
-                          <div className="relative inline-flex items-center">
-                            <select
-                              value={saleYear}
-                              onChange={e => setSaleYear(prop.instanceId, Number(e.target.value))}
-                              disabled={yearOptions.length <= 1}
-                              className="appearance-none rounded-md border border-[#D5D7DA] bg-white py-0.5 pl-2 pr-6 text-[11.5px] font-semibold text-[#181D27] outline-none transition-colors hover:border-[#B8BCC4] focus:border-[#7F56D9] disabled:cursor-default disabled:opacity-70"
-                              style={{ cursor: yearOptions.length <= 1 ? 'default' : 'pointer' }}
-                            >
-                              {yearOptions.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                              ))}
-                            </select>
-                            <ChevronDown size={12} className="pointer-events-none absolute right-1.5 text-[#717680]" />
-                          </div>
-                        </div>
+                      <div className="mt-1 flex items-baseline gap-1.5">
+                        <span className="text-[17px] font-semibold tracking-[-0.02em]" style={{ color: GREEN }}>
+                          {fmt(gross)}
+                        </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleSold(prop.instanceId)}
-                      className="flex-shrink-0 rounded-lg border border-[#D5D7DA] bg-white px-4 py-1.5 text-[13px] font-semibold text-[#535862] transition-colors hover:bg-[#F9FAFB]"
-                    >
-                      Keep
-                    </button>
+                    {/* Per-property sale year (locks this property's price) + un-sell. */}
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={saleYear}
+                          onChange={e => setSaleYear(prop.instanceId, Number(e.target.value))}
+                          disabled={yearOptions.length <= 1}
+                          className="appearance-none rounded-lg border border-[#E9EAEB] bg-white py-1.5 pl-3 pr-7 text-[13px] font-medium text-[#181D27] outline-none transition-colors hover:border-[#B8BCC4] focus:border-[#7F56D9] disabled:cursor-default disabled:opacity-70"
+                          style={{ cursor: yearOptions.length <= 1 ? 'default' : 'pointer' }}
+                        >
+                          {yearOptions.map(y => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={13} className="pointer-events-none absolute right-2 text-[#717680]" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSold(prop.instanceId)}
+                        className="rounded-lg border border-[#D5D7DA] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#535862] transition-colors hover:bg-[#F9FAFB]"
+                      >
+                        Keep
+                      </button>
+                    </div>
                   </div>
                 );
               })

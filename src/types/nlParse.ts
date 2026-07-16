@@ -27,6 +27,7 @@ export interface CurrentPlanState {
     timelineYears: number;
     equityGoal: number;
     cashflowGoal: number;
+    goalPriority?: 'equity' | 'cashflow';
     /** v4 strategy preset selected by the BA. Drives chatbot cell selection. */
     strategyPreset?: 'eg-low' | 'eg-high' | 'cf-low' | 'cf-high' | 'commercial-transition' | 'eg-to-cf';
   };
@@ -48,6 +49,28 @@ export interface CurrentPlanState {
     borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
+  /**
+   * The client's already-owned properties (the "Existing Portfolio" tab). These
+   * are real holdings with actual purchase prices, current values, loans, rents
+   * and costs entered by the BA - distinct from `properties`, which are the
+   * PLANNED future purchases. Sent so the AI can answer questions about the
+   * existing portfolio ("what are the costs on my 2 properties") instead of
+   * saying it has no details on file.
+   */
+  existingProperties?: Array<{
+    address: string;
+    state: string;
+    boughtYear: number;
+    purchasePrice: number;
+    currentValue: number;
+    loan: number;
+    equity: number;
+    rentPerWeek: number;
+    interestRate: number;
+    loanType: 'IO' | 'PI';
+    growthAssumption?: 'High' | 'Medium' | 'Low';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+  }>;
   /**
    * Engine output snapshot - the actual projected horizon values from the
    * simulator, computed from the current chart data. Sent on every turn
@@ -115,6 +138,7 @@ export interface NLParseResponse {
     timelineYearsExplicit?: boolean; // true when the BA stated the timeline
     equityGoal?: number;
     cashflowGoal?: number;
+    goalPriority?: 'equity' | 'cashflow';
     targetPassiveIncome?: number;
     interestRate?: number; // Percent (e.g. 6.5) - only when the strategy/brief states one
     vacancyRate?: number; // Fraction (e.g. 0.04) - only when stated

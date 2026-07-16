@@ -37,7 +37,15 @@ interface LayoutProviderProps {
 }
 
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  // Docked AI chat column visibility. Starts closed so the dashboard has focus;
+  // the purple launcher opens it. Persisted so it survives reloads.
+  const [drawerOpen, setDrawerOpenState] = useState<boolean>(
+    () => localStorage.getItem('proppath-chat-open') === '1',
+  );
+  const setDrawerOpen = useCallback((open: boolean) => {
+    setDrawerOpenState(open);
+    localStorage.setItem('proppath-chat-open', open ? '1' : '0');
+  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
     () => localStorage.getItem('proppath-sidebar-collapsed') === '1',
   );
@@ -76,7 +84,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const toggleDrawer = () => setDrawerOpen(prev => !prev);
+  const toggleDrawer = useCallback(() => setDrawerOpen(!drawerOpen), [drawerOpen, setDrawerOpen]);
 
   return (
     <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, sidebarCollapsed, toggleSidebar, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>

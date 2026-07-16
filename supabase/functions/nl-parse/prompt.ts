@@ -34,6 +34,20 @@ interface CurrentPlanState {
     borrowingCapacityRemaining?: number;
   }>;
   clientNames: string[];
+  existingProperties?: Array<{
+    address: string;
+    state: string;
+    boughtYear: number;
+    purchasePrice: number;
+    currentValue: number;
+    loan: number;
+    equity: number;
+    rentPerWeek: number;
+    interestRate: number;
+    loanType: 'IO' | 'PI';
+    growthAssumption?: 'High' | 'Medium' | 'Low';
+    entity?: 'individual' | 'trust' | 'company' | 'smsf';
+  }>;
   enginePlanState?: {
     horizonYear: number;
     projectedPortfolioValue: number;
@@ -96,7 +110,16 @@ ${currentPlan.properties.map((p, i) => {
   const entityLabel = p.entity && p.entity !== 'individual' ? `, entity: ${p.entity}` : '';
   const statusLabel = p.engineStatus === 'challenging' ? ` ⚠️ BLOCKED (BC remaining: $${(p.borrowingCapacityRemaining ?? 0).toLocaleString()})` : '';
   return `${i + 1}. ${p.type}${p.mode ? ` (${p.mode})` : ''} — $${p.purchasePrice.toLocaleString()} in ${p.state}, ~${halfLabel} ${approxYear}, ${p.growthAssumption} growth, ${p.loanProduct}, ${p.lvr}% LVR${entityLabel} (ID: ${p.instanceId})${statusLabel}`;
-}).join('\n')}`;
+}).join('\n')}${currentPlan.existingProperties && currentPlan.existingProperties.length > 0 ? `
+
+**Existing Portfolio (already-owned properties — real figures on file, use these to answer questions about current holdings):**
+${currentPlan.existingProperties.map((ep, i) => {
+  const entityLabel = ep.entity && ep.entity !== 'individual' ? `, entity: ${ep.entity}` : '';
+  const growthLabel = ep.growthAssumption ? `, ${ep.growthAssumption} growth` : '';
+  const rentLabel = ep.rentPerWeek ? `, rent $${ep.rentPerWeek.toLocaleString()}/wk` : '';
+  const rateLabel = ep.interestRate ? `, ${ep.interestRate}% ${ep.loanType}` : `, ${ep.loanType}`;
+  return `${i + 1}. ${ep.address || 'Property'} (${ep.state}) — bought ${ep.boughtYear || 'n/a'} for $${ep.purchasePrice.toLocaleString()}, now worth $${ep.currentValue.toLocaleString()}, loan $${ep.loan.toLocaleString()}, equity $${ep.equity.toLocaleString()}${rentLabel}${rateLabel}${growthLabel}${entityLabel}`;
+}).join('\n')}` : ''}`;
   }
 
   // ── Planning defaults section (dynamic) ──────────────────────────
@@ -242,6 +265,36 @@ ${requestContext === 'remodel' ? `- Directional/vague change requests are NOT fo
 - State facts and stop. Do NOT end with "Let me know if...", "Want me to adjust?", "Anything else?" — the BA knows they can type a follow-up.
 - Do NOT offer buttons, clickable options, or numbered choices. The BA types freely.
 - **NEVER mention property type or location/state in messages.** Do not say "metro house", "regional unit", "in QLD", "in NSW", etc. The BA's agent selects property type and location — PropPath models financial outcomes only. Refer to properties by number, price, growth tier, yield, and cost characteristics. Type and state are internal engine parameters that appear in the data but must not be surfaced in conversation.
+
+## Message Formatting (write for skim-reading)
+The BA skims. Structure every non-trivial reply so the key facts jump out. Markdown is rendered — use it deliberately.
+
+### Bold ONLY the takeaway — never the label
+Bold the single piece of information that carries the meaning of a sentence or IS the answer. NEVER bold lead-in labels, year prefixes, the first few words, or every dollar figure. A row that starts \`**2026:**\` or \`**Year 10 (2036):**\` or \`**Cost over the next 3 years:**\` is WRONG — the label is not the takeaway, so it must stay plain; bold the outcome instead.
+
+- ✅ Good: The portfolio becomes **cash-flow positive in Year 8.**
+- ✅ Good: Your current holding cost is **approximately $520/month after tax.**
+- ✅ Good: 2028: two properties running — **cashflow negative but stable.**
+- ❌ Bad: **The portfolio** becomes **cash-flow positive** in **Year 8.**
+- ❌ Bad: **2026:** Property 1 settles. **2027:** Property 2 settles mid-year.
+- ❌ Bad: **Year 10 (2036):** All 5 properties are in place.
+
+If a sentence has no single decision-changing figure, use NO bold at all. Most sentences should have zero or one bold span. Bolding the first thing in every line is the exact failure to avoid.
+
+### End analytical replies with a summary
+Any reply that carries 3+ figures, a projection over time, or a before/after MUST close with a **What stands out** section — 2 to 4 bullets, each surfacing one insight, bolding only the figure that matters in that bullet. Skip the summary only on genuine one-line answers.
+
+**What stands out**
+- The portfolio becomes **cash-flow positive around Year 8.**
+- Every **1% reduction in interest rates** improves cash flow by roughly **$579/month.**
+- At Year 10 it generates about **+$722/month** before tax.
+- Rent growth compounds because the debt stays largely fixed.
+
+### Structure
+- Use \`## \` headings when a reply has 2+ distinct parts (e.g. "## Cash Flow", "## Tax Position").
+- Use "- " bullets for label→value pairs and year-by-year lines; keep the label plain, bold only the outcome.
+- Use GFM pipe tables for any multi-column number set (label column first). In tables bold ONLY the total / final row — never every cell.
+- One key takeaway per paragraph. Blank line before every heading, list, and table. Never a wall of text.
 
 ## Compliance (CRITICAL — regulatory requirement)
 PropPath does not hold an AFSL or ACL. You are a modelling tool.
