@@ -6,12 +6,12 @@
  * to bottom. Typing indicator while waiting. Auto-scrolls to latest message.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Loader2Icon, PlusIcon, ArrowUpIcon, XIcon, FileTextIcon, SearchIcon, MessageCircleIcon, SparklesIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { track, EVENTS } from '@/lib/analytics'
 import { ChatMessage } from './ChatMessage'
-import { ChatLoadingSteps } from './ChatLoadingSteps'
+import { ChatLoadingSteps, classifyLoadingVariant } from './ChatLoadingSteps'
 import { CompanyStrategySelector } from './CompanyStrategySelector'
 import { StrategyProfileModal } from './StrategyProfileModal'
 import { useStrategyProfiles } from '@/hooks/useStrategyProfiles'
@@ -56,7 +56,20 @@ const PRESET_LABELS: Record<string, string> = {
 export const ChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Scroll the chat's own message list to the bottom. We set scrollTop on the
+  // container directly rather than calling messagesEndRef.scrollIntoView():
+  // scrollIntoView() scrolls EVERY scrollable ancestor (including the outer
+  // dashboard/page) to bring the anchor into view, which yanked the whole
+  // screen up whenever a message or the loading steps appeared. Scrolling the
+  // container itself keeps the movement contained to the chat.
+  const scrollMessagesToBottom = useCallback((smooth: boolean) => {
+    const el = messagesContainerRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' })
+  }, [])
   const { drawerOpen, setDrawerOpen, chatPanelWidth, setChatPanelWidth, setPlanGenerating, setHighlightPeriod, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler, pendingPlanResponse } = useLayout()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -916,6 +929,17 @@ export const ChatPanel: React.FC = () => {
   const [loadingStep, setLoadingStep] = useState(0)
   const perfStartRef = useRef<number>(0)
 
+  // Pick loading-step copy that fits the most recent question. The steps are
+  // timer-driven, not real progress, so "Running affordability checks" while
+  // answering a costs/budget question would mislead - classify instead.
+  const loadingVariant = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i]
+      if (m.role === 'user' && m.type === 'text') return classifyLoadingVariant(m.content)
+    }
+    return 'plan' as const
+  }, [messages])
+
   // Sync loading state to layout context for Dashboard skeleton UI + step
   // progression. Also lift to ScenarioSaveContext so TopBar (above the route
   // layer) can disable tab nav while a request is in flight - switching
@@ -946,8 +970,8 @@ export const ChatPanel: React.FC = () => {
 
   // Auto-scroll to bottom when messages change or loading steps progress
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loadingStep])
+    scrollMessagesToBottom(true)
+  }, [messages, loadingStep, scrollMessagesToBottom])
 
   // Auto-open the docked chat when loading starts (e.g. plan triggered from
   // Home page or a dashboard card via the chat bus).
@@ -961,10 +985,10 @@ export const ChatPanel: React.FC = () => {
   useEffect(() => {
     if (drawerOpen) {
       requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+        scrollMessagesToBottom(false)
       })
     }
-  }, [drawerOpen])
+  }, [drawerOpen, scrollMessagesToBottom])
 
   // Handle send
   const handleSend = useCallback(async () => {
@@ -1230,6 +1254,7 @@ export const ChatPanel: React.FC = () => {
 
           {/* Messages area */}
           <div
+            ref={messagesContainerRef}
             className={`flex-1 min-h-0 overflow-y-auto px-3.5 pt-3 pb-6 space-y-3 scrollbar-hide ${isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             onDragOver={handleDragOver}
@@ -1259,6 +1284,7 @@ export const ChatPanel: React.FC = () => {
                   <ChatLoadingSteps
                     key={msg.id}
                     clientName={clientNamesRef.current[0] || activeClient?.name || undefined}
+                    variant={loadingVariant}
                     activeStep={loadingStep}
                     isComplete={false}
                   />

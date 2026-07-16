@@ -666,8 +666,35 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
    * Load messages from saved scenario
    */
   const loadMessages = useCallback((savedMessages: ChatMessage[]) => {
-    setMessages(savedMessages)
-    messageIdCounter.current = savedMessages.length
+    // Resume the ID counter PAST the highest existing id so new messages can't
+    // reuse a loaded one. IDs look like `msg-<n>`, but they're sparse: transient
+    // loading messages consume counter values yet get filtered out before
+    // persistence (see ChatPanel). So savedMessages.length underestimates the
+    // real max - seeding the counter with it made the next message reuse an
+    // existing id (msg-31 etc.), which React rejects as a duplicate key. Parse
+    // the numeric suffixes and continue from the true maximum instead.
+    let maxId = savedMessages.reduce((max, m) => {
+      const match = /^msg-(\d+)$/.exec(m.id)
+      return match ? Math.max(max, Number(match[1])) : max
+    }, 0)
+
+    // Heal any duplicate ids already baked into a saved chat by the old
+    // length-based seeding bug: re-key the second-and-later occurrence of each
+    // id with a fresh one so the loaded list is collision-free too.
+    const seen = new Set<string>()
+    const deduped = savedMessages.map((m) => {
+      if (!seen.has(m.id)) {
+        seen.add(m.id)
+        return m
+      }
+      maxId += 1
+      const newId = `msg-${maxId}`
+      seen.add(newId)
+      return { ...m, id: newId }
+    })
+
+    setMessages(deduped)
+    messageIdCounter.current = maxId
   }, [])
 
   const setMessageFeedback = useCallback((messageId: string, rating: -1 | 1) => {
