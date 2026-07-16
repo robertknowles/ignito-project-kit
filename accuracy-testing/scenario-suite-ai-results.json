@@ -1,12 +1,12 @@
 {
   "mode": "live-ai",
   "model": "claude-sonnet-4-6",
-  "timestamp": "2026-07-16T16:10:49.578Z",
-  "apiCalls": 1,
-  "inputTokens": 480,
-  "outputTokens": 1341,
-  "cacheWriteTokens": 0,
-  "cacheReadTokens": 8422,
+  "timestamp": "2026-07-16T16:21:34.240Z",
+  "apiCalls": 2,
+  "inputTokens": 928,
+  "outputTokens": 2611,
+  "cacheWriteTokens": 21157,
+  "cacheReadTokens": 0,
   "pass": 14,
   "fail": 9,
   "expectedFail": 0,
@@ -1712,7 +1712,7 @@
     {
       "id": "VAR-STRAT-FEES",
       "source": "variant",
-      "archetype": "company strategy · fee / PM% / rate / IO term must stick per property",
+      "archetype": "company strategy · fee + other-costs lump / PM% / rate / IO term must stick per property",
       "brief": "New client: $160k income, $140k deposit, saving $3k/month, BC $1.1m. Build a two-property plan around $550k each following our company strategy.",
       "verdict": "PASS",
       "checks": [
@@ -1726,6 +1726,12 @@
           "name": "property[0]-engagementFee",
           "pass": true,
           "detail": "regional-house-growth mapped instance.engagementFee = 15000 vs stated 15000",
+          "cause": "extraction"
+        },
+        {
+          "name": "property[0]-purchaseCostsOverride",
+          "pass": true,
+          "detail": "regional-house-growth mapped instance.purchaseCostsOverride = 21000 vs stated 20500-21500",
           "cause": "extraction"
         },
         {
@@ -1750,6 +1756,12 @@
           "name": "property[1]-engagementFee",
           "pass": true,
           "detail": "regional-house-growth mapped instance.engagementFee = 15000 vs stated 15000",
+          "cause": "extraction"
+        },
+        {
+          "name": "property[1]-purchaseCostsOverride",
+          "pass": true,
+          "detail": "regional-house-growth mapped instance.purchaseCostsOverride = 21000 vs stated 20500-21500",
           "cause": "extraction"
         },
         {
@@ -1781,21 +1793,21 @@
       "placement": [
         {
           "instanceId": "regional-house-growth_instance_0",
-          "year": 2027,
+          "year": 2026,
           "status": "feasible",
           "cost": 545000,
           "entity": "individual"
         },
         {
           "instanceId": "regional-house-growth_instance_1",
-          "year": 2030,
+          "year": 2029,
           "status": "feasible",
           "cost": 555000,
           "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2036,
+        "equityGoalYear": 2033,
         "incomeGoalYear": null
       },
       "turnLog": [
@@ -1803,12 +1815,11 @@
           "user": "New client: $160k income, $140k deposit, saving $3k/month, BC $1.1m. Build a two-property plan around $550k each following our company strategy.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 2-property plan, priced from $545k to $555k. Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. Properties 2 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.\nNote: property 1 was moved from 2025 to 2026 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2029 — the deposit isn't available until then.",
+          "message": "Built a 2-property plan, priced from $545k to $555k. Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. Properties 2 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. See the dashboard for the engine's exact projection.\nNote: property 2 was moved from 2026 to 2028 — the deposit isn't available until then.",
           "applied": true,
           "warnings": [],
           "autoFixChanges": [
-            "Moved from 2025 to 2026 to allow savings to accumulate",
-            "Moved from 2026 to 2029 to allow savings to accumulate"
+            "Moved from 2026 to 2028 to allow savings to accumulate"
           ]
         }
       ]

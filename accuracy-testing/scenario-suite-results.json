@@ -1,6 +1,6 @@
 {
   "mode": "engine-only",
-  "timestamp": "2026-07-16T09:23:17.008Z",
+  "timestamp": "2026-07-16T16:20:44.178Z",
   "pass": 10,
   "fail": 13,
   "expectedFail": 0,
@@ -197,7 +197,7 @@
         {
           "name": "p1-monthly-floor",
           "pass": true,
-          "detail": "year-1 net cashflow $-686/mo vs client cap $-1,500/mo",
+          "detail": "year-1 net cashflow $-284/mo vs client cap $-1,500/mo",
           "cause": "engine-goal"
         },
         {
@@ -1347,7 +1347,7 @@
     {
       "id": "VAR-STRAT-FEES",
       "source": "variant",
-      "archetype": "company strategy · fee / PM% / rate / IO term must stick per property",
+      "archetype": "company strategy · fee + other-costs lump / PM% / rate / IO term must stick per property",
       "brief": "New client: $160k income, $140k deposit, saving $3k/month, BC $1.1m. Build a two-property plan around $550k each following our company strategy.",
       "verdict": "PASS",
       "checks": [

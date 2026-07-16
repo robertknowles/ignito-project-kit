@@ -595,10 +595,28 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
 
       case 'modification': {
         // Compare/dashboard-parity pure mutator (re-hosts ChatPanel.handleModification).
+        const timelineBefore = scenario.investmentProfile?.timelineYears;
         const mutation = applyNlResponseToScenario(scenario, response);
         entry.warnings.push(...mutation.warnings);
         entry.applied = mutation.didChange;
-        if (mutation.didChange) scenario = mutation.scenario;
+        if (mutation.didChange) {
+          scenario = mutation.scenario;
+          // ChatPanel routes profile updates through updateProfile, which
+          // clamps timelines (explicit → floor 20, else exactly 20). The pure
+          // mutator merges raw, so replicate the clamp here — otherwise the
+          // suite passes timeline behaviour the app can't produce (re-sweep C1).
+          const t = scenario.investmentProfile?.timelineYears;
+          if (t !== undefined && t !== timelineBefore) {
+            const explicit = scenario.investmentProfile?.timelineYearsExplicit;
+            scenario = {
+              ...scenario,
+              investmentProfile: {
+                ...scenario.investmentProfile,
+                timelineYears: explicit ? Math.max(t, 20) : 20,
+              },
+            };
+          }
+        }
         break;
       }
 
@@ -606,6 +624,12 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
         // ChatPanel.handleUpdateProfile.
         response = forceRefinanceOn(response);
         const updates = mapUpdateProfileToUpdates(response);
+        // updateProfile clamp parity (re-sweep C1) — same as the create_plan path.
+        if (updates.timelineYears !== undefined) {
+          const explicit = updates.timelineYearsExplicit
+            ?? scenario.investmentProfile?.timelineYearsExplicit;
+          updates.timelineYears = explicit ? Math.max(updates.timelineYears, 20) : 20;
+        }
         if (Object.keys(updates).length > 0) {
           scenario = {
             ...scenario,

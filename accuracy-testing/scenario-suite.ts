@@ -164,7 +164,8 @@ export function makeExisting(p: Partial<ExistingProperty>): ExistingProperty {
     maintenance: 2000,
     growthAssumption: 'Medium',
     loanTerm: 30,
-    vacancyRate: 2,
+    // FRACTION (engine computes rent × (1 − rate)); was 2 = −100% of rent
+    vacancyRate: 0.02,
     saleYear: null,
     allowEquityRelease: p.allowEquityRelease ?? true,
     isNewBuild: false,
@@ -699,9 +700,9 @@ const VARIANTS: SuiteScenario[] = [
   {
     id: 'VAR-STRAT-FEES',
     source: 'variant',
-    archetype: 'company strategy · fee / PM% / rate / IO term must stick per property',
+    archetype: 'company strategy · fee + other-costs lump / PM% / rate / IO term must stick per property',
     strategyProfileText:
-      'Our engagement fee is $15,000 per purchase and we charge it on every buy. Property management is 6.6% of rent. We model all lending at 6.8% and keep clients IO for the first 7 years.',
+      'Our engagement fee is $15,000 per purchase and we charge it on every buy. Allow another $6,000 in other purchase costs (legals, inspections, mortgage fees). Property management is 6.6% of rent. We model all lending at 6.8% and keep clients IO for the first 7 years.',
     brief:
       'New client: $160k income, $140k deposit, saving $3k/month, BC $1.1m. Build a two-property plan around $550k each following our company strategy.',
     variant: {
@@ -712,10 +713,10 @@ const VARIANTS: SuiteScenario[] = [
       },
       properties: [
         P('regional-house-growth', 550000, 450, {
-          engagementFee: 15000, propertyManagementPercent: 6.6, interestRate: 6.8, ioTermYears: 7,
+          engagementFee: 15000, purchaseCostsOverride: 21000, propertyManagementPercent: 6.6, interestRate: 6.8, ioTermYears: 7,
         }),
         P('regional-house-growth', 550000, 450, {
-          engagementFee: 15000, propertyManagementPercent: 6.6, interestRate: 6.8, ioTermYears: 7, entity: 'trust',
+          engagementFee: 15000, purchaseCostsOverride: 21000, propertyManagementPercent: 6.6, interestRate: 6.8, ioTermYears: 7, entity: 'trust',
         }),
       ],
     },
@@ -727,6 +728,10 @@ const VARIANTS: SuiteScenario[] = [
           index: 0,
           instanceFields: [
             { field: 'engagementFee', expected: 15000 },
+            // fee + other-costs lump: purchaseCostsOverride replaces the whole
+            // fee bundle INCLUDING the BA fee, so the stated $15k + $6k must
+            // land as ~$21k — $6k alone would erase the fee (re-sweep R1)
+            { field: 'purchaseCostsOverride', expected: [20500, 21500] },
             { field: 'propertyManagementPercent', expected: 6.6 },
             { field: 'interestRate', expected: 6.8 },
             { field: 'ioTermYears', expected: 7 },
@@ -736,6 +741,7 @@ const VARIANTS: SuiteScenario[] = [
           index: 1,
           instanceFields: [
             { field: 'engagementFee', expected: 15000 },
+            { field: 'purchaseCostsOverride', expected: [20500, 21500] },
             { field: 'propertyManagementPercent', expected: 6.6 },
             { field: 'interestRate', expected: 6.8 },
             { field: 'ioTermYears', expected: 7 },
