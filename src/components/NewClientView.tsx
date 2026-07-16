@@ -576,10 +576,10 @@ export const NewClientView: React.FC = () => {
             </h1>
 
             <div className="group bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
-              {/* Purple line that runs around the frame while the box is focused */}
+              {/* Purple line that continuously runs around the frame */}
               <div
                 aria-hidden="true"
-                className="prompt-border pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-focus-within:opacity-100"
+                className="prompt-border pointer-events-none absolute -inset-px rounded-2xl"
               />
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <button
