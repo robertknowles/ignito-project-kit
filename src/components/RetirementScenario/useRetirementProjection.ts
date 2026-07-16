@@ -153,7 +153,8 @@ export function useRetirementProjection(
       }
 
       // Calculate cashflow matching the main chart's methodology:
-      // Main chart uses: adjustedIncome - totalExpenses - loanInterest + deductions
+      // Main chart uses: GROSS rent - totalExpenses - loanInterest + deductions
+      // (vacancy is an assessment-side allowance, not deducted from the line)
       // metricsCalculator's annualTotalCosts already includes mortgage + operating expenses
       // We need to ADD deductions and SUBTRACT land tax to align
       let annualCashflow = lastSnapshot.annualRent - lastSnapshot.annualTotalCosts;
@@ -171,7 +172,7 @@ export function useRetirementProjection(
           const inflationFactor = Math.pow(1 + ANNUAL_INFLATION_RATE, yearsOwned);
           const retRentEscalationFactor = Math.pow(1 + (profile?.rentEscalationRate ?? 0.05), yearsOwned);
 
-          const adjustedIncome = detailedCashflow.adjustedIncome * retRentEscalationFactor;
+          const adjustedIncome = detailedCashflow.grossAnnualIncome * retRentEscalationFactor;
           const adjustedLoanInterest = lastSnapshot.loanBalance > 0
             ? lastSnapshot.loanBalance * DEFAULT_INTEREST_RATE
             : 0;
@@ -256,7 +257,7 @@ export function useRetirementProjection(
 
       const instance = convertExistingToInstance(ep, DEFAULT_INTEREST_RATE);
       const detailed = calculateDetailedCashflow(instance, ep.loan ?? 0);
-      const adjustedIncome = detailed.adjustedIncome * rentEscalationFactor;
+      const adjustedIncome = detailed.grossAnnualIncome * rentEscalationFactor;
       const adjustedLoanInterest = futureDebt > 0 ? futureDebt * DEFAULT_INTEREST_RATE : 0;
       const adjustedOperatingExpenses =
         detailed.propertyManagementFee * rentEscalationFactor +

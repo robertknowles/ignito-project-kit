@@ -37,7 +37,9 @@ export const HoldingCostCard: React.FC<HoldingCostCardProps> = ({
     { label: 'Council Rates', value: snapshot.monthlyCouncil },
     { label: 'Insurance', value: snapshot.monthlyInsurance },
     { label: 'Maintenance', value: snapshot.monthlyMaintenance },
-    { label: 'Vacancy', value: snapshot.monthlyVacancy },
+    // Vacancy no longer feeds client-facing holding costs (gross-rent basis);
+    // only shown when a legacy/fallback data path produced a non-zero value.
+    ...(snapshot.monthlyVacancy > 0 ? [{ label: 'Vacancy', value: snapshot.monthlyVacancy }] : []),
     ...(snapshot.monthlyStrata > 0 ? [{ label: 'Strata', value: snapshot.monthlyStrata }] : []),
   ];
 

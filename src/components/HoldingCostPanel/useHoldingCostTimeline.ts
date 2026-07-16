@@ -45,8 +45,9 @@ export function useHoldingCostTimeline(
 
       if (instance) {
         const breakdown = calculateDetailedCashflow(instance, prop.loanAmount);
-        // Convert annual values to per-period (semi-annual) to match projectPropertyTimeline's expectation
-        perPropertyRent = breakdown.adjustedIncome / PERIODS_PER_YEAR;
+        // Convert annual values to per-period (semi-annual) to match projectPropertyTimeline's expectation.
+        // GROSS rent basis - vacancy is not deducted from client-facing holding-cost lines.
+        perPropertyRent = breakdown.grossAnnualIncome / PERIODS_PER_YEAR;
         perPropertyExpenseBreakdown = {
           councilRatesWater: breakdown.councilRatesWater / PERIODS_PER_YEAR,
           strataFees: breakdown.strata / PERIODS_PER_YEAR,
@@ -54,7 +55,7 @@ export function useHoldingCostTimeline(
           managementFees: breakdown.propertyManagementFee / PERIODS_PER_YEAR,
           repairsMaintenance: breakdown.maintenance / PERIODS_PER_YEAR,
           landTax: breakdown.landTax / PERIODS_PER_YEAR,
-          other: breakdown.vacancyAmount / PERIODS_PER_YEAR,
+          other: 0,
         };
       } else {
         // Fallback: use the TimelineProperty values as-is (first property is usually correct)

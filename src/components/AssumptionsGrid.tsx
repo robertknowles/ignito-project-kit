@@ -567,7 +567,7 @@ export const AssumptionsGrid: React.FC<AssumptionsGridProps> = ({ showHeader = t
           max={15}
           step={0.5}
           format="percent"
-          description="Annual vacancy allowance reducing rental income. 4% ≈ 2 weeks/year, within typical lender consensus."
+          description="Vacancy allowance used when assessing serviceability and funding (rent recognised for lending tests). Client-facing cashflow figures use gross rent. 4% ≈ 2 weeks/year."
         />
         <DialTile
           label="Max Purchases / Year"

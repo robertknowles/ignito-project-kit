@@ -452,10 +452,9 @@ export const BriefView: React.FC<BriefViewProps> = ({
     <ChartCard title="Annual cashflow" flush>
       <table className="w-full">
         <tbody>
-          {/* Adjusted rental income (§2.2 matrix ladder - section then breakdowns) */}
-          <EditableNumRow tone="section" unit="money" label="Adjusted rental income" value={instanceData.adjustedIncomeOverride ?? cashflow.adjustedIncome} field="adjustedIncomeOverride" />
-          <EditableNumRow tone="breakdown" unit="money" label="Gross annual income" value={instanceData.grossAnnualIncomeOverride ?? cashflow.grossAnnualIncome} field="grossAnnualIncomeOverride" />
-          <EditableNumRow tone="breakdown" unit="money" label="Less vacancy" value={instanceData.vacancyRate ?? cashflow.vacancyAmount} field="vacancyRate" />
+          {/* Rental income - GROSS rent basis (vacancy is applied in
+              serviceability/funding assessment, not deducted here) */}
+          <EditableNumRow tone="section" unit="money" label="Gross rental income" value={instanceData.adjustedIncomeOverride ?? instanceData.grossAnnualIncomeOverride ?? cashflow.grossAnnualIncome} field="grossAnnualIncomeOverride" />
           {/* Operating expenses */}
           <EditableNumRow tone="section" unit="money" label="Operating expenses" value={instanceData.totalExpensesOverride ?? totalHoldingCosts} field="totalExpensesOverride" />
           <EditableNumRow tone="breakdown" unit="money" label="Loan interest" value={instanceData.loanInterestOverride ?? cashflow.loanInterest} field="loanInterestOverride" />

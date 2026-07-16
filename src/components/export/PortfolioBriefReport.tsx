@@ -520,7 +520,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
     ? (inst?.totalExpensesOverride ?? cashflow.totalOperatingExpenses) + cashflow.totalNonDeductibleExpenses
     : 0;
   const netAnnualCf = cashflow ? (inst?.netAnnualCashflowOverride ?? cashflow.netAnnualCashflow) : 0;
-  const netYield = purchasePrice > 0 && cashflow ? ((cashflow.adjustedIncome - opexExclInterest) / purchasePrice) * 100 : 0;
+  const netYield = purchasePrice > 0 && cashflow ? ((cashflow.grossAnnualIncome - opexExclInterest) / purchasePrice) * 100 : 0;
 
   // growth stepped label
   const growthAssumption = inst?.growthAssumption ?? 'Medium';
@@ -875,13 +875,11 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
           <Note num="6" title="Loan product and interest" accent={accent}>
             <P>The loan is {inst.loanProduct === 'IO' ? 'interest only' : 'principal and interest'} at {pct(interestRate, 2)} over a {inst.loanTerm ?? 30} year term. {inst.loanProduct === 'IO' ? 'Interest only means repayments cover interest with no reduction in the loan balance during the interest only period. This lowers the holding cost while the portfolio is built.' : ''} Interest of {money(cashflow.loanInterest)} a year is the largest single holding cost in this brief.</P>
           </Note>
-          <Note num="7" title="Rent and vacancy" accent={accent}>
-            <P>Rent is set at {money(inst.rentPerWeek)} per week, a gross yield of {pct(grossYield)} on the purchase price. A vacancy allowance is deducted to reflect periods the property is untenanted, giving adjusted income. Rent is assumed to rise with inflation, so the gross yield drifts down over time as the value grows faster than the rent.</P>
+          <Note num="7" title="Rent" accent={accent}>
+            <P>Rent is set at {money(inst.rentPerWeek)} per week, a gross yield of {pct(grossYield)} on the purchase price. Cashflow figures in this brief use gross rent; a vacancy allowance is applied separately when assessing lending capacity, not deducted here. Rent is assumed to rise with inflation, so the gross yield drifts down over time as the value grows faster than the rent.</P>
             <MiniTable rows={[
               { label: 'Rent per week', value: money(inst.rentPerWeek) },
-              { label: 'Gross annual income', value: money(cashflow.grossAnnualIncome) },
-              { label: 'Vacancy allowance', value: money(-cashflow.vacancyAmount), neg: true },
-              { label: 'Adjusted income', value: money(cashflow.adjustedIncome), tot: true },
+              { label: 'Gross annual income', value: money(cashflow.grossAnnualIncome), tot: true },
             ]} />
           </Note>
           <Note num="8" title="Operating expenses" accent={accent}>
@@ -899,7 +897,7 @@ export const PortfolioBriefReport: React.FC<{ meta: ReportMeta }> = ({ meta }) =
           <Note num="9" title="Annual cashflow" accent={accent}>
             <P>Net cashflow is the cash position after rent, loan interest and all operating costs, before tax. On the current rent the property runs at about {money(netAnnualCf)} a year, or {money(cashflow.netWeeklyCashflow)} a week. As rent rises and the loan holds under interest only, the shortfall narrows each year. This brief does not model tax offsets; any negative gearing benefit would reduce the holding cost further and is a matter for your accountant.</P>
             <MiniTable rows={[
-              { label: 'Adjusted rental income', value: money(cashflow.adjustedIncome) },
+              { label: 'Gross rental income', value: money(cashflow.grossAnnualIncome) },
               { label: 'Less total expenses', value: money(-totalExpenses), neg: true },
               { label: 'Net annual cashflow', value: money(netAnnualCf), neg: netAnnualCf < 0, tot: true },
             ]} />
