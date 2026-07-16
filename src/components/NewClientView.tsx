@@ -199,6 +199,38 @@ export const NewClientView: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resetAssumptionsRef = useRef<() => void>(() => {})
+  const auroraMouseRef = useRef<HTMLDivElement>(null)
+
+  // Aurora glow slowly drifts toward the mouse position (eased, not 1:1 tracking).
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const target = { x: 0, y: 0 }
+    const current = { x: 0, y: 0 }
+    let rafId: number
+
+    const handleMouseMove = (e: MouseEvent) => {
+      target.x = ((e.clientX / window.innerWidth) - 0.5) * 260
+      target.y = ((e.clientY / window.innerHeight) - 0.5) * 260
+    }
+
+    const animate = () => {
+      current.x += (target.x - current.x) * 0.045
+      current.y += (target.y - current.y) * 0.045
+      if (auroraMouseRef.current) {
+        auroraMouseRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`
+      }
+      rafId = requestAnimationFrame(animate)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    rafId = requestAnimationFrame(animate)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      cancelAnimationFrame(rafId)
+    }
+  }, [])
 
   const [previewByClient, setPreviewByClient] = useState<Record<number, ScenarioPreview>>({})
 
@@ -499,31 +531,33 @@ export const NewClientView: React.FC = () => {
       <div className="relative flex-1 overflow-auto flex flex-col">
         {/* Aurora wash */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          {/* Purple glow concentrated around the hero - soft, irregular, drifting gently */}
-          <div
-            className="aurora-blob aurora-a absolute"
-            style={{
-              width: 1500, height: 620, left: '50%', top: '44%', marginLeft: -750, marginTop: -310,
-              background: 'radial-gradient(ellipse 60% 70% at 48% 46%, rgba(167, 139, 250, 0.22), transparent 70%)',
-              filter: 'blur(56px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-b absolute"
-            style={{
-              width: 900, height: 520, left: '40%', top: '38%', marginLeft: -450, marginTop: -260,
-              background: 'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(192, 132, 252, 0.16), transparent 72%)',
-              filter: 'blur(50px)',
-            }}
-          />
-          <div
-            className="aurora-blob aurora-c absolute"
-            style={{
-              width: 820, height: 480, left: '62%', top: '54%', marginLeft: -410, marginTop: -240,
-              background: 'radial-gradient(ellipse 65% 62% at 45% 48%, rgba(196, 181, 253, 0.14), transparent 74%)',
-              filter: 'blur(52px)',
-            }}
-          />
+          {/* Purple glow concentrated around the hero - soft, irregular, drifting gently, and following the mouse */}
+          <div ref={auroraMouseRef} className="absolute inset-0">
+            <div
+              className="aurora-blob aurora-a absolute"
+              style={{
+                width: 1900, height: 800, left: '50%', top: '44%', marginLeft: -950, marginTop: -400,
+                background: 'radial-gradient(ellipse 60% 70% at 48% 46%, rgba(167, 139, 250, 0.22), transparent 70%)',
+                filter: 'blur(64px)',
+              }}
+            />
+            <div
+              className="aurora-blob aurora-b absolute"
+              style={{
+                width: 1180, height: 680, left: '40%', top: '38%', marginLeft: -590, marginTop: -340,
+                background: 'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(192, 132, 252, 0.16), transparent 72%)',
+                filter: 'blur(58px)',
+              }}
+            />
+            <div
+              className="aurora-blob aurora-c absolute"
+              style={{
+                width: 1060, height: 620, left: '62%', top: '54%', marginLeft: -530, marginTop: -310,
+                background: 'radial-gradient(ellipse 65% 62% at 45% 48%, rgba(196, 181, 253, 0.14), transparent 74%)',
+                filter: 'blur(60px)',
+              }}
+            />
+          </div>
           {/* White vignette - fades the hue to clean white at every edge */}
           <div
             className="absolute inset-0"
@@ -541,7 +575,12 @@ export const NewClientView: React.FC = () => {
               {firstName ? `Hi ${firstName}, let's build a property plan` : "Let's build a property plan"}
             </h1>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
+            <div className="group bg-white border border-gray-200 rounded-2xl shadow-sm transition-shadow focus-within:shadow-md focus-within:border-gray-300 relative">
+              {/* Purple line that runs around the frame while the box is focused */}
+              <div
+                aria-hidden="true"
+                className="prompt-border pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-focus-within:opacity-100"
+              />
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <button
                   onClick={() => setDetailsModalOpen(true)}
