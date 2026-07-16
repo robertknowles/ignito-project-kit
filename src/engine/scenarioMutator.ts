@@ -70,9 +70,15 @@ export function applyNlResponseToScenario(
         ? [response.modification]
         : [];
 
+    // SNAPSHOT of the pre-mutation order (ChatPanel parity): every
+    // "property-N" in a compound response refers to the plan the user saw,
+    // so all of them resolve against this snapshot - not the mutating list,
+    // which shifted indices after each removal (Ella bug 314).
+    const referenceOrder = [...order];
+
     for (const mod of modList) {
       const singleResponse = { ...response, modification: mod, modifications: undefined };
-      const updates = mapModificationToUpdates(singleResponse, instances, order, profile);
+      const updates = mapModificationToUpdates(singleResponse, instances, order, profile, referenceOrder);
 
       if (updates.warnings && updates.warnings.length > 0) {
         warnings.push(...updates.warnings);

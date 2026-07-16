@@ -378,12 +378,24 @@ const SUPPORTED_CHANGE_FIELDS = new Set([
  *
  * Takes the current plan state so it can resolve references like "property-2"
  * to actual instance IDs.
+ *
+ * `referenceOrder` is the SNAPSHOT of propertyOrder from BEFORE any
+ * modification in the same AI response was applied. Compound responses
+ * ("remove properties 2, 3 and 4") are applied one mod at a time against a
+ * mutating list - if property-N were resolved against that mutating list,
+ * every removal would shift the indices of the ones after it and the wrong
+ * properties would survive (Ella bug 314: "removed 2, 3, 4" left 2 of 4).
+ * All of the AI's property numbers refer to the plan the user was looking
+ * at, so they must all resolve against that pre-mutation snapshot. Callers
+ * applying a batch MUST pass the snapshot; defaults to currentOrder for
+ * single-mod calls.
  */
 export function mapModificationToUpdates(
   response: NLParseResponse,
   currentInstances: Record<string, PropertyInstanceDetails>,
   currentOrder: string[],
-  profile?: Partial<InvestmentProfileData>
+  profile?: Partial<InvestmentProfileData>,
+  referenceOrder?: string[]
 ): ContextUpdates {
   if (!response.modification) {
     console.warn('[nlDataMapper] mapModificationToUpdates called with no modification on response');
@@ -394,18 +406,25 @@ export function mapModificationToUpdates(
   const updates: ContextUpdates = {};
   const warnings: string[] = [];
 
-  // Resolve "property-N" to actual instance ID (1-indexed in chat, 0-indexed in array)
+  // Resolve "property-N" to actual instance ID (1-indexed in chat, 0-indexed
+  // in array) against the pre-mutation snapshot - see doc comment above.
+  const resolutionOrder = referenceOrder ?? currentOrder;
   const propertyMatch = target.match(/^property-(\d+)$/);
 
   if (propertyMatch) {
     const requestedNumber = parseInt(propertyMatch[1], 10);
     const propertyIndex = requestedNumber - 1; // Convert to 0-indexed
-    const instanceId = currentOrder[propertyIndex];
+    const instanceId = resolutionOrder[propertyIndex];
 
     if (!instanceId) {
-      const total = currentOrder.length;
+      const total = resolutionOrder.length;
       console.warn(`[nlDataMapper] property index out of range: requested ${requestedNumber}, have ${total}`);
-      return {};
+      // User-facing: never silently drop a modification the AI claimed to make.
+      return {
+        warnings: [
+          `Couldn't apply the change to property ${requestedNumber} - the plan only has ${total} propert${total === 1 ? 'y' : 'ies'}.`,
+        ],
+      };
     }
 
     switch (action) {

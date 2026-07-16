@@ -35,6 +35,7 @@ import { DISCLAIMER_D_TEXT } from '@/components/DisclaimerBlock'
 import { usePortfolioProjection } from '@/hooks/usePortfolioProjection'
 import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator'
 import { buildExplanationContext } from '@/utils/explanationGenerator'
+import { rewritePlanMessageAfterAutoFix } from '@/utils/autoFixDisclosure'
 import { runPlanPreCheck, autoFixPlan } from '@/engine/planPreCheck'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -318,9 +319,11 @@ export const ChatPanel: React.FC = () => {
     }
   }, [profile, propertyOrder, instances, chartData, timelineProperties])
 
-  // Handle plan generation - store response for confirmation screen
+  // Handle plan generation - store response for confirmation screen.
+  // Returns a corrected chat-message string when auto-fix changed the plan
+  // (useChatConversation posts it instead of the stale server-templated one).
   const handlePlanGenerated = useCallback(
-    (response: NLParseResponse) => {
+    (response: NLParseResponse): string | undefined => {
       // Refinancing is always on for AI-supplied existing properties
       response = forceRefinanceOn(response)
 
@@ -343,6 +346,7 @@ export const ChatPanel: React.FC = () => {
 
       // Run affordability pre-check and auto-fix before showing confirmation brief
       let finalResponse = response
+      let correctedMessage: string | undefined
       try {
         const preCheck = runPlanPreCheck(response, profile, existingProperties)
         console.info('[ChatPanel] Pre-check result:', { allFeasible: preCheck.allFeasible, failureCount: preCheck.failures.length })
@@ -356,6 +360,15 @@ export const ChatPanel: React.FC = () => {
             finalResponse = fix.fixedResponse
             // Attach change details so the confirmation brief can show them
             finalResponse._autoFixChanges = fix.changes
+            // The server-templated chat message describes the PRE-auto-fix
+            // plan. Rewrite it so the chat states the post-auto-fix count and
+            // price range, and disclose every auto-fix change in plain
+            // language - the brief's _autoFixChanges block stays as-is.
+            correctedMessage = rewritePlanMessageAfterAutoFix(
+              response.message ?? '',
+              finalResponse,
+              fix.changes,
+            )
           }
         }
       } catch (err) {
@@ -364,6 +377,7 @@ export const ChatPanel: React.FC = () => {
 
       // Show confirmation screen (immediately, no delay)
       setPendingPlanResponse(finalResponse)
+      return correctedMessage
     },
     [activeClient, updateClient, setPendingPlanResponse, profile, existingProperties]
   )
@@ -479,6 +493,12 @@ export const ChatPanel: React.FC = () => {
       let currentInstances = { ...instances }
       let currentOrder = [...propertyOrder]
       let currentSelections = { ...selections }
+      // SNAPSHOT of the order before ANY mod in this response applies. Every
+      // "property-N" the AI sends refers to the plan the user was looking at,
+      // so all of them must resolve against this snapshot - resolving against
+      // the mutating currentOrder shifted indices after each removal and made
+      // compound removals delete the wrong properties (Ella bug 314).
+      const referenceOrder = [...propertyOrder]
       // Collect mapper warnings across all mods so we can surface them once
       // to the user instead of letting Claude's "Done!" stand for a silent drop.
       const allWarnings: string[] = []
@@ -486,7 +506,7 @@ export const ChatPanel: React.FC = () => {
       for (const mod of modList) {
         // Create a temporary response with just this modification
         const singleResponse = { ...response, modification: mod, modifications: undefined }
-        const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder, profile)
+        const updates = mapModificationToUpdates(singleResponse, currentInstances, currentOrder, profile, referenceOrder)
 
         if (updates.warnings && updates.warnings.length > 0) {
           allWarnings.push(...updates.warnings)

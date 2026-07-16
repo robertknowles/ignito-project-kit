@@ -42,7 +42,11 @@ function formatCompactAud(n: number): string {
 }
 
 interface UseChatConversationOptions {
-  onPlanGenerated?: (response: NLParseResponse) => void
+  /** Wires plan data into contexts (pre-check + auto-fix run inside). May
+   *  return a corrected chat-message string when auto-fix changed the plan -
+   *  the returned text replaces response.message so the chat never describes
+   *  the pre-auto-fix plan. */
+  onPlanGenerated?: (response: NLParseResponse) => string | void
   onModification?: (response: NLParseResponse) => void
   onExplanation?: (response: NLParseResponse) => void
   onComparison?: (response: NLParseResponse) => void
@@ -448,12 +452,21 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         // Process response based on type
         switch (effectiveType) {
           case 'initial_plan': {
+            // Wire data into contexts FIRST - the handler runs the
+            // affordability pre-check + auto-fix and may return a corrected
+            // message reflecting the POST-auto-fix plan. The server-templated
+            // response.message describes the plan BEFORE auto-fix, so posting
+            // it unconditionally could claim "4-property plan $380k-$750k"
+            // while auto-fix changed or emptied it (Ella bug 315).
+            const correctedMessage = optionsRef.current.onPlanGenerated?.(response)
+            if (typeof correctedMessage === 'string' && correctedMessage.length > 0) {
+              response.message = correctedMessage
+            }
+
             // Show AI narrative as plain text
             const planMsg = createMessage('assistant', 'text', response.message)
             setMessages((prev) => [...prev, planMsg])
 
-            // Fire callback to wire data into contexts
-            optionsRef.current.onPlanGenerated?.(response)
             track(EVENTS.planGenerated, {
               property_count: Array.isArray(response.properties) ? response.properties.length : undefined,
             })
