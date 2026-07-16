@@ -129,17 +129,21 @@ export const ENTITY_SERVICEABILITY_FACTORS: Record<string, number> = {
 /**
  * Default interest rate for calculations when not specified
  *
- * Refresh quarterly. Currently 6.25% - median variable investor P&I
- * across the Big 4 as of Q1 2026.
+ * Refresh quarterly. Currently 5.5% - competitive variable investor IO
+ * rate, aligned with the scenario rate used across the industry
+ * (Gameplans runs every scenario at 5.5%; their dial default is 6.0%).
+ * Was 6.25% (Big 4 median) until Jul 2026.
  *
  * Used for:
  * - Existing portfolio debt service
  * - Fallback when property instance doesn't have specific rate
+ * - Sentinel for "untouched" per-property rates: instance rates equal to
+ *   this default defer to the profile/assumptions rate (projectionEngine)
  */
-export const DEFAULT_INTEREST_RATE = 0.0625; // 6.25%
+export const DEFAULT_INTEREST_RATE = 0.055; // 5.5%
 
 /** Default interest rate as percentage (for display) */
-export const DEFAULT_INTEREST_RATE_PERCENT = 6.25;
+export const DEFAULT_INTEREST_RATE_PERCENT = 5.5;
 
 // =============================================================================
 // INFLATION & GROWTH

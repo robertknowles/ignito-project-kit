@@ -16,6 +16,8 @@
  * References to Macquarie spreadsheet cells are noted inline.
  */
 
+import { DEFAULT_INTEREST_RATE } from '../constants/financialParams'
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /** Overtime, bonus, commission, rental income shaded at 80% (Macquarie B171-B172: ×0.8) */
@@ -30,8 +32,8 @@ export const ASSESSMENT_BUFFER = 0.03
 /** Minimum assessment rate floor (APRA guidance) */
 export const FLOOR_RATE = 0.055
 
-/** Current market carded rate - Big 4 median Q1 2026 */
-export const DEFAULT_CARDED_RATE = 0.0625
+/** Current market carded rate - follows the platform default product rate */
+export const DEFAULT_CARDED_RATE = DEFAULT_INTEREST_RATE
 
 /** Standard P&I loan term in years */
 export const DEFAULT_LOAN_TERM = 30

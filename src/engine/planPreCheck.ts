@@ -26,6 +26,7 @@ import {
   EQUITY_EXTRACTION_LVR_CAP,
   annualRateToPeriodRate,
   GROWTH_RATE_TIERS,
+  DEFAULT_INTEREST_RATE,
 } from '../constants/financialParams';
 import { getGrowthRateAdjustment } from '../utils/eventProcessing';
 
@@ -76,7 +77,7 @@ const INITIAL_PROFILE_DEFAULTS: Partial<InvestmentProfileData> = {
   useExistingEquity: true,
   maxPurchasesPerYear: 3,
   existingPortfolioGrowthRate: 0.05,
-  interestRate: 0.0625,
+  interestRate: DEFAULT_INTEREST_RATE,
   vacancyRate: 0.04,
   wageGrowthRate: 0.025,
   inflationRate: 0.03,

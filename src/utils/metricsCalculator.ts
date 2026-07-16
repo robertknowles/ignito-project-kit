@@ -3,6 +3,7 @@ import {
   BASE_YEAR,
   PERIODS_PER_YEAR,
   ANNUAL_INFLATION_RATE,
+  DEFAULT_INTEREST_RATE,
   annualRateToPeriodRate,
 } from '../constants/financialParams';
 
@@ -507,7 +508,7 @@ export const projectPropertyTimeline = (
   },
   endYear: number,
   growthCurve: GrowthCurve,
-  interestRate: number = 0.065,
+  interestRate: number = DEFAULT_INTEREST_RATE,
   rentEscalationRate: number = 0.05,
 ): ProjectedPropertyTimeline => {
   const buyYear = Math.floor(property.affordableYear);

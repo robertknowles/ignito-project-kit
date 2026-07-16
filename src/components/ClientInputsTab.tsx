@@ -9,7 +9,7 @@ import type { EventCategory, EventType } from '@/contexts/PropertySelectionConte
 import { getEventLabel, EVENT_TYPES } from '@/constants/eventTypes'
 import { EventTypeIcon } from '@/utils/eventIcons'
 import { EventConfigModal } from './EventConfigModal'
-import { PERIODS_PER_YEAR, BASE_YEAR } from '@/constants/financialParams'
+import { PERIODS_PER_YEAR, BASE_YEAR, DEFAULT_INTEREST_RATE } from '@/constants/financialParams'
 import { parseShorthandNumber } from '@/utils/parseShorthandNumber'
 
 const fmtNum = (v: number) => Math.round(v).toLocaleString('en-AU')
@@ -171,7 +171,7 @@ export const ClientInputsTab: React.FC = () => {
     cashflowGoal: profile.cashflowGoal ?? 50000,
     strategyPreset: profile.strategyPreset ?? 'eg-low',
     pacingMode: profile.pacingMode ?? 'aggressive',
-    interestRate: profile.interestRate ?? 0.0625,
+    interestRate: profile.interestRate ?? DEFAULT_INTEREST_RATE,
     vacancyRate: profile.vacancyRate ?? 0.04,
     rentEscalationRate: profile.rentEscalationRate ?? 0.05,
     inflationRate: profile.inflationRate ?? 0.03,
