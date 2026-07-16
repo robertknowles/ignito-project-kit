@@ -105,7 +105,7 @@ export const CREATE_PLAN_TOOL = {
             isNewBuild: { type: 'boolean' as const, description: 'true for new builds / house-and-land, false or omitted for established.' },
             stampDutyOverride: { type: 'number' as const, description: 'Stated stamp duty budget for this purchase in dollars. ONLY when the strategy/brief states a duty figure or concession — omit to use the state calculation.' },
             conveyancing: { type: 'number' as const, description: 'Stated conveyancing/legals cost in dollars. ONLY when stated — omit otherwise.' },
-            purchaseCostsTotal: { type: 'number' as const, description: 'Lump upfront FEES in dollars (BA fee + inspections + legals + mortgage/insurance fees) when the strategy states a lump costs figure. EXCLUDES stamp duty and deposit — duty is calculated separately (use stampDutyOverride only when a duty figure is explicitly stated). If the stated lump clearly includes duty, put only the non-duty remainder here and say so in assumptions. Omit when costs are itemised or unstated.' },
+            purchaseCostsTotal: { type: 'number' as const, description: 'Lump upfront FEES in dollars (BA fee + inspections + legals + mortgage/insurance fees) when the strategy states a lump costs figure. EXCLUDES stamp duty and deposit — duty is calculated separately (use stampDutyOverride only when a duty figure is explicitly stated). If the stated lump clearly includes duty, put only the non-duty remainder here and say so in assumptions. When a BA fee is ALSO stated separately, this lump REPLACES the whole fee bundle including the BA fee — set it to fee + other costs, never other costs alone. Omit when costs are itemised or unstated.' },
             saleYear: { type: 'number' as const, description: 'Planned sale year when the strategy/brief states a sell-down (e.g. "sell property 2 in 2040"). Omit = hold.' },
           },
           required: ['type', 'purchasePrice', 'state', 'growthAssumption', 'loanProduct', 'lvr'],
@@ -349,7 +349,7 @@ export const RESPOND_TOOL = {
     properties: {
       message: {
         type: 'string' as const,
-        description: 'Your conversational response, formatted for skim-reading (see Message Formatting). Bold ONLY the takeaway in a sentence — never lead-in labels, year prefixes ("2026:", "Year 10:"), the first few words, or every figure. Most sentences carry zero or one bold span. Any answer with 3+ figures, a projection, or a before/after MUST close with a "What stands out" section of 2-4 bullets.',
+        description: 'Your conversational response, formatted for skim-reading (see Message Formatting). Reading ONLY the bold text must give the complete answer with its key numbers. Bold each fact WITH its context ("**$155,000 salary**", "**cash-flow positive in Year 8**", "**+$722/month pre-tax**") — several per sentence is fine when each is a distinct fact; never bold connective prose, bare numbers, whole sentences, or list-leading year prefixes ("2026:", "Year 10:"). Compact stat bullets are bolded whole ("**Pre-tax cash loss: $6,260/year**"); trajectory/conclusion lines are bolded in full ("**Today: -$724/month → Year 10: +$722/month**"). Any answer with 3+ figures, a projection, or a before/after MUST close with a "What stands out" section of 2-4 bullets.',
       },
       explanation: {
         type: 'object' as const,
