@@ -143,6 +143,10 @@ export interface NLParseResponse {
     interestRate?: number; // Percent (e.g. 6.5) - only when the strategy/brief states one
     vacancyRate?: number; // Fraction (e.g. 0.04) - only when stated
     rentEscalationRate?: number; // Fraction (e.g. 0.03) - only when stated
+    // false ONLY when the BA explicitly said not to use existing equity
+    // ("don't refinance the home", "cash only"); true when explicitly asked
+    // for. Undefined = unstated (defaults to on). Re-audit gap B3.
+    useExistingEquity?: boolean;
   };
 
   // For initial_plan - property sequence
@@ -245,6 +249,7 @@ export interface NLParseResponse {
     interestRate?: number; // Percent (e.g. 6.5) - only when stated
     vacancyRate?: number; // Fraction (e.g. 0.04) - only when stated
     rentEscalationRate?: number; // Fraction (e.g. 0.03) - only when stated
+    useExistingEquity?: boolean; // false ONLY on an explicit "don't use the equity" (re-audit B3)
     existingPortfolio?: Array<{
       address?: string;
       state: string;

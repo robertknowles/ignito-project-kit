@@ -139,7 +139,9 @@ export const ClientInputsPanel: React.FC = () => {
           <SliderField
             label="Investment Horizon"
             value={profile.timelineYears}
-            onChange={(val) => updateProfile({ timelineYears: val })}
+            // A BA moving the slider IS an explicit horizon — without the flag
+            // updateProfile snaps non-explicit values back to the 20-year default.
+            onChange={(val) => updateProfile({ timelineYears: val, timelineYearsExplicit: true })}
             min={5}
             max={20}
             step={1}

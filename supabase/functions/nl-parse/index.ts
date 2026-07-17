@@ -22,7 +22,7 @@ import { buildSystemPrompt } from "./prompt.ts";
 import { ALL_TOOLS, TOOL_CHOICE, toolToResponseType } from "./tools.ts";
 import { buildCreatePlanMessage, buildModifyPlanMessage, buildUpdateProfileMessage, buildAddEventMessage } from "./templates.ts";
 import { validateCreatePlan, validateModifyPlan, validateUpdateProfile, validateAddEvent } from "./validation.ts";
-import { computeFeasibility, injectFeasibilityDescriptor } from "./feasibility.ts";
+import { computeFeasibility, injectFeasibilityDescriptor, computeStatedPriceFundingNote, injectFundingNote } from "./feasibility.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -195,6 +195,20 @@ Deno.serve(async (req: Request) => {
 
         // Template the message (code writes it, not AI)
         parsedResponse.message = buildCreatePlanMessage(data as any);
+
+        // "Negotiate, don't shrink": when the BA stated a price the deposit
+        // pool can't cover near-term, name the cash requirement and the
+        // deferral path in the chat message.
+        const fundingNote = computeStatedPriceFundingNote({
+          properties: parsedResponse.properties ?? [],
+          propertySources: parsedResponse.propertySources,
+          depositPool: parsedResponse.investmentProfile?.depositPool ?? 0,
+          annualSavings: parsedResponse.investmentProfile?.annualSavings ?? 0,
+        });
+        if (fundingNote) {
+          parsedResponse.message = injectFundingNote(parsedResponse.message, fundingNote);
+          console.info(`nl-parse: stated-price funding note injected`);
+        }
 
         // Feasibility injection (equity AND cashflow goals)
         if (parsedResponse.properties?.length > 0) {

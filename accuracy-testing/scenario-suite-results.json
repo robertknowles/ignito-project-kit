@@ -1,6 +1,6 @@
 {
   "mode": "engine-only",
-  "timestamp": "2026-07-16T16:20:44.178Z",
+  "timestamp": "2026-07-17T06:06:09.133Z",
   "pass": 10,
   "fail": 13,
   "expectedFail": 0,
@@ -646,12 +646,12 @@
         {
           "name": "cashflow-goal",
           "pass": false,
-          "detail": "$30,000/yr never reached within the modelled horizon (max $29,351/yr) — shortfall",
+          "detail": "$30,000/yr never reached within the modelled horizon (max $14,516/yr) — shortfall",
           "cause": "engine-goal"
         }
       ],
       "failReasons": [
-        "[engine-goal] cashflow-goal: $30,000/yr never reached within the modelled horizon (max $29,351/yr) — shortfall"
+        "[engine-goal] cashflow-goal: $30,000/yr never reached within the modelled horizon (max $14,516/yr) — shortfall"
       ],
       "placement": [
         {
@@ -708,7 +708,7 @@
       ],
       "goalYears": {
         "equityGoalYear": 2028,
-        "incomeGoalYear": 2041
+        "incomeGoalYear": null
       }
     },
     {

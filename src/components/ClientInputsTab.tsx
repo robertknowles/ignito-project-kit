@@ -76,7 +76,11 @@ const EditableNumRow: React.FC<{
             if (n !== null) {
               const stored = isDecimalPercent ? n / 100 : n
               if (stored !== value) {
-                updateProfile({ [field]: stored } as Partial<InvestmentProfileData>)
+                const patch = { [field]: stored } as Partial<InvestmentProfileData>
+                // A BA typing a timeline IS an explicit horizon — without the
+                // flag updateProfile snaps it back to the 20-year default.
+                if (field === 'timelineYears') patch.timelineYearsExplicit = true
+                updateProfile(patch)
                 track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
               }
             }

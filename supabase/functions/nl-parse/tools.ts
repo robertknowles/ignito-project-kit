@@ -78,6 +78,7 @@ export const CREATE_PLAN_TOOL = {
           interestRate: { type: 'number' as const, description: 'Portfolio-wide modelling interest rate as a percentage (e.g. 6.5). ONLY when the strategy or brief states one — omit otherwise.' },
           vacancyRate: { type: 'number' as const, description: 'Vacancy as a fraction of annual rent (e.g. 0.04 for ~2 weeks/yr). ONLY when stated — omit otherwise.' },
           rentEscalationRate: { type: 'number' as const, description: 'Annual rent growth as a fraction (e.g. 0.03 for 3%). ONLY when stated — omit otherwise.' },
+          useExistingEquity: { type: 'boolean' as const, description: 'Set false ONLY when the brief or company strategy explicitly says NOT to use the client\'s existing equity ("don\'t refinance the family home", "leave the existing equity alone", "cash savings only"). Set true when they explicitly say to use it. Omit when unstated — equity release is on by default.' },
         },
         required: ['depositPool', 'annualSavings', 'baseSalary', 'timelineYears'],
       },
@@ -242,6 +243,7 @@ export const UPDATE_PROFILE_TOOL = {
           interestRate: { type: 'number' as const, description: 'Portfolio-wide modelling interest rate as a percentage — ONLY when stated.' },
           vacancyRate: { type: 'number' as const, description: 'Vacancy as a fraction of annual rent (e.g. 0.04) — ONLY when stated.' },
           rentEscalationRate: { type: 'number' as const, description: 'Annual rent growth as a fraction (e.g. 0.03) — ONLY when stated.' },
+          useExistingEquity: { type: 'boolean' as const, description: 'false ONLY when the BA explicitly says NOT to use existing equity ("don\'t refinance the home", "cash only"); true when explicitly told to use it. Omit when unstated.' },
           existingPortfolio: {
             type: 'array' as const,
             items: {

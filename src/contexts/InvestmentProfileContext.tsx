@@ -222,11 +222,15 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
 
   const updateProfile = (updates: Partial<InvestmentProfileData>) => {
     if (updates.timelineYears !== undefined) {
-      // Floor at 20; also cap non-explicit timelines to 20 (migrates old 30yr defaults)
+      // Explicit horizons are honoured AS STATED — a "7-year plan" means 7
+      // years, no 20-year floor (founder ruling 17 Jul 2026; the old
+      // Math.max(x, 20) floor silently rewrote every stated short horizon).
+      // Non-explicit timelines stay pinned to the 20-year DEFAULT (also
+      // migrates old 30yr defaults).
       const explicit = updates.timelineYearsExplicit ?? profile.timelineYearsExplicit;
       updates.timelineYears = explicit
-        ? Math.max(updates.timelineYears, 20)
-        : Math.min(Math.max(updates.timelineYears, 20), 20);
+        ? Math.max(Math.round(updates.timelineYears), 1)
+        : 20;
     }
     setProfile(prev => ({ ...prev, ...updates }));
   };
@@ -246,10 +250,12 @@ export const InvestmentProfileProvider: React.FC<InvestmentProfileProviderProps>
   // Bulk setter for scenario restoration - replaces entire profile
   const setProfileFull = (newProfile: InvestmentProfileData) => {
     const raw = newProfile.timelineYears || 20;
-    // Floor at 20; cap non-explicit timelines to 20 (migrates old 30yr defaults)
+    // Explicit horizons restore as saved — no 20-year floor (founder ruling
+    // 17 Jul 2026). Non-explicit timelines stay pinned to the 20-year default
+    // (migrates old 30yr defaults).
     const clamped = newProfile.timelineYearsExplicit
-      ? Math.max(raw, 20)
-      : Math.min(Math.max(raw, 20), 20);
+      ? Math.max(Math.round(raw), 1)
+      : 20;
     setProfile({
       ...newProfile,
       timelineYears: clamped,

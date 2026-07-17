@@ -92,9 +92,13 @@ export function mapToInvestmentProfile(
     if (typeof borrowingCapacity === 'number' && borrowingCapacity > 0) {
       updates.borrowingCapacity = borrowingCapacity;
     } else if (members.length > 0) {
-      // Derive BC from income when not stated: 8x combined income
+      // Derive BC from income when not stated: 6x combined income — MUST match
+      // the engine's salaryServiceabilityMultiplier (6.0, InvestmentProfileContext)
+      // and the nl-parse prompt's derivation rule (prompt.ts "If BC not stated").
+      // Was 8x, which contradicted the engine's 6x serviceability world
+      // (re-audit 16 Jul, gap B4; founder ruling 17 Jul: align to 6x).
       const combinedIncome = members.reduce((sum, m) => sum + m.annualIncome, 0);
-      updates.borrowingCapacity = combinedIncome * 8;
+      updates.borrowingCapacity = combinedIncome * 6;
     }
 
     // baseSalary = highest individual earner (used for serviceability)
@@ -123,6 +127,11 @@ export function mapToInvestmentProfile(
     if (ip.interestRate !== undefined) updates.interestRate = asFraction(ip.interestRate);
     if (ip.vacancyRate !== undefined) updates.vacancyRate = asFraction(ip.vacancyRate);
     if (ip.rentEscalationRate !== undefined) updates.rentEscalationRate = asFraction(ip.rentEscalationRate);
+    // Explicit stated equity preference — "don't touch the existing equity"
+    // must reach the engine's profile gate (affordabilityEngine/projectionEngine
+    // both check profile.useExistingEquity). Dropping it here meant the stated
+    // refusal was overridden (re-audit gap B3, founder ruling 17 Jul 2026).
+    if (ip.useExistingEquity !== undefined) updates.useExistingEquity = ip.useExistingEquity;
   }
 
   // Strategy preset from NL input.
@@ -139,8 +148,21 @@ export function mapToInvestmentProfile(
  * silently removes that property's equity from all funding calculations.
  * Product decision: plans always arrive with refinancing on - the BA can
  * still turn it off per property in the confirmation brief or Portfolio tab.
+ *
+ * EXCEPTION (re-audit gap B3, founder ruling 17 Jul 2026): an explicit stated
+ * refusal wins. When the brief/strategy says "don't touch the existing equity",
+ * the AI sets investmentProfile/profileUpdates.useExistingEquity: false — in
+ * that case leave the per-property flags exactly as extracted so the stated
+ * preference isn't overridden. (The profile gate alone already stops equity
+ * release engine-side; preserving the per-property flags keeps the Portfolio
+ * tab honest too.)
  */
 export function forceRefinanceOn(response: NLParseResponse): NLParseResponse {
+  const statedNoEquity =
+    response.investmentProfile?.useExistingEquity === false ||
+    response.profileUpdates?.useExistingEquity === false;
+  if (statedNoEquity) return response;
+
   const forceOn = <T extends { allowEquityRelease?: boolean }>(list: T[]): T[] =>
     list.map(p => ({ ...p, allowEquityRelease: true }));
 
@@ -388,6 +410,8 @@ export function mapUpdateProfileToUpdates(
   if (pu.interestRate !== undefined) updates.interestRate = asFraction(pu.interestRate);
   if (pu.vacancyRate !== undefined) updates.vacancyRate = asFraction(pu.vacancyRate);
   if (pu.rentEscalationRate !== undefined) updates.rentEscalationRate = asFraction(pu.rentEscalationRate);
+  // Explicit stated equity preference must survive the update path too (B3).
+  if (pu.useExistingEquity !== undefined) updates.useExistingEquity = pu.useExistingEquity;
 
   if (typeof pu.existingPropertyDebt === 'number') {
     updates.currentDebt = pu.existingPropertyDebt;

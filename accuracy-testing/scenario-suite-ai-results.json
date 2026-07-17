@@ -1,11 +1,11 @@
 {
   "mode": "live-ai",
   "model": "claude-sonnet-4-6",
-  "timestamp": "2026-07-16T16:21:34.240Z",
+  "timestamp": "2026-07-17T06:07:14.563Z",
   "apiCalls": 2,
-  "inputTokens": 928,
-  "outputTokens": 2611,
-  "cacheWriteTokens": 21157,
+  "inputTokens": 1316,
+  "outputTokens": 1898,
+  "cacheWriteTokens": 21678,
   "cacheReadTokens": 0,
   "pass": 14,
   "fail": 9,
@@ -21,7 +21,7 @@
         {
           "name": "property-count",
           "pass": true,
-          "detail": "expected 4-8 planned properties, live AI plan has 4",
+          "detail": "expected 4-8 planned properties, live AI plan has 5",
           "cause": "persistence"
         },
         {
@@ -33,13 +33,13 @@
         {
           "name": "price-band",
           "pass": false,
-          "detail": "outside $500,000-$900,000: metro-house-growth $1,050,000, metro-house-growth $1,050,000",
+          "detail": "outside $500,000-$900,000: metro-house-growth $950,000",
           "cause": "plan-selection"
         },
         {
           "name": "yield-band",
           "pass": false,
-          "detail": "outliers: metro-house-growth $1,050,000 @ 2.7%, metro-house-growth $1,050,000 @ 2.7%, regional-house-growth $750,000 @ 3.3%",
+          "detail": "outliers: metro-house-growth $900,000 @ 3.1%, metro-house-growth $950,000 @ 3.0%",
           "cause": "plan-selection"
         },
         {
@@ -51,52 +51,59 @@
         {
           "name": "all-placed",
           "pass": true,
-          "detail": "all 4 properties place (feasible)",
+          "detail": "all 5 properties place (feasible)",
           "cause": "engine-placement"
         },
         {
           "name": "cashflow-goal",
           "pass": true,
-          "detail": "$200,000/yr never reached within the modelled horizon (max $3,026/yr) — shortfall acknowledged in chat",
+          "detail": "$200,000/yr never reached within the modelled horizon (max $0/yr) — shortfall acknowledged in chat",
           "cause": "engine-goal"
         }
       ],
       "failReasons": [
-        "[plan-selection] price-band: outside $500,000-$900,000: metro-house-growth $1,050,000, metro-house-growth $1,050,000",
-        "[plan-selection] yield-band: outliers: metro-house-growth $1,050,000 @ 2.7%, metro-house-growth $1,050,000 @ 2.7%, regional-house-growth $750,000 @ 3.3%"
+        "[plan-selection] price-band: outside $500,000-$900,000: metro-house-growth $950,000",
+        "[plan-selection] yield-band: outliers: metro-house-growth $900,000 @ 3.1%, metro-house-growth $950,000 @ 3.0%"
       ],
       "placement": [
         {
           "instanceId": "metro-house-growth_instance_0",
-          "year": 2029,
+          "year": 2027,
           "status": "feasible",
-          "cost": 1050000,
+          "cost": 900000,
           "entity": "individual"
         },
         {
           "instanceId": "metro-house-growth_instance_1",
-          "year": 2032,
+          "year": 2029,
           "status": "feasible",
-          "cost": 1050000,
-          "entity": "trust"
+          "cost": 950000,
+          "entity": "individual"
         },
         {
           "instanceId": "regional-house-growth_instance_0",
-          "year": 2034,
+          "year": 2031,
           "status": "feasible",
-          "cost": 750000,
+          "cost": 650000,
           "entity": "trust"
         },
         {
-          "instanceId": "metro-house-cashflow_instance_0",
-          "year": 2036,
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2034,
           "status": "feasible",
-          "cost": 850000,
+          "cost": 620000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
+          "year": 2040,
+          "status": "feasible",
+          "cost": 700000,
           "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": null,
+        "equityGoalYear": 2031,
         "incomeGoalYear": null
       },
       "turnLog": [
@@ -104,23 +111,28 @@
           "user": "With 5 mil borrowing capacity, 300k income, 150k deposit, want to achieve 200k passive income, no existing properties",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "The $200k/yr income goal comes up short — the model estimates around $143k/yr by 2046, about $57k/yr short. Built a 4-property plan, priced from $750k to $1.1M. Modelled at 80% LVR with IO loans, biased toward growth to cash flow. Properties 2, 3, 4, 5 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied.\n\nSee the dashboard for the engine's exact projection.\nNote: property 1 was moved from 2025 to 2028 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2031 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2033 — the deposit isn't available until then.\nNote: property 4 was moved from 2028 to 2035 — the deposit isn't available until then.\nNote: property 5's price was reduced from $600k to $200k — the available deposit doesn't cover the original price.\nNote: property 5 was removed — it doesn't fit within the client's borrowing capacity, even when pushed to later years.",
+          "message": "The $200k/yr income goal comes up short — the model estimates around $154k/yr by 2046, about $46k/yr short. Built a 5-property plan, priced from $620k to $950k. Modelled at 80% LVR with IO loans, biased toward growth to cash flow. Default 20-year horizon applied. For tighter numbers, share savings.\n\nSee the dashboard for the engine's exact projection.\nNote: property 3 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.\nNote: property 4 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.\nNote: property 5 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.\nNote: property 6 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.\nNote: property 1 was moved from 2025 to 2026 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2028 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2030 — the deposit isn't available until then.\nNote: property 4 was moved from 2028 to 2033 — the deposit isn't available until then.\nNote: property 5 was moved from 2029 to 2039 — the deposit isn't available until then.\nNote: property 6 was moved from 2031 to 2041 — the client's borrowing capacity doesn't cover it until then.\nNote: property 6 was removed — it doesn't fit within the client's borrowing capacity, even when pushed to later years.",
           "applied": true,
           "warnings": [],
           "autoFixChanges": [
-            "Moved from 2025 to 2028 to allow savings to accumulate",
-            "Moved from 2026 to 2031 to allow savings to accumulate",
-            "Moved from 2027 to 2033 to allow savings to accumulate",
-            "Moved from 2028 to 2035 to allow savings to accumulate",
-            "Reduced from $600k to $200k to fit available deposit",
+            "Changed from individual to trust to reduce borrowing capacity impact",
+            "Changed from individual to trust to reduce borrowing capacity impact",
+            "Changed from individual to trust to reduce borrowing capacity impact",
+            "Changed from individual to trust to reduce borrowing capacity impact",
+            "Moved from 2025 to 2026 to allow savings to accumulate",
+            "Moved from 2026 to 2028 to allow savings to accumulate",
+            "Moved from 2027 to 2030 to allow savings to accumulate",
+            "Moved from 2028 to 2033 to allow savings to accumulate",
+            "Moved from 2029 to 2039 to allow savings to accumulate",
+            "Moved from 2031 to 2041 to allow capacity to grow",
             "Removed - could not fit within borrowing capacity even after pushing to later periods"
           ]
         },
         {
           "user": "To achieve this goal in a seven-year timeframe",
-          "toolName": "modify_plan",
-          "effectiveType": "modification",
-          "message": "The $50k/yr income goal isn't reached on this plan — the engine projects $3k/yr by 2046, leaving a $47k/yr gap. Timeline updated to 7 years. portfolio updated to $200k. The dashboard reflects the updated numbers.\n\nSee the dashboard for the engine's exact projection.",
+          "toolName": "update_profile",
+          "effectiveType": "update_profile",
+          "message": "Updated timeline to 7 years, target passive income to $200k/year. The dashboard reflects the new numbers.",
           "applied": true,
           "warnings": []
         }
@@ -144,14 +156,14 @@
         },
         {
           "name": "yield-band",
-          "pass": false,
-          "detail": "outliers: commercial-high-cost $405,000 @ 29.9%",
+          "pass": true,
+          "detail": "all yields within 3-10%",
           "cause": "plan-selection"
         },
         {
           "name": "property[2]-price",
-          "pass": false,
-          "detail": "commercial-high-cost $405,000 vs stated $1,600,000-$2,400,000",
+          "pass": true,
+          "detail": "commercial-low-cost $2,000,000 vs stated $1,600,000-$2,400,000",
           "cause": "plan-selection"
         },
         {
@@ -163,13 +175,13 @@
         {
           "name": "commercial-finisher",
           "pass": true,
-          "detail": "last property is commercial-high-cost — labelled commercial",
+          "detail": "last property is commercial-low-cost — labelled commercial",
           "cause": "plan-selection"
         },
         {
           "name": "transition-visible",
           "pass": true,
-          "detail": "growth phase places 2030-2030, yield phase 2033-2038 — visible transition",
+          "detail": "growth phase places 2030-2033, yield phase 2043-2043 — visible transition",
           "cause": "engine-placement"
         },
         {
@@ -180,14 +192,13 @@
         },
         {
           "name": "cashflow-goal",
-          "pass": true,
-          "detail": "$100,000/yr net cashflow reached 2039 vs stated by 2045",
+          "pass": false,
+          "detail": "$100,000/yr never reached within the modelled horizon (max $18,135/yr) — SILENT shortfall: no acknowledgement in chat",
           "cause": "engine-goal"
         }
       ],
       "failReasons": [
-        "[plan-selection] yield-band: outliers: commercial-high-cost $405,000 @ 29.9%",
-        "[plan-selection] property[2]-price: commercial-high-cost $405,000 vs stated $1,600,000-$2,400,000"
+        "[engine-goal] cashflow-goal: $100,000/yr never reached within the modelled horizon (max $18,135/yr) — SILENT shortfall: no acknowledgement in chat"
       ],
       "placement": [
         {
@@ -198,37 +209,36 @@
           "entity": "individual"
         },
         {
-          "instanceId": "regional-house-cashflow_instance_0",
+          "instanceId": "regional-house-growth_instance_1",
           "year": 2033,
           "status": "feasible",
           "cost": 480000,
           "entity": "trust"
         },
         {
-          "instanceId": "commercial-high-cost_instance_0",
-          "year": 2038,
+          "instanceId": "commercial-low-cost_instance_0",
+          "year": 2043,
           "status": "feasible",
-          "cost": 405000,
+          "cost": 2000000,
           "entity": "trust"
         }
       ],
       "goalYears": {
         "equityGoalYear": 2041,
-        "incomeGoalYear": 2038
+        "incomeGoalYear": null
       },
       "turnLog": [
         {
           "user": "- $1,000,000 borrowing capacity\n- $100,000 passive income\n- Want to buy a commercial property worth around $2,000,000\n- Monthly savings: $3,000",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 3-property plan, priced from $405k to $480k. Modelled at 70-88% LVR with LMI capitalised with IO loans, biased toward commercial transition. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share income and deposit. See the dashboard for the engine's exact projection.\nNote: property 1 was moved from 2025 to 2029 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2032 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2037 — the deposit isn't available until then.\nNote: property 3's price was reduced from $2M to $405k — the available deposit doesn't cover the original price.",
+          "message": "Built a 3-property plan, priced from $450k to $2M. Modelled at 70-88% LVR with LMI capitalised with IO loans, biased toward commercial transition. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share deposit and income. Property 3's stated $2M price needs roughly $720k in cash for the deposit, duty and costs — beyond the $0k deposit pool and $36k/yr savings near-term, so it is placed around 2039, where accumulated savings plus equity released from the earlier purchases can fund it at the stated price. To bring it earlier, a lower purchase price can be modelled instead. See the dashboard for the engine's exact projection.\nNote: property 1 was moved from 2025 to 2029 — the deposit isn't available until then.\nNote: property 2 was moved from 2027 to 2032 — the deposit isn't available until then.\nNote: property 3 was moved from 2038 to 2042 — the deposit isn't available until then.",
           "applied": true,
           "warnings": [],
           "autoFixChanges": [
             "Moved from 2025 to 2029 to allow savings to accumulate",
-            "Moved from 2026 to 2032 to allow savings to accumulate",
-            "Moved from 2027 to 2037 to allow savings to accumulate",
-            "Reduced from $2000k to $405k to fit available deposit"
+            "Moved from 2027 to 2032 to allow savings to accumulate",
+            "Moved from 2038 to 2042 to allow savings to accumulate"
           ]
         },
         {
@@ -594,57 +604,56 @@
       "checks": [
         {
           "name": "property-count",
-          "pass": false,
-          "detail": "expected 4-6 planned properties, live AI plan has 3",
+          "pass": true,
+          "detail": "expected 4-6 planned properties, live AI plan has 4",
           "cause": "persistence"
         },
         {
           "name": "price-band",
           "pass": true,
-          "detail": "all 3 prices within $350,000-$800,000",
+          "detail": "all 4 prices within $350,000-$800,000",
           "cause": "plan-selection"
         },
         {
           "name": "trust-usage",
           "pass": true,
-          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 2",
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 3",
           "cause": "plan-selection"
         },
         {
           "name": "commercial-finisher",
           "pass": false,
-          "detail": "last property is regional-house-cashflow — NOT labelled commercial",
+          "detail": "last property is regional-unit-cashflow — NOT labelled commercial",
           "cause": "plan-selection"
         },
         {
           "name": "all-placed",
           "pass": true,
-          "detail": "all 3 properties place (feasible)",
+          "detail": "all 4 properties place (feasible)",
           "cause": "engine-placement"
         },
         {
           "name": "cashflow-goal",
           "pass": true,
-          "detail": "$50,000/yr net cashflow reached 2039 vs stated by 2045",
+          "detail": "$50,000/yr net cashflow reached 2038 vs stated by 2045",
           "cause": "engine-goal"
         },
         {
           "name": "equity-goal",
           "pass": true,
-          "detail": "$2,000,000 equity reached 2044 vs stated by 2045",
+          "detail": "$2,000,000 equity reached 2043 vs stated by 2045",
           "cause": "engine-goal"
         }
       ],
       "failReasons": [
-        "[persistence] property-count: expected 4-6 planned properties, live AI plan has 3",
-        "[plan-selection] commercial-finisher: last property is regional-house-cashflow — NOT labelled commercial"
+        "[plan-selection] commercial-finisher: last property is regional-unit-cashflow — NOT labelled commercial"
       ],
       "placement": [
         {
           "instanceId": "regional-house-growth_instance_0",
           "year": 2026,
           "status": "feasible",
-          "cost": 480000,
+          "cost": 450000,
           "entity": "individual"
         },
         {
@@ -658,28 +667,38 @@
           "instanceId": "regional-house-cashflow_instance_0",
           "year": 2029,
           "status": "feasible",
-          "cost": 450000,
+          "cost": 480000,
+          "entity": "trust"
+        },
+        {
+          "instanceId": "regional-unit-cashflow_instance_1",
+          "year": 2032,
+          "status": "feasible",
+          "cost": 400000,
           "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2044,
-        "incomeGoalYear": 2039
+        "equityGoalYear": 2043,
+        "incomeGoalYear": 2038
       },
       "turnLog": [
         {
           "user": "Rob. $1m borrowing capacity. $100k income. $150k deposit. $50k/year cashflow goal. $2m equity goal. 20 years.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "$2M isn't realistic on this profile based on the inputs. The $50k/yr income goal comes up short — the model estimates around $37k/yr by 2046, about $13k/yr short. Built a 3-property plan for Rob, priced from $380k to $480k. Modelled at 88% LVR with LMI capitalised with IO loans, biased toward growth to cash flow. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. For tighter numbers, share monthly_savings.\n\nSee the dashboard for the engine's exact projection.",
+          "message": "$2M is a stretch on this profile — the model projects landing short. Built a 4-property plan for Rob, priced from $380k to $480k. Modelled at 88% LVR with LMI capitalised with IO loans, biased toward growth to cash flow. Properties 2, 3, 4 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. For tighter numbers, share monthly_savings.\n\nSee the dashboard for the engine's exact projection.\nNote: property 4 was moved from 2030 to 2031 — the deposit isn't available until then.",
           "applied": true,
-          "warnings": []
+          "warnings": [],
+          "autoFixChanges": [
+            "Moved from 2030 to 2031 to allow savings to accumulate"
+          ]
         },
         {
           "user": "What happens to this portfolio if there is a rate rise?",
           "toolName": "respond",
           "effectiveType": "explanation",
-          "message": "A rate rise hits this portfolio in two ways: higher interest costs and tighter cashflow.\n\nRob's plan uses IO loans across all three properties at 88% LVR — meaning the loan balances are large relative to property values, so interest costs are a significant portion of outgoings.\n\nA rough directional read:\n\n- **+0.5% rate rise** — annual interest costs increase by roughly $5–6k across the portfolio (based on ~$1.1M total debt). Cashflow tightens but the portfolio likely stays net positive given the projected $97k/yr at horizon.\n- **+1% rate rise** — adds ~$10–11k/yr in interest. The projected $97k/yr cashflow absorbs this, but near-term cashflow (before growth compounds) would feel the squeeze more acutely.\n- **+2% rate rise** — adds ~$20–22k/yr. This would push the early-stage properties (especially the growth-phase property) deeper into negative cashflow territory. The cash-flow phase properties would partially offset this with rental income, but the net position narrows materially.\n\nThe key buffer here is that the Phase 2 cash-flow properties are modelled for higher yield relative to price — they provide more income resilience than the Phase 1 growth property.\n\nThe equity trajectory is less affected by rate rises — growth assumptions drive that, not interest costs. The $2.18M projected equity at horizon is primarily a function of capital growth, not cashflow.",
+          "message": "A rate rise hits this portfolio in two ways: **higher interest repayments** and **tighter serviceability** on any future purchases.\n\n## Cash Flow Impact\n\nAll 4 properties are modelled on IO loans, so repayments move directly with the rate. A rough directional estimate:\n\n- **Total debt at full deployment** ≈ $1.2–1.3M (88% LVR across ~$1.7M in purchases)\n- **Every 1% rate rise** adds roughly **$12,000–$13,000/year** in interest costs across the portfolio\n- That's approximately **$1,000–$1,100/month** of additional cash drain\n\nThe portfolio is already **negatively geared in the early years**, so a rate rise deepens that deficit before rent growth catches up. The cash-flow properties in Phase 2 (properties 3 and 4) provide some buffer — their higher yields mean rent covers more of the interest — but they don't fully offset the drag.\n\n## Serviceability Impact\n\nRob's **$1M borrowing capacity** is already fully deployed across 4 properties. A rate rise would reduce that capacity further (lenders stress-test at rate + buffer), which could **delay or block any future purchase** if Rob wanted to add a 5th property.\n\n## Equity Goal\n\nRate rises don't directly affect property values in the model — growth assumptions stay the same. The **$2M equity target** (currently projected to be reached around 2043) is driven by capital growth, not cash flow, so the equity trajectory is largely insulated from rate movements.\n\n## What stands out\n\n- **Every 1% rise costs roughly $12,000–$13,000/year** in additional interest across the portfolio.\n- The **early years are most exposed** — cash flow is already negative, and rate rises widen that gap before rent growth compensates.\n- **Phase 2 cash-flow properties** provide a partial natural hedge — higher rent-to-price ratios absorb rate rises better than growth properties.\n- The **equity goal is rate-insensitive** — it's driven by capital growth, which the model holds constant regardless of rate movements.",
           "applied": false,
           "warnings": []
         }
@@ -1018,7 +1037,7 @@
         {
           "name": "property[1]-entity",
           "pass": true,
-          "detail": "regional-house-growth entity \"trust\" vs stated \"trust\"",
+          "detail": "metro-unit-growth entity \"trust\" vs stated \"trust\"",
           "cause": "extraction"
         },
         {
@@ -1036,7 +1055,7 @@
         {
           "name": "transition-visible",
           "pass": true,
-          "detail": "growth phase places 2026-2029, yield phase 2034-2034 — visible transition",
+          "detail": "growth phase places 2029-2032, yield phase 2037-2037 — visible transition",
           "cause": "engine-placement"
         },
         {
@@ -1050,41 +1069,42 @@
       "placement": [
         {
           "instanceId": "regional-house-growth_instance_0",
-          "year": 2026,
+          "year": 2029,
           "status": "feasible",
-          "cost": 500000,
+          "cost": 620000,
           "entity": "individual"
         },
         {
-          "instanceId": "regional-house-growth_instance_1",
-          "year": 2029,
+          "instanceId": "metro-unit-growth_instance_0",
+          "year": 2032,
           "status": "feasible",
-          "cost": 500000,
+          "cost": 580000,
           "entity": "trust"
         },
         {
           "instanceId": "commercial-low-cost_instance_0",
-          "year": 2034,
+          "year": 2037,
           "status": "feasible",
           "cost": 750000,
           "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2034,
-        "incomeGoalYear": 2040
+        "equityGoalYear": 2037,
+        "incomeGoalYear": 2043
       },
       "turnLog": [
         {
           "user": "$150k income, $100k deposit, $3k/month savings, $1m capacity. Three properties: two residential growth then finish with a commercial. Put properties 2 and 3 in a trust.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 3-property plan, priced from $500k to $750k. Modelled at 70-88% LVR with LMI capitalised with IO loans, biased toward commercial transition. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.\nNote: property 2 was moved from 2026 to 2028 — the deposit isn't available until then.\nNote: property 3 was moved from 2028 to 2033 — the deposit isn't available until then.",
+          "message": "Built a 3-property plan, priced from $580k to $750k. Modelled at 70-80% LVR with IO loans, biased toward commercial transition. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.\nNote: property 1 was moved from 2025 to 2028 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2031 — the deposit isn't available until then.\nNote: property 3 was moved from 2029 to 2036 — the deposit isn't available until then.",
           "applied": true,
           "warnings": [],
           "autoFixChanges": [
-            "Moved from 2026 to 2028 to allow savings to accumulate",
-            "Moved from 2028 to 2033 to allow savings to accumulate"
+            "Moved from 2025 to 2028 to allow savings to accumulate",
+            "Moved from 2026 to 2031 to allow savings to accumulate",
+            "Moved from 2029 to 2036 to allow savings to accumulate"
           ]
         }
       ]
@@ -1132,34 +1152,34 @@
         },
         {
           "instanceId": "regional-house-cashflow_instance_0",
-          "year": 2030,
+          "year": 2029,
           "status": "feasible",
-          "cost": 580000,
+          "cost": 560000,
           "entity": "trust"
         },
         {
           "instanceId": "metro-unit-cashflow_instance_0",
-          "year": 2033,
+          "year": 2032,
           "status": "feasible",
-          "cost": 540000,
+          "cost": 530000,
           "entity": "trust"
         }
       ],
       "goalYears": {
         "equityGoalYear": 2036,
-        "incomeGoalYear": 2038
+        "incomeGoalYear": 2037
       },
       "turnLog": [
         {
           "user": "Client earning $150k, $150k deposit, $4k/month, BC $1.2m. Buy three cash flow properties between $500k and $650k, yields between 5.5% and 6.5%. No cheap regional stock under $300k.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 3-property plan, priced from $540k to $620k. Modelled at 80% LVR with IO loans, biased toward cashflow, high price point. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.\nNote: property 2 was moved from 2026 to 2029 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2032 — the deposit isn't available until then.",
+          "message": "Built a 3-property plan, priced from $530k to $620k. Modelled at 80% LVR with IO loans, biased toward cashflow, high price point. Properties 2, 3 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details. See the dashboard for the engine's exact projection.\nNote: property 2 was moved from 2026 to 2028 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2031 — the deposit isn't available until then.",
           "applied": true,
           "warnings": [],
           "autoFixChanges": [
-            "Moved from 2026 to 2029 to allow savings to accumulate",
-            "Moved from 2027 to 2032 to allow savings to accumulate"
+            "Moved from 2026 to 2028 to allow savings to accumulate",
+            "Moved from 2027 to 2031 to allow savings to accumulate"
           ]
         }
       ]

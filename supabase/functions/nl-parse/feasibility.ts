@@ -258,6 +258,75 @@ function formatCurrency(value: number): string {
   return `${sign}$${Math.round(abs / 1000)}k`;
 }
 
+// ── Stated-price funding note (create turns — "negotiate, don't shrink") ──
+// July 2026 (FORCEABILITY-TIERS-BRIEF item 1): when the BA stated an explicit
+// price the deposit pool cannot cover near-term, the chat message must name
+// the cash requirement and the deferral path itself — not leave the app-side
+// auto-fix to silently reshape the ask. Fires at most once per plan and ONLY
+// for user-stated prices (propertySources tags). Entirely additive: the goal
+// grading above is untouched.
+
+interface FundingNoteProperty {
+  purchasePrice: number;
+  lvr?: number;
+  targetPeriod?: number;
+}
+
+export interface FundingNoteInput {
+  properties: FundingNoteProperty[];
+  /** create_plan's propertySources — parallel to properties. */
+  propertySources?: Array<Record<string, string>>;
+  depositPool: number;
+  annualSavings: number;
+}
+
+// Rough duty + purchase costs as a share of price (mirrors the prompt's
+// "defer, don't shrink" arithmetic so the message matches the AI's plan).
+const PURCHASE_COSTS_RATE = 0.06;
+
+export function computeStatedPriceFundingNote(input: FundingNoteInput): string | null {
+  const { properties, propertySources, depositPool, annualSavings } = input;
+  if (!properties || properties.length === 0 || !propertySources || propertySources.length === 0) {
+    return null;
+  }
+
+  let best: { index: number; price: number; cash: number; period: number } | null = null;
+  properties.forEach((p, i) => {
+    if (propertySources[i]?.purchasePrice !== 'user') return;
+    if (!p.purchasePrice || p.purchasePrice <= 0) return;
+    const rawLvr = p.lvr ?? 80;
+    const lvrFraction = rawLvr > 1.5 ? rawLvr / 100 : rawLvr;
+    const cash = p.purchasePrice * (1 - lvrFraction) + p.purchasePrice * PURCHASE_COSTS_RATE;
+    // Near-term reach = deposit pool + ~2 years of savings. Only speak up
+    // when the stated price is clearly beyond it — achievable briefs must
+    // never attract negotiation talk.
+    if (cash <= depositPool + 2 * annualSavings) return;
+    if (!best || cash > best.cash) {
+      best = { index: i, price: p.purchasePrice, cash, period: p.targetPeriod ?? i * 2 + 1 };
+    }
+  });
+  if (!best) return null;
+  const hit: { index: number; price: number; cash: number; period: number } = best;
+
+  const year = new Date().getFullYear() + Math.floor((hit.period - 1) / 2);
+  const hasEarlier = properties.some(
+    (p, i) => i !== hit.index && (p.targetPeriod ?? i * 2 + 1) < hit.period,
+  );
+  const funding = hasEarlier
+    ? 'accumulated savings plus equity released from the earlier purchases'
+    : 'accumulated savings';
+  return `Property ${hit.index + 1}'s stated ${formatCurrency(hit.price)} price needs roughly ${formatCurrency(hit.cash)} in cash for the deposit, duty and costs — beyond the ${formatCurrency(depositPool)} deposit pool and ${formatCurrency(annualSavings)}/yr savings near-term, so it is placed around ${year}, where ${funding} can fund it at the stated price. To bring it earlier, a lower purchase price can be modelled instead.`;
+}
+
+/** Insert the funding note ahead of the templated dashboard pointer. */
+export function injectFundingNote(message: string, note: string): string {
+  const dashboardLine = "See the dashboard for the engine's exact projection.";
+  if (message.includes(dashboardLine)) {
+    return message.replace(dashboardLine, `${note} ${dashboardLine}`);
+  }
+  return `${message}\n\n${note}`;
+}
+
 export function injectFeasibilityDescriptor(
   message: string,
   result: FeasibilityResult,

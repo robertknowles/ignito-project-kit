@@ -324,7 +324,12 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
   // ───────────────────────────────────────────────────────────
   const startYear = BASE_YEAR;
   const endYear = startYear + (profile.timelineYears || 20) - 1;
-  const cashflowEndYear = startYear + Math.max(profile.timelineYears, 20) - 1;
+  // Cashflow rows follow the plan horizon exactly — an explicit "7-year plan"
+  // means a 7-year cashflow view, not a 20-year one (founder ruling 17 Jul
+  // 2026; the old Math.max(timelineYears, 20) floor was a no-op while the
+  // profile context still floored every timeline at 20, and became a residual
+  // override once stated short horizons were honoured).
+  const cashflowEndYear = startYear + (profile.timelineYears || 20) - 1;
   // Per-property projections feed the Brief performance view, which offers a
   // 10/20/30-year horizon toggle. Extend the loop far enough that each owned
   // property can accumulate up to 30 yearRows, independent of the (shorter)

@@ -48,7 +48,7 @@ import {
   validateUpdateProfile,
   validateAddEvent,
 } from '../supabase/functions/nl-parse/validation';
-import { computeFeasibility, injectFeasibilityDescriptor } from '../supabase/functions/nl-parse/feasibility';
+import { computeFeasibility, injectFeasibilityDescriptor, computeStatedPriceFundingNote, injectFundingNote } from '../supabase/functions/nl-parse/feasibility';
 
 // ── App-side apply path (same modules ChatPanel / Compare use) ───────────────
 import {
@@ -254,6 +254,17 @@ async function callNlParse(
       parsedResponse.investmentProfileSources = data.investmentProfileSources || {};
       parsedResponse.propertySources = data.propertySources || [];
       parsedResponse.message = buildCreatePlanMessage(data);
+      // index.ts verbatim: "negotiate, don't shrink" — stated-price funding
+      // note goes into the chat message ahead of the goal descriptors.
+      const fundingNote = computeStatedPriceFundingNote({
+        properties: parsedResponse.properties ?? [],
+        propertySources: parsedResponse.propertySources,
+        depositPool: parsedResponse.investmentProfile?.depositPool ?? 0,
+        annualSavings: parsedResponse.investmentProfile?.annualSavings ?? 0,
+      });
+      if (fundingNote) {
+        parsedResponse.message = injectFundingNote(parsedResponse.message, fundingNote);
+      }
       if (parsedResponse.properties?.length > 0) {
         const feasibility = computeFeasibility({
           properties: parsedResponse.properties,
@@ -539,14 +550,15 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
         // ChatPanel.confirmPlan (auto-approved headlessly).
         const profileUpdates = mapToInvestmentProfile(finalResponse);
         // InvestmentProfileContext.updateProfile parity: non-explicit
-        // timelines clamp to exactly 20; explicit ones floor at 20. Without
-        // this the suite can't catch the timelineYearsExplicit mapping bug
-        // (a stated "30-year plan" silently becoming 20 in the app).
+        // timelines clamp to exactly 20; explicit ones are honoured AS STATED
+        // (no 20-year floor — founder ruling 17 Jul 2026). Without this the
+        // suite can't catch the timelineYearsExplicit mapping bug (a stated
+        // "30-year plan" silently becoming 20 in the app).
         if (profileUpdates.timelineYears !== undefined) {
           const explicit = profileUpdates.timelineYearsExplicit
             ?? scenario.investmentProfile?.timelineYearsExplicit;
           profileUpdates.timelineYears = explicit
-            ? Math.max(profileUpdates.timelineYears, 20)
+            ? Math.max(Math.round(profileUpdates.timelineYears), 1)
             : 20;
         }
         let nextProfile = { ...(scenario.investmentProfile ?? {}), ...profileUpdates };
@@ -602,7 +614,8 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
         if (mutation.didChange) {
           scenario = mutation.scenario;
           // ChatPanel routes profile updates through updateProfile, which
-          // clamps timelines (explicit → floor 20, else exactly 20). The pure
+          // clamps timelines (explicit → honoured as stated, else exactly 20;
+          // founder ruling 17 Jul 2026 removed the explicit floor). The pure
           // mutator merges raw, so replicate the clamp here — otherwise the
           // suite passes timeline behaviour the app can't produce (re-sweep C1).
           const t = scenario.investmentProfile?.timelineYears;
@@ -612,7 +625,7 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
               ...scenario,
               investmentProfile: {
                 ...scenario.investmentProfile,
-                timelineYears: explicit ? Math.max(t, 20) : 20,
+                timelineYears: explicit ? Math.max(Math.round(t), 1) : 20,
               },
             };
           }
@@ -624,11 +637,12 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
         // ChatPanel.handleUpdateProfile.
         response = forceRefinanceOn(response);
         const updates = mapUpdateProfileToUpdates(response);
-        // updateProfile clamp parity (re-sweep C1) — same as the create_plan path.
+        // updateProfile clamp parity (re-sweep C1) — same as the create_plan
+        // path: explicit honoured as stated, non-explicit pinned to 20.
         if (updates.timelineYears !== undefined) {
           const explicit = updates.timelineYearsExplicit
             ?? scenario.investmentProfile?.timelineYearsExplicit;
-          updates.timelineYears = explicit ? Math.max(updates.timelineYears, 20) : 20;
+          updates.timelineYears = explicit ? Math.max(Math.round(updates.timelineYears), 1) : 20;
         }
         if (Object.keys(updates).length > 0) {
           scenario = {
