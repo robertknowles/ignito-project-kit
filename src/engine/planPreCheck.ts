@@ -527,12 +527,21 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
       prop.purchasePrice = Math.max(200000, oldPrice - priceReduction);
 
       if (prop.purchasePrice < oldPrice) {
+        // Scale rent with the price so the property's implied gross yield
+        // survives the cut - leaving rent untouched turns a 6%-yield $2M
+        // commercial into a 30%-yield $405k absurdity.
+        let rentNote = '';
+        if (prop.rentPerWeek && prop.rentPerWeek > 0) {
+          const oldRent = prop.rentPerWeek;
+          prop.rentPerWeek = Math.round(oldRent * (prop.purchasePrice / oldPrice));
+          rentNote = `; rent adjusted from $${oldRent}/wk to $${prop.rentPerWeek}/wk to keep the stated yield`;
+        }
         changes.push({
           propertyIndex: failure.propertyIndex,
           propertyLabel: failure.propertyLabel,
           changeType: 'price_reduced',
           reason: 'deposit shortfall',
-          detail: `Reduced from $${Math.round(oldPrice / 1000)}k to $${Math.round(prop.purchasePrice / 1000)}k to fit available deposit`,
+          detail: `Reduced from $${Math.round(oldPrice / 1000)}k to $${Math.round(prop.purchasePrice / 1000)}k to fit available deposit${rentNote}`,
         });
       }
     }

@@ -66,9 +66,11 @@ export function buildAutoFixDisclosureLines(changes: AutoFixChangeLike[]): strin
       }
       case 'price_reduced': {
         const amounts = c.detail.match(/from \$(\d+)k to \$(\d+)k/);
+        const rent = c.detail.match(/rent adjusted from \$(\d+)\/wk to \$(\d+)\/wk/);
+        const rentNote = rent ? `; rent adjusted to $${Number(rent[2]).toLocaleString()}/wk to keep the stated yield` : '';
         return amounts
-          ? `Note: property ${n}'s price was reduced from ${formatDollars(Number(amounts[1]) * 1000)} to ${formatDollars(Number(amounts[2]) * 1000)} — the available deposit doesn't cover the original price.`
-          : `Note: property ${n}'s price was reduced — the available deposit doesn't cover the original price.`;
+          ? `Note: property ${n}'s price was reduced from ${formatDollars(Number(amounts[1]) * 1000)} to ${formatDollars(Number(amounts[2]) * 1000)} — the available deposit doesn't cover the original price${rentNote}.`
+          : `Note: property ${n}'s price was reduced — the available deposit doesn't cover the original price${rentNote}.`;
       }
       case 'entity_to_trust':
         return `Note: property ${n} was placed in a trust — buying it as an individual exceeded the client's ${c.reason}.`;
