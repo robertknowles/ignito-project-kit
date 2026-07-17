@@ -206,7 +206,7 @@ export function mapToExistingProperties(
       rentPerWeek: p.rentPerWeek ?? Math.round((p.currentValue * 0.04) / 52),
       yield: p.currentValue > 0 ? (annualRent / p.currentValue) * 100 : 4.0,
       interestRate: p.interestRate ?? 6.0,
-      loanType: p.loanType ?? 'IO',
+      loanType: sanitizeLoanType(p.loanType),
       stampDuty: 0,
       legals: 1_500,
       buildingPest: 700,
@@ -226,8 +226,103 @@ export function mapToExistingProperties(
       allowEquityRelease: p.allowEquityRelease !== false,
       saleYear: p.saleYear ?? null,
       isNewBuild: p.isNewBuild ?? false,
+      entity: p.entity ?? rescueEntityFromLoanType(p.loanType) ?? 'individual',
     }
   });
+}
+
+type EntityType = 'individual' | 'trust' | 'company' | 'smsf';
+
+/**
+ * Before entity existed on the existing-portfolio schema, the model preserved
+ * ownership by writing "trust"/"SMSF" into loanType — which then reached the
+ * engine as a P&I loan on an Individual property (portfolio audit, claim 3).
+ * Rescue the entity word if present; sanitizeLoanType coerces the field back
+ * to a real loan product.
+ */
+function rescueEntityFromLoanType(loanType: string | undefined): EntityType | null {
+  const v = (loanType ?? '').toLowerCase();
+  if (v.includes('smsf') || v.includes('super')) return 'smsf';
+  if (v.includes('trust')) return 'trust';
+  if (v.includes('company') || v.includes('pty')) return 'company';
+  return null;
+}
+
+function sanitizeLoanType(loanType: string | undefined): 'IO' | 'PI' {
+  const v = (loanType ?? '').toUpperCase();
+  if (v === 'IO' || v === 'INTEREST ONLY') return 'IO';
+  if (v === 'PI' || v === 'P&I' || v === 'PRINCIPAL AND INTEREST') return 'PI';
+  return 'IO';
+}
+
+/**
+ * Merge AI-returned existing-portfolio rows INTO the current list instead of
+ * replacing it. Replacement re-defaulted every field the AI didn't echo —
+ * entity, growth tier, holding costs, overrides, contract dates, photos and
+ * revert snapshots were all wiped by a single chat correction (portfolio
+ * audit, claim 1 break #2).
+ *
+ * Matching: by normalised address when both sides have one, else by index.
+ * Matched rows: overwrite ONLY the fields the AI actually supplied; keep
+ * everything else (including the id, so downstream references survive).
+ * Unmatched AI rows: append with full defaults (genuinely new property).
+ * Unmatched current rows: KEEP — a partial AI echo must never delete
+ * properties. Removal stays a UI action (Portfolio tab).
+ */
+export function mergeExistingProperties(
+  current: ExistingProperty[],
+  response: NLParseResponse,
+): ExistingProperty[] | null {
+  const mapped = mapToExistingProperties(response);
+  if (!mapped) return null;
+  if (current.length === 0) return mapped;
+
+  const portfolio = (response.clientProfile?.existingPortfolio
+    ?? response.profileUpdates?.existingPortfolio)!;
+
+  const normAddr = (a: string | undefined) => (a ?? '').trim().toLowerCase();
+  const matchedCurrentIds = new Set<string>();
+
+  const merged: ExistingProperty[] = [...current];
+  portfolio.forEach((p, i) => {
+    // Address match first, index fallback (form-injected rows have no address
+    // but keep submission order, so index alignment holds on that path).
+    let target = normAddr(p.address)
+      ? merged.find((ep) => normAddr(ep.address) === normAddr(p.address) && !matchedCurrentIds.has(ep.id))
+      : undefined;
+    if (!target && i < current.length && !matchedCurrentIds.has(current[i].id)) {
+      target = merged.find((ep) => ep.id === current[i].id);
+    }
+
+    if (!target) {
+      merged.push(mapped[i]);
+      return;
+    }
+    matchedCurrentIds.add(target.id);
+
+    const idx = merged.findIndex((ep) => ep.id === target!.id);
+    const upd: ExistingProperty = { ...target };
+    if (p.address !== undefined && p.address !== '') upd.address = p.address;
+    if (p.state !== undefined) upd.state = p.state;
+    if (p.boughtYear !== undefined) upd.boughtYear = p.boughtYear;
+    if (p.purchasePrice !== undefined) upd.purchasePrice = p.purchasePrice;
+    if (p.currentValue !== undefined) upd.currentValue = p.currentValue;
+    if (p.loan !== undefined) upd.loan = p.loan;
+    if (p.rentPerWeek !== undefined) upd.rentPerWeek = p.rentPerWeek;
+    if (p.interestRate !== undefined) upd.interestRate = p.interestRate;
+    if (p.loanType !== undefined) upd.loanType = sanitizeLoanType(p.loanType);
+    if (p.allowEquityRelease !== undefined) upd.allowEquityRelease = p.allowEquityRelease;
+    if (p.saleYear !== undefined) upd.saleYear = p.saleYear;
+    if (p.isNewBuild !== undefined) upd.isNewBuild = p.isNewBuild;
+    const rescued = p.entity ?? rescueEntityFromLoanType(p.loanType);
+    if (rescued) upd.entity = rescued;
+    if (upd.currentValue > 0) {
+      upd.yield = (upd.rentPerWeek * 52 * 100) / upd.currentValue;
+    }
+    merged[idx] = upd;
+  });
+
+  return merged;
 }
 
 // ── Step 1.7: Map to Property Selections + Instances ───────────────

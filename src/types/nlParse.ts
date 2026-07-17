@@ -70,6 +70,10 @@ export interface CurrentPlanState {
     loanType: 'IO' | 'PI';
     growthAssumption?: 'High' | 'Medium' | 'Low';
     entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    /** Planned sale year on file (null = hold). Sent so a chat correction can echo it instead of wiping it. */
+    saleYear?: number | null;
+    /** Equity-release (refinance) toggle on file. Same echo rationale. */
+    allowEquityRelease?: boolean;
   }>;
   /**
    * Engine output snapshot - the actual projected horizon values from the
@@ -91,6 +95,17 @@ export interface CurrentPlanState {
     projectedAnnualCashflow?: number;
     /** First year the equity goal is reached, if any (else null) */
     equityGoalReachedYear: number | null;
+    /**
+     * Per-year AFTER-TAX net cashflow series (whole plan), with the existing
+     * portfolio's own after-tax line when the client has existing properties.
+     * Lets the AI answer "cashflow in year N" from engine numbers instead of
+     * inventing opex/tax estimates (portfolio audit, claim 2).
+     */
+    cashflowByYear?: Array<{
+      year: number;
+      cashflow: number;
+      existingOnlyCashflow?: number;
+    }>;
   };
 }
 
@@ -126,6 +141,7 @@ export interface NLParseResponse {
       allowEquityRelease?: boolean;
       saleYear?: number | null;
       isNewBuild?: boolean;
+      entity?: 'individual' | 'trust' | 'company' | 'smsf';
     }>;
   };
 
@@ -263,6 +279,7 @@ export interface NLParseResponse {
       allowEquityRelease?: boolean;
       saleYear?: number | null;
       isNewBuild?: boolean;
+      entity?: 'individual' | 'trust' | 'company' | 'smsf';
     }>;
   };
 

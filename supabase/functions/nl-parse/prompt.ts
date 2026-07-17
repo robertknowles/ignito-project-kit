@@ -47,6 +47,8 @@ interface CurrentPlanState {
     loanType: 'IO' | 'PI';
     growthAssumption?: 'High' | 'Medium' | 'Low';
     entity?: 'individual' | 'trust' | 'company' | 'smsf';
+    saleYear?: number | null;
+    allowEquityRelease?: boolean;
   }>;
   enginePlanState?: {
     horizonYear: number;
@@ -54,6 +56,7 @@ interface CurrentPlanState {
     projectedEquity: number;
     projectedAnnualCashflow?: number;
     equityGoalReachedYear: number | null;
+    cashflowByYear?: Array<{ year: number; cashflow: number; existingOnlyCashflow?: number }>;
   };
 }
 
@@ -102,7 +105,11 @@ ${ep ? `
 - Projected Portfolio Value: $${ep.projectedPortfolioValue.toLocaleString()}
 - Projected Equity: $${ep.projectedEquity.toLocaleString()}${ep.projectedAnnualCashflow !== undefined ? `\n- Projected Annual Cashflow: $${ep.projectedAnnualCashflow.toLocaleString()}/yr` : ''}
 - Equity Goal Reached: ${ep.equityGoalReachedYear ?? 'NOT REACHED at horizon'}
-` : ''}
+${ep.cashflowByYear && ep.cashflowByYear.length > 0 ? `
+**After-tax net cashflow by year (engine output — cite VERBATIM). Format: year: whole plan${ep.cashflowByYear.some((c) => c.existingOnlyCashflow !== undefined) ? ' | existing portfolio only' : ''}:**
+${ep.cashflowByYear.map((c) => `- ${c.year}: $${c.cashflow.toLocaleString()}/yr${c.existingOnlyCashflow !== undefined ? ` | existing only: $${c.existingOnlyCashflow.toLocaleString()}/yr` : ''}`).join('\n')}
+**Year-specific cashflow questions MUST be answered from this table — including existing-portfolio-only questions via the "existing only" column. Do NOT invent operating-cost percentages, tax rates, or your own cashflow arithmetic. If a figure isn't in the table (or the table is absent), say the engine view holds it and suggest checking the dashboard — never estimate it. You cannot run the engine, "pull" additional outputs, or fetch data you weren't given.**
+` : ''}` : ''}
 **Properties in Plan:**
 ${currentPlan.properties.map((p, i) => {
   const approxYear = currentYear + Math.floor((p.period - 1) / 2);
@@ -118,7 +125,9 @@ ${currentPlan.existingProperties.map((ep, i) => {
   const growthLabel = ep.growthAssumption ? `, ${ep.growthAssumption} growth` : '';
   const rentLabel = ep.rentPerWeek ? `, rent $${ep.rentPerWeek.toLocaleString()}/wk` : '';
   const rateLabel = ep.interestRate ? `, ${ep.interestRate}% ${ep.loanType}` : `, ${ep.loanType}`;
-  return `${i + 1}. ${ep.address || 'Property'} (${ep.state}) — bought ${ep.boughtYear || 'n/a'} for $${ep.purchasePrice.toLocaleString()}, now worth $${ep.currentValue.toLocaleString()}, loan $${ep.loan.toLocaleString()}, equity $${ep.equity.toLocaleString()}${rentLabel}${rateLabel}${growthLabel}${entityLabel}`;
+  const saleLabel = ep.saleYear ? `, planned sale ${ep.saleYear}` : '';
+  const refiLabel = ep.allowEquityRelease === false ? ', equity release OFF' : '';
+  return `${i + 1}. ${ep.address || 'Property'} (${ep.state}) — bought ${ep.boughtYear || 'n/a'} for $${ep.purchasePrice.toLocaleString()}, now worth $${ep.currentValue.toLocaleString()}, loan $${ep.loan.toLocaleString()}, equity $${ep.equity.toLocaleString()}${rentLabel}${rateLabel}${growthLabel}${entityLabel}${saleLabel}${refiLabel}`;
 }).join('\n')}` : ''}`;
   }
 
@@ -428,6 +437,7 @@ If the BA mentions trusts/SMSF, respect their preference. If they say "all indiv
 - Relative changes: compute ABSOLUTE value. "Increase by 500k" on a $700k property → purchasePrice: 1200000.
 - Valid targets: property-1 through property-N, savings, income, timeline, equityGoal, cashflowGoal, portfolio (for add/remove).
 - Supported \`change\` params: \`purchasePrice\`, \`state\`, \`lvr\`, \`loanProduct\`, \`growthAssumption\`, \`rentPerWeek\`, \`interestRate\`, \`entity\`, \`ioTermYears\`, \`engagementFee\`, \`propertyManagementPercent\`, \`valuationAtPurchase\`, \`saleYear\`. To cancel a planned sale ("hold it again", "don't sell property 2"), set \`saleYear: null\`.
+- **Existing-portfolio corrections** (via update_profile's \`existingPortfolio\`): include ONLY the properties being corrected, and for each include the identifying \`address\` (when on file) plus ONLY the fields that changed — rows are MERGED into the portfolio on file (matched by address, else by order), never replaced, so omitted fields keep their current values. Ownership goes in \`entity\` ("Personal" = \`individual\`); NEVER put an ownership word in \`loanType\` — loanType is strictly IO or PI. When the plan state lists per-property existing holdings, corrections MUST be sent as \`existingPortfolio\` rows — the aggregate \`existingPropertyDebt\`/\`existingPropertyEquity\` fields are IGNORED by the engine once per-property rows exist.
 - Adding properties: include ONLY new properties in the properties array.
 - For "add" with a clear type/price/state: use modify_plan. For vague "add another": use suggest_properties.
 

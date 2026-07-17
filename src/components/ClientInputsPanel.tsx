@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { CalculatorIcon, Settings2 } from 'lucide-react'
+import { CalculatorIcon, Info, Settings2 } from 'lucide-react'
 import { useInvestmentProfile } from '../hooks/useInvestmentProfile'
+import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext'
+import { useLayout } from '@/contexts/LayoutContext'
 import { BorrowingCalculatorModal } from './BorrowingCalculatorModal'
 import { AdvancedSettingsModal } from './AdvancedSettingsModal'
 import { Switch } from '@/components/ui/switch'
@@ -106,6 +108,42 @@ const SliderField: React.FC<SliderFieldProps> = ({
   )
 }
 
+// Read-only variant of SliderField for values derived from the per-property
+// Portfolio tab - the engine ignores the profile aggregates once per-property
+// rows exist, so editing here would be a dead control.
+const DerivedField: React.FC<{
+  label: string
+  value: number
+  tooltip: string
+  onJump: () => void
+}> = ({ label, value, tooltip, onJump }) => (
+  <div className="bg-white rounded-lg border border-gray-200 px-2.5 py-1.5">
+    <div className="flex justify-between items-center">
+      <span className="text-[9px] uppercase font-semibold text-gray-500 tracking-wide flex items-center gap-1">
+        {label}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info size={10} className="text-gray-400" />
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-[200px] text-xs">
+            {tooltip}
+          </TooltipContent>
+        </Tooltip>
+      </span>
+      <span className="text-xs font-bold text-gray-900">
+        {formatValue(value, true)}
+      </span>
+    </div>
+    <button
+      type="button"
+      onClick={onJump}
+      className="mt-0.5 text-[8px] text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none p-0 cursor-pointer"
+    >
+      Edit per property in Portfolio
+    </button>
+  </div>
+)
+
 export const ClientInputsPanel: React.FC = () => {
   const { 
     profile, 
@@ -116,6 +154,16 @@ export const ClientInputsPanel: React.FC = () => {
   
   const [isCalcOpen, setIsCalcOpen] = useState(false)
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
+
+  // Once per-property rows exist in the Portfolio tab, every engine reads those
+  // and ignores the profile aggregates (the next sync overwrites them) - render
+  // the aggregates read-only and point the BA at the per-property editor.
+  const existingProperties = useExistingPropertiesSafe()
+  const { setDashboardTab } = useLayout()
+  const hasPortfolioRows = existingProperties.length > 0
+  const derivedPortfolioValue = existingProperties.reduce((s, ep) => s + (ep.currentValue || 0), 0)
+  const derivedCurrentDebt = existingProperties.reduce((s, ep) => s + (ep.loan || 0), 0)
+  const jumpToPortfolio = () => setDashboardTab('portfolio')
 
   return (
     <TooltipProvider>
@@ -229,28 +277,46 @@ export const ClientInputsPanel: React.FC = () => {
         </h3>
         <div className="flex flex-col gap-1.5">
           {/* Current Portfolio Value */}
-          <SliderField
-            label="Current Value"
-            value={profile.portfolioValue}
-            onChange={(val) => updateProfile({ portfolioValue: val })}
-            min={0}
-            max={5000000}
-            step={50000}
-            minLabel="$0"
-            maxLabel="$5M"
-          />
+          {hasPortfolioRows ? (
+            <DerivedField
+              label="Current Value"
+              value={derivedPortfolioValue}
+              tooltip="Calculated from the existing portfolio - the sum of each property's current value."
+              onJump={jumpToPortfolio}
+            />
+          ) : (
+            <SliderField
+              label="Current Value"
+              value={profile.portfolioValue}
+              onChange={(val) => updateProfile({ portfolioValue: val })}
+              min={0}
+              max={5000000}
+              step={50000}
+              minLabel="$0"
+              maxLabel="$5M"
+            />
+          )}
 
           {/* Current Debt */}
-          <SliderField
-            label="Current Debt"
-            value={profile.currentDebt}
-            onChange={(val) => updateProfile({ currentDebt: val })}
-            min={0}
-            max={4000000}
-            step={50000}
-            minLabel="$0"
-            maxLabel="$4M"
-          />
+          {hasPortfolioRows ? (
+            <DerivedField
+              label="Current Debt"
+              value={derivedCurrentDebt}
+              tooltip="Calculated from the existing portfolio - the sum of each property's loan balance."
+              onJump={jumpToPortfolio}
+            />
+          ) : (
+            <SliderField
+              label="Current Debt"
+              value={profile.currentDebt}
+              onChange={(val) => updateProfile({ currentDebt: val })}
+              min={0}
+              max={4000000}
+              step={50000}
+              minLabel="$0"
+              maxLabel="$4M"
+            />
+          )}
 
           {/* Use Existing Equity Toggle */}
           <div className="bg-white rounded-lg border border-gray-200 px-2.5 py-2 flex items-center justify-between">

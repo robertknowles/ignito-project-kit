@@ -47,3 +47,17 @@ Value, loan balance, weekly rent, and the usable-equity row come through correct
 | 7 | projectionEngine boughtYear growth-basis bug | S, needs a suite re-run |
 
 Full detail per finding lives in this audit's source traces (session 17 Jul). Suggested order: 1 → 2 → 3 (data integrity), then 5 (chat quality), then 4/6/7.
+
+---
+
+## STATUS: ALL 7 FIXED — 17 Jul 2026, nl-parse redeployed (v76)
+
+1. ✅ `entity` on existing-portfolio schema (create_plan + update_profile), mapper passthrough, `loanType` sanitised to IO/PI with entity-word rescue ("trust" in loanType → entity trust, loanType IO).
+2. ✅ Onboarding form now writes real `ExistingProperty[]` rows into the scenario (`submittedPortfolioMapper.ts`); the BA "Add client details" path seeds a scenario row so the Portfolio tab hydrates before the AI ever runs. State/address honestly blank, not fabricated. Client re-submissions never clobber BA-curated rows.
+3. ✅ Chat corrections now MERGE into the portfolio on file (match by address, else order; only AI-supplied fields overwrite; unmatched rows kept) — Portfolio-tab edits survive chat turns. `saleYear`/`allowEquityRelease` now travel in the chat payload so the AI can echo them. Prompt instructs partial-row corrections + aggregate-fields-are-ignored warning.
+4. ✅ Client Inputs portfolio value/debt/rent rows render read-only derived values with an (i) jump-link to the Portfolio tab whenever per-property rows exist (both ClientInputsTab and the legacy panel).
+5. ✅ Engine now emits `existingOnlyCashflow` per year (after-tax, incl. NG benefit); ChatPanel sends the full per-year after-tax series (whole-plan + existing-only) in `enginePlanState.cashflowByYear`; the prompt renders it as a cite-verbatim table with hard guardrails (never invent opex/tax; never claim it can run the engine). James's "year three" question is now answerable with the engine's real number.
+6. ✅ Brief honesty: bought-year display default = current year (matches what saves); existing-property Entity control offers all four structures (dropdown — four segments don't fit); junk loanType displays as IO instead of an unselected control.
+7. ✅ `projectionEngine` existing-property value growth now compounds from BASE_YEAR, not boughtYear (currentValue is today's value; the old basis double-counted past growth).
+
+Verification: build clean; engine suite unchanged at 10/23 PASS with zero regressions (incl. both existing-portfolio cases); live AI runs pass on the existing-portfolio cases with the new payload + merge; no new lint errors on touched files. Note for the planned-property side: the brief's planned-property Entity control still only offers Individual/Trust (out of scope here).

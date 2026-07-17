@@ -49,6 +49,12 @@ import { useClient, type Client } from '@/contexts/ClientContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
+import type { Json } from '@/integrations/supabase/types'
+import type { ExistingProperty } from '@/types/existingProperty'
+import {
+  mapSubmittedToExistingProperties,
+  type SubmittedPortfolioRow,
+} from '@/utils/submittedPortfolioMapper'
 import { toast } from 'sonner'
 
 const PENDING_PROMPT_KEY = 'proppath:pending-prompt'
@@ -198,6 +204,14 @@ export const NewClientView: React.FC = () => {
   }, [strategyProfiles])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Structured existing-portfolio rows picked via "Add client details". The
+  // same rows are rendered as prose in the chat box (buildPropertyLines);
+  // this ref keeps the REAL store shape so launchScenario can seed them into
+  // the new client's scenario row — without this the Portfolio tab starts
+  // empty and the AI has to re-extract everything from the prose. Order must
+  // stay identical to the prose lines (confirmation-brief merge matches
+  // rows by index when addresses are empty).
+  const pendingPortfolioRowsRef = useRef<ExistingProperty[]>([])
   const resetAssumptionsRef = useRef<() => void>(() => {})
   const auroraMouseRef = useRef<HTMLDivElement>(null)
 
@@ -395,6 +409,16 @@ export const NewClientView: React.FC = () => {
       const inputs = submittedInputsByClient[client.id]
       if (!inputs) return
       pasteIntoPrompt(buildFactFindText(client.name, inputs))
+      // Keep the structured rows alongside the prose (appended in the same
+      // order as the pasted property lines) so launchScenario can seed the
+      // real Existing Portfolio store instead of relying on AI re-extraction.
+      const raw = inputs.existingProperties
+      if (Array.isArray(raw) && raw.length > 0) {
+        pendingPortfolioRowsRef.current = [
+          ...pendingPortfolioRowsRef.current,
+          ...mapSubmittedToExistingProperties(raw as SubmittedPortfolioRow[]),
+        ]
+      }
       setDetailsModalOpen(false)
       setClientSearch('')
       toast.success(`Added ${client.name || 'client'}'s details to the chat`)
@@ -459,6 +483,38 @@ export const NewClientView: React.FC = () => {
           toast.error('Could not create a client to run this scenario against')
           setSubmitting(false)
           return
+        }
+
+        // Seed the new client's scenario row with the structured portfolio
+        // rows picked via "Add client details", BEFORE activating the client:
+        // ScenarioSaveContext's load then finds data.existingProperties and
+        // hydrates the Existing Portfolio store (the no-scenario path would
+        // otherwise reset it to []). The prose in the prompt still carries the
+        // same rows in the same order for the AI; the confirmation-brief merge
+        // matches them back by index. Skipped if the BA removed the portfolio
+        // block from the prompt. Failure is non-fatal - the prose path still
+        // works exactly as before.
+        const seedRows = pendingPortfolioRowsRef.current
+        if (seedRows.length > 0 && trimmed.includes('Current portfolio')) {
+          const seedData = {
+            // Load path calls Object.entries(propertySelections) - must exist.
+            propertySelections: {},
+            existingProperties: seedRows,
+            lastSaved: new Date().toISOString(),
+          } as unknown as Json
+          const seedPayload = {
+            client_id: created.id,
+            name: `${created.name}'s Scenario`,
+            client_display_name: created.name || 'Client',
+            data: seedData,
+            // Explicit 0 so the optimistic-concurrency check in saveScenario
+            // (loadedVersion vs DB version) matches on the first update.
+            version: 0,
+          }
+          const { error: seedError } = await supabase.from('scenarios').insert(seedPayload)
+          if (seedError) {
+            console.warn('Could not seed existing portfolio rows for new scenario', seedError)
+          }
         }
 
         setActiveClient(created)

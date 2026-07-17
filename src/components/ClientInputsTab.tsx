@@ -1,8 +1,11 @@
 import React, { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { ChartCard } from './ui/ChartCard'
+import { InfoPopover } from './RetirementScenario/InfoPopover'
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
 import type { InvestmentProfileData } from '@/hooks/useInvestmentProfile'
+import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext'
+import { useLayout } from '@/contexts/LayoutContext'
 import { track, EVENTS } from '@/lib/analytics'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
 import type { EventCategory, EventType } from '@/contexts/PropertySelectionContext'
@@ -26,9 +29,13 @@ const KVRow: React.FC<{
   label: string
   value: string | number
   bold?: boolean
-}> = ({ label, value, bold }) => (
+  /** (i) popover for read-only rows whose value is set elsewhere. */
+  info?: React.ReactNode
+}> = ({ label, value, bold, info }) => (
   <tr className={`border-b border-[#F2F2F2] last:border-b-0 ${bold ? 'bg-[#FAFAFA]' : ''}`}>
-    <td className={`py-[10px] pl-[18px] pr-3 text-[13px] ${bold ? 'font-semibold' : 'font-normal'} text-[#535862] whitespace-nowrap`}>{label}</td>
+    <td className={`py-[10px] pl-[18px] pr-3 text-[13px] ${bold ? 'font-semibold' : 'font-normal'} text-[#535862] whitespace-nowrap`}>
+      <span className="flex items-center">{label}{info}</span>
+    </td>
     <td className={`py-[10px] pr-[18px] pl-3 text-[13px] text-right ${bold ? 'font-semibold' : 'font-normal'} text-[#181D27]`}>{value}</td>
   </tr>
 )
@@ -150,6 +157,8 @@ const LVR_STRATEGY_OPTIONS = [
 export const ClientInputsTab: React.FC = () => {
   const { profile, calculatedValues } = useInvestmentProfile()
   const { eventBlocks, removeEvent } = usePropertySelection()
+  const existingProperties = useExistingPropertiesSafe()
+  const { setDashboardTab } = useLayout()
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [eventCategory, setEventCategory] = useState<EventCategory>('income')
   const [eventInitialType, setEventInitialType] = useState<EventType | undefined>(undefined)
@@ -191,6 +200,23 @@ export const ClientInputsTab: React.FC = () => {
     targetPassiveIncome: profile.targetPassiveIncome ?? 80000,
   }
 
+  // When per-property rows exist in the Portfolio tab, the engine reads those
+  // and ignores the profile aggregates (the next sync overwrites them too) -
+  // so show the derived totals read-only instead of a dead editor.
+  const hasPortfolioRows = existingProperties.length > 0
+  const derivedPortfolioValue = existingProperties.reduce((s, ep) => s + (ep.currentValue || 0), 0)
+  const derivedCurrentDebt = existingProperties.reduce((s, ep) => s + (ep.loan || 0), 0)
+  const derivedAnnualRent = existingProperties.reduce((s, ep) => s + (ep.rentPerWeek || 0) * 52, 0)
+
+  const portfolioInfo = (title: string, calc: string) => (
+    <InfoPopover
+      iconSize={13}
+      title={title}
+      body={[`Calculated from the existing portfolio - the ${calc}.`]}
+      action={{ label: 'Edit per property in Portfolio', onClick: () => setDashboardTab('portfolio') }}
+    />
+  )
+
   return (
     <div className="grid grid-cols-2 gap-4 items-start">
       {/* Client Details */}
@@ -201,9 +227,19 @@ export const ClientInputsTab: React.FC = () => {
             <EditableNumRow label="Borrowing capacity ($)" value={p.borrowingCapacity} field="borrowingCapacity" prefix="$" />
             <EditableNumRow label="Base salary ($)" value={p.baseSalary} field="baseSalary" prefix="$" />
             <EditableNumRow label="Annual savings ($)" value={p.annualSavings} field="annualSavings" prefix="$" />
-            <EditableNumRow label="Portfolio value ($)" value={p.portfolioValue} field="portfolioValue" prefix="$" />
-            <EditableNumRow label="Current debt ($)" value={p.currentDebt} field="currentDebt" prefix="$" />
-            <EditableNumRow label="Existing rent ($/yr)" value={p.existingAnnualRent} field="existingAnnualRent" prefix="$" />
+            {hasPortfolioRows ? (
+              <>
+                <KVRow label="Portfolio value ($)" value={`$${fmtNum(derivedPortfolioValue)}`} info={portfolioInfo('Portfolio value', "sum of each property's current value")} />
+                <KVRow label="Current debt ($)" value={`$${fmtNum(derivedCurrentDebt)}`} info={portfolioInfo('Current debt', "sum of each property's loan balance")} />
+                <KVRow label="Existing rent ($/yr)" value={`$${fmtNum(derivedAnnualRent)}`} info={portfolioInfo('Existing rent', "weekly rent of each property × 52")} />
+              </>
+            ) : (
+              <>
+                <EditableNumRow label="Portfolio value ($)" value={p.portfolioValue} field="portfolioValue" prefix="$" />
+                <EditableNumRow label="Current debt ($)" value={p.currentDebt} field="currentDebt" prefix="$" />
+                <EditableNumRow label="Existing rent ($/yr)" value={p.existingAnnualRent} field="existingAnnualRent" prefix="$" />
+              </>
+            )}
             <KVRow label="Usable equity ($)" value={`$${fmtNum(calculatedValues?.currentUsableEquity ?? 0)}`} bold />
             <EditableNumRow label="Timeline (yrs)" value={p.timelineYears} field="timelineYears" />
             <EditableNumRow label="Equity goal ($)" value={p.equityGoal} field="equityGoal" prefix="$" />

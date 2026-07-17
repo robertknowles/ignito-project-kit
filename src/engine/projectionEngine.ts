@@ -78,6 +78,13 @@ export interface CashflowDataPoint {
   rentalIncome: number;
   expenses: number;
   loanRepayments: number;
+  /**
+   * After-tax net cashflow of the EXISTING portfolio alone (pre-tax net +
+   * its NG benefit). Undefined when the client has no existing properties.
+   * Added so the chatbot can answer existing-portfolio cashflow questions
+   * from engine numbers instead of inventing them (portfolio audit, claim 2).
+   */
+  existingOnlyCashflow?: number;
   highlight?: boolean;
 }
 
@@ -479,7 +486,13 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
       existingProperties.forEach(ep => {
         if (ep.saleYear && ep.saleYear > 0 && year >= ep.saleYear) return;
         const yearsFromPurchase = Math.max(0, year - (ep.boughtYear || BASE_YEAR));
-        const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsFromPurchase);
+        // Growth basis is BASE_YEAR, not boughtYear: currentValue is TODAY's
+        // value, so compounding from the purchase year applied years of growth
+        // that already happened — entering a real bought year inflated the
+        // projection (portfolio audit §4). Matches the sale-proceeds block
+        // below and affordabilityEngine. boughtYear still drives amortisation.
+        const yearsFromNow = Math.max(0, year - BASE_YEAR);
+        const grownValue = ep.currentValue * Math.pow(1 + existingGrowthRate, yearsFromNow);
         epPortfolioValue += grownValue;
 
         // Amortise existing loans (from useChartDataGenerator - more correct)
@@ -646,6 +659,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
     let accLandTax = 0;
 
     // Existing property cashflow
+    let existingOnlyCashflow = 0;
     existingProperties.forEach(ep => {
       if (ep.saleYear && year >= ep.saleYear) return;
       const epInstance = convertExistingToInstance(ep, profile.interestRate ?? DEFAULT_INTEREST_RATE);
@@ -687,6 +701,7 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         marginalRate: profile.marginalTaxRate ?? 0.45,
       });
       totalNgBenefit += epNg.ngBenefit;
+      existingOnlyCashflow += adjustedIncome - propTotalExpenses - breakdown.loanInterest + epNg.ngBenefit;
 
       accCouncilRatesWater += adjustedCouncil;
       accStrataFees += adjustedStrata;
@@ -1045,6 +1060,9 @@ export function computeProjection(inputs: ProjectionEngineInputs): PortfolioProj
         rentalIncome: Math.round(totalRentalIncome),
         expenses: Math.round(totalExpenses),
         loanRepayments: Math.round(totalLoanPayments),
+        existingOnlyCashflow: existingProperties.length > 0
+          ? Math.round(existingOnlyCashflow)
+          : undefined,
         highlight: totalCashflow >= 0 && year === startYear + Math.floor(profile.timelineYears / 2),
       });
     }

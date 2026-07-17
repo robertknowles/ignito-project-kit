@@ -1,14 +1,14 @@
 {
   "mode": "live-ai",
   "model": "claude-sonnet-4-6",
-  "timestamp": "2026-07-17T06:07:14.563Z",
-  "apiCalls": 2,
-  "inputTokens": 1316,
-  "outputTokens": 1898,
-  "cacheWriteTokens": 21678,
-  "cacheReadTokens": 0,
-  "pass": 14,
-  "fail": 9,
+  "timestamp": "2026-07-17T16:24:44.196Z",
+  "apiCalls": 4,
+  "inputTokens": 2004,
+  "outputTokens": 4818,
+  "cacheWriteTokens": 32472,
+  "cacheReadTokens": 10824,
+  "pass": 13,
+  "fail": 10,
   "expectedFail": 0,
   "results": [
     {
@@ -709,18 +709,18 @@
       "source": "fixture",
       "archetype": "julian · $100k passive goal, 1 existing property, $750k BC, couple on $300k",
       "brief": "$100,000 passive income, already own 1 property worth 600,000 with yearly costs of 20,000 and current borrowing capacity of $750,000. [follow-up] 70% LVR, couple earning 300k household, 250k cash, saving 2500/month",
-      "verdict": "PASS",
+      "verdict": "FAIL",
       "checks": [
         {
           "name": "trust-usage",
           "pass": true,
-          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 4",
+          "detail": "capacity is tight — expected ≥1 trust-held property, plan has 3",
           "cause": "plan-selection"
         },
         {
           "name": "profile-cashflowGoal",
-          "pass": true,
-          "detail": "profile.cashflowGoal = 100000 vs stated 100000",
+          "pass": false,
+          "detail": "profile.cashflowGoal = 50000 vs stated 100000",
           "cause": "extraction"
         },
         {
@@ -738,68 +738,67 @@
         {
           "name": "cashflow-goal",
           "pass": true,
-          "detail": "$100,000/yr net cashflow reached 2042 vs stated by 2045",
+          "detail": "$100,000/yr net cashflow reached 2045 vs stated by 2045",
           "cause": "engine-goal"
         }
       ],
-      "failReasons": [],
+      "failReasons": [
+        "[extraction] profile-cashflowGoal: profile.cashflowGoal = 50000 vs stated 100000"
+      ],
       "placement": [
         {
-          "instanceId": "regional-house-cashflow_instance_0",
+          "instanceId": "regional-house-growth_instance_0",
+          "year": 2026,
+          "status": "feasible",
+          "cost": 620000,
+          "entity": "individual"
+        },
+        {
+          "instanceId": "regional-house-growth_instance_1",
           "year": 2027,
           "status": "feasible",
-          "cost": 500000,
+          "cost": 620000,
           "entity": "trust"
         },
         {
-          "instanceId": "regional-unit-cashflow_instance_0",
+          "instanceId": "metro-unit-growth_instance_0",
           "year": 2029,
           "status": "feasible",
-          "cost": 380000,
+          "cost": 580000,
           "entity": "trust"
         },
         {
-          "instanceId": "regional-house-cashflow_instance_1",
-          "year": 2031,
+          "instanceId": "regional-unit-growth_instance_0",
+          "year": 2035,
           "status": "feasible",
-          "cost": 500000,
-          "entity": "trust"
-        },
-        {
-          "instanceId": "regional-unit-cashflow_instance_1",
-          "year": 2033,
-          "status": "feasible",
-          "cost": 380000,
+          "cost": 430000,
           "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2030,
-        "incomeGoalYear": 2042
+        "equityGoalYear": 2028,
+        "incomeGoalYear": 2039
       },
       "turnLog": [
         {
           "user": "$100,000 passive income, already own 1 property worth 600,000 with yearly costs of 20,000 and have a current borrowing capacity of $750,000",
-          "toolName": "create_plan",
-          "effectiveType": "initial_plan",
-          "message": "Built a 4-property plan, priced from $380k to $500k. Modelled at 80% LVR with IO loans, biased toward cashflow, low price point. Properties 2, 3, 4 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share income and savings. See the dashboard for the engine's exact projection.\nNote: property 1 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.\nNote: property 1 was moved from 2025 to 2026 — the deposit isn't available until then.\nNote: property 2 was moved from 2026 to 2028 — the deposit isn't available until then.\nNote: property 3 was moved from 2027 to 2030 — the deposit isn't available until then.\nNote: property 4 was moved from 2028 to 2032 — the deposit isn't available until then.",
-          "applied": true,
-          "warnings": [],
-          "autoFixChanges": [
-            "Changed from individual to trust to reduce borrowing capacity impact",
-            "Moved from 2025 to 2026 to allow savings to accumulate",
-            "Moved from 2026 to 2028 to allow savings to accumulate",
-            "Moved from 2027 to 2030 to allow savings to accumulate",
-            "Moved from 2028 to 2032 to allow savings to accumulate"
-          ]
+          "toolName": "respond",
+          "effectiveType": "explanation",
+          "message": "A few quick details before I build the plan:\n\n- **Income** — what does the client earn annually? (one person or a couple?)\n- **Monthly savings** — how much are they putting aside each month?\n- **Current deposit** — how much cash do they have available outside of the property?\n- **Existing property loan** — what's the outstanding mortgage on the $600k property?\n\nThose four will let me model a solid plan straight away.",
+          "applied": false,
+          "warnings": []
         },
         {
           "user": "1. 70% LVR, couple earning 300k household, we have 250k cash, we're saving 2500 per month",
-          "toolName": "update_profile",
-          "effectiveType": "update_profile",
-          "message": "Updated income to $300k, annual savings to $30k ($2.5k/month), deposit pool to $250k, borrowing capacity to $750k, existing portfolio (1 property). The dashboard reflects the new numbers.",
+          "toolName": "create_plan",
+          "effectiveType": "initial_plan",
+          "message": "The $100k/yr income goal looks tight — the model estimates around $88k/yr by 2046, about $12k/yr short. Built a 4-property plan for Partner 1 & Partner 2, priced from $430k to $620k. Modelled at 70% LVR with IO loans, biased toward equity growth, low price point. Properties 2, 3, 4 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. Default 20-year horizon applied. For tighter numbers, share existing property details.\n\nSee the dashboard for the engine's exact projection.\nNote: property 3 was moved from 2027 to 2028 — the client's borrowing capacity doesn't cover it until then.\nNote: property 4 was moved from 2028 to 2034 — the deposit isn't available until then.",
           "applied": true,
-          "warnings": []
+          "warnings": [],
+          "autoFixChanges": [
+            "Moved from 2027 to 2028 to allow capacity to grow",
+            "Moved from 2028 to 2034 to allow savings to accumulate"
+          ]
         }
       ]
     },
@@ -901,7 +900,7 @@
         {
           "name": "property[0]-placed-by",
           "pass": true,
-          "detail": "regional-house-growth places 2027 vs expected by 2027",
+          "detail": "regional-house-growth places 2026 vs expected by 2027",
           "cause": "engine-placement"
         },
         {
@@ -915,14 +914,14 @@
       "placement": [
         {
           "instanceId": "regional-house-growth_instance_0",
-          "year": 2027,
+          "year": 2026,
           "status": "feasible",
           "cost": 450000,
-          "entity": "individual"
+          "entity": "trust"
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2036,
+        "equityGoalYear": null,
         "incomeGoalYear": null
       },
       "turnLog": [
@@ -930,9 +929,12 @@
           "user": "Client earns $80k, owns an investment unit worth $500k with $300k owing, rents $420/week. Only $20k cash but happy to use the equity. Wants one more growth property around $450k within the next two years.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 1-property plan, priced at $450k. Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. For tighter numbers, share borrowing capacity. See the dashboard for the engine's exact projection.",
+          "message": "Built a 1-property plan, priced at $450k. Modelled at 80% LVR with IO loans, biased toward equity growth, low price point. For tighter numbers, share borrowing capacity. See the dashboard for the engine's exact projection.\nNote: property 1 was placed in a trust — buying it as an individual exceeded the client's borrowing capacity.",
           "applied": true,
-          "warnings": []
+          "warnings": [],
+          "autoFixChanges": [
+            "Changed from individual to trust to reduce borrowing capacity impact"
+          ]
         }
       ]
     },
@@ -1350,7 +1352,7 @@
         {
           "name": "transition-visible",
           "pass": true,
-          "detail": "growth phase places 2026-2027, yield phase 2033-2034 — visible transition",
+          "detail": "growth phase places 2026-2028, yield phase 2030-2032 — visible transition",
           "cause": "engine-placement"
         },
         {
@@ -1362,7 +1364,7 @@
         {
           "name": "cashflow-goal",
           "pass": true,
-          "detail": "$100,000/yr net cashflow reached 2043 vs stated by 2045",
+          "detail": "$100,000/yr net cashflow reached 2042 vs stated by 2045",
           "cause": "engine-goal"
         }
       ],
@@ -1377,43 +1379,43 @@
         },
         {
           "instanceId": "metro-unit-growth_instance_0",
-          "year": 2026,
+          "year": 2027,
           "status": "feasible",
           "cost": 580000,
           "entity": "trust"
         },
         {
           "instanceId": "regional-house-growth_instance_1",
-          "year": 2027,
+          "year": 2028,
           "status": "feasible",
           "cost": 650000,
           "entity": "trust"
         },
         {
-          "instanceId": "regional-house-cashflow_instance_0",
-          "year": 2033,
+          "instanceId": "regional-unit-cashflow_instance_0",
+          "year": 2030,
           "status": "feasible",
-          "cost": 520000,
+          "cost": 420000,
           "entity": "trust"
         },
         {
-          "instanceId": "regional-unit-cashflow_instance_0",
-          "year": 2034,
+          "instanceId": "regional-house-cashflow_instance_0",
+          "year": 2032,
           "status": "feasible",
-          "cost": 400000,
+          "cost": 520000,
           "entity": "trust"
         }
       ],
       "goalYears": {
         "equityGoalYear": 2029,
-        "incomeGoalYear": 2043
+        "incomeGoalYear": 2038
       },
       "turnLog": [
         {
           "user": "Clients earn $250k, own an IP worth $700k with a $450k loan renting $600/wk. $150k cash, $6k/month savings, BC $1.8m. Growth now, cash flow later — want $100k passive by 2045, happy to release equity along the way.",
           "toolName": "create_plan",
           "effectiveType": "initial_plan",
-          "message": "Built a 5-property plan, priced from $400k to $650k. Modelled at 80% LVR with IO loans, biased toward growth to cash flow. Properties 2, 3, 4, 5 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. See the dashboard for the engine's exact projection.",
+          "message": "Built a 5-property plan, priced from $420k to $650k. Modelled at 80% LVR with IO loans, biased toward growth to cash flow. Properties 2, 3, 4, 5 held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases. See the dashboard for the engine's exact projection.",
           "applied": true,
           "warnings": []
         }

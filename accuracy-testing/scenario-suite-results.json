@@ -1,6 +1,6 @@
 {
   "mode": "engine-only",
-  "timestamp": "2026-07-17T06:06:09.133Z",
+  "timestamp": "2026-07-17T16:23:18.467Z",
   "pass": 10,
   "fail": 13,
   "expectedFail": 0,
@@ -258,7 +258,7 @@
         {
           "name": "equity-goal",
           "pass": true,
-          "detail": "$3,000,000 equity reached 2040 vs stated by 2045",
+          "detail": "$3,000,000 equity reached 2041 vs stated by 2045",
           "cause": "engine-goal"
         },
         {
@@ -274,7 +274,7 @@
       ],
       "placement": [],
       "goalYears": {
-        "equityGoalYear": 2040,
+        "equityGoalYear": 2041,
         "incomeGoalYear": null
       },
       "notes": [
@@ -321,7 +321,7 @@
         {
           "name": "equity-goal",
           "pass": true,
-          "detail": "$1,000,000 equity reached 2031 vs stated by 2046",
+          "detail": "$1,000,000 equity reached 2032 vs stated by 2046",
           "cause": "engine-goal"
         }
       ],
@@ -348,7 +348,7 @@
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2031,
+        "equityGoalYear": 2032,
         "incomeGoalYear": null
       },
       "notes": [
@@ -707,7 +707,7 @@
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2028,
+        "equityGoalYear": 2031,
         "incomeGoalYear": null
       }
     },
@@ -1094,7 +1094,7 @@
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2030,
+        "equityGoalYear": 2031,
         "incomeGoalYear": 2042
       }
     },
@@ -1243,7 +1243,7 @@
         }
       ],
       "goalYears": {
-        "equityGoalYear": 2027,
+        "equityGoalYear": 2029,
         "incomeGoalYear": 2035
       }
     },

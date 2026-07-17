@@ -62,7 +62,7 @@ import { runPlanPreCheck, autoFixPlan } from '../src/engine/planPreCheck';
 import {
   mapToInvestmentProfile,
   mapToPropertySelections,
-  mapToExistingProperties,
+  mergeExistingProperties,
   mapUpdateProfileToUpdates,
   forceRefinanceOn,
 } from '../src/utils/nlDataMapper';
@@ -401,6 +401,16 @@ function buildCurrentPlan(
       equityGoalReachedYear: equityGoalReachedPoint
         ? parseInt(equityGoalReachedPoint.year, 10)
         : null,
+      // ChatPanel parity: per-year after-tax series incl. existing-only line.
+      cashflowByYear: cashflowSeries
+        .filter((d) => parseInt(d.year, 10) <= horizonYear)
+        .map((d) => ({
+          year: parseInt(d.year, 10),
+          cashflow: Math.round(d.cashflow ?? 0),
+          existingOnlyCashflow: d.existingOnlyCashflow !== undefined
+            ? Math.round(d.existingOnlyCashflow)
+            : undefined,
+        })),
     };
   }
 
@@ -431,6 +441,22 @@ function buildCurrentPlan(
       };
     }),
     clientNames,
+    existingProperties: (scenario.existingProperties ?? []).map((ep) => ({
+      address: ep.address,
+      state: ep.state,
+      boughtYear: ep.boughtYear,
+      purchasePrice: ep.purchasePrice,
+      currentValue: ep.currentValue,
+      loan: ep.loan,
+      equity: (ep.currentValue ?? 0) - (ep.loan ?? 0),
+      rentPerWeek: ep.rentPerWeek,
+      interestRate: ep.interestRate,
+      loanType: ep.loanType,
+      growthAssumption: ep.growthAssumption,
+      entity: ep.entity,
+      saleYear: ep.saleYear ?? null,
+      allowEquityRelease: ep.allowEquityRelease,
+    })),
     enginePlanState,
   };
 }
@@ -581,7 +607,7 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
           };
         }
 
-        const existingProps = mapToExistingProperties(finalResponse);
+        const existingProps = mergeExistingProperties(scenario.existingProperties ?? [], finalResponse);
         if (existingProps) {
           const totalDebt = existingProps.reduce((s2, p) => s2 + (p.loan || 0), 0);
           const totalValue = existingProps.reduce((s2, p) => s2 + (p.currentValue || 0), 0);
@@ -651,7 +677,7 @@ async function runSession(client: Anthropic, s: SuiteScenario): Promise<SessionR
           };
           entry.applied = true;
         }
-        const existingProps = mapToExistingProperties(response);
+        const existingProps = mergeExistingProperties(scenario.existingProperties ?? [], response);
         if (existingProps) {
           const totalDebt = existingProps.reduce((s2, p) => s2 + (p.loan || 0), 0);
           const totalValue = existingProps.reduce((s2, p) => s2 + (p.currentValue || 0), 0);

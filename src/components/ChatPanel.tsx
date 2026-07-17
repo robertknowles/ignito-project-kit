@@ -23,7 +23,7 @@ import { usePropertyInstance } from '@/contexts/PropertyInstanceContext'
 import {
   mapToInvestmentProfile,
   mapToPropertySelections,
-  mapToExistingProperties,
+  mergeExistingProperties,
   mapModificationToUpdates,
   mapUpdateProfileToUpdates,
   forceRefinanceOn,
@@ -312,6 +312,18 @@ export const ChatPanel: React.FC = () => {
         equityGoalReachedYear: equityGoalReachedPoint
           ? parseInt(equityGoalReachedPoint.year, 10)
           : null,
+        // Per-year after-tax series (portfolio audit, claim 2): without these
+        // the AI invented opex/tax numbers for any year-N cashflow question.
+        // Same arrays the dashboard chart reads, so citations match on-screen.
+        cashflowByYear: cashflowSeries
+          .filter((d) => parseInt(d.year, 10) <= horizonYear)
+          .map((d) => ({
+            year: parseInt(d.year, 10),
+            cashflow: Math.round(d.cashflow ?? 0),
+            existingOnlyCashflow: d.existingOnlyCashflow !== undefined
+              ? Math.round(d.existingOnlyCashflow)
+              : undefined,
+          })),
       }
     }
 
@@ -354,6 +366,10 @@ export const ChatPanel: React.FC = () => {
         loanType: ep.loanType,
         growthAssumption: ep.growthAssumption,
         entity: ep.entity,
+        // Without these the AI can't echo them back, so a chat correction
+        // used to wipe sale plans and refinance toggles (portfolio audit).
+        saleYear: ep.saleYear ?? null,
+        allowEquityRelease: ep.allowEquityRelease,
       })),
       clientNames: clientNamesRef.current,
       enginePlanState,
@@ -455,7 +471,10 @@ export const ChatPanel: React.FC = () => {
         setInstances(newInstances)
       }
 
-      const existingProps = mapToExistingProperties(response)
+      // MERGE into the current list - a plain replace re-defaulted every field
+      // the AI didn't echo (entity, growth, costs, overrides, sale plans) and
+      // wiped Portfolio-tab edits on a single chat turn (portfolio audit).
+      const existingProps = mergeExistingProperties(existingProperties, response)
       if (existingProps) {
         setExistingProperties(existingProps)
         const totalDebt = existingProps.reduce((s, p) => s + (p.loan || 0), 0)
@@ -467,7 +486,7 @@ export const ChatPanel: React.FC = () => {
       setPendingPlanResponse(null)
       flushSaveAfterStateUpdate()
     },
-    [updateProfile, setAllSelections, setInstances, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent, activeClient, updateClient]
+    [updateProfile, setAllSelections, setInstances, existingProperties, setExistingProperties, flushSaveAfterStateUpdate, setPendingPlanResponse, profile.lvrStrategy, profile.lvrStrategyCustomPercent, activeClient, updateClient]
   )
 
   // Expose confirmPlan to the confirmation screen via LayoutContext ref
@@ -757,7 +776,10 @@ export const ChatPanel: React.FC = () => {
       if (Object.keys(profileUpdates).length > 0) {
         updateProfile(profileUpdates)
       }
-      const existingProps = mapToExistingProperties(response)
+      // MERGE into the current list - a plain replace re-defaulted every field
+      // the AI didn't echo (entity, growth, costs, overrides, sale plans) and
+      // wiped Portfolio-tab edits on a single chat turn (portfolio audit).
+      const existingProps = mergeExistingProperties(existingProperties, response)
       if (existingProps) {
         setExistingProperties(existingProps)
         const totalDebt = existingProps.reduce((s, p) => s + (p.loan || 0), 0)
@@ -767,7 +789,7 @@ export const ChatPanel: React.FC = () => {
       }
       flushSaveAfterStateUpdate()
     },
-    [updateProfile, setExistingProperties, flushSaveAfterStateUpdate]
+    [updateProfile, existingProperties, setExistingProperties, flushSaveAfterStateUpdate]
   )
 
   // Handle explanation - highlight relevant period on the chart

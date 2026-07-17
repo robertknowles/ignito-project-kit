@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { mapSubmittedToExistingProperties } from '@/utils/submittedPortfolioMapper';
 
 interface BrandingData {
   companyName: string;
@@ -439,8 +440,23 @@ setError('Failed to load onboarding form');
 
       // Merge the new investment profile with existing data
       const existingData = (currentScenario?.data as any) || {};
+
+      // Existing-portfolio fix #2: the per-property rows must ALSO land in the
+      // real store key the Portfolio tab / engines / scenario load read
+      // (data.existingProperties) — not only the display-only snapshot below.
+      // Guard: never clobber rows the agent has already curated in the
+      // Portfolio tab (sale years, overrides, photos would be lost); the
+      // verbatim clientSubmittedInputs snapshot still records the fresh
+      // answers either way.
+      const hasCuratedRows =
+        Array.isArray(existingData.existingProperties) &&
+        existingData.existingProperties.length > 0;
+
       const updatedData = {
         ...existingData,
+        ...(!hasCuratedRows && properties.length > 0
+          ? { existingProperties: mapSubmittedToExistingProperties(properties) }
+          : {}),
         investmentProfile: {
           ...existingData.investmentProfile,
           ...formData,

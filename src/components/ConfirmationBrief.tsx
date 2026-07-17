@@ -520,7 +520,9 @@ interface ExistingBlockProps {
 }
 
 const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, onFieldChange, onRemove, delay }) => {
-  const boughtYear = property.boughtYear ?? 2020;
+  // Display default must match the mapper's save default (current year) - the
+  // BA approves what they see, so what's shown has to be what's saved.
+  const boughtYear = property.boughtYear ?? new Date().getFullYear();
 
   const fieldLabel = (text: string) => (
     <div style={{ fontFamily: UUI.font, fontSize: 10, color: UUI.neutral400, marginBottom: 4 }} className="flex items-center">{text}</div>
@@ -566,7 +568,20 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
       <div className="grid grid-cols-2 gap-2">
         <div>
           {fieldLabel('Entity')}
-          <Segmented options={[{ value: 'individual', label: 'Individual' }, { value: 'trust', label: 'Trust' }]} value={(property as any).entity ?? 'individual'} onChange={v => onFieldChange('entity', v)} />
+          {/* All four ownership entities, matching the planned-property editors
+              (BLOCK_ENTITY_OPTIONS / PortfolioTab). Four segments don't fit in
+              this half-width column, so use the block's Dropdown idiom (same as
+              State beside it). */}
+          <Dropdown
+            value={(property as any).entity ?? 'individual'}
+            options={[
+              { value: 'individual', label: 'Individual' },
+              { value: 'trust', label: 'Trust' },
+              { value: 'company', label: 'Company' },
+              { value: 'smsf', label: 'SMSF' },
+            ]}
+            onChange={v => onFieldChange('entity', v)}
+          />
         </div>
         <div>
           {fieldLabel('State')}
@@ -582,7 +597,10 @@ const ExistingBlock: React.FC<ExistingBlockProps> = ({ index, total, property, o
         </div>
         <div>
           {fieldLabel('Loan type')}
-          <Segmented options={[{ value: 'IO', label: 'IO' }, { value: 'PI', label: 'P&I' }]} value={property.loanType ?? 'IO'} onChange={v => onFieldChange('loanType', v)} />
+          {/* The AI has been seen emitting entity words ("trust"/"SMSF") in this
+              field - anything that isn't IO/PI displays as IO rather than an
+              unselected control. */}
+          <Segmented options={[{ value: 'IO', label: 'IO' }, { value: 'PI', label: 'P&I' }]} value={property.loanType === 'PI' ? 'PI' : 'IO'} onChange={v => onFieldChange('loanType', v)} />
         </div>
       </div>
 
