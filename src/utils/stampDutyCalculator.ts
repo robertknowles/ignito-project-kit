@@ -91,8 +91,9 @@ function calculateStampDutyTAS(price: number): number {
 
 function calculateStampDutyNT(price: number): number {
   if (price <= 525000) {
+    // NT TRO formula for dutiable value <= $525,000: D = 0.06571441*V^2 + 15*V, V = value in $000s
     const v = price / 1000;
-    return v * v * 0.06571441 * 0.06571441 * 15;
+    return 0.06571441 * v * v + 15 * v;
   }
   if (price <= 3000000) return price * 0.0495;
   if (price <= 5000000) return price * 0.0575;
