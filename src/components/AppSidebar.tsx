@@ -197,11 +197,11 @@ export const AppSidebar: React.FC = () => {
             className="group/toggle relative w-8 h-8 flex items-center justify-center rounded-md bg-transparent border-none cursor-pointer hover:bg-[#F5F5F5] transition duration-100"
           >
             <img
-              src={branding.logoUrl || '/images/proppath-icon.png'}
+              src={branding.logoUrl || '/images/proppath-icon.svg'}
               alt={branding.companyName || 'PropPath'}
               className="h-7 w-7 rounded-md object-contain transition-opacity duration-100 group-hover/toggle:opacity-0"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/proppath-icon.png';
+                (e.target as HTMLImageElement).src = '/images/proppath-icon.svg';
               }}
             />
             <PanelLeftIcon
@@ -216,11 +216,11 @@ export const AppSidebar: React.FC = () => {
               className="flex items-center gap-2.5 min-w-0 cursor-pointer bg-transparent border-none p-0"
             >
               <img
-                src={branding.logoUrl || '/images/proppath-icon.png'}
+                src={branding.logoUrl || '/images/proppath-icon.svg'}
                 alt={branding.companyName || 'PropPath'}
                 className="h-7 w-auto max-w-[28px] rounded-md object-contain shrink-0"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/images/proppath-icon.png';
+                  (e.target as HTMLImageElement).src = '/images/proppath-icon.svg';
                 }}
               />
               <span className="text-[16px] font-semibold text-[#181D27] tracking-[-0.01em] truncate">

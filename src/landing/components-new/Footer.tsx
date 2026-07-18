@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-16 md:mb-20">
             <div className="col-span-2">
               <div className="flex items-center gap-2.5 font-semibold text-[15px] tracking-tight text-gray-900 mb-6">
-                <img src="/images/proppath-icon.png" alt="PropPath" className="w-6 h-6 rounded" />
+                <img src="/images/proppath-icon.svg" alt="PropPath" className="w-6 h-6 rounded" />
                 PropPath
               </div>
               <p className="text-[14px] text-gray-500 max-w-[220px] leading-relaxed">
