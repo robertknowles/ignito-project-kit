@@ -75,7 +75,7 @@ export function buildCreatePlanMessage(data: CreatePlanData): string {
   const lvrs = [...new Set(data.properties.map(p => p.lvr))];
   const lvrStr = lvrs.length === 1 ? `${lvrs[0]}%` : `${Math.min(...lvrs)}-${Math.max(...lvrs)}%`;
   const hasLmi = data.properties.some(p => p.lmiCapitalized);
-  const lmiNote = hasLmi ? ' with LMI capitalised' : '';
+  const lmiNote = hasLmi ? ' with **LMI capitalised**' : '';
 
   // Loan type
   const loanTypes = [...new Set(data.properties.map(p => p.loanProduct))];
@@ -87,15 +87,15 @@ export function buildCreatePlanMessage(data: CreatePlanData): string {
   // Timeline
   const timelineNote = data.investmentProfile.timelineYearsExplicit
     ? ''
-    : ` Default 20-year horizon applied.`;
+    : ` Default **20-year horizon** applied.`;
 
   // Trust entities
   const trustProps = data.properties.filter(p => p.entity === 'trust');
   const trustNote = trustProps.length > 0
-    ? ` Properties ${data.properties.map((p, i) => p.entity === 'trust' ? i + 1 : null).filter(Boolean).join(', ')} held in trusts to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases.`
+    ? ` Properties ${data.properties.map((p, i) => p.entity === 'trust' ? i + 1 : null).filter(Boolean).join(', ')} **held in trusts** to fit within borrowing capacity — trust structures reduce serviceability impact so the engine can place all purchases.`
     : '';
 
-  let msg = `Built a ${count}-property plan${nameStr}, priced ${priceRange}. Modelled at ${lvrStr} LVR${lmiNote} with ${loanStr} loans, biased toward ${presetStr}.${trustNote}${timelineNote}`;
+  let msg = `Built a **${count}-property plan**${nameStr}, priced **${priceRange}**. Modelled at **${lvrStr} LVR**${lmiNote} with **${loanStr} loans**, biased toward **${presetStr}**.${trustNote}${timelineNote}`;
 
   // Missing inputs nudge
   if (data.missingInputs && data.missingInputs.length > 0) {
@@ -132,11 +132,11 @@ function describeModification(mod: ModificationEntry, currentPlan?: Record<strin
 
   if (action === 'remove') {
     const propNum = target.replace('property-', '');
-    return `Removed property ${propNum} from the plan.`;
+    return `**Removed property ${propNum}** from the plan.`;
   }
 
   if (action === 'add' && target === 'portfolio') {
-    return 'Added a new property to the plan.';
+    return '**Added a new property** to the plan.';
   }
 
   if (action === 'change') {
@@ -144,12 +144,12 @@ function describeModification(mod: ModificationEntry, currentPlan?: Record<strin
     if (target.startsWith('property-')) {
       const propNum = target.replace('property-', '');
       const changes: string[] = [];
-      if (params.purchasePrice !== undefined) changes.push(`price to ${formatDollars(params.purchasePrice as number)}`);
-      if (params.lvr !== undefined) changes.push(`LVR to ${params.lvr}%`);
-      if (params.loanProduct !== undefined) changes.push(`loan type to ${params.loanProduct}`);
-      if (params.growthAssumption !== undefined) changes.push(`growth to ${params.growthAssumption}`);
-      if (params.rentPerWeek !== undefined) changes.push(`rent to $${params.rentPerWeek}/week`);
-      if (params.interestRate !== undefined) changes.push(`interest rate to ${params.interestRate}%`);
+      if (params.purchasePrice !== undefined) changes.push(`price to **${formatDollars(params.purchasePrice as number)}**`);
+      if (params.lvr !== undefined) changes.push(`LVR to **${params.lvr}%**`);
+      if (params.loanProduct !== undefined) changes.push(`loan type to **${params.loanProduct}**`);
+      if (params.growthAssumption !== undefined) changes.push(`growth to **${params.growthAssumption}**`);
+      if (params.rentPerWeek !== undefined) changes.push(`rent to **$${params.rentPerWeek}/week**`);
+      if (params.interestRate !== undefined) changes.push(`interest rate to **${params.interestRate}%**`);
       return `Property ${propNum} updated: ${changes.join(', ')}.`;
     }
 
@@ -164,14 +164,14 @@ function describeModification(mod: ModificationEntry, currentPlan?: Record<strin
     const label = fieldLabels[target] || target;
     const value = Object.values(params)[0];
     if (typeof value === 'number') {
-      return `${label} updated to ${target === 'timeline' ? `${value} years` : formatDollars(value)}.`;
+      return `${label} updated to **${target === 'timeline' ? `${value} years` : formatDollars(value)}**.`;
     }
     return `${label} updated.`;
   }
 
   if (action === 'move' && target.startsWith('property-')) {
     const propNum = target.replace('property-', '');
-    return `Property ${propNum} timing adjusted.`;
+    return `Property ${propNum} **timing adjusted**.`;
   }
 
   return `Updated ${target}.`;
@@ -207,16 +207,16 @@ export function buildUpdateProfileMessage(updates: ProfileUpdates): string {
   const parts: string[] = [];
 
   const fieldLabels: Record<string, (v: number) => string> = {
-    baseSalary: (v) => `income to ${formatDollars(v)}`,
-    annualSavings: (v) => `annual savings to ${formatDollars(v)} (${formatDollars(v / 12)}/month)`,
-    depositPool: (v) => `deposit pool to ${formatDollars(v)}`,
-    borrowingCapacity: (v) => `borrowing capacity to ${formatDollars(v)}`,
-    equityGoal: (v) => `equity target to ${formatDollars(v)}`,
-    cashflowGoal: (v) => `cashflow target to ${formatDollars(v)}/year`,
-    timelineYears: (v) => `timeline to ${v} years`,
-    existingPropertyDebt: (v) => `existing debt to ${formatDollars(v)}`,
-    existingPropertyEquity: (v) => `existing equity to ${formatDollars(v)}`,
-    targetPassiveIncome: (v) => `target passive income to ${formatDollars(v)}/year`,
+    baseSalary: (v) => `income to **${formatDollars(v)}**`,
+    annualSavings: (v) => `annual savings to **${formatDollars(v)}** (${formatDollars(v / 12)}/month)`,
+    depositPool: (v) => `deposit pool to **${formatDollars(v)}**`,
+    borrowingCapacity: (v) => `borrowing capacity to **${formatDollars(v)}**`,
+    equityGoal: (v) => `equity target to **${formatDollars(v)}**`,
+    cashflowGoal: (v) => `cashflow target to **${formatDollars(v)}/year**`,
+    timelineYears: (v) => `timeline to **${v} years**`,
+    existingPropertyDebt: (v) => `existing debt to **${formatDollars(v)}**`,
+    existingPropertyEquity: (v) => `existing equity to **${formatDollars(v)}**`,
+    targetPassiveIncome: (v) => `target passive income to **${formatDollars(v)}/year**`,
   };
 
   for (const [key, formatter] of Object.entries(fieldLabels)) {
@@ -248,14 +248,14 @@ export function buildAddEventMessage(event: EventData): string {
     const rate = event.parameters.newRate;
     const propIdx = event.parameters.propertyIndex;
     const propNum = typeof propIdx === 'number' ? propIdx + 1 : '?';
-    return `Added refinance event for property ${propNum} in ${event.targetYear}${rate ? ` at ${rate}%` : ''}. The dashboard shows the projected impact.`;
+    return `Added **refinance event** for property ${propNum} in **${event.targetYear}**${rate ? ` at **${rate}%**` : ''}. The dashboard shows the projected impact.`;
   }
 
   if (event.eventType === 'salary_change') {
     const salary = event.parameters.newSalary;
     const member = event.parameters.member || 'primary';
-    return `Added salary change to ${typeof salary === 'number' ? formatDollars(salary) : 'new amount'} for ${member} earner in ${event.targetYear}. The dashboard shows the projected impact.`;
+    return `Added **salary change** to ${typeof salary === 'number' ? `**${formatDollars(salary)}**` : 'new amount'} for ${member} earner in **${event.targetYear}**. The dashboard shows the projected impact.`;
   }
 
-  return `Added ${event.eventType} event in ${event.targetYear}. The dashboard shows the projected impact.`;
+  return `Added **${event.eventType} event** in **${event.targetYear}**. The dashboard shows the projected impact.`;
 }

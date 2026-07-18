@@ -255,14 +255,23 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
       // timers (1500/2500ms). Without this floor, users only ever see the
       // loader on a cold first call. 600ms is enough to register visually
       // without feeling sluggish on genuinely fast responses.
+      //
+      // Removal and answer-append happen in ONE state update: the loading
+      // steps must stay visible right up until the reply renders. Removing
+      // early left a blank gap while slower branches (e.g. the explanation
+      // follow-up call below) were still working - users read the empty
+      // screen as a glitch (founder report 2026-07-18).
       const loadingStartedAt = Date.now()
       const MIN_LOADING_MS = 600
-      const removeLoading = async () => {
+      const finishLoading = async (msg?: ChatMessage) => {
         const elapsed = Date.now() - loadingStartedAt
         if (elapsed < MIN_LOADING_MS) {
           await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed))
         }
-        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id))
+        setMessages((prev) => {
+          const rest = prev.filter((m) => m.id !== loadingMsg.id)
+          return msg ? [...rest, msg] : rest
+        })
       }
 
       try {
@@ -424,8 +433,9 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           response.message = filterComplianceLanguage(response.message)
         }
 
-        // Remove loading indicator (respects minimum-display floor)
-        await removeLoading()
+        // NOTE: the loading indicator is NOT removed here - each branch below
+        // swaps it for its reply via finishLoading(msg), so the steps hold
+        // until the answer is actually on screen.
 
         // The pipeline classifier handles intent routing server-side.
         // Minimal client-side guards remain for edge cases:
@@ -465,7 +475,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
             // Show AI narrative as plain text
             const planMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, planMsg])
+            await finishLoading(planMsg)
 
             track(EVENTS.planGenerated, {
               property_count: Array.isArray(response.properties) ? response.properties.length : undefined,
@@ -475,7 +485,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
           case 'modification': {
             const modMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, modMsg])
+            await finishLoading(modMsg)
             optionsRef.current.onModification?.(response)
             break
           }
@@ -526,7 +536,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
                   const explMsg = createMessage('assistant', 'text', explResponse.message, {
                     assumptions: explResponse.assumptions,
                   })
-                  setMessages((prev) => [...prev, explMsg])
+                  await finishLoading(explMsg)
 
                   optionsRef.current.onExplanation?.(explResponse)
                   break
@@ -544,42 +554,42 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
               ? "To start a new client, clear the current plan first using the Reset button."
               : response.message
             const explMsg = createMessage('assistant', 'text', fallbackText)
-            setMessages((prev) => [...prev, explMsg])
+            await finishLoading(explMsg)
             if (!wasDowngraded) optionsRef.current.onExplanation?.(response)
             break
           }
 
           case 'comparison': {
             const compMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, compMsg])
+            await finishLoading(compMsg)
             optionsRef.current.onComparison?.(response)
             break
           }
 
           case 'add_event': {
             const eventMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, eventMsg])
+            await finishLoading(eventMsg)
             optionsRef.current.onAddEvent?.(response)
             break
           }
 
           case 'update_profile': {
             const updateMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, updateMsg])
+            await finishLoading(updateMsg)
             optionsRef.current.onUpdateProfile?.(response)
             break
           }
 
           case 'property_suggestions': {
             const suggestMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, suggestMsg])
+            await finishLoading(suggestMsg)
             break
           }
 
           default: {
             // Fallback - just show the message
             const fallbackMsg = createMessage('assistant', 'text', response.message)
-            setMessages((prev) => [...prev, fallbackMsg])
+            await finishLoading(fallbackMsg)
           }
         }
 
@@ -595,9 +605,6 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
         ]
 
       } catch (err) {
-        // Remove loading indicator (respects minimum-display floor)
-        await removeLoading()
-
         // Map error types to friendly messages
         const errCode = err instanceof Error ? err.message : ''
         let friendlyMessage: string
@@ -615,8 +622,10 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             friendlyMessage = 'Didn\'t go through - try sending that again.'
         }
 
+        // Swap the loading indicator for the error in one update (respects
+        // the minimum-display floor).
         const errorMsg = createMessage('assistant', 'text', friendlyMessage)
-        setMessages((prev) => [...prev, errorMsg])
+        await finishLoading(errorMsg)
 
         console.error('[nl-parse] error after retries:', errCode, err)
       } finally {
