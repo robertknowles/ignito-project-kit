@@ -111,6 +111,22 @@ Deno.serve(async (req: Request) => {
         const { data: list } = await admin.auth.admin.listUsers();
         const existing = list?.users?.find((u) => u.email?.toLowerCase() === body.email.toLowerCase());
         if (existing) {
+          // Guard: only reuse the account if it is actually a CLIENT login.
+          // An owner/agent (or legacy account with no profile row) must never
+          // be wired up as a portal client — that emails a staff magic link
+          // and would link the scenario to a staff user id. This is exactly
+          // what happened when an owner entered their own email (2026-07-18).
+          const { data: existingProfile } = await admin
+            .from('profiles')
+            .select('role')
+            .eq('id', existing.id)
+            .maybeSingle();
+          if (existingProfile?.role !== 'client') {
+            return json({
+              ok: false,
+              error: 'That email belongs to a PropPath owner/agent login. Enter the client\'s own email address instead.',
+            }, 400);
+          }
           userId = existing.id;
           alreadyExisted = true;
         } else {

@@ -75,10 +75,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  // Check role restrictions - redirect unauthorized roles appropriately
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
+  // Check role restrictions - redirect unauthorized roles appropriately.
+  // Legacy staff accounts (pre-profiles era) have no role row - treat them as
+  // 'owner' so they keep dashboard access. Crucially this makes the check fail
+  // CLOSED on client-only routes: a null-role user can no longer slip into
+  // /portal (which previously rendered a broken empty portal shell for owners
+  // who clicked their own magic link).
+  const effectiveRole = role ?? 'owner';
+  if (allowedRoles && !allowedRoles.includes(effectiveRole)) {
     // Clients go to portal, agents/owners go to home
-    const fallback = role === 'client' ? '/portal' : '/dashboard';
+    const fallback = effectiveRole === 'client' ? '/portal' : '/dashboard';
     return <Navigate to={fallback} replace />;
   }
 
