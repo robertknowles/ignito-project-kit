@@ -751,23 +751,6 @@ export const Dashboard = () => {
               const futureEquity = kpis.totalEquity;
               const futurePortfolio = kpis.portfolioValue;
 
-              // Projected outcomes at the goal-target year (fall back to horizon KPIs).
-              const growthAtTarget = growth.find(g => Number(g.year) === ph.targetYear);
-              const cashflowAtTarget = cf.find(c => Number(c.year) === ph.targetYear);
-              const equityAtTarget = growthAtTarget?.equity ?? kpis.totalEquity;
-              const netCashflowAtTarget = cashflowAtTarget?.cashflow ?? kpis.netCashflowAnnual;
-
-              // Quantified goal gaps - when the plan never meets a goal the
-              // header must say by how much, not just hint with the "+".
-              const cashflowShortfall =
-                !ph.goalMet && ph.cashflowGoal > 0 && netCashflowAtTarget < ph.cashflowGoal
-                  ? ph.cashflowGoal - netCashflowAtTarget
-                  : 0;
-              const equityShortfall =
-                !ph.goalMet && ph.equityGoal > 0 && equityAtTarget < ph.equityGoal
-                  ? ph.equityGoal - equityAtTarget
-                  : 0;
-
               const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
               // Live progress bars: how far each current value has come toward
               // its projected "In {year}" figure. Negative current reads blank.
@@ -846,20 +829,6 @@ export const Dashboard = () => {
                         <path d="M31 14 L33 5.5 L35.5 10 L39.5 12 Z" fill="#6455D6" />
                       </svg>
                     </div>
-                    {(cashflowShortfall > 0 || equityShortfall > 0) && (
-                      <div style={{ fontSize: 13, color: '#D92D20', marginTop: 10, maxWidth: 240, lineHeight: 1.45 }}>
-                        {cashflowShortfall > 0 && (
-                          <div>
-                            Income projected <span style={{ fontWeight: 600 }}>{formatMoney(netCashflowAtTarget)}/yr</span> by {ph.targetYear} — {formatMoney(cashflowShortfall)}/yr short
-                          </div>
-                        )}
-                        {equityShortfall > 0 && (
-                          <div>
-                            Equity projected <span style={{ fontWeight: 600 }}>{formatMoney(equityAtTarget)}</span> by {ph.targetYear} — {formatMoney(equityShortfall)} short
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* ── Metric cards ── */}
