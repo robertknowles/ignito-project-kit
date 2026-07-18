@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal, Share2 } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -9,6 +9,7 @@ import { useAffordabilityCalculator } from '@/hooks/useAffordabilityCalculator';
 import { useTabDwellTracking } from '@/hooks/useInteractionTracking';
 import { usePropertySelection } from '@/contexts/PropertySelectionContext';
 import { useClient } from '@/contexts/ClientContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { PropertyCardRow } from './PropertyCardRow';
 import { CustomBlockModal, type CustomPropertyBlock } from './CustomBlockModal';
 import { track, EVENTS } from '@/lib/analytics';
@@ -29,7 +30,7 @@ import { ClientInputsTab } from './ClientInputsTab';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { InfoPopover } from './RetirementScenario/InfoPopover';
 import { useLayout } from '@/contexts/LayoutContext';
-import { TopBar } from './TopBar';
+import { ClientPortalModal } from './ClientPortalModal';
 import { ReportExportRenderer } from './export/ReportExportRenderer';
 import { ConfirmationBrief } from './ConfirmationBrief';
 import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
@@ -269,6 +270,11 @@ export const Dashboard = () => {
   const { planGenerating, pendingPlanResponse } = useLayout();
   const { propertyOrder: livePropertyOrder, eventBlocks, addCustomBlock, incrementProperty } = usePropertySelection();
   const { activeClient } = useClient();
+  const { role } = useAuth();
+
+  // Client-portal mode. Clients see the plan exactly as the agent built it -
+  // read-only - and may only edit their Existing Portfolio tab.
+  const isClient = role === 'client';
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
     const isActive = scenario.id === activeScenarioId;
@@ -355,6 +361,7 @@ export const Dashboard = () => {
   // Kebab (⋯) actions menu in the navbar: holds Assumptions, Export PDF and
   // Send to Client. Closes on outside click or Escape.
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!actionsMenuOpen) return;
@@ -635,13 +642,15 @@ export const Dashboard = () => {
               </button>
               {actionsMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
-                  <button
-                    onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
-                  >
-                    <SlidersHorizontalIcon size={15} className="text-[#717680]" />
-                    Assumptions
-                  </button>
+                  {!isClient && (
+                    <button
+                      onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                    >
+                      <SlidersHorizontalIcon size={15} className="text-[#717680]" />
+                      Assumptions
+                    </button>
+                  )}
                   <button
                     onClick={() => { if (!isExporting) setIsExporting(true); setActionsMenuOpen(false); }}
                     disabled={isExporting}
@@ -651,7 +660,15 @@ export const Dashboard = () => {
                     Export PDF
                     <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
                   </button>
-                  <TopBar variant="menuItem" onAction={() => setActionsMenuOpen(false)} />
+                  {!isClient && (
+                    <button
+                      onClick={() => { setShareOpen(true); setActionsMenuOpen(false); }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                    >
+                      <Share2 size={15} className="text-[#717680]" />
+                      Set up Client Portal
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -659,8 +676,16 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* ── Scroll content column (grey #FAFAFA page, white cards) ── */}
-      <div className="flex flex-col gap-6 mx-auto" style={{ padding: '24px 28px 80px 28px', width: '100%', minWidth: 500 }}>
+      {/* ── Scroll content column (grey #FAFAFA page, white cards) ──
+           In client-portal mode every tab except Existing Portfolio is
+           read-only: pointer-events-none blocks edits/inputs while leaving the
+           page scrollable (the scroller is an ancestor). Navigation controls
+           that must stay live (the plan sub-tab bar) re-enable themselves with
+           pointer-events-auto. */}
+      <div
+        className={`flex flex-col gap-6 mx-auto ${isClient && activeTab !== 'portfolio' ? 'pointer-events-none select-none' : ''}`}
+        style={{ padding: '24px 28px 80px 28px', width: '100%', minWidth: 500 }}
+      >
         {/* ── Assumptions modal overlay ── */}
         {assumptionsOpen && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAssumptionsOpen(false)}>
@@ -696,7 +721,7 @@ export const Dashboard = () => {
 
         {/* ── Plan sub-tabs (Equity | Cashflow | Projections) ── */}
         {activeTab === 'plan' && (
-          <div className="flex items-center -mt-3">
+          <div className="flex items-center -mt-3 pointer-events-auto">
             <div className="flex items-center gap-1.5 bg-[#F2F2F3] p-[3px] rounded-[9px]">
               <SubTabItem
                 icon={<ListIcon size={15} />}
@@ -1074,6 +1099,7 @@ export const Dashboard = () => {
       />
     </div>
     <ReportExportRenderer active={isExporting} onDone={() => setIsExporting(false)} />
+    <ClientPortalModal open={shareOpen} onOpenChange={setShareOpen} />
     <ChangeLogPanel />
     </div>
     </ChangeReceiptProvider>

@@ -163,14 +163,16 @@ export const AppSidebar: React.FC = () => {
     }
   };
 
-  const onDashboard = location.pathname === '/dashboard';
+  // Clients live at /portal; owners/agents at /dashboard. "onDashboard" means
+  // "on the main plan view" for whichever role is signed in.
+  const onDashboard = location.pathname === (isClient ? '/portal' : '/dashboard');
   const pathActive = (path: string) => location.pathname === path;
 
   // While a chat/plan request is in flight, lock navigation away from the
   // active view (preserves the previous nav behaviour).
   const lock = (active: boolean) => isChatRequestInFlight && !active;
 
-  const goDashboard = () => { setDashboardTab('plan'); navigate('/dashboard'); };
+  const goDashboard = () => { setDashboardTab('plan'); navigate(isClient ? '/portal' : '/dashboard'); };
   const startNewScenario = () => { setActiveClient(null); setDashboardTab('plan'); navigate('/dashboard'); };
 
   return (
@@ -289,16 +291,18 @@ export const AppSidebar: React.FC = () => {
             />
           </div>
         )}
-        <div className="py-px">
-          <NavItemButton
-            icon={WrenchIcon}
-            label="Toolkit"
-            collapsed={collapsed}
-            active={pathActive('/toolkit')}
-            disabled={lock(pathActive('/toolkit'))}
-            onClick={() => navigate('/toolkit')}
-          />
-        </div>
+        {!isClient && (
+          <div className="py-px">
+            <NavItemButton
+              icon={WrenchIcon}
+              label="Toolkit"
+              collapsed={collapsed}
+              active={pathActive('/toolkit')}
+              disabled={lock(pathActive('/toolkit'))}
+              onClick={() => navigate('/toolkit')}
+            />
+          </div>
+        )}
         {!isClient && (
           <div className="py-px">
             <NavItemButton
@@ -371,7 +375,7 @@ export const AppSidebar: React.FC = () => {
           {profileOpen && (
             <div className="absolute bottom-full left-0 mb-1 min-w-[180px] bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden z-[60]">
               <button
-                onClick={() => { setProfileOpen(false); navigate('/settings'); }}
+                onClick={() => { setProfileOpen(false); navigate(isClient ? '/portal/profile' : '/settings'); }}
                 className="flex items-center gap-2 w-full px-3.5 py-2.5 bg-transparent hover:bg-neutral-50 border-none cursor-pointer text-sm text-neutral-700 transition duration-100 text-left"
               >
                 <SettingsIcon size={16} className="text-neutral-400" />
