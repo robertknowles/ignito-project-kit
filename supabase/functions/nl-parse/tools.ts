@@ -384,6 +384,42 @@ export const RESPOND_TOOL = {
   },
 } as const;
 
+// ── web_search (server tool — Anthropic executes it) ───────────────
+// Research assistant only: results are surfaced as reference info via the
+// respond tool and are NEVER applied to the model (see "Live Web Research"
+// in the prompt). Restricted to official Australian sources so answers stay
+// defensible; max 3 searches per turn caps cost (~1c/search + result tokens).
+// Only attached on chat turns — index.ts omits it for remodel requests.
+
+export const WEB_SEARCH_TOOL = {
+  type: 'web_search_20250305' as const,
+  name: 'web_search' as const,
+  max_uses: 3,
+  allowed_domains: [
+    'ato.gov.au',
+    'treasury.gov.au',
+    'budget.gov.au',
+    'legislation.gov.au',
+    'aph.gov.au',
+    'rba.gov.au',
+    'abs.gov.au',
+    'apra.gov.au',
+    'revenue.nsw.gov.au',
+    'sro.vic.gov.au',
+    'qro.qld.gov.au',
+    'revenuesa.sa.gov.au',
+    'revenue.act.gov.au',
+    'sro.tas.gov.au',
+    'wa.gov.au',
+    'nt.gov.au',
+  ],
+  user_location: {
+    type: 'approximate' as const,
+    country: 'AU',
+    timezone: 'Australia/Sydney',
+  },
+} as const;
+
 // ── All tools + tool choice ────────────────────────────────────────
 
 export const ALL_TOOLS = [

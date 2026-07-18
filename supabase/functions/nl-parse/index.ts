@@ -19,7 +19,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
  */
 
 import { buildSystemPrompt } from "./prompt.ts";
-import { ALL_TOOLS, TOOL_CHOICE, toolToResponseType } from "./tools.ts";
+import { ALL_TOOLS, WEB_SEARCH_TOOL, TOOL_CHOICE, toolToResponseType } from "./tools.ts";
 import { buildCreatePlanMessage, buildModifyPlanMessage, buildUpdateProfileMessage, buildAddEventMessage } from "./templates.ts";
 import { validateCreatePlan, validateModifyPlan, validateUpdateProfile, validateAddEvent } from "./validation.ts";
 import { computeFeasibility, injectFeasibilityDescriptor, computeStatedPriceFundingNote, injectFundingNote } from "./feasibility.ts";
@@ -85,8 +85,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build conversation messages
-    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    // Build conversation messages. Content is a string for normal turns, but
+    // pause_turn continuations append the assistant's content BLOCKS verbatim
+    // (required so the server can resume an in-flight web search).
+    const messages: Array<{ role: 'user' | 'assistant'; content: string | unknown[] }> = [];
     if (conversationHistory && Array.isArray(conversationHistory)) {
       for (const msg of conversationHistory) {
         if (msg.role === 'user' || msg.role === 'assistant') {
@@ -106,25 +108,53 @@ Deno.serve(async (req: Request) => {
       requestContext === 'remodel' ? 'remodel' : 'chat',
     );
 
-    console.info(`nl-parse: calling Anthropic (${messages.length} messages, prompt ${systemPrompt.length} chars, ${ALL_TOOLS.length} tools)`);
+    // Web search is a research-only affordance for conversational turns.
+    // Remodel turns are plan-editing — no search tool there, so searched
+    // content can never even reach a remodel response.
+    const tools = requestContext === 'remodel'
+      ? (ALL_TOOLS as any)
+      : ([...ALL_TOOLS, WEB_SEARCH_TOOL] as any);
+
+    console.info(`nl-parse: calling Anthropic (${messages.length} messages, prompt ${systemPrompt.length} chars, ${tools.length} tools)`);
+
+    const requestParams = {
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      temperature: 0,
+      system: [
+        {
+          type: 'text' as const,
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' as const },
+        },
+      ],
+      tools,
+      tool_choice: TOOL_CHOICE as any,
+    };
 
     let response;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let webSearchCount = 0;
     try {
-      response = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        temperature: 0,
-        system: [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages,
-        tools: ALL_TOOLS as any,
-        tool_choice: TOOL_CHOICE as any,
-      });
+      response = await client.messages.create({ ...requestParams, messages: messages as any });
+      inputTokens += response.usage?.input_tokens ?? 0;
+      outputTokens += response.usage?.output_tokens ?? 0;
+      webSearchCount += (response.usage as any)?.server_tool_use?.web_search_requests ?? 0;
+
+      // Long search turns can pause server-side (stop_reason "pause_turn").
+      // Continue by re-sending with the assistant content appended, capped so
+      // a wedged turn can't loop forever.
+      let continuations = 0;
+      while (response.stop_reason === ('pause_turn' as any) && continuations < 3) {
+        continuations++;
+        console.info(`nl-parse: pause_turn — continuing (${continuations}/3)`);
+        messages.push({ role: 'assistant', content: response.content as unknown[] });
+        response = await client.messages.create({ ...requestParams, messages: messages as any });
+        inputTokens += response.usage?.input_tokens ?? 0;
+        outputTokens += response.usage?.output_tokens ?? 0;
+        webSearchCount += (response.usage as any)?.server_tool_use?.web_search_requests ?? 0;
+      }
     } catch (apiErr: unknown) {
       const msg = apiErr instanceof Error ? apiErr.message : String(apiErr);
       console.error(`nl-parse: Anthropic API error: ${msg}`);
@@ -134,10 +164,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Track token usage
-    const inputTokens = response.usage?.input_tokens ?? 0;
-    const outputTokens = response.usage?.output_tokens ?? 0;
-    console.info(`nl-parse: Anthropic responded, stop_reason=${response.stop_reason}, usage=${JSON.stringify({ input: inputTokens, output: outputTokens })}`);
+    const webSearchUsed = webSearchCount > 0;
+    console.info(`nl-parse: Anthropic responded, stop_reason=${response.stop_reason}, usage=${JSON.stringify({ input: inputTokens, output: outputTokens, webSearches: webSearchCount })}`);
 
     if (userId) {
       logTokenUsage(userId, inputTokens, outputTokens);
@@ -338,7 +366,24 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.info(`nl-parse: returning type="${parsedResponse.type}", message length=${parsedResponse.message?.length || 0}`);
+    // Web-research hygiene: the search tool's citations can surface as <cite>
+    // tags in the message — the chat renders markdown only, so strip them.
+    // webSearchUsed is the audit trail; if the model searched AND picked a
+    // plan-mutating tool, note it (plan params must come from the BA — the
+    // prompt forbids searched figures in tool inputs; this logs the turn).
+    if (typeof parsedResponse.message === 'string') {
+      parsedResponse.message = parsedResponse.message.replace(/<\/?cite[^>]*>/g, '');
+    }
+    parsedResponse.webSearchUsed = webSearchUsed;
+    if (webSearchUsed && toolName !== 'respond') {
+      console.warn(`nl-parse: web search used on a "${toolName}" turn — verify no searched figures entered plan params`);
+      parsedResponse.assumptions = [
+        ...(parsedResponse.assumptions || []),
+        'Web research was consulted this turn — plan inputs reflect only figures stated in the brief/chat.',
+      ];
+    }
+
+    console.info(`nl-parse: returning type="${parsedResponse.type}", message length=${parsedResponse.message?.length || 0}, webSearchUsed=${webSearchUsed}`);
 
     return new Response(
       JSON.stringify(parsedResponse),
