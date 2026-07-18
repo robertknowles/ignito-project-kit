@@ -611,20 +611,20 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
 
   if (properties.length === 0) {
     return (
-      <div className="border border-[#E9EAEB] rounded-xl">
-        <div className="flex flex-col items-center justify-center py-16 px-6">
-          <div className="w-12 h-12 rounded-lg border border-[#E9EAEB] shadow-xs flex items-center justify-center mb-4">
-            <Home size={24} className="text-[#717680]" />
+      <div className="bg-white border border-dashed border-[#E9EAEB] rounded-xl w-full max-w-[320px] aspect-square">
+        <div className="flex flex-col items-center justify-center h-full py-16 px-6">
+          <div className="w-12 h-12 rounded-lg bg-[#F5F3FF] flex items-center justify-center mb-4">
+            <Home size={24} className="text-[#7C3AED]" />
           </div>
-          <h3 className="text-base font-semibold text-[#181D27] mb-1">
+          <h3 className="text-sm font-semibold text-[#181D27] mb-1">
             No existing properties
           </h3>
-          <p className="text-sm text-[#717680] text-center mb-6 max-w-xs">
+          <p className="text-[13px] text-[#717680] text-center mb-6 max-w-xs">
             Add your current properties to build a complete portfolio plan.
           </p>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-[#535862] hover:text-[#181D27] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 text-[13px] font-medium text-[#7C3AED] hover:text-[#6941C6] transition-colors"
           >
             <Plus size={16} />
             Add existing property

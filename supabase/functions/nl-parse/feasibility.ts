@@ -139,15 +139,15 @@ export function computeFeasibility(input: FeasibilityInput): FeasibilityResult |
     const goalFormatted = formatCurrency(equityGoal);
 
     if (ratio >= 1.1) {
-      descriptor = `the model projects a comfortable path to the ${goalFormatted} target`;
+      descriptor = `the model projects a **comfortable path to the ${goalFormatted} target**`;
     } else if (ratio >= 0.9) {
-      descriptor = `the model shows the plan clearing the ${goalFormatted} target`;
+      descriptor = `the model shows the plan **clearing the ${goalFormatted} target**`;
     } else if (ratio >= 0.8) {
-      descriptor = `reaching ${goalFormatted} is tight on this profile — the model lands close but not clear`;
+      descriptor = `reaching ${goalFormatted} is **tight on this profile** — the model lands **close but not clear**`;
     } else if (ratio >= 0.65) {
-      descriptor = `${goalFormatted} is a stretch on this profile — the model projects landing short`;
+      descriptor = `${goalFormatted} is a **stretch on this profile** — the model projects **landing short**`;
     } else {
-      descriptor = `${goalFormatted} isn't realistic on this profile based on the inputs`;
+      descriptor = `${goalFormatted} **isn't realistic on this profile** based on the inputs`;
     }
   }
 
@@ -225,23 +225,23 @@ function computeCashflowFeasibility(
   let descriptor: string;
   if (source === 'engine') {
     if (ratio >= 1.1) {
-      descriptor = `the engine projects ${projFmt}/yr net cashflow by ${year} — clear of the ${goalFmt}/yr income goal`;
+      descriptor = `the engine projects **${projFmt}/yr net cashflow by ${year}** — clear of the **${goalFmt}/yr income goal**`;
     } else if (ratio >= 0.9) {
-      descriptor = `the engine projects ${projFmt}/yr net cashflow by ${year}, on track for the ${goalFmt}/yr income goal`;
+      descriptor = `the engine projects **${projFmt}/yr net cashflow by ${year}**, on track for the **${goalFmt}/yr income goal**`;
     } else if (ratio >= 0.8) {
-      descriptor = `the ${goalFmt}/yr income goal is tight — the engine projects ${projFmt}/yr by ${year}, ${gapFmt}/yr short`;
+      descriptor = `the **${goalFmt}/yr income goal is tight** — the engine projects **${projFmt}/yr by ${year}**, **${gapFmt}/yr short**`;
     } else if (ratio >= 0.65) {
-      descriptor = `the ${goalFmt}/yr income goal comes up short — the engine projects ${projFmt}/yr by ${year}, ${gapFmt}/yr short`;
+      descriptor = `the **${goalFmt}/yr income goal comes up short** — the engine projects **${projFmt}/yr by ${year}**, **${gapFmt}/yr short**`;
     } else {
-      descriptor = `the ${goalFmt}/yr income goal isn't reached on this plan — the engine projects ${projFmt}/yr by ${year}, leaving a ${gapFmt}/yr gap`;
+      descriptor = `the **${goalFmt}/yr income goal isn't reached** on this plan — the engine projects **${projFmt}/yr by ${year}**, leaving a **${gapFmt}/yr gap**`;
     }
   } else {
     if (ratio >= 0.8) {
-      descriptor = `the ${goalFmt}/yr income goal looks tight — the model estimates around ${projFmt}/yr by ${year}, about ${gapFmt}/yr short`;
+      descriptor = `the **${goalFmt}/yr income goal looks tight** — the model estimates around **${projFmt}/yr by ${year}**, about **${gapFmt}/yr short**`;
     } else if (ratio >= 0.65) {
-      descriptor = `the ${goalFmt}/yr income goal comes up short — the model estimates around ${projFmt}/yr by ${year}, about ${gapFmt}/yr short`;
+      descriptor = `the **${goalFmt}/yr income goal comes up short** — the model estimates around **${projFmt}/yr by ${year}**, about **${gapFmt}/yr short**`;
     } else {
-      descriptor = `the ${goalFmt}/yr income goal isn't realistic on this plan — the model estimates around ${projFmt}/yr by ${year}, about ${gapFmt}/yr short`;
+      descriptor = `the **${goalFmt}/yr income goal isn't realistic** on this plan — the model estimates around **${projFmt}/yr by ${year}**, about **${gapFmt}/yr short**`;
     }
   }
 
@@ -315,7 +315,7 @@ export function computeStatedPriceFundingNote(input: FundingNoteInput): string |
   const funding = hasEarlier
     ? 'accumulated savings plus equity released from the earlier purchases'
     : 'accumulated savings';
-  return `Property ${hit.index + 1}'s stated ${formatCurrency(hit.price)} price needs roughly ${formatCurrency(hit.cash)} in cash for the deposit, duty and costs — beyond the ${formatCurrency(depositPool)} deposit pool and ${formatCurrency(annualSavings)}/yr savings near-term, so it is placed around ${year}, where ${funding} can fund it at the stated price. To bring it earlier, a lower purchase price can be modelled instead.`;
+  return `Property ${hit.index + 1}'s stated **${formatCurrency(hit.price)} price** needs roughly **${formatCurrency(hit.cash)} in cash** for the deposit, duty and costs — beyond the **${formatCurrency(depositPool)} deposit pool** and **${formatCurrency(annualSavings)}/yr savings** near-term, so it is placed around **${year}**, where ${funding} can fund it at the stated price. To bring it earlier, a **lower purchase price** can be modelled instead.`;
 }
 
 /** Insert the funding note ahead of the templated dashboard pointer. */

@@ -61,21 +61,21 @@ export function buildAutoFixDisclosureLines(changes: AutoFixChangeLike[]): strin
             ? "the deposit isn't available until then"
             : "the client's borrowing capacity doesn't cover it until then";
         return years
-          ? `Note: property ${n} was moved from ${years[1]} to ${years[2]} — ${why}.`
-          : `Note: property ${n} was moved to a later year — ${why}.`;
+          ? `Note: property ${n} was **moved from ${years[1]} to ${years[2]}** — ${why}.`
+          : `Note: property ${n} was **moved to a later year** — ${why}.`;
       }
       case 'price_reduced': {
         const amounts = c.detail.match(/from \$(\d+)k to \$(\d+)k/);
         const rent = c.detail.match(/rent adjusted from \$(\d+)\/wk to \$(\d+)\/wk/);
-        const rentNote = rent ? `; rent adjusted to $${Number(rent[2]).toLocaleString()}/wk to keep the stated yield` : '';
+        const rentNote = rent ? `; rent adjusted to **$${Number(rent[2]).toLocaleString()}/wk** to keep the stated yield` : '';
         return amounts
-          ? `Note: property ${n}'s price was reduced from ${formatDollars(Number(amounts[1]) * 1000)} to ${formatDollars(Number(amounts[2]) * 1000)} — the available deposit doesn't cover the original price${rentNote}.`
-          : `Note: property ${n}'s price was reduced — the available deposit doesn't cover the original price${rentNote}.`;
+          ? `Note: property ${n}'s price was **reduced from ${formatDollars(Number(amounts[1]) * 1000)} to ${formatDollars(Number(amounts[2]) * 1000)}** — the available deposit doesn't cover the original price${rentNote}.`
+          : `Note: property ${n}'s price was **reduced** — the available deposit doesn't cover the original price${rentNote}.`;
       }
       case 'entity_to_trust':
-        return `Note: property ${n} was placed in a trust — buying it as an individual exceeded the client's ${c.reason}.`;
+        return `Note: property ${n} was **placed in a trust** — buying it as an individual exceeded the client's ${c.reason}.`;
       case 'dropped':
-        return `Note: property ${n} was removed — it doesn't fit within the client's borrowing capacity, even when pushed to later years.`;
+        return `Note: property ${n} was **removed** — it doesn't fit within the client's borrowing capacity, even when pushed to later years.`;
       default:
         return `Note: property ${n}: ${c.detail}.`;
     }
@@ -101,7 +101,7 @@ export function rewritePlanMessageAfterAutoFix(
 
   if (props.length === 0) {
     const empty =
-      "I drafted a plan, but the affordability check removed every property — none of the purchases fit within the client's deposit and borrowing capacity, even when pushed to later years, so the plan is currently empty. Increase the deposit, savings or borrowing capacity (or lower the price point) and I'll rebuild it.";
+      "I drafted a plan, but the affordability check **removed every property** — none of the purchases fit within the client's deposit and borrowing capacity, even when pushed to later years, so the plan is currently empty. Increase the **deposit, savings or borrowing capacity** (or lower the price point) and I'll rebuild it.";
     return [empty, ...notes].join('\n');
   }
 
@@ -112,20 +112,21 @@ export function rewritePlanMessageAfterAutoFix(
       ? `at ${formatDollars(prices[0])}`
       : `from ${formatDollars(prices[0])} to ${formatDollars(prices[prices.length - 1])}`;
 
-  // Match the templated fragments: "Built a 4-property plan for X, priced
-  // from $380k to $750k." (templates.ts) or the $Nk-only form autoFixPlan's
+  // Match the templated fragments: "Built a **4-property plan** for X, priced
+  // **from $380k to $750k**." (templates.ts) or the $Nk-only form autoFixPlan's
   // own drop-patch produces. Anchoring on "priced" avoids touching dollar
   // figures elsewhere in the message (e.g. the feasibility descriptor).
+  // The optional \*\* groups tolerate both bolded and legacy plain messages.
   const countRe = /\b\d+-property plan/;
-  const priceRe = /priced (?:at|from) \$[\d.,]+[kM](?:\s+to\s+\$[\d.,]+[kM])?/;
+  const priceRe = /priced (?:\*\*)?(?:at|from) \$[\d.,]+[kM](?:\s+to\s+\$[\d.,]+[kM])?(?:\*\*)?/;
 
   let msg = originalMessage;
   if (countRe.test(msg) && priceRe.test(msg)) {
-    msg = msg.replace(countRe, `${count}-property plan`).replace(priceRe, `priced ${priceRange}`);
+    msg = msg.replace(countRe, `${count}-property plan`).replace(priceRe, `priced **${priceRange}**`);
   } else {
     // Message shape changed upstream - append the correction instead of
     // silently leaving the stale claim as the only description.
-    msg += `\n\nAfter the affordability check, the final plan has ${count} ${count === 1 ? 'property' : 'properties'} priced ${priceRange}.`;
+    msg += `\n\nAfter the affordability check, the final plan has **${count} ${count === 1 ? 'property' : 'properties'}** priced **${priceRange}**.`;
   }
 
   return [msg, ...notes].join('\n');

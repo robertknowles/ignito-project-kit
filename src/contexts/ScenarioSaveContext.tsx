@@ -1087,6 +1087,61 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [hasUnsavedChanges, role, activeClient, isLoadingScenario, saveScenario]);
 
+  // Client-portal save path. Clients get a read-only plan and may only edit
+  // their Existing Portfolio. They can't UPDATE scenarios via RLS (that would
+  // let them rewrite the whole plan), so their edits go through the
+  // update-client-portfolio edge function, which writes back ONLY the
+  // existingProperties key. We debounce and diff against the loaded snapshot so
+  // we only call the function when the portfolio actually changed.
+  const clientPortfolioTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastClientSavedEPRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (role !== 'client') return;
+    if (!scenarioId) return;
+    if (clientScenarioLoading) return;
+
+    const currentEP = JSON.stringify(existingProperties ?? []);
+    // Seed the baseline from the loaded scenario on first run so loading a
+    // scenario never triggers a spurious save-back.
+    if (lastClientSavedEPRef.current === null) {
+      lastClientSavedEPRef.current = JSON.stringify(lastSavedData?.existingProperties ?? []);
+    }
+    if (currentEP === lastClientSavedEPRef.current) return;
+
+    if (clientPortfolioTimerRef.current) clearTimeout(clientPortfolioTimerRef.current);
+    clientPortfolioTimerRef.current = setTimeout(async () => {
+      clientPortfolioTimerRef.current = null;
+      try {
+        const { data, error } = await supabase.functions.invoke('update-client-portfolio', {
+          body: { existingProperties: existingProperties ?? [] },
+        });
+        if (error) throw error;
+        const res = data as { ok: boolean; error?: string };
+        if (!res?.ok) throw new Error(res?.error || 'Save failed');
+        lastClientSavedEPRef.current = currentEP;
+      } catch {
+        toast({
+          title: 'Could not save your portfolio',
+          description: 'Your changes may not be stored. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    }, 600);
+
+    return () => {
+      if (clientPortfolioTimerRef.current) {
+        clearTimeout(clientPortfolioTimerRef.current);
+        clientPortfolioTimerRef.current = null;
+      }
+    };
+  }, [role, scenarioId, clientScenarioLoading, existingProperties, lastSavedData]);
+
+  // Reset the client save baseline whenever the signed-in user changes, so a
+  // fresh login re-seeds from that session's loaded scenario.
+  useEffect(() => {
+    lastClientSavedEPRef.current = null;
+  }, [user?.id]);
+
   // beforeunload safety net - only fires if a user closes the tab DURING the
   // 1s autosave debounce window. With autosave wired up, this should rarely
   // trigger, but it prevents silent data loss in the edge case.

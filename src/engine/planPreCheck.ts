@@ -587,9 +587,9 @@ export function autoFixPlan(response: NLParseResponse, initialResult: PreCheckRe
 
       fixedResponse.message = fixedResponse.message
         .replace(/\b\d+-property plan/, `${count}-property plan`)
-        .replace(/(?:at|from) \$[\d,]+k(?:\s+to\s+\$[\d,]+k)?/, priceRange)
-        // Remove "Properties X, Y held in trusts …" sentence - may reference dropped properties
-        .replace(/\s*Properties\s+[\d,\s]+held in trusts[^.]*\./g, '')
+        .replace(/(?:\*\*)?(?:at|from) \$[\d,]+k(?:\s+to\s+\$[\d,]+k)?(?:\*\*)?/, `**${priceRange}**`)
+        // Remove "Properties X, Y **held in trusts** …" sentence - may reference dropped properties
+        .replace(/\s*Properties\s+[\d,\s]+(?:\*\*)?held in trusts(?:\*\*)?[^.]*\./g, '')
         // Remove "trust structures reduce serviceability…" fragment if orphaned
         .replace(/\s*-\s*trust structures reduce serviceability impact so the engine can place all purchases\./g, '');
     }
