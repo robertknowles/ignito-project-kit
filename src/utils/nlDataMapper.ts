@@ -292,11 +292,15 @@ export function mergeExistingProperties(
 
   const merged: ExistingProperty[] = [...current];
   portfolio.forEach((p, i) => {
-    // Address match first, index fallback (form-injected rows have no address
-    // but keep submission order, so index alignment holds on that path).
-    let target = normAddr(p.address)
-      ? merged.find((ep) => normAddr(ep.address) === normAddr(p.address) && !matchedCurrentIds.has(ep.id))
+    // Stable id first (stamped by the confirmation brief), then address,
+    // then index (form-injected rows have no address but keep submission
+    // order, so index alignment holds on that path).
+    let target = p.id
+      ? merged.find((ep) => ep.id === p.id && !matchedCurrentIds.has(ep.id))
       : undefined;
+    if (!target && normAddr(p.address)) {
+      target = merged.find((ep) => normAddr(ep.address) === normAddr(p.address) && !matchedCurrentIds.has(ep.id));
+    }
     if (!target && i < current.length && !matchedCurrentIds.has(current[i].id)) {
       target = merged.find((ep) => ep.id === current[i].id);
     }

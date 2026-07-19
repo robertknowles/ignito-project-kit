@@ -738,9 +738,26 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
 
   // Existing portfolio - declared before the pre-check so edits to it
   // immediately re-test affordability.
-  const [existingProps, setExistingProps] = useState<ExistingProp[]>(
-    () => cp?.existingPortfolio ? structuredClone(cp.existingPortfolio) : []
-  );
+  // Each row is stamped with the dashboard row id it corresponds to (address
+  // match, else index) so brief edits rejoin the portfolio by stable id at
+  // confirm time — re-guessing the join after edits routed year/entity/rent
+  // changes to the wrong row (same failure class as the June purchaseHistory
+  // cell-id fix).
+  const [existingProps, setExistingProps] = useState<ExistingProp[]>(() => {
+    if (!cp?.existingPortfolio) return [];
+    const norm = (a?: string) => (a ?? '').trim().toLowerCase();
+    const ctx = contextExistingProps ?? [];
+    const used = new Set<string>();
+    return structuredClone(cp.existingPortfolio).map((p, i) => {
+      let match = norm(p.address)
+        ? ctx.find((ep) => norm(ep.address) === norm(p.address) && !used.has(ep.id))
+        : undefined;
+      if (!match && i < ctx.length && !used.has(ctx[i].id)) match = ctx[i];
+      if (!match) return p;
+      used.add(match.id);
+      return { ...p, id: match.id };
+    });
+  });
   const existingPropsRef = useRef(existingProps);
   existingPropsRef.current = existingProps;
 

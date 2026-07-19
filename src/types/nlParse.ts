@@ -129,6 +129,10 @@ export interface NLParseResponse {
     existingPropertyEquity?: number;
     // Per-property details for existing portfolio (AI-extracted from conversation)
     existingPortfolio?: Array<{
+      // Stable ExistingProperty.id, stamped client-side when the brief seeds
+      // its editable copy — never produced by the AI. Lets brief edits rejoin
+      // the dashboard row deterministically instead of by address/index.
+      id?: string;
       address?: string;
       state: string;
       boughtYear?: number;
@@ -267,6 +271,7 @@ export interface NLParseResponse {
     rentEscalationRate?: number; // Fraction (e.g. 0.03) - only when stated
     useExistingEquity?: boolean; // false ONLY on an explicit "don't use the equity" (re-audit B3)
     existingPortfolio?: Array<{
+      id?: string; // stable ExistingProperty.id, stamped client-side (never from the AI)
       address?: string;
       state: string;
       boughtYear?: number;
