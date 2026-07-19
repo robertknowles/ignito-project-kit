@@ -304,8 +304,16 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
 
         // Call the edge function with timeout + exponential-backoff retry on
         // transient errors (TIMEOUT, RATE_LIMIT). Permanent errors
-        // surface immediately. Total max wall time ≈ 65s under the worst case.
-        const NL_PARSE_TIMEOUT_MS = 30_000
+        // surface immediately.
+        //
+        // 60s (not 30s): the FIRST call for a long/complex brief pays cold
+        // edge-function start + a cold prompt-cache write on top of the Claude
+        // generation, which routinely pushed past 30s and dumped the user back
+        // to "send it again" with a blank dashboard. A warm resend was fast -
+        // the classic cold-start timeout. 60s lets the cold path finish, and
+        // the TIMEOUT retry below still auto-recovers on the (now warm) path
+        // without the user resending.
+        const NL_PARSE_TIMEOUT_MS = 60_000
         // Retry budget per error class. First attempt is always free; the
         // numbers below are how many ADDITIONAL retries we allow.
         const MAX_RETRIES_BY_CODE: Record<string, number> = {

@@ -29,7 +29,11 @@ export interface RemodelDraft {
   warnings: string[];
 }
 
-const NL_PARSE_TIMEOUT_MS = 30_000;
+// 60s (not 30s): the first call pays cold edge-function start + a cold
+// prompt-cache write on top of Claude generation, which routinely exceeded 30s
+// on complex briefs and failed the user with a "try again". See the matching
+// note in useChatConversation.ts.
+const NL_PARSE_TIMEOUT_MS = 60_000;
 const HISTORY_WINDOW = 20;
 
 /** Mirror of ChatPanel.getCurrentPlan, built from a headless run instead of
