@@ -497,26 +497,33 @@ export const Dashboard = () => {
     const cashflowGoal = liveProfile?.cashflowGoal ?? 0;
     const equityGoal = liveProfile?.equityGoal ?? 0;
 
-    // Target year = first year BOTH goals are projected to be met - the goal
-    // isn't achieved while cashflow is still short of target, even if equity
-    // got there first. A goal set to $0 means "no target" for that dimension.
-    // Falls back to the plan horizon end when never met (goalMet = false).
+    // The banner tracks only the goal prioritised in the confirmation brief
+    // (goalPriority). Target year = first year that goal is projected to be
+    // met; falls back to the other goal when the prioritised one is unset.
+    // A goal set to $0 means "no target" for that dimension. Falls back to
+    // the plan horizon end when never met (goalMet = false).
     const planEndYear = BASE_YEAR + (liveProfile?.timelineYears ?? displayYears) - 1;
     const cashflowByYear = new Map(
       (chartDataA.cashflowData ?? []).map(c => [Number(c.year), c.cashflow ?? 0]),
     );
-    let targetYear: number | null = null;
-    if (equityGoal > 0 || cashflowGoal > 0) {
-      for (const g of growthData) {
-        const year = Number(g.year);
-        const equityMet = equityGoal <= 0 || (g.equity ?? 0) >= equityGoal;
-        const cashflowMet = cashflowGoal <= 0 || (cashflowByYear.get(year) ?? 0) >= cashflowGoal;
-        if (equityMet && cashflowMet) {
-          targetYear = year;
-          break;
-        }
+    let equityMetYear: number | null = null;
+    let cashflowMetYear: number | null = null;
+    for (const g of growthData) {
+      const year = Number(g.year);
+      if (equityMetYear === null && equityGoal > 0 && (g.equity ?? 0) >= equityGoal) {
+        equityMetYear = year;
       }
+      if (cashflowMetYear === null && cashflowGoal > 0 && (cashflowByYear.get(year) ?? 0) >= cashflowGoal) {
+        cashflowMetYear = year;
+      }
+      if (equityMetYear !== null && cashflowMetYear !== null) break;
     }
+    const priority = liveProfile?.goalPriority ?? 'equity';
+    const primaryGoalType: 'equity' | 'cashflow' =
+      priority === 'cashflow'
+        ? (cashflowGoal > 0 || equityGoal <= 0 ? 'cashflow' : 'equity')
+        : (equityGoal > 0 || cashflowGoal <= 0 ? 'equity' : 'cashflow');
+    const targetYear = primaryGoalType === 'cashflow' ? cashflowMetYear : equityMetYear;
     const goalMet = targetYear !== null;
     const resolvedTargetYear = targetYear ?? planEndYear;
 
@@ -537,6 +544,7 @@ export const Dashboard = () => {
     return {
       cashflowGoal,
       equityGoal,
+      primaryGoalType,
       targetYear: resolvedTargetYear,
       goalMet,
       projectedEquity,
@@ -825,7 +833,9 @@ export const Dashboard = () => {
                         Your Goal
                       </div>
                       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                        {formatMoney(ph.equityGoal)} Equity & {formatMoney(ph.cashflowGoal)}/yr Income
+                        {ph.primaryGoalType === 'cashflow'
+                          ? `${formatMoney(ph.cashflowGoal)}/yr Income`
+                          : `${formatMoney(ph.equityGoal)} Equity`}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>

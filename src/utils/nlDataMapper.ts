@@ -121,7 +121,14 @@ export function mapToInvestmentProfile(
     if (ip.timelineYearsExplicit !== undefined) updates.timelineYearsExplicit = ip.timelineYearsExplicit;
     if (ip.equityGoal !== undefined) updates.equityGoal = ip.equityGoal;
     if (ip.cashflowGoal !== undefined) updates.cashflowGoal = ip.cashflowGoal;
-    if (ip.goalPriority !== undefined) updates.goalPriority = ip.goalPriority;
+    if (ip.goalPriority !== undefined) {
+      updates.goalPriority = ip.goalPriority;
+    } else if (ip.cashflowGoal !== undefined && ip.equityGoal === undefined) {
+      // Safety net: a stated cashflow goal with no stated equity goal is a
+      // cashflow-led brief even when the model omits goalPriority — without
+      // this the context default ('equity') silently mislabels the goal type.
+      updates.goalPriority = 'cashflow';
+    }
     if (ip.targetPassiveIncome !== undefined) updates.targetPassiveIncome = ip.targetPassiveIncome;
     // Strategy-stated portfolio-wide assumptions. Profile stores fractions.
     if (ip.interestRate !== undefined) updates.interestRate = asFraction(ip.interestRate);

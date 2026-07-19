@@ -100,6 +100,7 @@ export const RESPONSE_TOOL = {
           equityGoal: { type: "number" as const },
           cashflowGoal: { type: "number" as const },
           targetPassiveIncome: { type: "number" as const },
+          goalPriority: { type: "string" as const, enum: ["equity", "cashflow"] },
         },
         required: ["depositPool", "annualSavings", "baseSalary", "timelineYears"],
       },
@@ -239,6 +240,7 @@ export const RESPONSE_TOOL = {
           existingPropertyDebt: { type: "number" as const },
           existingPropertyEquity: { type: "number" as const },
           targetPassiveIncome: { type: "number" as const },
+          goalPriority: { type: "string" as const, enum: ["equity", "cashflow"] },
           existingPortfolio: {
             type: "array" as const,
             items: {

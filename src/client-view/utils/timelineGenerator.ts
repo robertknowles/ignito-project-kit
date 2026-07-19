@@ -498,13 +498,22 @@ export const generateSummaryData = (investmentProfile: any) => {
   const borrowingCapacity = investmentProfile?.borrowingCapacity || 0;
   const annualSavings = investmentProfile?.annualSavings || 0;
   const equityGoal = investmentProfile?.equityGoal || 0;
+  const cashflowGoal = investmentProfile?.cashflowGoal || 0;
   const targetYear = investmentProfile?.targetYear || 2040;
+
+  // Show only the goal prioritised in the confirmation brief, falling back
+  // to whichever goal is actually set.
+  const goalPriority = investmentProfile?.goalPriority || 'equity';
+  const useCashflow =
+    goalPriority === 'cashflow' ? cashflowGoal > 0 || equityGoal <= 0 : equityGoal <= 0 && cashflowGoal > 0;
 
   return {
     startingCash: formatCurrency(startingCash),
     borrowingCapacity: formatCurrency(borrowingCapacity),
     annualSavings: formatCurrency(annualSavings),
-    goal: `Financial Independence by ${targetYear} - ${formatCurrency(equityGoal)} Portfolio`,
+    goal: useCashflow
+      ? `Financial Independence by ${targetYear} - ${formatCurrency(cashflowGoal)}/yr Income`
+      : `Financial Independence by ${targetYear} - ${formatCurrency(equityGoal)} Portfolio`,
   };
 };
 
