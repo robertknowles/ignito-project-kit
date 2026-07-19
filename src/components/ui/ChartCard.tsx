@@ -159,7 +159,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
                 title="Expand"
                 aria-label="Expand chart"
-                className="flex items-center justify-center w-7 h-7 -my-0.5 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+                /* pointer-events-auto: stays clickable for client-portal viewers
+                   even though the surrounding plan tab is locked read-only. */
+                className="flex items-center justify-center w-7 h-7 -my-0.5 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors pointer-events-auto"
               >
                 <Maximize2 size={14} />
               </button>

@@ -41,6 +41,11 @@ function formatCompactAud(n: number): string {
   return `$${Math.round(n / 1000)}k`
 }
 
+// Shown in the client portal when a client asks the AI to change their plan.
+// The plan is the BA's deliverable, so the chat redirects to Q&A instead.
+const READONLY_CHAT_REDIRECT =
+  "Your plan is prepared by your buyers agent, so I can't make changes to it here — but I'm happy to explain any part of it. What would you like to understand?"
+
 interface UseChatConversationOptions {
   /** Wires plan data into contexts (pre-check + auto-fix run inside). May
    *  return a corrected chat-message string when auto-fix changed the plan -
@@ -52,6 +57,11 @@ interface UseChatConversationOptions {
   onComparison?: (response: NLParseResponse) => void
   onAddEvent?: (response: NLParseResponse) => void
   onUpdateProfile?: (response: NLParseResponse) => void
+  /** Client-portal mode: the chat is a read-only explainer. Any response that
+   *  would change the plan (initial_plan, modification, add_event,
+   *  update_profile, property_suggestions) is blocked and replaced with a
+   *  redirect message — clients can ask questions but never edit their plan. */
+  explainOnly?: boolean
   getCurrentPlan?: () => CurrentPlanState | null
   /** Returns chart data context string for explanation requests */
   getChartContext?: (question: string, relevantPeriods?: number[], relevantProperties?: string[]) => string | null
@@ -467,6 +477,13 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
           effectiveType = 'explanation'
         }
 
+        // Client-portal chat is read-only (Q&A/explainer only): never apply a
+        // plan change from chat. Any mutating intent gets a redirect message.
+        const MUTATION_TYPES: NLParseResponse['type'][] = ['initial_plan', 'modification', 'add_event', 'update_profile', 'property_suggestions']
+        if (optionsRef.current.explainOnly && MUTATION_TYPES.includes(effectiveType)) {
+          const roMsg = createMessage('assistant', 'text', READONLY_CHAT_REDIRECT)
+          await finishLoading(roMsg)
+        } else {
         // Process response based on type
         switch (effectiveType) {
           case 'initial_plan': {
@@ -599,6 +616,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}) {
             const fallbackMsg = createMessage('assistant', 'text', response.message)
             await finishLoading(fallbackMsg)
           }
+        }
         }
 
         // Record action for conversation state tracking

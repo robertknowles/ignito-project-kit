@@ -97,6 +97,12 @@ Deno.serve(async (req: Request) => {
       user_metadata: {
         role: 'client',
         client_id: body.clientId,
+        // company_id must be present here: the handle_new_user DB trigger reads
+        // it from raw_user_meta_data to populate profiles.company_id. Without it
+        // the client's profile has a NULL company, BrandingContext never loads
+        // the firm's name/logo/colour, and the portal shows the default
+        // "My Company" branding (2026-07-19).
+        company_id: body.companyId,
       },
     });
 
@@ -129,6 +135,20 @@ Deno.serve(async (req: Request) => {
           }
           userId = existing.id;
           alreadyExisted = true;
+          // Re-invited existing client: their profile may predate the
+          // company_id-in-metadata fix and have a NULL company. Link it now so
+          // branding resolves. Only fills a null - never overwrites an existing
+          // company link.
+          if (body.companyId) {
+            const { error: profileLinkErr } = await admin
+              .from('profiles')
+              .update({ company_id: body.companyId })
+              .eq('id', existing.id)
+              .is('company_id', null);
+            if (profileLinkErr) {
+              console.warn('[create-client-user] profile company link failed:', profileLinkErr.message);
+            }
+          }
         } else {
           return json({ ok: false, error: 'Email already registered but user record not found.' }, 500);
         }
