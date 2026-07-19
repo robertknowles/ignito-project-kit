@@ -21,6 +21,10 @@ export interface Client {
   next_review_date?: string;
   last_active_at?: string;
   strategy_type?: string;
+  // Set when a portal client edits their own figures/portfolio; cleared when the
+  // BA next saves/regenerates. Drives the "Details updated" badge in the client list.
+  pending_client_update_at?: string;
+  pending_client_update_note?: string;
   // Personal details
   date_of_birth?: string;
   address?: string;

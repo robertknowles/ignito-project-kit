@@ -76,7 +76,11 @@ export const ChatPanel: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false)
   const [strategyProfileOpen, setStrategyProfileOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { user } = useAuth()
+  const { user, role } = useAuth()
+  // Client-portal mode: the chat is a read-only explainer. Clients can ask
+  // questions about their plan but never build or modify it, so BA-only
+  // affordances (strategy picker, brief upload) are hidden.
+  const isClient = role === 'client'
 
   // Company strategies (named, free-text). The BA picks one; its text is fed to
   // the AI, which infers the engine preset from it + the brief.
@@ -792,6 +796,7 @@ export const ChatPanel: React.FC = () => {
     onComparison: handleComparison,
     onAddEvent: handleAddEvent,
     onUpdateProfile: handleUpdateProfile,
+    explainOnly: isClient,
     getCurrentPlan,
     getChartContext,
     userId: user?.id,
@@ -1259,13 +1264,15 @@ export const ChatPanel: React.FC = () => {
               <span className="text-[13px] font-semibold text-[#181D27]">PropPath AI</span>
             </div>
             <div className="ml-auto flex items-center gap-0.5">
-              <button
-                onClick={() => setStrategyProfileOpen(true)}
-                className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#7C3AED] hover:bg-neutral-100 transition-colors"
-                title="Company strategies"
-              >
-                <SparklesIcon size={13} />
-              </button>
+              {!isClient && (
+                <button
+                  onClick={() => setStrategyProfileOpen(true)}
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#7C3AED] hover:bg-neutral-100 transition-colors"
+                  title="Company strategies"
+                >
+                  <SparklesIcon size={13} />
+                </button>
+              )}
               <button
                 onClick={() => setDrawerOpen(false)}
                 className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[#717680] hover:text-[#414651] hover:bg-neutral-100 transition-colors"
@@ -1291,20 +1298,31 @@ export const ChatPanel: React.FC = () => {
             onDrop={handleDrop}
           >
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
-                  Describe a client scenario to generate an investment roadmap.
-                </p>
-                <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
-                  e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
-                </p>
-                <CompanyStrategySelector
-                  profiles={strategyProfiles}
-                  selectedId={selectedStrategyId}
-                  onSelect={(id) => { setSelectedStrategyId(id); setPendingStrategyText(null); }}
-                  onManage={() => setStrategyProfileOpen(true)}
-                />
-              </div>
+              isClient ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                  <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
+                    Ask anything about your property plan.
+                  </p>
+                  <p className="text-[11px] text-[#717680] mt-2 leading-[1.4]">
+                    e.g. "Why do I buy my first property in 2031?" or "What does my cashflow look like by 2040?"
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                  <p className="text-[11px] text-[#414651] leading-[1.5] font-medium">
+                    Describe a client scenario to generate an investment roadmap.
+                  </p>
+                  <p className="text-[11px] text-[#717680] mt-2 mb-6 leading-[1.4]">
+                    e.g. "$1m borrowing capacity. $120k annual income. $80k deposit. Want to achieve $2m in equity. No existing properties."
+                  </p>
+                  <CompanyStrategySelector
+                    profiles={strategyProfiles}
+                    selectedId={selectedStrategyId}
+                    onSelect={(id) => { setSelectedStrategyId(id); setPendingStrategyText(null); }}
+                    onManage={() => setStrategyProfileOpen(true)}
+                  />
+                </div>
+              )
             )}
 
             <AnimatePresence mode="popLayout">
@@ -1355,14 +1373,16 @@ export const ChatPanel: React.FC = () => {
               className="hidden"
             />
             <div className="flex items-center gap-2 bg-white rounded-[24px] pl-2 pr-2 py-1.5 border border-neutral-200 focus-within:border-[#7C3AED]/40 shadow-sm transition-colors">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
-                title="Attach PDF or transcript"
-                aria-label="Attach file"
-              >
-                <PlusIcon size={18} />
-              </button>
+              {!isClient && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
+                  title="Attach PDF or transcript"
+                  aria-label="Attach file"
+                >
+                  <PlusIcon size={18} />
+                </button>
+              )}
               <textarea
                 ref={inputRef}
                 value={inputValue}

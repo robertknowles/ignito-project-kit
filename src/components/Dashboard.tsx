@@ -107,8 +107,11 @@ const formatMoney = (value: number): string => {
   return `${sign}$${Math.round(abs)}`;
 };
 
+// `pointer-events-auto` keeps the horizon toggle live for client-portal viewers:
+// the plan tab is wrapped in `pointer-events-none` to lock edits, but switching
+// 10/20/30y is a view-only control that must stay usable.
 const TimeRangeTabs: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => (
-  <div className="flex items-center rounded-lg border border-neutral-200 overflow-hidden">
+  <div className="flex items-center rounded-lg border border-neutral-200 overflow-hidden pointer-events-auto">
     {[10, 20, 30].map((years, i) => (
       <button
         key={years}

@@ -1128,7 +1128,15 @@ toast.error('Failed to create client invite');
                                       <div className="body-dark font-medium truncate group-hover:underline">
                                         {client.name}
                                       </div>
-                                      {strategyLabel ? (
+                                      {client.pending_client_update_at ? (
+                                        <div
+                                          className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#B54708] bg-[#FFFAEB] border border-[#FEDF89] px-1.5 py-0.5 rounded-full"
+                                          title={client.pending_client_update_note || 'The client updated their details'}
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-[#F79009]" />
+                                          Details updated
+                                        </div>
+                                      ) : strategyLabel ? (
                                         <div className="meta truncate">{strategyLabel}</div>
                                       ) : client.email ? (
                                         <div className="meta truncate">{client.email}</div>
