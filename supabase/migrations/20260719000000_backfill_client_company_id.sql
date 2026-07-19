@@ -11,13 +11,17 @@
 -- 1) Backfill: copy company_id from public.users (which already has it) onto the
 --    matching client profile, but only where the profile's company is still null
 --    so we never clobber an existing link.
+-- NOTE (applied 2026-07-19): public.users does not exist in this database -
+-- the original draft of this migration referenced it and would fail. The real
+-- auth-user -> company chain is scenarios.client_user_id -> clients.company_id.
 UPDATE public.profiles p
-SET company_id = u.company_id
-FROM public.users u
-WHERE p.id = u.id
+SET company_id = c.company_id
+FROM public.scenarios s
+JOIN public.clients c ON c.id = s.client_id
+WHERE s.client_user_id = p.id
   AND p.role = 'client'
   AND p.company_id IS NULL
-  AND u.company_id IS NOT NULL;
+  AND c.company_id IS NOT NULL;
 
 -- 2) RLS: let a signed-in member read their own company row so BrandingContext
 --    can load name/logo/colour. Owners/agents may already have an equivalent
