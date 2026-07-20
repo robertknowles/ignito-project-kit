@@ -1,14 +1,16 @@
 /**
- * update-client-portfolio - lets a signed-in client user update ONLY the
- * `existingProperties` slice of the scenario they're linked to.
+ * submit-client-inputs — a portal client submits an update to a small set of
+ * their own figures (base salary, annual savings).
  *
- * Clients get a read-only copy of their agent's plan; the one thing they may
- * change is their own current portfolio. RLS lets a client SELECT their linked
- * scenario but not UPDATE it (that would let them rewrite the whole plan). This
- * function runs with the service-role key and writes back only the
- * existingProperties key, scoped to the scenario where
- * client_user_id = the caller's own id - so a client can never touch another
- * client's data or any other part of the plan.
+ * Product model: the AI roadmap is a point-in-time generation and is NOT
+ * auto-recomputed when a client changes their inputs. Instead we capture the
+ * requested values and notify the BA so they can regenerate. This function runs
+ * with the service-role key (clients can't UPDATE scenarios/clients directly
+ * under RLS) and, scoped strictly to the caller's own linked scenario:
+ *   1. stores the requested values under data.client_requested_inputs,
+ *   2. stamps clients.pending_client_update_at + a human-readable note,
+ *   3. writes an activity_log row so the change is auditable.
+ * The client's visible plan is left untouched.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -18,14 +20,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface Change {
+  field: string;
+  label: string;
+  oldValue: number;
+  newValue: number;
+}
+
 interface RequestBody {
-  existingProperties: unknown[];
+  changes: Change[];
 }
 
 interface ResponseBody {
   ok: boolean;
   error?: string;
 }
+
+const fmtAud = (n: number) =>
+  `$${Math.round(n).toLocaleString('en-AU')}`;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -55,8 +67,8 @@ Deno.serve(async (req: Request) => {
     const callerId = callerData.user.id;
 
     const body = (await req.json()) as RequestBody;
-    if (!Array.isArray(body.existingProperties)) {
-      return json({ ok: false, error: 'existingProperties must be an array.' }, 400);
+    if (!Array.isArray(body.changes) || body.changes.length === 0) {
+      return json({ ok: false, error: 'changes must be a non-empty array.' }, 400);
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {
@@ -67,7 +79,7 @@ Deno.serve(async (req: Request) => {
     // client_user_id so the caller can only ever reach their own row.
     const { data: scenario, error: fetchError } = await admin
       .from('scenarios')
-      .select('id, data, version, client_id')
+      .select('id, data, client_id')
       .eq('client_user_id', callerId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -77,12 +89,15 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: 'No portal scenario found for this user.' }, 404);
     }
 
-    // Merge only the existingProperties key; every other part of the plan is
-    // preserved exactly as the agent left it.
-    const existingData = (scenario.data ?? {}) as Record<string, unknown>;
-    const mergedData = { ...existingData, existingProperties: body.existingProperties };
-
     const now = new Date().toISOString();
+
+    // 1) Persist the requested values alongside the plan (does not alter the
+    //    plan the client sees — the BA reads this when regenerating).
+    const existingData = (scenario.data ?? {}) as Record<string, unknown>;
+    const mergedData = {
+      ...existingData,
+      client_requested_inputs: { changes: body.changes, submittedAt: now },
+    };
     const { error: updateError } = await admin
       .from('scenarios')
       .update({ data: mergedData, updated_at: now })
@@ -90,30 +105,38 @@ Deno.serve(async (req: Request) => {
       .eq('client_user_id', callerId);
     if (updateError) throw updateError;
 
-    // Notify the BA that the client changed their existing portfolio so they
-    // can regenerate. Same "needs review" signal used by submit-client-inputs.
+    // Look up the client record for company_id + to stamp the review flag.
+    let companyId: string | null = null;
     if (scenario.client_id) {
       const { data: clientRow } = await admin
         .from('clients')
         .select('company_id')
         .eq('id', scenario.client_id)
         .maybeSingle();
+      companyId = clientRow?.company_id ?? null;
+
+      // 2) Stamp the "needs review" signal for the BA client list.
+      const note = body.changes
+        .map((c) => `${c.label} ${fmtAud(c.oldValue)} → ${fmtAud(c.newValue)}`)
+        .join('; ');
       await admin
         .from('clients')
-        .update({ pending_client_update_at: now, pending_client_update_note: 'Updated existing portfolio' })
+        .update({ pending_client_update_at: now, pending_client_update_note: note })
         .eq('id', scenario.client_id);
-      // Best-effort audit log — must not fail the save if the table constrains
-      // event_type.
-      const { error: logErr } = await admin.from('activity_log').insert({
-        client_id: scenario.client_id,
-        company_id: clientRow?.company_id ?? null,
-        actor_id: callerId,
-        event_type: 'client_portfolio_updated',
-        metadata: { count: body.existingProperties.length },
-      });
-      if (logErr) {
-        console.warn('[update-client-portfolio] activity_log insert failed:', logErr.message);
-      }
+    }
+
+    // 3) Audit log so the change is recorded in the BA activity feed.
+    //    Best-effort: the scenario + review flag are already saved, so a schema
+    //    constraint on event_type must not fail the whole request.
+    const { error: logErr } = await admin.from('activity_log').insert({
+      client_id: scenario.client_id ?? null,
+      company_id: companyId,
+      actor_id: callerId,
+      event_type: 'client_inputs_updated',
+      metadata: { changes: body.changes },
+    });
+    if (logErr) {
+      console.warn('[submit-client-inputs] activity_log insert failed:', logErr.message);
     }
 
     return json({ ok: true });

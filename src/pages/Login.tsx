@@ -37,7 +37,7 @@ export function Login() {
         <div className="flex justify-center mb-6">
           <Link to="/">
             <img
-              src="/images/proppath-icon.png"
+              src="/images/proppath-icon.svg"
               alt="PropPath"
               className="w-10 h-10 rounded-lg"
             />

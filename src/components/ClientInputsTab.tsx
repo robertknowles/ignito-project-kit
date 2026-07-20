@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Loader2, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { ChartCard } from './ui/ChartCard'
 import { InfoPopover } from './RetirementScenario/InfoPopover'
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile'
 import type { InvestmentProfileData } from '@/hooks/useInvestmentProfile'
 import { useExistingPropertiesSafe } from '@/contexts/ScenarioSaveContext'
 import { useLayout } from '@/contexts/LayoutContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 import { track, EVENTS } from '@/lib/analytics'
 import { usePropertySelection } from '@/contexts/PropertySelectionContext'
 import type { EventCategory, EventType } from '@/contexts/PropertySelectionContext'
@@ -51,7 +54,17 @@ const EditableNumRow: React.FC<{
   suffix?: string
   /** If true, stores as decimal (÷100) but displays as percentage */
   isDecimalPercent?: boolean
-}> = ({ label, value, field, decimals, prefix, suffix, isDecimalPercent }) => {
+  /** Render inert (display only) — used to lock most rows in client-portal mode. */
+  readOnly?: boolean
+  /** Re-enable pointer events inside a locked container (client-editable rows). */
+  interactive?: boolean
+  /** Highlight a row whose value the client has changed but the plan hasn't rerun. */
+  pending?: boolean
+  /** When provided, called with the new value instead of writing to the live
+   *  profile — lets the client-portal capture changes without regenerating the
+   *  roadmap. */
+  onCommit?: (stored: number) => void
+}> = ({ label, value, field, decimals, prefix, suffix, isDecimalPercent, readOnly, interactive, pending, onCommit }) => {
   const { updateProfile } = useInvestmentProfile()
   const [focused, setFocused] = useState(false)
   const [draft, setDraft] = useState('')
@@ -64,36 +77,45 @@ const EditableNumRow: React.FC<{
 
   const display = `${prefix ?? ''}${displayVal}${suffix ?? ''}`
 
+  const handleBlur = () => {
+    setFocused(false)
+    const n = parseShorthandNumber(draft)
+    if (n !== null) {
+      const stored = isDecimalPercent ? n / 100 : n
+      if (stored !== value) {
+        if (onCommit) {
+          onCommit(stored)
+        } else {
+          const patch = { [field]: stored } as Partial<InvestmentProfileData>
+          // A BA typing a timeline IS an explicit horizon — without the
+          // flag updateProfile snaps it back to the 20-year default.
+          if (field === 'timelineYears') patch.timelineYearsExplicit = true
+          updateProfile(patch)
+        }
+        track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
+      }
+    }
+  }
+
   return (
-    <tr className="border-b border-[#F2F2F2] last:border-b-0">
+    <tr className={`border-b border-[#F2F2F2] last:border-b-0 ${interactive ? 'pointer-events-auto' : ''} ${pending ? 'bg-[#F5F3FF]' : ''}`}>
       <td className="py-[10px] pl-[18px] pr-3 text-[13px] font-normal text-[#535862] whitespace-nowrap">{label}</td>
       <td className="py-[5px] pr-[14px] pl-2">
         <input
           type="text"
           inputMode="decimal"
+          readOnly={readOnly}
           value={focused ? draft : display}
-          onFocus={() => {
+          onFocus={readOnly ? undefined : () => {
             setFocused(true)
             setDraft(isDecimalPercent ? (value * 100).toFixed(decimals ?? 1) : String(value))
           }}
-          onChange={e => setDraft(e.target.value)}
-          onBlur={() => {
-            setFocused(false)
-            const n = parseShorthandNumber(draft)
-            if (n !== null) {
-              const stored = isDecimalPercent ? n / 100 : n
-              if (stored !== value) {
-                const patch = { [field]: stored } as Partial<InvestmentProfileData>
-                // A BA typing a timeline IS an explicit horizon — without the
-                // flag updateProfile snaps it back to the 20-year default.
-                if (field === 'timelineYears') patch.timelineYearsExplicit = true
-                updateProfile(patch)
-                track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
-              }
-            }
-          }}
-          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-          className="w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors"
+          onChange={readOnly ? undefined : e => setDraft(e.target.value)}
+          onBlur={readOnly ? undefined : handleBlur}
+          onKeyDown={readOnly ? undefined : e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+          className={`w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] transition-colors ${
+            readOnly ? 'cursor-default' : 'hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300'
+          }`}
         />
       </td>
     </tr>
@@ -107,7 +129,9 @@ const EditableSelectRow: React.FC<{
   value: string
   field: keyof InvestmentProfileData
   options: { value: string; label: string }[]
-}> = ({ label, value, field, options }) => {
+  /** Lock the select in client-portal mode (strategy/pacing are BA-only). */
+  disabled?: boolean
+}> = ({ label, value, field, options, disabled }) => {
   const { updateProfile } = useInvestmentProfile()
 
   return (
@@ -116,11 +140,14 @@ const EditableSelectRow: React.FC<{
       <td className="py-[5px] pr-[14px] pl-2">
         <select
           value={value}
+          disabled={disabled}
           onChange={e => {
             updateProfile({ [field]: e.target.value } as Partial<InvestmentProfileData>)
             track(EVENTS.tableCellEdited, { table: 'client_inputs', field: String(field) })
           }}
-          className="w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 transition-colors cursor-pointer"
+          className={`w-full bg-transparent outline-none rounded px-1 py-[5px] text-[13px] text-right text-[#181D27] transition-colors ${
+            disabled ? 'cursor-default appearance-none' : 'hover:bg-[#F4F4F5] focus:bg-white focus:ring-1 focus:ring-violet-300 cursor-pointer'
+          }`}
         >
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -156,6 +183,10 @@ const LVR_STRATEGY_OPTIONS = [
 
 export const ClientInputsTab: React.FC = () => {
   const { profile, calculatedValues } = useInvestmentProfile()
+  const { role } = useAuth()
+  // Client-portal mode: clients may edit ONLY base salary + annual savings, and
+  // those edits are captured + sent to the BA rather than regenerating the plan.
+  const isClient = role === 'client'
   const { eventBlocks, removeEvent } = usePropertySelection()
   const existingProperties = useExistingPropertiesSafe()
   const { setDashboardTab } = useLayout()
@@ -163,6 +194,10 @@ export const ClientInputsTab: React.FC = () => {
   const [eventCategory, setEventCategory] = useState<EventCategory>('income')
   const [eventInitialType, setEventInitialType] = useState<EventType | undefined>(undefined)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+  // Client-portal capture state: the value the client typed (shown pending) and
+  // the status of notifying the BA. Never fed into the live profile.
+  const [requested, setRequested] = useState<Partial<Record<'baseSalary' | 'annualSavings', number>>>({})
+  const [notifyStatus, setNotifyStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
 
   const DEFAULT_EVENT_SLOTS: { eventType: EventType; category: EventCategory }[] = [
     { eventType: 'salary_change', category: 'income' },
@@ -217,16 +252,84 @@ export const ClientInputsTab: React.FC = () => {
     />
   )
 
+  // Capture a client's edit to base salary / annual savings: hold it locally as
+  // "pending" and notify the BA. The roadmap is deliberately NOT recomputed —
+  // the BA regenerates when they choose (Rob, 2026-07-19).
+  const commitClientInput = async (
+    field: 'baseSalary' | 'annualSavings',
+    label: string,
+    stored: number,
+  ) => {
+    const oldValue = p[field]
+    setRequested(prev => ({ ...prev, [field]: stored }))
+    setNotifyStatus('saving')
+    try {
+      const { data, error } = await supabase.functions.invoke('submit-client-inputs', {
+        body: { changes: [{ field, label, oldValue, newValue: stored }] },
+      })
+      if (error) throw error
+      const res = data as { ok: boolean; error?: string }
+      if (!res?.ok) throw new Error(res?.error || 'Save failed')
+      setNotifyStatus('done')
+    } catch {
+      setNotifyStatus('error')
+      toast.error('Could not send your update', {
+        description: 'Please try again in a moment.',
+      })
+    }
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4 items-start">
+      {/* Client-portal confirmation: shown once the client has changed a figure.
+          pointer-events-auto so it stays visible/legible inside the locked tab. */}
+      {isClient && notifyStatus !== 'idle' && (
+        <div className="col-span-2 pointer-events-auto flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#F5F3FF] border border-[#E9D7FE] text-[13px] text-[#6941C6]">
+          {notifyStatus === 'saving' ? (
+            <>
+              <Loader2 size={15} className="animate-spin shrink-0" />
+              Sending your update to your agent…
+            </>
+          ) : notifyStatus === 'error' ? (
+            <span className="text-[#B42318]">
+              We couldn't send your update. Please try again.
+            </span>
+          ) : (
+            <>
+              <CheckCircle2 size={15} className="shrink-0" />
+              Your agent has been notified and will update your plan. Your current plan is
+              unchanged until they do.
+            </>
+          )}
+        </div>
+      )}
+
       {/* Client Details */}
       <ChartCard title="Client details" flush>
         <table className="w-full text-xs">
           <tbody>
-            <EditableNumRow label="Deposit / cash ($)" value={p.depositPool} field="depositPool" prefix="$" />
-            <EditableNumRow label="Borrowing capacity ($)" value={p.borrowingCapacity} field="borrowingCapacity" prefix="$" />
-            <EditableNumRow label="Base salary ($)" value={p.baseSalary} field="baseSalary" prefix="$" />
-            <EditableNumRow label="Annual savings ($)" value={p.annualSavings} field="annualSavings" prefix="$" />
+            <EditableNumRow label="Deposit / cash ($)" value={p.depositPool} field="depositPool" prefix="$" readOnly={isClient} />
+            <EditableNumRow label="Borrowing capacity ($)" value={p.borrowingCapacity} field="borrowingCapacity" prefix="$" readOnly={isClient} />
+            <EditableNumRow
+              label="Base salary ($)"
+              value={isClient ? (requested.baseSalary ?? p.baseSalary) : p.baseSalary}
+              field="baseSalary"
+              prefix="$"
+              readOnly={false}
+              interactive={isClient}
+              pending={isClient && requested.baseSalary !== undefined}
+              onCommit={isClient ? (v) => commitClientInput('baseSalary', 'Base salary', v) : undefined}
+            />
+            <EditableNumRow
+              label="Annual savings ($)"
+              value={isClient ? (requested.annualSavings ?? p.annualSavings) : p.annualSavings}
+              field="annualSavings"
+              prefix="$"
+              readOnly={false}
+              interactive={isClient}
+              pending={isClient && requested.annualSavings !== undefined}
+              onCommit={isClient ? (v) => commitClientInput('annualSavings', 'Annual savings', v) : undefined}
+            />
             {hasPortfolioRows ? (
               <>
                 <KVRow label="Portfolio value ($)" value={`$${fmtNum(derivedPortfolioValue)}`} info={portfolioInfo('Portfolio value', "sum of each property's current value")} />
@@ -235,17 +338,17 @@ export const ClientInputsTab: React.FC = () => {
               </>
             ) : (
               <>
-                <EditableNumRow label="Portfolio value ($)" value={p.portfolioValue} field="portfolioValue" prefix="$" />
-                <EditableNumRow label="Current debt ($)" value={p.currentDebt} field="currentDebt" prefix="$" />
-                <EditableNumRow label="Existing rent ($/yr)" value={p.existingAnnualRent} field="existingAnnualRent" prefix="$" />
+                <EditableNumRow label="Portfolio value ($)" value={p.portfolioValue} field="portfolioValue" prefix="$" readOnly={isClient} />
+                <EditableNumRow label="Current debt ($)" value={p.currentDebt} field="currentDebt" prefix="$" readOnly={isClient} />
+                <EditableNumRow label="Existing rent ($/yr)" value={p.existingAnnualRent} field="existingAnnualRent" prefix="$" readOnly={isClient} />
               </>
             )}
             <KVRow label="Usable equity ($)" value={`$${fmtNum(calculatedValues?.currentUsableEquity ?? 0)}`} bold />
-            <EditableNumRow label="Timeline (yrs)" value={p.timelineYears} field="timelineYears" />
-            <EditableNumRow label="Equity goal ($)" value={p.equityGoal} field="equityGoal" prefix="$" />
-            <EditableNumRow label="Cashflow goal ($/yr)" value={p.cashflowGoal} field="cashflowGoal" prefix="$" />
-            <EditableSelectRow label="Strategy" value={p.strategyPreset} field="strategyPreset" options={STRATEGY_OPTIONS} />
-            <EditableSelectRow label="Pacing" value={p.pacingMode} field="pacingMode" options={PACING_OPTIONS} />
+            <EditableNumRow label="Timeline (yrs)" value={p.timelineYears} field="timelineYears" readOnly={isClient} />
+            <EditableNumRow label="Equity goal ($)" value={p.equityGoal} field="equityGoal" prefix="$" readOnly={isClient} />
+            <EditableNumRow label="Cashflow goal ($/yr)" value={p.cashflowGoal} field="cashflowGoal" prefix="$" readOnly={isClient} />
+            <EditableSelectRow label="Strategy" value={p.strategyPreset} field="strategyPreset" options={STRATEGY_OPTIONS} disabled={isClient} />
+            <EditableSelectRow label="Pacing" value={p.pacingMode} field="pacingMode" options={PACING_OPTIONS} disabled={isClient} />
           </tbody>
         </table>
       </ChartCard>
@@ -254,7 +357,7 @@ export const ClientInputsTab: React.FC = () => {
       <ChartCard
         title="Events"
         flush
-        action={
+        action={isClient ? undefined : (
           <div className="relative">
             <button
               onClick={() => setCategoryPickerOpen(!categoryPickerOpen)}
@@ -283,7 +386,7 @@ export const ClientInputsTab: React.FC = () => {
               </div>
             )}
           </div>
-        }
+        )}
       >
         <table className="w-full text-xs">
           <tbody>
@@ -309,13 +412,15 @@ export const ClientInputsTab: React.FC = () => {
                   {periodToYear(event.period)}
                 </td>
                 <td className="py-2 pl-1 pr-2" style={{ width: 28 }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeEvent(event.id) }}
-                    className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
-                    title="Remove event"
-                  >
-                    <X size={12} />
-                  </button>
+                  {!isClient && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeEvent(event.id) }}
+                      className="p-1 text-neutral-300 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                      title="Remove event"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

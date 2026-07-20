@@ -31,6 +31,7 @@ import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenario
 import { InfoPopover } from './RetirementScenario/InfoPopover';
 import { useLayout } from '@/contexts/LayoutContext';
 import { ClientPortalModal } from './ClientPortalModal';
+import { PlanParticleLogo } from './PlanParticleLogo';
 import { ReportExportRenderer } from './export/ReportExportRenderer';
 import { ConfirmationBrief } from './ConfirmationBrief';
 import { ChangeReceiptProvider, type ReceiptMetrics } from '@/contexts/ChangeReceiptContext';
@@ -106,8 +107,11 @@ const formatMoney = (value: number): string => {
   return `${sign}$${Math.round(abs)}`;
 };
 
+// `pointer-events-auto` keeps the horizon toggle live for client-portal viewers:
+// the plan tab is wrapped in `pointer-events-none` to lock edits, but switching
+// 10/20/30y is a view-only control that must stay usable.
 const TimeRangeTabs: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => (
-  <div className="flex items-center rounded-lg border border-neutral-200 overflow-hidden">
+  <div className="flex items-center rounded-lg border border-neutral-200 overflow-hidden pointer-events-auto">
     {[10, 20, 30].map((years, i) => (
       <button
         key={years}
@@ -134,35 +138,15 @@ const SkeletonBlock = ({ className, animate }: { className?: string; animate?: b
 );
 
 /**
- * PlanLoadingBar - determinate-looking progress bar shown at the top of the
- * skeleton while a plan is being generated. The fill is simulated (the request
- * has no true progress): it eases toward 92% and the whole bar unmounts the
- * moment the plan lands. Mirrors the Compare page's ScenarioLoadingBar.
+ * PlanLoadingBar - loading graphic shown at the top of the skeleton while a
+ * plan is being generated. A cloud of dots swarms and converges to trace the
+ * PropPath logo outline, looping until the plan lands (PlanParticleLogo).
  */
-const PlanLoadingBar = () => {
-  const [progress, setProgress] = useState(6);
-  useEffect(() => {
-    const t = setInterval(() => {
-      setProgress(p => Math.min(92, p + (92 - p) * 0.055 + 0.35));
-    }, 110);
-    return () => clearInterval(t);
-  }, []);
-
-  return (
-    <div className="w-full mx-auto" style={{ maxWidth: 440 }}>
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[13px] font-medium text-[#414651]">Building plan…</span>
-        <span className="text-[13px] font-medium text-[#717680] tabular-nums">{Math.round(progress)}%</span>
-      </div>
-      <div className="h-2.5 w-full rounded-full bg-[#F0F1F4] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[#7C3AED] transition-[width] duration-150 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-};
+const PlanLoadingBar = () => (
+  <div style={{ width: 360, height: 360 }} role="status" aria-label="Building plan">
+    <PlanParticleLogo />
+  </div>
+);
 
 /**
  * PlanLoadingSteps - a single progress line beneath the loading bar showing what
@@ -232,32 +216,37 @@ const PlanLoadingSteps = ({ clientName }: { clientName?: string }) => {
 };
 
 const DashboardSkeleton = ({ animate = false, showProgress = false, clientName }: { animate?: boolean; showProgress?: boolean; clientName?: string }) => (
-  <div className="h-full w-full overflow-y-auto bg-white">
-    <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 24px 80px 24px', width: '100%', minWidth: 500 }}>
-      {/* Loading header - bar + progress checks, only while actively generating */}
-      {showProgress && (
-        <div className="flex flex-col items-center pt-6 pb-3">
-          <PlanLoadingBar />
-          <PlanLoadingSteps clientName={clientName} />
+  <div className="relative h-full w-full overflow-hidden bg-white">
+    {/* Skeleton placeholder - faded right back while generating so the particle
+        animation reads as the focal point on top of it. */}
+    <div className={`h-full w-full overflow-y-auto transition-opacity duration-500 ${showProgress ? 'opacity-[0.18]' : ''}`}>
+      <div className="flex flex-col gap-3 mx-auto" style={{ padding: '32px 24px 80px 24px', width: '100%', minWidth: 500 }}>
+        {/* KPI row skeleton */}
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 space-y-2">
+              <SkeletonBlock className="h-4 w-24" animate={animate} />
+              <SkeletonBlock className="h-8 w-32" animate={animate} />
+            </div>
+          ))}
         </div>
-      )}
-      {/* KPI row skeleton */}
-      <div className="grid grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 space-y-2">
-            <SkeletonBlock className="h-4 w-24" animate={animate} />
-            <SkeletonBlock className="h-8 w-32" animate={animate} />
+        {/* Chart skeletons */}
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-[#FAFAFA] rounded-lg border border-gray-200 p-6">
+            <SkeletonBlock className="h-5 w-40 mb-4" animate={animate} />
+            <SkeletonBlock className="h-[220px] w-full rounded-lg" animate={animate} />
           </div>
         ))}
       </div>
-      {/* Chart skeletons */}
-      {[1, 2, 3].map(i => (
-        <div key={i} className="bg-[#FAFAFA] rounded-lg border border-gray-200 p-6">
-          <SkeletonBlock className="h-5 w-40 mb-4" animate={animate} />
-          <SkeletonBlock className="h-[220px] w-full rounded-lg" animate={animate} />
-        </div>
-      ))}
     </div>
+
+    {/* Centered particle-logo overlay - floats over the faded skeleton */}
+    {showProgress && (
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <PlanLoadingBar />
+        <PlanLoadingSteps clientName={clientName} />
+      </div>
+    )}
   </div>
 );
 

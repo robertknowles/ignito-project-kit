@@ -448,6 +448,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await updateClient(activeClient.id, { roadmap_status: 'draft' });
       }
 
+      // Saving a scenario = the BA has acted on the plan, so any pending
+      // client-initiated input change has now been reviewed. Clear the
+      // "Details updated" review flag (set by submit-client-inputs /
+      // update-client-portfolio) so the client-list badge resets.
+      if (activeClient.pending_client_update_at) {
+        await updateClient(activeClient.id, {
+          pending_client_update_at: null,
+          pending_client_update_note: null,
+        });
+      }
+
       if (!silent) {
         track(EVENTS.scenarioSaved, {
           comparison_mode: !!scenarioData.comparisonMode,
