@@ -13,7 +13,7 @@
  * scenario is never touched.
  */
 
-import { mapModificationToUpdates, mapUpdateProfileToUpdates } from '../utils/nlDataMapper';
+import { mapModificationToUpdates, mapUpdateProfileToUpdates, mapToInvestmentProfile } from '../utils/nlDataMapper';
 import type { NLParseResponse } from '../types/nlParse';
 import type { PropertyInstanceDetails } from '../types/propertyInstance';
 import type { ScenarioInput } from './scenarioRunner';
@@ -59,6 +59,29 @@ export function applyNlResponseToScenario(
     if (Object.keys(updates).length > 0) {
       profile = { ...profile, ...updates };
       didChange = true;
+    }
+  }
+
+  if (response.type === 'initial_plan' && response.properties && response.properties.length > 0) {
+    // Remodel safety net: the model occasionally answers a sweeping what-if
+    // with a full plan instead of modifications. Rebuild the scenario copy
+    // from it - clear the portfolio and apply the response's properties as
+    // an add - rather than dropping the response on the floor.
+    order = [];
+    selections = {};
+    instances = {};
+    const addResponse = {
+      ...response,
+      type: 'modification' as const,
+      modification: { target: 'portfolio', action: 'add' as const, params: {} },
+      modifications: undefined,
+    };
+    const rebuilt = mapModificationToUpdates(addResponse, instances, order, profile);
+    if (rebuilt.selectionChanges) applySelectionChanges(rebuilt.selectionChanges);
+    if (rebuilt.warnings?.length) warnings.push(...rebuilt.warnings);
+    const profileUpdates = mapToInvestmentProfile(response);
+    if (Object.keys(profileUpdates).length > 0) {
+      profile = { ...profile, ...profileUpdates };
     }
   }
 

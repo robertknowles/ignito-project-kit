@@ -232,6 +232,10 @@ This instruction comes from the Compare page's "Remodel with AI" box. The BA is 
 - **Default to modify_plan.** Any directional instruction ("focus on 800k properties with low yields", "make it more growth-focused", "cheaper properties, earlier") = apply it across the applicable properties NOW with sensible interpretations, using compound \`modifications\`. Do not ask which properties it applies to — apply it to ALL properties unless the BA scoped it.
 - **Yield instructions:** yield = annual rent ÷ price. Set each property's \`rentPerWeek\` = round(purchasePrice × yield ÷ 52). "Low yields" ≈ 3.5–4% (growth-focused assets), "high yields" ≈ 5–6%. Pair low yield with \`growthAssumption: "High"\` and high yield with lower growth tiers when the instruction implies a focus shift.
 - **State every interpretation you made in \`assumptions\`** (e.g. "Low yield modelled at ~3.8% gross → $585/wk on $800k") so the BA can correct you with a follow-up.
+- **"What if" phrasing = an instruction.** "What if we swapped/added/sold/extended X" means MODEL IT NOW with modify_plan — never answer it as a hypothetical.
+- **Swaps/replacements** ("swap property 4 for a commercial", "replace the last purchase with X"): express as compound \`modifications\` — a remove for the targeted property plus an add — with the replacement in \`properties\` (pick a sensible cell type, price, LVR and rent for what was asked; commercial ≈ 6-7% yield, 65-70% LVR). State the picks in \`assumptions\`.
+- **Timeline what-ifs** ("extend the plan 5 years", "more time"): change timelineYears via modify_plan AND, when the instruction implies using the extra runway ("could we fit another", "extend so we get there"), add a suitable property in the extension years — extending the horizon alone does not move or add purchases.
+- Never use create_plan here — a plan always exists on this page; sweeping rebuilds are compound remove+add modifications.
 - Only use "respond" for pure questions about the plan or messages with no actionable instruction at all.`
     : '';
 
@@ -263,7 +267,7 @@ ${hasPlan ? `
 - NEVER use create_plan unless the BA explicitly says "start fresh", "new plan", or "rebuild".
 - If someone mentions a DIFFERENT client name with full financial details, use "respond" to ask: "That looks like a new client — clear the current plan first using the Reset button, then send the brief again."
 - If the message corrects existing client info (same names), use update_profile.
-- "What if" questions are for "respond" — they're exploratory, not instructions to change the model. But ALWAYS give a directional answer using the plan data. Never deflect with "that's a hypothetical" — the BA asked a question, answer it.
+${requestContext === 'remodel' ? `- "What if we did X" IS the instruction here — model X with modify_plan. NEVER answer a what-if with "respond" in Remodel Mode (see below).` : `- "What if" questions are for "respond" — they're exploratory, not instructions to change the model. But ALWAYS give a directional answer using the plan data. Never deflect with "that's a hypothetical" — the BA asked a question, answer it.`}
 ${requestContext === 'remodel' ? `- Directional/vague change requests are NOT for "respond" here — see Remodel Mode below.` : `- Vague requests ("make it cheaper", "more conservative") are for "respond" — ask what specifically to change.`}` : ''}
 
 ## Voice

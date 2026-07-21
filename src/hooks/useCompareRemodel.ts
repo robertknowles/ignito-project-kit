@@ -186,7 +186,11 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
           { role: 'assistant', content: response.message ?? '' },
         ].slice(-HISTORY_WINDOW);
 
-        if (response.type === 'modification' || response.type === 'update_profile') {
+        if (
+          response.type === 'modification' ||
+          response.type === 'update_profile' ||
+          response.type === 'initial_plan'
+        ) {
           const mutation = applyNlResponseToScenario(targetScenario, response);
           if (mutation.didChange) {
             const newRun = run(mutation.scenario);
@@ -219,6 +223,14 @@ export const useCompareRemodel = (baseScenario: ScenarioInput | null) => {
               : "That instruction didn't map to a change the model supports yet.";
             setError(dropNote);
           }
+        } else {
+          // Conversational response types (respond/explanation/comparison…)
+          // used to fall through silently - no Scenario B, no error, nothing.
+          // In a one-shot remodel box that reads as a glitch, so surface it.
+          setError(
+            'The AI answered instead of changing the plan - rephrase as a direct ' +
+              'instruction, e.g. "swap property 4 for a $900k commercial at 6.5% yield".',
+          );
         }
 
         setAiMessage(response.message ?? null);
