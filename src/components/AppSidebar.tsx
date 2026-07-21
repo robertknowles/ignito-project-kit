@@ -40,6 +40,7 @@ import { useLayout } from '@/contexts/LayoutContext';
 import { SidebarRecents } from './SidebarRecents';
 import { ClientSearchModal } from './ClientSearchModal';
 import { BetaFeedbackWidget } from './BetaFeedbackWidget';
+import { useUnreviewedForms } from '@/hooks/useUnreviewedForms';
 
 export const SIDEBAR_WIDTH = 240; // prototype aside width (§ shell)
 export const SIDEBAR_COLLAPSED_WIDTH = 56; // icon-only rail width when collapsed (ChatGPT-style)
@@ -71,9 +72,12 @@ const NavItemButton: React.FC<{
   active: boolean;
   disabled?: boolean;
   badge?: string;
+  /** Unread-style count (e.g. new client form submissions). Renders a red pill
+   *  when expanded, or a red dot on the icon when collapsed. */
+  count?: number;
   collapsed?: boolean;
   onClick: () => void;
-}> = ({ icon: Icon, label, active, disabled, badge, collapsed, onClick }) => (
+}> = ({ icon: Icon, label, active, disabled, badge, count, collapsed, onClick }) => (
   <button
     onClick={() => !disabled && onClick()}
     disabled={disabled}
@@ -84,12 +88,18 @@ const NavItemButton: React.FC<{
       active ? 'bg-[#F5F3FF] hover:bg-[#F5F3FF]' : 'bg-transparent hover:bg-[#F5F5F5]'
     } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
   >
-    <Icon
-      size={18}
-      className={`shrink-0 transition duration-100 ${collapsed ? '' : 'mr-2'} ${
-        active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
-      }`}
-    />
+    <span className="relative shrink-0">
+      <Icon
+        size={18}
+        className={`transition duration-100 ${collapsed ? '' : 'mr-2'} ${
+          active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
+        }`}
+      />
+      {/* Collapsed rail: a red dot on the icon stands in for the count pill. */}
+      {collapsed && count > 0 && (
+        <span className="absolute -top-1 -right-0.5 w-2 h-2 rounded-full bg-[#7C3AED] ring-2 ring-white" />
+      )}
+    </span>
     {!collapsed && (
       <span
         className={`flex-1 text-[13px] font-medium truncate transition duration-100 ${
@@ -97,6 +107,11 @@ const NavItemButton: React.FC<{
         }`}
       >
         {label}
+      </span>
+    )}
+    {!collapsed && count > 0 && (
+      <span className="ml-1.5 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-[10px] font-semibold rounded-full bg-[#7C3AED] text-white">
+        {count > 9 ? '9+' : count}
       </span>
     )}
     {!collapsed && badge && (
@@ -116,6 +131,8 @@ export const AppSidebar: React.FC = () => {
   const { isChatRequestInFlight } = useScenarioSave();
   const { activeClient, setActiveClient } = useClient();
   const { setDashboardTab, sidebarCollapsed, toggleSidebar } = useLayout();
+  // New client form submissions → red count on the Client Management item.
+  const { count: unreviewedFormCount, markSeen: markFormsSeen } = useUnreviewedForms();
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -139,6 +156,12 @@ export const AppSidebar: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Clear the form-submission badge whenever Client Management is open, so a
+  // direct link / refresh onto /clients counts as "seen" too (not just clicks).
+  useEffect(() => {
+    if (location.pathname === '/clients') markFormsSeen();
+  }, [location.pathname, markFormsSeen]);
 
   // ⌘K / Ctrl+K opens the client search from anywhere the sidebar renders.
   useEffect(() => {
@@ -311,7 +334,8 @@ export const AppSidebar: React.FC = () => {
               collapsed={collapsed}
               active={pathActive('/clients')}
               disabled={lock(pathActive('/clients'))}
-              onClick={() => navigate('/clients')}
+              count={unreviewedFormCount}
+              onClick={() => { markFormsSeen(); navigate('/clients'); }}
             />
           </div>
         )}
