@@ -250,6 +250,7 @@ export const UPDATE_PROFILE_TOOL = {
           useExistingEquity: { type: 'boolean' as const, description: 'false ONLY when the BA explicitly says NOT to use existing equity ("don\'t refinance the home", "cash only"); true when explicitly told to use it. Omit when unstated.' },
           existingPortfolio: {
             type: 'array' as const,
+            description: 'ONLY when the BA\'s message changes an EXISTING property (its rent, value, loan, entity, year, sale). Include only the changed rows, and only the fields being changed plus the required ones. NEVER re-echo the portfolio on unrelated turns — the app treats every field you send as an update, so re-echoing values from your own context overwrites edits the BA made in the UI since.',
             items: {
               type: 'object' as const,
               properties: {

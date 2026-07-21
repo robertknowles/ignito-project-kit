@@ -912,12 +912,17 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
           });
           setPropertyOrder(reconstructedOrder);
         }
-        
+
+        // Hydrate existing properties like loadClientScenario does — leaving
+        // this slice empty made the client sandbox present a blank portfolio
+        // and let its autosave persist that emptiness back over saved rows.
+        setExistingProperties(scenarioData.existingProperties ?? []);
+
         setLastSavedData(scenarioData);
         setLastSaved(scenarioData.lastSaved);
         setHasUnsavedChanges(false);
         setNoScenarioForClient(false);
-        
+
         return scenarioData;
       } else {
         setNoScenarioForClient(true);

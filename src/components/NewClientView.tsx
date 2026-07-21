@@ -491,11 +491,13 @@ export const NewClientView: React.FC = () => {
         // hydrates the Existing Portfolio store (the no-scenario path would
         // otherwise reset it to []). The prose in the prompt still carries the
         // same rows in the same order for the AI; the confirmation-brief merge
-        // matches them back by index. Skipped if the BA removed the portfolio
-        // block from the prompt. Failure is non-fatal - the prose path still
-        // works exactly as before.
+        // matches them back by index. Seeded whenever rows exist — an empty
+        // store here is what let a later AI echo full-replace the portfolio
+        // with defaulted rows (address/year/rent wiped), so seeding must not
+        // depend on the prompt text keeping the portfolio block. Failure is
+        // non-fatal - the prose path still works exactly as before.
         const seedRows = pendingPortfolioRowsRef.current
-        if (seedRows.length > 0 && trimmed.includes('Current portfolio')) {
+        if (seedRows.length > 0) {
           const seedData = {
             // Load path calls Object.entries(propertySelections) - must exist.
             propertySelections: {},
