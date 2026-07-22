@@ -777,10 +777,10 @@ export const BriefView: React.FC<BriefViewProps> = ({
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="flex flex-col gap-4"
         >
-          {/* Total performance projection + return-metrics rail */}
-          {performanceHero}
           {/* Purchase snapshot - where the cash goes + loan-to-value */}
           {purchaseVisual}
+          {/* Total performance projection + return-metrics rail */}
+          {performanceHero}
           {/* Purchase detail - costs, annual cashflow, deal record */}
           {purchaseDetail}
           {/* Detailed annual breakdown (collapsible) */}
