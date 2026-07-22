@@ -210,10 +210,11 @@ export const InvestmentTimelineChart: React.FC<InvestmentTimelineChartProps> = (
           margin={{ top: 20, right: 8, left: 0, bottom: 0 }}
         >
           <defs>
-            {/* Subtle violet area fill under the hero line (§3.9) */}
+            {/* Flat violet area fill under the hero line - same weight as the
+                Net Cashflow (0.14) and Borrowing Capacity (0.16) fills (§3.9) */}
             <linearGradient id="timelineGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={UUI.fill} stopOpacity={0.1} />
-              <stop offset="100%" stopColor={UUI.fill} stopOpacity={0} />
+              <stop offset="0%" stopColor={UUI.fill} stopOpacity={0.14} />
+              <stop offset="100%" stopColor={UUI.fill} stopOpacity={0.14} />
             </linearGradient>
           </defs>
 

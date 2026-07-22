@@ -17,7 +17,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { ChartCard } from './ui/ChartCard'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { InfoPopover } from './RetirementScenario/InfoPopover'
-import { BriefTotalPerformanceChart, BriefCashflowChart, BriefGrowthChart, type PerfHorizon } from './BriefPerformanceCharts'
+import { BriefTotalPerformanceChart, type PerfHorizon } from './BriefPerformanceCharts'
 import { calculateDetailedCashflow } from '../utils/detailedCashflowCalculator'
 import { calcGrossYield } from '../utils/sharedFinancialCalcs'
 import { parseShorthandNumber } from '../utils/parseShorthandNumber'
@@ -49,11 +49,17 @@ const useBriefEdit = () => useContext(BriefEditContext)
 
 type RowTone = 'section' | 'breakdown' | 'net'
 
-const rowContainerCls = (tone: RowTone | undefined, bold: boolean | undefined) =>
-  tone === 'section' ? 'border-t border-[#E9EAEB]'
-  : tone === 'net' ? 'border-t border-[#D5D7DA]'
-  : bold ? 'border-t border-[#D5D7DA]'
-  : 'border-b border-[#F2F2F2] last:border-b-0'
+const rowContainerCls = (tone: RowTone | undefined, bold: boolean | undefined) => {
+  const base =
+    tone === 'section' ? 'border-t border-[#E9EAEB]'
+    : tone === 'net' ? 'border-t border-[#D5D7DA]'
+    : bold ? 'border-t border-[#D5D7DA]'
+    : 'border-b border-[#F2F2F2] last:border-b-0'
+  return `${base} hover:bg-[#FAFAFA] transition-colors`
+}
+
+// Vertical label/value divider - same grid language as the Purchases table
+const valueCellDividerCls = 'border-l border-[#F2F4F7]'
 
 const labelClsFor = (tone: RowTone | undefined, bold: boolean | undefined) =>
   tone === 'breakdown' ? 'pl-7 text-[#717680] font-normal'
@@ -87,7 +93,7 @@ const KVRow: React.FC<{
     <td className={`py-2 px-3 text-xs whitespace-nowrap ${labelClsFor(undefined, bold)}`}>
       {label}
     </td>
-    <td className={`py-2 px-3 text-xs text-right ${valueClsFor(undefined, bold, 0)}`}>
+    <td className={`py-2 px-3 text-xs text-right ${valueCellDividerCls} ${valueClsFor(undefined, bold, 0)}`}>
       {value}
     </td>
   </tr>
@@ -122,7 +128,7 @@ const EditableNumRow: React.FC<{
       <td className={`py-2 px-3 text-xs whitespace-nowrap ${labelClsFor(tone, bold)}`}>
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         {readOnly || !field ? (
           <div className={`text-right px-1.5 py-0.5 text-xs ${valueClsFor(tone, bold, value)}`}>{display}</div>
         ) : (
@@ -164,7 +170,7 @@ const EditableSelectRow: React.FC<{
       <td className="py-2 px-3 text-xs font-medium text-[#717680] whitespace-nowrap">
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         <select
           value={value}
           onChange={e => { notify?.(label, value, e.target.value); commit(field, e.target.value) }}
@@ -193,7 +199,7 @@ const EditableBoolRow: React.FC<{
       <td className="py-2 px-3 text-xs font-medium text-[#717680] whitespace-nowrap">
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         <select
           value={value ? 'yes' : 'no'}
           onChange={e => {
@@ -450,6 +456,8 @@ export const BriefView: React.FC<BriefViewProps> = ({
   // ── Combined annual cashflow table (cash in / cash out / net result) ──────
   const cashflowTable = (
     <ChartCard title="Annual cashflow" flush>
+      {/* Inset wrapper - keeps grid lines clear of the card edges, matching the Purchases table */}
+      <div className="px-5 pb-5">
       <table className="w-full">
         <tbody>
           {/* Rental income - GROSS rent basis (vacancy is applied in
@@ -473,6 +481,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
           <EditableNumRow tone="breakdown" unit="money" label="Net weekly" value={instanceData.netWeeklyCashflowOverride ?? cashflow.netWeeklyCashflow} field="netWeeklyCashflowOverride" />
         </tbody>
       </table>
+      </div>
     </ChartCard>
   )
 
@@ -500,6 +509,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
         {/* Deal details - the single editable record of the whole deal (§2.5),
             mirroring the main dashboard's property editor (Property + Loan). */}
         <ChartCard title="Deal details" flush>
+          <div className="px-5 pb-5">
           <table className="w-full">
             <tbody>
               <EditableSelectRow label="State" value={instanceData.state} field="state" options={STATE_OPTIONS} />
@@ -519,10 +529,12 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <EditableNumRow label="Total cash required" unit="money" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" bold />
             </tbody>
           </table>
+          </div>
         </ChartCard>
 
         {/* Purchase costs - one-off line items → Total cash required */}
         <ChartCard title="Purchase costs" flush>
+          <div className="px-5 pb-5">
           <table className="w-full">
             <tbody>
               <EditableNumRow label="Deposit ($)" value={instanceData.depositOverride ?? nextProp.depositRequired} field="depositOverride" />
@@ -539,6 +551,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <EditableNumRow label="Total cash required ($)" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" bold />
             </tbody>
           </table>
+          </div>
         </ChartCard>
 
         {/* Annual cashflow - §2.2 matrix ladder, semantic-red Net */}
@@ -549,14 +562,6 @@ export const BriefView: React.FC<BriefViewProps> = ({
   // ── Performance projections ─────────────────────────────────────────────
 
   const perfYearRows = projection.yearRows
-  // Purchase-moment anchor (year 0) for the growth/cashflow charts.
-  const perfPurchase = perfYearRows.length > 0
-    ? {
-        year: Number(perfYearRows[0].yearLabel) - perfYearRows[0].year,
-        propertyValue: purchasePrice,
-        equity: Math.max(0, purchasePrice - loanAmount),
-      }
-    : undefined
   const pickYr = (yr: number) => perfYearRows.find(r => r.year === yr)
   const perfMaxYear = perfYearRows.reduce((m, r) => Math.max(m, r.year), 0)
   const effectiveHorizon = Math.min(perfHorizon, perfMaxYear)
@@ -615,9 +620,8 @@ export const BriefView: React.FC<BriefViewProps> = ({
     { label: 'Return on invested capital', strong: true, cell: r => pct1(r.roic) },
   ]
 
-  const performanceTab = (
-    <div className="flex flex-col gap-4">
-      {/* Hero - chart card + return-metrics card, two peers (prototype §3.11) */}
+  // Hero - chart card + return-metrics card, two peers (prototype §3.11)
+  const performanceHero = (
       <div className="flex gap-5 items-stretch">
         <div className="flex-1 min-w-0 bg-white border border-[#E9EAEB] rounded-[14px] pt-6 px-[26px] pb-5 flex flex-col">
           <div className="flex items-center justify-between gap-6 flex-wrap mb-4">
@@ -680,27 +684,10 @@ export const BriefView: React.FC<BriefViewProps> = ({
           </div>
         </div>
       </div>
+  )
 
-      {/* Standalone projections - cashflow + growth, same chart language as the hero */}
-      <div className="grid grid-cols-2 gap-4">
-        <ChartCard
-          title="Cashflow projection"
-          legend={[{ color: '#8B5CF6', label: 'Net Cashflow', info: "The rent received each year minus the running costs (loan interest, property management, council rates, insurance and maintenance). Above $0 the rent covers all the costs; below $0 the costs are higher than the rent." }]}
-        >
-          <BriefCashflowChart yearRows={perfYearRows} horizon={perfHorizon} purchase={perfPurchase} />
-        </ChartCard>
-        <ChartCard
-          title="Growth projection"
-          legend={[
-            { color: '#8B5CF6', label: 'Total Equity', info: 'What you own in the property - its value minus the outstanding loan. Starts at your deposit and grows as the value rises and the loan is paid down.' },
-            { color: '#C4C4CC', label: 'Portfolio Value', variant: 'line', info: "This property's market value over time, growing each year at its growth assumption. The gap down to Total Equity is the remaining mortgage." },
-          ]}
-        >
-          <BriefGrowthChart yearRows={perfYearRows} horizon={perfHorizon} purchase={perfPurchase} />
-        </ChartCard>
-      </div>
-
-      {/* Detailed annual breakdown - transposed metrics × years */}
+  // Detailed annual breakdown - transposed metrics × years
+  const detailBreakdown = (
       <ChartCard
         title="Detailed annual breakdown"
         flush
@@ -774,7 +761,6 @@ export const BriefView: React.FC<BriefViewProps> = ({
           </table>
         </div>
       </ChartCard>
-    </div>
   )
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -791,12 +777,14 @@ export const BriefView: React.FC<BriefViewProps> = ({
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="flex flex-col gap-4"
         >
+          {/* Total performance projection + return-metrics rail */}
+          {performanceHero}
           {/* Purchase snapshot - where the cash goes + loan-to-value */}
           {purchaseVisual}
           {/* Purchase detail - costs, annual cashflow, deal record */}
           {purchaseDetail}
-          {/* Total performance projections */}
-          {performanceTab}
+          {/* Detailed annual breakdown (collapsible) */}
+          {detailBreakdown}
         </motion.div>
       </div>
     </BriefEditContext.Provider>
