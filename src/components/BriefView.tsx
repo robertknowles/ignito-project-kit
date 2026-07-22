@@ -49,11 +49,17 @@ const useBriefEdit = () => useContext(BriefEditContext)
 
 type RowTone = 'section' | 'breakdown' | 'net'
 
-const rowContainerCls = (tone: RowTone | undefined, bold: boolean | undefined) =>
-  tone === 'section' ? 'border-t border-[#E9EAEB]'
-  : tone === 'net' ? 'border-t border-[#D5D7DA]'
-  : bold ? 'border-t border-[#D5D7DA]'
-  : 'border-b border-[#F2F2F2] last:border-b-0'
+const rowContainerCls = (tone: RowTone | undefined, bold: boolean | undefined) => {
+  const base =
+    tone === 'section' ? 'border-t border-[#E9EAEB]'
+    : tone === 'net' ? 'border-t border-[#D5D7DA]'
+    : bold ? 'border-t border-[#D5D7DA]'
+    : 'border-b border-[#F2F2F2] last:border-b-0'
+  return `${base} hover:bg-[#FAFAFA] transition-colors`
+}
+
+// Vertical label/value divider - same grid language as the Purchases table
+const valueCellDividerCls = 'border-l border-[#F2F4F7]'
 
 const labelClsFor = (tone: RowTone | undefined, bold: boolean | undefined) =>
   tone === 'breakdown' ? 'pl-7 text-[#717680] font-normal'
@@ -87,7 +93,7 @@ const KVRow: React.FC<{
     <td className={`py-2 px-3 text-xs whitespace-nowrap ${labelClsFor(undefined, bold)}`}>
       {label}
     </td>
-    <td className={`py-2 px-3 text-xs text-right ${valueClsFor(undefined, bold, 0)}`}>
+    <td className={`py-2 px-3 text-xs text-right ${valueCellDividerCls} ${valueClsFor(undefined, bold, 0)}`}>
       {value}
     </td>
   </tr>
@@ -122,7 +128,7 @@ const EditableNumRow: React.FC<{
       <td className={`py-2 px-3 text-xs whitespace-nowrap ${labelClsFor(tone, bold)}`}>
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         {readOnly || !field ? (
           <div className={`text-right px-1.5 py-0.5 text-xs ${valueClsFor(tone, bold, value)}`}>{display}</div>
         ) : (
@@ -164,7 +170,7 @@ const EditableSelectRow: React.FC<{
       <td className="py-2 px-3 text-xs font-medium text-[#717680] whitespace-nowrap">
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         <select
           value={value}
           onChange={e => { notify?.(label, value, e.target.value); commit(field, e.target.value) }}
@@ -193,7 +199,7 @@ const EditableBoolRow: React.FC<{
       <td className="py-2 px-3 text-xs font-medium text-[#717680] whitespace-nowrap">
         {label}
       </td>
-      <td className="py-1 px-2">
+      <td className={`py-1 px-2 ${valueCellDividerCls}`}>
         <select
           value={value ? 'yes' : 'no'}
           onChange={e => {
@@ -450,6 +456,8 @@ export const BriefView: React.FC<BriefViewProps> = ({
   // ── Combined annual cashflow table (cash in / cash out / net result) ──────
   const cashflowTable = (
     <ChartCard title="Annual cashflow" flush>
+      {/* Inset wrapper - keeps grid lines clear of the card edges, matching the Purchases table */}
+      <div className="px-5 pb-5">
       <table className="w-full">
         <tbody>
           {/* Rental income - GROSS rent basis (vacancy is applied in
@@ -473,6 +481,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
           <EditableNumRow tone="breakdown" unit="money" label="Net weekly" value={instanceData.netWeeklyCashflowOverride ?? cashflow.netWeeklyCashflow} field="netWeeklyCashflowOverride" />
         </tbody>
       </table>
+      </div>
     </ChartCard>
   )
 
@@ -500,6 +509,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
         {/* Deal details - the single editable record of the whole deal (§2.5),
             mirroring the main dashboard's property editor (Property + Loan). */}
         <ChartCard title="Deal details" flush>
+          <div className="px-5 pb-5">
           <table className="w-full">
             <tbody>
               <EditableSelectRow label="State" value={instanceData.state} field="state" options={STATE_OPTIONS} />
@@ -519,10 +529,12 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <EditableNumRow label="Total cash required" unit="money" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" bold />
             </tbody>
           </table>
+          </div>
         </ChartCard>
 
         {/* Purchase costs - one-off line items → Total cash required */}
         <ChartCard title="Purchase costs" flush>
+          <div className="px-5 pb-5">
           <table className="w-full">
             <tbody>
               <EditableNumRow label="Deposit ($)" value={instanceData.depositOverride ?? nextProp.depositRequired} field="depositOverride" />
@@ -539,6 +551,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <EditableNumRow label="Total cash required ($)" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" bold />
             </tbody>
           </table>
+          </div>
         </ChartCard>
 
         {/* Annual cashflow - §2.2 matrix ladder, semantic-red Net */}
