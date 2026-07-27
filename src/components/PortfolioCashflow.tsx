@@ -315,7 +315,10 @@ const YearSlider: React.FC<YearSliderProps> = ({ min, max, value, purchaseYears,
             position: 'relative',
             zIndex: 3,
           }}
-          className="pcf-slider"
+          /* pointer-events-auto: the year scrubber is a view control, so it
+             stays draggable for read-only client/share viewers even though the
+             surrounding plan tab is locked. */
+          className="pcf-slider pointer-events-auto"
         />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>

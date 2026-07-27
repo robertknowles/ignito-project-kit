@@ -26,6 +26,11 @@ interface ChartCardProps {
   expandable?: boolean;
   /** When true, renders the legend on its own row beneath the title (keeps the title row tidy in narrow cards) */
   legendBelow?: boolean;
+  /** Optional card background override (defaults to white). Used to visually
+   *  separate a card from its peers. */
+  background?: string;
+  /** Optional card border colour override (defaults to the neutral card border). */
+  borderColor?: string;
   children: React.ReactNode;
 }
 
@@ -47,7 +52,7 @@ const UUI = {
  * `flush` removes content padding for edge-to-edge tables.
  */
 export const ChartCard: React.FC<ChartCardProps> = ({
-  title, titleInfo, action, legend, collapsible, defaultCollapsed, flush, expandable, legendBelow, children
+  title, titleInfo, action, legend, collapsible, defaultCollapsed, flush, expandable, legendBelow, background, borderColor, children
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
   const [expanded, setExpanded] = useState(false);
@@ -113,9 +118,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       onMouseEnter={hoverTracking.onMouseEnter}
       onMouseLeave={hoverTracking.onMouseLeave}
       style={{
-        background: UUI.white,
+        background: background ?? UUI.white,
         borderRadius: 14,
-        border: `1px solid ${UUI.neutral200}`,
+        border: `1px solid ${borderColor ?? UUI.neutral200}`,
         overflow: 'visible',
         display: 'flex',
         flexDirection: 'column',

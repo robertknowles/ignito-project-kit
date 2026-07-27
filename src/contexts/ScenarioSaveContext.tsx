@@ -155,6 +155,14 @@ interface ScenarioSaveContextType {
   // Client sandbox mode
   clientScenarioLoading: boolean;
   noScenarioForClient: boolean;
+  /** Hydrate the contexts from a public share link (no auth). Returns the
+   *  scenario's display-name metadata for the client-view header, or null if
+   *  the share_id doesn't resolve. */
+  loadScenarioByShareId: (shareId: string) => Promise<{
+    client_display_name: string;
+    agent_display_name: string;
+    company_display_name: string;
+  } | null>;
 }
 
 const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
@@ -960,6 +968,86 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [role, user?.id, loadScenarioForClientUser]);
 
+  // Load scenario from a public share link (no auth). Mirrors the hydration in
+  // loadScenarioForClientUser but resolves the row by share_id and returns the
+  // display-name metadata for the client-view header. No save path is wired for
+  // this mode: an anonymous visitor has no activeClient, so the autosave /
+  // self-heal / client-portfolio effects all short-circuit, and RLS blocks
+  // writes regardless.
+  const loadScenarioByShareId = useCallback(async (shareId: string) => {
+    setClientScenarioLoading(true);
+    setNoScenarioForClient(false);
+
+    try {
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('id, data, client_display_name, agent_display_name, company_display_name')
+        .eq('share_id', shareId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data?.data) {
+        setNoScenarioForClient(true);
+        return null;
+      }
+
+      const scenarioData = data.data as ScenarioData;
+
+      setScenarioId(data.id);
+
+      // Apply property selections
+      resetSelections();
+      Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+        if (quantity > 0) {
+          updatePropertyQuantity(propertyId, quantity);
+        }
+      });
+
+      // Apply investment profile
+      if (scenarioData.investmentProfile) {
+        updateProfile(scenarioData.investmentProfile);
+      }
+
+      // Load property instances
+      if (scenarioData.propertyInstances && Object.keys(scenarioData.propertyInstances).length > 0) {
+        propertyInstanceContext.setInstances(scenarioData.propertyInstances);
+      } else {
+        propertyInstanceContext.setInstances({});
+      }
+
+      // Restore property order (reconstruct from selections if absent)
+      if (scenarioData.propertyOrder && scenarioData.propertyOrder.length > 0) {
+        setPropertyOrder(scenarioData.propertyOrder);
+      } else {
+        const reconstructedOrder: string[] = [];
+        Object.entries(scenarioData.propertySelections).forEach(([propertyId, quantity]) => {
+          for (let i = 0; i < quantity; i++) {
+            reconstructedOrder.push(`${propertyId}_instance_${i}`);
+          }
+        });
+        setPropertyOrder(reconstructedOrder);
+      }
+
+      setExistingProperties(scenarioData.existingProperties ?? []);
+      setLastSavedData(scenarioData);
+      setLastSaved(scenarioData.lastSaved);
+      setHasUnsavedChanges(false);
+      setNoScenarioForClient(false);
+
+      return {
+        client_display_name: data.client_display_name || 'Client',
+        agent_display_name: data.agent_display_name || 'Agent',
+        company_display_name: data.company_display_name || 'PropPath',
+      };
+    } catch {
+      setNoScenarioForClient(true);
+      return null;
+    } finally {
+      setClientScenarioLoading(false);
+    }
+  }, [resetSelections, updateProfile, updatePropertyQuantity, propertyInstanceContext, setPropertyOrder, setExistingProperties]);
+
   // Reset the load guard when the auth user changes (logout/login). Without
   // this, logout-then-login leaves loadedClientRef pointing at the previous
   // session's client id, so the load effect below silently skips the
@@ -1202,6 +1290,7 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Client sandbox mode
     clientScenarioLoading,
     noScenarioForClient,
+    loadScenarioByShareId,
   };
 
   return (

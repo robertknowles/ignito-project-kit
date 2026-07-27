@@ -1211,6 +1211,10 @@ toast.error('Failed to create client invite');
                                 const currentStatus = showUpdate ? fs?.profile_update : fs?.input_form
                                 const formType = showUpdate ? 'profile_update' : 'input_form'
 
+                                // The client has submitted their details form (either the
+                                // original input form or a later profile update).
+                                const formCompleted = fs?.input_form === 'completed' || fs?.profile_update === 'completed'
+
                                 const sendLabel = currentStatus === 'completed'
                                   ? 'Update'
                                   : (currentStatus === 'sent' || currentStatus === 'awaiting' || currentStatus === 'not_opened')
@@ -1219,12 +1223,17 @@ toast.error('Failed to create client invite');
 
                                 return (
                                   <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => handleOpenClientForm(client)}
-                                      className="text-xs font-medium text-[#717680] hover:text-[#414651] hover:underline transition-colors duration-150"
-                                    >
-                                      Form
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => handleOpenClientForm(client)}
+                                        className="text-xs font-medium text-[#717680] hover:text-[#414651] hover:underline transition-colors duration-150"
+                                      >
+                                        Form
+                                      </button>
+                                      {formCompleted && (
+                                        <CheckCircle2 size={13} className="text-[#7C3AED]" aria-label="Form completed" />
+                                      )}
+                                    </div>
                                     <button
                                       onClick={() => { setSendFormType(formType as 'input_form' | 'profile_update'); setSendFormClientId(client.id); setSendFormEmail(client.email || ''); setSendFormOpen(true); }}
                                       className="text-xs font-semibold text-[#414651] bg-white border border-[#D5D7DA] hover:bg-[#F5F5F6] px-3 py-1 rounded-lg transition-all duration-150"

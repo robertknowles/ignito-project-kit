@@ -88,12 +88,16 @@ const KVRow: React.FC<{
   label: string
   value: string | number
   bold?: boolean
-}> = ({ label, value, bold }) => (
+  /** Optional override for the value cell colour (e.g. green/red buffer). */
+  valueClassName?: string
+  /** Optional inline node after the label - e.g. an (i) info popover. */
+  labelInfo?: React.ReactNode
+}> = ({ label, value, bold, valueClassName, labelInfo }) => (
   <tr className={rowContainerCls(undefined, bold)}>
     <td className={`py-2 px-3 text-xs whitespace-nowrap ${labelClsFor(undefined, bold)}`}>
-      {label}
+      <span className="inline-flex items-center">{label}{labelInfo}</span>
     </td>
-    <td className={`py-2 px-3 text-xs text-right ${valueCellDividerCls} ${valueClsFor(undefined, bold, 0)}`}>
+    <td className={`py-2 px-3 text-xs text-right ${valueCellDividerCls} ${valueClassName ?? valueClsFor(undefined, bold, 0)}`}>
       {value}
     </td>
   </tr>
@@ -453,6 +457,29 @@ export const BriefView: React.FC<BriefViewProps> = ({
   const lmiAmount = acqCosts?.lmi ?? 0
   const lmiCapitalised = !!instanceData.lmiCapitalized && lmiAmount > 0
 
+  // Feasibility triad (mirrors the compound calc's Funds Available/Required/
+  // Remaining). Funds available is the engine's TOTAL available funds at this
+  // purchase - deposit pool + accumulated savings + reinvested cashflow +
+  // equity released from the existing portfolio and prior purchases - so it
+  // already reflects money pulled from portfolio equity. The engine defines
+  // depositTestSurplus = availableFunds.total - totalCashRequired, so
+  // available = required + surplus, and remaining reacts live to cash edits.
+  const fundsAvailable = nextProp.totalCashRequired + nextProp.depositTestSurplus
+  const fundsRemaining = fundsAvailable - totalCash
+
+  // Where "Funds available" comes from. baseDeposit (cash pool) and equityRelease
+  // are exact on the timeline row; the savings component is the remainder, which
+  // equals the engine's savingsRemaining - so the three reconcile to the total.
+  const fundsDepositCash = nextProp.baseDeposit ?? 0
+  const fundsEquityReleased = nextProp.equityRelease ?? 0
+  const fundsSavings = Math.max(0, fundsAvailable - fundsDepositCash - fundsEquityReleased)
+
+  // Purchase price vs valuation - negative means bought under market (instant
+  // equity). Same %MV convention as the property detail modal.
+  const pctVsValuation = instanceData.valuationAtPurchase > 0
+    ? (instanceData.purchasePrice / instanceData.valuationAtPurchase - 1) * 100
+    : 0
+
   // ── Combined annual cashflow table (cash in / cash out / net result) ──────
   const cashflowTable = (
     <ChartCard title="Annual cashflow" flush>
@@ -508,7 +535,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
     <div className="grid grid-cols-3 gap-4 items-start">
         {/* Deal details - the single editable record of the whole deal (§2.5),
             mirroring the main dashboard's property editor (Property + Loan). */}
-        <ChartCard title="Deal details" flush>
+        <ChartCard title="Deal details" flush background="#F8F6FE" borderColor="#E9D5FF">
           <div className="px-5 pb-5">
           <table className="w-full">
             <tbody>
@@ -517,6 +544,11 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <KVRow label="Purchase year" value={Math.floor(nextProp.affordableYear)} />
               <EditableNumRow label="Purchase price" unit="money" value={instanceData.purchasePrice} field="purchasePrice" />
               <EditableNumRow label="Valuation at purchase" unit="money" value={instanceData.valuationAtPurchase} field="valuationAtPurchase" />
+              <KVRow
+                label="%MV (vs valuation)"
+                value={`${pctVsValuation > 0 ? '+' : ''}${pctVsValuation.toFixed(1)}%`}
+                valueClassName={pctVsValuation < 0 ? 'text-[#067647] font-medium' : undefined}
+              />
               <EditableNumRow label="Rent" unit="weekly" value={instanceData.rentPerWeek} field="rentPerWeek" />
               <KVRow label="Gross yield" value={`${grossYield}%`} />
               <EditableSelectRow label="Growth" value={instanceData.growthAssumption} field="growthAssumption" options={GROWTH_OPTIONS} />
@@ -526,7 +558,29 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <EditableSelectRow label="Loan product" value={instanceData.loanProduct} field="loanProduct" options={LOAN_PRODUCT_OPTIONS} />
               <EditableNumRow label="Interest rate" unit="pct" decimals={2} value={instanceData.interestRate} field="interestRate" />
               <EditableNumRow label="Loan term (yrs)" value={instanceData.loanTerm} field="loanTerm" />
+              <KVRow
+                label="Funds available"
+                value={fmt$(fundsAvailable)}
+                labelInfo={
+                  <InfoPopover
+                    title="Funds available"
+                    body={[`What the client can put toward this purchase by ${Math.floor(nextProp.affordableYear)}. Savings accumulate over time, and equity is released from the existing portfolio and earlier purchases (up to the equity-release cap).`]}
+                    rows={[
+                      { label: 'Deposit / cash', value: fmt$(fundsDepositCash) },
+                      { label: 'Savings to date', value: fmt$(fundsSavings) },
+                      { label: 'Equity released', value: fmt$(fundsEquityReleased) },
+                      { label: 'Total available', value: fmt$(fundsAvailable) },
+                    ]}
+                  />
+                }
+              />
               <EditableNumRow label="Total cash required" unit="money" value={instanceData.totalCashRequiredOverride ?? nextProp.totalCashRequired} field="totalCashRequiredOverride" bold />
+              <KVRow
+                label="Funds remaining"
+                value={fmt$(fundsRemaining)}
+                valueClassName={fundsRemaining < 0 ? 'text-[#D92D20] font-semibold' : 'text-[#067647] font-semibold'}
+                bold
+              />
             </tbody>
           </table>
           </div>

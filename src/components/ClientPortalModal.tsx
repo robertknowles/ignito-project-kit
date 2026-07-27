@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Copy, Loader2, Mail, CheckCircle2, UserCog } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Copy, Loader2, Mail, CheckCircle2, UserCog, Link2, ExternalLink, ChevronDown } from 'lucide-react'
 import { useScenarioSave } from '@/contexts/ScenarioSaveContext'
 import { useClient } from '@/contexts/ClientContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -22,7 +22,10 @@ interface ClientPortalModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-type Phase = 'checking' | 'setup' | 'working' | 'done' | 'error'
+/** Overall gate: can we share this scenario at all yet? */
+type Gate = 'checking' | 'ready' | 'blocked'
+/** The optional portal-login sub-flow. */
+type PortalPhase = 'idle' | 'working' | 'done' | 'error'
 
 interface PortalResult {
   email: string
@@ -39,60 +42,112 @@ const generateTempPassword = () => {
   return password + Math.floor(Math.random() * 10)
 }
 
+/** Read the scenario's share_id, generating one if it doesn't have one yet.
+ *  Uses the same null-guarded update as the legacy TopBar flow so two
+ *  concurrent opens can't clobber each other's generated id - only one writer
+ *  wins and the loser re-reads the canonical value. */
+const ensureShareId = async (scenarioId: string): Promise<string> => {
+  const { data: scenario, error } = await supabase
+    .from('scenarios')
+    .select('share_id')
+    .eq('id', scenarioId)
+    .single()
+  if (error) throw error
+
+  if (scenario?.share_id) return scenario.share_id
+
+  const candidate =
+    Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+  const { data: updated, error: updateError } = await supabase
+    .from('scenarios')
+    .update({ share_id: candidate })
+    .eq('id', scenarioId)
+    .is('share_id', null)
+    .select('share_id')
+  if (updateError) throw updateError
+
+  if (updated && updated.length > 0) return candidate
+
+  const { data: refreshed } = await supabase
+    .from('scenarios')
+    .select('share_id')
+    .eq('id', scenarioId)
+    .single()
+  if (!refreshed?.share_id) throw new Error('Could not generate a share link.')
+  return refreshed.share_id
+}
+
 /**
- * "Set up Client Portal". Provisions the client's own login (role: client) and
- * emails them a sign-in link so they get a personalised, read-only copy of this
- * plan inside PropPath - editable only on their Existing Portfolio tab.
+ * "Share with client". Leads with a live, no-login link the agent can paste
+ * straight into their own email - the client clicks it and sees a read-only,
+ * always-current copy of the plan without ever creating an account. This keeps
+ * the client out of the platform entirely, which is what most agents want:
+ * zero onboarding friction, nothing for the client to sign up for.
  *
- * Account creation runs through the already-deployed `create-client-user`
- * function; the invite email (with a one-click magic link) runs through
- * `send-portal-invite`. If the email function isn't deployed yet, the modal
- * still succeeds and shows the sign-in details for the agent to send manually.
+ * A full portal login (their own account, editable Existing Portfolio) is still
+ * available as an optional step for agents who want it - demoted here because
+ * it's the heavier commitment, not the default.
  */
 export const ClientPortalModal: React.FC<ClientPortalModalProps> = ({ open, onOpenChange }) => {
   const { scenarioId, hasUnsavedChanges } = useScenarioSave()
   const { activeClient } = useClient()
   const { toast } = useToast()
 
-  const [phase, setPhase] = useState<Phase>('checking')
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [gate, setGate] = useState<Gate>('checking')
+  const [blockedMsg, setBlockedMsg] = useState<string | null>(null)
+  const [liveLink, setLiveLink] = useState<string | null>(null)
+
+  // Optional portal-login sub-flow state.
+  const [showPortal, setShowPortal] = useState(false)
+  const [portalPhase, setPortalPhase] = useState<PortalPhase>('idle')
+  const [portalError, setPortalError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [alreadySetUp, setAlreadySetUp] = useState(false)
   const [result, setResult] = useState<PortalResult | null>(null)
 
-  // On open: figure out whether this scenario already has a linked portal user.
+  // On open: gate on save state, then generate the live link and check whether
+  // a portal login already exists.
   useEffect(() => {
     if (!open) return
     let cancelled = false
 
-    const check = async () => {
-      setResult(null)
-      setErrorMsg(null)
-      setEmail(activeClient?.email ?? '')
+    // Reset transient state each time the modal opens.
+    setLiveLink(null)
+    setResult(null)
+    setPortalError(null)
+    setPortalPhase('idle')
+    setShowPortal(false)
+    setEmail(activeClient?.email ?? '')
 
+    const check = async () => {
       if (!scenarioId) {
-        if (!cancelled) { setPhase('error'); setErrorMsg('Save this scenario first, then you can set up the client portal.') }
+        if (!cancelled) { setGate('blocked'); setBlockedMsg('Save this scenario first, then you can share it with your client.') }
         return
       }
       if (hasUnsavedChanges) {
-        if (!cancelled) { setPhase('error'); setErrorMsg('You have unsaved changes. Save them first so your client sees the latest plan.') }
+        if (!cancelled) { setGate('blocked'); setBlockedMsg('You have unsaved changes. Save them first so your client sees the latest plan.') }
         return
       }
 
-      setPhase('checking')
+      setGate('checking')
       try {
-        const { data, error } = await supabase
+        const shareId = await ensureShareId(scenarioId)
+        if (cancelled) return
+        setLiveLink(`${window.location.origin}/client-view?share_id=${shareId}`)
+
+        const { data } = await supabase
           .from('scenarios')
           .select('client_user_id')
           .eq('id', scenarioId)
           .single()
-        if (error) throw error
         if (cancelled) return
         setAlreadySetUp(!!data?.client_user_id)
-        setPhase('setup')
-      } catch {
+        setGate('ready')
+      } catch (e) {
         if (cancelled) return
-        setPhase('setup')
+        setGate('blocked')
+        setBlockedMsg(e instanceof Error ? e.message : 'Could not prepare the share link.')
       }
     }
 
@@ -100,16 +155,46 @@ export const ClientPortalModal: React.FC<ClientPortalModalProps> = ({ open, onOp
     return () => { cancelled = true }
   }, [open, scenarioId, hasUnsavedChanges, activeClient])
 
+  const copy = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: 'Copied!', description: `${label} copied to clipboard` })
+  }, [toast])
+
+  // Mark the client as "sent" in the CRM the first time the agent actually
+  // shares the live link (copies or opens it) - opening the modal alone
+  // shouldn't flip their status.
+  const markShared = useCallback(async () => {
+    if (!activeClient) return
+    await supabase
+      .from('clients')
+      .update({ portal_status: 'invited', last_active_at: new Date().toISOString() })
+      .eq('id', activeClient.id)
+  }, [activeClient])
+
+  const handleCopyLink = useCallback(() => {
+    if (!liveLink) return
+    copy(liveLink, 'Live link')
+    track(EVENTS.planShared, { share_type: 'live_link' })
+    markShared()
+  }, [liveLink, copy, markShared])
+
+  const handleOpenPreview = useCallback(() => {
+    if (!liveLink) return
+    window.open(liveLink, '_blank')
+    track(EVENTS.planShared, { share_type: 'live_link_preview' })
+    markShared()
+  }, [liveLink, markShared])
+
   const handleSetup = async () => {
     if (!scenarioId || !activeClient) return
     const targetEmail = email.trim()
     if (!targetEmail) {
-      setErrorMsg('Enter the client’s email address.')
+      setPortalError('Enter the client’s email address.')
       return
     }
 
-    setPhase('working')
-    setErrorMsg(null)
+    setPortalPhase('working')
+    setPortalError(null)
 
     try {
       // 1. Persist the email on the client record if it changed / was blank.
@@ -169,22 +254,17 @@ export const ClientPortalModal: React.FC<ClientPortalModalProps> = ({ open, onOp
       }
 
       setResult({ email: targetEmail, password: passwordForClient, loginUrl, emailed, emailError })
-      setPhase('done')
+      setPortalPhase('done')
     } catch (e) {
-      setPhase('error')
-      setErrorMsg(e instanceof Error ? e.message : 'Something went wrong setting up the portal.')
+      setPortalPhase('error')
+      setPortalError(e instanceof Error ? e.message : 'Something went wrong setting up the portal.')
     }
   }
 
-  const copy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({ title: 'Copied!', description: `${label} copied to clipboard` })
-  }
-
-  const copyAll = () => {
+  const copyAllPortal = () => {
     if (!result) return
     const lines = [
-      `Your ${activeClient?.name ? '' : ''}PropPath portal is ready.`,
+      `Your PropPath portal is ready.`,
       `Sign in here: ${result.loginUrl}`,
       `Email: ${result.email}`,
       result.password ? `Temporary password: ${result.password}` : `Use "Forgot password" to set your password.`,
@@ -196,102 +276,158 @@ export const ClientPortalModal: React.FC<ClientPortalModalProps> = ({ open, onOp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set up portal for {activeClient?.name || 'client'}</DialogTitle>
+          <DialogTitle>Share with {activeClient?.name || 'client'}</DialogTitle>
           <DialogDescription>
-            Give your client their own secure login to view this plan inside PropPath. They see
-            it read-only and can only update their Existing Portfolio - your plan stays exactly as you built it.
+            Send your client a live link to their plan. They just click it - no login, no account,
+            nothing to sign up for. The link always shows your latest saved plan.
           </DialogDescription>
         </DialogHeader>
 
-        {phase === 'checking' && (
+        {gate === 'checking' && (
           <div className="flex items-center justify-center gap-2 py-10 text-sm text-neutral-500">
-            <Loader2 size={16} className="animate-spin" /> Checking portal status…
+            <Loader2 size={16} className="animate-spin" /> Preparing your share link…
           </div>
         )}
 
-        {phase === 'error' && (
+        {gate === 'blocked' && (
           <div className="py-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">{errorMsg}</div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">{blockedMsg}</div>
           </div>
         )}
 
-        {(phase === 'setup' || phase === 'working') && (
+        {gate === 'ready' && (
           <div className="grid gap-4 py-4">
-            {alreadySetUp && (
-              <div className="flex items-start gap-2 bg-[#F5F3FF] border border-[#E9D5FF] rounded-lg p-3 text-sm text-[#5B21B6]">
-                <UserCog size={16} className="mt-0.5 shrink-0" />
-                <span>This client already has a portal login. Re-sending will email them a fresh sign-in link.</span>
-              </div>
-            )}
+            {/* ── Primary: live, no-login link ── */}
             <div className="grid gap-2">
-              <Label htmlFor="portal-email">Client email</Label>
-              <Input
-                id="portal-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="client@example.com"
-                disabled={phase === 'working'}
-              />
+              <Label className="flex items-center gap-1.5">
+                <Link2 size={14} className="text-[#717680]" /> Live link
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input value={liveLink ?? ''} readOnly className="bg-gray-50 text-sm" />
+                <Button variant="outline" size="sm" onClick={handleCopyLink} title="Copy live link">
+                  <Copy size={14} />
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-neutral-500">Paste this into your own email to the client. No login required.</p>
+                <button
+                  onClick={handleOpenPreview}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#535862] hover:text-[#414651] transition-colors shrink-0"
+                >
+                  <ExternalLink size={12} /> Preview
+                </button>
+              </div>
             </div>
-            {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
-          </div>
-        )}
 
-        {phase === 'done' && result && (
-          <div className="grid gap-4 py-4">
-            <div className={`flex items-start gap-2 rounded-lg p-3 text-sm ${result.emailed ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
-              {result.emailed ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <Mail size={16} className="mt-0.5 shrink-0" />}
-              <span>
-                {result.emailed
-                  ? `Invite emailed to ${result.email} with a one-click sign-in link.`
-                  : `Account is ready, but the invite email couldn't be sent automatically. Send your client the details below.`}
-              </span>
-            </div>
-            <div className="grid gap-2">
-              <Label>Sign-in link</Label>
-              <div className="flex items-center gap-2">
-                <Input value={result.loginUrl} readOnly className="bg-gray-50 text-sm" />
-                <Button variant="outline" size="sm" onClick={() => copy(result.loginUrl, 'Sign-in link')}><Copy size={14} /></Button>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Email</Label>
-              <div className="flex items-center gap-2">
-                <Input value={result.email} readOnly className="bg-gray-50 text-sm" />
-                <Button variant="outline" size="sm" onClick={() => copy(result.email, 'Email')}><Copy size={14} /></Button>
-              </div>
-            </div>
-            {result.password && (
-              <div className="grid gap-2">
-                <Label>Temporary password</Label>
-                <div className="flex items-center gap-2">
-                  <Input value={result.password} readOnly className="bg-gray-50 font-mono text-sm" />
-                  <Button variant="outline" size="sm" onClick={() => copy(result.password!, 'Password')}><Copy size={14} /></Button>
+            {/* ── Divider ── */}
+            <div className="border-t border-[#E9EAEB]" />
+
+            {/* ── Secondary/optional: full portal login ── */}
+            <div>
+              <button
+                onClick={() => setShowPortal((v) => !v)}
+                className="flex w-full items-center gap-2 text-left text-sm font-medium text-[#414651] hover:text-[#181D27] transition-colors"
+              >
+                <UserCog size={15} className="text-[#717680]" />
+                <span>
+                  {alreadySetUp ? 'Manage their portal login' : 'Prefer they have their own login?'}
+                  <span className="ml-1.5 text-xs font-normal text-neutral-400">Optional</span>
+                </span>
+                <ChevronDown size={15} className={`ml-auto text-[#717680] transition-transform ${showPortal ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showPortal && (
+                <div className="mt-3 grid gap-3">
+                  <p className="text-xs text-neutral-500">
+                    Gives the client their own secure account to sign in to PropPath. They see the plan read-only and can
+                    only edit their Existing Portfolio - your plan stays exactly as you built it.
+                  </p>
+
+                  {alreadySetUp && portalPhase !== 'done' && (
+                    <div className="flex items-start gap-2 bg-[#F5F3FF] border border-[#E9D5FF] rounded-lg p-3 text-xs text-[#5B21B6]">
+                      <UserCog size={14} className="mt-0.5 shrink-0" />
+                      <span>This client already has a portal login. Re-sending will email them a fresh sign-in link.</span>
+                    </div>
+                  )}
+
+                  {portalPhase !== 'done' && (
+                    <>
+                      <div className="grid gap-2">
+                        <Label htmlFor="portal-email" className="text-xs">Client email</Label>
+                        <Input
+                          id="portal-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="client@example.com"
+                          disabled={portalPhase === 'working'}
+                        />
+                      </div>
+                      {portalError && <p className="text-sm text-red-600">{portalError}</p>}
+                      <div className="flex justify-end">
+                        {portalPhase === 'working' ? (
+                          <Button variant="outline" disabled>
+                            <Loader2 size={14} className="mr-1.5 animate-spin" /> Setting up…
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={handleSetup}>
+                            <Mail size={14} className="mr-1.5" />
+                            {alreadySetUp ? 'Resend invite' : 'Set up & send invite'}
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {portalPhase === 'done' && result && (
+                    <div className="grid gap-3">
+                      <div className={`flex items-start gap-2 rounded-lg p-3 text-sm ${result.emailed ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+                        {result.emailed ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <Mail size={16} className="mt-0.5 shrink-0" />}
+                        <span>
+                          {result.emailed
+                            ? `Invite emailed to ${result.email} with a one-click sign-in link.`
+                            : `Account is ready, but the invite email couldn't be sent automatically. Send your client the details below.`}
+                        </span>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label className="text-xs">Sign-in link</Label>
+                        <div className="flex items-center gap-2">
+                          <Input value={result.loginUrl} readOnly className="bg-gray-50 text-sm" />
+                          <Button variant="outline" size="sm" onClick={() => copy(result.loginUrl, 'Sign-in link')}><Copy size={14} /></Button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label className="text-xs">Email</Label>
+                        <div className="flex items-center gap-2">
+                          <Input value={result.email} readOnly className="bg-gray-50 text-sm" />
+                          <Button variant="outline" size="sm" onClick={() => copy(result.email, 'Email')}><Copy size={14} /></Button>
+                        </div>
+                      </div>
+                      {result.password && (
+                        <div className="grid gap-2">
+                          <Label className="text-xs">Temporary password</Label>
+                          <div className="flex items-center gap-2">
+                            <Input value={result.password} readOnly className="bg-gray-50 font-mono text-sm" />
+                            <Button variant="outline" size="sm" onClick={() => copy(result.password!, 'Password')}><Copy size={14} /></Button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button variant="outline" size="sm" onClick={copyAllPortal}>Copy all</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
-        <DialogFooter className="gap-2">
-          {phase === 'setup' && (
-            <Button onClick={handleSetup}>
-              <Mail size={14} className="mr-1.5" />
-              {alreadySetUp ? 'Resend invite' : 'Set up & send invite'}
-            </Button>
-          )}
-          {phase === 'working' && (
-            <Button disabled><Loader2 size={14} className="mr-1.5 animate-spin" /> Setting up…</Button>
-          )}
-          {phase === 'done' && (
-            <>
-              <Button variant="outline" onClick={copyAll}>Copy all</Button>
-              <Button onClick={() => onOpenChange(false)}>Done</Button>
-            </>
-          )}
-          {phase === 'error' && (
+        <DialogFooter>
+          {gate === 'blocked' ? (
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Done</Button>
           )}
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal, Share2 } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal, Share2, Sparkles, LogIn } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -31,6 +31,7 @@ import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenario
 import { InfoPopover } from './RetirementScenario/InfoPopover';
 import { useLayout } from '@/contexts/LayoutContext';
 import { ClientPortalModal } from './ClientPortalModal';
+import { PortalUpsellModal } from './PortalUpsellModal';
 import { PlanParticleLogo } from './PlanParticleLogo';
 import { ReportExportRenderer } from './export/ReportExportRenderer';
 import { ConfirmationBrief } from './ConfirmationBrief';
@@ -250,7 +251,7 @@ const DashboardSkeleton = ({ animate = false, showProgress = false, clientName }
   </div>
 );
 
-export const Dashboard = () => {
+export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => {
   useChartDataSync();
 
   const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
@@ -264,6 +265,13 @@ export const Dashboard = () => {
   // Client-portal mode. Clients see the plan exactly as the agent built it -
   // read-only - and may only edit their Existing Portfolio tab.
   const isClient = role === 'client';
+
+  // Public share-link mode (/client-view). A fully locked, no-auth
+  // presentation: every tab is read-only and all agent-only tooling (Client
+  // Inputs, change log, Assumptions, Share) is hidden. viewOnly is stricter
+  // than isClient - a share viewer has no account, so even the Existing
+  // Portfolio tab is read-only.
+  const hideAgentChrome = isClient || viewOnly;
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
     const isActive = scenario.id === activeScenarioId;
@@ -351,6 +359,8 @@ export const Dashboard = () => {
   // Send to Client. Closes on outside click or Escape.
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  // Share-view only: prompt the client toward their own AI-enabled portal.
+  const [portalUpsellOpen, setPortalUpsellOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!actionsMenuOpen) return;
@@ -611,20 +621,22 @@ export const Dashboard = () => {
             onClick={() => setActiveTab('portfolio')}
           />
           <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('inputs')}
-              title="Client inputs"
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
-                activeTab === 'inputs'
-                  ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
-                  : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
-              }`}
-            >
-              <ClipboardListIcon size={15} />
-              Client Inputs
-            </button>
-            <ChangeLogBell />
-            {/* Kebab menu: Assumptions · Export PDF · Send to Client */}
+            {!viewOnly && (
+              <button
+                onClick={() => setActiveTab('inputs')}
+                title="Client inputs"
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold transition-colors shadow-sm ${
+                  activeTab === 'inputs'
+                    ? 'text-[#414651] bg-[#F5F5F6] border-[#D5D7DA]'
+                    : 'text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50'
+                }`}
+              >
+                <ClipboardListIcon size={15} />
+                Client Inputs
+              </button>
+            )}
+            {!viewOnly && <ChangeLogBell />}
+            {/* Kebab menu: Assumptions · Export PDF · Share with Client */}
             <div className="relative" ref={actionsMenuRef}>
               <button
                 onClick={() => setActionsMenuOpen(prev => !prev)}
@@ -639,7 +651,7 @@ export const Dashboard = () => {
               </button>
               {actionsMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1">
-                  {!isClient && (
+                  {!hideAgentChrome && (
                     <button
                       onClick={() => { setAssumptionsOpen(true); setActionsMenuOpen(false); }}
                       className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
@@ -657,14 +669,34 @@ export const Dashboard = () => {
                     Export PDF
                     <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
                   </button>
-                  {!isClient && (
+                  {!hideAgentChrome && (
                     <button
                       onClick={() => { setShareOpen(true); setActionsMenuOpen(false); }}
                       className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
                     >
                       <Share2 size={15} className="text-[#717680]" />
-                      Set up Client Portal
+                      Share with Client
                     </button>
+                  )}
+                  {/* Share-view only: route the client toward an AI-enabled portal */}
+                  {viewOnly && (
+                    <>
+                      <div className="my-1 border-t border-[#F0F0F1]" />
+                      <button
+                        onClick={() => { setPortalUpsellOpen(true); setActionsMenuOpen(false); }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                      >
+                        <Sparkles size={15} className="text-[#7C3AED]" />
+                        Get AI support
+                      </button>
+                      <button
+                        onClick={() => { window.open(`${window.location.origin}/login`, '_blank'); setActionsMenuOpen(false); }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                      >
+                        <LogIn size={15} className="text-[#717680]" />
+                        Log in to portal
+                      </button>
+                    </>
                   )}
                 </div>
               )}
@@ -680,7 +712,7 @@ export const Dashboard = () => {
            that must stay live (the plan sub-tab bar) re-enable themselves with
            pointer-events-auto. */}
       <div
-        className={`flex flex-col gap-6 mx-auto ${isClient && activeTab !== 'portfolio' ? 'pointer-events-none select-none' : ''}`}
+        className={`flex flex-col gap-6 mx-auto ${viewOnly || (isClient && activeTab !== 'portfolio') ? 'pointer-events-none select-none' : ''}`}
         style={{ padding: '24px 28px 80px 28px', width: '100%', minWidth: 500 }}
       >
         {/* ── Assumptions modal overlay ── */}
@@ -1054,6 +1086,12 @@ export const Dashboard = () => {
               <PropertyRoadmapChart displayYears={displayYears} />
             </ChartCard>
 
+            {/* Projections - collapsed dropdown at the bottom of Purchases so the
+                full financial summary is available without leaving this view. */}
+            <ChartCard title="Projections" flush collapsible defaultCollapsed>
+              <FinancialSummaryTable />
+            </ChartCard>
+
             {/* Equity vs Mortgage + What It Costs to Hold - hidden for now, charts preserved in components */}
           </>
         )}
@@ -1099,6 +1137,7 @@ export const Dashboard = () => {
     </div>
     <ReportExportRenderer active={isExporting} onDone={() => setIsExporting(false)} />
     <ClientPortalModal open={shareOpen} onOpenChange={setShareOpen} />
+    <PortalUpsellModal open={portalUpsellOpen} onOpenChange={setPortalUpsellOpen} />
     <ChangeLogPanel />
     </div>
     </ChangeReceiptProvider>

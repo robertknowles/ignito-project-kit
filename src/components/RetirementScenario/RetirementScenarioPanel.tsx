@@ -181,7 +181,11 @@ export const RetirementScenarioPanel: React.FC = () => {
   const fillPct = ((years - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
 
   return (
-    <div className="space-y-6" style={{ fontFamily: INTER }}>
+    // pointer-events-auto: the retirement scenario is a self-contained what-if
+    // (year scrubber + per-property Sell toggles) that only models locally and
+    // never writes back to the plan, so it stays fully interactive for
+    // read-only client/share viewers even though the plan tab is locked.
+    <div className="space-y-6 pointer-events-auto" style={{ fontFamily: INTER }}>
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
