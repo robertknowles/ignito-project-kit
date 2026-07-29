@@ -304,6 +304,16 @@ export interface NLParseResponse {
     reason: string;
     detail: string;
   }>;
+
+  /**
+   * The firm's company strategy the BA selected when this plan was generated
+   * (client-side only, never from API). Lets the confirmation brief show the BA
+   * the plain-English strategy the AI worked from.
+   */
+  _companyStrategy?: {
+    name: string;
+    text: string;
+  };
 }
 
 // ── Chat UI Types ──────────────────────────────────────────────────

@@ -101,6 +101,24 @@ export const ChatPanel: React.FC = () => {
     strategyProfiles.find((p) => p.id === selectedStrategyId)?.text?.trim() ||
     undefined
 
+  // The named strategy behind the plan, so the confirmation brief can show the
+  // BA the plain-English strategy the AI worked from. Mirrors the priority above:
+  // a home-page text pick (matched back to a saved profile for its name), else
+  // the pill selection, else the firm's first strategy. Held in a ref so
+  // handlePlanGenerated reads the latest without re-creating its callback.
+  const selectedStrategy = useMemo(() => {
+    if (pendingStrategyText) {
+      const match = strategyProfiles.find((p) => p.text?.trim() === pendingStrategyText.trim())
+      return { name: match?.name?.trim() || 'Company strategy', text: pendingStrategyText.trim() }
+    }
+    const picked =
+      strategyProfiles.find((p) => p.id === selectedStrategyId) ?? strategyProfiles[0]
+    const text = picked?.text?.trim()
+    return text ? { name: picked!.name?.trim() || 'Company strategy', text } : null
+  }, [pendingStrategyText, strategyProfiles, selectedStrategyId])
+  const selectedStrategyRef = useRef(selectedStrategy)
+  selectedStrategyRef.current = selectedStrategy
+
   // Ref for sendMessage so auto-fix can send explanation to AI
   const sendMessageRef = useRef<((text: string, presetOverride?: string, forceFreshPlan?: boolean) => void) | null>(null)
 
@@ -434,6 +452,13 @@ export const ChatPanel: React.FC = () => {
         }
       } catch (err) {
         console.error('[ChatPanel] Pre-check/auto-fix threw, showing original brief:', err)
+      }
+
+      // Attach the company strategy behind the plan so the confirmation brief
+      // can show the BA the plain-English strategy the AI worked from.
+      const strat = selectedStrategyRef.current
+      if (strat?.text) {
+        finalResponse._companyStrategy = { name: strat.name, text: strat.text }
       }
 
       // Show confirmation screen (immediately, no delay)

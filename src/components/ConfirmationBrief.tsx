@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays, ArrowLeft, RefreshCw, Sparkles } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
 import { useClient } from '@/contexts/ClientContext';
 import { useInvestmentProfile } from '@/hooks/useInvestmentProfile';
@@ -721,6 +721,12 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
   const [showNameError, setShowNameError] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // Company strategy behind the plan (attached client-side when the plan was
+  // generated). When present, the Strategy row shows a "View" button that opens
+  // a read-only look at the plain-English strategy the AI worked from.
+  const companyStrategy = editedResponse._companyStrategy;
+  const [strategyOpen, setStrategyOpen] = useState(false);
+
   const updateClientName = (value: string) => {
     setNameDraft(value);
     setEditedResponse(prev => {
@@ -1105,9 +1111,26 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                       />
                     }
                   >
-                    <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral700 }}>
-                      {strategyLabel}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral700 }}>
+                        {strategyLabel}
+                      </span>
+                      {companyStrategy?.text && (
+                        <button
+                          type="button"
+                          onClick={() => setStrategyOpen(true)}
+                          className="inline-flex items-center gap-1 rounded-full transition-colors"
+                          style={{
+                            fontFamily: UUI.font, fontSize: 11, fontWeight: 500,
+                            color: UUI.purple700, background: '#F4F0FF',
+                            border: '1px solid #E9DEFF', padding: '2px 8px',
+                          }}
+                        >
+                          <Sparkles size={11} />
+                          View strategy
+                        </button>
+                      )}
+                    </div>
                   </ClientRow>
                 </div>
               </div>
@@ -1379,6 +1402,44 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
             </div>
         </div>
       </div>
+
+      {/* ── Company strategy viewer (read-only) ── */}
+      {strategyOpen && companyStrategy && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.3)' }}
+          onClick={() => setStrategyOpen(false)}
+        >
+          <div
+            className="flex flex-col"
+            style={{ width: 520, maxHeight: '85vh', background: UUI.white, borderRadius: 12, boxShadow: 'rgba(0, 0, 0, 0.12) 0px 12px 48px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between" style={{ padding: '16px 20px', borderBottom: `1px solid ${UUI.neutral200}` }}>
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} style={{ color: UUI.purple600 }} />
+                <span style={{ fontFamily: UUI.font, fontSize: 14, fontWeight: 600, color: UUI.neutral900 }}>Company strategy</span>
+              </div>
+              <button onClick={() => setStrategyOpen(false)} style={{ color: UUI.neutral400 }} className="hover:opacity-70">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="overflow-y-auto" style={{ padding: '16px 20px' }}>
+              <p style={{ fontFamily: UUI.font, fontSize: 12, color: UUI.neutral500, lineHeight: 1.5, marginBottom: 12 }}>
+                The plain-English strategy the AI worked from when building this plan.
+              </p>
+              <div style={{ border: `1px solid ${UUI.neutral200}`, borderRadius: 8, padding: 14 }}>
+                <div style={{ fontFamily: UUI.font, fontSize: 13, fontWeight: 600, color: UUI.neutral900, marginBottom: 8 }}>
+                  {companyStrategy.name}
+                </div>
+                <div style={{ fontFamily: UUI.font, fontSize: 13, color: UUI.neutral700, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {companyStrategy.text}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
