@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, Check, ChevronDown, Minus, Plus, X, Copy, CalendarDays, ArrowLeft, RefreshCw, Sparkles } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
 import { useClient } from '@/contexts/ClientContext';
@@ -40,6 +41,10 @@ const BRIEF_STYLE = `
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .brief-scroll::-webkit-scrollbar { display: none; }
+.brief-hscroll { scrollbar-width: thin; scrollbar-color: #D5D7DA transparent; }
+.brief-hscroll::-webkit-scrollbar { height: 6px; }
+.brief-hscroll::-webkit-scrollbar-thumb { background: #D5D7DA; border-radius: 3px; }
+.brief-hscroll::-webkit-scrollbar-track { background: transparent; }
 `;
 
 const STRATEGY_LABELS: Record<string, string> = {
@@ -179,6 +184,64 @@ const YearStepper: React.FC<{ value: number; onChange: (v: number) => void }> = 
 
 // ── Dropdown select ──────────────────────────────────────────────────────────
 
+// ── Anchored popover (portaled) ──────────────────────────────────────────────
+// Renders its children in a fixed-position layer attached to document.body,
+// anchored below `anchorRef`. Portaling escapes the horizontally-scrolling
+// property/portfolio rows, whose overflow would otherwise clip a dropdown or
+// date popover opening downward. Follows the anchor on scroll/resize and closes
+// on an outside click.
+const AnchoredPopover: React.FC<{
+  anchorRef: React.RefObject<HTMLElement>;
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  /** Match the anchor's width instead of using an intrinsic min width. */
+  matchWidth?: boolean;
+}> = ({ anchorRef, open, onClose, children, matchWidth }) => {
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) return;
+    const update = () => anchorRef.current && setRect(anchorRef.current.getBoundingClientRect());
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open, anchorRef]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (anchorRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open, onClose, anchorRef]);
+
+  if (!open || !rect) return null;
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: matchWidth ? rect.width : undefined,
+        zIndex: 9999,
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+};
+
 const Dropdown: React.FC<{
   value: string;
   options: { value: string; label: string }[];
@@ -186,29 +249,23 @@ const Dropdown: React.FC<{
   className?: string;
 }> = ({ value, options, onChange, className }) => {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const selected = options.find(o => o.value === value);
 
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, [open]);
-
   return (
-    <div ref={ref} className={`relative ${className ?? ''}`}>
+    <div className={`relative ${className ?? ''}`}>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(o => !o)}
         style={{ fontFamily: UUI.font, fontSize: 12, fontWeight: 500, color: UUI.neutral700, border: `1px solid ${UUI.neutral200}`, height: 30 }}
         className="flex items-center justify-between gap-1 w-full bg-white rounded-lg px-2.5 hover:bg-neutral-50 cursor-pointer"
       >
         {selected?.label ?? value}
         <ChevronDown size={12} style={{ color: UUI.neutral400 }} />
       </button>
-      {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white rounded-lg shadow-lg min-w-[180px] py-0.5" style={{ border: `1px solid ${UUI.neutral200}` }}>
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} matchWidth>
+        <div className="bg-white rounded-lg shadow-lg py-0.5" style={{ border: `1px solid ${UUI.neutral200}`, minWidth: 120 }}>
           {options.map(opt => (
             <button
               key={opt.value}
@@ -223,7 +280,7 @@ const Dropdown: React.FC<{
             </button>
           ))}
         </div>
-      )}
+      </AnchoredPopover>
     </div>
   );
 };
@@ -238,14 +295,6 @@ const BriefSaleYearToggle: React.FC<{
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   const handleToggle = () => {
     if (isOn) {
@@ -287,8 +336,8 @@ const BriefSaleYearToggle: React.FC<{
           {value}
         </button>
       )}
-      {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ border: `1px solid ${UUI.neutral200}`, minWidth: 140 }}>
+      <AnchoredPopover anchorRef={ref} open={open} onClose={() => setOpen(false)}>
+        <div className="bg-white rounded-lg shadow-lg p-2 flex items-center gap-1.5" style={{ border: `1px solid ${UUI.neutral200}`, minWidth: 140 }}>
           <CalendarDays size={12} className="text-neutral-400 flex-shrink-0" />
           <input
             type="number"
@@ -308,7 +357,7 @@ const BriefSaleYearToggle: React.FC<{
             Set
           </button>
         </div>
-      )}
+      </AnchoredPopover>
     </div>
   );
 };
@@ -951,7 +1000,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
         className="overflow-hidden flex flex-col"
       >
         {/* Scrollable content */}
-        <div className="brief-scroll overflow-y-auto flex-1" style={{ scrollbarWidth: 'none', padding: '24px 24px 16px 24px' }}>
+        <div className="brief-scroll overflow-y-auto flex-1" style={{ scrollbarWidth: 'none', overflowX: 'hidden', padding: '24px 24px 16px 24px' }}>
           <div className="flex flex-col gap-4">
 
           {/* ── Client card (UUI outer/inner card pattern) ── */}
@@ -1155,7 +1204,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
                 No existing properties - click to add
               </div>
             ) : (
-              <div className="flex gap-3">
+              <div className="flex gap-3 overflow-x-auto brief-hscroll" style={{ paddingBottom: 6 }}>
                 {existingProps.map((ep, i) => (
                   <ExistingBlock
                     key={i}
@@ -1309,7 +1358,7 @@ export const ConfirmationBrief: React.FC<ConfirmationBriefProps> = ({ response }
               </div>
               <SourceLegend />
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 overflow-x-auto brief-hscroll" style={{ paddingBottom: 6 }}>
               {(editedResponse.properties ?? []).map((prop, i) => (
                 <PropertyBlock
                   key={i}
