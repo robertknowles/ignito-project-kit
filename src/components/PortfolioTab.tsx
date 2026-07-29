@@ -465,9 +465,14 @@ const COLUMNS: Column[] = [
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-interface PortfolioTabProps {}
+interface PortfolioTabProps {
+  /** Read-only shared-report mode: add/edit routes to the signup prompt. */
+  viewOnly?: boolean
+  /** Invoked when a view-only viewer tries to add a property. */
+  onRequestSignup?: () => void
+}
 
-export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
+export const PortfolioTab: React.FC<PortfolioTabProps> = ({ viewOnly = false, onRequestSignup }) => {
   const { existingProperties, setExistingProperties } = useScenarioSave()
   const { updateProfile } = useInvestmentProfile()
   const { notifyEdit } = useChangeReceipt()
@@ -486,12 +491,18 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     p.address?.trim() || `${p.state} property (${p.boughtYear})`
 
   const handleAdd = useCallback(() => {
+    // In a read-only shared report, adding isn't the client's to do - nudge
+    // them to create their own PropPath account instead.
+    if (viewOnly) {
+      onRequestSignup?.()
+      return
+    }
     notifyEdit('existing-portfolio', 'Existing property added')
     const newProp = createDefaultExistingProperty()
     const next = [...existingProperties, newProp]
     setExistingProperties(next)
     syncAggregates(next)
-  }, [existingProperties, setExistingProperties, syncAggregates, notifyEdit])
+  }, [viewOnly, onRequestSignup, existingProperties, setExistingProperties, syncAggregates, notifyEdit])
 
   const handleRemove = useCallback((id: string) => {
     const prop = existingProperties.find(p => p.id === id)
@@ -624,7 +635,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
           </p>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-1.5 px-3 py-1 text-[13px] font-medium text-[#7C3AED] hover:text-[#6941C6] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 text-[13px] font-medium text-[#7C3AED] hover:text-[#6941C6] transition-colors pointer-events-auto"
           >
             <Plus size={16} />
             Add existing property
@@ -683,7 +694,7 @@ export const PortfolioTab: React.FC<PortfolioTabProps> = () => {
     <ChartCard title="Existing Properties" flush action={
       <button
         onClick={handleAdd}
-        className="flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors"
+        className="flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-neutral-700 transition-colors pointer-events-auto"
       >
         <Plus size={14} />
         Add property

@@ -350,7 +350,8 @@ const HorizonToggle: React.FC<{
   value: PerfHorizon
   onChange: (h: PerfHorizon) => void
 }> = ({ value, onChange }) => (
-  <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#F5F5F5] border border-[#E9EAEB]">
+  // pointer-events-auto keeps the horizon toggle live for view-only viewers.
+  <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#F5F5F5] border border-[#E9EAEB] pointer-events-auto">
     {([10, 20, 30] as PerfHorizon[]).map(h => (
       <button
         key={h}
@@ -681,7 +682,8 @@ export const BriefView: React.FC<BriefViewProps> = ({
           <div className="flex items-center justify-between gap-6 flex-wrap mb-4">
             <span className="text-[14px] font-semibold text-[#181D27] whitespace-nowrap">Total performance projection</span>
             <TooltipProvider delayDuration={100}>
-            <div className="flex items-center gap-[18px] flex-wrap">
+            {/* pointer-events-auto: series toggles are display-only, stay live for view-only viewers */}
+            <div className="flex items-center gap-[18px] flex-wrap pointer-events-auto">
               {[
                 { key: 'capitalGrowth', color: '#7C3AED', label: 'Capital growth', info: "The increase in the property's value over time, growing each year by its assumed growth rate. You realise this value when you sell or draw on the equity." },
                 { key: 'netCashflow', color: '#8B5CF6', label: 'Net cashflow', info: "The rent received each year minus the running costs (loan interest, property management, council rates, insurance and maintenance). Above $0 the rent covers all the costs; below $0 the costs are higher than the rent." },

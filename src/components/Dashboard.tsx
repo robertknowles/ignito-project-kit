@@ -26,6 +26,7 @@ import { PropertyRoadmapChart, PropertyRoadmapSummary, ROADMAP_LEGEND } from './
 import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
+import { SignupPromptModal } from './SignupPromptModal';
 import { ClientInputsTab } from './ClientInputsTab';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { InfoPopover } from './RetirementScenario/InfoPopover';
@@ -272,6 +273,10 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
   // than isClient - a share viewer has no account, so even the Existing
   // Portfolio tab is read-only.
   const hideAgentChrome = isClient || viewOnly;
+
+  // View-only viewers who try to add a property are invited to sign up rather
+  // than edit a report that isn't theirs.
+  const [signupPromptOpen, setSignupPromptOpen] = useState(false);
 
   const getScenarioData = (scenario: typeof scenarios[0]) => {
     const isActive = scenario.id === activeScenarioId;
@@ -1124,11 +1129,14 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
         )}
 
         {/* Existing Portfolio */}
-        {activeTab === 'portfolio' && <PortfolioTab />}
+        {activeTab === 'portfolio' && (
+          <PortfolioTab viewOnly={viewOnly} onRequestSignup={() => setSignupPromptOpen(true)} />
+        )}
 
         {/* Client Inputs */}
         {activeTab === 'inputs' && <ClientInputsTab />}
       </div>
+      <SignupPromptModal open={signupPromptOpen} onClose={() => setSignupPromptOpen(false)} />
       <CustomBlockModal
         isOpen={isAddPropertyOpen}
         onClose={() => setIsAddPropertyOpen(false)}

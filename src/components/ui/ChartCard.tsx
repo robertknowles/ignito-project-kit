@@ -126,10 +126,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         flexDirection: 'column',
       }}
     >
-      {/* Header - title + legend/action/expand, on the white card */}
+      {/* Header - title + legend/action/expand, on the white card.
+          pointer-events-auto keeps expand/collapse live for client-portal /
+          view-only viewers, whose ancestor sets pointer-events-none. */}
       <div
         style={{ padding: collapsed ? '18px 20px' : '20px 20px 0 20px' }}
-        className={collapsible ? 'cursor-pointer select-none' : ''}
+        className={collapsible ? 'cursor-pointer select-none pointer-events-auto' : ''}
         onClick={collapsible ? () => setCollapsed(c => !c) : undefined}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
