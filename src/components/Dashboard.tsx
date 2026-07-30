@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal, Share2, Sparkles, LogIn } from 'lucide-react';
+import { TrendingUpIcon, FileTextIcon, Building2Icon, TableIcon, Plus, ListIcon, SlidersHorizontalIcon, RotateCcw, XIcon, AlertTriangle, PiggyBankIcon, DownloadIcon, Loader2, ClipboardListIcon, Check, MoreHorizontal, Share2, Sparkles, LogIn, Maximize2, ArrowLeft } from 'lucide-react';
 import { AssumptionsGrid } from '@/components/AssumptionsGrid';
 import { useChartDataSync } from '../hooks/useChartDataSync';
 import { usePortfolioProjection } from '../hooks/usePortfolioProjection';
@@ -258,7 +258,7 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
   const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
-  const { planGenerating, pendingPlanResponse } = useLayout();
+  const { planGenerating, pendingPlanResponse, presentMode, setPresentMode } = useLayout();
   const { propertyOrder: livePropertyOrder, eventBlocks, addCustomBlock, incrementProperty } = usePropertySelection();
   const { activeClient } = useClient();
   const { role } = useAuth();
@@ -626,6 +626,20 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
             onClick={() => setActiveTab('portfolio')}
           />
           <div className="ml-auto flex items-center gap-2">
+            {/* Exit presentation mode - grouped at the front, set off by a divider. */}
+            {presentMode && (
+              <>
+                <button
+                  onClick={() => setPresentMode(false)}
+                  title="Exit presentation"
+                  className="flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[13px] font-semibold text-neutral-600 bg-white border-neutral-200 hover:text-neutral-800 hover:bg-neutral-50 transition-colors shadow-sm"
+                >
+                  <ArrowLeft size={15} />
+                  Back
+                </button>
+                <div className="w-px h-5 bg-neutral-200 mx-0.5" />
+              </>
+            )}
             {!viewOnly && (
               <button
                 onClick={() => setActiveTab('inputs')}
@@ -673,6 +687,13 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
                     {isExporting ? <Loader2 size={15} className="animate-spin text-[#717680]" /> : <DownloadIcon size={15} className="text-[#717680]" />}
                     Export PDF
                     <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded bg-neutral-100 text-neutral-500">Beta</span>
+                  </button>
+                  <button
+                    onClick={() => { setPresentMode(true); setActionsMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] font-semibold text-[#414651] bg-transparent border-none cursor-pointer hover:bg-[#F5F5F6] transition-colors text-left"
+                  >
+                    <Maximize2 size={15} className="text-[#717680]" />
+                    Present view
                   </button>
                   {!hideAgentChrome && (
                     <button

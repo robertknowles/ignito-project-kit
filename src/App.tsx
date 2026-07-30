@@ -10,6 +10,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useScenarioSave } from './contexts/ScenarioSaveContext';
 import { useBranding } from './contexts/BrandingContext';
 import { PropertyDragDropProvider } from './contexts/PropertyDragDropContext';
+import { useLayout } from './contexts/LayoutContext';
 import { FileQuestion, Loader2 } from 'lucide-react';
 
 // Comfortable floor for the dashboard pane in the docked-chat split. Below this
@@ -22,7 +23,8 @@ function AppContent() {
   const { role } = useAuth();
   const { clientScenarioLoading, noScenarioForClient, isLoadingScenario, loadedScenarioClientId } = useScenarioSave();
   const { branding } = useBranding();
-  
+  const { presentMode, setPresentMode } = useLayout();
+
   const isClient = role === 'client';
   const showInputDrawer = !isClient || branding.isClientInteractiveEnabled;
   
@@ -86,7 +88,10 @@ function AppContent() {
   return (
     <PropertyDragDropProvider>
       <div className="main-app flex h-screen w-full bg-white">
-        <AppSidebar />
+        {/* Presentation mode hides the sidebar so the dashboard fills the screen
+            for screen-sharing; the Back button lives in the dashboard header,
+            beside the kebab menu. */}
+        {!presentMode && <AppSidebar />}
 
         {activeClient ? (
           (isLoadingScenario || loadedScenarioClientId !== activeClient.id) ? (
@@ -106,9 +111,12 @@ function AppContent() {
             // and self-sizes based on drawerOpen + chatPanelWidth.
             <div
               className="flex-1 flex overflow-hidden min-w-0"
-              style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
+              style={{ marginLeft: presentMode ? 0 : `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)` }}
             >
-              <ChatPanel />
+              {/* Kept mounted (preserves chat listeners) but hidden in present mode. */}
+              <div style={{ display: presentMode ? 'none' : 'contents' }}>
+                <ChatPanel />
+              </div>
               {/* Dashboard keeps a comfortable minimum width. As the chat column
                   grows it shrinks only down to this floor, then slides off the
                   right edge (clipped by the row's overflow-hidden) rather than

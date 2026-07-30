@@ -14,6 +14,10 @@ interface LayoutContextType {
   toggleDrawer: () => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  /** Presentation mode: hides the sidebar + chat so the dashboard fills the
+   *  screen for screen-sharing. Exited via the on-screen Back button. */
+  presentMode: boolean;
+  setPresentMode: (on: boolean) => void;
   planGenerating: boolean;
   setPlanGenerating: (generating: boolean) => void;
   highlightPeriod: HighlightPeriod | null;
@@ -56,6 +60,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
       return next;
     });
   }, []);
+  const [presentMode, setPresentMode] = useState(false);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [highlightPeriod, setHighlightPeriodState] = useState<HighlightPeriod | null>(null);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('plan');
@@ -87,7 +92,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const toggleDrawer = useCallback(() => setDrawerOpen(!drawerOpen), [drawerOpen, setDrawerOpen]);
 
   return (
-    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, sidebarCollapsed, toggleSidebar, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>
+    <LayoutContext.Provider value={{ drawerOpen, setDrawerOpen, toggleDrawer, sidebarCollapsed, toggleSidebar, presentMode, setPresentMode, planGenerating, setPlanGenerating, highlightPeriod, setHighlightPeriod, chatPanelWidth, setChatPanelWidth, dashboardTab, setDashboardTab, pendingPlanResponse, setPendingPlanResponse, confirmPlanHandler, replanPlanHandler }}>
       {children}
     </LayoutContext.Provider>
   );
