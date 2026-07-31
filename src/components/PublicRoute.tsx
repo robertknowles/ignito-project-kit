@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -8,19 +9,40 @@ interface PublicRouteProps {
 
 export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { user, loading, role } = useAuth();
+  const [resumingCheckout, setResumingCheckout] = useState(false);
 
-  // Subscriptions are disabled during the testing period - drop any stale
-  // pending-plan flag so it doesn't trigger checkout flows that no longer exist.
+  // Resume a checkout the visitor started from the landing pricing section
+  // before they had an account: the chosen plan is parked in localStorage,
+  // and once they're signed in (post email-confirmation) we send them
+  // straight to Stripe instead of the dashboard.
   useEffect(() => {
-    if (user) {
-      localStorage.removeItem('pending_subscription_plan');
-    }
-  }, [user?.id]);
+    if (!user) return;
 
-  if (loading) {
+    const pendingPlan = localStorage.getItem('pending_subscription_plan');
+    if (!pendingPlan) return;
+    localStorage.removeItem('pending_subscription_plan');
+
+    if (role === 'client') return;
+
+    setResumingCheckout(true);
+    supabase.functions
+      .invoke('create-checkout', { body: { plan: pendingPlan } })
+      .then(({ data, error }) => {
+        if (!error && data?.url) {
+          window.location.href = data.url;
+        } else {
+          // Already subscribed/comped or checkout unavailable — fall through
+          // to the normal in-app redirect.
+          setResumingCheckout(false);
+        }
+      })
+      .catch(() => setResumingCheckout(false));
+  }, [user?.id, role]);
+
+  if (loading || resumingCheckout) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">{resumingCheckout ? 'Taking you to checkout...' : 'Loading...'}</div>
       </div>
     );
   }

@@ -979,14 +979,14 @@ export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNoScenarioForClient(false);
 
     try {
-      const { data, error } = await supabase
-        .from('scenarios')
-        .select('id, data, client_display_name, agent_display_name, company_display_name')
-        .eq('share_id', shareId)
-        .maybeSingle();
+      // Scoped RPC — anon table access to scenarios was removed 31 Jul 2026;
+      // possession of the exact share_id is the access credential.
+      const { data: rows, error } = await supabase
+        .rpc('get_shared_scenario', { p_share_id: shareId });
 
       if (error) throw error;
 
+      const data = Array.isArray(rows) ? rows[0] : rows;
       if (!data?.data) {
         setNoScenarioForClient(true);
         return null;

@@ -1,49 +1,26 @@
+// Display config for purchasable plans. The authoritative charge amounts live
+// in supabase/functions/create-checkout/index.ts (PLANS) — keep the two in
+// sync when changing pricing.
 export const STRIPE_CONFIG = {
-  products: {
-    professional: 'prod_TxSi6EgWYI2T05',
-    starter: 'prod_TxShljiBpQ8ESf'
-  },
-  prices: {
-    professional: 'price_1SzXmt5J88riWhKxJQwvkZdy',
-    starter: 'price_1SzXmI5J88riWhKxSPFtRLz1'
-  },
-  features: {
-    starter: {
-      name: 'Starter',
-      price: 699, // $699 AUD
-      clientRoadmapsLimit: 3,
-      features: [
-        'unlimited_simulations',
-        'visual_roadmaps',
-        'scenario_comparison',
-        'editable_assumptions',
-        'strategy_exports',
-        'email_support'
-      ]
-    },
-    professional: {
-      name: 'Professional',
-      price: 999, // $999 AUD
+  plans: {
+    founding: {
+      name: 'Founding Member',
+      pricePerMonth: 90, // AUD
       clientRoadmapsLimit: 10,
-      features: [
-        'unlimited_simulations',
-        'visual_roadmaps',
-        'scenario_comparison',
-        'editable_assumptions',
-        'strategy_exports',
-        'email_support',
-        'white_labeling',
-        'equity_release_modelling',
-        'refinance_sequencing',
-        'milestone_tracking',
-        'advanced_assumptions',
-        'priority_support'
-      ]
-    }
-  }
+      seatLimit: 5,
+    },
+  },
 } as const;
 
-export type SubscriptionTier = 'starter' | 'professional' | 'free';
-export type SubscriptionStatus = 'active' | 'inactive' | 'past_due' | 'canceled';
+export type PlanKey = keyof typeof STRIPE_CONFIG.plans;
 
-export type PlanKey = keyof typeof STRIPE_CONFIG.prices;
+// Tiers/statuses stored on companies.subscription_tier / subscription_status.
+// 'starter' and 'professional' are legacy tiers kept for old rows; 'comped'
+// marks team + beta companies the Stripe webhook is forbidden to touch.
+export type SubscriptionTier = 'free' | 'founding' | 'starter' | 'professional';
+export type SubscriptionStatus = 'active' | 'inactive' | 'past_due' | 'canceled' | 'comped';
+
+// past_due keeps access during Stripe's retry window rather than locking a
+// paying customer out over a failed card retry.
+export const hasFullAccess = (status: SubscriptionStatus | null | undefined): boolean =>
+  status === 'active' || status === 'comped' || status === 'past_due';

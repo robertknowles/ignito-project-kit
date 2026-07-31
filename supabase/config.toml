@@ -1,1 +1,10 @@
 project_id = "gaoqzrdzihmrwipwsbwo"
+
+# Stripe posts to the webhook with its own signature scheme, not a Supabase JWT.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# create-checkout authenticates the caller itself from the Authorization JWT;
+# the gateway check adds a first line of defence.
+[functions.create-checkout]
+verify_jwt = true

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { track, EVENTS } from '@/lib/analytics';
 import { useAuth } from './AuthContext';
@@ -160,6 +161,14 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return newClient;
     } catch (error) {
+      // The roadmap-quota trigger rejects inserts with tagged messages;
+      // translate them into something actionable.
+      const message = error instanceof Error ? error.message : String((error as any)?.message ?? '');
+      if (message.includes('SUBSCRIPTION_REQUIRED')) {
+        toast.error('An active PropPath subscription is needed to create client roadmaps.');
+      } else if (message.includes('ROADMAP_LIMIT_REACHED')) {
+        toast.error("You've reached this billing period's client roadmap limit.");
+      }
       return null;
     }
   };

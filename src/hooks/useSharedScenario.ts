@@ -68,17 +68,17 @@ export function useSharedScenario(): UseSharedScenarioReturn {
           throw new Error('No share_id found in URL');
         }
 
-        // Fetch scenario from Supabase
-        const { data, error: fetchError } = await supabase
-          .from('scenarios')
-          .select('id, client_id, data, created_at, updated_at, client_display_name, agent_display_name, company_display_name')
-          .eq('share_id', shareId)
-          .single();
+        // Fetch scenario via the scoped RPC (anon table access to scenarios
+        // was removed 31 Jul 2026 — possession of the exact share_id is the
+        // access credential).
+        const { data: rows, error: fetchError } = await supabase
+          .rpc('get_shared_scenario', { p_share_id: shareId });
 
         if (fetchError) {
           throw new Error(`Failed to fetch scenario: ${fetchError.message}`);
         }
 
+        const data = Array.isArray(rows) ? rows[0] : rows;
         if (!data) {
           throw new Error('Scenario not found');
         }

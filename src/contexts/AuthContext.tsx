@@ -41,7 +41,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [clientRoadmapsLimit, setClientRoadmapsLimit] = useState<number>(0);
   const [clientRoadmapsUsed, setClientRoadmapsUsed] = useState<number>(0);
 
-  // Fetch user profile data (role, company_id, and subscription info)
+  // Fetch user profile data (role, company_id) and the company's subscription.
+  // Billing lives on companies since Jul 2026 — the profile subscription
+  // columns are legacy and only used as a fallback for company-less accounts.
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -51,16 +53,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
+        // No profile row: fail closed (gate treats them as unsubscribed)
+        // rather than leaving status null and the route stuck on loading.
+        if (error.code === 'PGRST116') {
+          setRole(null);
+          setCompanyId(null);
+          setSubscriptionTier('free');
+          setSubscriptionStatus('inactive');
+        }
         return;
       }
 
       if (data) {
         setRole(data.role as UserRole | null);
         setCompanyId(data.company_id);
+        setClientRoadmapsUsed(data.client_roadmaps_used || 0);
+
+        if (data.company_id) {
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('subscription_tier, subscription_status, client_roadmaps_limit')
+            .eq('id', data.company_id)
+            .single();
+
+          if (!companyError && companyData) {
+            setSubscriptionTier((companyData.subscription_tier as SubscriptionTier) || 'free');
+            setSubscriptionStatus((companyData.subscription_status as SubscriptionStatus) || 'inactive');
+            setClientRoadmapsLimit(companyData.client_roadmaps_limit || 0);
+            return;
+          }
+        }
+
+        // Company-less accounts (e.g. unlinked client logins) fall back to the
+        // legacy per-profile columns.
         setSubscriptionTier((data.subscription_tier as SubscriptionTier) || 'free');
         setSubscriptionStatus((data.subscription_status as SubscriptionStatus) || 'inactive');
         setClientRoadmapsLimit(data.client_roadmaps_limit || 0);
-        setClientRoadmapsUsed(data.client_roadmaps_used || 0);
       }
     } catch (error) {
       // Profile fetch failed - user will need to re-authenticate

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, ArrowRight, Loader2, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { PlanKey } from '@/config/stripe';
 
 const Pricing: React.FC = () => {
@@ -9,12 +10,31 @@ const Pricing: React.FC = () => {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
-  const handleSubscribe = async (_plan: PlanKey) => {
+  const handleSubscribe = async (plan: PlanKey) => {
     if (!user) {
+      // Remember the chosen plan; PublicRoute resumes checkout after signup
+      // and email confirmation.
+      localStorage.setItem('pending_subscription_plan', plan);
       navigate('/signup');
       return;
     }
-    alert('Subscriptions are temporarily unavailable while PropPath is in private testing.');
+
+    setLoadingPlan(plan);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+      });
+      if (error || !data?.url) {
+        // Already-subscribed (or comped) accounts just belong in the app.
+        navigate('/dashboard');
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      navigate('/dashboard');
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   return (
@@ -79,11 +99,11 @@ const Pricing: React.FC = () => {
                     ))}
                   </div>
                   <button
-                    onClick={() => handleSubscribe('starter')}
+                    onClick={() => handleSubscribe('founding')}
                     disabled={loadingPlan !== null}
                     className="w-full py-3 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-xl font-semibold text-[14px] hover:from-[#6d28d9] hover:to-[#9333ea] transition-all flex items-center justify-between px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loadingPlan === 'starter' ? (
+                    {loadingPlan === 'founding' ? (
                       <span className="flex items-center gap-2 mx-auto">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Loading...

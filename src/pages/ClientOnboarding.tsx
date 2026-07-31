@@ -319,25 +319,19 @@ export const ClientOnboarding = () => {
       }
 
       try {
-        // Fetch scenario by onboarding_id
-        const { data: scenarioData, error: scenarioError } = await supabase
-          .from('scenarios')
-          .select('id, data, company_id, client_display_name, agent_display_name, company_display_name')
-          .eq('onboarding_id', onboardingId)
-          .single();
+        // Fetch scenario by onboarding_id via the scoped RPC (anon table
+        // access to scenarios was removed 31 Jul 2026; the RPC also returns
+        // company branding, which anon RLS always blocked on direct reads).
+        const { data: scenarioRows, error: scenarioError } = await supabase
+          .rpc('get_onboarding_scenario', { p_onboarding_id: onboardingId });
 
         if (scenarioError) {
-          if (scenarioError.code === 'PGRST116') {
-            setError('This onboarding link is invalid or has expired.');
-          } else {
-            throw scenarioError;
-          }
-          setLoading(false);
-          return;
+          throw scenarioError;
         }
 
+        const scenarioData = Array.isArray(scenarioRows) ? scenarioRows[0] : scenarioRows;
         if (!scenarioData) {
-          setError('Onboarding form not found');
+          setError('This onboarding link is invalid or has expired.');
           setLoading(false);
           return;
         }
@@ -387,21 +381,13 @@ export const ClientOnboarding = () => {
           }]);
         }
 
-        // Fetch company branding if company_id exists
-        if (scenarioData.company_id) {
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('name, logo_url, primary_color')
-            .eq('id', scenarioData.company_id)
-            .single();
-
-          if (!companyError && companyData) {
-            setBranding({
-              companyName: companyData.name || defaultBranding.companyName,
-              logoUrl: companyData.logo_url,
-              primaryColor: companyData.primary_color || defaultBranding.primaryColor,
-            });
-          }
+        // Company branding rides along on the RPC result
+        if (scenarioData.company_name || scenarioData.company_logo_url || scenarioData.company_primary_color) {
+          setBranding({
+            companyName: scenarioData.company_name || defaultBranding.companyName,
+            logoUrl: scenarioData.company_logo_url,
+            primaryColor: scenarioData.company_primary_color || defaultBranding.primaryColor,
+          });
         }
 
         setLoading(false);
@@ -426,14 +412,13 @@ setError('Failed to load onboarding form');
     setSubmitting(true);
 
     try {
-      // First fetch the current scenario data
-      const { data: currentScenario, error: fetchError } = await supabase
-        .from('scenarios')
-        .select('data')
-        .eq('onboarding_id', onboardingId)
-        .single();
+      // First fetch the current scenario data (scoped RPC — see fetchData)
+      const { data: currentRows, error: fetchError } = await supabase
+        .rpc('get_onboarding_scenario', { p_onboarding_id: onboardingId });
 
       if (fetchError) throw fetchError;
+      const currentScenario = Array.isArray(currentRows) ? currentRows[0] : currentRows;
+      if (!currentScenario) throw new Error('Onboarding link no longer valid');
 
       // Roll the per-property list up into the aggregates the engine consumes.
       const portfolioAggregates = aggregatePortfolio(properties);
@@ -498,16 +483,15 @@ setError('Failed to load onboarding form');
         onboardingCompletedAt: new Date().toISOString(),
       };
 
-      // Update the scenario with new investment profile
-      const { error: updateError } = await supabase
-        .from('scenarios')
-        .update({
-          data: updatedData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('onboarding_id', onboardingId);
+      // Update the scenario with new investment profile (scoped RPC)
+      const { data: updated, error: updateError } = await supabase
+        .rpc('submit_onboarding_scenario', {
+          p_onboarding_id: onboardingId,
+          p_data: updatedData,
+        });
 
       if (updateError) throw updateError;
+      if (!updated) throw new Error('Onboarding link no longer valid');
 
       setSubmitted(true);
 

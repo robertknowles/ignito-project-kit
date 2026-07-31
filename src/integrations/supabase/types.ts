@@ -519,6 +519,9 @@ export type Database = {
       }
       companies: {
         Row: {
+          billing_period_end: string | null
+          billing_period_start: string | null
+          client_roadmaps_limit: number
           created_at: string | null
           id: string
           is_client_interactive_enabled: boolean | null
@@ -528,9 +531,16 @@ export type Database = {
           primary_color: string | null
           seat_limit: number | null
           secondary_color: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string
+          subscription_tier: string
           updated_at: string | null
         }
         Insert: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          client_roadmaps_limit?: number
           created_at?: string | null
           id?: string
           is_client_interactive_enabled?: boolean | null
@@ -540,9 +550,16 @@ export type Database = {
           primary_color?: string | null
           seat_limit?: number | null
           secondary_color?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string
+          subscription_tier?: string
           updated_at?: string | null
         }
         Update: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          client_roadmaps_limit?: number
           created_at?: string | null
           id?: string
           is_client_interactive_enabled?: boolean | null
@@ -552,6 +569,10 @@ export type Database = {
           primary_color?: string | null
           seat_limit?: number | null
           secondary_color?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string
+          subscription_tier?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -785,6 +806,37 @@ export type Database = {
         }[]
       }
       is_company_owner: { Args: { check_company_id: string }; Returns: boolean }
+      get_shared_scenario: {
+        Args: { p_share_id: string }
+        Returns: {
+          id: number
+          client_id: number
+          data: Json
+          created_at: string
+          updated_at: string
+          client_display_name: string | null
+          agent_display_name: string | null
+          company_display_name: string | null
+        }[]
+      }
+      get_onboarding_scenario: {
+        Args: { p_onboarding_id: string }
+        Returns: {
+          id: number
+          data: Json
+          company_id: string | null
+          client_display_name: string | null
+          agent_display_name: string | null
+          company_display_name: string | null
+          company_name: string | null
+          company_logo_url: string | null
+          company_primary_color: string | null
+        }[]
+      }
+      submit_onboarding_scenario: {
+        Args: { p_onboarding_id: string; p_data: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       client_stage: ClientStage

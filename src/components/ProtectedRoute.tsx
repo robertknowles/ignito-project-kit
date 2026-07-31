@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/integrations/supabase/types';
+import { hasFullAccess } from '@/config/stripe';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,10 +10,11 @@ interface ProtectedRouteProps {
   requireSubscription?: boolean;
 }
 
-// Subscriptions are disabled during the testing period: every signed-in user
-// can reach protected routes regardless of plan status. Flip back to `true`
-// when re-enabling Stripe.
-const SUBSCRIPTION_GATE_ENABLED = false;
+// Stripe re-enabled 31 Jul 2026. Team + beta companies carry the 'comped'
+// status (webhook can never touch it), so they pass the gate untroubled.
+// Enforcement also exists server-side (roadmap-quota trigger on clients);
+// this flag only controls the client-side redirect to /upgrade.
+const SUBSCRIPTION_GATE_ENABLED = true;
 
 // Hard cap on how long we'll show "Loading..." before assuming the auth/profile
 // fetch is wedged. Without this the user can sit on a blank loading screen
@@ -63,14 +65,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Subscription gate is feature-flagged off during testing. When the flag is
-  // on, redirect unpaid users to the upgrade page; if subscriptionStatus is
+  // Redirect unpaid owners/agents to the upgrade page. Clients never pay —
+  // the owner's company does — so client-role users are exempt here (their
+  // routes also pass requireSubscription={false}). If subscriptionStatus is
   // still null, profile data hasn't loaded yet - show the timeout-aware loader.
-  if (SUBSCRIPTION_GATE_ENABLED && requireSubscription) {
+  if (SUBSCRIPTION_GATE_ENABLED && requireSubscription && role !== 'client') {
     if (subscriptionStatus === null) {
       return <LoadingScreen />;
     }
-    if (subscriptionStatus !== 'active') {
+    if (!hasFullAccess(subscriptionStatus)) {
       return <Navigate to="/upgrade" replace />;
     }
   }

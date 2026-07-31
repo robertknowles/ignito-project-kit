@@ -97,8 +97,9 @@ User input → Zod validation → Custom hooks/utils → Supabase persistence (v
 - Roles: owner, agent, client
 
 ### Stripe Integration (`config/stripe.ts`)
-- Starter: $699 AUD (3 client roadmaps)
-- Professional: $999 AUD (10 client roadmaps)
+- Founding Member: $90 AUD/month (10 client roadmaps/mo, 5 seats) — early-adopter plan
+- Charge amounts live in `supabase/functions/create-checkout/index.ts` (inline price_data); display copy in `src/config/stripe.ts` — keep in sync
+- Billing is per-company (`companies.subscription_*` columns); `subscription_status = 'comped'` marks team/beta companies the webhook never touches
 - Edge Functions handle checkout creation and webhook processing
 
 ## Database
@@ -106,8 +107,8 @@ User input → Zod validation → Custom hooks/utils → Supabase persistence (v
 PostgreSQL via Supabase with RLS on all tables:
 - **profiles** — user accounts
 - **clients** — client records (belong to user/agent)
-- **scenarios** — investment plans (belong to client, include share_id for public links)
-- **subscriptions** — Stripe subscription tracking
+- **scenarios** — investment plans (belong to client; public share/onboarding links go through scoped RPCs `get_shared_scenario` / `get_onboarding_scenario` / `submit_onboarding_scenario`, not anon table policies)
+- **companies** — white-label agencies; also carries Stripe billing state (`subscription_tier/status`, `stripe_customer_id`, roadmap/seat limits). Billing columns and `profiles.role/company_id` are trigger-guarded: only service-role/server contexts may change them
 
 ## Path Aliases
 
