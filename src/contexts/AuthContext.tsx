@@ -80,15 +80,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSubscriptionTier((companyData.subscription_tier as SubscriptionTier) || 'free');
             setSubscriptionStatus((companyData.subscription_status as SubscriptionStatus) || 'inactive');
             setClientRoadmapsLimit(companyData.client_roadmaps_limit || 0);
-            return;
           }
+          // On a transient company-fetch error, leave subscriptionStatus as-is
+          // (null on first load) so ProtectedRoute keeps showing the loader and
+          // retries, rather than bouncing a paying owner to /upgrade.
+          return;
         }
 
-        // Company-less accounts (e.g. unlinked client logins) fall back to the
-        // legacy per-profile columns.
-        setSubscriptionTier((data.subscription_tier as SubscriptionTier) || 'free');
-        setSubscriptionStatus((data.subscription_status as SubscriptionStatus) || 'inactive');
-        setClientRoadmapsLimit(data.client_roadmaps_limit || 0);
+        // Company-less accounts (only unlinked client logins now — every owner
+        // gets a company at signup via handle_new_user). Billing lives on the
+        // company, so with no company there is no subscription: fail closed.
+        // Clients are exempt from the gate anyway (ProtectedRoute role check).
+        setSubscriptionTier('free');
+        setSubscriptionStatus('inactive');
+        setClientRoadmapsLimit(0);
       }
     } catch (error) {
       // Profile fetch failed - user will need to re-authenticate
