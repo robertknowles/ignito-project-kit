@@ -155,70 +155,6 @@ export const ChatPanel: React.FC = () => {
     document.body.style.userSelect = 'none'
   }
 
-  // ── Draggable launcher FAB ──
-  // The sparkle button defaults to the bottom-right corner but can be dragged
-  // anywhere; its position persists across reloads. A drag past a small
-  // threshold suppresses the click, so dropping it doesn't also open the chat.
-  const FAB_SIZE = 48
-  const FAB_MARGIN = 20
-  const FAB_POS_KEY = 'proppath.fabPos'
-  const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(() => {
-    try {
-      const raw = localStorage.getItem(FAB_POS_KEY)
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  })
-  const fabPosRef = useRef(fabPos)
-  fabPosRef.current = fabPos
-  const fabDrag = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null)
-
-  const clampFab = useCallback((x: number, y: number) => {
-    const maxX = window.innerWidth - FAB_SIZE - 4
-    const maxY = window.innerHeight - FAB_SIZE - 4
-    return { x: Math.min(Math.max(4, x), Math.max(4, maxX)), y: Math.min(Math.max(4, y), Math.max(4, maxY)) }
-  }, [])
-
-  const onFabMouseMove = useCallback((e: MouseEvent) => {
-    const d = fabDrag.current
-    if (!d) return
-    const dx = e.clientX - d.startX
-    const dy = e.clientY - d.startY
-    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 4) d.moved = true
-    const next = clampFab(d.origX + dx, d.origY + dy)
-    fabPosRef.current = next  // keep ref current so mouseup can persist it
-    setFabPos(next)
-  }, [clampFab])
-
-  const onFabMouseUp = useCallback(() => {
-    window.removeEventListener('mousemove', onFabMouseMove)
-    window.removeEventListener('mouseup', onFabMouseUp)
-    document.body.style.userSelect = ''
-    const d = fabDrag.current
-    fabDrag.current = null
-    if (!d) return
-    if (!d.moved) {
-      setDrawerOpen(true)
-    } else if (fabPosRef.current) {
-      try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(fabPosRef.current)) } catch { /* ignore */ }
-    }
-  }, [onFabMouseMove, setDrawerOpen])
-
-  const onFabMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    fabDrag.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top, moved: false }
-    document.body.style.userSelect = 'none'
-    window.addEventListener('mousemove', onFabMouseMove)
-    window.addEventListener('mouseup', onFabMouseUp)
-  }, [onFabMouseMove, onFabMouseUp])
-
-  // Keep the FAB on-screen when the viewport is resized.
-  useEffect(() => {
-    const onResize = () => setFabPos((p) => (p ? clampFab(p.x, p.y) : p))
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [clampFab])
-
   // Contexts we write into
   const { updateProfile, profile } = useInvestmentProfile()
   const { setAllSelections, selections, propertyOrder, addEvent } = usePropertySelection()
@@ -1475,22 +1411,7 @@ export const ChatPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Launcher - purple sparkle FAB shown when the chat is closed.
-          Defaults to the bottom-right corner; draggable anywhere. */}
-      {!drawerOpen && !pendingPlanResponse && (
-        <button
-          onMouseDown={onFabMouseDown}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrawerOpen(true) } }}
-          className="fixed z-50 w-12 h-12 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] shadow-lg flex items-center justify-center text-white transition-colors cursor-grab active:cursor-grabbing select-none touch-none"
-          style={fabPos
-            ? { left: fabPos.x, top: fabPos.y }
-            : { right: FAB_MARGIN, bottom: 24 }}
-          title="Ask PropPath AI (drag to move)"
-          aria-label="Open PropPath AI chat"
-        >
-          <SparklesIcon size={22} />
-        </button>
-      )}
+      {/* Launcher lives permanently in the dashboard header (see Dashboard.tsx). */}
 
       <StrategyProfileModal
         isOpen={strategyProfileOpen}

@@ -258,7 +258,7 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
   const { scenarios, activeScenarioId, isMultiScenarioMode } = useMultiScenario();
   const { profile: liveProfile } = useInvestmentProfile();
   const { timelineProperties: liveTimelineProperties } = useAffordabilityCalculator();
-  const { planGenerating, pendingPlanResponse, presentMode, setPresentMode } = useLayout();
+  const { planGenerating, pendingPlanResponse, presentMode, setPresentMode, drawerOpen, setDrawerOpen } = useLayout();
   const { propertyOrder: livePropertyOrder, eventBlocks, addCustomBlock, incrementProperty } = usePropertySelection();
   const { activeClient } = useClient();
   const { role } = useAuth();
@@ -639,6 +639,20 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
                 </button>
                 <div className="w-px h-5 bg-neutral-200 mx-0.5" />
               </>
+            )}
+            {/* Permanent AI chat launcher - a purple accent button that animates
+                on hover. Toggles the docked chat panel. */}
+            {!presentMode && !viewOnly && (
+              <button
+                onClick={() => setDrawerOpen(!drawerOpen)}
+                title="Ask PropPath AI"
+                aria-label="Open PropPath AI chat"
+                className={`group flex items-center justify-center w-8 h-8 rounded-full text-white shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md hover:shadow-purple-500/30 active:scale-95 ${
+                  drawerOpen ? 'bg-[#6D28D9] ring-2 ring-purple-300' : 'bg-[#7C3AED] hover:bg-[#6D28D9]'
+                }`}
+              >
+                <Sparkles size={16} className="transition-transform duration-300 group-hover:rotate-[18deg] group-hover:scale-110" />
+              </button>
             )}
             {!viewOnly && (
               <button
