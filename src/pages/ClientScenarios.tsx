@@ -27,6 +27,7 @@ import { ClientCreationForm } from '../components/ClientCreationForm'
 import { PDFReportRenderer } from '../components/PDFReportRenderer'
 import { ClientProfileModal } from '../components/ClientProfileModal'
 import { useClient, Client } from '@/contexts/ClientContext'
+import { NEW_SCENARIO_CLIENT_KEY } from '@/components/NewClientView'
 import { useAuth } from '@/contexts/AuthContext'
 import { generateClientReport } from '../utils/pdfGenerator'
 import { supabase } from '@/integrations/supabase/client'
@@ -782,6 +783,15 @@ toast.error('Failed to copy link. Please try again.');
     setProfileModalOpen(true);
   };
 
+  // "Create roadmap" from a received form: stash the client id and land on the
+  // new-scenario page, where NewClientView auto-loads their submitted details
+  // into the chat, ready to run.
+  const handleCreateRoadmap = (client: Client) => {
+    sessionStorage.setItem(NEW_SCENARIO_CLIENT_KEY, String(client.id));
+    setActiveClient(null);
+    navigate('/dashboard');
+  };
+
   // Generate a secure temporary password
   const generateTempPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -1164,13 +1174,17 @@ toast.error('Failed to create client invite');
                                   // agent (regardless of whether it was sent via a share
                                   // link). This is what the BA cares about most, so it
                                   // takes priority over "Sent to client" / "In progress".
+                                  // Form is in - the green check keeps the
+                                  // "received" signal, and the button now drives
+                                  // the BA straight into building the roadmap.
                                   return (
                                     <button
-                                      onClick={() => handleOpenProfile(client)}
+                                      onClick={() => handleCreateRoadmap(client)}
+                                      title="Form received - create their roadmap"
                                       className="inline-flex items-center gap-1.5 text-xs font-medium text-[#067647] bg-[#ECFDF3] border border-[#ABEFC6] hover:bg-[#D1FADF] px-2.5 py-1 rounded-full transition-colors duration-150"
                                     >
                                       <CheckCircle2 size={11} className="text-[#17B26A]" />
-                                      Form received
+                                      Create roadmap
                                     </button>
                                   )
                                 } else if (cs?.hasScenario) {

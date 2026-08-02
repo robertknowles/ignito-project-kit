@@ -68,6 +68,9 @@ const BRIEF_SOURCE_PROMPT_KEY = 'proppath:brief-source-prompt'
 // Set by the confirmation brief's Back button; consumed here on mount to
 // repopulate the chat box with the inputs the agent originally entered.
 const RESTORE_PROMPT_KEY = 'proppath:restore-prompt'
+// Set by "Create roadmap" on a received client form (ClientScenarios); consumed
+// here on mount to auto-load that client's submitted details into the chat.
+export const NEW_SCENARIO_CLIENT_KEY = 'proppath:new-scenario-client'
 
 // The eight fields a client fills out on their onboarding / details form, in
 // display order. Mirrors ClientInputsModal so the pasted text reads the same
@@ -212,6 +215,9 @@ export const NewClientView: React.FC = () => {
   // stay identical to the prose lines (confirmation-brief merge matches
   // rows by index when addresses are empty).
   const pendingPortfolioRowsRef = useRef<ExistingProperty[]>([])
+  // Guards the one-shot auto-load when arriving here via "Create roadmap" from a
+  // received client form (see the effect below).
+  const pendingClientHandledRef = useRef(false)
   const resetAssumptionsRef = useRef<() => void>(() => {})
   const auroraMouseRef = useRef<HTMLDivElement>(null)
 
@@ -346,6 +352,48 @@ export const NewClientView: React.FC = () => {
       })
     }
   }, [])
+
+  // Arrived here via "Create roadmap" on a received client form: auto-load that
+  // client's submitted details into the chat, ready to run. One-shot, and waits
+  // for the clients list so we can resolve the name.
+  useEffect(() => {
+    if (pendingClientHandledRef.current) return
+    const pendingId = sessionStorage.getItem(NEW_SCENARIO_CLIENT_KEY)
+    if (!pendingId) return
+    const cid = Number(pendingId)
+    const client = clients.find((c) => c.id === cid)
+    if (!client && clients.length === 0) return // wait for clients to load
+    pendingClientHandledRef.current = true
+    sessionStorage.removeItem(NEW_SCENARIO_CLIENT_KEY)
+
+    let cancelled = false
+    const run = async () => {
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('data, updated_at')
+        .eq('client_id', cid)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+      if (cancelled || error || !data?.[0]) return
+      const sd = (data[0] as any).data || {}
+      const snap = sd.clientSubmittedInputs || (sd.onboardingCompleted ? sd.investmentProfile : null)
+      if (!snap || typeof snap !== 'object') return
+      const name = client?.name || (snap.name as string) || ''
+      pasteIntoPrompt(buildFactFindText(name, snap))
+      const raw = (snap as Record<string, unknown>).existingProperties
+      if (Array.isArray(raw) && raw.length > 0) {
+        pendingPortfolioRowsRef.current = [
+          ...pendingPortfolioRowsRef.current,
+          ...mapSubmittedToExistingProperties(raw as SubmittedPortfolioRow[]),
+        ]
+      }
+      toast.success(`Loaded ${name || 'client'}'s details - review and run`)
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [clients, pasteIntoPrompt])
 
   // When the details modal opens, load the verbatim form snapshots for every
   // client so we can list the ones who have actually submitted.
