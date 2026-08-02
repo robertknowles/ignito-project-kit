@@ -180,6 +180,7 @@ export const PurchaseBriefCalc: React.FC<{ onBack?: () => void }> = ({ onBack })
       cashflow={cashflow}
       edit={edit}
       header={header}
+      entryGate
     />
   )
 }

@@ -410,6 +410,10 @@ export interface BriefViewProps {
   /** Purchase pull-away animation (portfolio "Mark as purchased" only). */
   animateKey?: number
   animatePull?: boolean
+  /** Standalone Purchase Brief: open focused on the Deal-details inputs (charts
+   *  fogged behind) so the BA sets the numbers, then Simulate reveals the full
+   *  brief. Off everywhere else. */
+  entryGate?: boolean
 }
 
 export const BriefView: React.FC<BriefViewProps> = ({
@@ -423,7 +427,12 @@ export const BriefView: React.FC<BriefViewProps> = ({
   onNavigateToPurchases,
   animateKey = 0,
   animatePull = false,
+  entryGate = false,
 }) => {
+  // Entry gate: start focused on the Deal-details inputs, reveal the full brief
+  // on Simulate. Only active when entryGate is set (standalone Purchase Brief).
+  const [gated, setGated] = useState(entryGate)
+  const simulate = useCallback(() => setGated(false), [])
   const [perfHorizon, setPerfHorizon] = useState<PerfHorizon>(20)
   // Series toggled off on the Total performance chart (click legend to hide/show)
   const [hiddenPerfSeries, setHiddenPerfSeries] = useState<string[]>([])
@@ -531,11 +540,10 @@ export const BriefView: React.FC<BriefViewProps> = ({
     </ChartCard>
   )
 
-  // Editable detail - three equal peer tables (§2.5): Deal details · Purchase costs · Annual cashflow
-  const purchaseDetail = (
-    <div className="grid grid-cols-3 gap-4 items-start">
-        {/* Deal details - the single editable record of the whole deal (§2.5),
-            mirroring the main dashboard's property editor (Property + Loan). */}
+  // Deal details - the single editable record of the whole deal (§2.5),
+  // mirroring the main dashboard's property editor (Property + Loan). Extracted
+  // so the entry gate can also show it in a focused overlay.
+  const dealDetailsCard = (
         <ChartCard title="Deal details" flush background="#F8F6FE" borderColor="#E9D5FF">
           <div className="px-5 pb-5">
           <table className="w-full">
@@ -586,6 +594,12 @@ export const BriefView: React.FC<BriefViewProps> = ({
           </table>
           </div>
         </ChartCard>
+  )
+
+  // Editable detail - three equal peer tables (§2.5): Deal details · Purchase costs · Annual cashflow.
+  const purchaseDetail = (
+    <div className="grid grid-cols-3 gap-4 items-start">
+        {dealDetailsCard}
 
         {/* Purchase costs - one-off line items → Total cash required */}
         <ChartCard title="Purchase costs" flush>
@@ -823,15 +837,19 @@ export const BriefView: React.FC<BriefViewProps> = ({
 
   return (
     <BriefEditContext.Provider value={edit}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 min-w-0">
         {header}
-        {/* Merged content - pulls away on purchase, next brief slides in */}
+        {/* Merged content - pulls away on purchase, next brief slides in.
+            While the entry gate is up, the charts/tables sit fogged behind the
+            Deal-details overlay. */}
         <motion.div
           key={animateKey}
           initial={animateKey === 0 ? false : { opacity: 0, y: 16 }}
           animate={animatePull ? { opacity: 0, y: -32, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="flex flex-col gap-4"
+          className={`flex flex-col gap-4 transition-[filter,opacity] duration-300 ${
+            gated ? 'blur-[3px] opacity-60 pointer-events-none select-none' : ''
+          }`}
         >
           {/* Purchase snapshot - where the cash goes + loan-to-value */}
           {purchaseVisual}
@@ -843,6 +861,35 @@ export const BriefView: React.FC<BriefViewProps> = ({
           {detailBreakdown}
         </motion.div>
       </div>
+
+      {gated && (
+        <div
+          className="fixed top-0 right-0 bottom-0 z-[70] flex items-center justify-center bg-black/25 p-4"
+          style={{ left: 'var(--app-sidebar-width, 240px)' }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); simulate(); } }}
+        >
+          <div className="w-full max-w-lg max-h-[88vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E9EAEB]">
+              <h2 className="text-base font-semibold text-[#181D27]">Set up your purchase</h2>
+              <p className="text-xs text-[#535862] mt-0.5">
+                Tweak the numbers, then simulate to see the full projection.
+              </p>
+            </div>
+            <div className="p-4 overflow-y-auto">
+              {dealDetailsCard}
+            </div>
+            <div className="px-5 py-3 border-t border-[#E9EAEB] flex justify-end">
+              <button
+                onClick={simulate}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition-colors"
+              >
+                Simulate
+                <span aria-hidden>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </BriefEditContext.Provider>
   )
 }

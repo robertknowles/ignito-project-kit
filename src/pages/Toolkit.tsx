@@ -43,7 +43,7 @@ const Toolkit: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-white">
       <AppSidebar />
-      <main className="flex-1 px-8 py-8" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
+      <main className="flex-1 min-w-0 px-8 py-8" style={{ marginLeft: `var(--app-sidebar-width, ${SIDEBAR_WIDTH}px)`, transition: 'margin-left 200ms ease-in-out' }}>
         {showPurchaseBriefCalc ? (
           <PurchaseBriefCalc onBack={() => setShowPurchaseBriefCalc(false)} />
         ) : (
