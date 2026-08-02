@@ -27,6 +27,7 @@ import { TimelineColumn } from './TimelineColumn';
 import { BriefTab } from './BriefTab';
 import { PortfolioTab } from './PortfolioTab';
 import { SignupPromptModal } from './SignupPromptModal';
+import './chat-launcher.css';
 import { ClientInputsTab } from './ClientInputsTab';
 import { RetirementScenarioPanel } from './RetirementScenario/RetirementScenarioPanel';
 import { InfoPopover } from './RetirementScenario/InfoPopover';
@@ -647,11 +648,11 @@ export const Dashboard = ({ viewOnly = false }: { viewOnly?: boolean } = {}) => 
                 onClick={() => setDrawerOpen(!drawerOpen)}
                 title="Ask PropPath AI"
                 aria-label="Open PropPath AI chat"
-                className={`group flex items-center justify-center w-8 h-8 rounded-full text-white shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md hover:shadow-purple-500/30 active:scale-95 ${
-                  drawerOpen ? 'bg-[#6D28D9] ring-2 ring-purple-300' : 'bg-[#7C3AED] hover:bg-[#6D28D9]'
+                className={`chat-launcher-hue group flex items-center justify-center w-8 h-8 rounded-full text-white shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md hover:shadow-purple-500/30 active:scale-95 ${
+                  drawerOpen ? 'bg-[#6D28D9] ring-2 ring-purple-300' : 'bg-[#7C3AED]'
                 }`}
               >
-                <Sparkles size={16} className="transition-transform duration-300 group-hover:rotate-[18deg] group-hover:scale-110" />
+                <Sparkles size={16} className="chat-launcher-icon" />
               </button>
             )}
             {!viewOnly && (

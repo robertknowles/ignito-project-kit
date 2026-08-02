@@ -1,0 +1,35 @@
+/*
+ * AI chat launcher hover animation. On hover the purple circle fills with a
+ * multi-hue purple gradient that flows continuously (looped), and the sparkle
+ * gently twinkles. Idle state stays the flat brand purple.
+ */
+
+@keyframes chatLauncherHue {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.chat-launcher-hue:hover {
+  background-image: linear-gradient(
+    120deg,
+    #5B21B6,
+    #7C3AED,
+    #A855F7,
+    #C084FC,
+    #8B5CF6,
+    #6D28D9,
+    #5B21B6
+  );
+  background-size: 300% 300%;
+  animation: chatLauncherHue 2.6s ease-in-out infinite;
+}
+
+@keyframes chatLauncherTwinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.16) rotate(14deg); }
+}
+
+.chat-launcher-hue:hover .chat-launcher-icon {
+  animation: chatLauncherTwinkle 1.6s ease-in-out infinite;
+}
