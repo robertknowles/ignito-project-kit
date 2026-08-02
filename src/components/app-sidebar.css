@@ -1,0 +1,44 @@
+/*
+ * Whole-sidebar brand fill. When the BA turns on sidebar branding, the aside
+ * gets data-branded="true" and CSS variables (--sb-*) computed from the brand
+ * colour (see AppSidebar.tsx). These rules remap the sidebar's hardcoded
+ * neutrals to those variables so the entire panel takes the brand colour with
+ * readable, contrast-aware text - without editing every element inline.
+ *
+ * Scoped to #app-sidebar so nothing outside the sidebar is affected. Charts and
+ * the rest of the app are never touched.
+ */
+
+#app-sidebar[data-branded='true'] {
+  background: var(--sb-bg) !important;
+  border-right-color: var(--sb-border) !important;
+}
+
+/* Text tiers */
+#app-sidebar[data-branded='true'] .text-\[\#181D27\] { color: var(--sb-fg) !important; }
+#app-sidebar[data-branded='true'] .text-\[\#414651\] { color: var(--sb-fg-muted) !important; }
+#app-sidebar[data-branded='true'] .text-\[\#717680\],
+#app-sidebar[data-branded='true'] .text-\[\#A4A7AE\],
+#app-sidebar[data-branded='true'] .text-neutral-400 { color: var(--sb-fg-faint) !important; }
+
+/* Active-item accent (violet) → contrast-aware active foreground */
+#app-sidebar[data-branded='true'] .text-\[\#7C3AED\] { color: var(--sb-active-fg) !important; }
+
+/* Active / selected backgrounds */
+#app-sidebar[data-branded='true'] .bg-\[\#F5F3FF\],
+#app-sidebar[data-branded='true'] .bg-\[\#F5F5F6\] { background-color: var(--sb-active-bg) !important; }
+
+/* Small avatar chip */
+#app-sidebar[data-branded='true'] .bg-neutral-100 { background-color: var(--sb-active-bg) !important; }
+
+/* Hover backgrounds */
+#app-sidebar[data-branded='true'] .hover\:bg-\[\#F5F5F5\]:hover,
+#app-sidebar[data-branded='true'] .hover\:bg-\[\#F5F5F6\]:hover,
+#app-sidebar[data-branded='true'] .hover\:bg-\[\#E9EAEB\]:hover,
+#app-sidebar[data-branded='true'] .hover\:bg-neutral-50:hover { background-color: var(--sb-hover-bg) !important; }
+
+/* Divider / borders */
+#app-sidebar[data-branded='true'] .border-neutral-200 { border-color: var(--sb-border) !important; }
+
+/* Notification count pill: keep it readable on any brand colour. */
+#app-sidebar[data-branded='true'] .bg-\[\#7C3AED\] { background-color: var(--sb-pill-bg) !important; color: var(--sb-pill-fg) !important; }

@@ -2,20 +2,45 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 
+/** Which chrome surfaces the brand colour is allowed to paint. Charts are
+ *  deliberately excluded so the product's curated palette always looks good. */
+export interface BrandedSurfaces {
+  sidebar: boolean;
+}
+
 export interface BrandingSettings {
   companyName: string;
   logoUrl: string | null;
   primaryColor: string;
   isClientInteractiveEnabled: boolean;
+  brandedSurfaces: BrandedSurfaces;
 }
 
+/** A pending, unsaved branding edit shown live across the app. */
+export type BrandingPreview = {
+  primaryColor?: string;
+  brandedSurfaces?: BrandedSurfaces;
+} | null;
+
 interface BrandingContextType {
+  /** Effective branding = saved values with any live preview merged on top. */
   branding: BrandingSettings;
+  /** Saved values only (no preview) - editors seed/compare against this to
+   *  avoid a feedback loop with their own live preview. */
+  savedBranding: BrandingSettings;
   loading: boolean;
   error: string | null;
   updateBranding: (updates: Partial<BrandingSettings>) => Promise<{ success: boolean; error?: string }>;
   refreshBranding: () => Promise<void>;
+  /** Live preview - set while editing so the real chrome recolours instantly.
+   *  Pass null to clear (revert to saved). Not persisted. */
+  setBrandingPreview: (preview: BrandingPreview) => void;
+  /** Persist the surface toggles. Frontend-only for now (localStorage) until the
+   *  companies.branding_surfaces column lands. */
+  saveBrandedSurfaces: (surfaces: BrandedSurfaces) => void;
 }
+
+const defaultSurfaces: BrandedSurfaces = { sidebar: false };
 
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
@@ -24,6 +49,33 @@ const defaultBranding: BrandingSettings = {
   // company's actual primary colour is fetched from Supabase on first login.
   primaryColor: '#000000',
   isClientInteractiveEnabled: true,
+  brandedSurfaces: defaultSurfaces,
+};
+
+// Surface toggles persist to localStorage for now (frontend-first). Keyed per
+// company so one account's choices never leak into another.
+const SURFACES_PREFIX = 'proppath:branding-surfaces:';
+const surfacesKeyFor = (companyId: string) => `${SURFACES_PREFIX}${companyId}`;
+
+const readSurfaces = (companyId: string | null): BrandedSurfaces => {
+  if (!companyId) return defaultSurfaces;
+  try {
+    const raw = localStorage.getItem(surfacesKeyFor(companyId));
+    if (!raw) return defaultSurfaces;
+    const parsed = JSON.parse(raw);
+    return { sidebar: !!parsed?.sidebar };
+  } catch {
+    return defaultSurfaces;
+  }
+};
+
+const writeSurfaces = (companyId: string | null, surfaces: BrandedSurfaces) => {
+  if (!companyId) return;
+  try {
+    localStorage.setItem(surfacesKeyFor(companyId), JSON.stringify(surfaces));
+  } catch {
+    // ignore quota errors
+  }
 };
 
 // Branding is cached per company so one account's logo/name can never bleed
@@ -48,6 +100,7 @@ const readCachedBranding = (companyId: string | null): BrandingSettings | null =
       primaryColor: parsed.primaryColor,
       isClientInteractiveEnabled:
         parsed.isClientInteractiveEnabled ?? defaultBranding.isClientInteractiveEnabled,
+      brandedSurfaces: defaultSurfaces,
     };
   } catch {
     return null;
@@ -109,7 +162,32 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Live, unsaved edit merged on top of saved branding for instant preview.
+  const [preview, setPreview] = useState<BrandingPreview>(null);
   const { user, companyId, loading: authLoading } = useAuth();
+
+  // What the app actually renders: saved values with any live preview on top.
+  const effectiveBranding: BrandingSettings = {
+    ...branding,
+    primaryColor: preview?.primaryColor ?? branding.primaryColor,
+    brandedSurfaces: preview?.brandedSurfaces ?? branding.brandedSurfaces,
+  };
+
+  // Keep the CSS var in sync with the effective colour so var-driven styles
+  // (and the live preview) update immediately.
+  useEffect(() => {
+    injectCSSVariables(effectiveBranding.primaryColor);
+  }, [effectiveBranding.primaryColor]);
+
+  const setBrandingPreview = useCallback((next: BrandingPreview) => setPreview(next), []);
+
+  const saveBrandedSurfaces = useCallback(
+    (surfaces: BrandedSurfaces) => {
+      writeSurfaces(companyId, surfaces);
+      setBranding((prev) => ({ ...prev, brandedSurfaces: surfaces }));
+    },
+    [companyId],
+  );
 
   const fetchBranding = useCallback(async () => {
     if (!companyId || authLoading) {
@@ -138,6 +216,7 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         logoUrl: data.logo_url,
         primaryColor: data.primary_color || defaultBranding.primaryColor,
         isClientInteractiveEnabled: data.is_client_interactive_enabled ?? true,
+        brandedSurfaces: readSurfaces(companyId),
       };
 
       setBranding(brandingData);
@@ -227,11 +306,14 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const value = {
-    branding,
+    branding: effectiveBranding,
+    savedBranding: branding,
     loading,
     error,
     updateBranding,
     refreshBranding,
+    setBrandingPreview,
+    saveBrandedSurfaces,
   };
 
   return <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>;

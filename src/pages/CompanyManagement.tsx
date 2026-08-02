@@ -38,7 +38,7 @@ export const CompanyManagementContent = () => {
     updateMemberRole,
   } = useCompany();
   
-  const { branding, updateBranding, loading: brandingLoading } = useBranding();
+  const { branding, savedBranding, updateBranding, loading: brandingLoading, setBrandingPreview, saveBrandedSurfaces } = useBranding();
   const { companyId } = useAuth();
   const { toast } = useToast();
 
@@ -51,6 +51,7 @@ export const CompanyManagementContent = () => {
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#6b7280');
+  const [applyToSidebar, setApplyToSidebar] = useState(false);
   const [savingBranding, setSavingBranding] = useState(false);
   const [brandingChanged, setBrandingChanged] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -103,24 +104,35 @@ export const CompanyManagementContent = () => {
 
   // Initialize form values from branding context
   useEffect(() => {
-    if (branding) {
-      setCompanyName(branding.companyName || '');
-      setLogoUrl(branding.logoUrl || '');
-      setPrimaryColor(branding.primaryColor || '#6b7280');
-      setIsClientInteractive(branding.isClientInteractiveEnabled);
+    if (savedBranding) {
+      setCompanyName(savedBranding.companyName || '');
+      setLogoUrl(savedBranding.logoUrl || '');
+      setPrimaryColor(savedBranding.primaryColor || '#6b7280');
+      setIsClientInteractive(savedBranding.isClientInteractiveEnabled);
+      setApplyToSidebar(!!savedBranding.brandedSurfaces?.sidebar);
     }
-  }, [branding]);
+  }, [savedBranding]);
 
-  // Track if branding has changed
+  // Track if branding has changed (compared against SAVED, not the live preview)
   useEffect(() => {
-    if (branding) {
+    if (savedBranding) {
       const hasChanged =
-        companyName !== branding.companyName ||
-        logoUrl !== (branding.logoUrl || '') ||
-        primaryColor !== branding.primaryColor;
+        companyName !== savedBranding.companyName ||
+        logoUrl !== (savedBranding.logoUrl || '') ||
+        primaryColor !== savedBranding.primaryColor ||
+        applyToSidebar !== !!savedBranding.brandedSurfaces?.sidebar;
       setBrandingChanged(hasChanged);
     }
-  }, [companyName, logoUrl, primaryColor, branding]);
+  }, [companyName, logoUrl, primaryColor, applyToSidebar, savedBranding]);
+
+  // Live preview: push the in-progress colour + sidebar toggle to the whole app
+  // so the real sidebar recolours as the BA edits. Cleared on unmount so leaving
+  // without saving reverts to the saved look.
+  useEffect(() => {
+    setBrandingPreview({ primaryColor, brandedSurfaces: { sidebar: applyToSidebar } });
+  }, [primaryColor, applyToSidebar, setBrandingPreview]);
+
+  useEffect(() => () => setBrandingPreview(null), [setBrandingPreview]);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
@@ -131,9 +143,14 @@ export const CompanyManagementContent = () => {
       primaryColor,
     });
 
+    // Sidebar surface toggle persists locally for now (frontend-first).
+    saveBrandedSurfaces({ sidebar: applyToSidebar });
+
     setSavingBranding(false);
 
     if (result.success) {
+      // Clear the live preview - saved values now drive the app.
+      setBrandingPreview(null);
       toast({
         title: 'Branding updated',
         description: 'Your company branding has been saved.',
@@ -411,10 +428,11 @@ export const CompanyManagementContent = () => {
                       {/* Primary Color */}
                       <div className="space-y-2">
                         <Label htmlFor="primary-color" className="body-dark font-medium">
-                          Primary Color
+                          Brand Colour
                         </Label>
                         <p className="meta">
-                          This color will be applied to the navigation icons in the left sidebar.
+                          Choose your colour, then pick where it applies below. Charts always
+                          keep their standard palette so reports stay clear.
                         </p>
                         <div className="flex gap-2">
                           <div className="relative">
@@ -437,31 +455,29 @@ export const CompanyManagementContent = () => {
                       </div>
                     </div>
 
-                    {/* Color Preview */}
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <p className="meta mb-3">Preview</p>
-                      <div className="flex gap-3 items-center">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ backgroundColor: '#f3f4f6' }}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                            <polyline points="9 22 9 12 15 12 15 22"/>
-                          </svg>
+                    {/* Apply to - which surfaces the brand colour paints. Toggling
+                        recolours the real sidebar live (glance left to see it). */}
+                    <div className="mt-6 space-y-3">
+                      <p className="body-dark font-medium">Apply brand colour to</p>
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: applyToSidebar ? `${primaryColor}22` : '#f3f4f6' }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={applyToSidebar ? primaryColor : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="18" height="18" x="3" y="3" rx="2"/>
+                              <path d="M9 3v18"/>
+                            </svg>
+                          </span>
+                          <div>
+                            <p className="body-dark font-medium text-sm">Sidebar</p>
+                            <p className="meta">Active nav item, badges and accents. Preview updates live.</p>
+                          </div>
                         </div>
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ backgroundColor: '#f3f4f6' }}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
-                            <line x1="18" x2="18" y1="20" y2="10"/>
-                            <line x1="12" x2="12" y1="20" y2="4"/>
-                            <line x1="6" x2="6" y1="20" y2="14"/>
-                          </svg>
-                        </div>
-                        <span className="meta ml-2">Navigation icons</span>
+                        <Switch checked={applyToSidebar} onCheckedChange={setApplyToSidebar} />
                       </div>
+                      <p className="meta">More surfaces (nav bar, buttons) coming soon.</p>
                     </div>
 
                     {/* Save Button */}

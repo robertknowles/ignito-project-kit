@@ -41,9 +41,41 @@ import { SidebarRecents } from './SidebarRecents';
 import { ClientSearchModal } from './ClientSearchModal';
 import { BetaFeedbackWidget } from './BetaFeedbackWidget';
 import { useUnreviewedForms } from '@/hooks/useUnreviewedForms';
+import './app-sidebar.css';
 
 export const SIDEBAR_WIDTH = 240; // prototype aside width (§ shell)
 export const SIDEBAR_COLLAPSED_WIDTH = 56; // icon-only rail width when collapsed (ChatGPT-style)
+
+/** Relative luminance (0=black, 1=white) of a #hex colour, for contrast picks. */
+const luminanceOf = (hex: string): number => {
+  let h = (hex || '').replace('#', '').trim();
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6) return 0; // treat unknown as dark → light text
+  const n = parseInt(h, 16);
+  const chan = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+};
+
+/** CSS-variable set for a brand-filled sidebar, contrast-aware to the colour. */
+const buildSidebarTheme = (brand: string): React.CSSProperties => {
+  const dark = luminanceOf(brand) < 0.55; // brand colour is dark → use light text
+  return {
+    '--sb-bg': brand,
+    '--sb-fg': dark ? '#FFFFFF' : '#101828',
+    '--sb-fg-muted': dark ? 'rgba(255,255,255,0.86)' : 'rgba(16,24,40,0.74)',
+    '--sb-fg-faint': dark ? 'rgba(255,255,255,0.60)' : 'rgba(16,24,40,0.52)',
+    '--sb-active-bg': dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)',
+    '--sb-active-fg': dark ? '#FFFFFF' : '#101828',
+    '--sb-hover-bg': dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+    '--sb-border': dark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)',
+    // Notification pill: solid contrasting chip that reads on any brand colour.
+    '--sb-pill-bg': dark ? '#FFFFFF' : '#101828',
+    '--sb-pill-fg': brand,
+  } as React.CSSProperties;
+};
 
 /** Two-letter initials for the active-client avatar. */
 const initialsOf = (name?: string | null): string => {
@@ -95,7 +127,7 @@ const NavItemButton: React.FC<{
           active ? 'text-[#7C3AED]' : 'text-[#717680] group-hover/item:text-[#717680]'
         }`}
       />
-      {/* Collapsed rail: a red dot on the icon stands in for the count pill. */}
+      {/* Collapsed rail: a dot on the icon stands in for the count pill. */}
       {collapsed && count > 0 && (
         <span className="absolute -top-1 -right-0.5 w-2 h-2 rounded-full bg-[#7C3AED] ring-2 ring-white" />
       )}
@@ -140,6 +172,15 @@ export const AppSidebar: React.FC = () => {
   const isClient = role === 'client';
   const collapsed = sidebarCollapsed;
   const width = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
+  // Whole-sidebar brand fill. When on, the panel takes the brand colour and all
+  // text/icons flip to a contrast-aware foreground (light on dark brand colours,
+  // dark on light ones) so it reads well no matter what colour the BA brings.
+  // Exposed as CSS vars consumed by app-sidebar.css. Charts are never touched.
+  const sidebarBranded = !!branding.brandedSurfaces?.sidebar;
+  const sidebarTheme = sidebarBranded
+    ? buildSidebarTheme(branding.primaryColor)
+    : undefined;
 
   // Publish the live sidebar width so page shells can offset their content
   // via `var(--app-sidebar-width)` and animate the reflow when it collapses.
@@ -201,8 +242,9 @@ export const AppSidebar: React.FC = () => {
   return (
     <aside
       id="app-sidebar"
+      data-branded={sidebarBranded ? 'true' : undefined}
       className="fixed left-0 top-0 h-screen z-50 flex flex-col bg-white border-r border-neutral-200 pt-5 transition-[width] duration-200 ease-in-out"
-      style={{ width }}
+      style={{ width, ...sidebarTheme }}
     >
       {/* ── Header: Logo + collapse toggle ── */}
       <div
