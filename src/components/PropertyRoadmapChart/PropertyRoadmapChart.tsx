@@ -181,27 +181,14 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                     const g = byYear.get(e.year);
                     if (g) g.push(e); else byYear.set(e.year, [e]);
                   });
+                // Spread events that share a year horizontally by enough that
+                // their labels (~30-34px wide) clear each other side by side.
+                // This replaces the old vertical "lift" stagger, which stacked
+                // close labels on top of one another and read as a glitch.
+                const SAME_YEAR_SPREAD = 44;
                 byYear.forEach(group => {
-                  group.forEach((e, i) => xOffsets.set(e, (i - (group.length - 1) / 2) * 20));
+                  group.forEach((e, i) => xOffsets.set(e, (i - (group.length - 1) / 2) * SAME_YEAR_SPREAD));
                 });
-                // All labels sit ABOVE their badge (prototype: every amount/year
-                // at top:0 over the pin). Labels closer than ~44px horizontally
-                // stagger one step higher so adjacent events stay legible.
-                const lifts = new Map<RoadmapEvent, number>();
-                let prevX = -Infinity;
-                let prevLift = 0;
-                [...prop.events]
-                  .filter(e => e.type !== 'refinance')
-                  .sort((a, b) => a.year - b.year || (xOffsets.get(a) ?? 0) - (xOffsets.get(b) ?? 0))
-                  .forEach(e => {
-                    const base = scale(e.year);
-                    if (base == null || isNaN(base)) return;
-                    const x = base + (xOffsets.get(e) ?? 0);
-                    const lift = x - prevX < 44 && prevLift === 0 ? 12 : 0;
-                    lifts.set(e, lift);
-                    prevX = x;
-                    prevLift = lift;
-                  });
                 return prop.events.map((evt, evtIdx) => {
                 const cxBase = scale(evt.year);
                 if (cxBase == null || isNaN(cxBase)) return null;
@@ -213,7 +200,7 @@ export const PropertyRoadmapChart: React.FC<PropertyRoadmapChartProps> = ({ disp
                   ? String(evt.year)
                   : (evt.amount != null ? fmt(evt.amount) : null);
                 const labelColor = evt.type === 'purchase' ? UUI.brand600 : UUI.neutral900;
-                const labelY = cy - 14 - (lifts.get(evt) ?? 0);
+                const labelY = cy - 14;
 
                 return (
                   <g
