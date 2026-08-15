@@ -7,6 +7,7 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 /**
@@ -18,16 +19,17 @@ interface ErrorBoundaryState {
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, componentStack: null };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error, componentStack: null };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Surface the crash somewhere useful rather than swallowing it silently.
     console.error('Uncaught error rendering the app:', error, info.componentStack);
+    this.setState({ componentStack: info.componentStack ?? null });
   }
 
   render() {
@@ -45,6 +47,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           >
             Refresh
           </button>
+          {this.state.error && (
+            <pre className="mt-4 max-w-2xl w-full overflow-auto rounded-md bg-gray-100 p-4 text-left text-xs text-red-700 whitespace-pre-wrap">
+              {this.state.error.message}
+              {this.state.componentStack}
+            </pre>
+          )}
         </div>
       );
     }
