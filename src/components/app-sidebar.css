@@ -42,3 +42,18 @@
 
 /* Notification count pill: keep it readable on any brand colour. */
 #app-sidebar[data-branded='true'] .bg-\[\#7C3AED\] { background-color: var(--sb-pill-bg) !important; color: var(--sb-pill-fg) !important; }
+
+/* Floating white surfaces (menus, popovers) rendered inside the sidebar keep
+   their own light-mode palette. The brand-fill overrides above are meant for
+   the sidebar's own chrome; a popover sits on its own white card, so forcing
+   its text to --sb-fg (white) would make it white-on-white and invisible.
+   Mark such surfaces with data-sb-surface to opt them back out. These selectors
+   are more specific than the overrides above, so they win. */
+#app-sidebar[data-branded='true'] [data-sb-surface] .text-\[\#181D27\] { color: #181D27 !important; }
+#app-sidebar[data-branded='true'] [data-sb-surface] .text-\[\#414651\] { color: #414651 !important; }
+#app-sidebar[data-branded='true'] [data-sb-surface] .text-\[\#717680\] { color: #717680 !important; }
+#app-sidebar[data-branded='true'] [data-sb-surface] .text-\[\#A4A7AE\],
+#app-sidebar[data-branded='true'] [data-sb-surface] .text-neutral-400 { color: #A4A7AE !important; }
+#app-sidebar[data-branded='true'] [data-sb-surface] .hover\:bg-\[\#F5F5F5\]:hover,
+#app-sidebar[data-branded='true'] [data-sb-surface] .hover\:bg-\[\#F5F5F6\]:hover,
+#app-sidebar[data-branded='true'] [data-sb-surface] .hover\:bg-\[\#E9EAEB\]:hover { background-color: #F5F5F6 !important; }

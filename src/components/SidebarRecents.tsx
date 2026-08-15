@@ -299,6 +299,7 @@ export const SidebarRecents: React.FC<{ query?: string }> = ({ query = '' }) => 
 
             {isMenuOpen && (
               <div
+                data-sb-surface
                 className="absolute right-1 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-[#E9EAEB] z-[10000] py-1"
                 onClick={(e) => e.stopPropagation()}
               >
