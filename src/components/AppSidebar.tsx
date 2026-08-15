@@ -59,11 +59,20 @@ const luminanceOf = (hex: string): number => {
   return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
 };
 
+// Refined grey-black used in place of pitch #000000 so the default (unbranded)
+// sidebar reads as a soft charcoal rather than pure black.
+const SIDEBAR_NEAR_BLACK = '#1A1A1A';
+
 /** CSS-variable set for a brand-filled sidebar, contrast-aware to the colour. */
 const buildSidebarTheme = (brand: string): React.CSSProperties => {
   const dark = luminanceOf(brand) < 0.55; // brand colour is dark → use light text
+  // Pitch black looks harsh as a full surface; soften it to a grey-black. Real
+  // brand colours (anything but ~#000) are used exactly as the BA set them.
+  const h = (brand || '').replace('#', '').trim().toLowerCase();
+  const isBlack = h === '000000' || h === '000';
+  const bg = isBlack ? SIDEBAR_NEAR_BLACK : brand;
   return {
-    '--sb-bg': brand,
+    '--sb-bg': bg,
     '--sb-fg': dark ? '#FFFFFF' : '#101828',
     '--sb-fg-muted': dark ? 'rgba(255,255,255,0.86)' : 'rgba(16,24,40,0.74)',
     '--sb-fg-faint': dark ? 'rgba(255,255,255,0.60)' : 'rgba(16,24,40,0.52)',
