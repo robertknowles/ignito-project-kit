@@ -40,7 +40,10 @@ interface BrandingContextType {
   saveBrandedSurfaces: (surfaces: BrandedSurfaces) => void;
 }
 
-const defaultSurfaces: BrandedSurfaces = { sidebar: false };
+// New accounts start with a brand-filled sidebar (black by default, since the
+// default primaryColor is #000000). Users can turn this off in white-label
+// settings; an explicit choice is stored per company and overrides this.
+const defaultSurfaces: BrandedSurfaces = { sidebar: true };
 
 const defaultBranding: BrandingSettings = {
   companyName: 'My Company',
