@@ -5,7 +5,9 @@ import { useDataAssumptions } from '../contexts/DataAssumptionsContext';
 import type { TimelineProperty } from '../types/property';
 import { useClient } from '../contexts/ClientContext';
 import { usePropertyInstance } from '../contexts/PropertyInstanceContext';
-import { useExistingPropertiesSafe } from '../contexts/ScenarioSaveContext';
+// Import from the leaf module (not ScenarioSaveContext) to avoid the runtime
+// import cycle ScenarioSave → MultiScenario → affordability → ScenarioSave.
+import { useExistingPropertiesSafe } from '../contexts/scenarioSaveContextCore';
 import { calculateOneOffCosts, calculateDepositBalance } from '../utils/oneOffCostsCalculator';
 import { calculateLMI } from '../utils/lmiCalculator';
 import { calculateStampDuty } from '../utils/stampDutyCalculator';

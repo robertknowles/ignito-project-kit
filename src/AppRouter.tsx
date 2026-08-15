@@ -30,6 +30,7 @@ import { MultiScenarioProvider } from './contexts/MultiScenarioContext'
 import { LayoutProvider } from './contexts/LayoutContext'
 import { CompanyManagement } from './pages/CompanyManagement'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { AdminOnlyRoute } from './components/AdminOnlyRoute'
 import CrmDashboard from './pages/admin/CrmDashboard'
 import CrmPlaybook from './pages/admin/CrmPlaybook'
@@ -49,6 +50,7 @@ import { PostHogProvider, PostHogIdentify } from './lib/posthog'
 
 export function AppRouter() {
   return (
+    <ErrorBoundary>
     <PostHogProvider>
     <AuthProvider>
       <PostHogIdentify />
@@ -267,5 +269,6 @@ export function AppRouter() {
       </CompanyProvider>
     </AuthProvider>
     </PostHogProvider>
+    </ErrorBoundary>
   )
 }

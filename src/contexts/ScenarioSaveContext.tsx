@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { ScenarioSaveContext } from './scenarioSaveContextCore';
 import { useClient } from './ClientContext';
 import { track, EVENTS } from '@/lib/analytics';
 import { usePropertySelection } from './PropertySelectionContext';
@@ -108,7 +109,7 @@ export interface ScenarioData {
   scenarios?: Scenario[];
 }
 
-interface ScenarioSaveContextType {
+export interface ScenarioSaveContextType {
   hasUnsavedChanges: boolean;
   isLoading: boolean;
   /** True while loadClientScenario's async fetch is in flight. */
@@ -165,8 +166,10 @@ interface ScenarioSaveContextType {
   } | null>;
 }
 
-const ScenarioSaveContext = createContext<ScenarioSaveContextType | undefined>(undefined);
-
+// Context object + the outside-provider-safe hook live in a leaf module so that
+// useAffordabilityCalculator can read existing properties without importing this
+// file - breaking the ScenarioSave ↔ MultiScenario ↔ affordability runtime cycle
+// that could crash the bundle with "Cannot access 'X' before initialization".
 export const useScenarioSave = () => {
   const context = useContext(ScenarioSaveContext);
   if (context === undefined) {
@@ -175,10 +178,7 @@ export const useScenarioSave = () => {
   return context;
 };
 
-export const useExistingPropertiesSafe = () => {
-  const context = useContext(ScenarioSaveContext);
-  return context?.existingProperties ?? [];
-};
+export { useExistingPropertiesSafe } from './scenarioSaveContextCore';
 
 export const ScenarioSaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeClient, updateClient } = useClient();
