@@ -353,6 +353,24 @@ export const NewClientView: React.FC = () => {
     }
   }, [])
 
+  // Drop text into the chat box (appending if there's already content) and
+  // re-fit the textarea height. Never runs the simulation. Declared before the
+  // effects below because they list it in their dependency arrays - those deps
+  // are read during render, so a later `const` would be in the temporal dead
+  // zone and crash the whole dashboard ("Cannot access 'pasteIntoPrompt' before
+  // initialization").
+  const pasteIntoPrompt = useCallback((text: string) => {
+    setPrompt((prev) => (prev.trim() ? `${prev.trim()}\n\n${text}` : text))
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (el) {
+        el.style.height = 'auto'
+        el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+        el.focus()
+      }
+    })
+  }, [])
+
   // Arrived here via "Create roadmap" on a received client form: auto-load that
   // client's submitted details into the chat, ready to run. One-shot, and waits
   // for the clients list so we can resolve the name.
@@ -437,20 +455,6 @@ export const NewClientView: React.FC = () => {
       cancelled = true
     }
   }, [detailsModalOpen, clients])
-
-  // Drop text into the chat box (appending if there's already content) and
-  // re-fit the textarea height. Never runs the simulation.
-  const pasteIntoPrompt = useCallback((text: string) => {
-    setPrompt((prev) => (prev.trim() ? `${prev.trim()}\n\n${text}` : text))
-    requestAnimationFrame(() => {
-      const el = textareaRef.current
-      if (el) {
-        el.style.height = 'auto'
-        el.style.height = `${Math.min(el.scrollHeight, 220)}px`
-        el.focus()
-      }
-    })
-  }, [])
 
   const handlePickClientForm = useCallback(
     (client: Client) => {
