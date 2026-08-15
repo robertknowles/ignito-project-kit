@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { SearchIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useClient, type Client } from '@/contexts/ClientContext';
@@ -62,7 +63,11 @@ export const ClientSearchModal: React.FC<{ open: boolean; onClose: () => void }>
     onClose();
   };
 
-  return (
+  // Render at document.body via a portal. This modal is triggered from inside
+  // <aside id="app-sidebar">, and when the sidebar is brand-filled its scoped
+  // CSS force-overrides text-[#...] classes to white !important - which would
+  // turn all of this modal's text white-on-white. Portaling escapes that scope.
+  return createPortal(
     <div
       className="fixed inset-0 z-[9999] bg-black/40 flex justify-center"
       onMouseDown={onClose}
@@ -132,6 +137,7 @@ export const ClientSearchModal: React.FC<{ open: boolean; onClose: () => void }>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
